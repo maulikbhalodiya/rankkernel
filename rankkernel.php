@@ -1,0 +1,155 @@
+<?php
+/**
+ * Plugin Name: RankKernel – Free SEO & Schema Engine
+ * Description: 100% free, lightweight SEO with no paywalls or upsell banners — metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow. Modules that are off cost zero: no hooks, no queries, no bloat.
+ * Version: 0.1.0
+ * Requires at least: 6.5
+ * Requires PHP: 8.1
+ * Author: RankKernel contributors
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: rankkernel
+ * Domain Path: /languages
+ *
+ * @package RankKernel
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Requirement checks BEFORE autoload.
+if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
+	add_action(
+		'admin_notices',
+		static function () {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'RankKernel requires PHP 8.1 or higher. Please upgrade PHP to use this plugin.', 'rankkernel' );
+			echo '</p></div>';
+		}
+	);
+	return;
+}
+
+global $wp_version;
+if ( isset( $wp_version ) && version_compare( $wp_version, '6.5', '<' ) ) {
+	add_action(
+		'admin_notices',
+		static function () {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'RankKernel requires WordPress 6.5 or higher. Please upgrade WordPress to use this plugin.', 'rankkernel' );
+			echo '</p></div>';
+		}
+	);
+	return;
+}
+
+define( 'RANKKERNEL_VERSION', '0.1.0' );
+define( 'RANKKERNEL_FILE', __FILE__ );
+define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );
+define( 'RANKKERNEL_URL', plugin_dir_url( __FILE__ ) );
+
+// Autoload.
+$rankkernel_autoloader = RANKKERNEL_DIR . 'vendor/autoload.php';
+if ( file_exists( $rankkernel_autoloader ) ) {
+	require_once $rankkernel_autoloader;
+}
+
+/**
+ * Activation callback.
+ */
+function rankkernel_activate(): void {
+	// Check requirements at activation — deactivate self if missing.
+	if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
+		deactivate_plugins( plugin_basename( RANKKERNEL_FILE ) );
+		return;
+	}
+	global $wp_version;
+	if ( isset( $wp_version ) && version_compare( $wp_version, '6.5', '<' ) ) {
+		deactivate_plugins( plugin_basename( RANKKERNEL_FILE ) );
+		return;
+	}
+
+	// Seed rankkernel_modules — default ON modules.
+	$default_modules = array( 'metadata', 'sitemaps', 'schema', 'breadcrumbs', 'importer' );
+	if ( false === get_option( 'rankkernel_modules' ) ) {
+		add_option( 'rankkernel_modules', $default_modules );
+	}
+
+	// Seed rankkernel_settings defaults.
+	if ( false === get_option( 'rankkernel_settings' ) ) {
+		$defaults = \RankKernel\Settings\SettingsStore::defaults();
+		add_option( 'rankkernel_settings', $defaults );
+	}
+
+	// Seed db version.
+	if ( false === get_option( 'rankkernel_db_version' ) ) {
+		add_option( 'rankkernel_db_version', '0.0.0', '', false );
+	}
+
+	// Conflict detection: Yoast / Rank Math / SEOPress active.
+	$active_plugins = (array) get_option( 'active_plugins', array() );
+	$conflicts      = array();
+	if ( in_array( 'wordpress-seo/wordpress-seo.php', $active_plugins, true ) ) {
+		$conflicts[] = 'Yoast SEO';
+	}
+	if ( in_array( 'seo-by-rank-math/rank-math.php', $active_plugins, true ) ) {
+		$conflicts[] = 'Rank Math';
+	}
+	if ( in_array( 'wp-seopress/seopress.php', $active_plugins, true ) ) {
+		$conflicts[] = 'SEOPress';
+	}
+
+	if ( array() !== $conflicts ) {
+		update_option( 'rankkernel_conflict_notice', $conflicts );
+	}
+}
+register_activation_hook( __FILE__, 'rankkernel_activate' );
+
+/**
+ * Deactivation callback — leave data intact.
+ */
+function rankkernel_deactivate(): void {
+	// Intentionally leave all data — no destructive flush.
+}
+register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );
+
+/**
+ * Conflict admin notice.
+ */
+function rankkernel_conflict_notice(): void {
+	$conflicts = get_option( 'rankkernel_conflict_notice', array() );
+	if ( array() === $conflicts || ! is_array( $conflicts ) ) {
+		return;
+	}
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	echo '<div class="notice notice-warning is-dismissible"><p>';
+	echo esc_html(
+		sprintf(
+			/* translators: %s: comma-separated list of conflicting plugins */
+			__( 'RankKernel detected another SEO plugin active (%s). Running multiple SEO plugins may cause duplicated meta tags. Please deactivate the one you do not need.', 'rankkernel' ),
+			implode( ', ', $conflicts )
+		)
+	);
+	echo '</p></div>';
+}
+add_action( 'admin_notices', 'rankkernel_conflict_notice' );
+
+// Boot: plugins_loaded priority 10 -> registerCoreServices.
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		\RankKernel\Plugin::getInstance()->registerCoreServices();
+	},
+	10
+);
+
+// Boot: init -> bootModules.
+add_action(
+	'init',
+	static function (): void {
+		\RankKernel\Plugin::getInstance()->bootModules();
+	}
+);
