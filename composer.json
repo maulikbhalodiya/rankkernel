@@ -3,6 +3,12 @@
     "description": "The Free, Zero-Bloat Open-Source SEO Engine for WordPress",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Maulik Bhalodiya",
+            "homepage": "https://github.com/maulikbhalodiya"
+        }
+    ],
     "require": {
         "php": ">=8.1"
     },

@@ -1,5 +1,5 @@
 === RankKernel – Free SEO & Schema Engine ===
-Contributors: rankkernel
+Contributors: maulikbhalodiya
 Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
 Tested up to: 6.8
