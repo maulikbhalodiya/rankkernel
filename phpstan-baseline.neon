@@ -1,0 +1,33 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 2
+			path: src/Modules/Metadata/Context.php
+
+		-
+			message: "#^Right side of && is always true\\.$#"
+			count: 1
+			path: src/Modules/Metadata/Context.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 3
+			path: src/Modules/Metadata/Context.php
+
+		-
+			message: "#^Property WP_Term\\:\\:\\$name \\(string\\) in isset\\(\\) is not nullable\\.$#"
+			count: 1
+			path: src/Modules/Metadata/TagsReplacer.php
+
+		-
+			message: "#^Result of && is always true\\.$#"
+			count: 1
+			path: src/Modules/Metadata/TagsReplacer.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: src/Modules/Metadata/TagsReplacer.php
+
+
