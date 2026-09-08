@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace RankKernel;
 
+use RankKernel\Admin\AdminMenu;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
@@ -102,6 +103,13 @@ final class Plugin {
         $this->services['settings_controller'] = $settingsController;
         $this->services['modules_controller']  = $modulesController;
         $this->services['migrations']          = $migrationRunner;
+
+        // Admin UI — register only on admin screens.
+        if (function_exists('is_admin') && is_admin()) {
+            $adminMenu = new AdminMenu($settingsStore, $enableMap);
+            $adminMenu->register();
+            $this->services['admin_menu'] = $adminMenu;
+        }
 
         // Metadata module (optional, default-ON per activation seed).
         $metadataModule = new MetadataModule($settingsStore, $enableMap);
