@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace RankKernel\Rest;
 
+use RankKernel\Modules\ModuleRegistry;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -30,6 +31,8 @@ final class ModulesController {
 
     /**
      * Known optional module ids.
+     *
+     * Delegates to ModuleRegistry — single source of truth.
      *
      * @var string[]
      */
@@ -96,7 +99,7 @@ final class ModulesController {
      * @return bool|WP_Error
      */
     public function validateModuleId( $value ): bool|WP_Error {
-        if (in_array((string) $value, self::KNOWN_MODULES, true)) {
+        if (ModuleRegistry::has((string) $value)) {
             return true;
         }
 
@@ -116,7 +119,7 @@ final class ModulesController {
     public function toggleModule( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $moduleId = sanitize_text_field((string) $request->get_param('id'));
 
-        if (! in_array($moduleId, self::KNOWN_MODULES, true)) {
+        if (! ModuleRegistry::has($moduleId)) {
             return new WP_Error(
                 'rankkernel_invalid_module',
                 esc_html__('Unknown module id.', 'rankkernel'),
