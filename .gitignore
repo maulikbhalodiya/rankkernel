@@ -1,0 +1,19 @@
+# Dependencies / build artifacts
+/vendor/
+/node_modules/
+/assets/build/
+
+# Test / tool caches
+.phpunit.result.cache
+.phpunit.cache/
+.phpcs-cache.json
+
+# Compiled translations (keep .po sources)
+*.mo
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
