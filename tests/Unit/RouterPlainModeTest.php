@@ -91,17 +91,17 @@ final class RouterPlainModeTest extends TestCase {
 
         $router = $this->makeRouter();
 
-        $this->assertSame('https://example.com/?sitemap=index', $router->indexUrl());
-        $this->assertSame('https://example.com/?sitemap=post', $router->sitemapUrl('post', 1));
+        $this->assertSame('https://example.com/?rankkernel_sitemap=index', $router->indexUrl());
+        $this->assertSame('https://example.com/?rankkernel_sitemap=post', $router->sitemapUrl('post', 1));
         $this->assertStringNotContainsString('sitemap_n', $router->sitemapUrl('post', 1));
-        $this->assertSame('https://example.com/?sitemap=post&sitemap_n=2', $router->sitemapUrl('post', 2));
+        $this->assertSame('https://example.com/?rankkernel_sitemap=post&rankkernel_sitemap_n=2', $router->sitemapUrl('post', 2));
         $this->assertSame(
             'https://example.com/?rankkernel_sitemap_xsl=1',
             $router->xslUrl()
         );
     }
 
-    public function test_query_vars_include_plain_forms(): void {
+    public function test_query_vars_are_prefixed_only(): void {
         $router = $this->makeRouter();
 
         $vars = $router->addQueryVars([ 'p' ]);
@@ -109,8 +109,8 @@ final class RouterPlainModeTest extends TestCase {
         $this->assertContains('rankkernel_sitemap', $vars);
         $this->assertContains('rankkernel_sitemap_n', $vars);
         $this->assertContains('rankkernel_sitemap_xsl', $vars);
-        $this->assertContains('sitemap', $vars);
-        $this->assertContains('sitemap_n', $vars);
+        $this->assertNotContains('sitemap', $vars);
+        $this->assertNotContains('sitemap_n', $vars);
     }
 
     public function test_intercept_serves_plain_set_var(): void {
@@ -133,7 +133,7 @@ final class RouterPlainModeTest extends TestCase {
 
         Functions\when('get_query_var')->alias(
             static function (string $key, mixed $default = ''): mixed {
-                if ('sitemap' === $key) {
+                if ('rankkernel_sitemap' === $key) {
                     return 'blog';
                 }
 
@@ -169,7 +169,7 @@ final class RouterPlainModeTest extends TestCase {
 
         Functions\when('get_query_var')->alias(
             static function (string $key, mixed $default = ''): mixed {
-                if ('sitemap' === $key) {
+                if ('rankkernel_sitemap' === $key) {
                     return 'index';
                 }
 
@@ -193,7 +193,7 @@ final class RouterPlainModeTest extends TestCase {
 
         Functions\when('get_query_var')->alias(
             static function (string $key, mixed $default = ''): mixed {
-                if ('sitemap' === $key) {
+                if ('rankkernel_sitemap' === $key) {
                     return 'post';
                 }
 
@@ -201,7 +201,7 @@ final class RouterPlainModeTest extends TestCase {
             }
         );
 
-        $this->assertFalse($router->disableCanonical('https://example.com/?sitemap=post'));
+        $this->assertFalse($router->disableCanonical('https://example.com/?rankkernel_sitemap=post'));
     }
 
     public function test_sitemap_xml_redirects_to_index(): void {

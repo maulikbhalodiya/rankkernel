@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Sitemaps\Provider;
 
+use RankKernel\Modules\Metadata\MetaPayload;
+
 /**
  * Provides sitemap entries for public post types.
  */
@@ -17,16 +19,21 @@ class PostsProvider {
     /**
      * Inner LIKE text matching a noindex payload.
      *
-     * The payload is stored as one JSON meta row, MetaPayload::defaults
-     * writes the robots object first among nested objects and index first
-     * inside robots, and wp_json_encode preserves PHP array order, so this
-     * fragment is stable. Escaped with $wpdb->esc_like and wrapped in % %
-     * at query time, passed via $wpdb->prepare as %s.
+     * The payload is stored as a PHP serialized meta row (object typed
+     * meta is serialized by core on write), so matching uses the
+     * serialized shape: key "index" is exactly 5 chars, followed by
+     * boolean false. No other sanitized key can emit these exact bytes
+     * (title and image are 5 chars but always serialize as strings, and
+     * no sibling robots key is named exactly "index"). Residual risk is
+     * a post whose free text literally contains this byte sequence,
+     * which is astronomically unlikely and documented here. Escaped with
+     * $wpdb->esc_like and wrapped in % % at query time, passed via
+     * $wpdb->prepare as %s.
      */
-    private const NOINDEX_LIKE_INNER = '"robots":{"index":false';
+    private const NOINDEX_LIKE_INNER = 's:5:"index";b:0';
 
     /**
-     * Meta key holding the JSON payload.
+     * Meta key holding the serialized payload.
      */
     private const META_KEY = '_rankkernel_meta_data';
 
@@ -187,7 +194,7 @@ class PostsProvider {
     /**
      * Drop rows whose stored canonical differs from the permalink.
      *
-     * One batched postmeta read for the page, JSON decode per row, fail
+     * One batched postmeta read for the page, decode per row, fail
      * open (unreadable payloads and unresolvable permalinks are kept).
      * Counts stay unfiltered, an approximation the competitors accept too.
      *
@@ -304,9 +311,9 @@ class PostsProvider {
                 continue;
             }
 
-            $payload = json_decode($metaRow['meta_value'], true);
+            $payload = MetaPayload::decodeMetaValue($metaRow['meta_value']);
 
-            if (! is_array($payload) || ! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
+            if (! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
                 continue;
             }
 

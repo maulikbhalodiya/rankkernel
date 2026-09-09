@@ -52,13 +52,15 @@ final class SitemapExclusionsTest extends TestCase {
     }
 
     private function seedPosts(): void {
-        $noindex = (string) json_encode([
+        // Real serialize() output, exactly what core writes for object
+        // typed meta. Never hand write serialized strings.
+        $noindex = serialize([
             'title'       => '',
             'description' => '',
             'canonical'   => '',
             'robots'      => [ 'index' => false, 'follow' => true ],
         ]);
-        $index   = (string) json_encode([
+        $index   = serialize([
             'title'       => '',
             'description' => '',
             'canonical'   => '',
@@ -95,7 +97,7 @@ final class SitemapExclusionsTest extends TestCase {
 
         foreach ($this->db->queries as $sql) {
             // Prepare escapes quotes (like the real wpdb), unescape first.
-            if (str_contains(stripcslashes($sql), '"robots":{"index":false')) {
+            if (str_contains(stripcslashes($sql), 's:5:"index";b:0')) {
                 $found = true;
                 break;
             }
@@ -120,7 +122,7 @@ final class SitemapExclusionsTest extends TestCase {
     public function test_noindex_term_excluded_from_entries_and_counts(): void {
         $this->seedPosts();
 
-        $noindex = (string) json_encode([
+        $noindex = serialize([
             'robots' => [ 'index' => false, 'follow' => true ],
         ]);
 

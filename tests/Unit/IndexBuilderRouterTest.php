@@ -96,7 +96,7 @@ final class IndexBuilderRouterTest extends TestCase {
 
         $xml = $builder->buildIndexXml();
 
-        $this->assertStringContainsString('<loc>https://example.com/?sitemap=post</loc>', $xml);
+        $this->assertStringContainsString('<loc>https://example.com/?rankkernel_sitemap=post</loc>', $xml);
         $this->assertStringContainsString('rankkernel_sitemap_xsl=1', $xml);
         $this->assertStringContainsString('ver=9.9.9-test', $xml);
     }

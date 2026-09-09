@@ -56,11 +56,15 @@ class Router {
             return home_url('/sitemap_index.xml');
         }
 
-        return add_query_arg('sitemap', 'index', home_url('/'));
+        return add_query_arg('rankkernel_sitemap', 'index', home_url('/'));
     }
 
     /**
      * URL of a sitemap set page, pretty or plain form.
+     *
+     * Plain mode uses prefixed GET params (rankkernel_sitemap and
+     * rankkernel_sitemap_n) because WordPress core owns the unprefixed
+     * sitemap query var and ours must never collide with it.
      *
      * @param string $set  Set name (post type slug, taxonomy name, authors).
      * @param int    $page Page number, 1 based.
@@ -74,10 +78,10 @@ class Router {
             return home_url('/' . $set . '-sitemap' . $suffix . '.xml');
         }
 
-        $args = [ 'sitemap' => $set ];
+        $args = [ 'rankkernel_sitemap' => $set ];
 
         if ($page > 1) {
-            $args['sitemap_n'] = $page;
+            $args['rankkernel_sitemap_n'] = $page;
         }
 
         return add_query_arg($args, home_url('/'));
@@ -119,9 +123,9 @@ class Router {
     /**
      * Add query vars.
      *
-     * Both the pretty rewrite targets (rankkernel_sitemap) and the plain
-     * permalink forms (sitemap, sitemap_n) are registered, so plain URLs
-     * like ?sitemap=post survive request parsing.
+     * Only prefixed names are registered. WordPress core owns the
+     * unprefixed sitemap query var, so plain URLs use the same prefixed
+     * params as the rewrite targets.
      *
      * @param string[] $vars Existing vars.
      * @return string[]
@@ -130,32 +134,8 @@ class Router {
         $vars[] = 'rankkernel_sitemap';
         $vars[] = 'rankkernel_sitemap_n';
         $vars[] = 'rankkernel_sitemap_xsl';
-        $vars[] = 'sitemap';
-        $vars[] = 'sitemap_n';
 
         return $vars;
-    }
-
-    /**
-     * Read a sitemap query var, preferring the pretty rewrite target,
-     * falling back to the plain permalink form.
-     *
-     * @param string $pretty Pretty rewrite var name.
-     * @param string $plain  Plain permalink var name.
-     * @return mixed Var value or empty string.
-     */
-    private function sitemapVar(string $pretty, string $plain): mixed {
-        $value = get_query_var($pretty);
-
-        if (is_string($value) && '' !== $value) {
-            return $value;
-        }
-
-        if (! empty($value)) {
-            return $value;
-        }
-
-        return get_query_var($plain, '');
     }
 
     /**
@@ -177,7 +157,7 @@ class Router {
             return;
         }
 
-        $sitemap = $this->sitemapVar('rankkernel_sitemap', 'sitemap');
+        $sitemap = get_query_var('rankkernel_sitemap');
         $xsl     = get_query_var('rankkernel_sitemap_xsl');
 
         $isSitemap = (is_string($sitemap) && '' !== $sitemap)
@@ -203,7 +183,7 @@ class Router {
         }
 
         $set = is_string($sitemap) ? $sitemap : '';
-        $n   = $this->sitemapVar('rankkernel_sitemap_n', 'sitemap_n');
+        $n   = get_query_var('rankkernel_sitemap_n');
         $page = 1;
 
         if (is_string($n) && '' !== $n) {
@@ -291,16 +271,13 @@ class Router {
     /**
      * Disable canonical redirect for sitemap requests.
      *
-     * Covers pretty rewrite vars and plain permalink vars, so plain
-     * forms like ?sitemap=post are never redirected away.
-     *
      * @param mixed $redirect Current redirect value.
      * @return mixed False when sitemap var present, otherwise original.
      */
     public function disableCanonical(mixed $redirect): mixed {
-        $sitemap = $this->sitemapVar('rankkernel_sitemap', 'sitemap');
+        $sitemap = get_query_var('rankkernel_sitemap');
         $xsl     = get_query_var('rankkernel_sitemap_xsl');
-        $n       = $this->sitemapVar('rankkernel_sitemap_n', 'sitemap_n');
+        $n       = get_query_var('rankkernel_sitemap_n');
 
         if ((is_string($sitemap) && '' !== $sitemap) || ! empty($xsl) || ! empty($n)) {
             return false;

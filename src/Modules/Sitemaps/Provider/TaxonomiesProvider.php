@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Sitemaps\Provider;
 
+use RankKernel\Modules\Metadata\MetaPayload;
+
 /**
  * Provides sitemap entries for public taxonomies.
  */
@@ -17,16 +19,21 @@ class TaxonomiesProvider {
     /**
      * Inner LIKE text matching a noindex term payload.
      *
-     * Same JSON coupling as the posts provider (robots object first among
-     * nested objects, index first inside robots, array order preserved by
-     * encoding), matched against the _rankkernel_term_data row keyed by
-     * term id. Escaped with $wpdb->esc_like and wrapped in % % at query
+     * Same serialized shape as the posts provider (object typed meta is
+     * serialized by core on write): key "index" exactly 5 chars followed
+     * by boolean false, matched against the _rankkernel_term_data row
+     * keyed by term id. No other sanitized key can emit these exact
+     * bytes (title and image are 5 chars but always serialize as
+     * strings, and no sibling robots key is named exactly "index").
+     * Residual risk is a term whose free text literally contains this
+     * byte sequence, which is astronomically unlikely and documented
+     * here. Escaped with $wpdb->esc_like and wrapped in % % at query
      * time, passed via $wpdb->prepare as %s.
      */
-    private const NOINDEX_LIKE_INNER = '"robots":{"index":false';
+    private const NOINDEX_LIKE_INNER = 's:5:"index";b:0';
 
     /**
-     * Meta key holding the JSON term payload.
+     * Meta key holding the serialized term payload.
      */
     private const META_KEY = '_rankkernel_term_data';
 
@@ -197,7 +204,7 @@ class TaxonomiesProvider {
     /**
      * Drop rows whose stored canonical differs from the term link.
      *
-     * One batched termmeta read for the page, JSON decode per row, fail
+     * One batched termmeta read for the page, decode per row, fail
      * open (unreadable payloads and unresolvable links are kept). Counts
      * stay unfiltered, an approximation the competitors accept too.
      *
@@ -315,9 +322,9 @@ class TaxonomiesProvider {
                 continue;
             }
 
-            $payload = json_decode($metaRow['meta_value'], true);
+            $payload = MetaPayload::decodeMetaValue($metaRow['meta_value']);
 
-            if (! is_array($payload) || ! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
+            if (! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
                 continue;
             }
 

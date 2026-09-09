@@ -59,7 +59,7 @@
 ### 2.1 XML Sitemaps ✅ (issue #7, PR #8)
 **Get:** `sitemap_index.xml` + per-type sitemaps, images inside, XSL stylesheet, cache ON, WP core sitemap takeover.
 **Do:**
-- Router: rewrite `sitemap_index.xml`, `([^.]+)-sitemap([0-9]+)?\.xml`, `sitemap.xsl`; query vars `sitemap/sitemap_n/xsl`; `pre_get_posts` intercept → build → `exit`; disable `redirect_canonical` for sitemap requests; strip theme actions on render
+- Router: rewrite `sitemap_index.xml`, `([^.]+)-sitemap([0-9]+)?\.xml`, `sitemap.xsl`; query vars `rankkernel_sitemap/rankkernel_sitemap_n/rankkernel_sitemap_xsl`; `pre_get_posts` intercept → build → `exit`; disable `redirect_canonical` for sitemap requests; strip theme actions on render
 - Providers: per-post-type, per-taxonomy, authors, direct `$wpdb` listing, 1000 entries/page, `lastmod` from `post_modified_gmt`
 - XSL: bundled, served via `readfile` + long cache headers
 - Cache: object-cache group `rankkernel-sitemaps` + transients; **default ON** (filter `rankkernel/sitemap/enable_cache`); validators (global + per-type) stored in options; invalidation queued on `save_post/edited_terms/user_register`, flushed on `shutdown`

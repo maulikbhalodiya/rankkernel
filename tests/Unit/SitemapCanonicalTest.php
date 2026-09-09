@@ -59,8 +59,11 @@ final class SitemapCanonicalTest extends TestCase {
             [ 'ID' => 4, 'post_modified_gmt' => '2026-01-01 00:00:00' ],
         ];
         $this->db->postmetaRows = [
-            1 => (string) json_encode([ 'canonical' => 'https://example.com/hello/' ]),
-            2 => (string) json_encode([ 'canonical' => 'https://example.com/elsewhere/' ]),
+            // Real serialize() output, exactly what core writes for
+            // object typed meta. Never hand write serialized strings.
+            1 => serialize([ 'canonical' => 'https://example.com/hello/' ]),
+            2 => serialize([ 'canonical' => 'https://example.com/elsewhere/' ]),
+            // Older JSON rows still decode (backward compatibility).
             3 => (string) json_encode([ 'canonical' => '' ]),
             4 => 'not-json{{{',
         ];
@@ -82,7 +85,7 @@ final class SitemapCanonicalTest extends TestCase {
             [ 'term_id' => 11, 'lastmod_gmt' => '2026-01-01 00:00:00' ],
         ];
         $this->db->termmetaRows = [
-            10 => (string) json_encode([ 'canonical' => 'https://example.com/cat/' ]),
+            10 => serialize([ 'canonical' => 'https://example.com/cat/' ]),
             11 => (string) json_encode([ 'canonical' => 'https://example.com/other/' ]),
         ];
 

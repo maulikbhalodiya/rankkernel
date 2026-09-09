@@ -156,10 +156,10 @@ final class SitemapRobotsDirectiveTest extends TestCase {
         $router = $module->getRouter();
 
         $this->assertNotNull($router);
-        $this->assertSame('https://example.com/?sitemap=index', $router->indexUrl());
+        $this->assertSame('https://example.com/?rankkernel_sitemap=index', $router->indexUrl());
 
         $out = $module->sitemapDirective("User-agent: *\n");
 
-        $this->assertStringContainsString('Sitemap: https://example.com/?sitemap=index', $out);
+        $this->assertStringContainsString('Sitemap: https://example.com/?rankkernel_sitemap=index', $out);
     }
 }
