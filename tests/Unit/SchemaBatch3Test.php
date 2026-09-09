@@ -187,7 +187,11 @@ final class SchemaBatch3Test extends TestCase {
             $this->assertSame($type, SchemaTypes::normalize($type));
         }
 
-        $this->assertSame('Article', SchemaTypes::normalize('Carousel'));
+        foreach ([ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'Carousel', 'QAPage', 'ItemList' ] as $type) {
+            $this->assertSame($type, SchemaTypes::normalize($type));
+        }
+
+        $this->assertSame('Article', SchemaTypes::normalize('CarouselRide'));
     }
 
     public function test_product_not_needed_for_wrong_type_or_empty_name(): void {
