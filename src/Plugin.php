@@ -15,6 +15,7 @@ use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
+use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
 use RankKernel\Rest\ModulesController;
 use RankKernel\Rest\SettingsController;
@@ -115,6 +116,10 @@ final class Plugin {
         // Metadata module (optional, default-ON per activation seed).
         $metadataModule = new MetadataModule($settingsStore, $enableMap);
         $moduleManager->register($metadataModule);
+
+        // Schema module (optional, default-ON per activation seed).
+        $schemaModule = new SchemaModule($settingsStore, $enableMap);
+        $moduleManager->register($schemaModule);
 
         // Sitemaps module (optional, default-ON per activation seed).
         $sitemapsModule = new SitemapsModule($enableMap);

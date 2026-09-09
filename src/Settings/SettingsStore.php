@@ -39,6 +39,11 @@ final class SettingsStore {
         'webmaster_yandex',
         'webmaster_baidu',
         'webmaster_pinterest',
+        'site_represents',
+        'org_name',
+        'org_logo',
+        'org_sameas',
+        'website_search_action',
         'purge_on_uninstall',
     ];
 
@@ -69,8 +74,13 @@ final class SettingsStore {
             'webmaster_bing'       => '',
             'webmaster_yandex'     => '',
             'webmaster_baidu'      => '',
-            'webmaster_pinterest'  => '',
-            'purge_on_uninstall'   => null,
+        'webmaster_pinterest'  => '',
+        'site_represents'        => 'organization',
+        'org_name'               => '',
+        'org_logo'               => '',
+        'org_sameas'             => [],
+        'website_search_action'  => true,
+        'purge_on_uninstall'   => null,
         ];
     }
 
@@ -150,6 +160,53 @@ final class SettingsStore {
      * @return mixed Sanitized value.
      */
     private function sanitize( string $key, mixed $value ): mixed {
+        if ('site_represents' === $key) {
+            $normalized = strtolower(trim((string) $value));
+
+            if (in_array($normalized, [ 'organization', 'person' ], true)) {
+                return $normalized;
+            }
+
+            return 'organization';
+        }
+
+        if ('org_logo' === $key) {
+            return esc_url_raw(trim((string) $value));
+        }
+
+        if ('org_sameas' === $key) {
+            $urls = is_array($value) ? array_values($value) : [ $value ];
+            $clean = [];
+
+            foreach ($urls as $url) {
+                $sanitized = esc_url_raw(trim((string) $url));
+
+                if ('' !== $sanitized) {
+                    $clean[] = $sanitized;
+                }
+            }
+
+            return $clean;
+        }
+
+        if ('website_search_action' === $key) {
+            if (is_bool($value)) {
+                return $value;
+            }
+
+            $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+            if (null !== $normalized) {
+                return $normalized;
+            }
+
+            return (bool) $value;
+        }
+
+        if ('org_name' === $key) {
+            return sanitize_text_field((string) $value);
+        }
+
         if ('purge_on_uninstall' === $key) {
             if (null === $value) {
                 return null;
