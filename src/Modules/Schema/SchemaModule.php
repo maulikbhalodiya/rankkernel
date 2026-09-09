@@ -16,6 +16,8 @@ use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
 use RankKernel\Modules\Schema\Pieces\ArticlePiece;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
+use RankKernel\Modules\Schema\Pieces\FaqPiece;
+use RankKernel\Modules\Schema\Pieces\HowtoPiece;
 use RankKernel\Modules\Schema\Pieces\OrganizationPiece;
 use RankKernel\Modules\Schema\Pieces\PersonPiece;
 use RankKernel\Modules\Schema\Pieces\WebpagePiece;
@@ -200,6 +202,8 @@ final class SchemaModule implements ModuleInterface {
         $generator->register(new BreadcrumbPiece());
         $generator->register(new PersonPiece());
         $generator->register(new ArticlePiece());
+        $generator->register(new FaqPiece());
+        $generator->register(new HowtoPiece());
 
         $this->generator = $generator;
 
