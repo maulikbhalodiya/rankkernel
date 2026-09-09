@@ -124,11 +124,21 @@ class SitemapsModule implements ModuleInterface {
         $this->cache  = $cache;
         $this->router = $router;
 
+        // The builder renders sitemap URLs, the router owns them, so the
+        // router is attached after construction (constructor injection
+        // would cycle builder into router into builder).
+        $builder->setRouter($router);
+
         $router->register();
         $cache->registerHooks();
 
         // Core sitemap takeover.
         add_filter('wp_sitemaps_enabled', '__return_false');
+
+        // Sitemap directive for robots.txt, registered here (not in the
+        // router) because it needs the blog_public option plus the
+        // router URL, and the module owns both at boot time.
+        add_filter('robots_txt', [ $this, 'sitemapDirective' ], 1);
 
         add_action('admin_notices', [ $this, 'renderTakeoverNotice' ]);
 
@@ -154,6 +164,40 @@ class SitemapsModule implements ModuleInterface {
             flush_rewrite_rules(false);
             update_option('rankkernel_rewrite_rules_version', RANKKERNEL_VERSION, false);
         }
+    }
+
+    /**
+     * Append our sitemap index directive to robots.txt output.
+     *
+     * Strips every existing Sitemap line first, which removes the stale
+     * WordPress core wp-sitemap.xml line (it 404s since core sitemaps are
+     * disabled) and keeps repeated calls idempotent. Private blogs are
+     * returned untouched.
+     *
+     * @param string $output Robots.txt output.
+     */
+    public function sitemapDirective(string $output): string {
+        if (! (bool) get_option('blog_public')) {
+            return $output;
+        }
+
+        $stripped = preg_replace('/^Sitemap:.*$/mi', '', $output);
+
+        if (! is_string($stripped)) {
+            $stripped = $output;
+        }
+
+        $base = rtrim($stripped);
+
+        $indexUrl = null !== $this->router ? $this->router->indexUrl() : home_url('/sitemap_index.xml');
+
+        $directive = 'Sitemap: ' . esc_url($indexUrl);
+
+        if ('' === $base) {
+            return $directive . "\n";
+        }
+
+        return $base . "\n" . $directive . "\n";
     }
 
     /**
