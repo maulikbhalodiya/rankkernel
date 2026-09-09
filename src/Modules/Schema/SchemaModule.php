@@ -39,6 +39,7 @@ use RankKernel\Modules\Schema\Pieces\SoftwarePiece;
 use RankKernel\Modules\Schema\Pieces\VideoPiece;
 use RankKernel\Modules\Schema\Pieces\WebpagePiece;
 use RankKernel\Modules\Schema\Pieces\WebsitePiece;
+use RankKernel\Modules\Schema\blocks\FaqBlock;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
@@ -172,9 +173,14 @@ final class SchemaModule implements ModuleInterface {
 
     /**
      * Boot hooks (only if enabled, caller enforces).
+     *
+     * Registers the after tags render hook plus the FAQ block. Boot
+     * itself fires on init, so the block registration inside already
+     * happens on init and stays behind the enable map gate.
      */
     public function boot(): void {
         add_action('rankkernel/head/after_tags', [ $this, 'render' ], 10);
+        ( new FaqBlock() )->register();
     }
 
     /**
