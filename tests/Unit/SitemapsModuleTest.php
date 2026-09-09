@@ -166,6 +166,22 @@ final class SitemapsModuleTest extends TestCase {
         $this->assertSame(1, $flushes, 'Second boot with a matching version must not flush again');
     }
 
+    public function test_xsl_uses_namespaced_xpaths(): void {
+        // The generated XML declares the sitemap namespace as its default
+        // namespace, so unprefixed XPaths match nothing and browsers render
+        // an empty table. This regression guards the prefix pairing.
+        $xslPath = dirname(__DIR__, 2) . '/src/Modules/Sitemaps/sitemap.xsl';
+        $xsl     = (string) file_get_contents($xslPath);
+
+        $this->assertStringContainsString('xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9"', $xsl);
+        $this->assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $xsl);
+        $this->assertStringContainsString('sm:sitemapindex/sm:sitemap', $xsl);
+        $this->assertStringContainsString('sm:urlset/sm:url', $xsl);
+        $this->assertStringContainsString('image:image/image:loc', $xsl);
+        $this->assertStringNotContainsString('select="sitemapindex/sitemap"', $xsl);
+        $this->assertStringNotContainsString('select="urlset/url"', $xsl);
+    }
+
     public function test_ping_fires_only_on_publish(): void {
         Functions\when('add_filter')->justReturn(true);
         Functions\when('add_action')->justReturn(true);

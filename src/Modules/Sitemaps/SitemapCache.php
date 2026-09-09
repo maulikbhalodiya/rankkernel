@@ -103,6 +103,45 @@ class SitemapCache {
     }
 
     /**
+     * Read a cached array payload (for example the sitemap set map).
+     *
+     * Uses the global validator only, so any content change invalidates it.
+     *
+     * @param string   $key     Cache key.
+     * @param callable $builder Builds the map on a cache miss.
+     * @return array<string, int> Set name to page count map.
+     */
+    public function getMap(string $key, callable $builder): array {
+        if (! $this->isEnabled()) {
+            return (array) $builder();
+        }
+
+        $cached = $this->getFromStore($key, 1);
+
+        if (is_array($cached) && isset($cached['map']) && is_array($cached['map'])) {
+            $currentGlobal = (string) get_option(self::VALIDATOR_GLOBAL, '');
+            $cachedGlobal  = isset($cached['validator_global']) ? (string) $cached['validator_global'] : '';
+
+            if ($cachedGlobal === $currentGlobal) {
+                return $cached['map'];
+            }
+        }
+
+        $map = (array) $builder();
+
+        $this->setToStore(
+            $key,
+            1,
+            [
+                'map'              => $map,
+                'validator_global' => (string) get_option(self::VALIDATOR_GLOBAL, ''),
+            ]
+        );
+
+        return $map;
+    }
+
+    /**
      * Store XML in cache with current validators.
      *
      * @param string $set  Set name.

@@ -92,6 +92,8 @@ class Router {
         if (! empty($xslVal)) {
             $this->xsl->output();
 
+            $this->finishRender();
+
             return;
         }
 
@@ -121,17 +123,49 @@ class Router {
 
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
             echo $xml;
-        } else {
-            $xml = $this->cache->get(
-                $set,
-                $page,
-                fn (): string => $this->builder->buildEntriesXml($set, $page)
-            );
 
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
-            echo $xml;
+            $this->finishRender();
+
+            return;
         }
 
+        // Unknown set names and out-of-range pages 404, mirroring Yoast:
+        // an empty urlset with HTTP 200 would advertise a broken sitemap.
+        // The set map rides the sitemap cache, so a warm cache answers
+        // without provider queries.
+        $sets = $this->cache->getMap(
+            'sets',
+            fn (): array => $this->builder->getSetsWithPageCounts()
+        );
+        $pages = (int) ( $sets[ $set ] ?? 0 );
+
+        if ($pages < 1 || $page > $pages) {
+            if (! headers_sent()) {
+                status_header(404);
+                nocache_headers();
+            }
+
+            $this->finishRender();
+
+            return;
+        }
+
+        $xml = $this->cache->get(
+            $set,
+            $page,
+            fn (): string => $this->builder->buildEntriesXml($set, $page)
+        );
+
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
+        echo $xml;
+
+        $this->finishRender();
+    }
+
+    /**
+     * Finish a sitemap render: exit unless running under tests.
+     */
+    private function finishRender(): void {
         if (! defined('RANKKERNEL_TESTING')) {
             exit;
         }

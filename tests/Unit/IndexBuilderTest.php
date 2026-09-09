@@ -193,4 +193,27 @@ final class IndexBuilderTest extends TestCase {
         $this->assertStringNotContainsString('<image:image>', $xml);
         $this->assertStringContainsString('<loc>https://example.com/no-image/</loc>', $xml);
     }
+
+    public function test_has_set_true_only_for_populated_sets(): void {
+        $builder = $this->makeBuilderWithCounts([
+            'post'         => 2500,
+            'page'         => 0,
+            'tax_category' => 5,
+        ], 1000);
+
+        $this->assertTrue($builder->hasSet('post'));
+        $this->assertTrue($builder->hasSet('category'));
+        $this->assertFalse($builder->hasSet('page'), 'Empty sets must not count as existing');
+        $this->assertFalse($builder->hasSet('nonexistent'));
+    }
+
+    public function test_get_set_page_count_math(): void {
+        $builder = $this->makeBuilderWithCounts([
+            'post' => 2500,
+        ], 1000);
+
+        $this->assertSame(3, $builder->getSetPageCount('post'));
+        $this->assertSame(0, $builder->getSetPageCount('page'));
+        $this->assertSame(0, $builder->getSetPageCount('nonexistent'));
+    }
 }

@@ -131,6 +131,116 @@ final class RouterTest extends TestCase {
         $this->assertStringContainsString('<sitemapindex>index</sitemapindex>', $out);
     }
 
+    public function test_intercept_renders_known_set(): void {
+        $builder = Mockery::mock(IndexBuilder::class);
+        $builder->shouldReceive('buildEntriesXml')->once()->with('blog', 1)->andReturn('<urlset>blog urls</urlset>');
+
+        $cache = Mockery::mock(SitemapCache::class);
+        $cache->shouldReceive('getMap')->once()->with('sets', Mockery::type('callable'))->andReturn([ 'blog' => 2, 'page' => 1 ]);
+        $cache->shouldReceive('get')->once()->andReturnUsing(
+            static function (string $set, int $page, callable $cb): string {
+                return (string) $cb();
+            }
+        );
+
+        $xsl = Mockery::mock(XslStylesheet::class);
+        $xsl->shouldReceive('output')->never();
+
+        $router = new Router($builder, $cache, $xsl);
+
+        Functions\when('get_query_var')->alias(
+            static function (string $key, mixed $default = ''): mixed {
+                if ('rankkernel_sitemap' === $key) {
+                    return 'blog';
+                }
+
+                return $default;
+            }
+        );
+
+        $query = Mockery::mock(WP_Query::class);
+
+        ob_start();
+        $router->intercept($query);
+        $out = ob_get_clean();
+
+        $this->assertStringContainsString('<urlset>blog urls</urlset>', $out);
+    }
+
+    public function test_intercept_404s_unknown_set(): void {
+        $builder = Mockery::mock(IndexBuilder::class);
+        $builder->shouldReceive('buildEntriesXml')->never();
+
+        $cache = Mockery::mock(SitemapCache::class);
+        $cache->shouldReceive('getMap')->once()->with('sets', Mockery::type('callable'))->andReturn([ 'blog' => 2 ]);
+        $cache->shouldReceive('get')->never();
+
+        $xsl = Mockery::mock(XslStylesheet::class);
+        $xsl->shouldReceive('output')->never();
+
+        $router = new Router($builder, $cache, $xsl);
+
+        Functions\when('get_query_var')->alias(
+            static function (string $key, mixed $default = ''): mixed {
+                if ('rankkernel_sitemap' === $key) {
+                    return 'post';
+                }
+
+                return $default;
+            }
+        );
+
+        Functions\when('nocache_headers')->justReturn(null);
+        Functions\expect('status_header')->once()->with(404);
+
+        $query = Mockery::mock(WP_Query::class);
+
+        ob_start();
+        $router->intercept($query);
+        ob_end_clean();
+
+        $this->assertTrue(true);
+    }
+
+    public function test_intercept_404s_page_out_of_range(): void {
+        $builder = Mockery::mock(IndexBuilder::class);
+        $builder->shouldReceive('buildEntriesXml')->never();
+
+        $cache = Mockery::mock(SitemapCache::class);
+        $cache->shouldReceive('getMap')->once()->with('sets', Mockery::type('callable'))->andReturn([ 'blog' => 2 ]);
+        $cache->shouldReceive('get')->never();
+
+        $xsl = Mockery::mock(XslStylesheet::class);
+        $xsl->shouldReceive('output')->never();
+
+        $router = new Router($builder, $cache, $xsl);
+
+        Functions\when('get_query_var')->alias(
+            static function (string $key, mixed $default = ''): mixed {
+                if ('rankkernel_sitemap' === $key) {
+                    return 'blog';
+                }
+
+                if ('rankkernel_sitemap_n' === $key) {
+                    return '3';
+                }
+
+                return $default;
+            }
+        );
+
+        Functions\when('nocache_headers')->justReturn(null);
+        Functions\expect('status_header')->once()->with(404);
+
+        $query = Mockery::mock(WP_Query::class);
+
+        ob_start();
+        $router->intercept($query);
+        ob_end_clean();
+
+        $this->assertTrue(true);
+    }
+
     public function test_intercept_renders_xsl(): void {
         $builder = Mockery::mock(IndexBuilder::class);
         $cache   = Mockery::mock(SitemapCache::class);

@@ -187,6 +187,28 @@ class IndexBuilder {
      * @param int    $page Page number, 1 based.
      * @return string XML.
      */
+    /**
+     * Whether a sitemap set exists at all.
+     *
+     * Used to 404 unknown set names instead of rendering an empty urlset.
+     *
+     * @param string $set Set name (post type slug, taxonomy name, authors).
+     */
+    public function hasSet(string $set): bool {
+        return array_key_exists($set, $this->getSetsWithPageCounts());
+    }
+
+    /**
+     * Page count for a set, or zero when the set is unknown.
+     *
+     * @param string $set Set name.
+     */
+    public function getSetPageCount(string $set): int {
+        $sets = $this->getSetsWithPageCounts();
+
+        return (int) ( $sets[ $set ] ?? 0 );
+    }
+
     public function buildEntriesXml(string $set, int $page): string {
         $page    = max(1, $page);
         $perPage = $this->getPerPage();
