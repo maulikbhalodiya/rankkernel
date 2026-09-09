@@ -21,7 +21,7 @@
 
 | | |
 |---|---|
-| Version | 0.1.0-dev · main @ 223 tests / 716 assertions · gates green |
+| Version | 0.1.0-dev · main @ 322 tests / 1219 assertions · gates green |
 | Done | Phase 0, Phase 1, roadmap #5, sitemaps #7 and #9, schema core #11 (unmerged) |
 | Next | Phase 2 → Schema FAQ/HowTo + commerce (issue #11, same branch) |
 | Merged | Issues #1 #2 → PRs #3 #4 |
