@@ -27,6 +27,9 @@ final class SchemaTypes {
     /**
      * Supported type names.
      *
+     * Batch 3 adds the commerce, media, and professional types. Unknown
+     * values still fall back to the automatic type.
+     *
      * @var string[]
      */
     public const SUPPORTED = [
@@ -39,9 +42,14 @@ final class SchemaTypes {
         'Product',
         'Recipe',
         'Event',
+        'Service',
         'VideoObject',
         'ImageObject',
+        'Book',
         'Course',
+        'JobPosting',
+        'SoftwareApplication',
+        'MusicRecording',
         'LocalBusiness',
         'Review',
     ];

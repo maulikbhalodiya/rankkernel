@@ -15,11 +15,21 @@ use RankKernel\Modules\Metadata\TagsReplacer;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
 use RankKernel\Modules\Schema\Pieces\ArticlePiece;
+use RankKernel\Modules\Schema\Pieces\BookPiece;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
+use RankKernel\Modules\Schema\Pieces\CoursePiece;
+use RankKernel\Modules\Schema\Pieces\EventPiece;
 use RankKernel\Modules\Schema\Pieces\FaqPiece;
 use RankKernel\Modules\Schema\Pieces\HowtoPiece;
+use RankKernel\Modules\Schema\Pieces\JobPostingPiece;
+use RankKernel\Modules\Schema\Pieces\MusicPiece;
 use RankKernel\Modules\Schema\Pieces\OrganizationPiece;
 use RankKernel\Modules\Schema\Pieces\PersonPiece;
+use RankKernel\Modules\Schema\Pieces\ProductPiece;
+use RankKernel\Modules\Schema\Pieces\RecipePiece;
+use RankKernel\Modules\Schema\Pieces\ServicePiece;
+use RankKernel\Modules\Schema\Pieces\SoftwarePiece;
+use RankKernel\Modules\Schema\Pieces\VideoPiece;
 use RankKernel\Modules\Schema\Pieces\WebpagePiece;
 use RankKernel\Modules\Schema\Pieces\WebsitePiece;
 use RankKernel\Settings\SettingsStore;
@@ -204,6 +214,16 @@ final class SchemaModule implements ModuleInterface {
         $generator->register(new ArticlePiece());
         $generator->register(new FaqPiece());
         $generator->register(new HowtoPiece());
+        $generator->register(new ProductPiece());
+        $generator->register(new RecipePiece());
+        $generator->register(new EventPiece());
+        $generator->register(new ServicePiece());
+        $generator->register(new VideoPiece());
+        $generator->register(new BookPiece());
+        $generator->register(new CoursePiece());
+        $generator->register(new JobPostingPiece());
+        $generator->register(new SoftwarePiece());
+        $generator->register(new MusicPiece());
 
         $this->generator = $generator;
 
