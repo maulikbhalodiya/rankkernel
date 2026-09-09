@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace RankKernel;
 
 use RankKernel\Admin\AdminMenu;
+use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
@@ -111,6 +112,10 @@ final class Plugin {
             $adminMenu = new AdminMenu($settingsStore, $enableMap);
             $adminMenu->register();
             $this->services['admin_menu'] = $adminMenu;
+
+            $schemaMetabox = new SchemaMetabox();
+            $schemaMetabox->register();
+            $this->services['schema_metabox'] = $schemaMetabox;
         }
 
         // Metadata module (optional, default-ON per activation seed).
