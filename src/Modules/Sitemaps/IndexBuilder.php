@@ -34,6 +34,51 @@ class IndexBuilder {
     }
 
     /**
+     * Router for sitemap URLs, set after construction (the router
+     * itself needs this builder, so constructor injection would cycle).
+     */
+    private ?Router $router = null;
+
+    /**
+     * Set the router used for sitemap URLs.
+     *
+     * @param Router $router Router instance.
+     */
+    public function setRouter(Router $router): void {
+        $this->router = $router;
+    }
+
+    /**
+     * URL of a sitemap set page, via the router when wired.
+     *
+     * Without a router (older unit tests) this falls back to the
+     * pretty permalink form, which is byte identical to the router output.
+     *
+     * @param string $set  Set name.
+     * @param int    $page Page number, 1 based.
+     */
+    private function sitemapLoc(string $set, int $page): string {
+        if (null !== $this->router) {
+            return $this->router->sitemapUrl($set, $page);
+        }
+
+        $suffix = $page > 1 ? (string) $page : '';
+
+        return home_url('/' . $set . '-sitemap' . $suffix . '.xml');
+    }
+
+    /**
+     * Base URL of the XSL stylesheet, via the router when wired.
+     */
+    private function xslBase(): string {
+        if (null !== $this->router) {
+            return $this->router->xslUrl();
+        }
+
+        return home_url('/sitemap.xsl');
+    }
+
+    /**
      * Stylesheet version for the XSL reference, explicit over global.
      */
     private function stylesheetVersion(): string {
@@ -168,7 +213,7 @@ class IndexBuilder {
     public function buildIndexXml(): string {
         $sets = $this->getSetsWithPageCounts();
 
-        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), home_url('/sitemap.xsl')));
+        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), $this->xslBase()));
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $hrefEsc = htmlspecialchars($xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8');
@@ -177,8 +222,7 @@ class IndexBuilder {
 
         foreach ($sets as $set => $pages) {
             for ($i = 1; $i <= $pages; $i++) {
-                $suffix = $i > 1 ? (string) $i : '';
-                $loc    = home_url('/' . $set . '-sitemap' . $suffix . '.xml');
+                $loc    = $this->sitemapLoc($set, $i);
                 $loc    = esc_url($loc);
                 $date   = (string) mysql2date(DATE_W3C, current_time('mysql', true), false);
                 $locEsc = htmlspecialchars($loc, ENT_QUOTES | ENT_XML1, 'UTF-8');
@@ -227,7 +271,7 @@ class IndexBuilder {
 
         $entries = $this->getEntriesForSet($set, $page, $perPage);
 
-        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), home_url('/sitemap.xsl')));
+        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), $this->xslBase()));
 
         $hrefEsc2 = htmlspecialchars($xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";

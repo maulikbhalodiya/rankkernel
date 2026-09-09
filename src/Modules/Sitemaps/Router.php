@@ -31,6 +31,70 @@ class Router {
     }
 
     /**
+     * Cached pretty permalink check, one option read per request.
+     */
+    private ?bool $prettyCache = null;
+
+    /**
+     * Whether pretty permalinks are enabled.
+     */
+    private function usingPrettyPermalinks(): bool {
+        if (null === $this->prettyCache) {
+            $structure = get_option('permalink_structure');
+
+            $this->prettyCache = is_string($structure) && '' !== $structure;
+        }
+
+        return $this->prettyCache;
+    }
+
+    /**
+     * URL of the sitemap index, pretty or plain form.
+     */
+    public function indexUrl(): string {
+        if ($this->usingPrettyPermalinks()) {
+            return home_url('/sitemap_index.xml');
+        }
+
+        return add_query_arg('sitemap', 'index', home_url('/'));
+    }
+
+    /**
+     * URL of a sitemap set page, pretty or plain form.
+     *
+     * @param string $set  Set name (post type slug, taxonomy name, authors).
+     * @param int    $page Page number, 1 based.
+     */
+    public function sitemapUrl(string $set, int $page = 1): string {
+        $page = max(1, $page);
+
+        if ($this->usingPrettyPermalinks()) {
+            $suffix = $page > 1 ? (string) $page : '';
+
+            return home_url('/' . $set . '-sitemap' . $suffix . '.xml');
+        }
+
+        $args = [ 'sitemap' => $set ];
+
+        if ($page > 1) {
+            $args['sitemap_n'] = $page;
+        }
+
+        return add_query_arg($args, home_url('/'));
+    }
+
+    /**
+     * URL of the XSL stylesheet, pretty or plain form.
+     */
+    public function xslUrl(): string {
+        if ($this->usingPrettyPermalinks()) {
+            return home_url('/sitemap.xsl');
+        }
+
+        return add_query_arg('rankkernel_sitemap_xsl', '1', home_url('/'));
+    }
+
+    /**
      * Register hooks.
      */
     public function register(): void {
@@ -55,6 +119,10 @@ class Router {
     /**
      * Add query vars.
      *
+     * Both the pretty rewrite targets (rankkernel_sitemap) and the plain
+     * permalink forms (sitemap, sitemap_n) are registered, so plain URLs
+     * like ?sitemap=post survive request parsing.
+     *
      * @param string[] $vars Existing vars.
      * @return string[]
      */
@@ -62,8 +130,32 @@ class Router {
         $vars[] = 'rankkernel_sitemap';
         $vars[] = 'rankkernel_sitemap_n';
         $vars[] = 'rankkernel_sitemap_xsl';
+        $vars[] = 'sitemap';
+        $vars[] = 'sitemap_n';
 
         return $vars;
+    }
+
+    /**
+     * Read a sitemap query var, preferring the pretty rewrite target,
+     * falling back to the plain permalink form.
+     *
+     * @param string $pretty Pretty rewrite var name.
+     * @param string $plain  Plain permalink var name.
+     * @return mixed Var value or empty string.
+     */
+    private function sitemapVar(string $pretty, string $plain): mixed {
+        $value = get_query_var($pretty);
+
+        if (is_string($value) && '' !== $value) {
+            return $value;
+        }
+
+        if (! empty($value)) {
+            return $value;
+        }
+
+        return get_query_var($plain, '');
     }
 
     /**
@@ -72,7 +164,20 @@ class Router {
      * @param WP_Query $query Query object.
      */
     public function intercept(WP_Query $query): void {
-        $sitemap = get_query_var('rankkernel_sitemap');
+        // Legacy /sitemap.xml redirects to the index, same as the
+        // leading SEO plugins, so the short URL never 404s.
+        $wp      = $GLOBALS['wp'] ?? null;
+        $request = (is_object($wp) && property_exists($wp, 'request')) ? $wp->request : null;
+
+        if (is_string($request) && 'sitemap.xml' === trim($request, '/')) {
+            wp_safe_redirect($this->indexUrl(), 301);
+
+            $this->finishRender();
+
+            return;
+        }
+
+        $sitemap = $this->sitemapVar('rankkernel_sitemap', 'sitemap');
         $xsl     = get_query_var('rankkernel_sitemap_xsl');
 
         $isSitemap = (is_string($sitemap) && '' !== $sitemap)
@@ -98,7 +203,7 @@ class Router {
         }
 
         $set = is_string($sitemap) ? $sitemap : '';
-        $n   = get_query_var('rankkernel_sitemap_n');
+        $n   = $this->sitemapVar('rankkernel_sitemap_n', 'sitemap_n');
         $page = 1;
 
         if (is_string($n) && '' !== $n) {
@@ -186,13 +291,16 @@ class Router {
     /**
      * Disable canonical redirect for sitemap requests.
      *
+     * Covers pretty rewrite vars and plain permalink vars, so plain
+     * forms like ?sitemap=post are never redirected away.
+     *
      * @param mixed $redirect Current redirect value.
      * @return mixed False when sitemap var present, otherwise original.
      */
     public function disableCanonical(mixed $redirect): mixed {
-        $sitemap = get_query_var('rankkernel_sitemap');
+        $sitemap = $this->sitemapVar('rankkernel_sitemap', 'sitemap');
         $xsl     = get_query_var('rankkernel_sitemap_xsl');
-        $n       = get_query_var('rankkernel_sitemap_n');
+        $n       = $this->sitemapVar('rankkernel_sitemap_n', 'sitemap_n');
 
         if ((is_string($sitemap) && '' !== $sitemap) || ! empty($xsl) || ! empty($n)) {
             return false;
