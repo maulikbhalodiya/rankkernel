@@ -109,12 +109,9 @@ class Router {
             $page = max(1, (int) $n);
         }
 
-        if (! headers_sent()) {
-            header('Content-Type: application/xml; charset=UTF-8');
-            header('X-Robots-Tag: noindex, follow');
-        }
-
         if ('index' === $set) {
+            $this->sendXmlHeaders();
+
             $xml = $this->cache->get(
                 'index',
                 1,
@@ -142,13 +139,18 @@ class Router {
         if ($pages < 1 || $page > $pages) {
             if (! headers_sent()) {
                 status_header(404);
+                header('Content-Type: text/plain; charset=UTF-8');
                 nocache_headers();
             }
+
+            echo 'Sitemap not found.';
 
             $this->finishRender();
 
             return;
         }
+
+        $this->sendXmlHeaders();
 
         $xml = $this->cache->get(
             $set,
@@ -168,6 +170,16 @@ class Router {
     private function finishRender(): void {
         if (! defined('RANKKERNEL_TESTING')) {
             exit;
+        }
+    }
+
+    /**
+     * Send sitemap XML headers (only on successful 200 renders).
+     */
+    private function sendXmlHeaders(): void {
+        if (! headers_sent()) {
+            header('Content-Type: application/xml; charset=UTF-8');
+            header('X-Robots-Tag: noindex, follow');
         }
     }
 

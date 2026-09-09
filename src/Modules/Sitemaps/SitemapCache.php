@@ -81,7 +81,7 @@ class SitemapCache {
             return (string) $builder();
         }
 
-        $cached = $this->getFromStore($set, $page);
+        $cached = $this->getFromStore($this->cacheKey($set, $page));
 
         if (is_array($cached) && isset($cached['xml']) && is_string($cached['xml'])) {
             $currentGlobal = (string) get_option(self::VALIDATOR_GLOBAL, '');
@@ -116,7 +116,7 @@ class SitemapCache {
             return (array) $builder();
         }
 
-        $cached = $this->getFromStore($key, 1);
+        $cached = $this->getFromStore($this->mapKey($key));
 
         if (is_array($cached) && isset($cached['map']) && is_array($cached['map'])) {
             $currentGlobal = (string) get_option(self::VALIDATOR_GLOBAL, '');
@@ -130,8 +130,7 @@ class SitemapCache {
         $map = (array) $builder();
 
         $this->setToStore(
-            $key,
-            1,
+            $this->mapKey($key),
             [
                 'map'              => $map,
                 'validator_global' => (string) get_option(self::VALIDATOR_GLOBAL, ''),
@@ -155,7 +154,7 @@ class SitemapCache {
             'validator_set'    => (string) get_option(self::VALIDATOR_PREFIX . $set, ''),
         ];
 
-        $this->setToStore($set, $page, $payload);
+        $this->setToStore($this->cacheKey($set, $page), $payload);
     }
 
     /**
@@ -270,13 +269,10 @@ class SitemapCache {
     /**
      * Get from store, handles object cache vs transient fallback.
      *
-     * @param string $set  Set name.
-     * @param int    $page Page number.
+     * @param string $key Final cache key.
      * @return mixed Cached payload or null.
      */
-    private function getFromStore(string $set, int $page): mixed {
-        $key = $this->cacheKey($set, $page);
-
+    private function getFromStore(string $key): mixed {
         if (function_exists('wp_using_ext_object_cache') && wp_using_ext_object_cache()) {
             $found = false;
             $value = wp_cache_get($key, self::GROUP, false, $found);
@@ -288,7 +284,7 @@ class SitemapCache {
             return null;
         }
 
-        $transientKey = self::TRANSIENT_PREFIX . $set . '_' . (string) $page;
+        $transientKey = self::TRANSIENT_PREFIX . $key;
         $value        = get_transient($transientKey);
 
         if (false === $value) {
@@ -301,20 +297,17 @@ class SitemapCache {
     /**
      * Set to store.
      *
-     * @param string $set     Set name.
-     * @param int    $page    Page number.
+     * @param string $key     Final cache key.
      * @param mixed  $payload Payload to store.
      */
-    private function setToStore(string $set, int $page, mixed $payload): void {
-        $key = $this->cacheKey($set, $page);
-
+    private function setToStore(string $key, mixed $payload): void {
         if (function_exists('wp_using_ext_object_cache') && wp_using_ext_object_cache()) {
             wp_cache_set($key, $payload, self::GROUP, 0);
 
             return;
         }
 
-        $transientKey = self::TRANSIENT_PREFIX . $set . '_' . (string) $page;
+        $transientKey = self::TRANSIENT_PREFIX . $key;
         set_transient($transientKey, $payload, 0);
     }
 
@@ -326,7 +319,17 @@ class SitemapCache {
      * @return string
      */
     private function cacheKey(string $set, int $page): string {
-        return 'rankkernel_sitemap_' . $set . '_' . (string) $page;
+        return 'xml_' . $set . '_' . (string) $page;
+    }
+
+    /**
+     * Map cache key, namespaced away from XML keys so a post type named
+     * sets or index can never collide with internal payloads.
+     *
+     * @param string $key Map key.
+     */
+    private function mapKey(string $key): string {
+        return 'map_' . $key . '_1';
     }
 
     /**

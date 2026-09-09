@@ -183,10 +183,6 @@ class IndexBuilder {
     /**
      * Build entries XML for a set and page.
      *
-     * @param string $set  Set name.
-     * @param int    $page Page number, 1 based.
-     * @return string XML.
-     */
     /**
      * Whether a sitemap set exists at all.
      *

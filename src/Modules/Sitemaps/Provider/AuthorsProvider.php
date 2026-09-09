@@ -46,13 +46,27 @@ class AuthorsProvider {
             return 0;
         }
 
+        // Authors of public content only: internal types (flamingo, forms,
+        // oembed cache) publish rows that must not create author entries.
+        $publicTypes = get_post_types([ 'public' => true ], 'names');
+        if (! is_array($publicTypes) || [] === $publicTypes) {
+            return 0;
+        }
+
+        $types = array_values(array_filter($publicTypes, static fn (mixed $v): bool => is_string($v) && '' !== $v));
+        if ([] === $types) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($types), '%s'));
+
+        // phpcs:ignore Generic.Files.LineLength.TooLong
+        $sql = "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders)";
+
+        $args = array_merge([ $sql, 'publish' ], $types);
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $count = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s",
-                'publish'
-            )
-        );
+        $count = $wpdb->get_var($wpdb->prepare(...$args));
 
         return (int) $count;
     }
@@ -80,17 +94,26 @@ class AuthorsProvider {
         $perPage = max(1, $perPage);
         $offset  = ( $page - 1 ) * $perPage;
 
+        $publicTypes = get_post_types([ 'public' => true ], 'names');
+        if (! is_array($publicTypes) || [] === $publicTypes) {
+            return [];
+        }
+
+        $types = array_values(array_filter($publicTypes, static fn (mixed $v): bool => is_string($v) && '' !== $v));
+        if ([] === $types) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($types), '%s'));
+
+        $sql = "SELECT post_author, MAX(post_modified_gmt) as lastmod_gmt FROM {$wpdb->posts}"
+            . " WHERE post_status = %s AND post_type IN ($placeholders)"
+            . ' GROUP BY post_author ORDER BY post_author ASC LIMIT %d OFFSET %d';
+
+        $args = array_merge([ $sql, 'publish' ], $types, [ $perPage, $offset ]);
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, Generic.Files.LineLength.TooLong
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                // phpcs:ignore Generic.Files.LineLength.TooLong
-                "SELECT post_author, MAX(post_modified_gmt) as lastmod_gmt FROM {$wpdb->posts} WHERE post_status = %s GROUP BY post_author ORDER BY post_author ASC LIMIT %d OFFSET %d",
-                'publish',
-                $perPage,
-                $offset
-            ),
-            ARRAY_A
-        );
+        $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
 
         if (! is_array($rows) || [] === $rows) {
             return [];

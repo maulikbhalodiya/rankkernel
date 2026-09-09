@@ -115,7 +115,7 @@ final class SitemapCacheTest extends TestCase {
         );
 
         // Seed cache with old validators.
-        $store['transient_rankkernel_sitemap_post_1'] = [
+        $store['transient_rankkernel_sitemap_xml_post_1'] = [
             'xml'              => '<cached>old</cached>',
             'validator_global' => 'old_global',
             'validator_set'    => 'old_set',
