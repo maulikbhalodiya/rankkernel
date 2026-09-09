@@ -27,8 +27,9 @@ final class SchemaTypes {
     /**
      * Supported type names.
      *
-     * Batch 3 adds the commerce, media, and professional types. Unknown
-     * values still fall back to the automatic type.
+     * Batch 3 adds the commerce, media, and professional types. Batch 4
+     * adds the Pro giveaway types. Unknown values still fall back to
+     * the automatic type.
      *
      * @var string[]
      */
@@ -52,6 +53,13 @@ final class SchemaTypes {
         'MusicRecording',
         'LocalBusiness',
         'Review',
+        'Movie',
+        'ClaimReview',
+        'Dataset',
+        'PodcastEpisode',
+        'Carousel',
+        'QAPage',
+        'ItemList',
     ];
 
     /**
