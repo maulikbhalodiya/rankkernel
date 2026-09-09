@@ -303,6 +303,7 @@ final class SitemapSettingsFakeWpdb {
             $out[] = [
                 'ID'                => $row['ID'],
                 'post_modified_gmt' => $row['post_modified_gmt'],
+                'post_content'      => $row['post_content'] ?? '',
             ];
         }
 

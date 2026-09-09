@@ -65,6 +65,7 @@ final class SitemapSettingsAdminTest extends TestCase {
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
         Functions\when('admin_url')->alias(static fn (string $p = ''): string => 'https://example.com/wp-admin/' . ltrim($p, '/'));
         Functions\when('home_url')->alias(static fn (string $p = ''): string => 'https://example.com' . $p);
+        Functions\when('add_query_arg')->alias(static fn (mixed $k = '', mixed $v = '', string $u = ''): string => $u . (str_contains($u, '?') ? '&' : '?') . (string) $k . '=' . (string) $v);
         Functions\when('wp_nonce_field')->justReturn('');
         Functions\when('submit_button')->justReturn('');
         Functions\when('checked')->alias(

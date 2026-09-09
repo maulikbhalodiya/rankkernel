@@ -62,7 +62,7 @@ class IndexBuilder {
      */
     private function sitemapLoc(string $set, int $page): string {
         if (null !== $this->router) {
-            return $this->router->sitemapUrl($set, $page);
+            return Router::sitemapUrl($set, $page);
         }
 
         $suffix = $page > 1 ? (string) $page : '';
@@ -75,7 +75,7 @@ class IndexBuilder {
      */
     private function xslBase(): string {
         if (null !== $this->router) {
-            return $this->router->xslUrl();
+            return Router::xslUrl();
         }
 
         return home_url('/sitemap.xsl');
@@ -296,7 +296,11 @@ class IndexBuilder {
             $loc = esc_url($loc);
 
             $lastmod = (string) $entry['lastmod'];
-            $image   = $entry['image'];
+            $images  = $entry['images'];
+
+            if (! is_array($images)) {
+                $images = [];
+            }
 
             $locEsc = htmlspecialchars($loc, ENT_QUOTES | ENT_XML1, 'UTF-8');
             $xml .= '  <url>' . "\n";
@@ -307,7 +311,11 @@ class IndexBuilder {
                 $xml .= '    <lastmod>' . $lastEsc . '</lastmod>' . "\n";
             }
 
-            if (is_string($image) && '' !== $image) {
+            foreach ($images as $image) {
+                if (! is_string($image) || '' === $image) {
+                    continue;
+                }
+
                 $image = esc_url($image);
                 $imgEsc = htmlspecialchars($image, ENT_QUOTES | ENT_XML1, 'UTF-8');
                 $xml .= '    <image:image>' . "\n";
@@ -329,7 +337,7 @@ class IndexBuilder {
      * @param string $set     Set name.
      * @param int    $page    Page number.
      * @param int    $perPage Per page.
-     * @return array<int, array{loc: string, lastmod: string, image: string|null}>
+     * @return array<int, array{loc: string, lastmod: string, images: array<int, string>}>
      */
     private function getEntriesForSet(string $set, int $page, int $perPage): array {
         // Check posts provider first.

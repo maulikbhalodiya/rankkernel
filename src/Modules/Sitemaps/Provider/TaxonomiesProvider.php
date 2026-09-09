@@ -178,7 +178,7 @@ class TaxonomiesProvider {
      * @param string $taxonomy Taxonomy name.
      * @param int    $page     Page number, 1 based.
      * @param int    $perPage  Entries per page.
-     * @return array<int, array{loc: string, lastmod: string, image: string|null}>
+     * @return array<int, array{loc: string, lastmod: string, images: string[]}>
      */
     public function getEntries(string $taxonomy, int $page, int $perPage): array {
         global $wpdb;
@@ -289,7 +289,7 @@ class TaxonomiesProvider {
             $entries[] = [
                 'loc'     => $link,
                 'lastmod' => $lastmod,
-                'image'   => null,
+                'images'  => [],
             ];
         }
 

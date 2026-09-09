@@ -189,7 +189,7 @@ class SitemapsModule implements ModuleInterface {
 
         $base = rtrim($stripped);
 
-        $indexUrl = null !== $this->router ? $this->router->indexUrl() : home_url('/sitemap_index.xml');
+        $indexUrl = null !== $this->router ? Router::indexUrl() : home_url('/sitemap_index.xml');
 
         $directive = 'Sitemap: ' . esc_url($indexUrl);
 

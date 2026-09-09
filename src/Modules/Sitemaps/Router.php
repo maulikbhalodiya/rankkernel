@@ -31,28 +31,23 @@ class Router {
     }
 
     /**
-     * Cached pretty permalink check, one option read per request.
-     */
-    private ?bool $prettyCache = null;
-
-    /**
      * Whether pretty permalinks are enabled.
+     *
+     * Reads the option on each call (WordPress keeps options in memory,
+     * so no extra query happens) to stay correct under test doubles
+     * and mid-request option changes.
      */
-    private function usingPrettyPermalinks(): bool {
-        if (null === $this->prettyCache) {
-            $structure = get_option('permalink_structure');
+    private static function usingPrettyPermalinks(): bool {
+        $structure = get_option('permalink_structure');
 
-            $this->prettyCache = is_string($structure) && '' !== $structure;
-        }
-
-        return $this->prettyCache;
+        return is_string($structure) && '' !== $structure;
     }
 
     /**
      * URL of the sitemap index, pretty or plain form.
      */
-    public function indexUrl(): string {
-        if ($this->usingPrettyPermalinks()) {
+    public static function indexUrl(): string {
+        if (self::usingPrettyPermalinks()) {
             return home_url('/sitemap_index.xml');
         }
 
@@ -69,10 +64,10 @@ class Router {
      * @param string $set  Set name (post type slug, taxonomy name, authors).
      * @param int    $page Page number, 1 based.
      */
-    public function sitemapUrl(string $set, int $page = 1): string {
+    public static function sitemapUrl(string $set, int $page = 1): string {
         $page = max(1, $page);
 
-        if ($this->usingPrettyPermalinks()) {
+        if (self::usingPrettyPermalinks()) {
             $suffix = $page > 1 ? (string) $page : '';
 
             return home_url('/' . $set . '-sitemap' . $suffix . '.xml');
@@ -90,8 +85,8 @@ class Router {
     /**
      * URL of the XSL stylesheet, pretty or plain form.
      */
-    public function xslUrl(): string {
-        if ($this->usingPrettyPermalinks()) {
+    public static function xslUrl(): string {
+        if (self::usingPrettyPermalinks()) {
             return home_url('/sitemap.xsl');
         }
 
@@ -150,7 +145,7 @@ class Router {
         $request = (is_object($wp) && property_exists($wp, 'request')) ? $wp->request : null;
 
         if (is_string($request) && 'sitemap.xml' === trim($request, '/')) {
-            wp_safe_redirect($this->indexUrl(), 301);
+            wp_safe_redirect(self::indexUrl(), 301);
 
             $this->finishRender();
 

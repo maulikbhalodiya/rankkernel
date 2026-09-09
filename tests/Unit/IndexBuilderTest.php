@@ -150,7 +150,7 @@ final class IndexBuilderTest extends TestCase {
             [
                 'loc'     => 'https://example.com/hello/',
                 'lastmod' => '2026-01-01T00:00:00+00:00',
-                'image'   => 'https://example.com/image.jpg',
+                'images'  => [ 'https://example.com/image.jpg', 'https://example.com/second.jpg' ],
             ],
         ])->byDefault();
 
@@ -184,7 +184,7 @@ final class IndexBuilderTest extends TestCase {
             [
                 'loc'     => 'https://example.com/no-image/',
                 'lastmod' => '2026-02-02T00:00:00+00:00',
-                'image'   => null,
+                'images'  => [],
             ],
         ])->byDefault();
 

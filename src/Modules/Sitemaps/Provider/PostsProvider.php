@@ -131,7 +131,7 @@ class PostsProvider {
      * @param string $postType Post type slug.
      * @param int    $page     Page number, 1 based.
      * @param int    $perPage  Entries per page.
-     * @return array<int, array{loc: string, lastmod: string, image: string|null}>
+     * @return array<int, array{loc: string, lastmod: string, images: string[]}>
      */
     public function getEntries(string $postType, int $page, int $perPage): array {
         if ('attachment' === $postType) {
@@ -153,7 +153,7 @@ class PostsProvider {
         $params  = [ $postType, 'publish', $like ];
         $exclude = $this->excludeClause($this->excludedPostIds(), 'p.ID', $params);
 
-        $sql = "SELECT p.ID, p.post_modified_gmt FROM {$wpdb->posts} p WHERE p.post_type = %s"
+        $sql = "SELECT p.ID, p.post_modified_gmt, p.post_content FROM {$wpdb->posts} p WHERE p.post_type = %s"
             . " AND p.post_status = %s AND p.post_password = ''"
             . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
             . " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
@@ -203,24 +203,29 @@ class PostsProvider {
                 $lastmod = (string) mysql2date(DATE_W3C, $modifiedGmt, false);
             }
 
-            $image = null;
-            $allowImages = $this->imagesAllowed()
-                && function_exists('get_post_thumbnail_id')
-                && function_exists('wp_get_attachment_image_url');
-            if ($allowImages) {
-                $thumbId = (int) get_post_thumbnail_id($postId);
-                if (0 !== $thumbId) {
-                    $url = wp_get_attachment_image_url($thumbId, 'full');
-                    if (is_string($url) && '' !== $url) {
-                        $image = $url;
+            $images  = [];
+            if ($this->contentImagesAllowed()) {
+                $featured = null;
+                $hasThumbFns = function_exists('get_post_thumbnail_id')
+                    && function_exists('wp_get_attachment_image_url');
+                if ($this->featuredAllowed() && $hasThumbFns) {
+                    $thumbId = (int) get_post_thumbnail_id($postId);
+                    if (0 !== $thumbId) {
+                        $url = wp_get_attachment_image_url($thumbId, 'full');
+                        if (is_string($url) && '' !== $url) {
+                            $featured = $url;
+                        }
                     }
                 }
+
+                $content = isset($row['post_content']) && is_string($row['post_content']) ? $row['post_content'] : '';
+                $images  = $this->extractContentImages($postId, $content, $featured);
             }
 
             $entries[] = [
                 'loc'     => $permalink,
                 'lastmod' => $lastmod,
-                'image'   => $image,
+                'images'  => $images,
             ];
         }
 
@@ -253,13 +258,110 @@ class PostsProvider {
     }
 
     /**
-     * Whether thumbnail lookups may run.
+     * Extract image URLs from post content: featured image first, then
+     * inline <img> sources, then gallery shortcode attachments.
+     *
+     * Only same-host URLs are kept (external images stay out by default,
+     * mirroring the leading plugins). Deduplicated, capped at 100 per URL.
+     *
+     * @param int         $postId   Post id.
+     * @param string      $content  Raw post content.
+     * @param string|null $featured Featured image URL or null.
+     * @return string[]
      */
-    private function imagesAllowed(): bool {
-        if (! (bool) ($this->settings?->get('include_images', true) ?? true)) {
-            return false;
+    private function extractContentImages(int $postId, string $content, ?string $featured): array {
+        $home = function_exists('home_url') ? (string) home_url('/') : '';
+        $host = is_string(parse_url($home, PHP_URL_HOST)) ? strtolower((string) parse_url($home, PHP_URL_HOST)) : '';
+
+        $found = [];
+        if (is_string($featured) && '' !== $featured) {
+            $found[] = $featured;
         }
 
+        if ('' !== $content && class_exists('DOMDocument')) {
+            $dom = new \DOMDocument();
+
+            $internal = libxml_use_internal_errors(true);
+            $dom->loadHTML('<?xml encoding="UTF-8">' . $content);
+            libxml_clear_errors();
+            libxml_use_internal_errors($internal);
+
+            foreach ($dom->getElementsByTagName('img') as $img) {
+                $src = trim((string) $img->getAttribute('src'));
+                $normalized = $this->normalizeImageUrl($src, $home, $host);
+                if ('' !== $normalized) {
+                    $found[] = $normalized;
+                }
+            }
+        }
+
+        if ('' !== $content && function_exists('wp_get_attachment_url')) {
+            if (preg_match_all('/\[gallery[^\]]*ids\s*=\s*"([^"]+)"[^\]]*\]/', $content, $matches) > 0) {
+                foreach ($matches[1] as $idList) {
+                    foreach (explode(',', (string) $idList) as $rawId) {
+                        $attachmentId = (int) trim((string) $rawId);
+                        if ($attachmentId <= 0) {
+                            continue;
+                        }
+
+                        $url = wp_get_attachment_url($attachmentId);
+                        $normalized = is_string($url) ? $this->normalizeImageUrl(trim($url), $home, $host) : '';
+                        if ('' !== $normalized) {
+                            $found[] = $normalized;
+                        }
+                    }
+                }
+            }
+        }
+
+        $unique = array_values(array_unique($found));
+
+        return array_slice($unique, 0, 100);
+    }
+
+    /**
+     * Normalize an image source to an absolute same-host URL, or empty.
+     *
+     * Skips data URIs and external hosts. Root-relative and
+     * protocol-relative sources resolve against the home URL.
+     */
+    private function normalizeImageUrl(string $src, string $home, string $host): string {
+        if ('' === $src || str_starts_with($src, 'data:')) {
+            return '';
+        }
+
+        if (str_starts_with($src, '//')) {
+            $scheme = is_string(parse_url($home, PHP_URL_SCHEME)) ? (string) parse_url($home, PHP_URL_SCHEME) : 'https';
+            $src    = $scheme . ':' . $src;
+        } elseif (str_starts_with($src, '/')) {
+            $src = rtrim($home, '/') . $src;
+        }
+
+        $srcHost = parse_url($src, PHP_URL_HOST);
+        if (! is_string($srcHost) || '' === $srcHost) {
+            return '';
+        }
+
+        if ('' !== $host && strtolower($srcHost) !== $host) {
+            return '';
+        }
+
+        return $src;
+    }
+
+    /**
+     * Whether any image work may run (master images toggle).
+     */
+    private function contentImagesAllowed(): bool {
+        return (bool) ($this->settings?->get('include_images', true) ?? true);
+    }
+
+    /**
+     * Whether the featured image may lead the list (sub toggle).
+     *
+     * Content images are unaffected by this flag.
+     */
+    private function featuredAllowed(): bool {
         return (bool) ($this->settings?->get('include_featured_image', true) ?? true);
     }
 

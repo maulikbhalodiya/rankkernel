@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace RankKernel\Admin;
 
+use RankKernel\Modules\Sitemaps\Router;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
@@ -353,42 +354,56 @@ final class SitemapSettingsPage {
      */
     private function renderGeneral( array $all ): void {
         echo '<h2>' . esc_html__('General', 'rankkernel') . '</h2>';
+        echo '<p>';
+        echo esc_html__('Your sitemap index can be found here: ', 'rankkernel');
+        echo '<a href="' . esc_url(Router::indexUrl()) . '">' . esc_html(Router::indexUrl()) . '</a>';
+        echo '</p>';
         echo '<table class="form-table" role="presentation"><tbody>';
 
         echo '<tr><th scope="row"><label for="rk-items-per-page">';
-        echo esc_html__('Entries per page', 'rankkernel');
+        echo esc_html__('Links Per Sitemap', 'rankkernel');
         echo '</label></th><td>';
         echo '<input type="number" id="rk-items-per-page" name="items_per_page" value="'
             . esc_attr((string) ( $all['items_per_page'] ?? 1000 ))
             . '" class="small-text" min="1" max="50000" />';
-        echo '</td></tr>';
+        echo '<p class="description">';
+        echo esc_html__('Max number of links on each sitemap page.', 'rankkernel');
+        echo '</p></td></tr>';
 
         $this->renderCheckboxRow(
             'include_images',
-            __('Include images', 'rankkernel'),
+            __('Images in Sitemaps', 'rankkernel'),
             ! empty($all['include_images']),
-            __('List featured images in post sitemaps.', 'rankkernel')
+            __(
+                'Include reference to images from the post content in sitemaps. '
+                . 'This helps search engines index the important images on your pages.',
+                'rankkernel'
+            )
         );
 
         $this->renderCheckboxRow(
             'include_featured_image',
-            __('Include featured image', 'rankkernel'),
+            __('Include Featured Images', 'rankkernel'),
             ! empty($all['include_featured_image']),
-            __('Look up the featured image for each post.', 'rankkernel')
+            __('Include the Featured Image too, even if it does not appear directly in the post content.', 'rankkernel')
         );
 
         $this->renderIdsRow(
             'exclude_posts',
-            __('Exclude posts', 'rankkernel'),
+            __('Exclude Posts', 'rankkernel'),
             $all['exclude_posts'] ?? [],
-            __('Comma separated post ids to leave out of sitemaps.', 'rankkernel')
+            __(
+                'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. '
+                . 'This option applies to all posts types including posts, pages, and custom post types.',
+                'rankkernel'
+            )
         );
 
         $this->renderIdsRow(
             'exclude_terms',
-            __('Exclude terms', 'rankkernel'),
+            __('Exclude Terms', 'rankkernel'),
             $all['exclude_terms'] ?? [],
-            __('Comma separated term ids to leave out of sitemaps.', 'rankkernel')
+            __('Add term IDs, separated by comma. This option is applied for all taxonomies.', 'rankkernel')
         );
 
         $this->renderCheckboxRow(
@@ -419,9 +434,12 @@ final class SitemapSettingsPage {
             echo '<label>';
             echo '<input type="checkbox" name="' . esc_attr($key) . '" value="1" '
                 . checked((bool) $enabled, true, false) . ' /> ';
-            echo esc_html__('Enable sitemap', 'rankkernel');
+            echo esc_html__('Include in Sitemap', 'rankkernel');
             echo '</label>';
-            echo '<p class="description">' . esc_url($url) . '</p>';
+            echo '<p class="description">';
+            echo esc_html__('Include archive pages for posts of this type in the XML sitemap.', 'rankkernel');
+            echo '</p>';
+            echo '<p class="description">' . esc_html__('Sitemap URL:', 'rankkernel') . ' ' . esc_url($url) . '</p>';
             echo '</td></tr>';
         }
 
@@ -446,9 +464,12 @@ final class SitemapSettingsPage {
             echo '<label>';
             echo '<input type="checkbox" name="' . esc_attr($key) . '" value="1" '
                 . checked((bool) $enabled, true, false) . ' /> ';
-            echo esc_html__('Enable sitemap', 'rankkernel');
+            echo esc_html__('Include in Sitemap', 'rankkernel');
             echo '</label>';
-            echo '<p class="description">' . esc_url($url) . '</p>';
+            echo '<p class="description">';
+            echo esc_html__('Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel');
+            echo '</p>';
+            echo '<p class="description">' . esc_html__('Sitemap URL:', 'rankkernel') . ' ' . esc_url($url) . '</p>';
             echo '</td></tr>';
         }
 

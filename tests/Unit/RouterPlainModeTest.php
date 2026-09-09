@@ -80,10 +80,10 @@ final class RouterPlainModeTest extends TestCase {
 
         $router = $this->makeRouter();
 
-        $this->assertSame('https://example.com/sitemap_index.xml', $router->indexUrl());
-        $this->assertSame('https://example.com/post-sitemap.xml', $router->sitemapUrl('post', 1));
-        $this->assertSame('https://example.com/post-sitemap2.xml', $router->sitemapUrl('post', 2));
-        $this->assertSame('https://example.com/sitemap.xsl', $router->xslUrl());
+        $this->assertSame('https://example.com/sitemap_index.xml', Router::indexUrl());
+        $this->assertSame('https://example.com/post-sitemap.xml', Router::sitemapUrl('post', 1));
+        $this->assertSame('https://example.com/post-sitemap2.xml', Router::sitemapUrl('post', 2));
+        $this->assertSame('https://example.com/sitemap.xsl', Router::xslUrl());
     }
 
     public function test_plain_url_forms(): void {
@@ -91,13 +91,13 @@ final class RouterPlainModeTest extends TestCase {
 
         $router = $this->makeRouter();
 
-        $this->assertSame('https://example.com/?rankkernel_sitemap=index', $router->indexUrl());
-        $this->assertSame('https://example.com/?rankkernel_sitemap=post', $router->sitemapUrl('post', 1));
-        $this->assertStringNotContainsString('sitemap_n', $router->sitemapUrl('post', 1));
-        $this->assertSame('https://example.com/?rankkernel_sitemap=post&rankkernel_sitemap_n=2', $router->sitemapUrl('post', 2));
+        $this->assertSame('https://example.com/?rankkernel_sitemap=index', Router::indexUrl());
+        $this->assertSame('https://example.com/?rankkernel_sitemap=post', Router::sitemapUrl('post', 1));
+        $this->assertStringNotContainsString('sitemap_n', Router::sitemapUrl('post', 1));
+        $this->assertSame('https://example.com/?rankkernel_sitemap=post&rankkernel_sitemap_n=2', Router::sitemapUrl('post', 2));
         $this->assertSame(
             'https://example.com/?rankkernel_sitemap_xsl=1',
-            $router->xslUrl()
+            Router::xslUrl()
         );
     }
 

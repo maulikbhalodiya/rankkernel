@@ -138,7 +138,7 @@ class AuthorsProvider {
      * @param string $set     Set name.
      * @param int    $page    Page number, 1 based.
      * @param int    $perPage Entries per page.
-     * @return array<int, array{loc: string, lastmod: string, image: string|null}>
+     * @return array<int, array{loc: string, lastmod: string, images: string[]}>
      */
     public function getEntries(string $set, int $page, int $perPage): array {
         if ('authors' !== $set) {
@@ -207,7 +207,7 @@ class AuthorsProvider {
             $entries[] = [
                 'loc'     => $url,
                 'lastmod' => $lastmod,
-                'image'   => null,
+                'images'  => [],
             ];
         }
 

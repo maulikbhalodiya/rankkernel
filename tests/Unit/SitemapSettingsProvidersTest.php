@@ -185,7 +185,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
         $this->assertSame(2, substr_count($this->db->lastSql, 'NOT IN'));
     }
 
-    public function test_include_images_false_yields_null_without_lookups(): void {
+    public function test_include_images_false_yields_empty_without_lookups(): void {
         $this->seedPosts();
 
         Functions\expect('get_post_thumbnail_id')->never();
@@ -198,11 +198,17 @@ final class SitemapSettingsProvidersTest extends TestCase {
         $entries  = $provider->getEntries('post', 1, 10);
 
         $this->assertCount(3, $entries);
-        $this->assertSame([ null, null, null ], array_column($entries, 'image'));
+        $this->assertSame([ [], [], [] ], array_column($entries, 'images'));
     }
 
-    public function test_include_featured_image_false_yields_null_without_lookups(): void {
-        $this->seedPosts();
+    public function test_include_featured_image_false_keeps_content_images(): void {
+        $this->db->postsRows = [
+            [
+                'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
+                'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
+                'post_content' => '<p><img src="https://example.com/inline.jpg"></p>',
+            ],
+        ];
 
         Functions\expect('get_post_thumbnail_id')->never();
         Functions\expect('wp_get_attachment_image_url')->never();
@@ -213,8 +219,67 @@ final class SitemapSettingsProvidersTest extends TestCase {
         $provider = new PostsProvider($settings);
         $entries  = $provider->getEntries('post', 1, 10);
 
-        $this->assertCount(3, $entries);
-        $this->assertSame([ null, null, null ], array_column($entries, 'image'));
+        $this->assertCount(1, $entries);
+        $this->assertSame([ 'https://example.com/inline.jpg' ], $entries[0]['images']);
+    }
+
+    public function test_content_images_parsed_featured_first_deduped(): void {
+        $this->db->postsRows = [
+            [
+                'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
+                'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
+                'post_content' => '<p>Hi <img src="https://example.com/a.jpg"> and <img src="/b.jpg"> and <img src="https://example.com/a.jpg"></p>',
+            ],
+        ];
+
+        Functions\when('get_post_thumbnail_id')->alias(static fn (int $id): int => 9);
+        Functions\when('wp_get_attachment_image_url')->alias(static fn (int $id, string $s = 'full'): string|false => 'https://example.com/featured.jpg');
+        Functions\when('wp_get_attachment_url')->alias(static fn (int $id): string => 'https://example.com/g' . $id . '.jpg');
+
+        $provider = new PostsProvider(new SitemapSettings());
+        $entries  = $provider->getEntries('post', 1, 10);
+
+        $this->assertCount(1, $entries);
+        $this->assertSame(
+            [ 'https://example.com/featured.jpg', 'https://example.com/a.jpg', 'https://example.com/b.jpg' ],
+            $entries[0]['images']
+        );
+    }
+
+    public function test_external_and_data_images_skipped(): void {
+        $this->db->postsRows = [
+            [
+                'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
+                'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
+                'post_content' => '<p><img src="https://cdn.other.test/x.jpg"><img src="data:image/png;base64,AAA"><img src="https://example.com/ok.jpg"></p>',
+            ],
+        ];
+
+        Functions\when('get_post_thumbnail_id')->justReturn(0);
+        Functions\when('wp_get_attachment_url')->alias(static fn (int $id): string => '');
+
+        $provider = new PostsProvider(new SitemapSettings());
+        $entries  = $provider->getEntries('post', 1, 10);
+
+        $this->assertSame([ 'https://example.com/ok.jpg' ], $entries[0]['images']);
+    }
+
+    public function test_gallery_shortcode_ids_resolve(): void {
+        $this->db->postsRows = [
+            [
+                'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
+                'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
+                'post_content' => '<p>Text</p>[gallery ids="5,6,0,-2"]',
+            ],
+        ];
+
+        Functions\when('get_post_thumbnail_id')->justReturn(0);
+        Functions\when('wp_get_attachment_url')->alias(static fn (int $id): string => 5 === $id || 6 === $id ? 'https://example.com/g' . $id . '.jpg' : '');
+
+        $provider = new PostsProvider(new SitemapSettings());
+        $entries  = $provider->getEntries('post', 1, 10);
+
+        $this->assertSame([ 'https://example.com/g5.jpg', 'https://example.com/g6.jpg' ], $entries[0]['images']);
     }
 
     public function test_taxonomy_toggle_off_removes_set_and_zeroes_count(): void {
