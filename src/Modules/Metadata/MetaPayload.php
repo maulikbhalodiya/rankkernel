@@ -29,7 +29,9 @@ use RankKernel\Modules\Schema\SchemaTypes;
  * max 100 rows), howto (name, steps of title, text and image with
  * rows lacking both title and text dropped and max 100 steps, plus
  * totalTime and cost strings), custom (raw JSON object, JSON safe
- * scalars and arrays only, max depth 5, max 200 keys).
+ * scalars and arrays only, max depth 5, max 200 keys), carousel and
+ * items (ready made node lists, JSON safe scalars only, max 50 items
+ * with each item capped at 50 keys, invalid entries dropped).
  */
 final class MetaPayload {
     /**
@@ -302,13 +304,15 @@ final class MetaPayload {
         }
 
         return [
-            'type'   => SchemaTypes::normalize($raw['type'] ?? null),
-            'fields' => self::sanitizeSchemaFields($raw['fields'] ?? []),
-            'faq'    => [
+            'type'     => SchemaTypes::normalize($raw['type'] ?? null),
+            'fields'   => self::sanitizeSchemaFields($raw['fields'] ?? []),
+            'faq'      => [
                 'questions' => self::sanitizeFaqQuestions($faq['questions'] ?? []),
             ],
-            'howto'  => self::sanitizeHowto($raw['howto'] ?? []),
-            'custom' => self::sanitizeCustom($raw['custom'] ?? []),
+            'howto'    => self::sanitizeHowto($raw['howto'] ?? []),
+            'custom'   => self::sanitizeCustom($raw['custom'] ?? []),
+            'carousel' => self::sanitizeNodeList($raw['carousel'] ?? []),
+            'items'    => self::sanitizeNodeList($raw['items'] ?? []),
         ];
     }
 
@@ -513,6 +517,76 @@ final class MetaPayload {
     }
 
     /**
+     * Sanitize a ready made node list for carousel and item list output.
+     *
+     * Keeps array entries only, each capped at maxKeys keys with JSON
+     * safe scalars (plus null) and nested arrays kept to depth 5. PHP
+     * objects, resources, and other shapes are dropped. List caps at
+     * maxItems entries. Invalid content becomes an empty array. Lives
+     * here so the Metadata module never depends on Schema classes.
+     *
+     * @param mixed $raw      Raw list value.
+     * @param int   $maxItems Max kept entries.
+     * @param int   $maxKeys  Max kept keys per entry level.
+     * @return array<int, array<string, mixed>>
+     */
+    public static function sanitizeNodeList( mixed $raw, int $maxItems = 50, int $maxKeys = 50 ): array {
+        if (! is_array($raw) || [] === $raw) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($raw as $item) {
+            if (count($out) >= $maxItems) {
+                break;
+            }
+
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $clean = self::sanitizeNodeLevel($item, 1, $maxKeys);
+
+            if ([] !== $clean) {
+                $out[] = $clean;
+            }
+        }
+
+        return array_values($out);
+    }
+
+    /**
+     * Recurse into one node level, dropping non JSON safe values.
+     *
+     * @param array<int|string, mixed> $raw     Raw level.
+     * @param int                      $depth   Current depth, starts at 1.
+     * @param int                      $maxKeys Max kept keys at this level.
+     * @return array<string, mixed>
+     */
+    private static function sanitizeNodeLevel( array $raw, int $depth, int $maxKeys ): array {
+        $out = [];
+
+        if ($depth > 5) {
+            return [];
+        }
+
+        foreach ($raw as $key => $value) {
+            if (count($out) >= $maxKeys) {
+                break;
+            }
+
+            if (is_array($value)) {
+                $out[ $key ] = self::sanitizeNodeLevel($value, $depth + 1, $maxKeys);
+            } elseif (is_scalar($value) || null === $value) {
+                $out[ $key ] = $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Cap a string at a max length, multibyte safe when available.
      *
      * @param string $value Raw string.
@@ -671,6 +745,14 @@ final class MetaPayload {
                             ],
                         ],
                         'custom' => [ 'type' => 'object' ],
+                        'carousel' => [
+                            'type'  => 'array',
+                            'items' => [ 'type' => 'object' ],
+                        ],
+                        'items' => [
+                            'type'  => 'array',
+                            'items' => [ 'type' => 'object' ],
+                        ],
                     ],
                 ],
                 'flags'          => [
