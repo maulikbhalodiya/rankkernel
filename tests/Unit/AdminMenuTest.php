@@ -100,6 +100,23 @@ final class AdminMenuTest extends TestCase {
             ->with('load-toplevel_page_rankkernel', \Mockery::type('callable'))
             ->andReturn(true);
 
+        Functions\expect('add_submenu_page')
+            ->once()
+            ->with(
+                'rankkernel',
+                'Sitemap Settings',
+                'Sitemap',
+                'manage_options',
+                'rankkernel-sitemap',
+                \Mockery::type('callable')
+            )
+            ->andReturn('rankkernel_page_rankkernel-sitemap');
+
+        Functions\expect('add_action')
+            ->once()
+            ->with('load-rankkernel_page_rankkernel-sitemap', \Mockery::type('callable'))
+            ->andReturn(true);
+
         $menu->addMenuPage();
     }
 
