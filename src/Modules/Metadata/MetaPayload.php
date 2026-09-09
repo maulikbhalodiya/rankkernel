@@ -10,8 +10,26 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Metadata;
 
+use RankKernel\Modules\Schema\SchemaTypes;
+
 /**
  * Static, pure helper for the _rankkernel_meta_data payload.
+ *
+ * Schema payload contract (binds all later schema tasks).
+ *
+ * Fresh rows hold an empty schema list. The first save carrying
+ * schema input normalizes it to the object shape below, so readers
+ * must accept both shapes and read defensively with null coalescing.
+ * Unknown top level schema keys are dropped on save.
+ *
+ * Object shape: type (supported type name, unknown values fall back
+ * to the automatic type and are never emitted raw), fields (string
+ * map, max 50 entries, each value max 2000 chars), faq.questions
+ * (question and answer pairs, rows with an empty question dropped,
+ * max 100 rows), howto (name, steps of title, text and image with
+ * rows lacking both title and text dropped and max 100 steps, plus
+ * totalTime and cost strings), custom (raw JSON object, JSON safe
+ * scalars and arrays only, max depth 5, max 200 keys).
  */
 final class MetaPayload {
     /**
@@ -228,15 +246,7 @@ final class MetaPayload {
         }
 
         if (isset($payload['schema']) && is_array($payload['schema'])) {
-            $schema = [];
-
-            foreach (array_values($payload['schema']) as $item) {
-                if (is_array($item)) {
-                    $schema[] = $item;
-                }
-            }
-
-            $out['schema'] = $schema;
+            $out['schema'] = self::sanitizeSchema($payload['schema']);
         }
 
         if (isset($payload['flags']) && is_array($payload['flags'])) {
@@ -256,6 +266,276 @@ final class MetaPayload {
         }
 
         return $out;
+    }
+
+    /**
+     * Sanitize the schema payload.
+     *
+     * Empty input stays an empty list so fresh rows stay lean. A legacy
+     * flat list keeps array rows only. Any other non empty array is
+     * normalized to the object shape from the class docblock.
+     *
+     * @param array<int|string, mixed> $raw Raw schema value.
+     * @return array<string, mixed>|array<int, mixed>
+     */
+    private static function sanitizeSchema( array $raw ): array {
+        if ([] === $raw) {
+            return [];
+        }
+
+        if (array_is_list($raw)) {
+            $schema = [];
+
+            foreach ($raw as $item) {
+                if (is_array($item)) {
+                    $schema[] = $item;
+                }
+            }
+
+            return $schema;
+        }
+
+        $faq = $raw['faq'] ?? [];
+
+        if (! is_array($faq)) {
+            $faq = [];
+        }
+
+        return [
+            'type'   => SchemaTypes::normalize($raw['type'] ?? null),
+            'fields' => self::sanitizeSchemaFields($raw['fields'] ?? []),
+            'faq'    => [
+                'questions' => self::sanitizeFaqQuestions($faq['questions'] ?? []),
+            ],
+            'howto'  => self::sanitizeHowto($raw['howto'] ?? []),
+            'custom' => self::sanitizeCustom($raw['custom'] ?? []),
+        ];
+    }
+
+    /**
+     * Sanitize the free form string map for per type overrides.
+     *
+     * String keys only, scalar values cast to string, max 50 entries
+     * with each value capped at 2000 chars. Anything else is dropped.
+     *
+     * @param mixed $raw Raw fields value.
+     * @return array<string, string>
+     */
+    private static function sanitizeSchemaFields( mixed $raw ): array {
+        if (! is_array($raw) || [] === $raw) {
+            return [];
+        }
+
+        $fields = [];
+
+        foreach ($raw as $key => $value) {
+            if (count($fields) >= 50) {
+                break;
+            }
+
+            $name = sanitize_text_field((string) $key);
+
+            if ('' === $name) {
+                continue;
+            }
+
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $fields[ $name ] = self::truncate((string) $value, 2000);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Sanitize FAQ rows.
+     *
+     * Each row keeps a question and answer pair. Rows with an empty
+     * question are dropped. Kept rows cap at 100.
+     *
+     * @param mixed $raw Raw questions value.
+     * @return array<int, array{question: string, answer: string}>
+     */
+    private static function sanitizeFaqQuestions( mixed $raw ): array {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ($raw as $row) {
+            if (count($rows) >= 100) {
+                break;
+            }
+
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $question = isset($row['question']) ? sanitize_text_field((string) $row['question']) : '';
+
+            if ('' === trim($question)) {
+                continue;
+            }
+
+            $answer = isset($row['answer']) ? sanitize_text_field((string) $row['answer']) : '';
+
+            $rows[] = [
+                'question' => $question,
+                'answer'   => $answer,
+            ];
+        }
+
+        return array_values($rows);
+    }
+
+    /**
+     * Sanitize the HowTo block.
+     *
+     * Steps keep title, text, and image (image via esc_url_raw). Rows
+     * with both an empty title and empty text are dropped. Kept steps
+     * cap at 100. Name, totalTime, and cost stay plain strings.
+     *
+     * @param mixed $raw Raw howto value.
+     * @return array{name: string, steps: array<int, mixed>, totalTime: string, cost: string}
+     */
+    private static function sanitizeHowto( mixed $raw ): array {
+        $out = [
+            'name'      => '',
+            'steps'     => [],
+            'totalTime' => '',
+            'cost'      => '',
+        ];
+
+        if (! is_array($raw) || array_is_list($raw)) {
+            return $out;
+        }
+
+        if (isset($raw['name'])) {
+            $out['name'] = sanitize_text_field((string) $raw['name']);
+        }
+
+        if (isset($raw['steps']) && is_array($raw['steps'])) {
+            $steps = [];
+
+            foreach ($raw['steps'] as $row) {
+                if (count($steps) >= 100) {
+                    break;
+                }
+
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $title = isset($row['title']) ? sanitize_text_field((string) $row['title']) : '';
+                $text  = isset($row['text']) ? sanitize_text_field((string) $row['text']) : '';
+
+                if ('' === trim($title) && '' === trim($text)) {
+                    continue;
+                }
+
+                $image = isset($row['image']) ? esc_url_raw((string) $row['image']) : '';
+
+                $steps[] = [
+                    'title' => $title,
+                    'text'  => $text,
+                    'image' => $image,
+                ];
+            }
+
+            $out['steps'] = array_values($steps);
+        }
+
+        if (isset($raw['totalTime'])) {
+            $out['totalTime'] = sanitize_text_field((string) $raw['totalTime']);
+        }
+
+        if (isset($raw['cost'])) {
+            $out['cost'] = sanitize_text_field((string) $raw['cost']);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Sanitize the raw JSON object for advanced users.
+     *
+     * Keeps JSON safe scalars (plus null) and arrays. PHP objects,
+     * resources, and other shapes are dropped. Nesting deeper than 5
+     * levels is cut, total keys cap at 200. Invalid content becomes
+     * an empty array.
+     *
+     * @param mixed $raw Raw custom value.
+     * @return array<string, mixed>
+     */
+    private static function sanitizeCustom( mixed $raw ): array {
+        if (! is_array($raw) || [] === $raw) {
+            return [];
+        }
+
+        $keys = 0;
+
+        return self::sanitizeCustomArray($raw, 1, $keys);
+    }
+
+    /**
+     * Recurse into a custom value level.
+     *
+     * @param array<int|string, mixed> $raw   Raw level.
+     * @param int                      $depth Current depth, starts at 1.
+     * @param int                      $keys  Running total of kept keys.
+     * @return array<string, mixed>
+     */
+    private static function sanitizeCustomArray( array $raw, int $depth, int &$keys ): array {
+        $out = [];
+
+        if ($depth > 5) {
+            return [];
+        }
+
+        foreach ($raw as $key => $value) {
+            if ($keys >= 200) {
+                break;
+            }
+
+            if (is_array($value)) {
+                $out[ $key ] = self::sanitizeCustomArray($value, $depth + 1, $keys);
+                ++$keys;
+            } elseif (is_scalar($value) || null === $value) {
+                $out[ $key ] = $value;
+                ++$keys;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Cap a string at a max length, multibyte safe when available.
+     *
+     * @param string $value Raw string.
+     * @param int    $max   Max length in chars.
+     */
+    private static function truncate( string $value, int $max ): string {
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            if (mb_strlen($value) <= $max) {
+                return $value;
+            }
+
+            $cut = mb_substr($value, 0, $max);
+
+            return $cut;
+        }
+
+        if (strlen($value) <= $max) {
+            return $value;
+        }
+
+        $cut = substr($value, 0, $max);
+
+        return $cut;
     }
 
     /**
@@ -345,8 +625,53 @@ final class MetaPayload {
                     'items' => [ 'type' => 'string' ],
                 ],
                 'schema'         => [
-                    'type'  => 'array',
-                    'items' => [ 'type' => 'object' ],
+                    'type'       => 'object',
+                    'properties' => [
+                        'type'   => [ 'type' => 'string' ],
+                        'fields' => [
+                            'type'                 => 'object',
+                            'additionalProperties' => [ 'type' => 'string' ],
+                        ],
+                        'faq'    => [
+                            'type'                 => 'object',
+                            'additionalProperties' => false,
+                            'properties'           => [
+                                'questions' => [
+                                    'type'  => 'array',
+                                    'items' => [
+                                        'type'                 => 'object',
+                                        'additionalProperties' => false,
+                                        'properties'           => [
+                                            'question' => [ 'type' => 'string' ],
+                                            'answer'   => [ 'type' => 'string' ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'howto'  => [
+                            'type'                 => 'object',
+                            'additionalProperties' => false,
+                            'properties'           => [
+                                'name'      => [ 'type' => 'string' ],
+                                'steps'     => [
+                                    'type'  => 'array',
+                                    'items' => [
+                                        'type'                 => 'object',
+                                        'additionalProperties' => false,
+                                        'properties'           => [
+                                            'title' => [ 'type' => 'string' ],
+                                            'text'  => [ 'type' => 'string' ],
+                                            'image' => [ 'type' => 'string', 'format' => 'uri' ],
+                                        ],
+                                    ],
+                                ],
+                                'totalTime' => [ 'type' => 'string' ],
+                                'cost'      => [ 'type' => 'string' ],
+                            ],
+                        ],
+                        'custom' => [ 'type' => 'object' ],
+                    ],
                 ],
                 'flags'          => [
                     'type'                 => 'object',
