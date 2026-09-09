@@ -216,9 +216,9 @@ final class SchemaModule implements ModuleInterface {
         $generator->register(new OrganizationPiece($this->settings));
         $generator->register(new WebsitePiece($this->settings));
         $generator->register(new WebpagePiece($this->settings));
-        $generator->register(new BreadcrumbPiece());
-        $generator->register(new PersonPiece());
-        $generator->register(new ArticlePiece());
+        $generator->register(new BreadcrumbPiece($this->settings));
+        $generator->register(new PersonPiece($this->settings));
+        $generator->register(new ArticlePiece($this->settings));
         $generator->register(new FaqPiece());
         $generator->register(new HowtoPiece());
         $generator->register(new ProductPiece());

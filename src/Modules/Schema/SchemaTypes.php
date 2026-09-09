@@ -80,4 +80,21 @@ final class SchemaTypes {
 
         return self::DEFAULT;
     }
+
+    /**
+     * Automatic type fallback for a post type.
+     *
+     * Used when neither the payload type nor the per post type default
+     * setting names a supported type. Posts map to BlogPosting, pages
+     * and everything else map to Article.
+     *
+     * @param string $postType Post type slug.
+     */
+    public static function defaultForPostType( string $postType ): string {
+        if ('post' === trim($postType)) {
+            return 'BlogPosting';
+        }
+
+        return 'Article';
+    }
 }

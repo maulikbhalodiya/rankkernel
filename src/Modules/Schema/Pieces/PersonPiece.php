@@ -12,15 +12,30 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Content author as a Person node.
  *
  * Needed on singular posts with an author and on author archives. On
  * author archives the Person is the main entity. The sameAs list stays
- * empty until user profile prefs land in a later task.
+ * empty until user profile prefs land in a later task. The schema_author
+ * setting turns the node off entirely.
  */
 final class PersonPiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
     /**
      * Get piece id.
      */
@@ -34,6 +49,10 @@ final class PersonPiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
+        if (! (bool) $this->settings->get('schema_author', true)) {
+            return false;
+        }
+
         $type = $ctx->queriedType();
 
         if ('post' === $type) {

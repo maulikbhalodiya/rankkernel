@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Trail as a BreadcrumbList node.
@@ -19,9 +20,23 @@ use RankKernel\Modules\Schema\PieceInterface;
  * Builds a minimal home to current trail. The full trail belongs to the
  * future breadcrumbs module, which can supply it through the
  * rankkernel/schema/breadcrumb_trail filter. Each trail entry is an array
- * with name and optional url keys.
+ * with name and optional url keys. The schema_breadcrumbs setting turns
+ * the node off entirely.
  */
 final class BreadcrumbPiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
     /**
      * Get piece id.
      */
@@ -38,6 +53,10 @@ final class BreadcrumbPiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
+        if (! (bool) $this->settings->get('schema_breadcrumbs', true)) {
+            return false;
+        }
+
         return in_array($ctx->queriedType(), [ 'post', 'term', 'archive' ], true);
     }
 

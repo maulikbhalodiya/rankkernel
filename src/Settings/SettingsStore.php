@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Settings;
 
+use RankKernel\Modules\Schema\SchemaTypes;
+
 /**
  * Manages the rankkernel_settings option.
  */
@@ -44,6 +46,8 @@ final class SettingsStore {
         'org_logo',
         'org_sameas',
         'website_search_action',
+        'schema_breadcrumbs',
+        'schema_author',
         'purge_on_uninstall',
     ];
 
@@ -80,6 +84,8 @@ final class SettingsStore {
         'org_logo'               => '',
         'org_sameas'             => [],
         'website_search_action'  => true,
+        'schema_breadcrumbs'     => true,
+        'schema_author'          => true,
         'purge_on_uninstall'   => null,
         ];
     }
@@ -132,6 +138,22 @@ final class SettingsStore {
         $sanitized = [];
 
         foreach ($partial as $key => $value) {
+            if (self::isDefaultTypeKey($key)) {
+                $clean = trim((string) $value);
+
+                if ('' === $clean) {
+                    $sanitized[ $key ] = '';
+                    continue;
+                }
+
+                if (! in_array($clean, SchemaTypes::SUPPORTED, true)) {
+                    continue;
+                }
+
+                $sanitized[ $key ] = $clean;
+                continue;
+            }
+
             if (! in_array($key, self::ALLOWED_KEYS, true)) {
                 continue;
             }
@@ -150,6 +172,27 @@ final class SettingsStore {
         $this->cache = $merged;
 
         return true;
+    }
+
+    /**
+     * Whether a key is a per post type default type key.
+     *
+     * Dynamic keys look like schema_default_{post_type}. They are not
+     * listed in ALLOWED_KEYS, the pattern gates them instead, and values
+     * must match the central type list (empty means Automatic).
+     *
+     * @param mixed $key Raw key.
+     */
+    private static function isDefaultTypeKey( mixed $key ): bool {
+        if (! is_string($key)) {
+            return false;
+        }
+
+        if (! str_starts_with($key, 'schema_default_')) {
+            return false;
+        }
+
+        return 1 === preg_match('/^schema_default_[a-z0-9_]+$/', $key);
     }
 
     /**
@@ -189,7 +232,7 @@ final class SettingsStore {
             return $clean;
         }
 
-        if ('website_search_action' === $key) {
+        if ('website_search_action' === $key || 'schema_breadcrumbs' === $key || 'schema_author' === $key) {
             if (is_bool($value)) {
                 return $value;
             }

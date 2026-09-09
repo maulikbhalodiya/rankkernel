@@ -12,14 +12,17 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Modules\Schema\SchemaTypes;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Singular post as a BlogPosting or Article node.
  *
  * Needed on singular posts of type post and any other public post type
- * that is not page, attachments never. Post type post maps to BlogPosting,
- * everything else maps to Article. The per post type default type setting
- * (article_default_type) lands in a later task.
+ * that is not page, attachments never. The node type resolves in order:
+ * payload type when supported, then the per post type default setting
+ * (schema_default_{post_type}), then the Automatic mapping fallback
+ * (post maps to BlogPosting, everything else to Article).
  *
  * Headline choice: payload title literal (tokens resolved through the
  * shared Context memo), else the raw post title. The settings title
@@ -27,6 +30,19 @@ use RankKernel\Modules\Schema\PieceInterface;
  * that do not belong in a headline.
  */
 final class ArticlePiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
     /**
      * Get piece id.
      */
@@ -84,7 +100,7 @@ final class ArticlePiece implements PieceInterface {
         }
 
         $node = [
-            '@type'    => 'post' === $postType ? 'BlogPosting' : 'Article',
+            '@type'    => $this->resolveType($ctx, $postType),
             '@id'      => $permalink . '#article',
             'headline' => $this->headline($ctx),
         ];
@@ -125,6 +141,28 @@ final class ArticlePiece implements PieceInterface {
         ];
 
         return $node;
+    }
+
+    /**
+     * Node type, payload first, then the per post type default, then mapping.
+     *
+     * @param Context $ctx      Request context.
+     * @param string  $postType Post type slug.
+     */
+    private function resolveType( Context $ctx, string $postType ): string {
+        $payload = SchemaHelpers::payloadType($ctx);
+
+        if (in_array($payload, SchemaTypes::SUPPORTED, true)) {
+            return $payload;
+        }
+
+        $setting = trim((string) $this->settings->get('schema_default_' . $postType, ''));
+
+        if (in_array($setting, SchemaTypes::SUPPORTED, true)) {
+            return $setting;
+        }
+
+        return SchemaTypes::defaultForPostType($postType);
     }
 
     /**
