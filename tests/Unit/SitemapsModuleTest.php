@@ -177,9 +177,22 @@ final class SitemapsModuleTest extends TestCase {
         $this->assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $xsl);
         $this->assertStringContainsString('sm:sitemapindex/sm:sitemap', $xsl);
         $this->assertStringContainsString('sm:urlset/sm:url', $xsl);
-        $this->assertStringContainsString('image:image/image:loc', $xsl);
         $this->assertStringNotContainsString('select="sitemapindex/sitemap"', $xsl);
         $this->assertStringNotContainsString('select="urlset/url"', $xsl);
+    }
+
+    public function test_xsl_shows_counts_backlink_and_image_counts(): void {
+        // Count lines, the back link to the index, and per URL image counts
+        // (never raw image URLs) keep the human view readable like the
+        // leading SEO plugins do.
+        $xslPath = dirname(__DIR__, 2) . '/src/Modules/Sitemaps/sitemap.xsl';
+        $xsl     = (string) file_get_contents($xslPath);
+
+        $this->assertStringContainsString('This XML Sitemap Index file contains', $xsl);
+        $this->assertStringContainsString('This XML Sitemap contains', $xsl);
+        $this->assertStringContainsString('Sitemap Index</a>', $xsl);
+        $this->assertStringContainsString('count(image:image)', $xsl);
+        $this->assertStringContainsString('count(sm:urlset/sm:url)', $xsl);
     }
 
     public function test_ping_fires_only_on_publish(): void {

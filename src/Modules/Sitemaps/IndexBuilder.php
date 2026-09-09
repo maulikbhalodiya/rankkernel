@@ -28,8 +28,24 @@ class IndexBuilder {
     public function __construct(
         private readonly ?PostsProvider $posts = null,
         private readonly ?TaxonomiesProvider $taxonomies = null,
-        private readonly ?AuthorsProvider $authors = null
+        private readonly ?AuthorsProvider $authors = null,
+        private readonly string $stylesheetVersion = ''
     ) {
+    }
+
+    /**
+     * Stylesheet version for the XSL reference, explicit over global.
+     */
+    private function stylesheetVersion(): string {
+        if ('' !== $this->stylesheetVersion) {
+            return $this->stylesheetVersion;
+        }
+
+        if (defined('RANKKERNEL_VERSION')) {
+            return (string) RANKKERNEL_VERSION;
+        }
+
+        return '0.1.0';
     }
 
     /**
@@ -152,7 +168,7 @@ class IndexBuilder {
     public function buildIndexXml(): string {
         $sets = $this->getSetsWithPageCounts();
 
-        $xslHref = esc_url(home_url('/sitemap.xsl'));
+        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), home_url('/sitemap.xsl')));
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $hrefEsc = htmlspecialchars($xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8');
@@ -211,7 +227,7 @@ class IndexBuilder {
 
         $entries = $this->getEntriesForSet($set, $page, $perPage);
 
-        $xslHref = esc_url(home_url('/sitemap.xsl'));
+        $xslHref = esc_url(add_query_arg('ver', $this->stylesheetVersion(), home_url('/sitemap.xsl')));
 
         $hrefEsc2 = htmlspecialchars($xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
