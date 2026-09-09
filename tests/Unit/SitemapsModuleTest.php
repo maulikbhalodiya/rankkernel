@@ -1,0 +1,159 @@
+<?php
+/**
+ * SitemapsModule tests, takeover and ping.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace RankKernel\Tests\Unit;
+
+use Brain\Monkey\Functions;
+use Mockery;
+use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Sitemaps\SitemapsModule;
+use WP_Post;
+
+final class SitemapsModuleTest extends TestCase {
+    use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+
+    protected function setUp(): void {
+        parent::setUp();
+        \Brain\Monkey\setUp();
+
+        if (! defined('RANKKERNEL_TESTING')) {
+            define('RANKKERNEL_TESTING', true);
+        }
+
+        Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
+        Functions\when('esc_html__')->alias(static fn (string $v, string $d = ''): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
+        Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
+        Functions\when('get_option')->justReturn([]);
+        Functions\when('add_rewrite_rule')->justReturn(true);
+        Functions\when('remove_all_actions')->justReturn(true);
+        Functions\when('wp_cache_get')->justReturn(null);
+        Functions\when('wp_cache_set')->justReturn(true);
+        Functions\when('get_transient')->justReturn(false);
+        Functions\when('set_transient')->justReturn(true);
+        Functions\when('home_url')->alias(static fn (string $p = ''): string => 'https://example.com' . $p);
+        Functions\when('mysql2date')->alias(static fn (string $fmt, string $date, bool $t = true): string => gmdate($fmt, strtotime($date)));
+        Functions\when('current_time')->alias(static fn (string $type, bool $gmt = false): string => '2026-01-01 00:00:00');
+        Functions\when('esc_url')->alias(static fn (string $v): string => filter_var($v, FILTER_SANITIZE_URL) ?: $v);
+        Functions\when('get_post_types')->justReturn([ 'post' => 'post' ]);
+        Functions\when('get_taxonomies')->justReturn([ 'category' => 'category' ]);
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_using_ext_object_cache')->justReturn(false);
+        Functions\when('apply_filters')->alias(static fn (string $h, mixed $v): mixed => $v);
+        Functions\when('__return_false')->alias(static fn (): bool => false);
+    }
+
+    protected function tearDown(): void {
+        \Brain\Monkey\tearDown();
+        parent::tearDown();
+    }
+
+    public function test_boot_registers_takeover_filter_and_notice(): void {
+        $addedFilters = [];
+        $addedActions = [];
+
+        Functions\when('add_filter')->alias(
+            static function (string $hook, mixed $callback, int $prio = 10, int $args = 1) use (&$addedFilters): bool {
+                $addedFilters[] = [ $hook, $callback ];
+                return true;
+            }
+        );
+
+        Functions\when('add_action')->alias(
+            static function (string $hook, mixed $callback, int $prio = 10, int $args = 1) use (&$addedActions): bool {
+                $addedActions[] = [ $hook, $callback ];
+                return true;
+            }
+        );
+
+        Functions\when('get_option')->alias(
+            static function (string $key, mixed $default = false): mixed {
+                if ('rankkernel_modules' === $key) {
+                    return [ 'sitemaps' ];
+                }
+                return $default;
+            }
+        );
+
+        $module = new SitemapsModule();
+        $module->register();
+        $module->boot();
+
+        $found = false;
+        foreach ($addedFilters as $entry) {
+            if ('wp_sitemaps_enabled' === $entry[0] && '__return_false' === $entry[1]) {
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'wp_sitemaps_enabled filter must be registered with __return_false');
+
+        $noticeFound = false;
+        foreach ($addedActions as $entry) {
+            if ('admin_notices' === $entry[0]) {
+                $noticeFound = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($noticeFound, 'Admin notice for takeover must be queued');
+
+        // Verify notice output contains expected text.
+        ob_start();
+        $module->renderTakeoverNotice();
+        $out = ob_get_clean();
+
+        $this->assertStringContainsString('Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', $out);
+    }
+
+    public function test_ping_fires_only_on_publish(): void {
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('add_action')->justReturn(true);
+
+        $module = new SitemapsModule();
+        $module->boot();
+
+        $fired = [];
+        Functions\when('do_action')->alias(
+            static function (string $hook, mixed ...$args) use (&$fired): void {
+                if ('rankkernel/sitemap/ping' === $hook) {
+                    $fired[] = $args[0] ?? null;
+                }
+            }
+        );
+
+        $post = Mockery::mock(WP_Post::class);
+        $post->ID = 42;
+
+        $module->onTransitionPostStatus('publish', 'draft', $post);
+
+        $this->assertCount(1, $fired);
+        $this->assertSame(42, $fired[0]);
+
+        $fired = [];
+        $module->onTransitionPostStatus('publish', 'publish', $post);
+        $this->assertCount(0, $fired, 'Publish to publish must not fire');
+
+        $module->onTransitionPostStatus('draft', 'publish', $post);
+        $this->assertCount(0, $fired, 'Publish to draft must not fire');
+
+        $module->onTransitionPostStatus('draft', 'draft', $post);
+        $this->assertCount(0, $fired);
+    }
+
+    public function test_module_id_and_priority(): void {
+        $module = new SitemapsModule();
+
+        $this->assertSame('sitemaps', $module->getId());
+        $this->assertSame(20, $module->getPriority());
+        $this->assertSame([], $module->dependsOn());
+        $this->assertSame('XML Sitemaps', $module->getName());
+    }
+}

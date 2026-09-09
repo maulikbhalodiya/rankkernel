@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin settings page — render + save handler.
+ * Admin settings page, render + save handler.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -43,7 +43,7 @@ final class SettingsPage {
     }
 
     /**
-     * Handle save — capability + nonce, then persist settings + modules.
+     * Handle save, capability + nonce, then persist settings + modules.
      */
     private function handleSave(): void {
         if (! current_user_can('manage_options')) {
@@ -63,7 +63,7 @@ final class SettingsPage {
             );
         }
 
-        // Collect settings partial from POST — sanitize each value.
+        // Collect settings partial from POST, sanitize each value.
         $partial = [];
 
         $textKeys = [

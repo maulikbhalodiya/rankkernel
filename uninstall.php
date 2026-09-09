@@ -31,7 +31,7 @@ $wpdb->query(
 	)
 );
 
-// Purge all _rankkernel_* post meta (direct $wpdb for scale — meta API would be slow).
+// Purge all _rankkernel_* post meta (direct $wpdb for scale, meta API would be slow).
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",

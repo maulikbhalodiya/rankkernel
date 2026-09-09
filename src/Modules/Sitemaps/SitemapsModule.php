@@ -1,0 +1,183 @@
+<?php
+/**
+ * Sitemaps module, registration and boot.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace RankKernel\Modules\Sitemaps;
+
+use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\ModuleInterface;
+use WP_Post;
+
+/**
+ * XML Sitemaps module.
+ */
+class SitemapsModule implements ModuleInterface {
+    /**
+     * Cached enabled check.
+     */
+    private ?bool $enabledCache = null;
+
+    /**
+     * Shared enable map.
+     */
+    private ?ModuleEnableMap $enableMap;
+
+    /**
+     * Router instance.
+     */
+    private ?Router $router = null;
+
+    /**
+     * Cache instance.
+     */
+    private ?SitemapCache $cache = null;
+
+    /**
+     * Constructor.
+     *
+     * @param ModuleEnableMap|null $enableMap Optional shared enable map.
+     */
+    public function __construct(?ModuleEnableMap $enableMap = null) {
+        $this->enableMap = $enableMap;
+    }
+
+    /**
+     * Get module id.
+     */
+    public function getId(): string {
+        return 'sitemaps';
+    }
+
+    /**
+     * Get human readable name.
+     */
+    public function getName(): string {
+        return __('XML Sitemaps', 'rankkernel');
+    }
+
+    /**
+     * Module priority.
+     */
+    public function getPriority(): int {
+        return 20;
+    }
+
+    /**
+     * Dependencies.
+     *
+     * @return string[]
+     */
+    public function dependsOn(): array {
+        return [];
+    }
+
+    /**
+     * Whether the module is enabled.
+     */
+    public function isEnabled(): bool {
+        if (null !== $this->enabledCache) {
+            return $this->enabledCache;
+        }
+
+        if (null !== $this->enableMap) {
+            $this->enabledCache = $this->enableMap->isEnabled('sitemaps');
+
+            return $this->enabledCache;
+        }
+
+        $map = get_option('rankkernel_modules', []);
+
+        if (! is_array($map)) {
+            $map = [];
+        }
+
+        if (array_key_exists('sitemaps', $map)) {
+            $this->enabledCache = (bool) $map['sitemaps'];
+        } else {
+            $this->enabledCache = in_array('sitemaps', $map, true);
+        }
+
+        return $this->enabledCache;
+    }
+
+    /**
+     * Register services, no tables.
+     */
+    public function register(): void {
+    }
+
+    /**
+     * Boot hooks.
+     */
+    public function boot(): void {
+        $builder = new IndexBuilder();
+        $cache   = new SitemapCache();
+        $xsl     = new XslStylesheet();
+        $router  = new Router($builder, $cache, $xsl);
+
+        $this->cache  = $cache;
+        $this->router = $router;
+
+        $router->register();
+        $cache->registerHooks();
+
+        // Core sitemap takeover.
+        add_filter('wp_sitemaps_enabled', '__return_false');
+
+        add_action('admin_notices', [ $this, 'renderTakeoverNotice' ]);
+
+        // Ping hook point for cache warming.
+        add_action('transition_post_status', [ $this, 'onTransitionPostStatus' ], 10, 3);
+    }
+
+    /**
+     * Render takeover admin notice.
+     */
+    public function renderTakeoverNotice(): void {
+        if (! current_user_can('manage_options')) {
+            return;
+        }
+
+        echo '<div class="notice notice-info is-dismissible"><p>';
+        echo esc_html__('Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', 'rankkernel');
+        echo '</p></div>';
+    }
+
+    /**
+     * Handle transition to publish for cache warming.
+     *
+     * @param string   $newStatus New status.
+     * @param string   $oldStatus Old status.
+     * @param WP_Post $post      Post object.
+     */
+    public function onTransitionPostStatus(string $newStatus, string $oldStatus, WP_Post $post): void {
+        if ('publish' === $newStatus && 'publish' !== $oldStatus) {
+            /**
+             * Fires when a post transitions to publish, for sitemap cache warming.
+             *
+             * @param int $postId Post id.
+             */
+            do_action('rankkernel/sitemap/ping', (int) $post->ID);
+        }
+    }
+
+    /**
+     * Get router, for testing.
+     */
+    public function getRouter(): ?Router {
+        return $this->router;
+    }
+
+    /**
+     * Get cache, for testing.
+     */
+    public function getCache(): ?SitemapCache {
+        return $this->cache;
+    }
+}

@@ -1,4 +1,4 @@
-=== RankKernel – Free SEO & Schema Engine ===
+=== RankKernel, Free SEO & Schema Engine ===
 Contributors: maulikbhalodiya
 Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
@@ -12,7 +12,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 
-RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow — all free, forever.
+RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow, all free, forever.
 
 Hard-gated modules, single-row metadata. A module that is off is never loaded: no hooks, no queries, no bloat.
 

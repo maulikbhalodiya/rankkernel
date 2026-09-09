@@ -1,6 +1,6 @@
 <?php
 /**
- * Test bootstrap — Brain Monkey (no WP DB).
+ * Test bootstrap, Brain Monkey (no WP DB).
  *
  * @package RankKernel
  * @license GPL-2.0-or-later

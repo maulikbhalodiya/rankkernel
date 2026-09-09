@@ -1,6 +1,6 @@
 <?php
 /**
- * ModuleManager tests — hard-gate verification.
+ * ModuleManager tests, hard-gate verification.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -176,7 +176,7 @@ final class ModuleManagerTest extends TestCase {
         $map     = new \RankKernel\Modules\ModuleEnableMap();
         $manager = new \RankKernel\Modules\ModuleManager($map);
 
-        // Register a real MetadataModule delegating to map — isEnabled via map.
+        // Register a real MetadataModule delegating to map, isEnabled via map.
         $settings = new \RankKernel\Settings\SettingsStore();
         $module   = new \RankKernel\Modules\Metadata\MetadataModule($settings, $map);
 
@@ -282,7 +282,7 @@ final class ModuleManagerTest extends TestCase {
         Functions\when('do_action')->justReturn(null);
 
         $manager = new ModuleManager();
-        // Initial evaluate with empty registry — as Plugin does at plugins_loaded.
+        // Initial evaluate with empty registry, as Plugin does at plugins_loaded.
         $manager->evaluateAll();
 
         // Late-registered module that is enabled must boot.

@@ -72,7 +72,7 @@ final class RestControllersTest extends TestCase {
     }
 
     public function test_modules_controller_string_false_normalizes_to_false(): void {
-        // We normalize "false" string to boolean false (filter_var) — documented.
+        // We normalize "false" string to boolean false (filter_var), documented.
         Functions\when('get_option')->justReturn([ 'metadata' ]);
         Functions\when('update_option')->justReturn(true);
 

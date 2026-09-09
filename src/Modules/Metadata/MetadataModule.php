@@ -1,6 +1,6 @@
 <?php
 /**
- * Metadata module — registration and boot.
+ * Metadata module, registration and boot.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -15,7 +15,7 @@ use RankKernel\Modules\ModuleInterface;
 use RankKernel\Settings\SettingsStore;
 
 /**
- * Metadata Engine — flagship module.
+ * Metadata Engine, flagship module.
  */
 final class MetadataModule implements ModuleInterface {
     /**
@@ -157,7 +157,7 @@ final class MetadataModule implements ModuleInterface {
     }
 
     /**
-     * Boot hooks (only if enabled — caller enforces).
+     * Boot hooks (only if enabled, caller enforces).
      */
     public function boot(): void {
         $renderer = new HeadRenderer($this->settings);

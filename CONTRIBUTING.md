@@ -22,7 +22,7 @@ Thank you for contributing! This project follows a strict issue-driven workflow 
    composer stan   # phpstan level 6
    composer test   # phpunit
    ```
-6. **The repo owner merges.** PRs are never merged by the PR author. `main` is review-only — the owner (maulikbhalodiya) reviews and merges.
+6. **The repo owner merges.** PRs are never merged by the PR author. `main` is review-only, the owner (maulikbhalodiya) reviews and merges.
 
 ## Branch rules
 
@@ -30,12 +30,16 @@ Thank you for contributing! This project follows a strict issue-driven workflow 
 - Branch names follow `GH-*` only (e.g. `GH-1`, `GH-42`).
 - Keep one issue = one branch = one PR. No mixed-concern branches.
 
+## Writing style
+
+- Zero standalone dashes in all project text: no em dashes, en dashes, or hyphens used as pauses. Clauses are separated by commas or full stops. Hyphens appear only inside compound words (same-week) and identifiers (GH-1, rankkernel_modules).
+
 ## Coding standards
 
 - Procedural entry files (`rankkernel.php`, `uninstall.php`): WordPress Coding Standards.
 - `src/` classes: PSR-12, PHP 8.1 typed, `declare(strict_types=1)`.
 - Every user-facing string uses the `rankkernel` text domain.
-- No telemetry, no external requests, no competitor code — ever. See the clean-room policy in the project docs.
+- No telemetry, no external requests, no competitor code, ever. See the clean-room policy in the project docs.
 
 ## Development setup
 

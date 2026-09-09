@@ -30,7 +30,7 @@ interface ModuleInterface {
     public function isEnabled(): bool;
 
     /**
-     * Boot priority — lower values boot first.
+     * Boot priority, lower values boot first.
      */
     public function getPriority(): int;
 
@@ -47,7 +47,7 @@ interface ModuleInterface {
     public function register(): void;
 
     /**
-     * Register hooks — only if enabled.
+     * Register hooks, only if enabled.
      */
     public function boot(): void;
 }

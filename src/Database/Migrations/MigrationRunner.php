@@ -13,7 +13,7 @@ namespace RankKernel\Database\Migrations;
 /**
  * Runs versioned migrations against the rankkernel_db_version ledger.
  *
- * Idempotency is the migration author's duty — each closure must tolerate
+ * Idempotency is the migration author's duty, each closure must tolerate
  * being skipped when already applied. Failures do not advance the ledger so
  * subsequent requests retry pending migrations. Sufficient for the v1 core
  * which is schema-less (blueprint §D.4).
@@ -78,7 +78,7 @@ final class MigrationRunner {
      * Fires on `init` priority 10. Ledger is updated once to the highest
      * executed version on success. On failure the ledger is not advanced
      * past the failed version, an action is fired, and a warning is
-     * triggered — the site never goes down. With no registered migrations
+     * triggered, the site never goes down. With no registered migrations
      * but a stale ledger, the ledger is synced to RANKKERNEL_VERSION.
      */
     public function maybeRun(): void {
@@ -122,7 +122,7 @@ final class MigrationRunner {
             }
         }
 
-        // All pending succeeded — advance ledger once.
+        // All pending succeeded, advance ledger once.
         if (null !== $highest) {
             update_option(self::LEDGER, $highest, false);
             $this->cachedVersion = $highest;

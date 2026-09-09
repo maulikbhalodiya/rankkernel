@@ -1,6 +1,6 @@
 <?php
 /**
- * Head renderer — single-pass title + wp_head tag emission.
+ * Head renderer, single-pass title + wp_head tag emission.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -79,7 +79,7 @@ final class HeadRenderer {
     public function title(mixed $title): mixed {
         $ctx = $this->getContext();
 
-        // Previews are not indexable URLs — return WP default untouched.
+        // Previews are not indexable URLs, return WP default untouched.
         if ('preview' === $ctx->queriedType()) {
             return $title;
         }
@@ -113,7 +113,7 @@ final class HeadRenderer {
             }
         }
 
-        // Fall back to WP default — never return '' which would break themes.
+        // Fall back to WP default, never return '' which would break themes.
         return $title;
     }
 
@@ -121,7 +121,7 @@ final class HeadRenderer {
      * Emit all head tags in ONE pass.
      */
     public function render(): void {
-        // Previews are not indexable URLs — emit no SEO tags.
+        // Previews are not indexable URLs, emit no SEO tags.
         $ctxEarly = $this->getContext();
         if ('preview' === $ctxEarly->queriedType()) {
             return;
@@ -170,12 +170,12 @@ final class HeadRenderer {
         // Webmaster verification.
         $this->renderWebmasterTags();
 
-        // R2 slot: after webmaster codes, before R4 comment — fires for Schema module.
+        // R2 slot: after webmaster codes, before R4 comment, fires for Schema module.
         do_action('rankkernel/head/after_tags', $ctx);
 
         // R3: rel="prev"/"next" intentionally not emitted (Google deprecated 2019).
 
-        // R4: No dedicated Slack tags — OG + Twitter already cover Slack's unfurler.
+        // R4: No dedicated Slack tags, OG + Twitter already cover Slack's unfurler.
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 /**
- * Request context — built once per request.
+ * Request context, built once per request.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -171,21 +171,21 @@ final class Context {
      * Queried type: 'post'|'term'|'home'|'search'|'404'|'feed'|'archive'|'preview'|...
      */
     public function queriedType(): string {
-        // Previews are not indexable URLs — treat as dedicated type.
+        // Previews are not indexable URLs, treat as dedicated type.
         if (function_exists('is_preview') && is_preview()) {
             return 'preview';
         }
 
-        // Query preview check — tolerant of Mockery mocks without expectation.
+        // Query preview check, tolerant of Mockery mocks without expectation.
         try {
             if (is_callable([ $this->query, 'is_preview' ]) && $this->query->is_preview()) {
                 return 'preview';
             }
         } catch (\Throwable $e) {
-            // Mock without expectation — treat as not preview.
+            // Mock without expectation, treat as not preview.
         }
 
-        // Check feed first — is_feed may be true alongside other conditionals.
+        // Check feed first, is_feed may be true alongside other conditionals.
         if (is_callable([ $this->query, 'is_feed' ]) && $this->query->is_feed()) {
             return 'feed';
         }
@@ -383,7 +383,7 @@ final class Context {
      * Permalink / term link / home URL for the current context.
      *
      * For archive contexts (author/date/post-type) returns the correct
-     * archive URL or '' when derivation is unreliable — never falls back to
+     * archive URL or '' when derivation is unreliable, never falls back to
      * home_url for archives (prevents homepage canonical on archives).
      */
     public function permalink(): string {
@@ -557,7 +557,7 @@ final class Context {
         $meta = $this->meta();
         $og   = $meta['og'] ?? [];
 
-        // 1) Custom URL — id 0, never use attachment dimensions.
+        // 1) Custom URL, id 0, never use attachment dimensions.
         if (is_array($og) && isset($og['image']) && is_string($og['image']) && '' !== trim($og['image'])) {
             $this->ogImageData = [
                 'url' => trim($og['image']),
@@ -612,7 +612,7 @@ final class Context {
     }
 
     /**
-     * OG image — chain: payload og.image -> og.image_id via wp_get_attachment_image_url -> featured image -> ''.
+     * OG image, chain: payload og.image -> og.image_id via wp_get_attachment_image_url -> featured image -> ''.
      */
     public function ogImage(): string {
         return $this->resolveOgImageData()['url'];

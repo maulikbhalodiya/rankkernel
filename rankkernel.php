@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: RankKernel – Free SEO & Schema Engine
- * Description: 100% free, lightweight SEO with no paywalls or upsell banners — metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow. Modules that are off cost zero: no hooks, no queries, no bloat.
+ * Description: 100% free, lightweight SEO with no paywalls or upsell banners, metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow. Modules that are off cost zero: no hooks, no queries, no bloat.
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
@@ -60,7 +60,7 @@ if ( file_exists( $rankkernel_autoloader ) ) {
  * Activation callback.
  */
 function rankkernel_activate(): void {
-	// Check requirements at activation — deactivate self if missing.
+	// Check requirements at activation, deactivate self if missing.
 	if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
 		deactivate_plugins( plugin_basename( RANKKERNEL_FILE ) );
 		return;
@@ -71,7 +71,7 @@ function rankkernel_activate(): void {
 		return;
 	}
 
-	// Seed rankkernel_modules — default ON modules.
+	// Seed rankkernel_modules, default ON modules.
 	$default_modules = array( 'metadata', 'sitemaps', 'schema', 'breadcrumbs', 'importer' );
 	if ( false === get_option( 'rankkernel_modules' ) ) {
 		add_option( 'rankkernel_modules', $default_modules );
@@ -108,10 +108,10 @@ function rankkernel_activate(): void {
 register_activation_hook( __FILE__, 'rankkernel_activate' );
 
 /**
- * Deactivation callback — leave data intact.
+ * Deactivation callback, leave data intact.
  */
 function rankkernel_deactivate(): void {
-	// Intentionally leave all data — no destructive flush.
+	// Intentionally leave all data, no destructive flush.
 }
 register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );
 

@@ -1,13 +1,13 @@
-# RankKernel – Free SEO & Schema Engine
+# RankKernel, Free SEO & Schema Engine
 
-> 100% free, lightweight SEO for WordPress — no paywalls, no upsell banners, no telemetry.
+> 100% free, lightweight SEO for WordPress, no paywalls, no upsell banners, no telemetry.
 
-**Status: work in progress (v0.1.0-dev — foundation).** Not yet submitted to WordPress.org.
+**Status: work in progress (v0.1.0-dev, foundation).** Not yet submitted to WordPress.org.
 
 ## What makes it different
 
 - **Hard-gated modules.** A module that is off is never loaded: no hooks, no queries, no bloat.
-- **Single-row metadata.** All per-object SEO data in one meta key (`_rankkernel_meta_data`) — one query instead of competitors' 25–45 rows per post.
+- **Single-row metadata.** All per-object SEO data in one meta key (`_rankkernel_meta_data`), one query instead of competitors' 25 to 45 rows per post.
 - **Clean uninstall, by design.** Purge is an explicit, user-controlled choice.
 - **Zero telemetry.** No external requests except endpoints you explicitly configure.
 
@@ -32,15 +32,15 @@ XML sitemaps (cache ON) · Schema/JSON-LD · Breadcrumbs · Redirects (cache-fir
 
 ```bash
 composer install          # installs dev tooling (phpcs, phpstan, phpunit)
-composer test             # PHPUnit (Brain Monkey — no database needed)
+composer test             # PHPUnit (Brain Monkey, no database needed)
 composer lint             # phpcs (WPCS + PSR-12 hybrid)
 composer stan             # phpstan level 6
 ```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — issues first, `GH-<issue>` branches, owner merges.
+See [CONTRIBUTING.md](CONTRIBUTING.md), issues first, `GH-<issue>` branches, owner merges.
 
 ## License
 
-[GPL-2.0-or-later](LICENSE) — the same license as WordPress itself.
+[GPL-2.0-or-later](LICENSE), the same license as WordPress itself.
