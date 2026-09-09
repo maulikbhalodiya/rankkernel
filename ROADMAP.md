@@ -192,3 +192,5 @@
 4. Git: issue → `GH-<n>` branch → gates → `GH-<n>:` PR (+ description, `Closes #<n>`) → merge; main protected (pending branch-protection setup).
 5. Commits authored `maulikbhalodiya`; token rotates every 90 days.
 6. Zero-dash writing: no standalone em dashes, en dashes, or hyphen pauses in any project text (docs, commits, PR bodies, UI strings, comments). Clauses are separated by commas or full stops. Hyphens appear only inside compound words and identifiers.
+7. Push only after the user says verified. Until then, changes are committed locally on the feature branch without merging.
+8. Same functionality stays on the same issue and branch (fixes and refinements ride the open branch). A new issue and branch start only for a different functionality. Small changes are batched and committed, never pushed, until the user says all correct.
