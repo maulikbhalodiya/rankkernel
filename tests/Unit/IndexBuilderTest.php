@@ -29,6 +29,7 @@ final class IndexBuilderTest extends TestCase {
         Functions\when('esc_url')->alias(static fn (string $v): string => filter_var($v, FILTER_SANITIZE_URL) ?: $v);
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
         Functions\when('home_url')->alias(static fn (string $p = ''): string => 'https://example.com' . $p);
+        Functions\when('add_query_arg')->alias(static fn (mixed $k = '', mixed $v = '', string $u = ''): string => $u . (str_contains($u, '?') ? '&' : '?') . (string) $k . '=' . (string) $v);
         Functions\when('mysql2date')->alias(static fn (string $format, string $date, bool $translate = true): string => gmdate($format, strtotime($date)));
         Functions\when('current_time')->alias(static fn (string $type, bool $gmt = false): string => '2026-01-01 00:00:00');
     }
@@ -90,7 +91,7 @@ final class IndexBuilderTest extends TestCase {
             }
         );
 
-        return new IndexBuilder($posts, $tax, $auth);
+        return new IndexBuilder($posts, $tax, $auth, '9.9.9-test');
     }
 
     public function test_index_xml_shape_one_sitemap_per_populated_set(): void {
@@ -110,6 +111,16 @@ final class IndexBuilderTest extends TestCase {
         $this->assertStringNotContainsString('page-sitemap', $xml, 'Empty sets must be skipped');
         $this->assertStringContainsString('category-sitemap.xml', $xml);
         $this->assertStringContainsString('authors-sitemap.xml', $xml);
+    }
+
+    public function test_stylesheet_version_injected_into_pi_href(): void {
+        // The XSL version is an explicit constructor dependency, never a
+        // global read, so the cache-buster always matches the caller.
+        $builder = $this->makeBuilderWithCounts([ 'post' => 5 ], 1000);
+
+        $xml = $builder->buildIndexXml();
+
+        $this->assertStringContainsString('sitemap.xsl?ver=9.9.9-test', $xml);
     }
 
     public function test_index_page_count_math(): void {
@@ -139,7 +150,7 @@ final class IndexBuilderTest extends TestCase {
             [
                 'loc'     => 'https://example.com/hello/',
                 'lastmod' => '2026-01-01T00:00:00+00:00',
-                'image'   => 'https://example.com/image.jpg',
+                'images'  => [ 'https://example.com/image.jpg', 'https://example.com/second.jpg' ],
             ],
         ])->byDefault();
 
@@ -173,7 +184,7 @@ final class IndexBuilderTest extends TestCase {
             [
                 'loc'     => 'https://example.com/no-image/',
                 'lastmod' => '2026-02-02T00:00:00+00:00',
-                'image'   => null,
+                'images'  => [],
             ],
         ])->byDefault();
 
@@ -192,5 +203,28 @@ final class IndexBuilderTest extends TestCase {
 
         $this->assertStringNotContainsString('<image:image>', $xml);
         $this->assertStringContainsString('<loc>https://example.com/no-image/</loc>', $xml);
+    }
+
+    public function test_has_set_true_only_for_populated_sets(): void {
+        $builder = $this->makeBuilderWithCounts([
+            'post'         => 2500,
+            'page'         => 0,
+            'tax_category' => 5,
+        ], 1000);
+
+        $this->assertTrue($builder->hasSet('post'));
+        $this->assertTrue($builder->hasSet('category'));
+        $this->assertFalse($builder->hasSet('page'), 'Empty sets must not count as existing');
+        $this->assertFalse($builder->hasSet('nonexistent'));
+    }
+
+    public function test_get_set_page_count_math(): void {
+        $builder = $this->makeBuilderWithCounts([
+            'post' => 2500,
+        ], 1000);
+
+        $this->assertSame(3, $builder->getSetPageCount('post'));
+        $this->assertSame(0, $builder->getSetPageCount('page'));
+        $this->assertSame(0, $builder->getSetPageCount('nonexistent'));
     }
 }

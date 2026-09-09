@@ -31,13 +31,20 @@ final class SettingsPage {
     }
 
     /**
-     * Render the page (handles POST save first).
+     * Handle a POST save on the load hook, before any output is sent.
+     *
+     * Runs on load-{page}, so wp_safe_redirect can still send headers.
      */
-    public function render(): void {
+    public function maybeHandleSave(): void {
         if ('POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset($_POST['rankkernel_save'])) {
             $this->handleSave();
         }
+    }
 
+    /**
+     * Render the page.
+     */
+    public function render(): void {
         $this->renderNotices();
         $this->renderForm();
     }
@@ -110,6 +117,10 @@ final class SettingsPage {
         $enabled = array_values(array_unique($enabled));
 
         update_option('rankkernel_modules', $enabled);
+
+        // Rules of rewrite-based modules (sitemaps) must reach the cached
+        // rules array when the enable list changes.
+        flush_rewrite_rules(false);
 
         $redirect = admin_url('admin.php?page=rankkernel&settings-updated=1');
         wp_safe_redirect($redirect);

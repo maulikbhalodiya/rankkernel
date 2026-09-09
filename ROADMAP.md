@@ -21,9 +21,9 @@
 
 | | |
 |---|---|
-| Version | 0.1.0-dev · main @ 93 tests / 259 assertions · gates green |
-| Done | Phase 0, Phase 1, roadmap (this file, #5) |
-| Next | Phase 2 → XML Sitemaps (issue #7) |
+| Version | 0.1.0-dev · main @ 111 tests / 330 assertions · gates green |
+| Done | Phase 0, Phase 1, roadmap #5, sitemaps #7 |
+| Next | Phase 2 → Schema (issue #9) |
 | Merged | Issues #1 #2 → PRs #3 #4 |
 | Token | `~/.config/rankkernel/.gh-token` (90d) · pushes via SSH alias `github-maulik-repo` |
 
@@ -56,18 +56,27 @@
 
 ## Phase 2, Technical SEO Engine 🔨 (current)
 
-### 2.1 XML Sitemaps ⬜, next (issue will be #7)
+### 2.1 XML Sitemaps ✅ (issue #7, PR #8)
 **Get:** `sitemap_index.xml` + per-type sitemaps, images inside, XSL stylesheet, cache ON, WP core sitemap takeover.
 **Do:**
-- Router: rewrite `sitemap_index.xml`, `([^.]+)-sitemap([0-9]+)?\.xml`, `sitemap.xsl`; query vars `sitemap/sitemap_n/xsl`; `pre_get_posts` intercept → build → `exit`; disable `redirect_canonical` for sitemap requests; strip theme actions on render
+- Router: rewrite `sitemap_index.xml`, `([^.]+)-sitemap([0-9]+)?\.xml`, `sitemap.xsl`; query vars `rankkernel_sitemap/rankkernel_sitemap_n/rankkernel_sitemap_xsl`; `pre_get_posts` intercept → build → `exit`; disable `redirect_canonical` for sitemap requests; strip theme actions on render
 - Providers: per-post-type, per-taxonomy, authors, direct `$wpdb` listing, 1000 entries/page, `lastmod` from `post_modified_gmt`
 - XSL: bundled, served via `readfile` + long cache headers
 - Cache: object-cache group `rankkernel-sitemaps` + transients; **default ON** (filter `rankkernel/sitemap/enable_cache`); validators (global + per-type) stored in options; invalidation queued on `save_post/edited_terms/user_register`, flushed on `shutdown`
 - Takeover: `add_filter('wp_sitemaps_enabled', '__return_false')` + admin notice when ON (blueprint §O1)
 - Ping hook point: `do_action('rankkernel/sitemap/ping')` on publish (cache-warm only, never claim engine ping)
 - Tests: routing, provider slicing, cache hit = no rebuild, validator invalidation
+- Parity #9: robots.txt `Sitemap:` directive (strips the stale core line, skips private blogs)
+- Parity #9: noindex exclusion for posts and terms via payload LIKE (authors deferred, no author robots model yet)
+- Parity #9: password protected posts excluded from entries and counts
+- Parity #9: canonical mismatch dropped PHP side with one batched meta read per page (counts stay approximate)
+- Parity #9: plain permalink URL forms plus `Router::sitemapUrl/indexUrl/xslUrl` used by the index builder
+- Parity #9: `/sitemap.xml` 301 redirects to the index
+- Parity #9: author rules locked in (only public type authors listed, role exclusion deferred to settings UI)
+- Parity #9: attachments never listed in sets, entries, or counts
+- Parity #9: invalidation on `delete_user/profile_update/clean_term_cache/delete_term` (per taxonomy where the hook provides it)
 
-### 2.2 Schema / JSON-LD ⬜
+### 2.2 Schema / JSON-LD ⬜, next (issue will be #9)
 **Get:** one `<script type="application/ld+json">` per page, assembled lazily.
 **Do:**
 - Generator + piece registry; each piece: `is_needed($ctx)` + `build($ctx)`; single `@graph`, emitted in the `rankkernel/head/after_tags` slot
@@ -192,3 +201,6 @@
 4. Git: issue → `GH-<n>` branch → gates → `GH-<n>:` PR (+ description, `Closes #<n>`) → merge; main protected (pending branch-protection setup).
 5. Commits authored `maulikbhalodiya`; token rotates every 90 days.
 6. Zero-dash writing: no standalone em dashes, en dashes, or hyphen pauses in any project text (docs, commits, PR bodies, UI strings, comments). Clauses are separated by commas or full stops. Hyphens appear only inside compound words and identifiers.
+7. Push the feature branch for backup safety whenever work is committed, but merge only after the user verifies manually. No PR is opened and nothing lands on main without the user saying verified or all correct.
+8. Same functionality stays on the same issue and branch (fixes and refinements ride the open branch). A new issue and branch start only for a different functionality. Small changes are batched and committed, never pushed, until the user says all correct.
+9. Competitor parity first: before building any feature, inventory how Rank Math and Yoast implement it, provide the same functionality as the minimum, then add better or extra only on top. Never ship less than their baseline.

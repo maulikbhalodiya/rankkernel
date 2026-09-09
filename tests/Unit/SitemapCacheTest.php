@@ -115,7 +115,7 @@ final class SitemapCacheTest extends TestCase {
         );
 
         // Seed cache with old validators.
-        $store['transient_rankkernel_sitemap_post_1'] = [
+        $store['transient_rankkernel_sitemap_xml_post_1'] = [
             'xml'              => '<cached>old</cached>',
             'validator_global' => 'old_global',
             'validator_set'    => 'old_set',
@@ -247,5 +247,66 @@ final class SitemapCacheTest extends TestCase {
 
         $this->assertSame($firstGlobal, $options[ SitemapCache::VALIDATOR_GLOBAL ]);
         $this->assertSame($firstPost, $options[ SitemapCache::VALIDATOR_PREFIX . 'post' ]);
+    }
+
+    public function test_get_map_caches_until_global_validator_changes(): void {
+        $options = [];
+        Functions\when('get_option')->alias(
+            static function (string $key, mixed $default = false) use (&$options): mixed {
+                return $options[ $key ] ?? $default;
+            }
+        );
+        Functions\when('update_option')->alias(
+            static function (string $key, mixed $value) use (&$options): bool {
+                $options[ $key ] = $value;
+
+                return true;
+            }
+        );
+        Functions\when('wp_using_ext_object_cache')->justReturn(false);
+        Functions\when('set_transient')->alias(
+            static function (string $key, mixed $value, int $ttl = 0) use (&$transients): bool {
+                $transients[ $key ] = $value;
+
+                return true;
+            }
+        );
+        Functions\when('get_transient')->alias(
+            static function (string $key) use (&$transients): mixed {
+                return $transients[ $key ] ?? false;
+            }
+        );
+        $transients = [];
+
+        $cache = new SitemapCache();
+
+        $builds = 0;
+        $map    = $cache->getMap('sets', static function () use (&$builds): array {
+            $builds++;
+
+            return [ 'blog' => 3 ];
+        });
+
+        $this->assertSame([ 'blog' => 3 ], $map);
+        $this->assertSame(1, $builds);
+
+        // Warm cache: builder not called again.
+        $map = $cache->getMap('sets', static function () use (&$builds): array {
+            $builds++;
+
+            return [ 'blog' => 3 ];
+        });
+        $this->assertSame(1, $builds);
+
+        // Global validator change invalidates the map.
+        $cache->queueInvalidation('global');
+        $cache->flushQueue();
+
+        $cache->getMap('sets', static function () use (&$builds): array {
+            $builds++;
+
+            return [ 'blog' => 4 ];
+        });
+        $this->assertSame(2, $builds);
     }
 }

@@ -31,10 +31,75 @@ class Router {
     }
 
     /**
+     * Whether pretty permalinks are enabled.
+     *
+     * Reads the option on each call (WordPress keeps options in memory,
+     * so no extra query happens) to stay correct under test doubles
+     * and mid-request option changes.
+     */
+    private static function usingPrettyPermalinks(): bool {
+        $structure = get_option('permalink_structure');
+
+        return is_string($structure) && '' !== $structure;
+    }
+
+    /**
+     * URL of the sitemap index, pretty or plain form.
+     */
+    public static function indexUrl(): string {
+        if (self::usingPrettyPermalinks()) {
+            return home_url('/sitemap_index.xml');
+        }
+
+        return add_query_arg('rankkernel_sitemap', 'index', home_url('/'));
+    }
+
+    /**
+     * URL of a sitemap set page, pretty or plain form.
+     *
+     * Plain mode uses prefixed GET params (rankkernel_sitemap and
+     * rankkernel_sitemap_n) because WordPress core owns the unprefixed
+     * sitemap query var and ours must never collide with it.
+     *
+     * @param string $set  Set name (post type slug, taxonomy name, authors).
+     * @param int    $page Page number, 1 based.
+     */
+    public static function sitemapUrl(string $set, int $page = 1): string {
+        $page = max(1, $page);
+
+        if (self::usingPrettyPermalinks()) {
+            $suffix = $page > 1 ? (string) $page : '';
+
+            return home_url('/' . $set . '-sitemap' . $suffix . '.xml');
+        }
+
+        $args = [ 'rankkernel_sitemap' => $set ];
+
+        if ($page > 1) {
+            $args['rankkernel_sitemap_n'] = $page;
+        }
+
+        return add_query_arg($args, home_url('/'));
+    }
+
+    /**
+     * URL of the XSL stylesheet, pretty or plain form.
+     */
+    public static function xslUrl(): string {
+        if (self::usingPrettyPermalinks()) {
+            return home_url('/sitemap.xsl');
+        }
+
+        return add_query_arg('rankkernel_sitemap_xsl', '1', home_url('/'));
+    }
+
+    /**
      * Register hooks.
      */
     public function register(): void {
-        add_action('init', [ $this, 'addRewriteRules' ], 1);
+        // Register rules synchronously: this runs at init priority 10, and a
+        // nested init priority 1 hook would never fire (its moment passed).
+        $this->addRewriteRules();
         add_filter('query_vars', [ $this, 'addQueryVars' ]);
         add_action('pre_get_posts', [ $this, 'intercept' ], 1);
         add_filter('redirect_canonical', [ $this, 'disableCanonical' ], 10, 1);
@@ -53,6 +118,10 @@ class Router {
     /**
      * Add query vars.
      *
+     * Only prefixed names are registered. WordPress core owns the
+     * unprefixed sitemap query var, so plain URLs use the same prefixed
+     * params as the rewrite targets.
+     *
      * @param string[] $vars Existing vars.
      * @return string[]
      */
@@ -70,6 +139,26 @@ class Router {
      * @param WP_Query $query Query object.
      */
     public function intercept(WP_Query $query): void {
+        // Main query only: inner queries (query loop blocks rendered by
+        // do_blocks, widgets, related posts) must never trigger a render,
+        // or nested builds recurse until memory runs out.
+        if (! $query->is_main_query()) {
+            return;
+        }
+
+        // Legacy /sitemap.xml redirects to the index, same as the
+        // leading SEO plugins, so the short URL never 404s.
+        $wp      = $GLOBALS['wp'] ?? null;
+        $request = (is_object($wp) && property_exists($wp, 'request')) ? $wp->request : null;
+
+        if (is_string($request) && 'sitemap.xml' === trim($request, '/')) {
+            wp_safe_redirect(self::indexUrl(), 301);
+
+            $this->finishRender();
+
+            return;
+        }
+
         $sitemap = get_query_var('rankkernel_sitemap');
         $xsl     = get_query_var('rankkernel_sitemap_xsl');
 
@@ -90,6 +179,8 @@ class Router {
         if (! empty($xslVal)) {
             $this->xsl->output();
 
+            $this->finishRender();
+
             return;
         }
 
@@ -105,12 +196,9 @@ class Router {
             $page = max(1, (int) $n);
         }
 
-        if (! headers_sent()) {
-            header('Content-Type: application/xml; charset=UTF-8');
-            header('X-Robots-Tag: noindex, follow');
-        }
-
         if ('index' === $set) {
+            $this->sendXmlHeaders();
+
             $xml = $this->cache->get(
                 'index',
                 1,
@@ -119,19 +207,66 @@ class Router {
 
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
             echo $xml;
-        } else {
-            $xml = $this->cache->get(
-                $set,
-                $page,
-                fn (): string => $this->builder->buildEntriesXml($set, $page)
-            );
 
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
-            echo $xml;
+            $this->finishRender();
+
+            return;
         }
 
+        // Unknown set names and out-of-range pages 404, mirroring Yoast:
+        // an empty urlset with HTTP 200 would advertise a broken sitemap.
+        // The set map rides the sitemap cache, so a warm cache answers
+        // without provider queries.
+        $sets = $this->cache->getMap(
+            'sets',
+            fn (): array => $this->builder->getSetsWithPageCounts()
+        );
+        $pages = (int) ( $sets[ $set ] ?? 0 );
+
+        if ($pages < 1 || $page > $pages) {
+            if (! headers_sent()) {
+                status_header(404);
+                header('Content-Type: text/plain; charset=UTF-8');
+                nocache_headers();
+            }
+
+            echo 'Sitemap not found.';
+
+            $this->finishRender();
+
+            return;
+        }
+
+        $this->sendXmlHeaders();
+
+        $xml = $this->cache->get(
+            $set,
+            $page,
+            fn (): string => $this->builder->buildEntriesXml($set, $page)
+        );
+
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
+        echo $xml;
+
+        $this->finishRender();
+    }
+
+    /**
+     * Finish a sitemap render: exit unless running under tests.
+     */
+    private function finishRender(): void {
         if (! defined('RANKKERNEL_TESTING')) {
             exit;
+        }
+    }
+
+    /**
+     * Send sitemap XML headers (only on successful 200 renders).
+     */
+    private function sendXmlHeaders(): void {
+        if (! headers_sent()) {
+            header('Content-Type: application/xml; charset=UTF-8');
+            header('X-Robots-Tag: noindex, follow');
         }
     }
 

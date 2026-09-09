@@ -39,6 +39,7 @@ final class SettingsPageTest extends TestCase {
         Functions\when('sanitize_text_field')->alias(static fn (string $v): string => trim(strip_tags($v)));
         Functions\when('wp_unslash')->alias(static fn (mixed $v): mixed => is_string($v) ? stripslashes($v) : $v);
         Functions\when('admin_url')->alias(static fn (string $p = ''): string => 'https://example.com/wp-admin/' . ltrim($p, '/'));
+        Functions\when('flush_rewrite_rules')->justReturn(null);
         Functions\when('wp_nonce_field')->justReturn('');
         Functions\when('submit_button')->justReturn('');
         Functions\when('checked')->alias(
@@ -97,7 +98,7 @@ final class SettingsPageTest extends TestCase {
         ];
 
         ob_start();
-        $page->render();
+        $page->maybeHandleSave();
         ob_end_clean();
 
         // update_option called at least twice: settings + modules, already asserted via atLeast.
@@ -130,7 +131,7 @@ final class SettingsPageTest extends TestCase {
         ];
 
         ob_start();
-        $page->render();
+        $page->maybeHandleSave();
         ob_end_clean();
 
         $this->assertIsArray($capturedSettings);
@@ -163,7 +164,7 @@ final class SettingsPageTest extends TestCase {
         ];
 
         ob_start();
-        $page->render();
+        $page->maybeHandleSave();
         ob_end_clean();
 
         $this->assertIsArray($capturedModules);
@@ -196,7 +197,7 @@ final class SettingsPageTest extends TestCase {
 
         ob_start();
         try {
-            $page->render();
+            $page->maybeHandleSave();
         } finally {
             ob_end_clean();
         }
@@ -224,7 +225,7 @@ final class SettingsPageTest extends TestCase {
 
         ob_start();
         try {
-            $page->render();
+            $page->maybeHandleSave();
         } finally {
             ob_end_clean();
         }
@@ -253,7 +254,7 @@ final class SettingsPageTest extends TestCase {
         ];
 
         ob_start();
-        $page->render();
+        $page->maybeHandleSave();
         ob_end_clean();
 
         $this->assertTrue(true);

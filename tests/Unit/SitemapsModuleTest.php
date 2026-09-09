@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Sitemaps\SitemapCache;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
 use WP_Post;
 
@@ -27,10 +28,17 @@ final class SitemapsModuleTest extends TestCase {
             define('RANKKERNEL_TESTING', true);
         }
 
+        if (! defined('RANKKERNEL_VERSION')) {
+            define('RANKKERNEL_VERSION', '0.1.0');
+        }
+
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
-        Functions\when('esc_html__')->alias(static fn (string $v, string $d = ''): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
+        Functions\when('esc_html__')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
         Functions\when('get_option')->justReturn([]);
+        Functions\when('update_option')->justReturn(true);
+        Functions\when('wp_rand')->justReturn(12345);
+        Functions\when('flush_rewrite_rules')->justReturn(null);
         Functions\when('add_rewrite_rule')->justReturn(true);
         Functions\when('remove_all_actions')->justReturn(true);
         Functions\when('wp_cache_get')->justReturn(null);
@@ -111,6 +119,123 @@ final class SitemapsModuleTest extends TestCase {
         $out = ob_get_clean();
 
         $this->assertStringContainsString('Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', $out);
+    }
+
+    public function test_boot_flushes_rewrite_rules_once_per_version(): void {
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('add_rewrite_rule')->justReturn(true);
+
+        $flushes = 0;
+        $stored  = '';
+
+        Functions\when('get_option')->alias(
+            static function (string $key, mixed $default = false) use (&$stored): mixed {
+                if ('rankkernel_modules' === $key) {
+                    return [ 'sitemaps' ];
+                }
+                if ('rankkernel_rewrite_rules_version' === $key) {
+                    return '' !== $stored ? $stored : $default;
+                }
+                return $default;
+            }
+        );
+
+        Functions\when('flush_rewrite_rules')->alias(
+            static function (bool $soft = true) use (&$flushes): void {
+                $flushes++;
+            }
+        );
+
+        Functions\when('update_option')->alias(
+            static function (string $key, mixed $value, mixed $autoload = null) use (&$stored): bool {
+                if ('rankkernel_rewrite_rules_version' === $key) {
+                    $stored = (string) $value;
+                }
+                return true;
+            }
+        );
+
+        $module = new SitemapsModule();
+        $module->boot();
+
+        $this->assertSame(1, $flushes, 'First boot without a stored version must flush once');
+        $this->assertSame(RANKKERNEL_VERSION, $stored);
+
+        $second = new SitemapsModule();
+        $second->boot();
+
+        $this->assertSame(1, $flushes, 'Second boot with a matching version must not flush again');
+    }
+
+    public function test_xsl_uses_namespaced_xpaths(): void {
+        // The generated XML declares the sitemap namespace as its default
+        // namespace, so unprefixed XPaths match nothing and browsers render
+        // an empty table. This regression guards the prefix pairing.
+        $xslPath = dirname(__DIR__, 2) . '/src/Modules/Sitemaps/sitemap.xsl';
+        $xsl     = (string) file_get_contents($xslPath);
+
+        $this->assertStringContainsString('xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9"', $xsl);
+        $this->assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $xsl);
+        $this->assertStringContainsString('sm:sitemapindex/sm:sitemap', $xsl);
+        $this->assertStringContainsString('sm:urlset/sm:url', $xsl);
+        $this->assertStringNotContainsString('select="sitemapindex/sitemap"', $xsl);
+        $this->assertStringNotContainsString('select="urlset/url"', $xsl);
+    }
+
+    public function test_xsl_shows_counts_backlink_and_image_counts(): void {
+        // Count lines, the back link to the index, and per URL image counts
+        // (never raw image URLs) keep the human view readable like the
+        // leading SEO plugins do.
+        $xslPath = dirname(__DIR__, 2) . '/src/Modules/Sitemaps/sitemap.xsl';
+        $xsl     = (string) file_get_contents($xslPath);
+
+        $this->assertStringContainsString('This XML Sitemap Index file contains', $xsl);
+        $this->assertStringContainsString('This XML Sitemap contains', $xsl);
+        $this->assertStringContainsString('Sitemap Index</a>', $xsl);
+        $this->assertStringContainsString('class="desc-block"', $xsl);
+        $this->assertStringContainsString('class="table-block"', $xsl);
+        $this->assertStringContainsString('count(image:image)', $xsl);
+        $this->assertStringContainsString('count(sm:urlset/sm:url)', $xsl);
+        $this->assertStringContainsString('This XML Sitemap Index is generated by RankKernel.', $xsl);
+        $this->assertStringContainsString('This XML Sitemap is generated by RankKernel.', $xsl);
+    }
+
+    public function test_boot_bumps_sitemap_validators_on_code_upgrade(): void {
+        // Cached XML from older plugin code must not survive an upgrade.
+        $stored = [];
+
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('add_rewrite_rule')->justReturn(true);
+        Functions\when('get_option')->alias(
+            static function (string $key, mixed $default = false) use (&$stored): mixed {
+                return $stored[ $key ] ?? $default;
+            }
+        );
+        Functions\when('update_option')->alias(
+            static function (string $key, mixed $value) use (&$stored): bool {
+                $stored[ $key ] = $value;
+
+                return true;
+            }
+        );
+        Functions\when('wp_rand')->justReturn(12345);
+
+        $module = new SitemapsModule();
+        $module->register();
+        $module->boot();
+
+        $this->assertArrayHasKey(SitemapCache::VALIDATOR_GLOBAL, $stored);
+        $this->assertArrayHasKey('rankkernel_sitemap_code_version', $stored);
+        $this->assertSame(RANKKERNEL_VERSION, $stored['rankkernel_sitemap_code_version']);
+
+        // Second boot on the same version bumps nothing.
+        $storedBefore = $stored;
+        $second       = new SitemapsModule();
+        $second->boot();
+
+        $this->assertSame($storedBefore, $stored);
     }
 
     public function test_ping_fires_only_on_publish(): void {

@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace RankKernel\Admin;
 
 use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\Sitemaps\SitemapSettings;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -23,16 +24,24 @@ final class AdminMenu {
     private readonly SettingsPage $page;
 
     /**
+     * Sitemap settings page instance.
+     */
+    private readonly SitemapSettingsPage $sitemapPage;
+
+    /**
      * Constructor.
      *
-     * @param SettingsStore   $store     Settings store.
-     * @param ModuleEnableMap $enableMap Module enable map.
+     * @param SettingsStore    $store     Settings store.
+     * @param ModuleEnableMap  $enableMap Module enable map.
+     * @param SitemapSettings|null $sitemap Sitemap settings store, fresh one when null.
      */
     public function __construct(
         private readonly SettingsStore $store,
-        private readonly ModuleEnableMap $enableMap
+        private readonly ModuleEnableMap $enableMap,
+        ?SitemapSettings $sitemap = null
     ) {
-        $this->page = new SettingsPage($this->store, $this->enableMap);
+        $this->page        = new SettingsPage($this->store, $this->enableMap);
+        $this->sitemapPage = new SitemapSettingsPage($sitemap ?? new SitemapSettings());
     }
 
     /**
@@ -40,6 +49,13 @@ final class AdminMenu {
      */
     public function getPage(): SettingsPage {
         return $this->page;
+    }
+
+    /**
+     * Get the sitemap settings page (for testing).
+     */
+    public function getSitemapPage(): SitemapSettingsPage {
+        return $this->sitemapPage;
     }
 
     /**
@@ -73,7 +89,7 @@ final class AdminMenu {
      * Register the RankKernel top-level menu.
      */
     public function addMenuPage(): void {
-        add_menu_page(
+        $hook = add_menu_page(
             'RankKernel',
             'RankKernel',
             'manage_options',
@@ -82,5 +98,21 @@ final class AdminMenu {
             'dashicons-search',
             80
         );
+
+        // Save handling runs on the load hook, before ANY output, so the
+        // post-redirect-get pattern can send its Location header.
+        add_action('load-' . $hook, [ $this->page, 'maybeHandleSave' ]);
+
+        $sitemapHook = add_submenu_page(
+            'rankkernel',
+            'Sitemap Settings',
+            'Sitemap',
+            'manage_options',
+            'rankkernel-sitemap',
+            [ $this->sitemapPage, 'render' ]
+        );
+
+        // Same load hook save pattern, so the tab redirect stays header safe.
+        add_action('load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ]);
     }
 }

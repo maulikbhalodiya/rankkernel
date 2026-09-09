@@ -59,6 +59,44 @@ final class MetaPayload {
     }
 
     /**
+     * Decode a stored meta value to a payload array.
+     *
+     * Object typed meta is serialized by core on write, older rows may
+     * hold JSON, so both shapes decode. Anything unreadable yields an
+     * empty array (callers fail open).
+     *
+     * @param mixed $raw Stored meta value.
+     * @return array<string, mixed> Payload array or empty array.
+     */
+    public static function decodeMetaValue(mixed $raw): array {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (! is_string($raw) || '' === $raw) {
+            return [];
+        }
+
+        if (str_starts_with($raw, 'a:') || str_starts_with($raw, 'O:')) {
+            $unserialized = unserialize($raw, [ 'allowed_classes' => false ]);
+
+            if (false !== $unserialized && is_array($unserialized)) {
+                return $unserialized;
+            }
+
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [];
+    }
+
+    /**
      * Deep-sanitize a payload array.
      *
      * Unknown top-level keys are dropped; missing keys are filled from defaults.
