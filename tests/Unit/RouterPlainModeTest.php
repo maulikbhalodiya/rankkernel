@@ -142,6 +142,7 @@ final class RouterPlainModeTest extends TestCase {
         );
 
         $query = Mockery::mock(WP_Query::class);
+        $query->shouldReceive('is_main_query')->andReturn(true);
 
         ob_start();
         $router->intercept($query);
@@ -178,6 +179,7 @@ final class RouterPlainModeTest extends TestCase {
         );
 
         $query = Mockery::mock(WP_Query::class);
+        $query->shouldReceive('is_main_query')->andReturn(true);
 
         ob_start();
         $router->intercept($query);
@@ -216,6 +218,7 @@ final class RouterPlainModeTest extends TestCase {
         $GLOBALS['wp']->request = 'sitemap.xml';
 
         $query = Mockery::mock(WP_Query::class);
+        $query->shouldReceive('is_main_query')->andReturn(true);
 
         ob_start();
         $router->intercept($query);
@@ -247,6 +250,7 @@ final class RouterPlainModeTest extends TestCase {
         $GLOBALS['wp']->request = 'hello-world';
 
         $query = Mockery::mock(WP_Query::class);
+        $query->shouldReceive('is_main_query')->andReturn(true);
 
         ob_start();
         $router->intercept($query);

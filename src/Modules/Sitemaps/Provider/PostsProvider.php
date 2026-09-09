@@ -279,10 +279,15 @@ class PostsProvider {
         }
 
         if ('' !== $content && class_exists('DOMDocument')) {
+            // Render dynamic blocks first: carousels, sliders, and other
+            // dynamic blocks exist only at render time, so parsing raw
+            // content would miss every image they output.
+            $rendered = function_exists('do_blocks') ? (string) do_blocks($content) : $content;
+
             $dom = new \DOMDocument();
 
             $internal = libxml_use_internal_errors(true);
-            $dom->loadHTML('<?xml encoding="UTF-8">' . $content);
+            $dom->loadHTML('<?xml encoding="UTF-8">' . $rendered);
             libxml_clear_errors();
             libxml_use_internal_errors($internal);
 

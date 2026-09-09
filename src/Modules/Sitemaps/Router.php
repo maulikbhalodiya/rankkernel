@@ -139,6 +139,13 @@ class Router {
      * @param WP_Query $query Query object.
      */
     public function intercept(WP_Query $query): void {
+        // Main query only: inner queries (query loop blocks rendered by
+        // do_blocks, widgets, related posts) must never trigger a render,
+        // or nested builds recurse until memory runs out.
+        if (! $query->is_main_query()) {
+            return;
+        }
+
         // Legacy /sitemap.xml redirects to the index, same as the
         // leading SEO plugins, so the short URL never 404s.
         $wp      = $GLOBALS['wp'] ?? null;

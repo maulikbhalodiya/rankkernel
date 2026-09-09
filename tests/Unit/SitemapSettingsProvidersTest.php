@@ -68,6 +68,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
         );
         Functions\when('trailingslashit')->alias(static fn (string $s): string => rtrim($s, '/') . '/');
         Functions\when('home_url')->alias(static fn (string $p = ''): string => 'https://example.com' . $p);
+        Functions\when('do_blocks')->alias(static fn (string $c): string => $c);
         Functions\when('mysql2date')->alias(static fn (string $f, string $d, bool $t = true): string => gmdate($f, strtotime($d)));
         Functions\when('current_time')->alias(static fn (string $t, bool $g = false): string => '2026-05-01 00:00:00');
         Functions\when('get_permalink')->alias(static fn (int $id): string => 'https://example.com/?p=' . $id);
@@ -264,8 +265,28 @@ final class SitemapSettingsProvidersTest extends TestCase {
         $this->assertSame([ 'https://example.com/ok.jpg' ], $entries[0]['images']);
     }
 
-    public function test_gallery_shortcode_ids_resolve(): void {
+    public function test_dynamic_blocks_render_before_image_parse(): void {
         $this->db->postsRows = [
+            [
+                'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
+                'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
+                'post_content' => '<!-- wp:shortcode -->[logo_carousel]<!-- /wp:shortcode -->',
+            ],
+        ];
+
+        Functions\when('get_post_thumbnail_id')->justReturn(0);
+        Functions\when('wp_get_attachment_url')->alias(static fn (int $id): string => '');
+        Functions\when('do_blocks')->alias(
+            static fn (string $c): string => '<div class="swiper-slide"><img src="https://example.com/logo-a.webp"><img src="https://example.com/logo-b.webp"></div>'
+        );
+
+        $provider = new PostsProvider(new SitemapSettings());
+        $entries  = $provider->getEntries('post', 1, 10);
+
+        $this->assertSame([ 'https://example.com/logo-a.webp', 'https://example.com/logo-b.webp' ], $entries[0]['images']);
+    }
+
+    public function test_gallery_shortcode_ids_resolve(): void {        $this->db->postsRows = [
             [
                 'ID' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'post_password' => '',
                 'post_author' => 7, 'post_modified_gmt' => '2026-01-03 00:00:00',
