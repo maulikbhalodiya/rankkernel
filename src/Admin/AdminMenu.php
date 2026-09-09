@@ -73,7 +73,7 @@ final class AdminMenu {
      * Register the RankKernel top-level menu.
      */
     public function addMenuPage(): void {
-        add_menu_page(
+        $hook = add_menu_page(
             'RankKernel',
             'RankKernel',
             'manage_options',
@@ -82,5 +82,9 @@ final class AdminMenu {
             'dashicons-search',
             80
         );
+
+        // Save handling runs on the load hook, before ANY output, so the
+        // post-redirect-get pattern can send its Location header.
+        add_action('load-' . $hook, [ $this->page, 'maybeHandleSave' ]);
     }
 }

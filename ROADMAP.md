@@ -21,9 +21,9 @@
 
 | | |
 |---|---|
-| Version | 0.1.0-dev · main @ 93 tests / 259 assertions · gates green |
-| Done | Phase 0, Phase 1, roadmap (this file, #5) |
-| Next | Phase 2 → XML Sitemaps (issue #7) |
+| Version | 0.1.0-dev · main @ 111 tests / 330 assertions · gates green |
+| Done | Phase 0, Phase 1, roadmap #5, sitemaps #7 |
+| Next | Phase 2 → Schema (issue #9) |
 | Merged | Issues #1 #2 → PRs #3 #4 |
 | Token | `~/.config/rankkernel/.gh-token` (90d) · pushes via SSH alias `github-maulik-repo` |
 
@@ -56,7 +56,7 @@
 
 ## Phase 2, Technical SEO Engine 🔨 (current)
 
-### 2.1 XML Sitemaps ⬜, next (issue will be #7)
+### 2.1 XML Sitemaps ✅ (issue #7, PR #8)
 **Get:** `sitemap_index.xml` + per-type sitemaps, images inside, XSL stylesheet, cache ON, WP core sitemap takeover.
 **Do:**
 - Router: rewrite `sitemap_index.xml`, `([^.]+)-sitemap([0-9]+)?\.xml`, `sitemap.xsl`; query vars `sitemap/sitemap_n/xsl`; `pre_get_posts` intercept → build → `exit`; disable `redirect_canonical` for sitemap requests; strip theme actions on render
@@ -67,7 +67,7 @@
 - Ping hook point: `do_action('rankkernel/sitemap/ping')` on publish (cache-warm only, never claim engine ping)
 - Tests: routing, provider slicing, cache hit = no rebuild, validator invalidation
 
-### 2.2 Schema / JSON-LD ⬜
+### 2.2 Schema / JSON-LD ⬜, next (issue will be #9)
 **Get:** one `<script type="application/ld+json">` per page, assembled lazily.
 **Do:**
 - Generator + piece registry; each piece: `is_needed($ctx)` + `build($ctx)`; single `@graph`, emitted in the `rankkernel/head/after_tags` slot

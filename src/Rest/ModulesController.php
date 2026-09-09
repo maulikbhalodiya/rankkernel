@@ -175,6 +175,10 @@ final class ModulesController {
 
         update_option(self::OPTION, $current);
 
+        // Rewrite-based modules (sitemaps) register or drop rules depending
+        // on this list, so the cached rules must regenerate.
+        flush_rewrite_rules(false);
+
         return new WP_REST_Response(
             [
                 'modules' => $current,

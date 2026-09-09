@@ -34,7 +34,9 @@ class Router {
      * Register hooks.
      */
     public function register(): void {
-        add_action('init', [ $this, 'addRewriteRules' ], 1);
+        // Register rules synchronously: this runs at init priority 10, and a
+        // nested init priority 1 hook would never fire (its moment passed).
+        $this->addRewriteRules();
         add_filter('query_vars', [ $this, 'addQueryVars' ]);
         add_action('pre_get_posts', [ $this, 'intercept' ], 1);
         add_filter('redirect_canonical', [ $this, 'disableCanonical' ], 10, 1);

@@ -95,6 +95,11 @@ final class AdminMenuTest extends TestCase {
             )
             ->andReturn('toplevel_page_rankkernel');
 
+        Functions\expect('add_action')
+            ->once()
+            ->with('load-toplevel_page_rankkernel', \Mockery::type('callable'))
+            ->andReturn(true);
+
         $menu->addMenuPage();
     }
 

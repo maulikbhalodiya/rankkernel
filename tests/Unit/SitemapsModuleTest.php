@@ -27,10 +27,16 @@ final class SitemapsModuleTest extends TestCase {
             define('RANKKERNEL_TESTING', true);
         }
 
+        if (! defined('RANKKERNEL_VERSION')) {
+            define('RANKKERNEL_VERSION', '0.1.0');
+        }
+
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
-        Functions\when('esc_html__')->alias(static fn (string $v, string $d = ''): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
+        Functions\when('esc_html__')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
         Functions\when('get_option')->justReturn([]);
+        Functions\when('update_option')->justReturn(true);
+        Functions\when('flush_rewrite_rules')->justReturn(null);
         Functions\when('add_rewrite_rule')->justReturn(true);
         Functions\when('remove_all_actions')->justReturn(true);
         Functions\when('wp_cache_get')->justReturn(null);
@@ -111,6 +117,53 @@ final class SitemapsModuleTest extends TestCase {
         $out = ob_get_clean();
 
         $this->assertStringContainsString('Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', $out);
+    }
+
+    public function test_boot_flushes_rewrite_rules_once_per_version(): void {
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('add_rewrite_rule')->justReturn(true);
+
+        $flushes = 0;
+        $stored  = '';
+
+        Functions\when('get_option')->alias(
+            static function (string $key, mixed $default = false) use (&$stored): mixed {
+                if ('rankkernel_modules' === $key) {
+                    return [ 'sitemaps' ];
+                }
+                if ('rankkernel_rewrite_rules_version' === $key) {
+                    return '' !== $stored ? $stored : $default;
+                }
+                return $default;
+            }
+        );
+
+        Functions\when('flush_rewrite_rules')->alias(
+            static function (bool $soft = true) use (&$flushes): void {
+                $flushes++;
+            }
+        );
+
+        Functions\when('update_option')->alias(
+            static function (string $key, mixed $value, mixed $autoload = null) use (&$stored): bool {
+                if ('rankkernel_rewrite_rules_version' === $key) {
+                    $stored = (string) $value;
+                }
+                return true;
+            }
+        );
+
+        $module = new SitemapsModule();
+        $module->boot();
+
+        $this->assertSame(1, $flushes, 'First boot without a stored version must flush once');
+        $this->assertSame(RANKKERNEL_VERSION, $stored);
+
+        $second = new SitemapsModule();
+        $second->boot();
+
+        $this->assertSame(1, $flushes, 'Second boot with a matching version must not flush again');
     }
 
     public function test_ping_fires_only_on_publish(): void {

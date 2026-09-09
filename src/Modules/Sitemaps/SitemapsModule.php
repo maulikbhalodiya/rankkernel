@@ -134,6 +134,16 @@ class SitemapsModule implements ModuleInterface {
 
         // Ping hook point for cache warming.
         add_action('transition_post_status', [ $this, 'onTransitionPostStatus' ], 10, 3);
+
+        // One flush per plugin version: rewrite rules registered above must
+        // reach the cached rules array (a fresh install or upgrade has stale
+        // cached rules without them, which 404s every sitemap URL).
+        $rulesVersion = get_option('rankkernel_rewrite_rules_version', '');
+
+        if (RANKKERNEL_VERSION !== $rulesVersion) {
+            flush_rewrite_rules(false);
+            update_option('rankkernel_rewrite_rules_version', RANKKERNEL_VERSION, false);
+        }
     }
 
     /**

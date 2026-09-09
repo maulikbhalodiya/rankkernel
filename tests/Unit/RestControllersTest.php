@@ -28,6 +28,7 @@ final class RestControllersTest extends TestCase {
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('esc_html__')->alias(static fn (string $v, string $d = ''): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
+        Functions\when('flush_rewrite_rules')->justReturn(null);
     }
 
     protected function tearDown(): void {
