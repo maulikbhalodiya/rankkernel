@@ -135,6 +135,16 @@ class SitemapsModule implements ModuleInterface {
         // Ping hook point for cache warming.
         add_action('transition_post_status', [ $this, 'onTransitionPostStatus' ], 10, 3);
 
+        // Code version bump: a plugin update that changes sitemap output
+        // must not keep serving cached XML from the old code. Changing the
+        // global validator once per version forces every set to rebuild.
+        $codeVersion = get_option('rankkernel_sitemap_code_version', '');
+
+        if (RANKKERNEL_VERSION !== $codeVersion) {
+            update_option(SitemapCache::VALIDATOR_GLOBAL, (string) time() . '-' . (string) wp_rand(), false);
+            update_option('rankkernel_sitemap_code_version', RANKKERNEL_VERSION, false);
+        }
+
         // One flush per plugin version: rewrite rules registered above must
         // reach the cached rules array (a fresh install or upgrade has stale
         // cached rules without them, which 404s every sitemap URL).

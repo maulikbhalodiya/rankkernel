@@ -79,7 +79,7 @@ class PostsProvider {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 // phpcs:ignore Generic.Files.LineLength.TooLong
-                "SELECT ID, post_modified_gmt FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s ORDER BY ID ASC LIMIT %d OFFSET %d",
+                "SELECT ID, post_modified_gmt FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s ORDER BY post_modified_gmt DESC, ID DESC LIMIT %d OFFSET %d",
                 $postType,
                 'publish',
                 $perPage,

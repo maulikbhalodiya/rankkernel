@@ -109,7 +109,7 @@ class TaxonomiesProvider {
             . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
             . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
             . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-            . " GROUP BY t.term_id ORDER BY t.term_id ASC LIMIT %d OFFSET %d";
+            . " GROUP BY t.term_id ORDER BY lastmod_gmt DESC, t.term_id DESC LIMIT %d OFFSET %d";
 
         $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $perPage, $offset ]);
 
