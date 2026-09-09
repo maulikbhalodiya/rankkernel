@@ -17,15 +17,22 @@ use RankKernel\Modules\ModuleInterface;
 use RankKernel\Modules\Schema\Pieces\ArticlePiece;
 use RankKernel\Modules\Schema\Pieces\BookPiece;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
+use RankKernel\Modules\Schema\Pieces\CarouselPiece;
+use RankKernel\Modules\Schema\Pieces\ClaimReviewPiece;
 use RankKernel\Modules\Schema\Pieces\CoursePiece;
+use RankKernel\Modules\Schema\Pieces\DatasetPiece;
 use RankKernel\Modules\Schema\Pieces\EventPiece;
 use RankKernel\Modules\Schema\Pieces\FaqPiece;
 use RankKernel\Modules\Schema\Pieces\HowtoPiece;
+use RankKernel\Modules\Schema\Pieces\ItemListPiece;
 use RankKernel\Modules\Schema\Pieces\JobPostingPiece;
+use RankKernel\Modules\Schema\Pieces\MoviePiece;
 use RankKernel\Modules\Schema\Pieces\MusicPiece;
 use RankKernel\Modules\Schema\Pieces\OrganizationPiece;
 use RankKernel\Modules\Schema\Pieces\PersonPiece;
+use RankKernel\Modules\Schema\Pieces\PodcastEpisodePiece;
 use RankKernel\Modules\Schema\Pieces\ProductPiece;
+use RankKernel\Modules\Schema\Pieces\QaPagePiece;
 use RankKernel\Modules\Schema\Pieces\RecipePiece;
 use RankKernel\Modules\Schema\Pieces\ServicePiece;
 use RankKernel\Modules\Schema\Pieces\SoftwarePiece;
@@ -224,6 +231,13 @@ final class SchemaModule implements ModuleInterface {
         $generator->register(new JobPostingPiece());
         $generator->register(new SoftwarePiece());
         $generator->register(new MusicPiece());
+        $generator->register(new MoviePiece());
+        $generator->register(new ClaimReviewPiece());
+        $generator->register(new DatasetPiece());
+        $generator->register(new PodcastEpisodePiece());
+        $generator->register(new CarouselPiece());
+        $generator->register(new QaPagePiece());
+        $generator->register(new ItemListPiece());
 
         $this->generator = $generator;
 
