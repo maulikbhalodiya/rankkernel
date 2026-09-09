@@ -113,6 +113,8 @@ final class Plugin {
             $adminMenu->register();
             $this->services['admin_menu'] = $adminMenu;
 
+            add_action('admin_menu', [ $adminMenu, 'addSchemaPage' ]);
+
             $schemaMetabox = new SchemaMetabox();
             $schemaMetabox->register();
             $this->services['schema_metabox'] = $schemaMetabox;
