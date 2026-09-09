@@ -98,7 +98,102 @@ final class WebpagePiece implements PieceInterface {
             }
         }
 
+        $fields = SchemaHelpers::fields($ctx);
+
+        $speakable = $this->speakableSelectors($fields);
+
+        if ([] !== $speakable) {
+            $node['speakable'] = [
+                '@type'       => 'SpeakableSpecification',
+                'cssSelector' => $speakable,
+            ];
+        }
+
+        $about = self::namedThings($fields['about'] ?? '');
+
+        if ([] !== $about) {
+            $node['about'] = $about;
+        }
+
+        $mentions = self::namedThings($fields['mentions'] ?? '');
+
+        if ([] !== $mentions) {
+            $node['mentions'] = $mentions;
+        }
+
         return $node;
+    }
+
+    /**
+     * Speakable selectors, newline separated string or defensive array.
+     *
+     * Speakable stays a WebPage property per the spec, never a graph
+     * node of its own. Selectors split on newlines so comma lists
+     * inside one selector survive intact. Caps at 20 entries.
+     *
+     * @param array<string, mixed> $fields Manual overrides.
+     * @return string[]
+     */
+    private function speakableSelectors( array $fields ): array {
+        $raw = $fields['speakable'] ?? '';
+
+        if (is_array($raw)) {
+            $rows = $raw;
+        } else {
+            $rows = preg_split('/\r\n|\r|\n/', (string) $raw);
+
+            if (! is_array($rows)) {
+                return [];
+            }
+        }
+
+        $out = [];
+
+        foreach ($rows as $row) {
+            if (count($out) >= 20) {
+                break;
+            }
+
+            if (! is_scalar($row)) {
+                continue;
+            }
+
+            $clean = trim((string) $row);
+
+            if ('' !== $clean) {
+                $out[] = $clean;
+            }
+        }
+
+        return array_values($out);
+    }
+
+    /**
+     * Comma separated names as Thing entries, capped at 20.
+     *
+     * @param string $raw Raw field value.
+     * @return array<int, array<string, string>>
+     */
+    private static function namedThings( string $raw ): array {
+        $parts = explode(',', $raw);
+        $out   = [];
+
+        foreach ($parts as $part) {
+            if (count($out) >= 20) {
+                break;
+            }
+
+            $clean = trim($part);
+
+            if ('' !== $clean) {
+                $out[] = [
+                    '@type' => 'Thing',
+                    'name'  => $clean,
+                ];
+            }
+        }
+
+        return $out;
     }
 
     /**
