@@ -12,6 +12,10 @@ namespace RankKernel\Modules\Sitemaps\Provider;
 
 /**
  * Provides sitemap entries for authors with published posts.
+ *
+ * Noindex authors are deferred until author prefs land (no author level
+ * robots data model exists yet). Role exclusion is deferred to the
+ * settings UI step (it needs settings keys first).
  */
 class AuthorsProvider {
     /**

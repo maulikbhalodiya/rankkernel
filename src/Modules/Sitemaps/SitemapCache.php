@@ -204,8 +204,11 @@ class SitemapCache {
     public function registerHooks(): void {
         add_action('save_post', [ $this, 'onSavePost' ], 10, 3);
         add_action('edited_terms', [ $this, 'onEditedTerms' ], 10, 2);
-        add_action('deleted_term_taxonomy', [ $this, 'onDeletedTerm' ], 10, 1);
+        add_action('delete_term', [ $this, 'onDeletedTerm' ], 10, 3);
+        add_action('clean_term_cache', [ $this, 'onCleanTermCache' ], 10, 2);
         add_action('user_register', [ $this, 'onUserRegister' ], 10, 1);
+        add_action('delete_user', [ $this, 'onDeleteUser' ], 10, 1);
+        add_action('profile_update', [ $this, 'onProfileUpdate' ], 10, 1);
         add_action('update_option_rankkernel_settings', [ $this, 'onSettingsUpdate' ], 10, 3);
         add_action('update_option_rankkernel_modules', [ $this, 'onSettingsUpdate' ], 10, 3);
     }
@@ -237,12 +240,36 @@ class SitemapCache {
     }
 
     /**
-     * Handle deleted term taxonomy.
+     * Handle deleted term.
      *
-     * @param int $termTaxonomyId Term taxonomy id.
+     * Hooked to delete_term (not deleted_term_taxonomy, which passes only
+     * the term taxonomy id) because per taxonomy invalidation needs the
+     * taxonomy name the hook provides.
+     *
+     * @param int    $term     Term id.
+     * @param int    $ttId     Term taxonomy id.
+     * @param string $taxonomy Taxonomy name.
      */
-    public function onDeletedTerm(int $termTaxonomyId): void {
+    public function onDeletedTerm(int $term, int $ttId, string $taxonomy): void {
         $this->queueInvalidation('global');
+
+        if ('' !== $taxonomy) {
+            $this->queueInvalidation($taxonomy);
+        }
+    }
+
+    /**
+     * Handle term cache cleaning.
+     *
+     * @param mixed  $ids      Term ids being cleaned.
+     * @param string $taxonomy Taxonomy name.
+     */
+    public function onCleanTermCache(mixed $ids, string $taxonomy): void {
+        $this->queueInvalidation('global');
+
+        if ('' !== $taxonomy) {
+            $this->queueInvalidation($taxonomy);
+        }
     }
 
     /**
@@ -251,6 +278,26 @@ class SitemapCache {
      * @param int $userId User id.
      */
     public function onUserRegister(int $userId): void {
+        $this->queueInvalidation('global');
+        $this->queueInvalidation('authors');
+    }
+
+    /**
+     * Handle user delete.
+     *
+     * @param int $userId User id.
+     */
+    public function onDeleteUser(int $userId): void {
+        $this->queueInvalidation('global');
+        $this->queueInvalidation('authors');
+    }
+
+    /**
+     * Handle profile update.
+     *
+     * @param int $userId User id.
+     */
+    public function onProfileUpdate(int $userId): void {
         $this->queueInvalidation('global');
         $this->queueInvalidation('authors');
     }
