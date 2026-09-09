@@ -98,9 +98,7 @@ final class SitemapSettings {
             return $this->cache;
         }
 
-        // Some unit tests boot providers without defining get_option.
-        // Fall back to defaults there. Real WordPress always defines it.
-        $stored = function_exists('get_option') ? get_option(self::OPTION, []) : [];
+        $stored = get_option(self::OPTION, []);
 
         if (! is_array($stored)) {
             $stored = [];

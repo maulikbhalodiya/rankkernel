@@ -11,9 +11,13 @@ declare(strict_types=1);
 namespace RankKernel\Modules\Sitemaps\Provider;
 
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
  * Provides sitemap entries for public taxonomies.
+ *
+ * Empty terms carry no post dates, so their lastmod falls back to
+ * the current time when the include empty terms setting is on.
  */
 class TaxonomiesProvider {
     /**
@@ -38,6 +42,18 @@ class TaxonomiesProvider {
     private const META_KEY = '_rankkernel_term_data';
 
     /**
+     * Constructor.
+     *
+     * Null settings mean defaults and touch no globals, which keeps
+     * zero argument construction side effect free. Production wires a
+     * real instance through the index builder.
+     *
+     * @param SitemapSettings|null $settings Settings store or null for defaults.
+     */
+    public function __construct( private readonly ?SitemapSettings $settings = null ) {
+    }
+
+    /**
      * Get available taxonomy sets.
      *
      * @return string[]
@@ -52,20 +68,39 @@ class TaxonomiesProvider {
         // phpcs:ignore Generic.Files.LineLength.TooLong
         $sets = array_values(array_filter($taxonomies, static fn (mixed $v): bool => is_string($v) && '' !== $v));
 
+        // Taxonomies disabled in sitemap settings vanish from the index.
+        $sets = array_values(
+            array_filter(
+                $sets,
+                fn (string $name): bool => $this->settings?->isTypeEnabled('tax', $name) ?? true
+            )
+        );
+
         return $sets;
     }
 
     /**
-     * Get count of terms that have published posts for a taxonomy.
+     * Get count of terms for a taxonomy.
+     *
+     * Counts only terms with published posts by default. When the
+     * include empty terms setting is on, counts every term instead.
      *
      * @param string $taxonomy Taxonomy name.
      * @return int
      */
     public function getCount(string $taxonomy): int {
+        if (! ($this->settings?->isTypeEnabled('tax', $taxonomy) ?? true)) {
+            return 0;
+        }
+
         global $wpdb;
 
         if (! isset($wpdb) || ! is_object($wpdb)) {
             return 0;
+        }
+
+        if ($this->includeEmptyTerms()) {
+            return $this->getCountIncludingEmpty($taxonomy);
         }
 
         $publicTypes = get_post_types([ 'public' => true ], 'names');
@@ -83,15 +118,53 @@ class TaxonomiesProvider {
 
         $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
 
+        $params  = array_merge([ $taxonomy, 'publish' ], $types, [ $like ]);
+        $exclude = $this->excludeClause($this->excludedTermIds(), 't.term_id', $params);
+
         $sql = "SELECT COUNT(DISTINCT t.term_id) FROM {$wpdb->terms} t"
             . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
             . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
             . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
             . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
             . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+            . $exclude;
 
-        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $like ]);
+        $args = array_merge([ $sql ], $params);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $count = $wpdb->get_var($wpdb->prepare(...$args));
+
+        return (int) $count;
+    }
+
+    /**
+     * Count every term of a taxonomy, including empty ones.
+     *
+     * Separate COUNT query without the post join.
+     *
+     * @param string $taxonomy Taxonomy name.
+     */
+    private function getCountIncludingEmpty(string $taxonomy): int {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return 0;
+        }
+
+        $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
+
+        $params  = [ $taxonomy, $like ];
+        $exclude = $this->excludeClause($this->excludedTermIds(), 't.term_id', $params);
+
+        $sql = "SELECT COUNT(*) FROM {$wpdb->terms} t"
+            . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
+            . " WHERE tt.taxonomy = %s"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+            . $exclude;
+
+        $args = array_merge([ $sql ], $params);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $count = $wpdb->get_var($wpdb->prepare(...$args));
@@ -132,20 +205,33 @@ class TaxonomiesProvider {
 
         $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
 
-        $sql = "SELECT t.term_id, MAX(p.post_modified_gmt) as lastmod_gmt"
-            . " FROM {$wpdb->terms} t"
-            . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
-            . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
-            . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
-            . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
-            . " GROUP BY t.term_id ORDER BY lastmod_gmt DESC, t.term_id DESC LIMIT %d OFFSET %d";
+        $allowEmpty = $this->includeEmptyTerms();
 
-        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $like, $perPage, $offset ]);
+        if ($allowEmpty) {
+            $rows = $this->queryEntriesIncludingEmpty($taxonomy, $types, $placeholders, $like, $perPage, $offset);
+        } else {
+            $sql = "SELECT t.term_id, MAX(p.post_modified_gmt) as lastmod_gmt"
+                . " FROM {$wpdb->terms} t"
+                . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
+                . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
+                . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
+                . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
+                . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+                . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
+            $params  = array_merge([ $taxonomy, 'publish' ], $types, [ $like ]);
+            $exclude = $this->excludeClause($this->excludedTermIds(), 't.term_id', $params);
+
+            $sql .= $exclude . ' GROUP BY t.term_id ORDER BY lastmod_gmt DESC, t.term_id DESC LIMIT %d OFFSET %d';
+
+            $params[] = $perPage;
+            $params[] = $offset;
+
+            $args = array_merge([ $sql ], $params);
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+            $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
+        }
 
         if (! is_array($rows) || [] === $rows) {
             return [];
@@ -181,9 +267,18 @@ class TaxonomiesProvider {
                 continue;
             }
 
-            $lastmodGmt = isset($row['lastmod_gmt']) ? (string) $row['lastmod_gmt'] : '';
+            $lastmodGmt = isset($row['lastmod_gmt']) && is_string($row['lastmod_gmt']) ? $row['lastmod_gmt'] : '';
+
             if ('' === $lastmodGmt) {
-                continue;
+                if (! $allowEmpty) {
+                    continue;
+                }
+
+                $lastmodGmt = (string) current_time('mysql', true);
+
+                if ('' === $lastmodGmt) {
+                    continue;
+                }
             }
 
             $lastmod = (string) mysql2date(DATE_W3C, $lastmodGmt, false);
@@ -199,6 +294,122 @@ class TaxonomiesProvider {
         }
 
         return $entries;
+    }
+
+    /**
+     * Query taxonomy entries left joined, so empty terms are listed too.
+     *
+     * Post filters live in the ON clause to keep post less rows.
+     * Empty rows carry a null lastmod, resolved to current time later.
+     *
+     * @param string   $taxonomy     Taxonomy name.
+     * @param string[] $types        Public post types.
+     * @param string   $placeholders Type placeholders for the ON clause.
+     * @param string   $like         Noindex LIKE pattern.
+     * @param int      $perPage      Entries per page.
+     * @param int      $offset       Result offset.
+     * @return mixed Query rows.
+     */
+    private function queryEntriesIncludingEmpty(
+        string $taxonomy,
+        array $types,
+        string $placeholders,
+        string $like,
+        int $perPage,
+        int $offset
+    ): mixed {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return [];
+        }
+
+        $sql = "SELECT t.term_id, MAX(p.post_modified_gmt) as lastmod_gmt"
+            . " FROM {$wpdb->terms} t"
+            . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
+            . " LEFT JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
+            . " LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
+            . " AND p.post_status = %s AND p.post_type IN ($placeholders)"
+            . " WHERE tt.taxonomy = %s"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+
+        $params  = array_merge([ 'publish' ], $types, [ $taxonomy, $like ]);
+        $exclude = $this->excludeClause($this->excludedTermIds(), 't.term_id', $params);
+
+        $sql .= $exclude . ' GROUP BY t.term_id ORDER BY lastmod_gmt DESC, t.term_id DESC LIMIT %d OFFSET %d';
+
+        $params[] = $perPage;
+        $params[] = $offset;
+
+        $args = array_merge([ $sql ], $params);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        return $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
+    }
+
+    /**
+     * Whether empty terms are listed.
+     */
+    private function includeEmptyTerms(): bool {
+        return (bool) ($this->settings?->get('include_empty_terms', false) ?? false);
+    }
+
+    /**
+     * Excluded term ids from settings, unique positive ints.
+     *
+     * @return int[]
+     */
+    private function excludedTermIds(): array {
+        $ids = $this->settings?->get('exclude_terms', []) ?? [];
+
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        $clean = [];
+
+        foreach ($ids as $id) {
+            $int = (int) $id;
+
+            if ($int > 0) {
+                $clean[] = $int;
+            }
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    /**
+     * Append NOT IN clauses for excluded ids, chunked at 500 per clause.
+     *
+     * Returns an empty fragment when the list is empty, so default
+     * queries keep their exact SQL shape.
+     *
+     * @param int[]             $ids    Excluded ids.
+     * @param string            $column Qualified column, e.g. t.term_id.
+     * @param array<int, mixed> $params Prepare params, ids appended in order.
+     */
+    private function excludeClause( array $ids, string $column, array &$params ): string {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_values(array_filter($ids, static fn (int $id): bool => $id > 0));
+
+        if ([] === $ids) {
+            return '';
+        }
+
+        $fragment = '';
+
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+            $fragment    .= " AND {$column} NOT IN ($placeholders)";
+
+            foreach ($chunk as $id) {
+                $params[] = $id;
+            }
+        }
+
+        return $fragment;
     }
 
     /**

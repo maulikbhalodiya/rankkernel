@@ -116,7 +116,7 @@ class SitemapsModule implements ModuleInterface {
      * Boot hooks.
      */
     public function boot(): void {
-        $builder = new IndexBuilder(null, null, null, (string) RANKKERNEL_VERSION);
+        $builder = new IndexBuilder(null, null, null, (string) RANKKERNEL_VERSION, new SitemapSettings());
         $cache   = new SitemapCache();
         $xsl     = new XslStylesheet();
         $router  = new Router($builder, $cache, $xsl);

@@ -24,12 +24,15 @@ class IndexBuilder {
      * @param PostsProvider|null      $posts      Posts provider.
      * @param TaxonomiesProvider|null $taxonomies Taxonomies provider.
      * @param AuthorsProvider|null    $authors    Authors provider.
+     * @param string                  $stylesheetVersion Stylesheet version.
+     * @param SitemapSettings|null    $sitemapSettings Sitemap settings, null means defaults.
      */
     public function __construct(
         private readonly ?PostsProvider $posts = null,
         private readonly ?TaxonomiesProvider $taxonomies = null,
         private readonly ?AuthorsProvider $authors = null,
-        private readonly string $stylesheetVersion = ''
+        private readonly string $stylesheetVersion = '',
+        private readonly ?SitemapSettings $sitemapSettings = null
     ) {
     }
 
@@ -101,7 +104,7 @@ class IndexBuilder {
             return $this->posts;
         }
 
-        return new PostsProvider();
+        return new PostsProvider($this->sitemapSettings);
     }
 
     /**
@@ -112,7 +115,7 @@ class IndexBuilder {
             return $this->taxonomies;
         }
 
-        return new TaxonomiesProvider();
+        return new TaxonomiesProvider($this->sitemapSettings);
     }
 
     /**
@@ -123,19 +126,24 @@ class IndexBuilder {
             return $this->authors;
         }
 
-        return new AuthorsProvider();
+        return new AuthorsProvider($this->sitemapSettings);
     }
 
     /**
      * Get entries per page, filtered.
+     *
+     * The settings value is the base, the filter still wins when hooked.
+     * Null settings mean the default base.
      */
     public function getPerPage(): int {
+        $base = (int) ($this->sitemapSettings?->get('items_per_page', 1000) ?? 1000);
+
         /**
          * Filter entries per page for sitemaps.
          *
-         * @param int $perPage Default 1000.
+         * @param int $perPage Settings value, default 1000.
          */
-        $perPage = (int) apply_filters('rankkernel/sitemap/entries_per_page', 1000);
+        $perPage = (int) apply_filters('rankkernel/sitemap/entries_per_page', $base);
 
         if ($perPage < 1) {
             $perPage = 1;

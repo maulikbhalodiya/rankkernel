@@ -11,9 +11,13 @@ declare(strict_types=1);
 namespace RankKernel\Modules\Sitemaps\Provider;
 
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
  * Provides sitemap entries for public post types.
+ *
+ * Only featured images feed the image tag today, so both image
+ * settings gate the thumbnail lookup. Content images arrive later.
  */
 class PostsProvider {
     /**
@@ -38,6 +42,18 @@ class PostsProvider {
     private const META_KEY = '_rankkernel_meta_data';
 
     /**
+     * Constructor.
+     *
+     * Null settings mean defaults and touch no globals, which keeps
+     * zero argument construction side effect free. Production wires a
+     * real instance in SitemapsModule boot.
+     *
+     * @param SitemapSettings|null $settings Settings store or null for defaults.
+     */
+    public function __construct( private readonly ?SitemapSettings $settings = null ) {
+    }
+
+    /**
      * Get available post type sets.
      *
      * @return string[]
@@ -58,6 +74,14 @@ class PostsProvider {
             )
         );
 
+        // Types disabled in sitemap settings vanish from the index.
+        $sets = array_values(
+            array_filter(
+                $sets,
+                fn (string $type): bool => $this->settings?->isTypeEnabled('pt', $type) ?? true
+            )
+        );
+
         return $sets;
     }
 
@@ -72,6 +96,10 @@ class PostsProvider {
             return 0;
         }
 
+        if (! ($this->settings?->isTypeEnabled('pt', $postType) ?? true)) {
+            return 0;
+        }
+
         global $wpdb;
 
         if (! isset($wpdb) || ! is_object($wpdb)) {
@@ -80,18 +108,19 @@ class PostsProvider {
 
         $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $count = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s"
-                . " AND p.post_password = ''"
-                . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
-                . " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)",
-                $postType,
-                'publish',
-                $like
-            )
-        );
+        $params  = [ $postType, 'publish', $like ];
+        $exclude = $this->excludeClause($this->excludedPostIds(), 'p.ID', $params);
+
+        $sql = "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s"
+            . " AND p.post_password = ''"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
+            . " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
+            . $exclude;
+
+        $args = array_merge([ $sql ], $params);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $count = $wpdb->get_var($wpdb->prepare(...$args));
 
         return (int) $count;
     }
@@ -121,19 +150,23 @@ class PostsProvider {
 
         $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
 
+        $params  = [ $postType, 'publish', $like ];
+        $exclude = $this->excludeClause($this->excludedPostIds(), 'p.ID', $params);
+
+        $sql = "SELECT p.ID, p.post_modified_gmt FROM {$wpdb->posts} p WHERE p.post_type = %s"
+            . " AND p.post_status = %s AND p.post_password = ''"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
+            . " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
+            . $exclude
+            . ' ORDER BY p.post_modified_gmt DESC, p.ID DESC LIMIT %d OFFSET %d';
+
+        $params[] = $perPage;
+        $params[] = $offset;
+
+        $args = array_merge([ $sql ], $params);
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, Generic.Files.LineLength.TooLong
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                // phpcs:ignore Generic.Files.LineLength.TooLong
-                "SELECT p.ID, p.post_modified_gmt FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s AND p.post_password = '' AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s) ORDER BY p.post_modified_gmt DESC, p.ID DESC LIMIT %d OFFSET %d",
-                $postType,
-                'publish',
-                $like,
-                $perPage,
-                $offset
-            ),
-            ARRAY_A
-        );
+        $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
 
         if (! is_array($rows) || [] === $rows) {
             return [];
@@ -171,7 +204,10 @@ class PostsProvider {
             }
 
             $image = null;
-            if (function_exists('get_post_thumbnail_id') && function_exists('wp_get_attachment_image_url')) {
+            $allowImages = $this->imagesAllowed()
+                && function_exists('get_post_thumbnail_id')
+                && function_exists('wp_get_attachment_image_url');
+            if ($allowImages) {
                 $thumbId = (int) get_post_thumbnail_id($postId);
                 if (0 !== $thumbId) {
                     $url = wp_get_attachment_image_url($thumbId, 'full');
@@ -189,6 +225,74 @@ class PostsProvider {
         }
 
         return $entries;
+    }
+
+    /**
+     * Excluded post ids from settings, unique positive ints.
+     *
+     * @return int[]
+     */
+    private function excludedPostIds(): array {
+        $ids = $this->settings?->get('exclude_posts', []) ?? [];
+
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        $clean = [];
+
+        foreach ($ids as $id) {
+            $int = (int) $id;
+
+            if ($int > 0) {
+                $clean[] = $int;
+            }
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    /**
+     * Whether thumbnail lookups may run.
+     */
+    private function imagesAllowed(): bool {
+        if (! (bool) ($this->settings?->get('include_images', true) ?? true)) {
+            return false;
+        }
+
+        return (bool) ($this->settings?->get('include_featured_image', true) ?? true);
+    }
+
+    /**
+     * Append NOT IN clauses for excluded ids, chunked at 500 per clause.
+     *
+     * Returns an empty fragment when the list is empty, so default
+     * queries keep their exact SQL shape.
+     *
+     * @param int[]              $ids    Excluded ids.
+     * @param string             $column Qualified column, e.g. p.ID.
+     * @param array<int, mixed>  $params Prepare params, ids appended in order.
+     */
+    private function excludeClause( array $ids, string $column, array &$params ): string {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_values(array_filter($ids, static fn (int $id): bool => $id > 0));
+
+        if ([] === $ids) {
+            return '';
+        }
+
+        $fragment = '';
+
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+            $fragment    .= " AND {$column} NOT IN ($placeholders)";
+
+            foreach ($chunk as $id) {
+                $params[] = $id;
+            }
+        }
+
+        return $fragment;
     }
 
     /**
