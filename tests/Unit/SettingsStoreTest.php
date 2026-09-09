@@ -95,7 +95,7 @@ final class SettingsStoreTest extends TestCase {
     public function test_set_noop_same_values_returns_true(): void {
         Functions\when('get_option')->justReturn([ 'title_template' => 'Same' ]);
         Functions\when('sanitize_text_field')->returnArg(1);
-        // update_option returns false (no DB change) — should still be true.
+        // update_option returns false (no DB change), should still be true.
         Functions\expect('update_option')->once()->andReturn(false);
 
         $store  = new SettingsStore();

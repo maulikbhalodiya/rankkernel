@@ -1,6 +1,6 @@
 <?php
 /**
- * Module enable-map holder — single get_option('rankkernel_modules') per request.
+ * Module enable-map holder, single get_option('rankkernel_modules') per request.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -29,7 +29,7 @@ final class ModuleEnableMap {
     private array $enabledSet = [];
 
     /**
-     * Constructor — performs the single get_option read for the request.
+     * Constructor, performs the single get_option read for the request.
      */
     public function __construct() {
         $map = get_option('rankkernel_modules', []);

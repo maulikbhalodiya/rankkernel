@@ -20,7 +20,7 @@ use RankKernel\Rest\SettingsController;
 use RankKernel\Settings\SettingsStore;
 
 /**
- * Main plugin class — service locator (not a DI container).
+ * Main plugin class, service locator (not a DI container).
  */
 final class Plugin {
     /**
@@ -43,7 +43,7 @@ final class Plugin {
     private array $modules = [];
 
     /**
-     * Private constructor — use getInstance().
+     * Private constructor, use getInstance().
      */
     private function __construct() {
     }
@@ -75,7 +75,7 @@ final class Plugin {
      * Register core services.
      *
      * Constructs SettingsStore, ModuleManager, and REST controllers.
-     * Parses the module enable map ONCE — no module instantiation yet.
+     * Parses the module enable map ONCE, no module instantiation yet.
      */
     public function registerCoreServices(): void {
         $settingsStore = new SettingsStore();
@@ -88,7 +88,7 @@ final class Plugin {
         $migrationRunner = new MigrationRunner();
 
         /**
-         * Baseline migration — marks the initial schema-less baseline (v1 core
+         * Baseline migration, marks the initial schema-less baseline (v1 core
          * has zero required tables per blueprint §D.4).
          */
         $migrationRunner->register(
@@ -104,7 +104,7 @@ final class Plugin {
         $this->services['modules_controller']  = $modulesController;
         $this->services['migrations']          = $migrationRunner;
 
-        // Admin UI — register only on admin screens.
+        // Admin UI, register only on admin screens.
         if (function_exists('is_admin') && is_admin()) {
             $adminMenu = new AdminMenu($settingsStore, $enableMap);
             $adminMenu->register();

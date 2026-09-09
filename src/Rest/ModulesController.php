@@ -32,7 +32,7 @@ final class ModulesController {
     /**
      * Known optional module ids.
      *
-     * Delegates to ModuleRegistry — single source of truth.
+     * Delegates to ModuleRegistry, single source of truth.
      *
      * @var string[]
      */

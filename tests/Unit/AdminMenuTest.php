@@ -53,7 +53,7 @@ final class AdminMenuTest extends TestCase {
         $this->assertCount(2, $result);
         $this->assertStringContainsString('admin.php?page=rankkernel', $result[0]);
         $this->assertStringContainsString('Settings', $result[0]);
-        // Escaped URL — no bare unescaped ampersand issues here (simple URL).
+        // Escaped URL, no bare unescaped ampersand issues here (simple URL).
         $this->assertStringStartsWith('<a href="https://example.com/wp-admin/admin.php?page=rankkernel">', $result[0]);
         // Original link stays second.
         $this->assertSame($links[0], $result[1]);

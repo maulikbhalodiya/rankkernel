@@ -100,7 +100,7 @@ final class SettingsPageTest extends TestCase {
         $page->render();
         ob_end_clean();
 
-        // update_option called at least twice: settings + modules — already asserted via atLeast.
+        // update_option called at least twice: settings + modules, already asserted via atLeast.
         $this->assertTrue(true);
     }
 

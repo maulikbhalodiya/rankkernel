@@ -1,6 +1,6 @@
 <?php
 /**
- * Module manager — the hard gate.
+ * Module manager, the hard gate.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later

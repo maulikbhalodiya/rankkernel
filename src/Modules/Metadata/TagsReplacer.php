@@ -1,6 +1,6 @@
 <?php
 /**
- * Tags replacer — memoized %%token%% resolution.
+ * Tags replacer, memoized %%token%% resolution.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later

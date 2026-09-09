@@ -1,6 +1,6 @@
 <?php
 /**
- * HeadRenderer tests — single-pass, escaping, fallback chains, feed early-return.
+ * HeadRenderer tests, single-pass, escaping, fallback chains, feed early-return.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -30,7 +30,7 @@ final class HeadRendererTest extends TestCase {
         Functions\when('esc_url_raw')->alias(static fn (string $v): string => filter_var($v, FILTER_SANITIZE_URL) ?: '');
         Functions\when('absint')->alias(static fn (mixed $v): int => abs((int) $v));
         Functions\when('wp_strip_all_tags')->alias(static fn (string $s): string => strip_tags($s));
-        // Escaping stubs — return value escaped for test verification (simple pass-through with htmlspecialchars).
+        // Escaping stubs, return value escaped for test verification (simple pass-through with htmlspecialchars).
         Functions\when('esc_attr')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('esc_url')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('is_wp_error')->alias(static fn (mixed $v): bool => $v instanceof \WP_Error);
@@ -81,7 +81,7 @@ final class HeadRendererTest extends TestCase {
         Functions\when('wp_get_attachment_image_url')->justReturn('');
         Functions\when('wp_get_attachment_image_src')->justReturn(false);
 
-        // Settings store — stub get_option to provide overrides.
+        // Settings store, stub get_option to provide overrides.
         $defaults = SettingsStore::defaults();
         $stored   = array_merge($defaults, $settingsOverrides);
         Functions\when('get_option')->alias(
@@ -146,7 +146,7 @@ final class HeadRendererTest extends TestCase {
 
     public function test_render_description_omitted_when_empty(): void {
         [ $ctx, $settings ] = $this->makeSingularContext([ 'description' => '' ], [ 'description_template' => '' ]);
-        // Force excerpt empty and no description template — stub AFTER context so it takes effect at render time.
+        // Force excerpt empty and no description template, stub AFTER context so it takes effect at render time.
         Functions\when('get_the_excerpt')->justReturn('');
         Functions\when('get_post_field')->justReturn('');
 
@@ -216,7 +216,7 @@ final class HeadRendererTest extends TestCase {
     }
 
     public function test_title_resolves_tokens_in_payload(): void {
-        // Payload title contains tokens — should be resolved via TagsReplacer.
+        // Payload title contains tokens, should be resolved via TagsReplacer.
         Functions\when('apply_filters')->alias(
             static function (string $hook, mixed $val) {
                 if ('rankkernel/tokens' === $hook && is_array($val)) {
@@ -232,7 +232,7 @@ final class HeadRendererTest extends TestCase {
 
         $result = $renderer->title('Fallback');
 
-        // Should resolve to Post Title – My Site (separator and sitename).
+        // Should resolve to the post title, then the separator, then the sitename.
         $this->assertStringContainsString('Post Title', (string) $result);
         $this->assertStringContainsString('My Site', (string) $result);
     }
@@ -300,7 +300,7 @@ final class HeadRendererTest extends TestCase {
 
     public function test_render_escapes_description(): void {
         [ $ctx, $settings ] = $this->makeSingularContext([ 'description' => 'A "quoted" & tricky <desc>' ]);
-        // Override sanitize already — payload description will be stored as provided via get_post_meta; render should esc_attr it.
+        // Override sanitize already, payload description will be stored as provided via get_post_meta; render should esc_attr it.
         $renderer = new HeadRenderer($settings, null, $ctx);
 
         ob_start();

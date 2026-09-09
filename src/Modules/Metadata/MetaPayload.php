@@ -1,6 +1,6 @@
 <?php
 /**
- * Meta payload — defaults, sanitization, REST schema.
+ * Meta payload, defaults, sanitization, REST schema.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -112,7 +112,7 @@ final class MetaPayload {
 
             if (array_key_exists('max_image_preview', $robots)) {
                 $val = $robots['max_image_preview'];
-                // max_image_preview may be string like "large" — keep as string or null.
+                // max_image_preview may be string like "large", keep as string or null.
                 if (null === $val || '' === $val) {
                     $out['robots']['max_image_preview'] = null;
                 } elseif (is_numeric($val)) {
