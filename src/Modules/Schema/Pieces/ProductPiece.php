@@ -135,7 +135,100 @@ class ProductPiece implements PieceInterface {
      * @return array<string, string>
      */
     protected function readWooFields( int $postId ): array {
-        return [];
+        if ($postId <= 0) {
+            return [];
+        }
+
+        return $this->wooFields($postId, 'wc_get_product', 'get_woocommerce_currency');
+    }
+
+    /**
+     * Pull guarded values through the Woo function names.
+     *
+     * The names travel as plain strings so the optional dependency
+     * stays invisible to static analysis when Woo is absent. Every
+     * lookup keeps its function and method guard pair.
+     *
+     * @param int    $postId     Current post id.
+     * @param string $factory    Product factory function name.
+     * @param string $currencyFn Currency function name.
+     * @return array<string, string>
+     */
+    private function wooFields( int $postId, string $factory, string $currencyFn ): array {
+        if (! function_exists($factory) || ! is_callable($factory)) {
+            return [];
+        }
+
+        $product = call_user_func($factory, $postId);
+
+        if (! is_object($product)) {
+            return [];
+        }
+
+        $out = [];
+
+        $price = $this->productMethod($product, 'get_price');
+
+        if (is_numeric($price) && '' !== trim((string) $price)) {
+            $out['price'] = trim((string) $price);
+        }
+
+        if (function_exists($currencyFn) && is_callable($currencyFn)) {
+            $currency = call_user_func($currencyFn);
+
+            if ((is_string($currency) || is_numeric($currency)) && '' !== trim((string) $currency)) {
+                $out['currency'] = trim((string) $currency);
+            }
+        }
+
+        $stock = $this->productMethod($product, 'is_in_stock');
+
+        if (is_bool($stock)) {
+            $out['availability'] = $stock ? 'in_stock' : 'out_of_stock';
+        }
+
+        $sku = $this->productMethod($product, 'get_sku');
+
+        if (is_string($sku) && '' !== trim($sku)) {
+            $out['sku'] = trim($sku);
+        }
+
+        $average = $this->productMethod($product, 'get_average_rating');
+
+        if (is_numeric($average) && '' !== trim((string) $average)) {
+            $out['ratingValue'] = trim((string) $average);
+        }
+
+        $count = $this->productMethod($product, 'get_rating_count');
+
+        if (is_numeric($count)) {
+            $out['reviewCount'] = trim((string) $count);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Call a product method through the guard pair, null when unavailable.
+     *
+     * String callables keep the optional Woo dependency invisible to
+     * static analysis, so this file stays clean with Woo absent.
+     *
+     * @param object $product Product object.
+     * @param string $method  Method name.
+     */
+    private function productMethod( object $product, string $method ): mixed {
+        if (! method_exists($product, $method)) {
+            return null;
+        }
+
+        $callable = [ $product, $method ];
+
+        if (! is_callable($callable)) {
+            return null;
+        }
+
+        return call_user_func($callable);
     }
 
     /**
