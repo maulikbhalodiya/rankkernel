@@ -15,6 +15,22 @@ namespace RankKernel\Modules\Sitemaps\Provider;
  */
 class PostsProvider {
     /**
+     * Inner LIKE text matching a noindex payload.
+     *
+     * The payload is stored as one JSON meta row, MetaPayload::defaults
+     * writes the robots object first among nested objects and index first
+     * inside robots, and wp_json_encode preserves PHP array order, so this
+     * fragment is stable. Escaped with $wpdb->esc_like and wrapped in % %
+     * at query time, passed via $wpdb->prepare as %s.
+     */
+    private const NOINDEX_LIKE_INNER = '"robots":{"index":false';
+
+    /**
+     * Meta key holding the JSON payload.
+     */
+    private const META_KEY = '_rankkernel_meta_data';
+
+    /**
      * Get available post type sets.
      *
      * @return string[]
@@ -26,7 +42,14 @@ class PostsProvider {
             return [];
         }
 
-        $sets = array_values(array_filter($postTypes, static fn (mixed $v): bool => is_string($v) && '' !== $v));
+        // Attachments are never listed (matches the competitor default),
+        // even if a theme registers the type as public.
+        $sets = array_values(
+            array_filter(
+                $postTypes,
+                static fn (mixed $v): bool => is_string($v) && '' !== $v && 'attachment' !== $v
+            )
+        );
 
         return $sets;
     }
@@ -38,18 +61,28 @@ class PostsProvider {
      * @return int
      */
     public function getCount(string $postType): int {
+        if ('attachment' === $postType) {
+            return 0;
+        }
+
         global $wpdb;
 
         if (! isset($wpdb) || ! is_object($wpdb)) {
             return 0;
         }
 
+        $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $count = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s",
+                "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s"
+                . " AND p.post_password = ''"
+                . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
+                . " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)",
                 $postType,
-                'publish'
+                'publish',
+                $like
             )
         );
 
@@ -65,6 +98,10 @@ class PostsProvider {
      * @return array<int, array{loc: string, lastmod: string, image: string|null}>
      */
     public function getEntries(string $postType, int $page, int $perPage): array {
+        if ('attachment' === $postType) {
+            return [];
+        }
+
         global $wpdb;
 
         if (! isset($wpdb) || ! is_object($wpdb)) {
@@ -75,13 +112,16 @@ class PostsProvider {
         $perPage = max(1, $perPage);
         $offset  = ( $page - 1 ) * $perPage;
 
+        $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, Generic.Files.LineLength.TooLong
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 // phpcs:ignore Generic.Files.LineLength.TooLong
-                "SELECT ID, post_modified_gmt FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s ORDER BY post_modified_gmt DESC, ID DESC LIMIT %d OFFSET %d",
+                "SELECT p.ID, p.post_modified_gmt FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s AND p.post_password = '' AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s) ORDER BY p.post_modified_gmt DESC, p.ID DESC LIMIT %d OFFSET %d",
                 $postType,
                 'publish',
+                $like,
                 $perPage,
                 $offset
             ),
@@ -89,6 +129,12 @@ class PostsProvider {
         );
 
         if (! is_array($rows) || [] === $rows) {
+            return [];
+        }
+
+        $rows = $this->dropCanonicalMismatchRows($rows);
+
+        if ([] === $rows) {
             return [];
         }
 
@@ -136,5 +182,141 @@ class PostsProvider {
         }
 
         return $entries;
+    }
+
+    /**
+     * Drop rows whose stored canonical differs from the permalink.
+     *
+     * One batched postmeta read for the page, JSON decode per row, fail
+     * open (unreadable payloads and unresolvable permalinks are kept).
+     * Counts stay unfiltered, an approximation the competitors accept too.
+     *
+     * @param array<int, mixed> $rows Entry rows with ID keys.
+     * @return array<int, mixed> Surviving rows.
+     */
+    private function dropCanonicalMismatchRows(array $rows): array {
+        $ids = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['ID'])) {
+                continue;
+            }
+
+            $id = (int) $row['ID'];
+
+            if (0 !== $id) {
+                $ids[] = $id;
+            }
+        }
+
+        if ([] === $ids) {
+            return $rows;
+        }
+
+        $canonicals = $this->fetchCanonicals($ids);
+
+        if ([] === $canonicals) {
+            return $rows;
+        }
+
+        $kept = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['ID'])) {
+                continue;
+            }
+
+            $id        = (int) $row['ID'];
+            $canonical = $canonicals[ $id ] ?? '';
+
+            if ('' === $canonical) {
+                $kept[] = $row;
+
+                continue;
+            }
+
+            $permalink = get_permalink($id);
+
+            if (! is_string($permalink) || '' === $permalink) {
+                $kept[] = $row;
+
+                continue;
+            }
+
+            if (trailingslashit($canonical) !== trailingslashit($permalink)) {
+                continue;
+            }
+
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    /**
+     * Batch fetch non empty stored canonicals for post ids.
+     *
+     * @param int[] $ids Post ids.
+     * @return array<int, string> Map of post id to canonical URL.
+     */
+    private function fetchCanonicals(array $ids): array {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_values(array_filter($ids, static fn (int $id): bool => 0 !== $id));
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        $sql = "SELECT post_id, meta_value FROM {$wpdb->postmeta}"
+            . " WHERE meta_key = %s AND post_id IN ($placeholders)";
+
+        $args = array_merge([ $sql, self::META_KEY ], $ids);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $metaRows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
+
+        if (! is_array($metaRows)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($metaRows as $metaRow) {
+            if (! is_array($metaRow) || ! isset($metaRow['post_id'], $metaRow['meta_value'])) {
+                continue;
+            }
+
+            $postId = (int) $metaRow['post_id'];
+
+            if (0 === $postId) {
+                continue;
+            }
+
+            if (! is_string($metaRow['meta_value']) || '' === $metaRow['meta_value']) {
+                continue;
+            }
+
+            $payload = json_decode($metaRow['meta_value'], true);
+
+            if (! is_array($payload) || ! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
+                continue;
+            }
+
+            if ('' === $payload['canonical']) {
+                continue;
+            }
+
+            $out[ $postId ] = $payload['canonical'];
+        }
+
+        return $out;
     }
 }

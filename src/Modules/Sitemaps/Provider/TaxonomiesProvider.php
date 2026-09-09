@@ -15,6 +15,22 @@ namespace RankKernel\Modules\Sitemaps\Provider;
  */
 class TaxonomiesProvider {
     /**
+     * Inner LIKE text matching a noindex term payload.
+     *
+     * Same JSON coupling as the posts provider (robots object first among
+     * nested objects, index first inside robots, array order preserved by
+     * encoding), matched against the _rankkernel_term_data row keyed by
+     * term id. Escaped with $wpdb->esc_like and wrapped in % % at query
+     * time, passed via $wpdb->prepare as %s.
+     */
+    private const NOINDEX_LIKE_INNER = '"robots":{"index":false';
+
+    /**
+     * Meta key holding the JSON term payload.
+     */
+    private const META_KEY = '_rankkernel_term_data';
+
+    /**
      * Get available taxonomy sets.
      *
      * @return string[]
@@ -58,13 +74,17 @@ class TaxonomiesProvider {
             return 0;
         }
 
+        $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
+
         $sql = "SELECT COUNT(DISTINCT t.term_id) FROM {$wpdb->terms} t"
             . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
             . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
             . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
-            . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)";
+            . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
 
-        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types);
+        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $like ]);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $count = $wpdb->get_var($wpdb->prepare(...$args));
@@ -103,20 +123,30 @@ class TaxonomiesProvider {
             return [];
         }
 
+        $like = '%' . $wpdb->esc_like(self::NOINDEX_LIKE_INNER) . '%';
+
         $sql = "SELECT t.term_id, MAX(p.post_modified_gmt) as lastmod_gmt"
             . " FROM {$wpdb->terms} t"
             . " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
             . " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
             . " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
             . " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
+            . " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+            . " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
             . " GROUP BY t.term_id ORDER BY lastmod_gmt DESC, t.term_id DESC LIMIT %d OFFSET %d";
 
-        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $perPage, $offset ]);
+        $args = array_merge([ $sql, $taxonomy, 'publish' ], $types, [ $like, $perPage, $offset ]);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
 
         if (! is_array($rows) || [] === $rows) {
+            return [];
+        }
+
+        $rows = $this->dropCanonicalMismatchRows($rows, $taxonomy);
+
+        if ([] === $rows) {
             return [];
         }
 
@@ -162,5 +192,142 @@ class TaxonomiesProvider {
         }
 
         return $entries;
+    }
+
+    /**
+     * Drop rows whose stored canonical differs from the term link.
+     *
+     * One batched termmeta read for the page, JSON decode per row, fail
+     * open (unreadable payloads and unresolvable links are kept). Counts
+     * stay unfiltered, an approximation the competitors accept too.
+     *
+     * @param array<int, mixed> $rows     Entry rows with term_id keys.
+     * @param string            $taxonomy Taxonomy name.
+     * @return array<int, mixed> Surviving rows.
+     */
+    private function dropCanonicalMismatchRows(array $rows, string $taxonomy): array {
+        $ids = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['term_id'])) {
+                continue;
+            }
+
+            $id = (int) $row['term_id'];
+
+            if (0 !== $id) {
+                $ids[] = $id;
+            }
+        }
+
+        if ([] === $ids) {
+            return $rows;
+        }
+
+        $canonicals = $this->fetchCanonicals($ids);
+
+        if ([] === $canonicals) {
+            return $rows;
+        }
+
+        $kept = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['term_id'])) {
+                continue;
+            }
+
+            $id        = (int) $row['term_id'];
+            $canonical = $canonicals[ $id ] ?? '';
+
+            if ('' === $canonical) {
+                $kept[] = $row;
+
+                continue;
+            }
+
+            $link = get_term_link($id, $taxonomy);
+
+            if (is_wp_error($link) || ! is_string($link) || '' === $link) {
+                $kept[] = $row;
+
+                continue;
+            }
+
+            if (trailingslashit($canonical) !== trailingslashit($link)) {
+                continue;
+            }
+
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    /**
+     * Batch fetch non empty stored canonicals for term ids.
+     *
+     * @param int[] $ids Term ids.
+     * @return array<int, string> Map of term id to canonical URL.
+     */
+    private function fetchCanonicals(array $ids): array {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_values(array_filter($ids, static fn (int $id): bool => 0 !== $id));
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        $sql = "SELECT term_id, meta_value FROM {$wpdb->termmeta}"
+            . " WHERE meta_key = %s AND term_id IN ($placeholders)";
+
+        $args = array_merge([ $sql, self::META_KEY ], $ids);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $metaRows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
+
+        if (! is_array($metaRows)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($metaRows as $metaRow) {
+            if (! is_array($metaRow) || ! isset($metaRow['term_id'], $metaRow['meta_value'])) {
+                continue;
+            }
+
+            $termId = (int) $metaRow['term_id'];
+
+            if (0 === $termId) {
+                continue;
+            }
+
+            if (! is_string($metaRow['meta_value']) || '' === $metaRow['meta_value']) {
+                continue;
+            }
+
+            $payload = json_decode($metaRow['meta_value'], true);
+
+            if (! is_array($payload) || ! isset($payload['canonical']) || ! is_string($payload['canonical'])) {
+                continue;
+            }
+
+            if ('' === $payload['canonical']) {
+                continue;
+            }
+
+            $out[ $termId ] = $payload['canonical'];
+        }
+
+        return $out;
     }
 }
