@@ -199,6 +199,17 @@ class SitemapCache {
     }
 
     /**
+     * Bump the global validator once, outside the queue.
+     *
+     * Used by the sitemap settings save handler, which owns no cache
+     * instance but must invalidate every cached payload synchronously
+     * before redirecting. Existing queued paths are untouched.
+     */
+    public static function invalidateAll(): void {
+        update_option(self::VALIDATOR_GLOBAL, (string) time() . '_' . uniqid('', true), false);
+    }
+
+    /**
      * Register invalidation hooks.
      */
     public function registerHooks(): void {
