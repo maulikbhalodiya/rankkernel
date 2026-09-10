@@ -48,17 +48,9 @@ final class HowtoBlock {
             return '';
         }
 
-        if (! defined('\RANKERNEL_FILE')) {
-            return '';
-        }
+        $main = dirname(__DIR__, 4) . '/rankkernel.php';
 
-        $base = (string) constant('\RANKERNEL_FILE');
-
-        if ('' === $base) {
-            return '';
-        }
-
-        return (string) plugins_url($path, $base);
+        return (string) plugins_url($path, $main);
     }
 
     /**
