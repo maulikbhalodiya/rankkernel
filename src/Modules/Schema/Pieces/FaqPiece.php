@@ -204,6 +204,9 @@ final class FaqPiece implements PieceInterface {
             return [];
         }
 
+        // Parsed block data is untrusted runtime input, so read it as a
+        // plain list and validate every level before use.
+        /** @var array<int, mixed> $blocks */
         $blocks = parse_blocks($content);
 
         if (! is_array($blocks)) {
