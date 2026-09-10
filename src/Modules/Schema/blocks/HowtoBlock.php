@@ -48,17 +48,7 @@ final class HowtoBlock {
             return '';
         }
 
-        if (! defined('RANKERNEL_FILE')) {
-            return '';
-        }
-
-        $base = (string) constant('RANKERNEL_FILE');
-
-        if ('' === $base) {
-            return '';
-        }
-
-        return (string) plugins_url($path, $base);
+        return (string) plugins_url($path, __FILE__);
     }
 
     /**
@@ -70,7 +60,7 @@ final class HowtoBlock {
         }
 
         if (function_exists('wp_register_script') && function_exists('plugins_url')) {
-            $version = defined('RANKKERNEL_VERSION') ? (string) constant('RANKKERNEL_VERSION') : '0.1.0';
+            $version = \RankKernel\Plugin::VERSION;
 
             wp_register_script(
                 'rankkernel-howto-editor',
@@ -82,7 +72,7 @@ final class HowtoBlock {
         }
 
         if (function_exists('wp_register_style') && function_exists('plugins_url')) {
-            $version = defined('RANKKERNEL_VERSION') ? (string) constant('RANKKERNEL_VERSION') : '0.1.0';
+            $version = \RankKernel\Plugin::VERSION;
 
             wp_register_style(
                 'rankkernel-howto-editor',
