@@ -202,8 +202,6 @@ final class SchemaMetabox {
         $this->renderDisableRow($disabled);
         $this->renderTypeSelector($selected, $resolved, $postType);
         $this->renderFields($fields, $selected);
-        $this->renderFaq($schema);
-        $this->renderHowto($schema);
         echo '<details><summary>'
             . esc_html__('Advanced: custom JSON, import, export', 'rankkernel')
             . '</summary>';
@@ -372,102 +370,7 @@ final class SchemaMetabox {
     }
 
     /**
-     * Render the FAQ builder rows.
-     *
-     * @param array<string, mixed> $schema Stored schema subtree.
-     */
-    private function renderFaq( array $schema ): void {
-        $faq       = ( isset($schema['faq']) && is_array($schema['faq']) ) ? $schema['faq'] : [];
-        $rows      = ( isset($faq['questions']) && is_array($faq['questions']) ) ? $faq['questions'] : [];
-        $rows      = array_values($rows);
-        $rowCount  = count($rows);
-
-        echo '<h3>' . esc_html__('FAQ', 'rankkernel') . '</h3>';
-        echo '<table class="widefat"><thead><tr>';
-        echo '<th>' . esc_html__('Question', 'rankkernel') . '</th>';
-        echo '<th>' . esc_html__('Answer', 'rankkernel') . '</th>';
-        echo '<th></th></tr></thead>';
-        echo '<tbody id="rankkernel-faq-rows">';
-
-        for ($i = 0; $i < $rowCount; $i++) {
-            $row      = is_array($rows[ $i ]) ? $rows[ $i ] : [];
-            $question = isset($row['question']) ? (string) $row['question'] : '';
-            $answer   = isset($row['answer']) ? (string) $row['answer'] : '';
-
-            echo '<tr><td><input type="text" class="regular-text" name="'
-                . esc_attr('rankkernel_schema_faq[' . $i . '][question]') . '" value="'
-                . esc_attr($question) . '" /></td>';
-            echo '<td><textarea class="large-text" rows="2" name="'
-                . esc_attr('rankkernel_schema_faq[' . $i . '][answer]') . '">'
-                . esc_textarea($answer) . '</textarea></td>';
-            echo '<td><button type="button" class="button rankkernel-schema-remove-row">'
-                . esc_html__('Remove', 'rankkernel') . '</button></td></tr>';
-        }
-
-        echo '</tbody></table>';
-        echo '<p><button type="button" id="rankkernel-faq-add" class="button">'
-            . esc_html__('Add question', 'rankkernel') . '</button></p>';
-    }
-
-    /**
-     * Render the HowTo builder.
-     *
-     * @param array<string, mixed> $schema Stored schema subtree.
-     */
-    private function renderHowto( array $schema ): void {
-        $howto = ( isset($schema['howto']) && is_array($schema['howto']) ) ? $schema['howto'] : [];
-        $name  = isset($howto['name']) ? (string) $howto['name'] : '';
-        $steps = ( isset($howto['steps']) && is_array($howto['steps']) ) ? array_values($howto['steps']) : [];
-        $total = isset($howto['totalTime']) ? (string) $howto['totalTime'] : '';
-        $cost  = isset($howto['cost']) ? (string) $howto['cost'] : '';
-
-        echo '<h3>' . esc_html__('HowTo', 'rankkernel') . '</h3>';
-        echo '<p><label for="rankkernel-howto-name">' . esc_html__('HowTo name', 'rankkernel') . '</label> ';
-        echo '<input type="text" id="rankkernel-howto-name" class="regular-text" name="'
-            . esc_attr('rankkernel_schema_howto_name') . '" value="' . esc_attr($name) . '" /></p>';
-
-        echo '<table class="widefat"><thead><tr>';
-        echo '<th>' . esc_html__('Step title', 'rankkernel') . '</th>';
-        echo '<th>' . esc_html__('Step text', 'rankkernel') . '</th>';
-        echo '<th>' . esc_html__('Image URL', 'rankkernel') . '</th>';
-        echo '<th></th></tr></thead>';
-        echo '<tbody id="rankkernel-howto-rows">';
-
-        foreach ($steps as $i => $row) {
-            $step  = is_array($row) ? $row : [];
-            $title = isset($step['title']) ? (string) $step['title'] : '';
-            $text  = isset($step['text']) ? (string) $step['text'] : '';
-            $image = isset($step['image']) ? (string) $step['image'] : '';
-
-            echo '<tr><td><input type="text" class="regular-text" name="'
-                . esc_attr('rankkernel_schema_howto_steps[' . $i . '][title]') . '" value="'
-                . esc_attr($title) . '" /></td>';
-            echo '<td><textarea class="large-text" rows="2" name="'
-                . esc_attr('rankkernel_schema_howto_steps[' . $i . '][text]') . '">'
-                . esc_textarea($text) . '</textarea></td>';
-            echo '<td><input type="url" class="regular-text" name="'
-                . esc_attr('rankkernel_schema_howto_steps[' . $i . '][image]') . '" value="'
-                . esc_attr($image) . '" /></td>';
-            echo '<td><button type="button" class="button rankkernel-schema-remove-row">'
-                . esc_html__('Remove', 'rankkernel') . '</button></td></tr>';
-        }
-
-        echo '</tbody></table>';
-        echo '<p><button type="button" id="rankkernel-howto-add" class="button">'
-            . esc_html__('Add step', 'rankkernel') . '</button></p>';
-
-        echo '<p><label for="rankkernel-howto-totaltime">' . esc_html__('Total time', 'rankkernel')
-            . '</label> ';
-        echo '<input type="text" id="rankkernel-howto-totaltime" class="regular-text" name="'
-            . esc_attr('rankkernel_schema_howto_totaltime') . '" value="' . esc_attr($total) . '" /></p>';
-
-        echo '<p><label for="rankkernel-howto-cost">' . esc_html__('Cost', 'rankkernel') . '</label> ';
-        echo '<input type="text" id="rankkernel-howto-cost" class="regular-text" name="'
-            . esc_attr('rankkernel_schema_howto_cost') . '" value="' . esc_attr($cost) . '" /></p>';
-    }
-
-    /**
-     * Render the raw custom JSON box.
+     * Render the custom JSON box.
      *
      * @param array<string, mixed> $schema Stored schema subtree.
      */
@@ -769,7 +672,38 @@ final class SchemaMetabox {
             ? $sanitized['schema']
             : [];
 
-        $existing           = $this->readPayload($postId);
+        $existing        = $this->readPayload($postId);
+        $existingSchema  = ( isset($existing['schema']) && is_array($existing['schema']) )
+            ? $existing['schema']
+            : [];
+
+        // The FAQ and HowTo builders now live in blocks. When their POST
+        // keys are absent, the metabox did not render them, so previously
+        // stored rows carry over instead of being wiped.
+        if (! isset($_POST['rankkernel_schema_faq']) && isset($existingSchema['faq'])) {
+            $newSchema['faq'] = $existingSchema['faq'];
+        }
+
+        $howtoKeys = [
+            'rankkernel_schema_howto_name',
+            'rankkernel_schema_howto_steps',
+            'rankkernel_schema_howto_totaltime',
+            'rankkernel_schema_howto_cost',
+        ];
+
+        $howtoPosted = false;
+
+        foreach ($howtoKeys as $howtoKey) {
+            if (isset($_POST[ $howtoKey ])) {
+                $howtoPosted = true;
+                break;
+            }
+        }
+
+        if (! $howtoPosted && isset($existingSchema['howto'])) {
+            $newSchema['howto'] = $existingSchema['howto'];
+        }
+
         $existing['schema'] = $newSchema;
         $this->saveStatus   = $status;
 

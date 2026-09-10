@@ -1,18 +1,13 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "rankkernel/faq",
-  "title": "FAQ by RankKernel",
-  "description": "Add SEO friendly frequently asked questions with automatic FAQPage schema.",
+  "name": "rankkernel/howto",
+  "title": "HowTo by RankKernel",
+  "description": "Add SEO friendly how-to steps with automatic HowTo schema.",
   "category": "rankkernel",
-  "icon": "editor-ul",
+  "icon": "editor-ol",
   "textdomain": "rankkernel",
-  "keywords": [
-    "FAQ",
-    "Frequently Asked Questions",
-    "Schema",
-    "Structured Data"
-  ],
+  "keywords": [ "HowTo", "How To", "Steps", "Schema", "Structured Data" ],
   "attributes": {
     "title": {
       "type": "string",
@@ -22,24 +17,19 @@
       "type": "string",
       "default": "h3"
     },
-    "listStyle": {
-      "type": "string",
-      "default": "ul",
-      "enum": [
-        "ul",
-        "ol"
-      ]
-    },
-    "questions": {
+    "steps": {
       "type": "array",
       "default": [],
       "items": {
         "type": "object",
         "properties": {
-          "question": {
+          "title": {
             "type": "string"
           },
-          "answer": {
+          "text": {
+            "type": "string"
+          },
+          "image": {
             "type": "string"
           }
         }

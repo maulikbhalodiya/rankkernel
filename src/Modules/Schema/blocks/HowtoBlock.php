@@ -1,6 +1,6 @@
 <?php
 /**
- * FAQ block, registration plus server render.
+ * HowTo block, server rendered with explicit editor assets.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -10,28 +10,30 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema\blocks;
 
+use function esc_attr;
+use function esc_html;
+use function esc_url;
+use function plugins_url;
+
 /**
- * Registers the rankkernel/faq block and renders it on the server.
+ * Registers the rankkernel/howto block type and renders it.
  *
- * Server rendering means zero frontend JS and zero frontend CSS ship
- * with the block. The tradeoff is visible content with no accordion
- * toggle, which keeps the markup screen reader friendly and lets the
- * FAQPage schema match exactly what visitors see.
+ * Steps render as a numbered list with title, text, and optional
+ * image. Server rendering means zero frontend JS and zero frontend
+ * CSS ship.
  */
-final class FaqBlock {
+final class HowtoBlock {
     /**
      * Allowed title wrapper tags.
-     *
-     * @var string[]
      */
     private const WRAPPERS = [ 'h2', 'h3', 'h4' ];
 
     /**
-     * Register the block category and the dynamic block type.
+     * Register the dynamic block type with explicit editor assets.
      *
-     * Runs during SchemaModule::boot(), which fires on init, so the
-     * register_block_type call below already happens on init and the
-     * render callback runs on demand only.
+     * The editor script and style register explicitly with full
+     * dependency lists instead of relying on metadata auto loading,
+     * so the editor globals they use always load first.
      */
     public function register(): void {
         add_filter('block_categories_all', [ $this, 'addCategory' ]);
@@ -61,10 +63,6 @@ final class FaqBlock {
 
     /**
      * Register the dynamic block type from its block.json folder.
-     *
-     * The editor script and style register explicitly with full
-     * dependency lists instead of relying on metadata auto loading,
-     * so the editor globals they use always load first.
      */
     public function registerBlock(): void {
         if (! function_exists('register_block_type')) {
@@ -72,11 +70,11 @@ final class FaqBlock {
         }
 
         if (function_exists('wp_register_script') && function_exists('plugins_url')) {
-            $version = \RankKernel\Plugin::VERSION;
+            $version = defined('RANKKERNEL_VERSION') ? (string) constant('RANKKERNEL_VERSION') : '0.1.0';
 
             wp_register_script(
-                'rankkernel-faq-editor',
-                self::assetUrl('src/Modules/Schema/blocks/faq/faq-editor.js'),
+                'rankkernel-howto-editor',
+                self::assetUrl('src/Modules/Schema/blocks/howto/howto-editor.js'),
                 [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
                 $version,
                 true
@@ -84,21 +82,21 @@ final class FaqBlock {
         }
 
         if (function_exists('wp_register_style') && function_exists('plugins_url')) {
-            $version = \RankKernel\Plugin::VERSION;
+            $version = defined('RANKKERNEL_VERSION') ? (string) constant('RANKKERNEL_VERSION') : '0.1.0';
 
             wp_register_style(
-                'rankkernel-faq-editor',
-                self::assetUrl('src/Modules/Schema/blocks/faq/editor.css'),
+                'rankkernel-howto-editor',
+                plugins_url('src/Modules/Schema/blocks/howto/editor.css', (string) RANKKERNEL_FILE),
                 [],
                 $version
             );
         }
 
         register_block_type(
-            __DIR__ . '/faq',
+            __DIR__ . '/howto',
             [
-                'editor_script'   => 'rankkernel-faq-editor',
-                'editor_style'    => 'rankkernel-faq-editor',
+                'editor_script'   => 'rankkernel-howto-editor',
+                'editor_style'    => 'rankkernel-howto-editor',
                 'render_callback' => [ $this, 'render' ],
             ]
         );
@@ -122,7 +120,7 @@ final class FaqBlock {
         $out[] = [
             'slug'  => 'rankkernel',
             'title' => 'RankKernel',
-            'icon'  => 'editor-ul',
+            'icon'  => 'editor-ol',
         ];
 
         return $out;
@@ -132,9 +130,10 @@ final class FaqBlock {
      * Render the block.
      *
      * Every dynamic value is escaped, tag names come from an allowlist
-     * (h2, h3, h4, default h3) and the list tag is ul or ol (default
-     * ul). Rows with both parts blank are skipped. Returns an empty
-     * string when no valid rows remain, so nothing renders.
+     * (h2, h3, h4, default h3). Steps show their position number so the
+     * order stays visible regardless of theme list styling. Rows with
+     * blank title and text are skipped. Returns an empty string when no
+     * valid rows remain, so nothing renders.
      *
      * @param array<string, mixed> $attributes Block attributes.
      */
@@ -146,46 +145,45 @@ final class FaqBlock {
             $wrapper = 'h3';
         }
 
-        $list = isset($attributes['listStyle']) ? strtolower(trim((string) $attributes['listStyle'])) : 'ul';
+        $steps = $attributes['steps'] ?? [];
 
-        if (! in_array($list, [ 'ul', 'ol' ], true)) {
-            $list = 'ul';
-        }
-
-        $questions = $attributes['questions'] ?? [];
-
-        if (! is_array($questions)) {
-            $questions = [];
+        if (! is_array($steps)) {
+            return '';
         }
 
         $rows  = '';
         $index = 0;
 
-        foreach ($questions as $row) {
+        foreach ($steps as $row) {
             if (! is_array($row)) {
                 continue;
             }
 
-            $question = isset($row['question']) ? trim((string) $row['question']) : '';
-            $answer   = isset($row['answer']) ? trim((string) $row['answer']) : '';
+            $stepTitle = isset($row['title']) ? trim((string) $row['title']) : '';
+            $text      = isset($row['text']) ? trim((string) $row['text']) : '';
+            $image     = isset($row['image']) ? trim((string) $row['image']) : '';
 
-            if ('' === $question && '' === $answer) {
+            if ('' === $stepTitle && '' === $text) {
                 continue;
             }
 
             $index++;
 
-            $rows .= '<li class="rankkernel-faq-item">';
+            $rows .= '<li class="rankkernel-howto-item">';
 
-            if ('' !== $question) {
-                $rows .= '<' . $wrapper . ' class="rankkernel-faq-question">'
-                    . '<span class="rankkernel-faq-number">' . $index . '. </span>'
-                    . esc_html($question)
+            if ('' !== $stepTitle) {
+                $rows .= '<' . $wrapper . ' class="rankkernel-howto-step-title">'
+                    . '<span class="rankkernel-howto-number">' . $index . '. </span>'
+                    . esc_html($stepTitle)
                     . '</' . $wrapper . '>';
             }
 
-            if ('' !== $answer) {
-                $rows .= '<div class="rankkernel-faq-answer">' . wp_kses_post($answer) . '</div>';
+            if ('' !== $text) {
+                $rows .= '<div class="rankkernel-howto-step-text">' . wp_kses_post($text) . '</div>';
+            }
+
+            if ('' !== $image) {
+                $rows .= '<img class="rankkernel-howto-step-image" src="' . esc_url($image) . '" alt="" />';
             }
 
             $rows .= '</li>';
@@ -195,17 +193,15 @@ final class FaqBlock {
             return '';
         }
 
-        $out = '<div class="rankkernel-faq">';
+        $out = '<div class="rankkernel-howto">';
 
         if ('' !== $title) {
-            $out .= '<' . $wrapper . ' class="rankkernel-faq-title">'
+            $out .= '<' . $wrapper . ' class="rankkernel-howto-title">'
                 . esc_html($title)
                 . '</' . $wrapper . '>';
         }
 
-        $listStyle = 'ol' === $list ? ' style="list-style-type:decimal;"' : ' style="list-style-type:disc;"';
-
-        $out .= '<' . $list . ' class="rankkernel-faq-list"' . $listStyle . '>' . $rows . '</' . $list . '>';
+        $out .= '<ol class="rankkernel-howto-list" style="list-style-type:decimal;">' . $rows . '</ol>';
         $out .= '</div>';
 
         return $out;

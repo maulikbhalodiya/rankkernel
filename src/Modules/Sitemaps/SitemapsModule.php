@@ -116,7 +116,7 @@ class SitemapsModule implements ModuleInterface {
      * Boot hooks.
      */
     public function boot(): void {
-        $builder = new IndexBuilder(null, null, null, (string) RANKKERNEL_VERSION, new SitemapSettings());
+        $builder = new IndexBuilder(null, null, null, \RankKernel\Plugin::VERSION, new SitemapSettings());
         $cache   = new SitemapCache();
         $xsl     = new XslStylesheet();
         $router  = new Router($builder, $cache, $xsl);
@@ -150,9 +150,9 @@ class SitemapsModule implements ModuleInterface {
         // global validator once per version forces every set to rebuild.
         $codeVersion = get_option('rankkernel_sitemap_code_version', '');
 
-        if (RANKKERNEL_VERSION !== $codeVersion) {
+        if (\RankKernel\Plugin::VERSION !== $codeVersion) {
             update_option(SitemapCache::VALIDATOR_GLOBAL, (string) time() . '-' . (string) wp_rand(), false);
-            update_option('rankkernel_sitemap_code_version', RANKKERNEL_VERSION, false);
+            update_option('rankkernel_sitemap_code_version', \RankKernel\Plugin::VERSION, false);
         }
 
         // One flush per plugin version: rewrite rules registered above must
@@ -160,9 +160,9 @@ class SitemapsModule implements ModuleInterface {
         // cached rules without them, which 404s every sitemap URL).
         $rulesVersion = get_option('rankkernel_rewrite_rules_version', '');
 
-        if (RANKKERNEL_VERSION !== $rulesVersion) {
+        if (\RankKernel\Plugin::VERSION !== $rulesVersion) {
             flush_rewrite_rules(false);
-            update_option('rankkernel_rewrite_rules_version', RANKKERNEL_VERSION, false);
+            update_option('rankkernel_rewrite_rules_version', \RankKernel\Plugin::VERSION, false);
         }
     }
 

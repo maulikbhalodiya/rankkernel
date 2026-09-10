@@ -90,7 +90,7 @@ class IndexBuilder {
         }
 
         if (defined('RANKKERNEL_VERSION')) {
-            return (string) RANKKERNEL_VERSION;
+            return \RankKernel\Plugin::VERSION;
         }
 
         return '0.1.0';

@@ -46,6 +46,12 @@ final class SchemaModuleTest extends TestCase {
         Functions\when('get_term_meta')->justReturn([]);
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $value);
         Functions\when('home_url')->alias(static fn (string $path = '/'): string => 'https://example.com' . $path);
+        Functions\when('plugins_url')->alias(static fn (string $p, string $f = ''): string => 'https://example.com/wp-content/plugins/rankkernel/' . $p);
+        Functions\when('wp_register_script')->justReturn(null);
+        Functions\when('wp_register_style')->justReturn(null);
+        Functions\when('register_block_type')->justReturn(true);
+        Functions\when('wp_register_script')->justReturn(null);
+        Functions\when('wp_register_style')->justReturn(null);
         Functions\when('trailingslashit')->alias(static fn (string $v): string => rtrim($v, '/') . '/');
         Functions\when('get_bloginfo')->justReturn('My Site');
         Functions\when('get_locale')->justReturn('en_US');

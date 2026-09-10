@@ -40,6 +40,7 @@ use RankKernel\Modules\Schema\Pieces\VideoPiece;
 use RankKernel\Modules\Schema\Pieces\WebpagePiece;
 use RankKernel\Modules\Schema\Pieces\WebsitePiece;
 use RankKernel\Modules\Schema\blocks\FaqBlock;
+use RankKernel\Modules\Schema\blocks\HowtoBlock;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
@@ -181,6 +182,7 @@ final class SchemaModule implements ModuleInterface {
     public function boot(): void {
         add_action('rankkernel/head/after_tags', [ $this, 'render' ], 10);
         ( new FaqBlock() )->register();
+        ( new HowtoBlock() )->register();
     }
 
     /**

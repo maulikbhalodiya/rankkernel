@@ -4,8 +4,11 @@
     var InspectorControls = wp.blockEditor.InspectorControls;
     var PanelBody = wp.components.PanelBody;
     var SelectControl = wp.components.SelectControl;
+    var TextControl = wp.components.TextControl;
     var Button = wp.components.Button;
     var __ = wp.i18n.__;
+
+    var nextStepId = 1;
 
     function allowedWrapper( value ) {
         if ( 'h2' === value || 'h3' === value || 'h4' === value ) {
@@ -15,11 +18,9 @@
         return 'h3';
     }
 
-    var nextQuestionId = 1;
-
-    function emptyQuestion() {
-        var id = 'rkq' + (nextQuestionId++);
-        return { id: id, question: '', answer: '' };
+    function emptyStep() {
+        var id = 'rkh' + (nextStepId++);
+        return { id: id, title: '', text: '', image: '' };
     }
 
     function rowKey( row, index ) {
@@ -30,22 +31,21 @@
         return 'row-' + index;
     }
 
-    wp.blocks.registerBlockType('rankkernel/faq', {
+    wp.blocks.registerBlockType('rankkernel/howto', {
         edit: function ( props ) {
             var attributes = props.attributes;
             var setAttributes = props.setAttributes;
             var title = attributes.title || '';
             var titleWrapper = allowedWrapper(attributes.titleWrapper || 'h3');
-            var listStyle = 'ol' === attributes.listStyle ? 'ol' : 'ul';
-            var questions = attributes.questions || [];
+            var steps = attributes.steps || [];
 
-            function updateQuestion( key, field, value ) {
+            function updateStep( key, field, value ) {
                 var current = null;
                 var i;
 
-                for (i = 0; i < questions.length; i++) {
-                    if (rowKey(questions[i], i) === key) {
-                        current = questions[i];
+                for (i = 0; i < steps.length; i++) {
+                    if (rowKey(steps[i], i) === key) {
+                        current = steps[i];
                         break;
                     }
                 }
@@ -54,14 +54,15 @@
                     return;
                 }
 
-                var next = questions.map(function ( row, i ) {
+                var next = steps.map(function ( row, i ) {
                     if (rowKey(row, i) !== key) {
                         return row;
                     }
 
                     var copy = {
-                        question: row.question || '',
-                        answer: row.answer || ''
+                        title: row.title || '',
+                        text: row.text || '',
+                        image: row.image || ''
                     };
 
                     if (row.id) {
@@ -73,43 +74,52 @@
                     return copy;
                 });
 
-                setAttributes({ questions: next });
+                setAttributes({ steps: next });
             }
 
-            function removeQuestion( key ) {
+            function removeStep( key ) {
                 setAttributes({
-                    questions: questions.filter(function ( row, i ) {
+                    steps: steps.filter(function ( row, i ) {
                         return rowKey(row, i) !== key;
                     })
                 });
             }
 
-            function addQuestion() {
-                setAttributes({ questions: questions.concat([ emptyQuestion() ]) });
+            function addStep() {
+                setAttributes({ steps: steps.concat([ emptyStep() ]) });
             }
 
-            var rows = questions.map(function ( row, index ) {
+            var rows = steps.map(function ( row, index ) {
                 var key = rowKey(row, index);
                 return el(
                     'div',
-                    { key: key, className: 'rankkernel-faq-row' },
+                    { key: key, className: 'rankkernel-howto-step' },
                     el(RichText, {
                         tagName: titleWrapper,
-                        className: 'rankkernel-faq-row-question',
-                        placeholder: __('Enter a question...', 'rankkernel'),
-                        value: row.question || '',
+                        className: 'rankkernel-howto-step-title',
+                        placeholder: __('Step title...', 'rankkernel'),
+                        value: row.title || '',
                         onChange: function ( value ) {
-                            updateQuestion(key, 'question', value);
+                            updateStep(key, 'title', value);
                         }
                     }),
                     el(RichText, {
                         tagName: 'div',
                         multiline: 'p',
-                        className: 'rankkernel-faq-row-answer',
-                        placeholder: __('Enter the answer...', 'rankkernel'),
-                        value: row.answer || '',
+                        className: 'rankkernel-howto-step-text',
+                        placeholder: __('Step instructions...', 'rankkernel'),
+                        value: row.text || '',
                         onChange: function ( value ) {
-                            updateQuestion(key, 'answer', value);
+                            updateStep(key, 'text', value);
+                        }
+                    }),
+                    el(TextControl, {
+                        label: __('Image URL (optional)', 'rankkernel'),
+                        value: row.image || '',
+                        onChange: function ( value ) {
+                            if (value !== (row.image || '')) {
+                                updateStep(key, 'image', value);
+                            }
                         }
                     }),
                     el(
@@ -117,33 +127,20 @@
                         {
                             isDestructive: true,
                             onClick: function () {
-                                removeQuestion(key);
+                                removeStep(key);
                             }
                         },
-                        __('Remove question', 'rankkernel')
+                        __('Remove step', 'rankkernel')
                     )
                 );
             });
 
             return el(
                 'div',
-                { className: 'rankkernel-faq-editor' },
+                { className: 'rankkernel-howto-editor' },
                 el(InspectorControls, null, el(
                     PanelBody,
-                    { title: __('FAQ Settings', 'rankkernel'), initialOpen: true },
-                    el(SelectControl, {
-                        label: __('List style', 'rankkernel'),
-                        value: listStyle,
-                        options: [
-                            { label: __('Unordered', 'rankkernel'), value: 'ul' },
-                            { label: __('Ordered', 'rankkernel'), value: 'ol' }
-                        ],
-                        onChange: function ( value ) {
-                            if (value !== listStyle) {
-                                setAttributes({ listStyle: value });
-                            }
-                        }
-                    }),
+                    { title: __('HowTo Settings', 'rankkernel'), initialOpen: true },
                     el(SelectControl, {
                         label: __('Title size', 'rankkernel'),
                         value: titleWrapper,
@@ -162,7 +159,7 @@
                 )),
                 el(RichText, {
                     tagName: titleWrapper,
-                    className: 'rankkernel-faq-editor-title',
+                    className: 'rankkernel-howto-editor-title',
                     placeholder: __('Add a title...', 'rankkernel'),
                     value: title,
                     onChange: function ( value ) {
@@ -171,11 +168,11 @@
                         }
                     }
                 }),
-                el(listStyle, { className: 'rankkernel-faq-editor-list' }, rows),
+                el('ol', { className: 'rankkernel-howto-editor-list' }, rows),
                 el(
                     Button,
-                    { variant: 'primary', onClick: addQuestion },
-                    __('Add question', 'rankkernel')
+                    { variant: 'primary', onClick: addStep },
+                    __('Add step', 'rankkernel')
                 )
             );
         },

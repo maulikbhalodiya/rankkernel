@@ -163,12 +163,78 @@ final class FaqBlockTest extends TestCase {
             [ 'FAQ', 'Frequently Asked Questions', 'Schema', 'Structured Data' ],
             $json['keywords']
         );
-        $this->assertSame('file:./faq-editor.js', $json['editorScript']);
         $this->assertSame(3, $json['apiVersion']);
         $this->assertSame('', $json['attributes']['title']['default']);
         $this->assertSame('h3', $json['attributes']['titleWrapper']['default']);
         $this->assertSame('ul', $json['attributes']['listStyle']['default']);
         $this->assertSame([], $json['attributes']['questions']['default']);
+    }
+
+    public function test_register_block_registers_editor_assets_with_dependencies(): void {
+        $registeredScripts = [];
+        $registeredStyles  = [];
+        $registeredTypes   = [];
+
+        Functions\when('wp_register_script')->alias(
+            static function (string $handle, string $src, array $deps, mixed $ver, bool $footer) use (&$registeredScripts): void {
+                $registeredScripts[ $handle ] = $deps;
+            }
+        );
+        Functions\when('wp_register_style')->alias(
+            static function (string $handle, string $src, array $deps, mixed $ver) use (&$registeredStyles): void {
+                $registeredStyles[ $handle ] = $deps;
+            }
+        );
+        Functions\when('plugins_url')->alias(static fn (string $p, string $f = ''): string => 'https://example.com/wp-content/plugins/rankkernel/' . $p);
+        Functions\when('register_block_type')->alias(
+            static function (mixed $name, mixed $args = []) use (&$registeredTypes): mixed {
+                $registeredTypes[] = [ $name, $args ];
+
+                return true;
+            }
+        );
+
+        ( new FaqBlock() )->registerBlock();
+
+        $this->assertSame(
+            [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
+            $registeredScripts['rankkernel-faq-editor']
+        );
+        $this->assertArrayHasKey('rankkernel-faq-editor', $registeredStyles);
+
+        $found = false;
+
+        foreach ($registeredTypes as $entry) {
+            if (! is_array($entry[1])) {
+                continue;
+            }
+
+            $scriptOk = 'rankkernel-faq-editor' === ( $entry[1]['editor_script'] ?? null );
+            $styleOk  = 'rankkernel-faq-editor' === ( $entry[1]['editor_style'] ?? null );
+
+            if ($scriptOk && $styleOk) {
+                $found = true;
+            }
+        }
+
+        $this->assertTrue($found, 'Block type must reference the explicit editor handles');
+    }
+
+    public function test_render_numbers_each_question(): void {
+        $html = ( new FaqBlock() )->render(
+            [
+                'title'        => '',
+                'titleWrapper' => 'h3',
+                'listStyle'    => 'ol',
+                'questions'    => [
+                    [ 'question' => 'First?', 'answer' => 'One.' ],
+                    [ 'question' => 'Second?', 'answer' => 'Two.' ],
+                ],
+            ]
+        );
+
+        $this->assertStringContainsString('<span class="rankkernel-faq-number">1. </span>First?', $html);
+        $this->assertStringContainsString('<span class="rankkernel-faq-number">2. </span>Second?', $html);
     }
 
     public function test_render_builds_list_with_title_per_wrapper(): void {
@@ -192,7 +258,7 @@ final class FaqBlockTest extends TestCase {
         $this->assertStringContainsString('<ul class="rankkernel-faq-list" style="list-style-type:disc;">', $html);
         $this->assertSame(2, substr_count($html, '<li class="rankkernel-faq-item">'));
         $this->assertStringContainsString(
-            '<h2 class="rankkernel-faq-question">What?</h2>',
+            '<span class="rankkernel-faq-number">1. </span>What?',
             $html
         );
         $this->assertStringContainsString(
@@ -214,7 +280,7 @@ final class FaqBlockTest extends TestCase {
 
         $this->assertStringContainsString('<ol class="rankkernel-faq-list" style="list-style-type:decimal;">', $html);
         $this->assertStringContainsString(
-            '<h4 class="rankkernel-faq-question">What?</h4>',
+            '<h4 class="rankkernel-faq-question"><span class="rankkernel-faq-number">1. </span>What?</h4>',
             $html
         );
         $this->assertStringNotContainsString('<ul', $html);

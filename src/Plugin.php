@@ -27,6 +27,15 @@ use RankKernel\Settings\SettingsStore;
  */
 final class Plugin {
     /**
+     * Plugin version, single source of truth for classes.
+     *
+     * Must match the header and the RANKKERNEL_VERSION define in
+     * rankkernel.php on every release. Class constant fetches bypass
+     * function interception, unlike global constant reads.
+     */
+    public const VERSION = '0.1.0';
+
+    /**
      * Singleton instance.
      */
     private static ?Plugin $instance = null;

@@ -156,7 +156,8 @@ final class SchemaMetaboxTest extends TestCase {
         $this->assertStringContainsString('<select name="rankkernel_schema_type"', $out);
         $this->assertStringContainsString('value="FAQPage" selected="selected"', $out);
         $this->assertStringContainsString('value="My Headline"', $out);
-        $this->assertSame(4, substr_count($out, 'name="rankkernel_schema_faq['));
+        $this->assertStringNotContainsString('name="rankkernel_schema_faq[', $out);
+        $this->assertStringNotContainsString('rankkernel_schema_howto_name', $out);
         $this->assertStringContainsString('All required fields for FAQPage are present.', $out);
         $this->assertStringContainsString('rich-results', $out);
         $this->assertStringContainsString('validator.schema.org', $out);
@@ -219,7 +220,7 @@ final class SchemaMetaboxTest extends TestCase {
         $out = $this->renderBox();
 
         $this->assertStringNotContainsString('<script>alert(1)</script>', $out);
-        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $out);
+        $this->assertStringNotContainsString('alert(1)', $out);
     }
 
     /**
@@ -342,6 +343,38 @@ final class SchemaMetaboxTest extends TestCase {
         $box->handleSave(11, (object) [ 'ID' => 11 ]);
 
         $this->assertTrue($saved['schema']['disabled']);
+    }
+
+    public function test_save_preserves_stored_faq_howto_without_posted_keys(): void {
+        $stored = $this->storedPayload();
+        $stored['schema']['faq']   = [ 'questions' => [ [ 'question' => 'Kept?', 'answer' => 'Kept.' ] ] ];
+        $stored['schema']['howto'] = [ 'name' => 'Kept How', 'steps' => [], 'totalTime' => '', 'cost' => '' ];
+        $saved  = null;
+        Functions\when('wp_is_post_autosave')->justReturn(false);
+        Functions\when('wp_is_post_revision')->justReturn(false);
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('check_admin_referer')->justReturn(1);
+        Functions\when('get_post_meta')->alias(
+            static function (int $id, string $key, bool $single) use ($stored): mixed {
+                return $stored;
+            }
+        );
+        Functions\when('update_post_meta')->alias(
+            static function (int $id, string $key, mixed $value) use (&$saved): bool {
+                $saved = $value;
+
+                return true;
+            }
+        );
+
+        $_POST = $this->validPost();
+        unset($_POST['rankkernel_schema_faq'], $_POST['rankkernel_schema_howto_name'], $_POST['rankkernel_schema_howto_steps'], $_POST['rankkernel_schema_howto_totaltime'], $_POST['rankkernel_schema_howto_cost']);
+
+        $box = new SchemaMetabox();
+        $box->handleSave(11, (object) [ 'ID' => 11 ]);
+
+        $this->assertSame([ 'questions' => [ [ 'question' => 'Kept?', 'answer' => 'Kept.' ] ] ], $saved['schema']['faq']);
+        $this->assertSame('Kept How', $saved['schema']['howto']['name']);
     }
 
     public function test_save_autosave_skipped(): void {

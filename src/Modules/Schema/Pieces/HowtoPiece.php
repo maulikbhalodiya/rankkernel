@@ -175,7 +175,112 @@ final class HowtoPiece implements PieceInterface {
             ];
         }
 
+        foreach (self::blockSteps($ctx) as $blockStep) {
+            $seen = false;
+
+            foreach ($out['steps'] as $existing) {
+                $sameTitle = strtolower(trim($existing['title'])) === strtolower(trim($blockStep['title']));
+                $existingText = strtolower(trim(strip_tags($existing['text'])));
+                $blockText    = strtolower(trim(strip_tags($blockStep['text'])));
+
+                if ($sameTitle && $existingText === $blockText) {
+                    $seen = true;
+                    break;
+                }
+            }
+
+            if (! $seen) {
+                $out['steps'][] = $blockStep;
+            }
+
+            if (count($out['steps']) >= 100) {
+                break;
+            }
+        }
+
         return $out;
+    }
+
+    /**
+     * Step rows from rankkernel/howto blocks in the post content.
+     *
+     * Only on singular contexts with a post id. Block attrs use the
+     * same row shape as payload rows. Unknown block names and
+     * malformed attrs are ignored.
+     *
+     * @param Context $ctx Request context.
+     * @return array<int, array{title: string, text: string, image: string}>
+     */
+    private static function blockSteps( Context $ctx ): array {
+        if ('post' !== $ctx->queriedType()) {
+            return [];
+        }
+
+        $postId = $ctx->queriedId();
+
+        if ($postId <= 0) {
+            return [];
+        }
+
+        if (! function_exists('get_post_field') || ! function_exists('parse_blocks')) {
+            return [];
+        }
+
+        $content = get_post_field('post_content', $postId);
+
+        if (! is_string($content) || '' === trim($content)) {
+            return [];
+        }
+
+        /** @var array<int, mixed> $blocks */
+        $blocks = parse_blocks($content);
+
+        if (! is_array($blocks)) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ($blocks as $block) {
+            if (! is_array($block) || 'rankkernel/howto' !== ( $block['blockName'] ?? null )) {
+                continue;
+            }
+
+            $attrs = $block['attrs'] ?? [];
+
+            if (! is_array($attrs)) {
+                continue;
+            }
+
+            $steps = $attrs['steps'] ?? [];
+
+            if (! is_array($steps)) {
+                continue;
+            }
+
+            foreach ($steps as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $title = isset($row['title']) ? trim((string) $row['title']) : '';
+                $text  = isset($row['text']) ? (string) $row['text'] : '';
+
+                if ('' === $title && '' === trim($text)) {
+                    continue;
+                }
+
+                $image = isset($row['image']) ? trim((string) $row['image']) : '';
+
+                $rows[] = [
+                    'title' => $title,
+                    'text'  => $text,
+                    'image' => $image,
+                ];
+            }
+        }
+
+        return $rows;
     }
 
     /**
