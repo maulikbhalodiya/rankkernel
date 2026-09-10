@@ -56,6 +56,10 @@ final class WebsitePiece implements PieceInterface {
             $name = trim((string) get_bloginfo('name'));
         }
 
+        if ('' === $name) {
+            return [];
+        }
+
         $node = [
             '@type' => 'WebSite',
             '@id'   => $root . '#website',

@@ -45,6 +45,16 @@ final class Generator {
     public function generate( Context $ctx ): array {
         $graph = [];
 
+        $meta   = $ctx->meta();
+        $schema = ( isset($meta['schema']) && is_array($meta['schema']) ) ? $meta['schema'] : [];
+
+        if (! empty($schema['disabled'])) {
+            return [
+                '@context' => 'https://schema.org',
+                '@graph'   => [],
+            ];
+        }
+
         foreach ($this->pieces as $id => $piece) {
             $needed = $piece->isNeeded($ctx);
 

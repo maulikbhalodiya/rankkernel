@@ -67,7 +67,7 @@ final class WebpagePiece implements PieceInterface {
             'url'   => $base,
         ];
 
-        $description = $ctx->excerpt();
+        $description = SchemaHelpers::description($ctx, SchemaHelpers::fields($ctx));
 
         if ('' !== $description) {
             $node['description'] = $description;

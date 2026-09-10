@@ -7,7 +7,12 @@
   "category": "rankkernel",
   "icon": "editor-ul",
   "textdomain": "rankkernel",
-  "keywords": [ "FAQ", "Frequently Asked Questions", "Schema", "Structured Data" ],
+  "keywords": [
+    "FAQ",
+    "Frequently Asked Questions",
+    "Schema",
+    "Structured Data"
+  ],
   "editorScript": "file:./faq-editor.js",
   "attributes": {
     "title": {
@@ -21,7 +26,10 @@
     "listStyle": {
       "type": "string",
       "default": "ul",
-      "enum": [ "ul", "ol" ]
+      "enum": [
+        "ul",
+        "ol"
+      ]
     },
     "questions": {
       "type": "array",
@@ -38,5 +46,6 @@
         }
       }
     }
-  }
+  },
+  "editorStyle": "file:./editor.css"
 }

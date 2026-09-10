@@ -147,5 +147,6 @@ final class AdminMenu {
         );
 
         add_action('load-' . $hook, [ $this->schemaPage, 'maybeHandleSave' ]);
+        add_action('admin_enqueue_scripts', [ $this->schemaPage, 'enqueueAssets' ]);
     }
 }

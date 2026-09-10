@@ -129,7 +129,7 @@ final class FaqBlock {
             }
 
             if ('' !== $answer) {
-                $rows .= '<div class="rankkernel-faq-answer">' . esc_html($answer) . '</div>';
+                $rows .= '<div class="rankkernel-faq-answer">' . wp_kses_post($answer) . '</div>';
             }
 
             $rows .= '</li>';
@@ -147,7 +147,9 @@ final class FaqBlock {
                 . '</' . $wrapper . '>';
         }
 
-        $out .= '<' . $list . ' class="rankkernel-faq-list">' . $rows . '</' . $list . '>';
+        $listStyle = 'ol' === $list ? ' style="list-style-type:decimal;"' : ' style="list-style-type:disc;"';
+
+        $out .= '<' . $list . ' class="rankkernel-faq-list"' . $listStyle . '>' . $rows . '</' . $list . '>';
         $out .= '</div>';
 
         return $out;

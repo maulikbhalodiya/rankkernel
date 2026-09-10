@@ -168,4 +168,17 @@ final class SchemaGeneratorTest extends TestCase {
 
         $this->assertSame('New', $doc['@graph'][0]['name']);
     }
+
+    public function test_disabled_payload_yields_empty_graph(): void {
+        Functions\when('get_post_meta')->justReturn([
+            'schema' => [ 'disabled' => true, 'type' => 'Article' ],
+        ]);
+
+        $generator = new Generator();
+        $generator->register($this->stubPiece('article', true, [ '@type' => 'Article' ]));
+
+        $doc = $generator->generate($this->makeContext());
+
+        $this->assertSame([], $doc['@graph']);
+    }
 }

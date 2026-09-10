@@ -105,7 +105,7 @@ final class ArticlePiece implements PieceInterface {
             'headline' => $this->headline($ctx),
         ];
 
-        $description = $ctx->excerpt();
+        $description = SchemaHelpers::description($ctx, SchemaHelpers::fields($ctx));
 
         if ('' !== $description) {
             $node['description'] = $description;

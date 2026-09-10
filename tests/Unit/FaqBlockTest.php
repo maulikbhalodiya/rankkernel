@@ -189,7 +189,7 @@ final class FaqBlockTest extends TestCase {
             '<h2 class="rankkernel-faq-title">Common questions</h2>',
             $html
         );
-        $this->assertStringContainsString('<ul class="rankkernel-faq-list">', $html);
+        $this->assertStringContainsString('<ul class="rankkernel-faq-list" style="list-style-type:disc;">', $html);
         $this->assertSame(2, substr_count($html, '<li class="rankkernel-faq-item">'));
         $this->assertStringContainsString(
             '<h2 class="rankkernel-faq-question">What?</h2>',
@@ -212,7 +212,7 @@ final class FaqBlockTest extends TestCase {
             ]
         );
 
-        $this->assertStringContainsString('<ol class="rankkernel-faq-list">', $html);
+        $this->assertStringContainsString('<ol class="rankkernel-faq-list" style="list-style-type:decimal;">', $html);
         $this->assertStringContainsString(
             '<h4 class="rankkernel-faq-question">What?</h4>',
             $html
@@ -239,7 +239,7 @@ final class FaqBlockTest extends TestCase {
         $this->assertStringContainsString('&lt;script&gt;', $html);
         $this->assertStringContainsString('&lt;b&gt;Hi&lt;/b&gt;', $html);
         $this->assertStringContainsString('<h3 class="rankkernel-faq-title">', $html);
-        $this->assertStringContainsString('<ul class="rankkernel-faq-list">', $html);
+        $this->assertStringContainsString('<ul class="rankkernel-faq-list" style="list-style-type:disc;">', $html);
         $this->assertSame(1, substr_count($html, '<li class="rankkernel-faq-item">'));
     }
 

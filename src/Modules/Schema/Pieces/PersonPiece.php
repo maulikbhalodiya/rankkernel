@@ -105,6 +105,10 @@ final class PersonPiece implements PieceInterface {
             return [];
         }
 
+        if ('' === $name) {
+            return [];
+        }
+
         $node = [
             '@type' => 'Person',
             '@id'   => $id,

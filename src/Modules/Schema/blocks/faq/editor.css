@@ -1,0 +1,31 @@
+/**
+ * RankKernel FAQ block editor styles.
+ *
+ * Plain stylesheet, no build step. Loaded on block editor screens only
+ * through the block metadata. Keeps list markers visible regardless of
+ * theme editor resets and gives rows breathing room.
+ */
+.rankkernel-faq-editor-list {
+    margin: 0 0 1em 1.5em;
+    padding: 0;
+}
+
+ol.rankkernel-faq-editor-list {
+    list-style-type: decimal;
+}
+
+ul.rankkernel-faq-editor-list {
+    list-style-type: disc;
+}
+
+.rankkernel-faq-row {
+    margin-bottom: 1em;
+}
+
+.rankkernel-faq-row-question {
+    margin: 0 0 0.25em;
+}
+
+.rankkernel-faq-editor-title {
+    margin: 0 0 0.5em;
+}

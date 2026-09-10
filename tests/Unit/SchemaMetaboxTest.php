@@ -38,6 +38,11 @@ final class SchemaMetaboxTest extends TestCase {
         Functions\when('esc_url_raw')->alias(static fn (string $v): string => filter_var($v, FILTER_SANITIZE_URL) ?: '');
         Functions\when('absint')->alias(static fn (mixed $v): int => abs((int) $v));
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
+        Functions\when('get_option')->alias(static fn (string $k, mixed $d = false): mixed => $d);
+        Functions\when('get_post_type')->alias(static fn (mixed $p = null): string => 'post');
+        Functions\when('checked')->alias(
+            static fn (mixed $a, mixed $b, bool $echo = true): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : ''
+        );
         Functions\when('esc_html__')->alias(static fn (string $v, string $d = ''): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('esc_attr')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('esc_textarea')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
@@ -163,6 +168,29 @@ final class SchemaMetaboxTest extends TestCase {
         $this->assertStringContainsString('name="rankkernel_schema_custom"', $out);
     }
 
+    public function test_render_automatic_shows_resolved_default(): void {
+        $payload = $this->renderPayload();
+        $payload['schema']['type'] = '';
+
+        $this->stubRenderCommon($payload);
+
+        $out = $this->renderBox();
+
+        $this->assertStringContainsString('Automatic (BlogPosting)', $out);
+    }
+
+    public function test_render_disable_checkbox_and_conditional_rows(): void {
+        $this->stubRenderCommon($this->renderPayload());
+
+        $out = $this->renderBox();
+
+        $this->assertStringContainsString('name="rankkernel_schema_disabled"', $out);
+        $this->assertStringContainsString('Disable schema output for this post', $out);
+        $this->assertStringContainsString('data-rankkernel-field-types="Product,SoftwareApplication"', $out);
+        $this->assertStringContainsString('Manual field overrides (optional)', $out);
+        $this->assertStringContainsString('Advanced: custom JSON, import, export', $out);
+    }
+
     public function test_render_validation_lists_missing_event_fields(): void {
         $payload             = $this->renderPayload();
         $payload['schema']   = [
@@ -285,6 +313,35 @@ final class SchemaMetaboxTest extends TestCase {
         $this->assertCount(1, $saved['schema']['faq']['questions']);
         $this->assertSame('Good?', $saved['schema']['faq']['questions'][0]['question']);
         $this->assertSame([ 'foo' => 'bar' ], $saved['schema']['custom']);
+    }
+
+    public function test_save_disabled_flag_stored(): void {
+        $stored = $this->storedPayload();
+        $saved  = null;
+        Functions\when('wp_is_post_autosave')->justReturn(false);
+        Functions\when('wp_is_post_revision')->justReturn(false);
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('check_admin_referer')->justReturn(1);
+        Functions\when('get_post_meta')->alias(
+            static function (int $id, string $key, bool $single) use ($stored): mixed {
+                return $stored;
+            }
+        );
+        Functions\when('update_post_meta')->alias(
+            static function (int $id, string $key, mixed $value) use (&$saved): bool {
+                $saved = $value;
+
+                return true;
+            }
+        );
+
+        $_POST = $this->validPost();
+        $_POST['rankkernel_schema_disabled'] = '1';
+
+        $box = new SchemaMetabox();
+        $box->handleSave(11, (object) [ 'ID' => 11 ]);
+
+        $this->assertTrue($saved['schema']['disabled']);
     }
 
     public function test_save_autosave_skipped(): void {

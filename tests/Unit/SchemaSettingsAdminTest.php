@@ -340,6 +340,10 @@ final class SchemaSettingsAdminTest extends TestCase {
         $this->assertStringContainsString('name="site_represents"', $html);
         $this->assertStringContainsString('name="org_name"', $html);
         $this->assertStringContainsString('name="org_logo"', $html);
+        $this->assertStringContainsString('rk-org-logo-preview', $html);
+        $this->assertStringContainsString('rk-org-logo-select', $html);
+        $this->assertStringContainsString('rk-org-logo-remove', $html);
+        $this->assertStringContainsString('Select image', $html);
         $this->assertStringContainsString('name="org_sameas"', $html);
         $this->assertStringContainsString('name="website_search_action"', $html);
         $this->assertStringContainsString('name="schema_default_post"', $html);

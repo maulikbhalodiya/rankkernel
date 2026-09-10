@@ -15,8 +15,19 @@
         return 'h3';
     }
 
+    var nextQuestionId = 1;
+
     function emptyQuestion() {
-        return { question: '', answer: '' };
+        var id = 'rkq' + (nextQuestionId++);
+        return { id: id, question: '', answer: '' };
+    }
+
+    function rowKey( row, index ) {
+        if (row && 'string' === typeof row.id && '' !== row.id) {
+            return row.id;
+        }
+
+        return 'row-' + index;
     }
 
     wp.blocks.registerBlockType('rankkernel/faq', {
@@ -28,9 +39,9 @@
             var listStyle = 'ol' === attributes.listStyle ? 'ol' : 'ul';
             var questions = attributes.questions || [];
 
-            function updateQuestion( index, field, value ) {
+            function updateQuestion( key, field, value ) {
                 var next = questions.map(function ( row, i ) {
-                    if ( i !== index ) {
+                    if (rowKey(row, i) !== key) {
                         return row;
                     }
 
@@ -38,6 +49,10 @@
                         question: row.question || '',
                         answer: row.answer || ''
                     };
+
+                    if (row.id) {
+                        copy.id = row.id;
+                    }
 
                     copy[ field ] = value;
 
@@ -47,10 +62,10 @@
                 setAttributes({ questions: next });
             }
 
-            function removeQuestion( index ) {
+            function removeQuestion( key ) {
                 setAttributes({
                     questions: questions.filter(function ( row, i ) {
-                        return i !== index;
+                        return rowKey(row, i) !== key;
                     })
                 });
             }
@@ -60,16 +75,17 @@
             }
 
             var rows = questions.map(function ( row, index ) {
+                var key = rowKey(row, index);
                 return el(
                     'div',
-                    { key: index, className: 'rankkernel-faq-row' },
+                    { key: key, className: 'rankkernel-faq-row' },
                     el(RichText, {
                         tagName: titleWrapper,
                         className: 'rankkernel-faq-row-question',
                         placeholder: __('Enter a question...', 'rankkernel'),
                         value: row.question || '',
                         onChange: function ( value ) {
-                            updateQuestion(index, 'question', value);
+                            updateQuestion(key, 'question', value);
                         }
                     }),
                     el(RichText, {
@@ -79,7 +95,7 @@
                         placeholder: __('Enter the answer...', 'rankkernel'),
                         value: row.answer || '',
                         onChange: function ( value ) {
-                            updateQuestion(index, 'answer', value);
+                            updateQuestion(key, 'answer', value);
                         }
                     }),
                     el(
@@ -87,7 +103,7 @@
                         {
                             isDestructive: true,
                             onClick: function () {
-                                removeQuestion(index);
+                                removeQuestion(key);
                             }
                         },
                         __('Remove question', 'rankkernel')

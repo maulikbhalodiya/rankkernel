@@ -229,8 +229,7 @@ final class SchemaPiecesTest extends TestCase {
         }
     }
 
-    public function test_webpage_singular_shape(): void {
-        $ctx   = $this->makeContext($this->singularQuery());
+    public function test_webpage_singular_shape(): void {        $ctx   = $this->makeContext($this->singularQuery());
         $build = (new WebpagePiece(new SettingsStore()))->build($ctx);
 
         $this->assertSame('WebPage', $build['@type']);
@@ -241,6 +240,65 @@ final class SchemaPiecesTest extends TestCase {
         $this->assertArrayHasKey('dateModified', $build);
         $this->assertSame('https://example.com/hello/#breadcrumb', $build['breadcrumb']['@id']);
         $this->assertSame('en_US', $build['inLanguage']);
+    }
+
+    public function test_webpage_uses_manual_description_override(): void {
+        Functions\when('get_post_meta')->alias(
+            static fn (int $id, string $key, bool $single): mixed => [
+                'schema' => [ 'fields' => [ 'description' => 'Custom desc' ] ],
+            ]
+        );
+
+        $ctx   = $this->makeContext($this->singularQuery());
+        $build = (new WebpagePiece(new SettingsStore()))->build($ctx);
+
+        $this->assertSame('Custom desc', $build['description']);
+    }
+
+    public function test_article_uses_manual_description_override(): void {
+        Functions\when('get_post_meta')->alias(
+            static function (int $id, string $key, bool $single): mixed {
+                return [
+                    'title'  => '',
+                    'schema' => [ 'fields' => [ 'description' => 'Custom desc' ] ],
+                ];
+            }
+        );
+
+        $ctx   = $this->makeContext($this->singularQuery());
+        $build = (new ArticlePiece(new SettingsStore()))->build($ctx);
+
+        $this->assertSame('Custom desc', $build['description']);
+    }
+
+    public function test_person_skipped_on_empty_name(): void {
+        Functions\when('get_post_field')->alias(
+            static fn (string $field, int $id): string => 'post_author' === $field ? '7' : ''
+        );
+        Functions\when('get_the_author_meta')->justReturn('');
+
+        $ctx   = $this->makeContext($this->singularQuery());
+        $build = (new PersonPiece())->build($ctx);
+
+        $this->assertSame([], $build);
+    }
+
+    public function test_organization_skipped_on_empty_name(): void {
+        Functions\when('get_bloginfo')->justReturn('');
+
+        $ctx   = $this->makeContext($this->singularQuery());
+        $build = (new OrganizationPiece(new SettingsStore()))->build($ctx);
+
+        $this->assertSame([], $build);
+    }
+
+    public function test_website_skipped_on_empty_name(): void {
+        Functions\when('get_bloginfo')->justReturn('');
+
+        $ctx   = $this->makeContext($this->singularQuery());
+        $build = (new WebsitePiece(new SettingsStore()))->build($ctx);
+
+        $this->assertSame([], $build);
     }
 
     public function test_webpage_archive_is_collection_page(): void {

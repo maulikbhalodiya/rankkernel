@@ -12,6 +12,7 @@ namespace RankKernel\Admin;
 
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Schema\SchemaTypes;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Classic editor metabox for the per post schema payload.
@@ -86,12 +87,19 @@ final class SchemaMetabox {
     private $isUploadedFile;
 
     /**
+     * Settings store for resolving per post type defaults.
+     */
+    private SettingsStore $store;
+
+    /**
      * Constructor.
      *
      * @param callable(string): bool|null $isUploadedFile Upload probe override, test double seam.
+     * @param SettingsStore|null          $store          Settings store override, test double seam.
      */
-    public function __construct( ?callable $isUploadedFile = null ) {
+    public function __construct( ?callable $isUploadedFile = null, ?SettingsStore $store = null ) {
         $this->isUploadedFile = $isUploadedFile ?? 'is_uploaded_file';
+        $this->store          = $store ?? new SettingsStore();
     }
 
     /**
@@ -182,18 +190,57 @@ final class SchemaMetabox {
             ? $rawType
             : '';
 
+        $disabled = ! empty($schema['disabled']);
+
+        $postType = function_exists('get_post_type') ? (string) get_post_type($postId) : '';
+        $resolved = $this->resolvedDefaultType($postType);
+
         $fields = ( isset($schema['fields']) && is_array($schema['fields']) ) ? $schema['fields'] : [];
 
         wp_nonce_field(self::NONCE_ACTION, self::NONCE_FIELD);
 
-        $this->renderTypeSelector($selected);
-        $this->renderFields($fields);
+        $this->renderDisableRow($disabled);
+        $this->renderTypeSelector($selected, $resolved, $postType);
+        $this->renderFields($fields, $selected);
         $this->renderFaq($schema);
         $this->renderHowto($schema);
+        echo '<details><summary>'
+            . esc_html__('Advanced: custom JSON, import, export', 'rankkernel')
+            . '</summary>';
         $this->renderCustom($schema);
         $this->renderValidation($selected, $schema);
         $this->renderLinks($postId);
         $this->renderImportExport($postId);
+        echo '</details>';
+    }
+
+    /**
+     * Resolved default type for a post type: setting first, mapping fallback.
+     */
+    private function resolvedDefaultType( string $postType ): string {
+        if ('' !== $postType) {
+            $setting = trim((string) $this->store->get('schema_default_' . $postType, ''));
+
+            if (in_array($setting, SchemaTypes::SUPPORTED, true)) {
+                return $setting;
+            }
+        }
+
+        return SchemaTypes::defaultForPostType($postType);
+    }
+
+    /**
+     * Render the per post disable row.
+     */
+    private function renderDisableRow( bool $disabled ): void {
+        echo '<p><label>';
+        echo '<input type="checkbox" name="rankkernel_schema_disabled" value="1" '
+            . checked($disabled, true, false) . ' /> ';
+        echo esc_html__('Disable schema output for this post', 'rankkernel');
+        echo '</label><br />';
+        echo '<span class="description">';
+        echo esc_html__('No structured data prints on this post while checked.', 'rankkernel');
+        echo '</span></p>';
     }
 
     /**
@@ -222,14 +269,20 @@ final class SchemaMetabox {
      * Render the type selector.
      *
      * @param string $selected Selected type or empty for automatic.
+     * @param string $resolved Resolved automatic type shown in the label.
+     * @param string $postType Current post type slug.
      */
-    private function renderTypeSelector( string $selected ): void {
+    private function renderTypeSelector( string $selected, string $resolved, string $postType ): void {
         echo '<h3>' . esc_html__('Schema type', 'rankkernel') . '</h3>';
         echo '<p><label for="rankkernel-schema-type">' . esc_html__('Type', 'rankkernel') . '</label> ';
         echo '<select name="rankkernel_schema_type" id="rankkernel-schema-type">';
 
+        $autoLabel = '' !== $resolved
+            // translators: %s: schema type name, e.g. BlogPosting.
+            ? sprintf(__('Automatic (%s)', 'rankkernel'), $resolved)
+            : __('Automatic', 'rankkernel');
         $auto = '' === $selected ? ' selected="selected"' : '';
-        echo '<option value=""' . $auto . '>' . esc_html__('Automatic', 'rankkernel') . '</option>';
+        echo '<option value=""' . $auto . '>' . esc_html($autoLabel) . '</option>';
 
         foreach (SchemaTypes::SUPPORTED as $type) {
             $mark = $type === $selected ? ' selected="selected"' : '';
@@ -238,23 +291,62 @@ final class SchemaMetabox {
         }
 
         echo '</select></p>';
+
+        if ('' !== $postType) {
+            echo '<p class="description">';
+            echo esc_html__(
+                'Automatic uses the default type set for this post type in RankKernel Schema settings.',
+                'rankkernel'
+            );
+            echo '</p>';
+        }
     }
 
     /**
-     * Render the manual field overrides.
+     * Manual field visibility per type: only fields that matter for the
+     * chosen type show, the rest stay hidden until relevant.
      *
-     * @param array<string, mixed> $fields Stored field values.
+     * @var array<string, string[]>
      */
-    private function renderFields( array $fields ): void {
-        echo '<h3>' . esc_html__('Manual fields', 'rankkernel') . '</h3>';
+    private const FIELD_TYPES = [
+        'headline'      => [ '*' ],
+        'description'   => [ '*' ],
+        'author'        => [ '*' ],
+        'price'         => [ 'Product', 'SoftwareApplication' ],
+        'priceCurrency' => [ 'Product', 'SoftwareApplication' ],
+        'sku'           => [ 'Product', 'SoftwareApplication' ],
+        'isbn'          => [ 'Book' ],
+        'startDate'     => [ 'Event' ],
+        'locationName'  => [ 'Event', 'JobPosting' ],
+    ];
+
+    /**
+     * Render the manual field overrides, collapsed with per type rows.
+     *
+     * @param array<string, mixed> $fields   Stored field values.
+     * @param string               $selected Currently selected type or empty.
+     */
+    private function renderFields( array $fields, string $selected ): void {
+        echo '<details><summary>'
+            . esc_html__('Manual field overrides (optional)', 'rankkernel')
+            . '</summary>';
+        echo '<p class="description">';
+        echo esc_html__(
+            'Only needed when a value must differ from the post itself. Rows unrelated to the chosen type stay hidden.',
+            'rankkernel'
+        );
+        echo '</p>';
         echo '<table class="form-table" role="presentation"><tbody>';
 
         foreach (self::FIELD_KEYS as $key) {
             $value = isset($fields[ $key ]) && is_scalar($fields[ $key ]) ? (string) $fields[ $key ] : '';
             $id    = 'rankkernel-schema-field-' . $key;
             $label = self::FIELD_LABELS[ $key ];
+            $types = implode(',', self::FIELD_TYPES[ $key ]);
+            $hide  = $this->fieldVisible($key, $selected) ? '' : ' style="display:none;"';
 
-            echo '<tr><th scope="row"><label for="' . esc_attr($id) . '">'
+            echo '<tr data-rankkernel-field-types="' . esc_attr($types) . '"' . $hide . '>';
+            echo '<th scope="row"><label for="' . esc_attr($id) . '">'
                 . esc_html($label) . '</label></th><td>';
             echo '<input type="text" id="' . esc_attr($id) . '" class="regular-text" name="'
                 . esc_attr('rankkernel_schema_fields[' . $key . ']') . '" value="'
@@ -263,6 +355,20 @@ final class SchemaMetabox {
         }
 
         echo '</tbody></table>';
+        echo '</details>';
+    }
+
+    /**
+     * Whether a manual field row shows for the selected type.
+     */
+    private function fieldVisible( string $key, string $selected ): bool {
+        $types = self::FIELD_TYPES[ $key ];
+
+        if (in_array('*', $types, true)) {
+            return true;
+        }
+
+        return '' !== $selected && in_array($selected, $types, true);
     }
 
     /**
@@ -373,13 +479,13 @@ final class SchemaMetabox {
             : (string) json_encode($custom, JSON_PRETTY_PRINT);
 
         echo '<h3>' . esc_html__('Custom JSON', 'rankkernel') . '</h3>';
-        echo '<p><label for="rankkernel-schema-custom">' . esc_html__('Custom JSON', 'rankkernel')
+        echo '<p><label for="rankkernel-schema-custom">' . esc_html__('Extra schema properties', 'rankkernel')
             . '</label></p>';
         echo '<textarea id="rankkernel-schema-custom" class="large-text code" rows="6" name="'
             . esc_attr('rankkernel_schema_custom') . '">' . esc_textarea($json) . '</textarea>';
         echo '<p class="description">';
         echo esc_html__(
-            'Advanced use only. A valid JSON object here merges raw into the graph.',
+            'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.',
             'rankkernel'
         );
         echo '</p>';
@@ -567,6 +673,12 @@ final class SchemaMetabox {
             . '</label> ';
         echo '<input type="file" id="rankkernel-schema-import" name="rankkernel_schema_import" '
             . 'accept=".json,application/json" /></p>';
+        echo '<p class="description">';
+        echo esc_html__(
+            'Upload a file previously exported with the Export JSON button above.',
+            'rankkernel'
+        );
+        echo '</p>';
     }
 
     /**
@@ -644,8 +756,9 @@ final class SchemaMetabox {
         }
 
         $rawSchema = [
-            'type'   => $this->postedType(),
-            'fields' => $this->postedFields(),
+            'type'     => $this->postedType(),
+            'disabled' => isset($_POST['rankkernel_schema_disabled']),
+            'fields'   => $this->postedFields(),
             'faq'    => [ 'questions' => $this->postedQuestions() ],
             'howto'  => $this->postedHowto(),
             'custom' => $custom,

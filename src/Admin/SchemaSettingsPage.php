@@ -43,10 +43,32 @@ final class SchemaSettingsPage {
     }
 
     /**
+     * Enqueue the media picker script on the schema settings screen only.
+     *
+     * @param string $hookSuffix Current admin page hook suffix.
+     */
+    public function enqueueAssets( string $hookSuffix ): void {
+        if ('rankkernel_page_rankkernel-schema' !== $hookSuffix) {
+            return;
+        }
+
+        if (! function_exists('wp_enqueue_media') || ! function_exists('plugins_url')) {
+            return;
+        }
+
+        wp_enqueue_media();
+
+        $src = plugins_url('assets/js/schema-settings.js', (string) RANKKERNEL_FILE);
+        $version = defined('RANKKERNEL_VERSION') ? (string) RANKKERNEL_VERSION : '0.1.0';
+
+        wp_register_script('rankkernel-schema-settings', $src, [ 'media-editor' ], $version, true);
+        wp_enqueue_script('rankkernel-schema-settings');
+    }
+
+    /**
      * Render the page.
      */
-    public function render(): void {
-        $this->renderNotices();
+    public function render(): void {        $this->renderNotices();
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Schema Settings', 'rankkernel') . '</h1>';
@@ -295,15 +317,24 @@ final class SchemaSettingsPage {
         );
         echo '</p></td></tr>';
 
-        echo '<tr><th scope="row"><label for="rk-org-logo">';
-        echo esc_html__('Organization Logo', 'rankkernel');
-        echo '</label></th><td>';
-        echo '<input type="url" id="rk-org-logo" name="org_logo" value="'
-            . esc_attr($orgLogo)
-            . '" class="regular-text" />';
+        echo '<tr><th scope="row">' . esc_html__('Organization Logo', 'rankkernel') . '</th><td>';
+        echo '<div id="rk-org-logo-wrap">';
+        echo '<img id="rk-org-logo-preview" src="' . esc_url($orgLogo) . '" alt="" style="max-width:150px;height:auto;'
+            . ('' === $orgLogo ? 'display:none;' : '') . '" />';
+        echo '<input type="hidden" id="rk-org-logo" name="org_logo" value="'
+            . esc_attr($orgLogo) . '" />';
+        echo '<p><button type="button" class="button" id="rk-org-logo-select">';
+        echo esc_html__('Select image', 'rankkernel');
+        echo '</button> ';
+        echo '<button type="button" class="button" id="rk-org-logo-remove"'
+            . ('' === $orgLogo ? ' style="display:none;"' : '') . '>';
+        echo esc_html__('Remove', 'rankkernel');
+        echo '</button></p>';
+        echo '</div>';
         echo '<p class="description">';
         echo esc_html__(
-            'Logo image shown with your site name in search results. Paste the full image address.',
+            'Logo image shown with your site name in search results. '
+            . 'Pick from the media library or upload a new image.',
             'rankkernel'
         );
         echo '</p></td></tr>';
