@@ -101,7 +101,9 @@ final class SchemaSettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
         if (isset($_POST['site_represents'])) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in the store.
-            $partial['site_represents'] = is_string($_POST['site_represents']) ? wp_unslash($_POST['site_represents']) : '';
+            $rawRepresents = is_string($_POST['site_represents']) ? wp_unslash($_POST['site_represents']) : '';
+
+            $partial['site_represents'] = $rawRepresents;
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
@@ -158,10 +160,24 @@ final class SchemaSettingsPage {
             return [];
         }
 
+        return $this->slugsWithLabels($types, [ 'attachment' ]);
+    }
+
+    /**
+     * Reduce an objects or names map to slug to label pairs.
+     *
+     * Slugs outside the settings key pattern are skipped, their keys
+     * could never be stored.
+     *
+     * @param array<mixed, mixed> $map  Type map from core.
+     * @param string[]            $skip Slugs to drop.
+     * @return array<string, string>
+     */
+    private function slugsWithLabels( array $map, array $skip ): array {
         $out = [];
 
-        foreach ($types as $slug => $item) {
-            if (! is_string($slug) || '' === $slug || 'attachment' === $slug) {
+        foreach ($map as $slug => $item) {
+            if (! is_string($slug) || '' === $slug || in_array($slug, $skip, true)) {
                 continue;
             }
 
@@ -220,9 +236,14 @@ final class SchemaSettingsPage {
      * @param array<string, mixed> $all Merged settings.
      */
     private function renderIdentity( array $all ): void {
-        $represents = isset($all['site_represents']) && is_string($all['site_represents']) ? $all['site_represents'] : 'organization';
-        $orgName    = isset($all['org_name']) ? (string) $all['org_name'] : '';
-        $orgLogo    = isset($all['org_logo']) ? (string) $all['org_logo'] : '';
+        $represents = 'organization';
+
+        if (isset($all['site_represents']) && is_string($all['site_represents'])) {
+            $represents = $all['site_represents'];
+        }
+
+        $orgName = isset($all['org_name']) ? (string) $all['org_name'] : '';
+        $orgLogo = isset($all['org_logo']) ? (string) $all['org_logo'] : '';
 
         $sameAs = $all['org_sameas'] ?? [];
 
@@ -255,7 +276,10 @@ final class SchemaSettingsPage {
         echo '</option>';
         echo '</select>';
         echo '<p class="description">';
-        echo esc_html__('Whether the site identity represents an organization or a person.', 'rankkernel');
+        echo esc_html__(
+            'Choose Organization for a business or group site, Person for a personal site.',
+            'rankkernel'
+        );
         echo '</p></td></tr>';
 
         echo '<tr><th scope="row"><label for="rk-org-name">';
@@ -265,7 +289,10 @@ final class SchemaSettingsPage {
             . esc_attr($orgName)
             . '" class="regular-text" />';
         echo '<p class="description">';
-        echo esc_html__('Falls back to the site name when empty.', 'rankkernel');
+        echo esc_html__(
+            'Shown as the site owner name in search results. Leave empty to use the site name.',
+            'rankkernel'
+        );
         echo '</p></td></tr>';
 
         echo '<tr><th scope="row"><label for="rk-org-logo">';
@@ -275,7 +302,10 @@ final class SchemaSettingsPage {
             . esc_attr($orgLogo)
             . '" class="regular-text" />';
         echo '<p class="description">';
-        echo esc_html__('Logo URL used on the organization node.', 'rankkernel');
+        echo esc_html__(
+            'Logo image shown with your site name in search results. Paste the full image address.',
+            'rankkernel'
+        );
         echo '</p></td></tr>';
 
         echo '<tr><th scope="row"><label for="rk-org-sameas">';
@@ -285,14 +315,20 @@ final class SchemaSettingsPage {
         echo esc_textarea(implode("\n", $sameAsLines));
         echo '</textarea>';
         echo '<p class="description">';
-        echo esc_html__('One profile URL per line, for example social profiles.', 'rankkernel');
+        echo esc_html__(
+            'One profile address per line, for example social profiles. Tells search engines which profiles are yours.',
+            'rankkernel'
+        );
         echo '</p></td></tr>';
 
         $this->renderCheckboxRow(
             'website_search_action',
             __('Search Action', 'rankkernel'),
             ! empty($all['website_search_action']),
-            __('Add a search action to the WebSite node.', 'rankkernel')
+            __(
+                'Adds a search box under your home page in search results. Only useful if your site has search.',
+                'rankkernel'
+            )
         );
 
         echo '</tbody></table>';
@@ -327,7 +363,9 @@ final class SchemaSettingsPage {
 
             echo '</select>';
             echo '<p class="description">';
-            echo esc_html__('Default schema type for this post type. Automatic picks the type from the post type.', 'rankkernel');
+            echo esc_html__('Default schema type for this post type.', 'rankkernel');
+            echo ' ';
+            echo esc_html__('Automatic means posts use BlogPosting, other types use Article.', 'rankkernel');
             echo '</p></td></tr>';
         }
 
@@ -335,14 +373,14 @@ final class SchemaSettingsPage {
             'schema_breadcrumbs',
             __('Breadcrumbs', 'rankkernel'),
             ! empty($all['schema_breadcrumbs']),
-            __('Output the BreadcrumbList node.', 'rankkernel')
+            __('Shows the page trail in search results. Turn off to hide it.', 'rankkernel')
         );
 
         $this->renderCheckboxRow(
             'schema_author',
             __('Author', 'rankkernel'),
             ! empty($all['schema_author']),
-            __('Output the author Person node.', 'rankkernel')
+            __('Shows the article author in search results. Turn off to hide it.', 'rankkernel')
         );
 
         echo '</tbody></table>';
