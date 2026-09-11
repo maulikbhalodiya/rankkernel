@@ -20,12 +20,15 @@ use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
 use RankKernel\Modules\Schema\Pieces\CarouselPiece;
 use RankKernel\Modules\Schema\Pieces\ClaimReviewPiece;
 use RankKernel\Modules\Schema\Pieces\CoursePiece;
+use RankKernel\Modules\Schema\Pieces\CustomJsonPiece;
 use RankKernel\Modules\Schema\Pieces\DatasetPiece;
 use RankKernel\Modules\Schema\Pieces\EventPiece;
 use RankKernel\Modules\Schema\Pieces\FaqPiece;
 use RankKernel\Modules\Schema\Pieces\HowtoPiece;
+use RankKernel\Modules\Schema\Pieces\ImageObjectPiece;
 use RankKernel\Modules\Schema\Pieces\ItemListPiece;
 use RankKernel\Modules\Schema\Pieces\JobPostingPiece;
+use RankKernel\Modules\Schema\Pieces\LocalBusinessPiece;
 use RankKernel\Modules\Schema\Pieces\MoviePiece;
 use RankKernel\Modules\Schema\Pieces\MusicPiece;
 use RankKernel\Modules\Schema\Pieces\OrganizationPiece;
@@ -34,6 +37,7 @@ use RankKernel\Modules\Schema\Pieces\PodcastEpisodePiece;
 use RankKernel\Modules\Schema\Pieces\ProductPiece;
 use RankKernel\Modules\Schema\Pieces\QaPagePiece;
 use RankKernel\Modules\Schema\Pieces\RecipePiece;
+use RankKernel\Modules\Schema\Pieces\ReviewPiece;
 use RankKernel\Modules\Schema\Pieces\ServicePiece;
 use RankKernel\Modules\Schema\Pieces\SoftwarePiece;
 use RankKernel\Modules\Schema\Pieces\VideoPiece;
@@ -202,7 +206,10 @@ final class SchemaModule implements ModuleInterface {
             return;
         }
 
-        $json = wp_json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $json = wp_json_encode(
+            $data,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+        );
 
         if (! is_string($json)) {
             return;
@@ -229,23 +236,27 @@ final class SchemaModule implements ModuleInterface {
         $generator->register(new ArticlePiece($this->settings));
         $generator->register(new FaqPiece());
         $generator->register(new HowtoPiece());
-        $generator->register(new ProductPiece());
-        $generator->register(new RecipePiece());
-        $generator->register(new EventPiece());
-        $generator->register(new ServicePiece());
-        $generator->register(new VideoPiece());
-        $generator->register(new BookPiece());
-        $generator->register(new CoursePiece());
-        $generator->register(new JobPostingPiece());
-        $generator->register(new SoftwarePiece());
-        $generator->register(new MusicPiece());
-        $generator->register(new MoviePiece());
-        $generator->register(new ClaimReviewPiece());
-        $generator->register(new DatasetPiece());
-        $generator->register(new PodcastEpisodePiece());
+        $generator->register(new ProductPiece($this->settings));
+        $generator->register(new RecipePiece($this->settings));
+        $generator->register(new EventPiece($this->settings));
+        $generator->register(new ServicePiece($this->settings));
+        $generator->register(new VideoPiece($this->settings));
+        $generator->register(new BookPiece($this->settings));
+        $generator->register(new CoursePiece($this->settings));
+        $generator->register(new JobPostingPiece($this->settings));
+        $generator->register(new SoftwarePiece($this->settings));
+        $generator->register(new MusicPiece($this->settings));
+        $generator->register(new MoviePiece($this->settings));
+        $generator->register(new ClaimReviewPiece($this->settings));
+        $generator->register(new DatasetPiece($this->settings));
+        $generator->register(new PodcastEpisodePiece($this->settings));
         $generator->register(new CarouselPiece());
-        $generator->register(new QaPagePiece());
-        $generator->register(new ItemListPiece());
+        $generator->register(new QaPagePiece($this->settings));
+        $generator->register(new ItemListPiece($this->settings));
+        $generator->register(new LocalBusinessPiece($this->settings));
+        $generator->register(new ReviewPiece($this->settings));
+        $generator->register(new ImageObjectPiece($this->settings));
+        $generator->register(new CustomJsonPiece());
 
         $this->generator = $generator;
 
