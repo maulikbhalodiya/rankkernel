@@ -53,6 +53,11 @@ use WP_Query;
  */
 final class SchemaModule implements ModuleInterface {
     /**
+     * Block category slug shared by every RankKernel block.
+     */
+    private const BLOCK_CATEGORY_SLUG = 'rankkernel';
+
+    /**
      * Cached enabled check (delegates to shared map if injected).
      */
     private ?bool $enabledCache = null;
@@ -179,14 +184,48 @@ final class SchemaModule implements ModuleInterface {
     /**
      * Boot hooks (only if enabled, caller enforces).
      *
-     * Registers the after tags render hook plus the FAQ block. Boot
-     * itself fires on init, so the block registration inside already
-     * happens on init and stays behind the enable map gate.
+     * Registers the after tags render hook, the single shared block
+     * category, plus the FAQ and HowTo blocks. Boot itself fires on
+     * init, so the block registration inside already happens on init
+     * and stays behind the enable map gate.
      */
     public function boot(): void {
         add_action('rankkernel/head/after_tags', [ $this, 'render' ], 10);
+        add_filter('block_categories_all', [ $this, 'addCategory' ]);
         ( new FaqBlock() )->register();
         ( new HowtoBlock() )->register();
+    }
+
+    /**
+     * Append the single shared RankKernel block category.
+     *
+     * Central home for the slug and icon so the FAQ and HowTo blocks
+     * stop registering divergent copies. The per block addCategory
+     * methods stay until the rebuild pass removes them, and each one
+     * skips when this slug already exists, so registration order
+     * decides nothing and the icon stays single.
+     *
+     * @param mixed $categories Registered categories.
+     * @return array<int, array<string, mixed>>
+     */
+    public function addCategory( mixed $categories ): array {
+        $out = is_array($categories) ? array_values($categories) : [];
+
+        foreach ($out as $existing) {
+            $slug = is_array($existing) && isset($existing['slug']) ? (string) $existing['slug'] : '';
+
+            if (self::BLOCK_CATEGORY_SLUG === $slug) {
+                return $out;
+            }
+        }
+
+        $out[] = [
+            'slug'  => self::BLOCK_CATEGORY_SLUG,
+            'title' => 'RankKernel',
+            'icon'  => 'editor-ul',
+        ];
+
+        return $out;
     }
 
     /**
