@@ -15,17 +15,9 @@
 }
 
 .rankkernel-faq-editor .rankkernel-faq-editor-list {
-    list-style-position: outside;
-    margin: 0 0 1em 1.5em;
+    list-style: none;
+    margin: 0 0 1em;
     padding: 0;
-}
-
-ol.rankkernel-faq-editor-list {
-    list-style-type: decimal;
-}
-
-ul.rankkernel-faq-editor-list {
-    list-style-type: disc;
 }
 
 .rankkernel-faq-editor .rankkernel-faq-row {
@@ -100,8 +92,8 @@ ul.rankkernel-faq-editor-list {
 .rankkernel-faq-editor .rankkernel-faq-row-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5em;
-    margin-top: 0.75em;
+    gap: 0.375em;
+    margin-left: auto;
 }
 
 .rankkernel-faq-editor .rankkernel-faq-empty {
@@ -126,8 +118,8 @@ ul.rankkernel-faq-editor-list {
 }
 
 @media (max-width: 600px) {
-    .rankkernel-faq-editor .rankkernel-faq-editor-list {
-        margin-left: 1em;
+    .rankkernel-faq-editor .rankkernel-faq-row-head {
+        gap: 0.375em;
     }
 
     .rankkernel-faq-editor .rankkernel-faq-row-actions .components-button {
