@@ -110,7 +110,10 @@ final class FaqBlock {
 	 *
 	 * Every dynamic value is escaped, tag names come from an allowlist
 	 * (h2, h3, h4, default h3) and the list tag is ul or ol (default
-	 * ul). The optional content and block params exist because WP core
+	 * ul). Numbering comes from a single span inside each question
+	 * heading, so it inherits the heading size, weight, and color,
+	 * while the list itself carries no markers, so numbers never
+	 * print twice. The optional content and block params exist because WP core
 	 * passes them to every render callback; this render ignores them
 	 * and reads attributes only, so old stored blocks keep rendering.
 	 * Rows with an empty question are skipped even when an answer is
@@ -193,9 +196,9 @@ final class FaqBlock {
 				. '</' . $wrapper . '>';
 		}
 
-		$listStyle = 'ol' === $list ? ' style="list-style-type:decimal;"' : ' style="list-style-type:disc;"';
+		$listStyle = ' style="list-style-type:none;"';
 
-		$out .= '<' . $list . ' class="rankkernel-faq-list"' . $listStyle . '>' . $rows . '</' . $list . '>';
+		$out .= '<' . $list . ' class="rankkernel-faq-list" role="list"' . $listStyle . '>' . $rows . '</' . $list . '>';
 		$out .= '</div>';
 
 		return $out;
