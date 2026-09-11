@@ -1,11 +1,21 @@
 /**
  * RankKernel FAQ block editor styles.
  *
- * Plain stylesheet, no build step. Loaded on block editor screens only
- * through the block metadata. Keeps list markers visible regardless of
- * theme editor resets and gives rows breathing room.
+ * Plain stylesheet, no build step. Every rule stays inside the block
+ * editor wrapper, so site themes and other blocks never see these
+ * styles. Cards group each question with its answer, number badges
+ * mirror the frontend numbering, and focus stays clearly visible.
  */
-.rankkernel-faq-editor-list {
+.rankkernel-faq-editor {
+    max-width: 100%;
+}
+
+.rankkernel-faq-editor-title {
+    margin: 0 0 0.75em;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-editor-list {
+    list-style-position: outside;
     margin: 0 0 1em 1.5em;
     padding: 0;
 }
@@ -18,14 +28,109 @@ ul.rankkernel-faq-editor-list {
     list-style-type: disc;
 }
 
-.rankkernel-faq-row {
-    margin-bottom: 1em;
+.rankkernel-faq-editor .rankkernel-faq-row {
+    margin: 0 0 1em;
+    padding: 0;
 }
 
-.rankkernel-faq-row-question {
-    margin: 0 0 0.25em;
+.rankkernel-faq-editor .rankkernel-faq-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-.rankkernel-faq-editor-title {
-    margin: 0 0 0.5em;
+.rankkernel-faq-editor .rankkernel-faq-row-head {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 0.75em;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-badge {
+    align-items: center;
+    background: #1e1e1e;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 600;
+    justify-content: center;
+    line-height: 1;
+    min-height: 1.75em;
+    min-width: 1.75em;
+    padding: 0.3em 0.5em;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-badge-draft {
+    background: #f0f0f0;
+    border: 1px solid #ccd0d4;
+    color: #50575e;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-row-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 1em 0 0.25em;
+    text-transform: uppercase;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-row-answer {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    margin: 0;
+    min-height: 2.5em;
+    padding: 0.25em;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-row-hint {
+    color: #50575e;
+    font-size: 12px;
+    font-style: italic;
+    margin: 0.5em 0 0;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-top: 0.75em;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-empty {
+    background: #f6f7f7;
+    border: 1px dashed #a7aaad;
+    border-radius: 4px;
+    margin: 0 0 1em;
+    padding: 1.25em;
+    text-align: center;
+}
+
+.rankkernel-faq-editor .rankkernel-faq-empty p {
+    margin: 0 0 0.75em;
+}
+
+.rankkernel-faq-editor input:focus-visible,
+.rankkernel-faq-editor textarea:focus-visible,
+.rankkernel-faq-editor [contenteditable]:focus-visible,
+.rankkernel-faq-editor .components-button:focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .rankkernel-faq-editor .rankkernel-faq-editor-list {
+        margin-left: 1em;
+    }
+
+    .rankkernel-faq-editor .rankkernel-faq-row-actions .components-button {
+        flex: 1 1 auto;
+    }
 }
