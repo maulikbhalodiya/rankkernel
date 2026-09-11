@@ -177,7 +177,7 @@ final class SchemaMetaboxTest extends TestCase {
 
         $out = $this->renderBox();
 
-        $this->assertStringContainsString('Automatic (BlogPosting)', $out);
+        $this->assertStringContainsString('Automatic (Blog Posting)', $out);
     }
 
     public function test_render_disable_checkbox_and_conditional_rows(): void {
@@ -187,7 +187,7 @@ final class SchemaMetaboxTest extends TestCase {
 
         $this->assertStringContainsString('name="rankkernel_schema_disabled"', $out);
         $this->assertStringContainsString('Disable schema output for this post', $out);
-        $this->assertStringContainsString('data-rankkernel-field-types="Product,SoftwareApplication"', $out);
+        $this->assertStringContainsString('data-rankkernel-field-types="Product,Event,Service,SoftwareApplication"', $out);
         $this->assertStringContainsString('Manual field overrides (optional)', $out);
         $this->assertStringContainsString('Advanced: custom JSON, import, export', $out);
     }

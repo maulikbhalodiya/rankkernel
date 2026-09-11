@@ -388,7 +388,7 @@ final class SchemaSettingsPage {
 
             foreach (SchemaTypes::SUPPORTED as $type) {
                 echo '<option value="' . esc_attr($type) . '"' . selected($current, $type, false) . '>';
-                echo esc_html($type);
+                echo esc_html(SchemaTypes::label($type));
                 echo '</option>';
             }
 

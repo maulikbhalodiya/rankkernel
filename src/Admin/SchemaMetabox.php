@@ -43,18 +43,88 @@ final class SchemaMetabox {
     /**
      * Manual field keys, short and generic.
      *
+     * Every key a schema piece reads lives here, so the builder UI
+     * can set each one. Keys stay plain strings, sanitized on save.
+     *
      * @var string[]
      */
     private const FIELD_KEYS = [
         'headline',
         'description',
+        'author',
         'price',
         'priceCurrency',
         'sku',
-        'author',
+        'availability',
+        'ratingValue',
+        'reviewCount',
+        'bestRating',
+        'worstRating',
         'isbn',
         'startDate',
+        'endDate',
         'locationName',
+        'streetAddress',
+        'addressLocality',
+        'addressRegion',
+        'postalCode',
+        'addressCountry',
+        'performer',
+        'eventStatus',
+        'ingredients',
+        'instructions',
+        'prepTime',
+        'cookTime',
+        'totalTime',
+        'yield',
+        'areaServed',
+        'thumbnailUrl',
+        'uploadDate',
+        'duration',
+        'contentUrl',
+        'appCategory',
+        'operatingSystem',
+        'artist',
+        'album',
+        'dateCreated',
+        'director',
+        'company',
+        'jobLocation',
+        'salary',
+        'datePosted',
+        'validThrough',
+        'claimReviewed',
+        'datePublished',
+        'license',
+        'distributionUrl',
+        'distributionFormat',
+        'seriesName',
+        'question',
+        'answer',
+        'answerAuthor',
+        'itemName',
+        'reviewBody',
+        'telephone',
+        'priceRange',
+        'openingHours',
+        'caption',
+        'width',
+        'height',
+        'speakable',
+        'about',
+        'mentions',
+    ];
+
+    /**
+     * Fields holding URLs, cleaned with esc_url_raw on save.
+     *
+     * @var string[]
+     */
+    private const URL_KEYS = [
+        'thumbnailUrl',
+        'contentUrl',
+        'license',
+        'distributionUrl',
     ];
 
     /**
@@ -63,15 +133,70 @@ final class SchemaMetabox {
      * @var array<string, string>
      */
     private const FIELD_LABELS = [
-        'headline'      => 'Headline',
-        'description'   => 'Description',
-        'price'         => 'Price',
-        'priceCurrency' => 'Price currency',
-        'sku'           => 'SKU',
-        'author'        => 'Author',
-        'isbn'          => 'ISBN',
-        'startDate'     => 'Start date',
-        'locationName'  => 'Location name',
+        'headline'           => 'Headline',
+        'description'        => 'Description',
+        'author'             => 'Author',
+        'price'              => 'Price',
+        'priceCurrency'      => 'Price currency',
+        'sku'                => 'SKU',
+        'availability'       => 'Availability',
+        'ratingValue'        => 'Rating value',
+        'reviewCount'        => 'Review count',
+        'bestRating'         => 'Best rating',
+        'worstRating'        => 'Worst rating',
+        'isbn'               => 'ISBN',
+        'startDate'          => 'Start date',
+        'endDate'            => 'End date',
+        'locationName'       => 'Location name',
+        'streetAddress'      => 'Street address',
+        'addressLocality'    => 'City',
+        'addressRegion'      => 'Region',
+        'postalCode'         => 'Postal code',
+        'addressCountry'     => 'Country',
+        'performer'          => 'Performer',
+        'eventStatus'        => 'Event status',
+        'ingredients'        => 'Ingredients',
+        'instructions'       => 'Instructions',
+        'prepTime'           => 'Prep time',
+        'cookTime'           => 'Cook time',
+        'totalTime'          => 'Total time',
+        'yield'              => 'Yield',
+        'areaServed'         => 'Area served',
+        'thumbnailUrl'       => 'Thumbnail URL',
+        'uploadDate'         => 'Upload date',
+        'duration'           => 'Duration',
+        'contentUrl'         => 'Content URL',
+        'appCategory'        => 'App category',
+        'operatingSystem'    => 'Operating system',
+        'artist'             => 'Artist',
+        'album'              => 'Album',
+        'dateCreated'        => 'Date created',
+        'director'           => 'Director',
+        'company'            => 'Company',
+        'jobLocation'        => 'Job location',
+        'salary'             => 'Salary',
+        'datePosted'         => 'Date posted',
+        'validThrough'       => 'Valid through',
+        'claimReviewed'      => 'Claim reviewed',
+        'datePublished'      => 'Date published',
+        'license'            => 'License URL',
+        'distributionUrl'    => 'File URL',
+        'distributionFormat' => 'File format',
+        'seriesName'         => 'Series name',
+        'question'           => 'Question',
+        'answer'             => 'Answer',
+        'answerAuthor'       => 'Answer author',
+        'itemName'           => 'Reviewed item',
+        'reviewBody'         => 'Review text',
+        'telephone'          => 'Phone',
+        'priceRange'         => 'Price range',
+        'openingHours'       => 'Opening hours',
+        'caption'            => 'Caption',
+        'width'              => 'Width',
+        'height'             => 'Height',
+        'speakable'          => 'Speakable selectors',
+        'about'              => 'About',
+        'mentions'           => 'Mentions',
     ];
 
     /**
@@ -276,8 +401,8 @@ final class SchemaMetabox {
         echo '<select name="rankkernel_schema_type" id="rankkernel-schema-type">';
 
         $autoLabel = '' !== $resolved
-            // translators: %s: schema type name, e.g. BlogPosting.
-            ? sprintf(__('Automatic (%s)', 'rankkernel'), $resolved)
+            // translators: %s: schema type name, e.g. Blog Posting.
+            ? sprintf(__('Automatic (%s)', 'rankkernel'), SchemaTypes::label($resolved))
             : __('Automatic', 'rankkernel');
         $auto = '' === $selected ? ' selected="selected"' : '';
         echo '<option value=""' . $auto . '>' . esc_html($autoLabel) . '</option>';
@@ -285,7 +410,7 @@ final class SchemaMetabox {
         foreach (SchemaTypes::SUPPORTED as $type) {
             $mark = $type === $selected ? ' selected="selected"' : '';
             echo '<option value="' . esc_attr($type) . '"' . $mark . '>'
-                . esc_html($type) . '</option>';
+                . esc_html(SchemaTypes::label($type)) . '</option>';
         }
 
         echo '</select></p>';
@@ -307,15 +432,70 @@ final class SchemaMetabox {
      * @var array<string, string[]>
      */
     private const FIELD_TYPES = [
-        'headline'      => [ '*' ],
-        'description'   => [ '*' ],
-        'author'        => [ '*' ],
-        'price'         => [ 'Product', 'SoftwareApplication' ],
-        'priceCurrency' => [ 'Product', 'SoftwareApplication' ],
-        'sku'           => [ 'Product', 'SoftwareApplication' ],
-        'isbn'          => [ 'Book' ],
-        'startDate'     => [ 'Event' ],
-        'locationName'  => [ 'Event', 'JobPosting' ],
+        'headline'           => [ '*' ],
+        'description'        => [ '*' ],
+        'author'             => [ '*' ],
+        'price'              => [ 'Product', 'Event', 'Service', 'SoftwareApplication' ],
+        'priceCurrency'      => [ 'Product', 'Event', 'Service', 'JobPosting', 'SoftwareApplication' ],
+        'sku'                => [ 'Product' ],
+        'availability'       => [ 'Product' ],
+        'ratingValue'        => [ 'Product', 'SoftwareApplication', 'Movie', 'ClaimReview', 'Review' ],
+        'reviewCount'        => [ 'Product', 'SoftwareApplication', 'Movie' ],
+        'bestRating'         => [ 'ClaimReview', 'Review' ],
+        'worstRating'        => [ 'ClaimReview', 'Review' ],
+        'isbn'               => [ 'Book' ],
+        'startDate'          => [ 'Event' ],
+        'endDate'            => [ 'Event' ],
+        'locationName'       => [ 'Event', 'JobPosting' ],
+        'streetAddress'      => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+        'addressLocality'    => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+        'addressRegion'      => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+        'postalCode'         => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+        'addressCountry'     => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+        'performer'          => [ 'Event' ],
+        'eventStatus'        => [ 'Event' ],
+        'ingredients'        => [ 'Recipe' ],
+        'instructions'       => [ 'Recipe' ],
+        'prepTime'           => [ 'Recipe' ],
+        'cookTime'           => [ 'Recipe' ],
+        'totalTime'          => [ 'Recipe' ],
+        'yield'              => [ 'Recipe' ],
+        'areaServed'         => [ 'Service' ],
+        'thumbnailUrl'       => [ 'VideoObject' ],
+        'uploadDate'         => [ 'VideoObject' ],
+        'duration'           => [ 'VideoObject', 'PodcastEpisode' ],
+        'contentUrl'         => [ 'VideoObject', 'PodcastEpisode', 'ImageObject' ],
+        'appCategory'        => [ 'SoftwareApplication' ],
+        'operatingSystem'    => [ 'SoftwareApplication' ],
+        'artist'             => [ 'MusicRecording' ],
+        'album'              => [ 'MusicRecording' ],
+        'dateCreated'        => [ 'Movie' ],
+        'director'           => [ 'Movie' ],
+        'company'            => [ 'JobPosting' ],
+        'jobLocation'        => [ 'JobPosting' ],
+        'salary'             => [ 'JobPosting' ],
+        'datePosted'         => [ 'JobPosting' ],
+        'validThrough'       => [ 'JobPosting' ],
+        'claimReviewed'      => [ 'ClaimReview' ],
+        'datePublished'      => [ 'ClaimReview', 'PodcastEpisode', 'Review' ],
+        'license'            => [ 'Dataset' ],
+        'distributionUrl'    => [ 'Dataset' ],
+        'distributionFormat' => [ 'Dataset' ],
+        'seriesName'         => [ 'PodcastEpisode' ],
+        'question'           => [ 'QAPage' ],
+        'answer'             => [ 'QAPage' ],
+        'answerAuthor'       => [ 'QAPage' ],
+        'itemName'           => [ 'Review' ],
+        'reviewBody'         => [ 'Review' ],
+        'telephone'          => [ 'LocalBusiness' ],
+        'priceRange'         => [ 'LocalBusiness' ],
+        'openingHours'       => [ 'LocalBusiness' ],
+        'caption'            => [ 'ImageObject' ],
+        'width'              => [ 'ImageObject' ],
+        'height'             => [ 'ImageObject' ],
+        'speakable'          => [ 'WebPage' ],
+        'about'              => [ 'WebPage' ],
+        'mentions'           => [ 'WebPage' ],
     ];
 
     /**
@@ -432,9 +612,10 @@ final class SchemaMetabox {
     /**
      * Missing required fields for the selected type.
      *
-     * Mirrors each piece gating logic: name for name gated types,
-     * start date plus location for Event, questions for FAQPage,
-     * steps for HowTo.
+     * Field lists come from the central SchemaTypes registry, so the
+     * admin warning and the piece gating logic can never drift apart.
+     * FAQPage and HowTo validate through their row counters, page and
+     * list types need no manual fields at all.
      *
      * @param string               $selected Selected type or empty for automatic.
      * @param array<string, mixed> $schema   Stored schema subtree.
@@ -444,9 +625,6 @@ final class SchemaMetabox {
         if ('' === $selected) {
             return [];
         }
-
-        $fields = ( isset($schema['fields']) && is_array($schema['fields']) ) ? $schema['fields'] : [];
-        $name   = isset($fields['headline']) ? trim((string) $fields['headline']) : '';
 
         if ('FAQPage' === $selected) {
             return 0 === $this->countQuestions($schema)
@@ -460,31 +638,19 @@ final class SchemaMetabox {
                 : [];
         }
 
-        if ('Event' === $selected) {
-            $messages  = [];
-            $start     = isset($fields['startDate']) ? trim((string) $fields['startDate']) : '';
-            $location  = isset($fields['locationName']) ? trim((string) $fields['locationName']) : '';
+        $fields = ( isset($schema['fields']) && is_array($schema['fields']) ) ? $schema['fields'] : [];
 
-            if ('' === $name) {
-                $messages[] = 'Name (headline) is required for Event.';
+        $messages = [];
+
+        foreach (SchemaTypes::requiredFields($selected) as $field) {
+            $value = isset($fields[ $field ]) ? trim((string) $fields[ $field ]) : '';
+
+            if ('' === $value) {
+                $messages[] = SchemaTypes::requiredMessage($selected, $field);
             }
-
-            if ('' === $start) {
-                $messages[] = 'Start date is required for Event.';
-            }
-
-            if ('' === $location) {
-                $messages[] = 'Location name is required for Event.';
-            }
-
-            return $messages;
         }
 
-        if ('Product' === $selected) {
-            return '' === $name ? [ 'Product name (headline) is required for Product.' ] : [];
-        }
-
-        return '' === $name ? [ sprintf('Headline is required for %s.', $selected) ] : [];
+        return $messages;
     }
 
     /**
@@ -744,7 +910,14 @@ final class SchemaMetabox {
             }
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-            $value = sanitize_text_field((string) wp_unslash($raw[ $key ]));
+            $posted = (string) wp_unslash($raw[ $key ]);
+
+            if (in_array($key, self::URL_KEYS, true)) {
+                $value = function_exists('esc_url_raw') ? esc_url_raw($posted) : trim($posted);
+            } else {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+                $value = sanitize_text_field($posted);
+            }
 
             if ('' !== $value) {
                 $fields[ $key ] = $value;
