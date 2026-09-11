@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ruleset name="RankKernel">
-    <description>RankKernel coding standards — WordPress-Extra + WordPress-Docs + PSR12 (src/ only).</description>
+    <description>RankKernel coding standards, progressive WordPress enforcement over PSR12.</description>
 
     <config name="testVersion" value="8.1-"/>
     <config name="minimum_supported_wp_version" value="6.5"/>
@@ -8,11 +8,30 @@
 
     <exclude-pattern>*/vendor/*</exclude-pattern>
     <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <!-- Test bootstrap declares global WP test doubles outside any namespace by design, which PSR12 class rules cannot allow. -->
     <exclude-pattern>tests/bootstrap.php</exclude-pattern>
 
+    <!--
+        Progressive enforcement map. PSR12 stays the default for src and
+        tests. WordPress Extra covers only the plugin root files plus the
+        source files already brought into compliance, listed below one by
+        one. Rebuild agents extend this list file by file as block work
+        lands. Every path added here must be mirrored in the PSR12
+        exclude list further down, because WordPress tabs and inner
+        spacing directly contradict PSR12 spaces, so both rules must
+        never cover the same file. Full map lives in docs/coding-standards.md.
+    -->
     <rule ref="WordPress-Extra">
-        <exclude-pattern>src/.*</exclude-pattern>
-        <exclude-pattern>tests/.*</exclude-pattern>
+        <include-pattern>rankkernel.php</include-pattern>
+        <include-pattern>uninstall.php</include-pattern>
+        <include-pattern>src/Admin/SchemaMetabox.php</include-pattern>
+        <include-pattern>src/Admin/SchemaSettingsPage.php</include-pattern>
+        <include-pattern>src/Admin/SitemapSettingsPage.php</include-pattern>
+        <include-pattern>src/Admin/SettingsPage.php</include-pattern>
+        <include-pattern>src/Modules/Metadata/MetaPayload.php</include-pattern>
+        <include-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</include-pattern>
+        <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
+        <include-pattern>src/Modules/Schema/SchemaModule.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
         <exclude-pattern>src/.*</exclude-pattern>
@@ -22,17 +41,48 @@
     <rule ref="PSR12">
         <include-pattern>src/.*</include-pattern>
         <include-pattern>tests/.*</include-pattern>
+        <exclude-pattern>src/Admin/SchemaMetabox.php</exclude-pattern>
+        <exclude-pattern>src/Admin/SchemaSettingsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/SitemapSettingsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/SettingsPage.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Metadata/MetaPayload.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Schema/SchemaModule.php</exclude-pattern>
     </rule>
 
     <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <!-- Test methods use the snake case test prefix convention. -->
         <exclude-pattern>tests/.*</exclude-pattern>
     </rule>
 
     <rule ref="Generic.Files.LineLength">
+        <!-- Test fixtures carry long inline payload strings. -->
         <exclude-pattern>tests/.*</exclude-pattern>
     </rule>
 
+    <!--
+        Naming decision, encoded once. Project standard keeps PSR4 file
+        names, camelCase methods and variables, and short array syntax,
+        so these three WordPress checks stay off under src where the
+        PSR4 autoloader and the surrounding camelCase code require them.
+        The tests tree is scoped out as well because it follows the same
+        project naming. Everything else WordPress Extra reports stays on.
+    -->
     <rule ref="WordPress.Files.FileName">
-        <severity>0</severity>
+        <exclude-pattern>src/.*</exclude-pattern>
+        <exclude-pattern>tests/.*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidVariableName">
+        <exclude-pattern>src/.*</exclude-pattern>
+        <exclude-pattern>tests/.*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+        <exclude-pattern>src/.*</exclude-pattern>
+        <exclude-pattern>tests/.*</exclude-pattern>
+    </rule>
+    <rule ref="Universal.Arrays.DisallowShortArraySyntax">
+        <exclude-pattern>src/.*</exclude-pattern>
+        <exclude-pattern>tests/.*</exclude-pattern>
     </rule>
 </ruleset>
