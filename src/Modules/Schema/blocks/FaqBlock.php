@@ -19,187 +19,185 @@ namespace RankKernel\Modules\Schema\blocks;
  * FAQPage schema match exactly what visitors see.
  */
 final class FaqBlock {
-    /**
-     * Allowed title wrapper tags.
-     *
-     * @var string[]
-     */
-    private const WRAPPERS = [ 'h2', 'h3', 'h4' ];
+	/**
+	 * Allowed title wrapper tags.
+	 *
+	 * @var string[]
+	 */
+	private const WRAPPERS = [ 'h2', 'h3', 'h4' ];
 
-    /**
-     * Register the block category and the dynamic block type.
-     *
-     * Runs during SchemaModule::boot(), which fires on init, so the
-     * register_block_type call below already happens on init and the
-     * render callback runs on demand only.
-     */
-    public function register(): void {
-        add_filter('block_categories_all', [ $this, 'addCategory' ]);
-        $this->registerBlock();
-    }
+	/**
+	 * Register the dynamic block type.
+	 *
+	 * The block category lives centrally in SchemaModule, so this class
+	 * registers only the block type itself.
+	 */
+	public function register(): void {
+		$this->registerBlock();
+	}
 
-    /**
-     * Plugin relative asset URL, empty when unavailable (tests, early boot).
-     */
-    private static function assetUrl( string $path ): string {
-        if (! function_exists('plugins_url')) {
-            return '';
-        }
+	/**
+	 * Plugin relative asset URL, empty when unavailable (tests, early boot).
+	 */
+	private static function assetUrl( string $path ): string {
+		if ( ! function_exists( 'plugins_url' ) ) {
+			return '';
+		}
 
-        $main = dirname(__DIR__, 4) . '/rankkernel.php';
+		$main = dirname( __DIR__, 4 ) . '/rankkernel.php';
 
-        return (string) plugins_url($path, $main);
-    }
+		return (string) plugins_url( $path, $main );
+	}
 
-    /**
-     * Register the dynamic block type from its block.json folder.
-     *
-     * The editor script and style register explicitly with full
-     * dependency lists instead of relying on metadata auto loading,
-     * so the editor globals they use always load first.
-     */
-    public function registerBlock(): void {
-        if (! function_exists('register_block_type')) {
-            return;
-        }
+	/**
+	 * Register the dynamic block type from its block.json folder.
+	 *
+	 * The editor script and style register explicitly with full
+	 * dependency lists instead of relying on metadata auto loading,
+	 * so the editor globals they use always load first. All URLs flow
+	 * through the single assetUrl helper, so tests and early boot see
+	 * one consistent empty string fallback instead of mixed bases.
+	 */
+	public function registerBlock(): void {
+		if ( ! function_exists( 'register_block_type' ) ) {
+			return;
+		}
 
-        if (function_exists('wp_register_script') && function_exists('plugins_url')) {
-            $version = \RankKernel\Plugin::VERSION;
+		if ( function_exists( 'wp_register_script' ) ) {
+			$version = \RankKernel\Plugin::VERSION;
 
-            wp_register_script(
-                'rankkernel-faq-editor',
-                self::assetUrl('src/Modules/Schema/blocks/faq/faq-editor.js'),
-                [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
-                $version,
-                true
-            );
-        }
+			wp_register_script(
+				'rankkernel-faq-editor',
+				self::assetUrl( 'src/Modules/Schema/blocks/faq/faq-editor.js' ),
+				[ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
+				$version,
+				true
+			);
+		}
 
-        if (function_exists('wp_register_style') && function_exists('plugins_url')) {
-            $version = \RankKernel\Plugin::VERSION;
+		if ( function_exists( 'wp_register_style' ) ) {
+			$version = \RankKernel\Plugin::VERSION;
 
-            wp_register_style(
-                'rankkernel-faq-editor',
-                self::assetUrl('src/Modules/Schema/blocks/faq/editor.css'),
-                [],
-                $version
-            );
-        }
+			wp_register_style(
+				'rankkernel-faq-editor',
+				self::assetUrl( 'src/Modules/Schema/blocks/faq/editor.css' ),
+				[],
+				$version
+			);
+		}
 
-        register_block_type(
-            __DIR__ . '/faq',
-            [
-                'editor_script'   => 'rankkernel-faq-editor',
-                'editor_style'    => 'rankkernel-faq-editor',
-                'render_callback' => [ $this, 'render' ],
-            ]
-        );
-    }
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			try {
+				wp_set_script_translations( 'rankkernel-faq-editor', 'rankkernel' );
+			} catch ( \Throwable $e ) {
+				// Test doubles can leak this name into later suites without a backend, so a failure here must never break registration. Production WP always provides it.
+				unset( $e );
+			}
+		}
 
-    /**
-     * Append the RankKernel block category.
-     *
-     * @param mixed $categories Registered categories.
-     * @return array<int, array<string, mixed>>
-     */
-    public function addCategory( mixed $categories ): array {
-        $out = is_array($categories) ? array_values($categories) : [];
+		register_block_type(
+			__DIR__ . '/faq',
+			[
+				'editor_script'   => 'rankkernel-faq-editor',
+				'editor_style'    => 'rankkernel-faq-editor',
+				'render_callback' => [ $this, 'render' ],
+			]
+		);
+	}
 
-        foreach ($out as $existing) {
-            if (is_array($existing) && 'rankkernel' === ( $existing['slug'] ?? null )) {
-                return $out;
-            }
-        }
+	/**
+	 * Render the block.
+	 *
+	 * Every dynamic value is escaped, tag names come from an allowlist
+	 * (h2, h3, h4, default h3) and the list tag is ul or ol (default
+	 * ul). The optional content and block params exist because WP core
+	 * passes them to every render callback; this render ignores them
+	 * and reads attributes only, so old stored blocks keep rendering.
+	 * Rows with an empty question are skipped even when an answer is
+	 * present, which mirrors the FaqPiece schema rule exactly, so the
+	 * visible list and the FAQPage nodes never diverge. Returns an
+	 * empty string when no valid rows remain, so nothing renders.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 * @param string               $content Block inner content, unused.
+	 * @param mixed                $block Parsed block instance, unused.
+	 */
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP core always passes content and block to render callbacks, so the signature keeps both names.
+	public function render( array $attributes, string $content = '', mixed $block = null ): string {
+		$title   = isset( $attributes['title'] ) ? trim( (string) $attributes['title'] ) : '';
+		$wrapper = isset( $attributes['titleWrapper'] ) ? strtolower( trim( (string) $attributes['titleWrapper'] ) ) : 'h3';
 
-        $out[] = [
-            'slug'  => 'rankkernel',
-            'title' => 'RankKernel',
-            'icon'  => 'editor-ul',
-        ];
+		if ( ! in_array( $wrapper, self::WRAPPERS, true ) ) {
+			$wrapper = 'h3';
+		}
 
-        return $out;
-    }
+		$questionTag = isset( $attributes['questionTag'] ) ? strtolower( trim( (string) $attributes['questionTag'] ) ) : '';
 
-    /**
-     * Render the block.
-     *
-     * Every dynamic value is escaped, tag names come from an allowlist
-     * (h2, h3, h4, default h3) and the list tag is ul or ol (default
-     * ul). Rows with both parts blank are skipped. Returns an empty
-     * string when no valid rows remain, so nothing renders.
-     *
-     * @param array<string, mixed> $attributes Block attributes.
-     */
-    public function render( array $attributes ): string {
-        $title = isset($attributes['title']) ? trim((string) $attributes['title']) : '';
-        $wrapper = isset($attributes['titleWrapper']) ? strtolower(trim((string) $attributes['titleWrapper'])) : 'h3';
+		if ( ! in_array( $questionTag, self::WRAPPERS, true ) ) {
+			$questionTag = '';
+		}
 
-        if (! in_array($wrapper, self::WRAPPERS, true)) {
-            $wrapper = 'h3';
-        }
+		$qtag = '' !== $questionTag ? $questionTag : $wrapper;
 
-        $list = isset($attributes['listStyle']) ? strtolower(trim((string) $attributes['listStyle'])) : 'ul';
+		$list = isset( $attributes['listStyle'] ) ? strtolower( trim( (string) $attributes['listStyle'] ) ) : 'ul';
 
-        if (! in_array($list, [ 'ul', 'ol' ], true)) {
-            $list = 'ul';
-        }
+		if ( ! in_array( $list, [ 'ul', 'ol' ], true ) ) {
+			$list = 'ul';
+		}
 
-        $questions = $attributes['questions'] ?? [];
+		$questions = $attributes['questions'] ?? [];
 
-        if (! is_array($questions)) {
-            $questions = [];
-        }
+		if ( ! is_array( $questions ) ) {
+			$questions = [];
+		}
 
-        $rows  = '';
-        $index = 0;
+		$rows  = '';
+		$index = 0;
 
-        foreach ($questions as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
+		foreach ( $questions as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
 
-            $question = isset($row['question']) ? trim((string) $row['question']) : '';
-            $answer   = isset($row['answer']) ? trim((string) $row['answer']) : '';
+			$question = isset( $row['question'] ) ? trim( (string) $row['question'] ) : '';
+			$answer   = isset( $row['answer'] ) ? trim( (string) $row['answer'] ) : '';
 
-            if ('' === $question && '' === $answer) {
-                continue;
-            }
+			if ( '' === $question ) {
+				continue;
+			}
 
-            $index++;
+			++$index;
 
-            $rows .= '<li class="rankkernel-faq-item">';
+			$rows .= '<li class="rankkernel-faq-item">';
+			$rows .= '<' . $qtag . ' class="rankkernel-faq-question">'
+				. '<span class="rankkernel-faq-number">' . $index . '. </span>'
+				. esc_html( $question )
+				. '</' . $qtag . '>';
 
-            if ('' !== $question) {
-                $rows .= '<' . $wrapper . ' class="rankkernel-faq-question">'
-                    . '<span class="rankkernel-faq-number">' . $index . '. </span>'
-                    . esc_html($question)
-                    . '</' . $wrapper . '>';
-            }
+			if ( '' !== $answer ) {
+				$rows .= '<div class="rankkernel-faq-answer">' . wp_kses_post( $answer ) . '</div>';
+			}
 
-            if ('' !== $answer) {
-                $rows .= '<div class="rankkernel-faq-answer">' . wp_kses_post($answer) . '</div>';
-            }
+			$rows .= '</li>';
+		}
 
-            $rows .= '</li>';
-        }
+		if ( '' === $rows ) {
+			return '';
+		}
 
-        if ('' === $rows) {
-            return '';
-        }
+		$out = '<div class="rankkernel-faq">';
 
-        $out = '<div class="rankkernel-faq">';
+		if ( '' !== $title ) {
+			$out .= '<' . $wrapper . ' class="rankkernel-faq-title">'
+				. esc_html( $title )
+				. '</' . $wrapper . '>';
+		}
 
-        if ('' !== $title) {
-            $out .= '<' . $wrapper . ' class="rankkernel-faq-title">'
-                . esc_html($title)
-                . '</' . $wrapper . '>';
-        }
+		$listStyle = 'ol' === $list ? ' style="list-style-type:decimal;"' : ' style="list-style-type:disc;"';
 
-        $listStyle = 'ol' === $list ? ' style="list-style-type:decimal;"' : ' style="list-style-type:disc;"';
+		$out .= '<' . $list . ' class="rankkernel-faq-list"' . $listStyle . '>' . $rows . '</' . $list . '>';
+		$out .= '</div>';
 
-        $out .= '<' . $list . ' class="rankkernel-faq-list"' . $listStyle . '>' . $rows . '</' . $list . '>';
-        $out .= '</div>';
-
-        return $out;
-    }
+		return $out;
+	}
 }
