@@ -80,64 +80,46 @@
 
             var blockProps = useBlockProps({ className: 'rankkernel-faq-editor' });
 
-            function updateQuestion( id, field, value ) {
-                var current = null;
-                var i;
+            function updateQuestionAt( index, field, value ) {
+                var row = questions[ index ];
 
-                for ( i = 0; i < questions.length; i++ ) {
-                    if ( questions[ i ] && questions[ i ].id === id ) {
-                        current = questions[ i ];
-                        break;
-                    }
-                }
-
-                if ( current && current[ field ] === value ) {
+                if ( ! row || 'object' !== typeof row || row[ field ] === value ) {
                     return;
                 }
 
-                var next = questions.map(function ( row ) {
-                    if ( ! row || row.id !== id ) {
-                        return row;
+                var next = questions.map(function ( current, i ) {
+                    if ( i !== index ) {
+                        return current;
                     }
 
-                    return { ...row, [ field ]: value };
+                    return { ...current, [ field ]: value };
                 });
 
                 setAttributes({ questions: next });
             }
 
-            function removeQuestion( id ) {
+            function removeQuestionAt( index ) {
                 setAttributes({
-                    questions: questions.filter(function ( row ) {
-                        return ! row || row.id !== id;
+                    questions: questions.filter(function ( row, i ) {
+                        return i !== index;
                     })
                 });
             }
 
-            function moveQuestion( id, direction ) {
-                var from = -1;
-                var i;
+            function moveQuestionAt( index, direction ) {
+                var to = index + direction;
 
-                for ( i = 0; i < questions.length; i++ ) {
-                    if ( questions[ i ] && questions[ i ].id === id ) {
-                        from = i;
-                        break;
-                    }
-                }
-
-                if ( from < 0 ) {
+                if ( index < 0 || index >= questions.length ) {
                     return;
                 }
-
-                var to = from + direction;
 
                 if ( to < 0 || to >= questions.length ) {
                     return;
                 }
 
                 var next = questions.slice();
-                var temp = next[ from ];
-                next[ from ] = next[ to ];
+                var temp = next[ index ];
+                next[ index ] = next[ to ];
                 next[ to ] = temp;
 
                 setAttributes({ questions: next });
@@ -192,14 +174,59 @@
                                 'div',
                                 { className: 'rankkernel-faq-row-head' },
                                 el('span', { className: badgeClass, 'aria-hidden': 'true' }, badgeText),
-                                el('span', { className: 'rankkernel-faq-row-title' }, cardLabel)
+                                el('span', { className: 'rankkernel-faq-row-title' }, cardLabel),
+                                el(
+                                    'div',
+                                    { className: 'rankkernel-faq-row-actions' },
+                                    el(
+                                        Button,
+                                        {
+                                            variant: 'secondary',
+                                            size: 'small',
+                                            disabled: isFirst,
+                                            label: moveUpLabel,
+                                            'aria-label': moveUpLabel,
+                                            onClick: function () {
+                                                moveQuestionAt(index, -1);
+                                            }
+                                        },
+                                        __('Up', 'rankkernel')
+                                    ),
+                                    el(
+                                        Button,
+                                        {
+                                            variant: 'secondary',
+                                            size: 'small',
+                                            disabled: isLast,
+                                            label: moveDownLabel,
+                                            'aria-label': moveDownLabel,
+                                            onClick: function () {
+                                                moveQuestionAt(index, 1);
+                                            }
+                                        },
+                                        __('Down', 'rankkernel')
+                                    ),
+                                    el(
+                                        Button,
+                                        {
+                                            isDestructive: true,
+                                            size: 'small',
+                                            label: removeLabel,
+                                            'aria-label': removeLabel,
+                                            onClick: function () {
+                                                removeQuestionAt(index);
+                                            }
+                                        },
+                                        __('Remove', 'rankkernel')
+                                    )
+                                )
                             ),
                             el(TextControl, {
                                 label: questionLabel,
                                 value: item.question || '',
                                 placeholder: __('Enter a question...', 'rankkernel'),
                                 onChange: function ( value ) {
-                                    updateQuestion(item.id, 'question', value);
+                                    updateQuestionAt(index, 'question', value);
                                 }
                             }),
                             el('span', { className: 'rankkernel-faq-field-label' }, answerLabel),
@@ -211,56 +238,14 @@
                                 placeholder: __('Enter the answer...', 'rankkernel'),
                                 value: item.answer || '',
                                 onChange: function ( value ) {
-                                    updateQuestion(item.id, 'answer', value);
+                                    updateQuestionAt(index, 'answer', value);
                                 }
                             }),
                             '' === questionText ? el(
                                 'p',
                                 { className: 'rankkernel-faq-row-hint' },
                                 __('Add a question so this entry appears on the page and in the schema.', 'rankkernel')
-                            ) : null,
-                            el(
-                                'div',
-                                { className: 'rankkernel-faq-row-actions' },
-                                el(
-                                    Button,
-                                    {
-                                        variant: 'secondary',
-                                        disabled: isFirst,
-                                        label: moveUpLabel,
-                                        'aria-label': moveUpLabel,
-                                        onClick: function () {
-                                            moveQuestion(item.id, -1);
-                                        }
-                                    },
-                                    __('Move up', 'rankkernel')
-                                ),
-                                el(
-                                    Button,
-                                    {
-                                        variant: 'secondary',
-                                        disabled: isLast,
-                                        label: moveDownLabel,
-                                        'aria-label': moveDownLabel,
-                                        onClick: function () {
-                                            moveQuestion(item.id, 1);
-                                        }
-                                    },
-                                    __('Move down', 'rankkernel')
-                                ),
-                                el(
-                                    Button,
-                                    {
-                                        isDestructive: true,
-                                        label: removeLabel,
-                                        'aria-label': removeLabel,
-                                        onClick: function () {
-                                            removeQuestion(item.id);
-                                        }
-                                    },
-                                    __('Remove', 'rankkernel')
-                                )
-                            )
+                            ) : null
                         )
                     )
                 );
