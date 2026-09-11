@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Application as a SoftwareApplication node.
@@ -23,6 +24,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  * appears only when both the value and the count are valid.
  */
 final class SoftwarePiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
     /**
      * Get piece id.
      */
@@ -36,7 +51,7 @@ final class SoftwarePiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
-        if ('SoftwareApplication' !== SchemaHelpers::payloadType($ctx)) {
+        if ('SoftwareApplication' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return false;
         }
 
@@ -50,7 +65,7 @@ final class SoftwarePiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        if ('SoftwareApplication' !== SchemaHelpers::payloadType($ctx)) {
+        if ('SoftwareApplication' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return [];
         }
 

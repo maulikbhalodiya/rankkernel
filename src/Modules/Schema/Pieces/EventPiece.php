@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Event as an Event node.
@@ -27,6 +28,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  */
 final class EventPiece implements PieceInterface {
     /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
+    /**
      * Get piece id.
      */
     public function getId(): string {
@@ -40,7 +55,7 @@ final class EventPiece implements PieceInterface {
      */
     public function isNeeded( Context $ctx ): bool {
         $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::payloadType($ctx);
+        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
 
         if ('Event' !== $type && '' === trim($fields['startDate'] ?? '')) {
             return false;
@@ -61,7 +76,7 @@ final class EventPiece implements PieceInterface {
      */
     public function build( Context $ctx ): array {
         $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::payloadType($ctx);
+        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
 
         if ('Event' !== $type && '' === trim($fields['startDate'] ?? '')) {
             return [];
@@ -149,31 +164,10 @@ final class EventPiece implements PieceInterface {
      * @return array<string, mixed>
      */
     private function location( array $fields ): array {
-        $name = trim($fields['locationName'] ?? '');
+        $name    = trim($fields['locationName'] ?? '');
+        $address = SchemaHelpers::postalAddress($fields);
 
-        $address = [
-            '@type' => 'PostalAddress',
-        ];
-
-        foreach (
-            [
-                'streetAddress'   => 'streetAddress',
-                'addressLocality' => 'addressLocality',
-                'addressRegion'   => 'addressRegion',
-                'postalCode'      => 'postalCode',
-                'addressCountry'  => 'addressCountry',
-            ] as $field => $key
-        ) {
-            $value = trim($fields[ $field ] ?? '');
-
-            if ('' !== $value) {
-                $address[ $key ] = $value;
-            }
-        }
-
-        $hasAddress = count($address) > 1;
-
-        if ('' === $name && ! $hasAddress) {
+        if ('' === $name && [] === $address) {
             return [];
         }
 
@@ -185,7 +179,7 @@ final class EventPiece implements PieceInterface {
             $location['name'] = $name;
         }
 
-        if ($hasAddress) {
+        if ([] !== $address) {
             $location['address'] = $address;
         }
 

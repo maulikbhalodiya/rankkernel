@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Service as a Service node.
@@ -22,6 +23,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  * offers appear only with a numeric price.
  */
 final class ServicePiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
     /**
      * Get piece id.
      */
@@ -35,7 +50,7 @@ final class ServicePiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
-        if ('Service' !== SchemaHelpers::payloadType($ctx)) {
+        if ('Service' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return false;
         }
 
@@ -49,7 +64,7 @@ final class ServicePiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        if ('Service' !== SchemaHelpers::payloadType($ctx)) {
+        if ('Service' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return [];
         }
 
@@ -79,7 +94,7 @@ final class ServicePiece implements PieceInterface {
         }
 
         $node['provider'] = [
-            '@id' => SchemaHelpers::orgId(),
+            '@id' => SchemaHelpers::publisherId($this->settings),
         ];
 
         $area = trim($fields['areaServed'] ?? '');

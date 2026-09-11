@@ -15,11 +15,13 @@ use RankKernel\Modules\Schema\PieceInterface;
 use RankKernel\Settings\SettingsStore;
 
 /**
- * Site identity as an Organization node.
+ * Site identity as an Organization or Person node.
  *
- * Always needed, every page carries the identity node so Article and
- * WebPage publisher refs resolve. The site_represents setting is stored
- * for the future publisher as Person mode, which lands in a later task.
+ * Always needed, every page carries the identity node so publisher
+ * refs resolve. The site_represents setting picks the shape: a
+ * personal site emits a Person at the publisher @id, every other
+ * site emits the Organization. Refs built through
+ * SchemaHelpers::publisherId always match the node built here.
  */
 final class OrganizationPiece implements PieceInterface {
     /**
@@ -53,7 +55,7 @@ final class OrganizationPiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        $root = self::homeRoot();
+        $root = SchemaHelpers::homeRoot();
         $name = trim((string) $this->settings->get('org_name', ''));
 
         if ('' === $name && function_exists('get_bloginfo')) {
@@ -62,6 +64,10 @@ final class OrganizationPiece implements PieceInterface {
 
         if ('' === $name) {
             return [];
+        }
+
+        if (SchemaHelpers::representsPerson($this->settings)) {
+            return $this->personNode($root, $name);
         }
 
         $node = [
@@ -80,24 +86,69 @@ final class OrganizationPiece implements PieceInterface {
             ];
         }
 
-        $sameAs = $this->settings->get('org_sameas', []);
-
-        if (! is_array($sameAs)) {
-            $sameAs = [];
-        }
-
-        $sameAs = array_values(
-            array_filter(
-                array_map(static fn (mixed $url): string => trim((string) $url), $sameAs),
-                static fn (string $url): bool => '' !== $url
-            )
-        );
+        $sameAs = $this->sameAsList();
 
         if ([] !== $sameAs) {
             $node['sameAs'] = $sameAs;
         }
 
         return $node;
+    }
+
+    /**
+     * Publisher identity as a Person node for personal sites.
+     *
+     * The @id differs from the organization shape on purpose, so a
+     * mode switch never merges two identities into one entity.
+     *
+     * @param string $root Site root with trailing slash.
+     * @param string $name Publisher name.
+     * @return array<string, mixed>
+     */
+    private function personNode( string $root, string $name ): array {
+        $node = [
+            '@type' => 'Person',
+            '@id'   => $root . '#publisher',
+            'name'  => $name,
+            'url'   => $root,
+        ];
+
+        $logo = $this->resolveLogo();
+
+        if ('' !== $logo) {
+            $node['image'] = [
+                '@type' => 'ImageObject',
+                'url'   => $logo,
+            ];
+        }
+
+        $sameAs = $this->sameAsList();
+
+        if ([] !== $sameAs) {
+            $node['sameAs'] = $sameAs;
+        }
+
+        return $node;
+    }
+
+    /**
+     * Clean sameAs URL list from settings.
+     *
+     * @return string[]
+     */
+    private function sameAsList(): array {
+        $sameAs = $this->settings->get('org_sameas', []);
+
+        if (! is_array($sameAs)) {
+            return [];
+        }
+
+        return array_values(
+            array_filter(
+                array_map(static fn (mixed $url): string => trim((string) $url), $sameAs),
+                static fn (string $url): bool => '' !== $url
+            )
+        );
     }
 
     /**
@@ -133,18 +184,5 @@ final class OrganizationPiece implements PieceInterface {
         }
 
         return trim((string) $raw);
-    }
-
-    /**
-     * Home root with trailing slash.
-     */
-    private static function homeRoot(): string {
-        $home = function_exists('home_url') ? (string) home_url('/') : '';
-
-        if (function_exists('trailingslashit')) {
-            return trailingslashit($home);
-        }
-
-        return rtrim($home, '/') . '/';
     }
 }

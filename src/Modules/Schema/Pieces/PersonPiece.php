@@ -18,9 +18,11 @@ use RankKernel\Settings\SettingsStore;
  * Content author as a Person node.
  *
  * Needed on singular posts with an author and on author archives. On
- * author archives the Person is the main entity. The sameAs list stays
- * empty until user profile prefs land in a later task. The schema_author
- * setting turns the node off entirely.
+ * author archives the Person is the main entity. The manual author
+ * field overrides the profile display name when set. The sameAs list
+ * stays absent until user profile prefs land in a later task, empty
+ * values are never emitted. The schema_author setting turns the node
+ * off entirely.
  */
 final class PersonPiece implements PieceInterface {
     /**
@@ -81,7 +83,12 @@ final class PersonPiece implements PieceInterface {
 
         $name = '';
 
-        if (function_exists('get_the_author_meta')) {
+        $fields = SchemaHelpers::fields($ctx);
+        $manual = trim($fields['author'] ?? '');
+
+        if ('' !== $manual) {
+            $name = $manual;
+        } elseif (function_exists('get_the_author_meta')) {
             $meta = get_the_author_meta('display_name', $authorId);
 
             if (is_string($meta)) {
@@ -118,9 +125,6 @@ final class PersonPiece implements PieceInterface {
         if ('' !== $url) {
             $node['url'] = $url;
         }
-
-        // Empty until user profile prefs land in a later task.
-        $node['sameAs'] = [];
 
         return $node;
     }

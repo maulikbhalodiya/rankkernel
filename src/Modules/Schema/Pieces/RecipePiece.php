@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Recipe as a Recipe node.
@@ -26,6 +27,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  */
 final class RecipePiece implements PieceInterface {
     /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
+    /**
      * Get piece id.
      */
     public function getId(): string {
@@ -39,7 +54,7 @@ final class RecipePiece implements PieceInterface {
      */
     public function isNeeded( Context $ctx ): bool {
         $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::payloadType($ctx);
+        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
 
         if ('Recipe' !== $type && [] === SchemaHelpers::splitLines($fields['ingredients'] ?? '')) {
             return false;
@@ -56,7 +71,7 @@ final class RecipePiece implements PieceInterface {
      */
     public function build( Context $ctx ): array {
         $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::payloadType($ctx);
+        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
 
         if ('Recipe' !== $type && [] === SchemaHelpers::splitLines($fields['ingredients'] ?? '')) {
             return [];

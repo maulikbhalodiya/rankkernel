@@ -18,8 +18,9 @@ use RankKernel\Settings\SettingsStore;
  * Current page as a WebPage node.
  *
  * Needed on singular, home, and archives, never on search, 404, feed, or
- * preview. The SearchResultsPage type is documented for the search results
- * page but not emitted while search stays excluded from isNeeded.
+ * preview. Archives resolve to CollectionPage, every other context
+ * stays a plain WebPage. The breadcrumb ref appears only where the
+ * breadcrumb piece can build, so no dangling refs are emitted.
  */
 final class WebpagePiece implements PieceInterface {
     /**
@@ -54,17 +55,20 @@ final class WebpagePiece implements PieceInterface {
      */
     public function build( Context $ctx ): array {
         $type = $ctx->queriedType();
-        $base = $this->pageBase($ctx);
+        $base = SchemaHelpers::pageBase($ctx);
 
         if ('' === $base) {
             return [];
         }
 
         $node = [
-            '@type' => $this->pageType($type),
-            '@id'   => $base . '#webpage',
-            'name'  => $this->resolvedName($ctx),
-            'url'   => $base,
+            '@type'    => $this->pageType($type),
+            '@id'      => $base . '#webpage',
+            'name'     => $this->resolvedName($ctx),
+            'url'      => $base,
+            'isPartOf' => [
+                '@id' => SchemaHelpers::siteId('website'),
+            ],
         ];
 
         $description = SchemaHelpers::description($ctx, SchemaHelpers::fields($ctx));
@@ -86,9 +90,12 @@ final class WebpagePiece implements PieceInterface {
             }
         }
 
-        $node['breadcrumb'] = [
-            '@id' => $base . '#breadcrumb',
-        ];
+        if (in_array($type, [ 'post', 'term', 'archive' ], true)
+            && (bool) $this->settings->get('schema_breadcrumbs', true)) {
+            $node['breadcrumb'] = [
+                '@id' => $base . '#breadcrumb',
+            ];
+        }
 
         if (function_exists('get_locale')) {
             $locale = (string) get_locale();
@@ -206,47 +213,7 @@ final class WebpagePiece implements PieceInterface {
             return 'CollectionPage';
         }
 
-        if ($this->isFrontPage()) {
-            return 'AboutPage';
-        }
-
         return 'WebPage';
-    }
-
-    /**
-     * Whether the current context is the front page.
-     */
-    private function isFrontPage(): bool {
-        if (function_exists('is_front_page') && is_front_page()) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Canonical or permalink base for the @id and url.
-     *
-     * @param Context $ctx Request context.
-     */
-    private function pageBase( Context $ctx ): string {
-        $meta = $ctx->meta();
-
-        if (isset($meta['canonical']) && is_string($meta['canonical']) && '' !== trim($meta['canonical'])) {
-            return trim($meta['canonical']);
-        }
-
-        $permalink = $ctx->permalink();
-
-        if ('' !== $permalink) {
-            return $permalink;
-        }
-
-        if (function_exists('home_url')) {
-            return (string) home_url('/');
-        }
-
-        return '';
     }
 
     /**

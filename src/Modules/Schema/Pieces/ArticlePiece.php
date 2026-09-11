@@ -19,10 +19,14 @@ use RankKernel\Settings\SettingsStore;
  * Singular post as a BlogPosting or Article node.
  *
  * Needed on singular posts of type post and any other public post type
- * that is not page, attachments never. The node type resolves in order:
- * payload type when supported, then the per post type default setting
- * (schema_default_{post_type}), then the Automatic mapping fallback
- * (post maps to BlogPosting, everything else to Article).
+ * that is not page, attachments never, when the effective primary
+ * type belongs to the article family or to the page level companions
+ * FAQPage, HowTo, and QAPage. Every other primary type owns its own
+ * piece, so the graph never carries two competing primaries for one
+ * page. The node type resolves in order: payload type when supported,
+ * then the per post type default setting (schema_default_{post_type}),
+ * then the Automatic mapping fallback (post maps to BlogPosting,
+ * everything else to Article).
  *
  * Headline choice: payload title literal (tokens resolved through the
  * shared Context memo), else the raw post title. The settings title
@@ -76,7 +80,13 @@ final class ArticlePiece implements PieceInterface {
             return false;
         }
 
-        return true;
+        $effective = SchemaHelpers::effectiveType($ctx, $this->settings);
+
+        if (in_array($effective, SchemaTypes::ARTICLE_FAMILY, true)) {
+            return true;
+        }
+
+        return in_array($effective, [ 'FAQPage', 'HowTo', 'QAPage' ], true);
     }
 
     /**
@@ -112,11 +122,11 @@ final class ArticlePiece implements PieceInterface {
         }
 
         $node['author'] = [
-            '@id' => $this->personId($ctx),
+            '@id' => SchemaHelpers::personId($ctx),
         ];
 
         $node['publisher'] = [
-            '@id' => self::homeRoot() . '#organization',
+            '@id' => SchemaHelpers::publisherId($this->settings),
         ];
 
         $published = $this->postDate($postId, false);
@@ -146,20 +156,17 @@ final class ArticlePiece implements PieceInterface {
     /**
      * Node type, payload first, then the per post type default, then mapping.
      *
+     * Companion page types (FAQPage, HowTo, QAPage) fall back to the
+     * mapping default, their own pieces carry the page type node.
+     *
      * @param Context $ctx      Request context.
      * @param string  $postType Post type slug.
      */
     private function resolveType( Context $ctx, string $postType ): string {
-        $payload = SchemaHelpers::payloadType($ctx);
+        $effective = SchemaHelpers::effectiveType($ctx, $this->settings);
 
-        if (in_array($payload, SchemaTypes::SUPPORTED, true)) {
-            return $payload;
-        }
-
-        $setting = trim((string) $this->settings->get('schema_default_' . $postType, ''));
-
-        if (in_array($setting, SchemaTypes::SUPPORTED, true)) {
-            return $setting;
+        if (in_array($effective, SchemaTypes::ARTICLE_FAMILY, true)) {
+            return $effective;
         }
 
         return SchemaTypes::defaultForPostType($postType);
@@ -190,33 +197,6 @@ final class ArticlePiece implements PieceInterface {
     }
 
     /**
-     * Person @id for the post author, with permalink fallback.
-     *
-     * @param Context $ctx Request context.
-     */
-    private function personId( Context $ctx ): string {
-        $authorId = 0;
-
-        if (function_exists('get_post_field')) {
-            $author = get_post_field('post_author', $ctx->queriedId());
-
-            if (is_numeric($author)) {
-                $authorId = (int) $author;
-            }
-        }
-
-        if ($authorId > 0 && function_exists('get_author_posts_url')) {
-            $url = get_author_posts_url($authorId);
-
-            if (is_string($url) && '' !== trim($url)) {
-                return trim($url) . '#author';
-            }
-        }
-
-        return $ctx->permalink() . '#author';
-    }
-
-    /**
      * Post published or modified date in W3C format.
      *
      * @param int  $postId   Post id.
@@ -244,18 +224,5 @@ final class ArticlePiece implements PieceInterface {
         }
 
         return '';
-    }
-
-    /**
-     * Home root with trailing slash.
-     */
-    private static function homeRoot(): string {
-        $home = function_exists('home_url') ? (string) home_url('/') : '';
-
-        if (function_exists('trailingslashit')) {
-            return trailingslashit($home);
-        }
-
-        return rtrim($home, '/') . '/';
     }
 }

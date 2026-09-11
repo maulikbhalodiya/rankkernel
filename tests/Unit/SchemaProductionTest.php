@@ -161,4 +161,57 @@ final class SchemaProductionTest extends TestCase {
         $this->assertSame('Product', SchemaTypes::normalizeOrEmpty('Product'));
         $this->assertSame('Article', SchemaTypes::normalizeOrEmpty('EvilType'));
     }
+
+    public function test_registry_maps_every_supported_type_to_a_piece(): void {
+        foreach (SchemaTypes::SUPPORTED as $type) {
+            $this->assertNotSame('', SchemaTypes::pieceFor($type), $type);
+            $this->assertNotSame('', SchemaTypes::label($type), $type);
+        }
+
+        $this->assertSame('', SchemaTypes::pieceFor('EvilType'));
+        $this->assertSame('article', SchemaTypes::pieceFor('BlogPosting'));
+        $this->assertSame('article', SchemaTypes::pieceFor('NewsArticle'));
+        $this->assertSame('localbusiness', SchemaTypes::pieceFor('LocalBusiness'));
+        $this->assertSame('review', SchemaTypes::pieceFor('Review'));
+        $this->assertSame('imageobject', SchemaTypes::pieceFor('ImageObject'));
+    }
+
+    public function test_registry_required_fields_match_admin_warnings(): void {
+        $this->assertSame([ 'headline', 'startDate', 'locationName' ], SchemaTypes::requiredFields('Event'));
+        $this->assertSame([ 'headline' ], SchemaTypes::requiredFields('Product'));
+        $this->assertSame([ 'headline' ], SchemaTypes::requiredFields('Service'));
+        $this->assertSame([ 'headline' ], SchemaTypes::requiredFields('Review'));
+        $this->assertSame([ 'headline' ], SchemaTypes::requiredFields('LocalBusiness'));
+        $this->assertSame([], SchemaTypes::requiredFields('ItemList'));
+        $this->assertSame([], SchemaTypes::requiredFields('QAPage'));
+        $this->assertSame([], SchemaTypes::requiredFields('EvilType'));
+
+        $this->assertSame(
+            'Product name (headline) is required for Product.',
+            SchemaTypes::requiredMessage('Product', 'headline')
+        );
+        $this->assertSame(
+            'Name (headline) is required for Event.',
+            SchemaTypes::requiredMessage('Event', 'headline')
+        );
+        $this->assertSame('Start date is required for Event.', SchemaTypes::requiredMessage('Event', 'startDate'));
+        $this->assertSame(
+            'Headline is required for Service.',
+            SchemaTypes::requiredMessage('Service', 'headline')
+        );
+    }
+
+    public function test_generator_registers_every_registry_piece(): void {
+        $generator = ( new SchemaModule(new SettingsStore()) )->getGenerator();
+
+        $prop = new \ReflectionProperty(Generator::class, 'pieces');
+        $prop->setAccessible(true);
+
+        /** @var array<string, object> $pieces */
+        $pieces = $prop->getValue($generator);
+
+        foreach (array_unique(array_values(SchemaTypes::PIECES)) as $pieceId) {
+            $this->assertArrayHasKey($pieceId, $pieces, $pieceId);
+        }
+    }
 }

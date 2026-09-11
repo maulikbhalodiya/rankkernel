@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Course as a Course node.
@@ -21,6 +22,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  * points at the site organization.
  */
 final class CoursePiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
     /**
      * Get piece id.
      */
@@ -34,7 +49,7 @@ final class CoursePiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
-        if ('Course' !== SchemaHelpers::payloadType($ctx)) {
+        if ('Course' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return false;
         }
 
@@ -48,7 +63,7 @@ final class CoursePiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        if ('Course' !== SchemaHelpers::payloadType($ctx)) {
+        if ('Course' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return [];
         }
 
@@ -70,7 +85,7 @@ final class CoursePiece implements PieceInterface {
             '@id'      => $permalink . '#course',
             'name'     => $name,
             'provider' => [
-                '@id' => SchemaHelpers::orgId(),
+                '@id' => SchemaHelpers::publisherId($this->settings),
             ],
         ];
 

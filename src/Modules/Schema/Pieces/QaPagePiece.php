@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Q and A as a QAPage node.
@@ -25,6 +26,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  */
 final class QaPagePiece implements PieceInterface {
     /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
+    /**
      * Get piece id.
      */
     public function getId(): string {
@@ -37,7 +52,7 @@ final class QaPagePiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
-        if ('QAPage' !== SchemaHelpers::payloadType($ctx)) {
+        if ('QAPage' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return false;
         }
 
@@ -53,7 +68,7 @@ final class QaPagePiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        if ('QAPage' !== SchemaHelpers::payloadType($ctx)) {
+        if ('QAPage' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return [];
         }
 

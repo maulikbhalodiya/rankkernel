@@ -18,6 +18,7 @@ use RankKernel\Admin\SchemaSettingsPage;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\Schema\Pieces\ArticlePiece;
+use RankKernel\Modules\Schema\Pieces\BookPiece;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
 use RankKernel\Modules\Schema\Pieces\PersonPiece;
 use RankKernel\Modules\Schema\blocks\FaqBlock;
@@ -286,13 +287,15 @@ final class SchemaSettingsAdminTest extends TestCase {
         $this->assertSame('BlogPosting', ( new ArticlePiece(new SettingsStore()) )->build($ctx)['@type']);
     }
 
-    public function test_article_setting_beats_mapping_for_cpt(): void {
+    public function test_setting_routes_primary_to_owning_piece_for_cpt(): void {
         Functions\when('get_post_type')->justReturn('book');
 
         $this->stubPostMeta([]);
         $ctx = $this->makeContext($this->singularQuery(), [ 'schema_default_book' => 'Book' ]);
 
-        $this->assertSame('Book', ( new ArticlePiece(new SettingsStore()) )->build($ctx)['@type']);
+        $this->assertFalse(( new ArticlePiece(new SettingsStore()) )->isNeeded($ctx));
+        $this->assertTrue(( new BookPiece(new SettingsStore()) )->isNeeded($ctx));
+        $this->assertSame('Book', ( new BookPiece(new SettingsStore()) )->build($ctx)['@type']);
     }
 
     public function test_article_invalid_setting_falls_back_to_mapping(): void {

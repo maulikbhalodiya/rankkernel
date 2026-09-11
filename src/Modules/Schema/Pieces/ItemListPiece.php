@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Node list as a named ItemList.
@@ -23,6 +24,20 @@ use RankKernel\Modules\Schema\PieceInterface;
  * only filters and caps.
  */
 final class ItemListPiece implements PieceInterface {
+    /**
+     * Settings store.
+     */
+    private readonly SettingsStore $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public function __construct( ?SettingsStore $settings = null ) {
+        $this->settings = $settings ?? new SettingsStore();
+    }
+
     /**
      * Get piece id.
      */
@@ -36,7 +51,7 @@ final class ItemListPiece implements PieceInterface {
      * @param Context $ctx Request context.
      */
     public function isNeeded( Context $ctx ): bool {
-        if ('ItemList' !== SchemaHelpers::payloadType($ctx)) {
+        if ('ItemList' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return false;
         }
 
@@ -50,7 +65,7 @@ final class ItemListPiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        if ('ItemList' !== SchemaHelpers::payloadType($ctx)) {
+        if ('ItemList' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
             return [];
         }
 

@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Modules\Schema\Pieces;
 
 use RankKernel\Modules\Metadata\Context;
+use RankKernel\Modules\Schema\SchemaTypes;
+use RankKernel\Settings\SettingsStore;
 
 /**
  * Small, pure helpers shared by the commerce, media, and professional pieces.
@@ -288,6 +290,212 @@ final class SchemaHelpers {
         $key = strtolower(trim($raw));
 
         return $map[ $key ] ?? 'https://schema.org/EventScheduled';
+    }
+
+    /**
+     * Effective primary type for the page.
+     *
+     * Hierarchy: per post payload type first, then the per post type
+     * default setting (schema_default_{post_type}), then the computed
+     * mapping fallback (posts map to BlogPosting, everything else to
+     * Article). Slugs that could never be stored stay unread, so no
+     * surprise options are created or trusted.
+     *
+     * @param Context            $ctx      Request context.
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public static function effectiveType( Context $ctx, ?SettingsStore $settings = null ): string {
+        $payload = self::payloadType($ctx);
+
+        if ('' !== $payload && in_array($payload, SchemaTypes::SUPPORTED, true)) {
+            return $payload;
+        }
+
+        $postType = '';
+        $postId   = $ctx->queriedId();
+
+        if ($postId > 0 && function_exists('get_post_type')) {
+            $slug = get_post_type($postId);
+
+            if (is_string($slug)) {
+                $postType = trim($slug);
+            }
+        }
+
+        if ('' !== $postType) {
+            $store   = $settings ?? new SettingsStore();
+            $default = trim((string) $store->get('schema_default_' . $postType, ''));
+
+            if (in_array($default, SchemaTypes::SUPPORTED, true)) {
+                return $default;
+            }
+        }
+
+        return SchemaTypes::defaultForPostType($postType);
+    }
+
+    /**
+     * Whether the site represents a person instead of an organization.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public static function representsPerson( ?SettingsStore $settings = null ): bool {
+        $store = $settings ?? new SettingsStore();
+
+        return 'person' === trim((string) $store->get('site_represents', 'organization'));
+    }
+
+    /**
+     * Publisher @id for publisher refs, person aware.
+     *
+     * Organization mode points at the organization node, person mode
+     * points at the publisher person node. Refs built through this
+     * helper always match the node OrganizationPiece emits.
+     *
+     * @param SettingsStore|null $settings Optional settings store.
+     */
+    public static function publisherId( ?SettingsStore $settings = null ): string {
+        if (self::representsPerson($settings)) {
+            return self::homeRoot() . '#publisher';
+        }
+
+        return self::orgId();
+    }
+
+    /**
+     * Site level node @id for a fragment, e.g. website or organization.
+     *
+     * @param string $fragment Fragment without the hash.
+     */
+    public static function siteId( string $fragment ): string {
+        return self::homeRoot() . '#' . ltrim(trim($fragment), '#');
+    }
+
+    /**
+     * Page level node @id for a fragment, e.g. webpage or article.
+     *
+     * Uses the canonical URL when set, else the permalink, else the
+     * home URL. Empty when no base resolves, callers drop the node.
+     *
+     * @param Context $ctx      Request context.
+     * @param string  $fragment Fragment without the hash.
+     */
+    public static function pageId( Context $ctx, string $fragment ): string {
+        $base = self::pageBase($ctx);
+
+        if ('' === $base) {
+            return '';
+        }
+
+        return $base . '#' . ltrim(trim($fragment), '#');
+    }
+
+    /**
+     * Canonical or permalink base for page level @ids and urls.
+     *
+     * @param Context $ctx Request context.
+     */
+    public static function pageBase( Context $ctx ): string {
+        $meta = $ctx->meta();
+
+        if (isset($meta['canonical']) && is_string($meta['canonical']) && '' !== trim($meta['canonical'])) {
+            return trim($meta['canonical']);
+        }
+
+        $permalink = $ctx->permalink();
+
+        if ('' !== $permalink) {
+            return $permalink;
+        }
+
+        if (function_exists('home_url')) {
+            $home = (string) home_url('/');
+
+            if ('' !== trim($home)) {
+                return $home;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Postal address block, empty when no address data resolves.
+     *
+     * @param array<string, string> $fields Manual overrides.
+     * @return array<string, mixed>
+     */
+    public static function postalAddress( array $fields ): array {
+        $address = [
+            '@type' => 'PostalAddress',
+        ];
+
+        foreach (
+            [
+                'streetAddress'   => 'streetAddress',
+                'addressLocality' => 'addressLocality',
+                'addressRegion'   => 'addressRegion',
+                'postalCode'      => 'postalCode',
+                'addressCountry'  => 'addressCountry',
+            ] as $field => $key
+        ) {
+            $value = trim($fields[ $field ] ?? '');
+
+            if ('' !== $value) {
+                $address[ $key ] = $value;
+            }
+        }
+
+        if (count($address) <= 1) {
+            return [];
+        }
+
+        return $address;
+    }
+
+    /**
+     * Validated http or https URL, empty when anything else appears.
+     *
+     * @param string $raw Raw URL value.
+     */
+    public static function httpUrl( string $raw ): string {
+        $clean = trim($raw);
+
+        if ('' === $clean) {
+            return '';
+        }
+
+        if (function_exists('esc_url_raw')) {
+            $clean = esc_url_raw($clean);
+
+            if (! is_string($clean)) {
+                return '';
+            }
+
+            $clean = trim($clean);
+
+            if ('' === $clean) {
+                return '';
+            }
+        }
+
+        $parts = parse_url($clean);
+
+        if (! is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ( $parts['scheme'] ?? '' ));
+
+        if (! in_array($scheme, [ 'http', 'https' ], true)) {
+            return '';
+        }
+
+        if ('' === trim((string) ( $parts['host'] ?? '' ))) {
+            return '';
+        }
+
+        return $clean;
     }
 
     /**

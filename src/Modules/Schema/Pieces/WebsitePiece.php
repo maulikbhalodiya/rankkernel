@@ -49,7 +49,7 @@ final class WebsitePiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        $root = self::homeRoot();
+        $root = SchemaHelpers::homeRoot();
         $name = '';
 
         if (function_exists('get_bloginfo')) {
@@ -61,10 +61,13 @@ final class WebsitePiece implements PieceInterface {
         }
 
         $node = [
-            '@type' => 'WebSite',
-            '@id'   => $root . '#website',
-            'name'  => $name,
-            'url'   => $root,
+            '@type'     => 'WebSite',
+            '@id'       => $root . '#website',
+            'name'      => $name,
+            'url'       => $root,
+            'publisher' => [
+                '@id' => SchemaHelpers::publisherId($this->settings),
+            ],
         ];
 
         if ((bool) $this->settings->get('website_search_action', true)) {
@@ -76,18 +79,5 @@ final class WebsitePiece implements PieceInterface {
         }
 
         return $node;
-    }
-
-    /**
-     * Home root with trailing slash.
-     */
-    private static function homeRoot(): string {
-        $home = function_exists('home_url') ? (string) home_url('/') : '';
-
-        if (function_exists('trailingslashit')) {
-            return trailingslashit($home);
-        }
-
-        return rtrim($home, '/') . '/';
     }
 }
