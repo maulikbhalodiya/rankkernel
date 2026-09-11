@@ -34,6 +34,8 @@ final class SchemaGeneratorTest extends TestCase {
         Functions\when('get_post_meta')->justReturn([]);
         Functions\when('get_term_meta')->justReturn([]);
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $value);
+        Functions\when('home_url')->alias(static fn (string $path = '/'): string => 'https://example.com' . $path);
+        Functions\when('trailingslashit')->alias(static fn (string $v): string => rtrim($v, '/') . '/');
     }
 
     protected function tearDown(): void {

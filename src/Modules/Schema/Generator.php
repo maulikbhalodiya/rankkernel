@@ -17,7 +17,23 @@ use RankKernel\Modules\Metadata\Context;
  *
  * Pieces are consulted in registration order. Each piece is gated by
  * isNeeded(), wrapped in a per piece toggle filter, then built, filtered,
- * and merged. Empty builds are dropped.
+ * and merged. Empty builds are dropped. The assembled graph passes the
+ * graph filter, then the normalizer, so third party output is cleaned
+ * with the same rules as first party output.
+ *
+ * Disable states, from widest to narrowest: the module gate (boot
+ * never runs, nothing renders), the page flag below (the whole graph
+ * is suppressed, including the base identity nodes, matching the
+ * metabox promise that no structured data prints for the post), the
+ * per piece needs_{id} filter (one piece drops out), and unavailable
+ * context (a piece builds nothing when its data is missing).
+ *
+ * Filter seams, few and stable:
+ * rankkernel/schema/disabled (bool, Context) kills the page graph.
+ * rankkernel/schema/needs_{id} (bool, Context) toggles one piece.
+ * rankkernel/schema/piece/{id} (array, Context) edits one output.
+ * rankkernel/schema/graph (array, Context) edits the full graph.
+ * Third parties add pieces through register(), not new hooks.
  */
 final class Generator {
     /**
@@ -43,17 +59,35 @@ final class Generator {
      * @return array<string, mixed> Document with @context and @graph.
      */
     public function generate( Context $ctx ): array {
-        $graph = [];
+        $empty = [
+            '@context' => 'https://schema.org',
+            '@graph'   => [],
+        ];
+
+        /**
+         * Page level kill switch for the whole graph.
+         *
+         * Runs before the stored per post flag, so integrations can
+         * suppress output for request shapes the payload cannot see
+         * (password walls, staging copies, consent states).
+         *
+         * @param bool    $disabled Whether the graph is disabled.
+         * @param Context $ctx      Current request context.
+         */
+        $disabled = apply_filters('rankkernel/schema/disabled', false, $ctx);
+
+        if ($disabled) {
+            return $empty;
+        }
 
         $meta   = $ctx->meta();
         $schema = ( isset($meta['schema']) && is_array($meta['schema']) ) ? $meta['schema'] : [];
 
         if (! empty($schema['disabled'])) {
-            return [
-                '@context' => 'https://schema.org',
-                '@graph'   => [],
-            ];
+            return $empty;
         }
+
+        $graph = [];
 
         foreach ($this->pieces as $id => $piece) {
             $needed = $piece->isNeeded($ctx);
@@ -84,6 +118,16 @@ final class Generator {
                 continue;
             }
 
+            if (array_is_list($output)) {
+                foreach ($output as $item) {
+                    if (is_array($item) && [] !== $item) {
+                        $graph[] = $item;
+                    }
+                }
+
+                continue;
+            }
+
             $graph[] = $output;
         }
 
@@ -101,7 +145,7 @@ final class Generator {
 
         return [
             '@context' => 'https://schema.org',
-            '@graph'   => array_values($graph),
+            '@graph'   => GraphNormalizer::normalize($graph),
         ];
     }
 }
