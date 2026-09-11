@@ -304,7 +304,7 @@ final class MetaPayload {
         }
 
         return [
-            'type'     => SchemaTypes::normalize($raw['type'] ?? null),
+            'type'     => SchemaTypes::normalizeOrEmpty($raw['type'] ?? null),
             'disabled' => ! empty($raw['disabled']),
             'fields'   => self::sanitizeSchemaFields($raw['fields'] ?? []),
             'faq'      => [

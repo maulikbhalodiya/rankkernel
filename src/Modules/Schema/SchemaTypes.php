@@ -67,8 +67,7 @@ final class SchemaTypes {
      *
      * @param mixed $raw Raw type value.
      */
-    public static function normalize( mixed $raw ): string {
-        if (! is_string($raw)) {
+    public static function normalize( mixed $raw ): string {        if (! is_string($raw)) {
             return self::DEFAULT;
         }
 
@@ -79,6 +78,23 @@ final class SchemaTypes {
         }
 
         return self::DEFAULT;
+    }
+
+    /**
+     * Normalize a raw payload type, keeping empty as Automatic.
+     *
+     * Empty means the metabox Automatic choice, which resolves later
+     * through the post type default and the computed mapping. Unknown
+     * non empty values still fall back to the default type.
+     *
+     * @param mixed $raw Raw type value.
+     */
+    public static function normalizeOrEmpty( mixed $raw ): string {
+        if (! is_string($raw) || '' === trim($raw)) {
+            return '';
+        }
+
+        return self::normalize($raw);
     }
 
     /**
