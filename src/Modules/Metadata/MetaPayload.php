@@ -98,6 +98,7 @@ final class MetaPayload {
         }
 
         if (str_starts_with($raw, 'a:') || str_starts_with($raw, 'O:')) {
+            // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- decodes legacy serialized rows with object creation disabled, JSON handled below.
             $unserialized = unserialize($raw, [ 'allowed_classes' => false ]);
 
             if (false !== $unserialized && is_array($unserialized)) {
@@ -358,7 +359,9 @@ final class MetaPayload {
      * Sanitize FAQ rows.
      *
      * Each row keeps a question and answer pair. Rows with an empty
-     * question are dropped. Kept rows cap at 100.
+     * question are dropped. Kept rows cap at 100. The answer keeps
+     * safe rich HTML through the same wp_kses_post path the block
+     * output uses, so formatting survives regardless of source.
      *
      * @param mixed $raw Raw questions value.
      * @return array<int, array{question: string, answer: string}>
@@ -385,7 +388,7 @@ final class MetaPayload {
                 continue;
             }
 
-            $answer = isset($row['answer']) ? sanitize_text_field((string) $row['answer']) : '';
+            $answer = isset($row['answer']) ? self::kses((string) $row['answer']) : '';
 
             $rows[] = [
                 'question' => $question,
@@ -401,7 +404,10 @@ final class MetaPayload {
      *
      * Steps keep title, text, and image (image via esc_url_raw). Rows
      * with both an empty title and empty text are dropped. Kept steps
-     * cap at 100. Name, totalTime, and cost stay plain strings.
+     * cap at 100. Name, totalTime, and cost stay plain strings. Step
+     * text keeps safe rich HTML through the same wp_kses_post path
+     * the block output uses, so formatting survives regardless of
+     * source.
      *
      * @param mixed $raw Raw howto value.
      * @return array{name: string, steps: array<int, mixed>, totalTime: string, cost: string}
@@ -435,7 +441,7 @@ final class MetaPayload {
                 }
 
                 $title = isset($row['title']) ? sanitize_text_field((string) $row['title']) : '';
-                $text  = isset($row['text']) ? sanitize_text_field((string) $row['text']) : '';
+                $text  = isset($row['text']) ? self::kses((string) $row['text']) : '';
 
                 if ('' === trim($title) && '' === trim($text)) {
                     continue;
@@ -462,6 +468,27 @@ final class MetaPayload {
         }
 
         return $out;
+    }
+
+    /**
+     * Filter rich text through wp_kses_post.
+     *
+     * Mirrors the block piece path so the same content keeps its
+     * formatting regardless of authoring source. Falls back to
+     * strip_tags when WP is not loaded, as in unit tests.
+     *
+     * @param string $text Raw text.
+     */
+    private static function kses( string $text ): string {
+        if (function_exists('wp_kses_post')) {
+            $clean = wp_kses_post($text);
+
+            if (is_string($clean)) {
+                return $clean;
+            }
+        }
+
+        return strip_tags($text);
     }
 
     /**

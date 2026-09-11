@@ -35,6 +35,7 @@ final class SchemaMetaboxTest extends TestCase {
         }
 
         Functions\when('sanitize_text_field')->alias(static fn (string $v): string => trim(strip_tags($v)));
+        Functions\when('wp_kses_post')->alias(static fn (string $v): string => trim(strip_tags($v, '<p><a><br><b><i><strong><em>')));
         Functions\when('esc_url_raw')->alias(static fn (string $v): string => filter_var($v, FILTER_SANITIZE_URL) ?: '');
         Functions\when('absint')->alias(static fn (mixed $v): int => abs((int) $v));
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
