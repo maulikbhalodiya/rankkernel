@@ -13,6 +13,25 @@
     "Schema",
     "Structured Data"
   ],
+  "supports": {
+    "html": false,
+    "multiple": true,
+    "reusable": true,
+    "anchor": true
+  },
+  "example": {
+    "attributes": {
+      "title": "Common questions",
+      "titleWrapper": "h3",
+      "listStyle": "ul",
+      "questions": [
+        {
+          "question": "What does this block do?",
+          "answer": "It prints visible FAQs and matching FAQPage schema."
+        }
+      ]
+    }
+  },
   "attributes": {
     "title": {
       "type": "string",
@@ -20,7 +39,16 @@
     },
     "titleWrapper": {
       "type": "string",
-      "default": "h3"
+      "default": "h3",
+      "enum": [
+        "h2",
+        "h3",
+        "h4"
+      ]
+    },
+    "questionTag": {
+      "type": "string",
+      "default": ""
     },
     "listStyle": {
       "type": "string",
@@ -36,6 +64,9 @@
       "items": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string"
+          },
           "question": {
             "type": "string"
           },
