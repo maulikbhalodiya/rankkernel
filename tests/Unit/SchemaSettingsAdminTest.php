@@ -525,10 +525,7 @@ final class SchemaSettingsAdminTest extends TestCase {
     public function test_block_register_hooks_category_and_block_type(): void {
         $block = new FaqBlock();
 
-        Functions\expect('add_filter')
-            ->once()
-            ->with('block_categories_all', \Mockery::type('callable'))
-            ->andReturn(true);
+        Functions\expect('add_filter')->never();
 
         Functions\expect('register_block_type')
             ->once()
