@@ -32,6 +32,9 @@
         <include-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
         <include-pattern>src/Modules/Schema/SchemaModule.php</include-pattern>
+        <include-pattern>src/Modules/Schema/blocks/FaqBlock.php</include-pattern>
+        <include-pattern>src/Modules/Schema/Pieces/FaqPiece.php</include-pattern>
+        <include-pattern>tests/Unit/FaqBlockTest.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
         <exclude-pattern>src/.*</exclude-pattern>
@@ -49,6 +52,9 @@
         <exclude-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/SchemaModule.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Schema/blocks/FaqBlock.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Schema/Pieces/FaqPiece.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/FaqBlockTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PSR1.Methods.CamelCapsMethodName">
