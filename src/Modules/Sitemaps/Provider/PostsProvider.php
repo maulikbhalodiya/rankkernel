@@ -119,7 +119,7 @@ class PostsProvider {
 
         $args = array_merge([ $sql ], $params);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
         $count = $wpdb->get_var($wpdb->prepare(...$args));
 
         return (int) $count;
@@ -165,7 +165,7 @@ class PostsProvider {
 
         $args = array_merge([ $sql ], $params);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, Generic.Files.LineLength.TooLong
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
         $rows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
 
         if (! is_array($rows) || [] === $rows) {
@@ -271,6 +271,7 @@ class PostsProvider {
      */
     private function extractContentImages(int $postId, string $content, ?string $featured): array {
         $home = function_exists('home_url') ? (string) home_url('/') : '';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- parses the site home URL built by core, result strictly type checked before use.
         $host = is_string(parse_url($home, PHP_URL_HOST)) ? strtolower((string) parse_url($home, PHP_URL_HOST)) : '';
 
         $found = [];
@@ -336,12 +337,14 @@ class PostsProvider {
         }
 
         if (str_starts_with($src, '//')) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- parses the site home URL built by core, result strictly type checked before use.
             $scheme = is_string(parse_url($home, PHP_URL_SCHEME)) ? (string) parse_url($home, PHP_URL_SCHEME) : 'https';
             $src    = $scheme . ':' . $src;
         } elseif (str_starts_with($src, '/')) {
             $src = rtrim($home, '/') . $src;
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- parses image source strings gathered above, result strictly type checked before use.
         $srcHost = parse_url($src, PHP_URL_HOST);
         if (! is_string($srcHost) || '' === $srcHost) {
             return '';
@@ -498,7 +501,7 @@ class PostsProvider {
 
         $args = array_merge([ $sql, self::META_KEY ], $ids);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
         $metaRows = $wpdb->get_results($wpdb->prepare(...$args), ARRAY_A);
 
         if (! is_array($metaRows)) {

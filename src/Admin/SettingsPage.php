@@ -36,6 +36,7 @@ final class SettingsPage {
      * Runs on load-{page}, so wp_safe_redirect can still send headers.
      */
     public function maybeHandleSave(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
         if ('POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset($_POST['rankkernel_save'])) {
             $this->handleSave();
         }
@@ -188,8 +189,7 @@ final class SettingsPage {
             . '" class="regular-text" />';
         echo '<p class="description">';
         echo esc_html__(
-            'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, '
-            . '%%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%',
+            'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%',
             'rankkernel'
         );
         echo '</p>';
@@ -202,8 +202,7 @@ final class SettingsPage {
             . '" class="regular-text" />';
         echo '<p class="description">';
         echo esc_html__(
-            'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, '
-            . '%%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%',
+            'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%',
             'rankkernel'
         );
         echo '</p>';

@@ -37,6 +37,7 @@ final class SchemaSettingsPage {
      * Runs on load-{page}, so wp_safe_redirect can still send headers.
      */
     public function maybeHandleSave(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
         if ('POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset($_POST['rankkernel_schema_save'])) {
             $this->handleSave();
         }
@@ -120,51 +121,51 @@ final class SchemaSettingsPage {
     private function collect(): array {
         $partial = [];
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         if (isset($_POST['site_represents'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in the store.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value sanitized in the store.
             $rawRepresents = is_string($_POST['site_represents']) ? wp_unslash($_POST['site_represents']) : '';
 
             $partial['site_represents'] = $rawRepresents;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         if (isset($_POST['org_name'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in the store.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value sanitized in the store.
             $partial['org_name'] = is_string($_POST['org_name']) ? wp_unslash($_POST['org_name']) : '';
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         if (isset($_POST['org_logo'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in the store.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value sanitized in the store.
             $partial['org_logo'] = is_string($_POST['org_logo']) ? wp_unslash($_POST['org_logo']) : '';
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         if (isset($_POST['org_sameas'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in the store.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value sanitized in the store.
             $rawSameAs = is_string($_POST['org_sameas']) ? wp_unslash($_POST['org_sameas']) : '';
             $lines     = preg_split('/\r\n|\r|\n/', $rawSameAs);
 
             $partial['org_sameas'] = is_array($lines) ? $lines : [];
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         $partial['website_search_action'] = isset($_POST['website_search_action']);
 
         foreach ($this->publicPostTypes() as $slug => $label) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
             if (isset($_POST[ 'schema_default_' . $slug ])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated in the store.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value validated in the store.
                 $rawDefault = wp_unslash($_POST[ 'schema_default_' . $slug ]);
 
                 $partial[ 'schema_default_' . $slug ] = is_string($rawDefault) ? $rawDefault : '';
             }
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         $partial['schema_breadcrumbs'] = isset($_POST['schema_breadcrumbs']);
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         $partial['schema_author'] = isset($_POST['schema_author']);
 
         return $partial;
@@ -333,8 +334,7 @@ final class SchemaSettingsPage {
         echo '</div>';
         echo '<p class="description">';
         echo esc_html__(
-            'Logo image shown with your site name in search results. '
-            . 'Pick from the media library or upload a new image.',
+            'Logo image shown with your site name in search results. Pick from the media library or upload a new image.',
             'rankkernel'
         );
         echo '</p></td></tr>';

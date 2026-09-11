@@ -246,6 +246,7 @@ final class SchemaMetabox {
      * @param string $postType Current post type.
      * @param mixed  $post     Current post object.
      */
+    // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- second hook argument required by the add_meta_boxes signature.
     public function addBoxes( string $postType, mixed $post = null ): void {
         if ('attachment' === $postType) {
             return;
@@ -405,10 +406,12 @@ final class SchemaMetabox {
             ? sprintf(__('Automatic (%s)', 'rankkernel'), SchemaTypes::label($resolved))
             : __('Automatic', 'rankkernel');
         $auto = '' === $selected ? ' selected="selected"' : '';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded selected attribute fragment.
         echo '<option value=""' . $auto . '>' . esc_html($autoLabel) . '</option>';
 
         foreach (SchemaTypes::SUPPORTED as $type) {
             $mark = $type === $selected ? ' selected="selected"' : '';
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded selected attribute fragment.
             echo '<option value="' . esc_attr($type) . '"' . $mark . '>'
                 . esc_html(SchemaTypes::label($type)) . '</option>';
         }
@@ -523,6 +526,7 @@ final class SchemaMetabox {
             $types = implode(',', self::FIELD_TYPES[ $key ]);
             $hide  = $this->fieldVisible($key, $selected) ? '' : ' style="display:none;"';
 
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded style attribute fragment.
             echo '<tr data-rankkernel-field-types="' . esc_attr($types) . '"' . $hide . '>';
             echo '<th scope="row"><label for="' . esc_attr($id) . '">'
                 . esc_html($label) . '</label></th><td>';
@@ -557,9 +561,12 @@ final class SchemaMetabox {
     private function renderCustom( array $schema ): void {
         $custom = ( isset($schema['custom']) && is_array($schema['custom']) ) ? $schema['custom'] : [];
 
-        $json = function_exists('wp_json_encode')
-            ? (string) wp_json_encode($custom, JSON_PRETTY_PRINT)
-            : (string) json_encode($custom, JSON_PRETTY_PRINT);
+        if (function_exists('wp_json_encode')) {
+            $json = (string) wp_json_encode($custom, JSON_PRETTY_PRINT);
+        } else {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
+            $json = (string) json_encode($custom, JSON_PRETTY_PRINT);
+        }
 
         echo '<h3>' . esc_html__('Custom JSON', 'rankkernel') . '</h3>';
         echo '<p><label for="rankkernel-schema-custom">' . esc_html__('Extra schema properties', 'rankkernel')
@@ -670,7 +677,7 @@ final class SchemaMetabox {
             }
 
             if ('' !== trim((string) ( $row['question'] ?? '' ))) {
-                $count++;
+                ++$count;
             }
         }
 
@@ -697,7 +704,7 @@ final class SchemaMetabox {
             $text  = trim((string) ( $row['text'] ?? '' ));
 
             if ('' !== $title || '' !== $text) {
-                $count++;
+                ++$count;
             }
         }
 
@@ -759,6 +766,7 @@ final class SchemaMetabox {
      * @param int   $postId Current post id.
      * @param mixed $post   Current post object.
      */
+    // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- second hook argument required by the save_post signature.
     public function handleSave( int $postId, mixed $post = null ): void {
         if (function_exists('wp_is_post_autosave') && wp_is_post_autosave($postId)) {
             return;
@@ -1039,10 +1047,12 @@ final class SchemaMetabox {
             'schema' => [],
         ];
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before readImportFile runs.
         if (! isset($_FILES['rankkernel_schema_import']) || ! is_array($_FILES['rankkernel_schema_import'])) {
             return $empty;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before readImportFile runs.
         $file  = $_FILES['rankkernel_schema_import'];
         $error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
 
@@ -1082,6 +1092,7 @@ final class SchemaMetabox {
             }
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads the verified local upload temp path, never a URL, after the upload probe and JSON type check.
         $contents = file_get_contents($tmp);
 
         if (false === $contents) {
@@ -1181,11 +1192,17 @@ final class SchemaMetabox {
             $slug = 'post-' . $postId;
         }
 
-        $json = function_exists('wp_json_encode') ? (string) wp_json_encode($schema) : (string) json_encode($schema);
+        if (function_exists('wp_json_encode')) {
+            $json = (string) wp_json_encode($schema);
+        } else {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
+            $json = (string) json_encode($schema);
+        }
 
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . str_replace('"', '', $slug) . '-schema.json"');
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download body served as application/json, encoded with wp_json_encode above.
         echo $json;
 
         if (! defined('RANKKERNEL_TESTING')) {

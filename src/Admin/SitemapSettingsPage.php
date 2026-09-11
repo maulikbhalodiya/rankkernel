@@ -44,6 +44,7 @@ final class SitemapSettingsPage {
      * Runs on load-{page}, so wp_safe_redirect can still send headers.
      */
     public function maybeHandleSave(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
         if ('POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset($_POST['rankkernel_sitemap_save'])) {
             $this->handleSave();
         }
@@ -133,33 +134,33 @@ final class SitemapSettingsPage {
         $partial = [];
 
         if ('general' === $tab) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             if (isset($_POST['items_per_page'])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- cast below, clamped on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value cast below, clamped on save.
                 $rawItems = wp_unslash($_POST['items_per_page']);
                 $partial['items_per_page'] = is_string($rawItems) ? (int) $rawItems : 0;
             }
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             $partial['include_images'] = isset($_POST['include_images']);
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             $partial['include_featured_image'] = isset($_POST['include_featured_image']);
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             if (isset($_POST['exclude_posts'])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- exploded below, absint on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
                 $rawPosts = wp_unslash($_POST['exclude_posts']);
                 $partial['exclude_posts'] = is_string($rawPosts) ? explode(',', $rawPosts) : [];
             }
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             if (isset($_POST['exclude_terms'])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- exploded below, absint on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
                 $rawTerms = wp_unslash($_POST['exclude_terms']);
                 $partial['exclude_terms'] = is_string($rawTerms) ? explode(',', $rawTerms) : [];
             }
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
             $partial['include_empty_terms'] = isset($_POST['include_empty_terms']);
 
             return $partial;
@@ -167,7 +168,7 @@ final class SitemapSettingsPage {
 
         if ('post-types' === $tab) {
             foreach ($this->publicPostTypes() as $slug => $label) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
                 $partial[ 'pt_' . $slug . '_sitemap' ] = isset($_POST[ 'pt_' . $slug . '_sitemap' ]);
             }
 
@@ -176,7 +177,7 @@ final class SitemapSettingsPage {
 
         if ('taxonomies' === $tab) {
             foreach ($this->publicTaxonomies() as $slug => $label) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
                 $partial[ 'tax_' . $slug . '_sitemap' ] = isset($_POST[ 'tax_' . $slug . '_sitemap' ]);
             }
 
@@ -184,12 +185,12 @@ final class SitemapSettingsPage {
         }
 
         // Authors tab.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
         $partial['authors_sitemap'] = isset($_POST['authors_sitemap']);
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
         $partial['authors_include_empty'] = isset($_POST['authors_include_empty']);
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
         $rawRoles = $_POST['authors_exclude_roles'] ?? [];
         if (! is_array($rawRoles)) {
             $rawRoles = [];
@@ -205,9 +206,9 @@ final class SitemapSettingsPage {
 
         $partial['authors_exclude_roles'] = $roles;
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
         if (isset($_POST['authors_exclude_users'])) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- exploded below, absint on save.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
             $rawUsers = wp_unslash($_POST['authors_exclude_users']);
             $partial['authors_exclude_users'] = is_string($rawUsers) ? explode(',', $rawUsers) : [];
         }
@@ -375,8 +376,7 @@ final class SitemapSettingsPage {
             __('Images in Sitemaps', 'rankkernel'),
             ! empty($all['include_images']),
             __(
-                'Include reference to images from the post content in sitemaps. '
-                . 'This helps search engines index the important images on your pages.',
+                'Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages.',
                 'rankkernel'
             )
         );
@@ -393,8 +393,7 @@ final class SitemapSettingsPage {
             __('Exclude Posts', 'rankkernel'),
             $all['exclude_posts'] ?? [],
             __(
-                'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. '
-                . 'This option applies to all posts types including posts, pages, and custom post types.',
+                'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types.',
                 'rankkernel'
             )
         );
