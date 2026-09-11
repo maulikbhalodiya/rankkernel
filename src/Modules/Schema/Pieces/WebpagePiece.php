@@ -90,8 +90,10 @@ final class WebpagePiece implements PieceInterface {
             }
         }
 
-        if (in_array($type, [ 'post', 'term', 'archive' ], true)
-            && (bool) $this->settings->get('schema_breadcrumbs', true)) {
+        $withTrail = in_array($type, [ 'post', 'term', 'archive' ], true)
+            && (bool) $this->settings->get('schema_breadcrumbs', true);
+
+        if ($withTrail) {
             $node['breadcrumb'] = [
                 '@id' => $base . '#breadcrumb',
             ];
@@ -220,6 +222,8 @@ final class WebpagePiece implements PieceInterface {
      * Resolved name, payload title literal, then settings template, then raw title.
      *
      * Mirrors the HeadRenderer title chain through the shared Context memo.
+     * Template resolutions that leave only separators behind (empty title
+     * on archives) fall through to the plain title instead.
      *
      * @param Context $ctx Request context.
      */
@@ -229,10 +233,10 @@ final class WebpagePiece implements PieceInterface {
 
         if ('' !== $payloadTitle) {
             if (1 === preg_match('/%%[a-z_]+%%/', $payloadTitle)) {
-                $resolved = $ctx->resolved('schema_webpage_name', $payloadTitle);
+                $resolved = $this->cleanName($ctx->resolved('schema_webpage_name', $payloadTitle));
 
-                if ('' !== trim($resolved)) {
-                    return trim($resolved);
+                if ('' !== $resolved) {
+                    return $resolved;
                 }
             } else {
                 return $payloadTitle;
@@ -242,10 +246,10 @@ final class WebpagePiece implements PieceInterface {
         $template = trim((string) $this->settings->get('title_template', ''));
 
         if ('' !== $template) {
-            $resolved = $ctx->resolved('schema_webpage_name', $template);
+            $resolved = $this->cleanName($ctx->resolved('schema_webpage_name', $template));
 
-            if ('' !== trim($resolved)) {
-                return trim($resolved);
+            if ('' !== $resolved) {
+                return $resolved;
             }
         }
 
@@ -256,6 +260,21 @@ final class WebpagePiece implements PieceInterface {
         }
 
         return $ctx->siteName();
+    }
+
+    /**
+     * Clean a resolved name, dropping edge separators.
+     *
+     * @param string $resolved Raw resolved value.
+     */
+    private function cleanName( string $resolved ): string {
+        $clean = trim($resolved);
+
+        if ('' === $clean) {
+            return '';
+        }
+
+        return trim($clean, " \t\n\r\0\x0B\xC2\xAB\xC2\xBB\xE2\x80\x93\xE2\x80\x94|-/\\~#*_:;,.");
     }
 
     /**

@@ -67,7 +67,8 @@ final class SchemaTypes {
      *
      * @param mixed $raw Raw type value.
      */
-    public static function normalize( mixed $raw ): string {        if (! is_string($raw)) {
+    public static function normalize( mixed $raw ): string {
+        if (! is_string($raw)) {
             return self::DEFAULT;
         }
 

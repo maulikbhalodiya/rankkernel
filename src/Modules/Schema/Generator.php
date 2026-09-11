@@ -87,6 +87,12 @@ final class Generator {
             return $empty;
         }
 
+        $postId = $ctx->queriedId();
+
+        if ($postId > 0 && function_exists('post_password_required') && post_password_required($postId)) {
+            return $empty;
+        }
+
         $graph = [];
 
         foreach ($this->pieces as $id => $piece) {
@@ -109,8 +115,11 @@ final class Generator {
             /**
              * Per piece output filter.
              *
-             * @param array<string, mixed> $output Piece output.
-             * @param Context              $ctx    Current request context.
+             * A single node is an assoc array, a piece may also return
+             * a list of nodes, which merges item by item.
+             *
+             * @param array<mixed, mixed> $output Piece output.
+             * @param Context             $ctx    Current request context.
              */
             $output = apply_filters('rankkernel/schema/piece/' . $id, $output, $ctx);
 

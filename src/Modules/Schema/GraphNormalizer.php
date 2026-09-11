@@ -54,7 +54,11 @@ final class GraphNormalizer {
             $type = $node['@type'] ?? '';
 
             if (is_array($type)) {
-                $type = array_values(array_filter($type, static fn (mixed $t): bool => is_string($t) && '' !== trim($t)));
+                $kept = array_filter(
+                    $type,
+                    static fn (mixed $t): bool => is_string($t) && '' !== trim($t)
+                );
+                $type = array_values($kept);
 
                 if ([] === $type) {
                     continue;

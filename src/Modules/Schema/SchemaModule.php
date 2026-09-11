@@ -206,10 +206,10 @@ final class SchemaModule implements ModuleInterface {
             return;
         }
 
-        $json = wp_json_encode(
-            $data,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-        );
+        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG;
+        $flags = $flags | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+        $json = wp_json_encode($data, $flags);
 
         if (! is_string($json)) {
             return;

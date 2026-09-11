@@ -52,12 +52,11 @@ final class CustomJsonPiece implements PieceInterface {
      * Build the custom nodes.
      *
      * Returns a single node directly when exactly one resolves, else
-     * an ItemList wrapper is never used, instead the Generator merges
-     * each node. Multiple nodes travel as a numeric list, which the
-     * Generator appends item by item.
+     * a numeric list of nodes, which the Generator appends item by
+     * item.
      *
      * @param Context $ctx Request context.
-     * @return array<string, mixed>
+     * @return array<string|int, mixed>
      */
     public function build( Context $ctx ): array {
         $nodes = self::nodes($ctx);

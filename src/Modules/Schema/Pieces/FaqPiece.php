@@ -25,6 +25,21 @@ use RankKernel\Modules\Schema\PieceInterface;
  */
 final class FaqPiece implements PieceInterface {
     /**
+     * Parsed block rows memoized per instance, keyed by content hash.
+     *
+     * isNeeded and build run on the same instance within one request,
+     * so the post content parses once, not twice.
+     *
+     * @var array<int, array{question: string, answer: string}>|null
+     */
+    private ?array $blockRows = null;
+
+    /**
+     * Content hash for the memoized block rows.
+     */
+    private string $blockHash = '';
+
+    /**
      * Get piece id.
      */
     public function getId(): string {
@@ -45,7 +60,7 @@ final class FaqPiece implements PieceInterface {
             return false;
         }
 
-        return [] !== self::questions($ctx);
+        return [] !== $this->questions($ctx);
     }
 
     /**
@@ -55,7 +70,7 @@ final class FaqPiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        $questions = self::questions($ctx);
+        $questions = $this->questions($ctx);
 
         if ([] === $questions) {
             return [];
@@ -99,8 +114,8 @@ final class FaqPiece implements PieceInterface {
      * @param Context $ctx Request context.
      * @return array<int, array{question: string, answer: string}>
      */
-    private static function questions( Context $ctx ): array {
-        $merged = array_merge(self::payloadQuestions($ctx), self::blockQuestions($ctx));
+    private function questions( Context $ctx ): array {
+        $merged = array_merge(self::payloadQuestions($ctx), $this->blockQuestions($ctx));
         $seen   = [];
         $valid  = [];
 
@@ -183,7 +198,7 @@ final class FaqPiece implements PieceInterface {
      * @param Context $ctx Request context.
      * @return array<int, array{question: string, answer: string}>
      */
-    private static function blockQuestions( Context $ctx ): array {
+    private function blockQuestions( Context $ctx ): array {
         if ('post' !== $ctx->queriedType()) {
             return [];
         }
@@ -204,6 +219,31 @@ final class FaqPiece implements PieceInterface {
             return [];
         }
 
+        $hash = md5($content);
+
+        if (null !== $this->blockRows && $hash === $this->blockHash) {
+            return $this->blockRows;
+        }
+
+        $rows = $this->parseBlockRows($content);
+
+        $this->blockRows = $rows;
+        $this->blockHash = $hash;
+
+        return $rows;
+    }
+
+    /**
+     * Parse question rows from post content blocks.
+     *
+     * Group and column blocks nest inner blocks one level down,
+     * so the walk recurses into innerBlocks instead of reading only
+     * the top level.
+     *
+     * @param string $content Raw post content.
+     * @return array<int, array{question: string, answer: string}>
+     */
+    private function parseBlockRows( string $content ): array {
         // Parsed block data is untrusted runtime input, so read it as a
         // plain list and validate every level before use.
         /** @var array<int, mixed> $blocks */
@@ -215,44 +255,72 @@ final class FaqPiece implements PieceInterface {
 
         $rows = [];
 
-        foreach ($blocks as $block) {
-            if (! is_array($block) || 'rankkernel/faq' !== ( $block['blockName'] ?? null )) {
-                continue;
-            }
-
-            $attrs = $block['attrs'] ?? [];
-
-            if (! is_array($attrs)) {
-                continue;
-            }
-
-            $questions = $attrs['questions'] ?? [];
-
-            if (! is_array($questions)) {
-                continue;
-            }
-
-            foreach ($questions as $row) {
-                if (! is_array($row)) {
-                    continue;
-                }
-
-                $question = isset($row['question']) ? trim((string) $row['question']) : '';
-
-                if ('' === $question) {
-                    continue;
-                }
-
-                $answer = isset($row['answer']) ? (string) $row['answer'] : '';
-
-                $rows[] = [
-                    'question' => $question,
-                    'answer'   => $answer,
-                ];
-            }
-        }
+        $this->walkBlocks($blocks, $rows);
 
         return $rows;
+    }
+
+    /**
+     * Collect question rows from a block list, recursing into groups.
+     *
+     * @param array<int, mixed> $blocks Block list.
+     * @param array<int, array{question: string, answer: string}> $rows Collected rows.
+     */
+    private function walkBlocks( array $blocks, array &$rows ): void {
+        foreach ($blocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            if ('rankkernel/faq' === ( $block['blockName'] ?? null )) {
+                $this->collectRows($block, $rows);
+            }
+
+            $inner = $block['innerBlocks'] ?? [];
+
+            if (is_array($inner) && [] !== $inner) {
+                $this->walkBlocks($inner, $rows);
+            }
+        }
+    }
+
+    /**
+     * Collect valid rows from one FAQ block.
+     *
+     * @param array<string, mixed> $block FAQ block.
+     * @param array<int, array{question: string, answer: string}> $rows Collected rows.
+     */
+    private function collectRows( array $block, array &$rows ): void {
+        $attrs = $block['attrs'] ?? [];
+
+        if (! is_array($attrs)) {
+            return;
+        }
+
+        $questions = $attrs['questions'] ?? [];
+
+        if (! is_array($questions)) {
+            return;
+        }
+
+        foreach ($questions as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $question = isset($row['question']) ? trim((string) $row['question']) : '';
+
+            if ('' === $question) {
+                continue;
+            }
+
+            $answer = isset($row['answer']) ? (string) $row['answer'] : '';
+
+            $rows[] = [
+                'question' => $question,
+                'answer'   => $answer,
+            ];
+        }
     }
 
     /**

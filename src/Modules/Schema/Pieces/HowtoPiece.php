@@ -26,6 +26,21 @@ use RankKernel\Modules\Schema\PieceInterface;
  */
 final class HowtoPiece implements PieceInterface {
     /**
+     * Parsed block steps memoized per instance, keyed by content hash.
+     *
+     * isNeeded and build run on the same instance within one request,
+     * so the post content parses once, not twice.
+     *
+     * @var array<int, array{title: string, text: string, image: string}>|null
+     */
+    private ?array $blockRows = null;
+
+    /**
+     * Content hash for the memoized block steps.
+     */
+    private string $blockHash = '';
+
+    /**
      * Get piece id.
      */
     public function getId(): string {
@@ -42,7 +57,7 @@ final class HowtoPiece implements PieceInterface {
             return false;
         }
 
-        return [] !== self::steps($ctx);
+        return [] !== $this->steps($ctx);
     }
 
     /**
@@ -52,7 +67,7 @@ final class HowtoPiece implements PieceInterface {
      * @return array<string, mixed>
      */
     public function build( Context $ctx ): array {
-        $howto = self::howto($ctx);
+        $howto = $this->howto($ctx);
 
         if ([] === $howto['steps']) {
             return [];
@@ -114,7 +129,7 @@ final class HowtoPiece implements PieceInterface {
      * @param Context $ctx Request context.
      * @return array{name: string, steps: array<int, mixed>, totalTime: string, cost: string}
      */
-    private static function howto( Context $ctx ): array {
+    private function howto( Context $ctx ): array {
         $out = [
             'name'      => '',
             'steps'     => [],
@@ -175,7 +190,7 @@ final class HowtoPiece implements PieceInterface {
             ];
         }
 
-        foreach (self::blockSteps($ctx) as $blockStep) {
+        foreach ($this->blockSteps($ctx) as $blockStep) {
             $seen = false;
 
             foreach ($out['steps'] as $existing) {
@@ -211,7 +226,7 @@ final class HowtoPiece implements PieceInterface {
      * @param Context $ctx Request context.
      * @return array<int, array{title: string, text: string, image: string}>
      */
-    private static function blockSteps( Context $ctx ): array {
+    private function blockSteps( Context $ctx ): array {
         if ('post' !== $ctx->queriedType()) {
             return [];
         }
@@ -232,6 +247,12 @@ final class HowtoPiece implements PieceInterface {
             return [];
         }
 
+        $hash = md5($content);
+
+        if (null !== $this->blockRows && $hash === $this->blockHash) {
+            return $this->blockRows;
+        }
+
         /** @var array<int, mixed> $blocks */
         $blocks = parse_blocks($content);
 
@@ -241,46 +262,77 @@ final class HowtoPiece implements PieceInterface {
 
         $rows = [];
 
-        foreach ($blocks as $block) {
-            if (! is_array($block) || 'rankkernel/howto' !== ( $block['blockName'] ?? null )) {
-                continue;
-            }
+        $this->walkBlocks($blocks, $rows);
 
-            $attrs = $block['attrs'] ?? [];
-
-            if (! is_array($attrs)) {
-                continue;
-            }
-
-            $steps = $attrs['steps'] ?? [];
-
-            if (! is_array($steps)) {
-                continue;
-            }
-
-            foreach ($steps as $row) {
-                if (! is_array($row)) {
-                    continue;
-                }
-
-                $title = isset($row['title']) ? trim((string) $row['title']) : '';
-                $text  = isset($row['text']) ? (string) $row['text'] : '';
-
-                if ('' === $title && '' === trim($text)) {
-                    continue;
-                }
-
-                $image = isset($row['image']) ? trim((string) $row['image']) : '';
-
-                $rows[] = [
-                    'title' => $title,
-                    'text'  => $text,
-                    'image' => $image,
-                ];
-            }
-        }
+        $this->blockRows = $rows;
+        $this->blockHash = $hash;
 
         return $rows;
+    }
+
+    /**
+     * Collect step rows from a block list, recursing into groups.
+     *
+     * @param array<int, mixed> $blocks Block list.
+     * @param array<int, array{title: string, text: string, image: string}> $rows Collected rows.
+     */
+    private function walkBlocks( array $blocks, array &$rows ): void {
+        foreach ($blocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            if ('rankkernel/howto' === ( $block['blockName'] ?? null )) {
+                $this->collectRows($block, $rows);
+            }
+
+            $inner = $block['innerBlocks'] ?? [];
+
+            if (is_array($inner) && [] !== $inner) {
+                $this->walkBlocks($inner, $rows);
+            }
+        }
+    }
+
+    /**
+     * Collect valid rows from one HowTo block.
+     *
+     * @param array<string, mixed> $block HowTo block.
+     * @param array<int, array{title: string, text: string, image: string}> $rows Collected rows.
+     */
+    private function collectRows( array $block, array &$rows ): void {
+        $attrs = $block['attrs'] ?? [];
+
+        if (! is_array($attrs)) {
+            return;
+        }
+
+        $steps = $attrs['steps'] ?? [];
+
+        if (! is_array($steps)) {
+            return;
+        }
+
+        foreach ($steps as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $title = isset($row['title']) ? trim((string) $row['title']) : '';
+            $text  = isset($row['text']) ? (string) $row['text'] : '';
+
+            if ('' === $title && '' === trim($text)) {
+                continue;
+            }
+
+            $image = isset($row['image']) ? trim((string) $row['image']) : '';
+
+            $rows[] = [
+                'title' => $title,
+                'text'  => $text,
+                'image' => $image,
+            ];
+        }
     }
 
     /**
@@ -289,8 +341,8 @@ final class HowtoPiece implements PieceInterface {
      * @param Context $ctx Request context.
      * @return array<int, array{title: string, text: string, image: string}>
      */
-    private static function steps( Context $ctx ): array {
-        return self::howto($ctx)['steps'];
+    private function steps( Context $ctx ): array {
+        return $this->howto($ctx)['steps'];
     }
 
     /**
