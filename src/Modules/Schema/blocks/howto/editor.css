@@ -15,22 +15,14 @@
 }
 
 .rankkernel-howto-editor .rankkernel-howto-editor-list {
-    list-style-position: outside;
-    margin: 0 0 1em 1.5em;
+    list-style: none;
+    margin: 0 0 1em;
     padding: 0;
-}
-
-ol.rankkernel-howto-editor-list {
-    list-style-type: decimal;
 }
 
 .rankkernel-howto-editor .rankkernel-howto-row {
     margin: 0 0 1em;
     padding: 0;
-}
-
-.rankkernel-howto-editor .rankkernel-howto-row::marker {
-    font-weight: 600;
 }
 
 .rankkernel-howto-editor .rankkernel-howto-card {
@@ -114,7 +106,8 @@ ol.rankkernel-howto-editor-list {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5em;
-    margin-top: 0.75em;
+    margin-left: auto;
+    margin-top: 0;
 }
 
 .rankkernel-howto-editor .rankkernel-howto-tool-row {
@@ -150,8 +143,8 @@ ol.rankkernel-howto-editor-list {
 }
 
 @media (max-width: 600px) {
-    .rankkernel-howto-editor .rankkernel-howto-editor-list {
-        margin-left: 1em;
+    .rankkernel-howto-editor .rankkernel-howto-row-head {
+        gap: 0.375em;
     }
 
     .rankkernel-howto-editor .rankkernel-howto-row-actions .components-button {

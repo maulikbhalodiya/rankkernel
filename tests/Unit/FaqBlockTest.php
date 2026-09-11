@@ -185,13 +185,19 @@ final class FaqBlockTest extends TestCase {
 		$translations      = [];
 
 		Functions\when( 'wp_register_script' )->alias(
-			static function ( string $handle, string $src, array $deps ) use ( &$registeredScripts ): void {
-				$registeredScripts[ $handle ] = $deps;
+			static function ( string $handle, string $src, array $deps, mixed ...$args ) use ( &$registeredScripts ): void {
+				$registeredScripts[ $handle ] = [
+					'deps'    => $deps,
+					'version' => $args[0] ?? null,
+				];
 			}
 		);
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $handle, string $src, array $deps ) use ( &$registeredStyles ): void {
-				$registeredStyles[ $handle ] = $deps;
+			static function ( string $handle, string $src, array $deps, mixed ...$args ) use ( &$registeredStyles ): void {
+				$registeredStyles[ $handle ] = [
+					'deps'    => $deps,
+					'version' => $args[0] ?? null,
+				];
 			}
 		);
 		Functions\when( 'wp_set_script_translations' )->alias(
@@ -212,10 +218,21 @@ final class FaqBlockTest extends TestCase {
 
 		$this->assertSame(
 			[ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
-			$registeredScripts['rankkernel-faq-editor']
+			$registeredScripts['rankkernel-faq-editor']['deps']
 		);
 		$this->assertArrayHasKey( 'rankkernel-faq-editor', $registeredStyles );
 		$this->assertSame( 'rankkernel', $translations['rankkernel-faq-editor'] );
+
+		$root = dirname( __DIR__, 2 );
+
+		$this->assertSame(
+			(string) filemtime( $root . '/src/Modules/Schema/blocks/faq/faq-editor.js' ),
+			$registeredScripts['rankkernel-faq-editor']['version']
+		);
+		$this->assertSame(
+			(string) filemtime( $root . '/src/Modules/Schema/blocks/faq/editor.css' ),
+			$registeredStyles['rankkernel-faq-editor']['version']
+		);
 
 		$found = false;
 
@@ -282,12 +299,13 @@ final class FaqBlockTest extends TestCase {
 			'<h2 class="rankkernel-faq-title">Common questions</h2>',
 			$html
 		);
-		$this->assertStringContainsString( '<ul class="rankkernel-faq-list" role="list" style="list-style-type:none;">', $html );
+		$this->assertStringContainsString( '<ul class="rankkernel-faq-list" role="list" style="list-style-type:disc;">', $html );
 		$this->assertSame( 2, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
 		$this->assertStringContainsString(
-			'<span class="rankkernel-faq-number">1. </span>What?',
+			'<h2 class="rankkernel-faq-question">What?</h2>',
 			$html
 		);
+		$this->assertStringNotContainsString( 'rankkernel-faq-number', $html );
 		$this->assertStringContainsString(
 			'<div class="rankkernel-faq-answer">This.</div>',
 			$html
@@ -355,6 +373,31 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'Orphan.', $html );
 	}
 
+	public function test_render_unordered_list_uses_bullets_without_numbers(): void {
+		$html = ( new FaqBlock() )->render(
+			[
+				'titleWrapper' => 'h3',
+				'listStyle'    => 'ul',
+				'questions'    => [
+					[
+						'question' => 'First?',
+						'answer'   => 'One.',
+					],
+					[
+						'question' => 'Second?',
+						'answer'   => 'Two.',
+					],
+				],
+			]
+		);
+
+		$this->assertStringContainsString( '<ul class="rankkernel-faq-list" role="list" style="list-style-type:disc;">', $html );
+		$this->assertSame( 2, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
+		$this->assertStringNotContainsString( 'rankkernel-faq-number', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">First?</h3>', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Second?</h3>', $html );
+	}
+
 	public function test_sequential_updates_keep_untouched_rows_stable(): void {
 		$rows = [
 			[
@@ -402,7 +445,7 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( $beforeItems[0][0], $afterItems[0][0] );
 		$this->assertSame( $beforeItems[0][1], $afterItems[0][1] );
 		$this->assertStringContainsString( 'Three updated.', $afterItems[0][2] );
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">3. </span>Third?', $afterItems[0][2] );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Third?</h3>', $afterItems[0][2] );
 	}
 
 	public function test_render_escapes_markup_and_skips_empty_rows(): void {
@@ -429,7 +472,7 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringContainsString( '&lt;script&gt;', $html );
 		$this->assertStringContainsString( '&lt;b&gt;Hi&lt;/b&gt;', $html );
 		$this->assertStringContainsString( '<h3 class="rankkernel-faq-title">', $html );
-		$this->assertStringContainsString( '<ul class="rankkernel-faq-list" role="list" style="list-style-type:none;">', $html );
+		$this->assertStringContainsString( '<ul class="rankkernel-faq-list" role="list" style="list-style-type:disc;">', $html );
 		$this->assertSame( 1, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
 	}
 
@@ -471,7 +514,8 @@ final class FaqBlockTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'Orphan answer.', $html );
 		$this->assertSame( 1, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">1. </span>Kept?', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Kept?</h3>', $html );
+		$this->assertStringNotContainsString( 'rankkernel-faq-number', $html );
 	}
 
 	public function test_render_answer_only_rows_render_nothing(): void {
@@ -506,7 +550,7 @@ final class FaqBlockTest extends TestCase {
 
 		$this->assertStringContainsString( '<h2 class="rankkernel-faq-title">Common questions</h2>', $html );
 		$this->assertStringContainsString(
-			'<h2 class="rankkernel-faq-question"><span class="rankkernel-faq-number">1. </span>What?</h2>',
+			'<h2 class="rankkernel-faq-question">What?</h2>',
 			$html
 		);
 	}
@@ -528,7 +572,7 @@ final class FaqBlockTest extends TestCase {
 
 		$this->assertStringContainsString( '<h4 class="rankkernel-faq-title">Common questions</h4>', $html );
 		$this->assertStringContainsString(
-			'<h2 class="rankkernel-faq-question"><span class="rankkernel-faq-number">1. </span>What?</h2>',
+			'<h2 class="rankkernel-faq-question">What?</h2>',
 			$html
 		);
 	}
@@ -548,7 +592,7 @@ final class FaqBlockTest extends TestCase {
 		);
 
 		$this->assertStringContainsString(
-			'<h4 class="rankkernel-faq-question"><span class="rankkernel-faq-number">1. </span>What?</h4>',
+			'<h4 class="rankkernel-faq-question">What?</h4>',
 			$html
 		);
 		$this->assertStringNotContainsString( '<script>', $html );
@@ -569,7 +613,7 @@ final class FaqBlockTest extends TestCase {
 			[ 'blockName' => 'rankkernel/faq' ]
 		);
 
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">1. </span>What?', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">What?</h3>', $html );
 		$this->assertStringNotContainsString( 'Inner content.', $html );
 	}
 
@@ -585,7 +629,7 @@ final class FaqBlockTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">1. </span>What?', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">What?</h3>', $html );
 		$this->assertStringNotContainsString( 'rankkernel-faq-answer', $html );
 	}
 
@@ -606,8 +650,9 @@ final class FaqBlockTest extends TestCase {
 		);
 
 		$this->assertSame( 2, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">1. </span>First?', $html );
-		$this->assertStringContainsString( '<span class="rankkernel-faq-number">2. </span>Second?', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">First?</h3>', $html );
+		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Second?</h3>', $html );
+		$this->assertStringNotContainsString( 'rankkernel-faq-number', $html );
 		$this->assertSame( 1, substr_count( $html, 'rankkernel-faq-answer' ) );
 	}
 

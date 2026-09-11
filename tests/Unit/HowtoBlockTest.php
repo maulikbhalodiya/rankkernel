@@ -148,13 +148,19 @@ final class HowtoBlockTest extends TestCase {
 		$translations      = [];
 
 		Functions\when( 'wp_register_script' )->alias(
-			static function ( string $handle, string $src, array $deps ) use ( &$registeredScripts ): void {
-				$registeredScripts[ $handle ] = $deps;
+			static function ( string $handle, string $src, array $deps, mixed ...$args ) use ( &$registeredScripts ): void {
+				$registeredScripts[ $handle ] = [
+					'deps'    => $deps,
+					'version' => $args[0] ?? null,
+				];
 			}
 		);
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $handle, string $src, array $deps ) use ( &$registeredStyles ): void {
-				$registeredStyles[ $handle ] = $deps;
+			static function ( string $handle, string $src, array $deps, mixed ...$args ) use ( &$registeredStyles ): void {
+				$registeredStyles[ $handle ] = [
+					'deps'    => $deps,
+					'version' => $args[0] ?? null,
+				];
 			}
 		);
 		Functions\when( 'wp_set_script_translations' )->alias(
@@ -175,10 +181,21 @@ final class HowtoBlockTest extends TestCase {
 
 		$this->assertSame(
 			[ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
-			$registeredScripts['rankkernel-howto-editor']
+			$registeredScripts['rankkernel-howto-editor']['deps']
 		);
 		$this->assertArrayHasKey( 'rankkernel-howto-editor', $registeredStyles );
 		$this->assertSame( 'rankkernel', $translations['rankkernel-howto-editor'] );
+
+		$root = dirname( __DIR__, 2 );
+
+		$this->assertSame(
+			(string) filemtime( $root . '/src/Modules/Schema/blocks/howto/howto-editor.js' ),
+			$registeredScripts['rankkernel-howto-editor']['version']
+		);
+		$this->assertSame(
+			(string) filemtime( $root . '/src/Modules/Schema/blocks/howto/editor.css' ),
+			$registeredStyles['rankkernel-howto-editor']['version']
+		);
 
 		$found = false;
 
@@ -236,7 +253,7 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( '<span class="rankkernel-howto-number">1. </span>First', $html );
 		$this->assertStringContainsString( '<span class="rankkernel-howto-number">2. </span>Second', $html );
 		$this->assertStringContainsString( '<img class="rankkernel-howto-step-image" src="https://example.com/s.jpg"', $html );
-		$this->assertStringContainsString( '<ol class="rankkernel-howto-list" style="list-style-type:decimal;">', $html );
+		$this->assertStringContainsString( '<ol class="rankkernel-howto-list" role="list" style="list-style-type:none;">', $html );
 	}
 
 	public function test_render_shows_details_time_cost_tools_materials(): void {

@@ -386,7 +386,52 @@
                                 'div',
                                 { className: 'rankkernel-howto-row-head' },
                                 el('span', { className: 'rankkernel-howto-badge', 'aria-hidden': 'true' }, String(itemNumber)),
-                                el('span', { className: 'rankkernel-howto-row-title' }, cardLabel)
+                                el('span', { className: 'rankkernel-howto-row-title' }, cardLabel),
+                                el(
+                                    'div',
+                                    { className: 'rankkernel-howto-row-actions' },
+                                    el(
+                                        Button,
+                                        {
+                                            variant: 'secondary',
+                                            size: 'small',
+                                            disabled: isFirst,
+                                            label: moveUpLabel,
+                                            'aria-label': moveUpLabel,
+                                            onClick: function () {
+                                                moveStep(item.id, -1);
+                                            }
+                                        },
+                                        __('Move up', 'rankkernel')
+                                    ),
+                                    el(
+                                        Button,
+                                        {
+                                            variant: 'secondary',
+                                            size: 'small',
+                                            disabled: isLast,
+                                            label: moveDownLabel,
+                                            'aria-label': moveDownLabel,
+                                            onClick: function () {
+                                                moveStep(item.id, 1);
+                                            }
+                                        },
+                                        __('Move down', 'rankkernel')
+                                    ),
+                                    el(
+                                        Button,
+                                        {
+                                            isDestructive: true,
+                                            size: 'small',
+                                            label: removeLabel,
+                                            'aria-label': removeLabel,
+                                            onClick: function () {
+                                                removeStep(item.id);
+                                            }
+                                        },
+                                        __('Remove step', 'rankkernel')
+                                    )
+                                )
                             ),
                             el(TextControl, {
                                 label: titleLabel,
@@ -400,6 +445,7 @@
                             el(RichText, {
                                 tagName: 'div',
                                 multiline: 'p',
+                                identifier: 'text-' + ( item.id || ( 'row-' + index ) ),
                                 className: 'rankkernel-howto-row-text',
                                 'aria-label': descriptionLabel,
                                 placeholder: __('Enter the step instructions...', 'rankkernel'),
@@ -413,49 +459,7 @@
                                 { className: 'rankkernel-howto-row-hint' },
                                 __('Add a title or instructions so this step appears on the page and in the schema.', 'rankkernel')
                             ) : null,
-                            imageControl,
-                            el(
-                                'div',
-                                { className: 'rankkernel-howto-row-actions' },
-                                el(
-                                    Button,
-                                    {
-                                        variant: 'secondary',
-                                        disabled: isFirst,
-                                        label: moveUpLabel,
-                                        'aria-label': moveUpLabel,
-                                        onClick: function () {
-                                            moveStep(item.id, -1);
-                                        }
-                                    },
-                                    __('Move up', 'rankkernel')
-                                ),
-                                el(
-                                    Button,
-                                    {
-                                        variant: 'secondary',
-                                        disabled: isLast,
-                                        label: moveDownLabel,
-                                        'aria-label': moveDownLabel,
-                                        onClick: function () {
-                                            moveStep(item.id, 1);
-                                        }
-                                    },
-                                    __('Move down', 'rankkernel')
-                                ),
-                                el(
-                                    Button,
-                                    {
-                                        isDestructive: true,
-                                        label: removeLabel,
-                                        'aria-label': removeLabel,
-                                        onClick: function () {
-                                            removeStep(item.id);
-                                        }
-                                    },
-                                    __('Remove step', 'rankkernel')
-                                )
-                            )
+                            imageControl
                         )
                     )
                 );
@@ -644,6 +648,7 @@
                 ),
                 el(RichText, {
                     tagName: titleWrapper,
+                    identifier: 'title',
                     className: 'rankkernel-howto-editor-title',
                     'aria-label': __('HowTo title', 'rankkernel'),
                     placeholder: __('Add a title...', 'rankkernel'),

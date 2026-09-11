@@ -74,6 +74,7 @@
             var questionTag = allowedQuestionTag(attributes.questionTag || '');
             var activeTag = '' !== questionTag ? questionTag : titleWrapper;
             var listStyle = 'ol' === attributes.listStyle ? 'ol' : 'ul';
+            var isOrdered = 'ol' === listStyle;
             var questions = attributes.questions || [];
 
             useMigratedQuestions(questions, setAttributes);
@@ -139,9 +140,9 @@
 
                 if ( '' !== questionText ) {
                     filledCount++;
-                    badgeText = String(filledCount);
+                    badgeText = isOrdered ? String(filledCount) : '•';
                 } else {
-                    badgeText = __('New', 'rankkernel');
+                    badgeText = isOrdered ? __('New', 'rankkernel') : '•';
                     badgeClass = 'rankkernel-faq-badge rankkernel-faq-badge-draft';
                 }
 
@@ -233,6 +234,7 @@
                             el(RichText, {
                                 tagName: 'div',
                                 multiline: 'p',
+                                identifier: 'answer-' + ( item.id || ( 'row-' + index ) ),
                                 className: 'rankkernel-faq-row-answer',
                                 'aria-label': answerLabel,
                                 placeholder: __('Enter the answer...', 'rankkernel'),
@@ -324,6 +326,7 @@
                 )),
                 el(RichText, {
                     tagName: titleWrapper,
+                    identifier: 'title',
                     className: 'rankkernel-faq-editor-title',
                     'aria-label': __('FAQ title', 'rankkernel'),
                     placeholder: __('Add a title...', 'rankkernel'),

@@ -50,6 +50,26 @@ final class FaqBlock {
 	}
 
 	/**
+	 * Asset version from file modification time, so editor browsers
+	 * always fetch the current file after an update without waiting
+	 * for a plugin version bump. Falls back to the plugin version
+	 * when the file is unreadable (tests, early boot).
+	 */
+	private static function assetVersion( string $path ): string {
+		$file = dirname( __DIR__, 4 ) . '/' . ltrim( $path, '/' );
+
+		if ( is_readable( $file ) ) {
+			$mtime = filemtime( $file );
+
+			if ( false !== $mtime ) {
+				return (string) $mtime;
+			}
+		}
+
+		return \RankKernel\Plugin::VERSION;
+	}
+
+	/**
 	 * Register the dynamic block type from its block.json folder.
 	 *
 	 * The editor script and style register explicitly with full
@@ -64,7 +84,7 @@ final class FaqBlock {
 		}
 
 		if ( function_exists( 'wp_register_script' ) ) {
-			$version = \RankKernel\Plugin::VERSION;
+			$version = self::assetVersion( 'src/Modules/Schema/blocks/faq/faq-editor.js' );
 
 			wp_register_script(
 				'rankkernel-faq-editor',
@@ -76,7 +96,7 @@ final class FaqBlock {
 		}
 
 		if ( function_exists( 'wp_register_style' ) ) {
-			$version = \RankKernel\Plugin::VERSION;
+			$version = self::assetVersion( 'src/Modules/Schema/blocks/faq/editor.css' );
 
 			wp_register_style(
 				'rankkernel-faq-editor',
@@ -110,10 +130,11 @@ final class FaqBlock {
 	 *
 	 * Every dynamic value is escaped, tag names come from an allowlist
 	 * (h2, h3, h4, default h3) and the list tag is ul or ol (default
-	 * ul). Numbering comes from a single span inside each question
-	 * heading, so it inherits the heading size, weight, and color,
-	 * while the list itself carries no markers, so numbers never
-	 * print twice. The optional content and block params exist because WP core
+	 * ul). Ordered lists number through a single span inside each
+	 * question heading, so the number inherits the heading size,
+	 * weight, and color, while the list itself carries no markers, so
+	 * numbers never print twice. Unordered lists render plain bullets
+	 * with no number spans. The optional content and block params exist because WP core
 	 * passes them to every render callback; this render ignores them
 	 * and reads attributes only, so old stored blocks keep rendering.
 	 * Rows with an empty question are skipped even when an answer is
@@ -148,6 +169,8 @@ final class FaqBlock {
 			$list = 'ul';
 		}
 
+		$ordered = ( 'ol' === $list );
+
 		$questions = $attributes['questions'] ?? [];
 
 		if ( ! is_array( $questions ) ) {
@@ -173,7 +196,7 @@ final class FaqBlock {
 
 			$rows .= '<li class="rankkernel-faq-item">';
 			$rows .= '<' . $qtag . ' class="rankkernel-faq-question">'
-				. '<span class="rankkernel-faq-number">' . $index . '. </span>'
+				. ( $ordered ? '<span class="rankkernel-faq-number">' . $index . '. </span>' : '' )
 				. esc_html( $question )
 				. '</' . $qtag . '>';
 
@@ -196,7 +219,7 @@ final class FaqBlock {
 				. '</' . $wrapper . '>';
 		}
 
-		$listStyle = ' style="list-style-type:none;"';
+		$listStyle = $ordered ? ' style="list-style-type:none;"' : ' style="list-style-type:disc;"';
 
 		$out .= '<' . $list . ' class="rankkernel-faq-list" role="list"' . $listStyle . '>' . $rows . '</' . $list . '>';
 		$out .= '</div>';
