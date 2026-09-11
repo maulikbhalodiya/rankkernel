@@ -223,14 +223,12 @@ final class FaqBlockTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernel-faq-editor', $registeredStyles );
 		$this->assertSame( 'rankkernel', $translations['rankkernel-faq-editor'] );
 
-		$root = dirname( __DIR__, 2 );
-
 		$this->assertSame(
-			(string) filemtime( $root . '/src/Modules/Schema/blocks/faq/faq-editor.js' ),
+			\RankKernel\Plugin::version(),
 			$registeredScripts['rankkernel-faq-editor']['version']
 		);
 		$this->assertSame(
-			(string) filemtime( $root . '/src/Modules/Schema/blocks/faq/editor.css' ),
+			\RankKernel\Plugin::version(),
 			$registeredStyles['rankkernel-faq-editor']['version']
 		);
 
@@ -685,6 +683,36 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 'FAQPage', $build['@type'] );
 		$this->assertCount( 1, $build['mainEntity'] );
 		$this->assertSame( 'Block Q?', $build['mainEntity'][0]['name'] );
+	}
+
+	public function test_schema_answer_is_plain_text_without_markup(): void {
+		$this->stubPostMeta( [] );
+		$this->postContent = '<!-- wp:rankkernel/faq -->';
+		$this->stubBlocks(
+			[
+				[
+					'blockName' => 'rankkernel/faq',
+					'attrs'     => [
+						'questions' => [
+							[
+								'question' => 'Tom &amp; Jerry?',
+								'answer'   => '<p>Tom &amp; Jerry</p><p>Second <b>line</b>.</p>',
+							],
+							[
+								'question' => 'Safe?',
+								'answer'   => '<script>alert(1)</script>Fine.',
+							],
+						],
+					],
+				],
+			]
+		);
+
+		$build = ( new FaqPiece() )->build( $this->makeContext( $this->singularQuery() ) );
+
+		$this->assertSame( 'Tom & Jerry Second line.', $build['mainEntity'][0]['acceptedAnswer']['text'] );
+		$this->assertStringNotContainsString( '<', $build['mainEntity'][1]['acceptedAnswer']['text'] );
+		$this->assertStringContainsString( 'Fine.', $build['mainEntity'][1]['acceptedAnswer']['text'] );
 	}
 
 	public function test_payload_and_block_rows_merge_with_dedupe(): void {

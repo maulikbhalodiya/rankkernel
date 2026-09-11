@@ -87,8 +87,8 @@ final class MigrationRunner {
         // No migrations registered: sync ledger to plugin version if behind.
         if ([] === $this->migrations) {
             if (defined('RANKKERNEL_VERSION') && version_compare($current, RANKKERNEL_VERSION, '<')) {
-                update_option(self::LEDGER, \RankKernel\Plugin::VERSION, false);
-                $this->cachedVersion = \RankKernel\Plugin::VERSION;
+                update_option(self::LEDGER, \RankKernel\Plugin::version(), false);
+                $this->cachedVersion = \RankKernel\Plugin::version();
             }
 
             return;

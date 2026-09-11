@@ -34,6 +34,7 @@ final class HowtoPieceTest extends TestCase {
 		Functions\when( 'esc_url_raw' )->alias( static fn ( string $v ): string => trim( $v ) );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating WP core tag stripping with a native filter.
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );

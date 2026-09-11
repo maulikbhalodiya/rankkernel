@@ -89,11 +89,7 @@ class IndexBuilder {
             return $this->stylesheetVersion;
         }
 
-        if (defined('RANKKERNEL_VERSION')) {
-            return \RankKernel\Plugin::VERSION;
-        }
-
-        return '0.1.0';
+        return \RankKernel\Plugin::version();
     }
 
     /**

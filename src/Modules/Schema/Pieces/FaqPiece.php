@@ -18,10 +18,12 @@ use RankKernel\Modules\Schema\PieceInterface;
  *
  * Needed on any singular post type, pages included, when the payload
  * holds at least one question row or the post content holds at least
- * one rankkernel/faq block with a question row. Answers pass through
- * wp_kses_post at build time, so stored HTML keeps its safe formatting
- * without breaking the JSON or injecting scripts. The Generator encodes
- * the graph once, so pieces never pre encode their own output.
+ * one rankkernel/faq block with a question row. Questions and answers
+ * are reduced to plain text at build time, so the schema carries no
+ * HTML tags and no scripts. Frontend rendering keeps its safe HTML
+ * separately, so visible formatting and structured text stay clean.
+ * The Generator encodes the graph once, so pieces never pre encode
+ * their own output.
  */
 final class FaqPiece implements PieceInterface {
 	/**
@@ -94,7 +96,7 @@ final class FaqPiece implements PieceInterface {
 				'name'           => $row['question'],
 				'acceptedAnswer' => [
 					'@type' => 'Answer',
-					'text'  => self::kses( $row['answer'] ),
+					'text'  => self::plainText( $row['answer'] ),
 				],
 			];
 		}
@@ -339,39 +341,28 @@ final class FaqPiece implements PieceInterface {
 	}
 
 	/**
-	 * Plain text from a block question with all tags removed.
+	 * Plain text for schema fields, all markup removed.
 	 *
-	 * Uses the native WP filter when available and falls back to
-	 * strip_tags in contexts without WP loaded.
+	 * Block level tags become spaces before stripping, so words in
+	 * separate paragraphs never merge. Entities are decoded and
+	 * whitespace collapses to single spaces, so the schema carries
+	 * clean text. Uses the native WP filter when available and falls
+	 * back to strip_tags in contexts without WP loaded.
 	 *
-	 * @param string $text Raw question value.
+	 * @param string $text Raw value.
 	 */
 	private static function plainText( string $text ): string {
+		$spaced = (string) preg_replace( '#<(?:br\s*/?|/(?:p|div|li|h[1-6]|td|tr|blockquote))\s*>#i', ' ', $text );
+
 		if ( function_exists( 'wp_strip_all_tags' ) ) {
-			$clean = wp_strip_all_tags( $text );
-
-			if ( is_string( $clean ) ) {
-				return $clean;
-			}
+			$clean = wp_strip_all_tags( $spaced );
+		} else {
+			$clean = strip_tags( $spaced ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Fallback for contexts without WP loaded, where wp_strip_all_tags is unavailable.
 		}
 
-		return strip_tags( $text ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Fallback for contexts without WP loaded, where wp_strip_all_tags is unavailable.
-	}
+		$clean = html_entity_decode( (string) $clean, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$clean = (string) preg_replace( '/\s+/u', ' ', $clean );
 
-	/**
-	 * Filter rich text through wp_kses_post.
-	 *
-	 * @param string $text Raw text.
-	 */
-	private static function kses( string $text ): string {
-		if ( function_exists( 'wp_kses_post' ) ) {
-			$clean = wp_kses_post( $text );
-
-			if ( is_string( $clean ) ) {
-				return $clean;
-			}
-		}
-
-		return strip_tags( $text ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Fallback for contexts without WP loaded, where wp_kses_post is unavailable.
+		return trim( $clean );
 	}
 }

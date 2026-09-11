@@ -20,8 +20,9 @@ use RankKernel\Modules\Schema\PieceInterface;
  * every singular query to the post type, so the post gate covers pages
  * as well. The node needs at least one valid step. The name falls back
  * from the payload name to the block title to the post title. Step text
- * passes through wp_kses_post at build time, so stored HTML keeps its
- * safe formatting without breaking the JSON or injecting scripts. The
+ * is reduced to plain text at build time, so the schema carries no HTML
+ * tags and no scripts. Frontend rendering keeps its safe HTML
+ * separately, so visible formatting and structured text stay clean. The
  * Generator encodes the graph once, so pieces never pre encode their
  * own output.
  */
@@ -101,7 +102,7 @@ final class HowtoPiece implements PieceInterface {
 			$step = [
 				'@type' => 'HowToStep',
 				'name'  => $row['title'],
-				'text'  => self::kses( $row['text'] ),
+				'text'  => self::plainText( $row['text'] ),
 			];
 
 			if ( '' !== $row['image'] ) {
@@ -558,19 +559,28 @@ final class HowtoPiece implements PieceInterface {
 	}
 
 	/**
-	 * Filter rich text through wp_kses_post.
+	 * Plain text for schema fields, all markup removed.
 	 *
-	 * @param string $text Raw text.
+	 * Block level tags become spaces before stripping, so words in
+	 * separate paragraphs never merge. Entities are decoded and
+	 * whitespace collapses to single spaces, so the schema carries
+	 * clean text. Uses the native WP filter when available and falls
+	 * back to strip_tags in contexts without WP loaded.
+	 *
+	 * @param string $text Raw value.
 	 */
-	private static function kses( string $text ): string {
-		if ( function_exists( 'wp_kses_post' ) ) {
-			$clean = wp_kses_post( $text );
+	private static function plainText( string $text ): string {
+		$spaced = (string) preg_replace( '#<(?:br\s*/?|/(?:p|div|li|h[1-6]|td|tr|blockquote))\s*>#i', ' ', $text );
 
-			if ( is_string( $clean ) ) {
-				return $clean;
-			}
+		if ( function_exists( 'wp_strip_all_tags' ) ) {
+			$clean = wp_strip_all_tags( $spaced );
+		} else {
+			$clean = strip_tags( $spaced ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Fallback for contexts without WP loaded, where wp_strip_all_tags is unavailable.
 		}
 
-		return strip_tags( $text ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Fallback for contexts without WP loaded, where wp_kses_post is unavailable.
+		$clean = html_entity_decode( (string) $clean, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$clean = (string) preg_replace( '/\s+/u', ' ', $clean );
+
+		return trim( $clean );
 	}
 }

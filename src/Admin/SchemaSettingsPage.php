@@ -60,7 +60,7 @@ final class SchemaSettingsPage {
 		wp_enqueue_media();
 
 		$src     = plugins_url( 'assets/js/schema-settings.js', (string) RANKKERNEL_FILE );
-		$version = defined( 'RANKKERNEL_VERSION' ) ? (string) RANKKERNEL_VERSION : '0.1.0';
+		$version = \RankKernel\Plugin::version();
 
 		wp_register_script( 'rankkernel-schema-settings', $src, [ 'media-editor' ], $version, true );
 		wp_enqueue_script( 'rankkernel-schema-settings' );

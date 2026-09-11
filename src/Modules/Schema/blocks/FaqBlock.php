@@ -50,23 +50,12 @@ final class FaqBlock {
 	}
 
 	/**
-	 * Asset version from file modification time, so editor browsers
-	 * always fetch the current file after an update without waiting
-	 * for a plugin version bump. Falls back to the plugin version
-	 * when the file is unreadable (tests, early boot).
+	 * Asset version from the single RANKKERNEL_VERSION constant, so
+	 * bumping that one value in rankkernel.php busts the editor
+	 * browser cache for both the script and the stylesheet.
 	 */
-	private static function assetVersion( string $path ): string {
-		$file = dirname( __DIR__, 4 ) . '/' . ltrim( $path, '/' );
-
-		if ( is_readable( $file ) ) {
-			$mtime = filemtime( $file );
-
-			if ( false !== $mtime ) {
-				return (string) $mtime;
-			}
-		}
-
-		return \RankKernel\Plugin::VERSION;
+	private static function assetVersion(): string {
+		return \RankKernel\Plugin::version();
 	}
 
 	/**
@@ -84,7 +73,7 @@ final class FaqBlock {
 		}
 
 		if ( function_exists( 'wp_register_script' ) ) {
-			$version = self::assetVersion( 'src/Modules/Schema/blocks/faq/faq-editor.js' );
+			$version = self::assetVersion();
 
 			wp_register_script(
 				'rankkernel-faq-editor',
@@ -96,7 +85,7 @@ final class FaqBlock {
 		}
 
 		if ( function_exists( 'wp_register_style' ) ) {
-			$version = self::assetVersion( 'src/Modules/Schema/blocks/faq/editor.css' );
+			$version = self::assetVersion();
 
 			wp_register_style(
 				'rankkernel-faq-editor',

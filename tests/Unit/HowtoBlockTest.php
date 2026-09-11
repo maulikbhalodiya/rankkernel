@@ -44,6 +44,7 @@ final class HowtoBlockTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating WP core tag stripping with a native filter.
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );
@@ -186,14 +187,12 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernel-howto-editor', $registeredStyles );
 		$this->assertSame( 'rankkernel', $translations['rankkernel-howto-editor'] );
 
-		$root = dirname( __DIR__, 2 );
-
 		$this->assertSame(
-			(string) filemtime( $root . '/src/Modules/Schema/blocks/howto/howto-editor.js' ),
+			\RankKernel\Plugin::version(),
 			$registeredScripts['rankkernel-howto-editor']['version']
 		);
 		$this->assertSame(
-			(string) filemtime( $root . '/src/Modules/Schema/blocks/howto/editor.css' ),
+			\RankKernel\Plugin::version(),
 			$registeredStyles['rankkernel-howto-editor']['version']
 		);
 
@@ -535,5 +534,39 @@ final class HowtoBlockTest extends TestCase {
 
 		$this->assertSame( 'HowTo', $build['@type'] );
 		$this->assertSame( 'Block step', $build['step'][0]['name'] );
+	}
+
+	public function test_schema_step_text_is_plain_without_markup(): void {
+		$this->postContent = 'has blocks';
+
+		Functions\when( 'parse_blocks' )->alias(
+			static function (): array {
+				return [
+					[
+						'blockName' => 'rankkernel/howto',
+						'attrs'     => [
+							'steps' => [
+								[
+									'title' => 'Mix',
+									'text'  => '<p>Stir &amp; fold</p><p>Slowly <b>now</b>.</p>',
+									'image' => '',
+								],
+								[
+									'title' => 'Cook',
+									'text'  => '<script>alert(1)</script>Wait.',
+									'image' => '',
+								],
+							],
+						],
+					],
+				];
+			}
+		);
+
+		$build = ( new \RankKernel\Modules\Schema\Pieces\HowtoPiece() )->build( $this->makeContext( $this->singularQuery() ) );
+
+		$this->assertSame( 'Stir & fold Slowly now.', $build['step'][0]['text'] );
+		$this->assertStringNotContainsString( '<', $build['step'][1]['text'] );
+		$this->assertStringContainsString( 'Wait.', $build['step'][1]['text'] );
 	}
 }

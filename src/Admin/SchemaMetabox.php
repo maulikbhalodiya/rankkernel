@@ -290,7 +290,7 @@ final class SchemaMetabox {
 			? plugins_url( 'assets/js/schema-metabox.js', (string) RANKKERNEL_FILE )
 			: '';
 
-		$version = defined( 'RANKKERNEL_VERSION' ) ? (string) RANKKERNEL_VERSION : '0.1.0';
+		$version = \RankKernel\Plugin::version();
 
 		wp_register_script( 'rankkernel-schema-metabox', $src, [], $version, true );
 		wp_enqueue_script( 'rankkernel-schema-metabox' );

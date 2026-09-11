@@ -27,13 +27,17 @@ use RankKernel\Settings\SettingsStore;
  */
 final class Plugin {
     /**
-     * Plugin version, single source of truth for classes.
+     * Plugin version read from the single source constant.
      *
-     * Must match the header and the RANKKERNEL_VERSION define in
-     * rankkernel.php on every release. Class constant fetches bypass
-     * function interception, unlike global constant reads.
+     * rankkernel.php defines RANKKERNEL_VERSION, the one place to bump
+     * on release. Every asset URL and stored version reference flows
+     * through here, so changing that one value busts every browser
+     * cache at once. The fallback keeps unit tests that never define
+     * the constant working.
      */
-    public const VERSION = '0.1.0';
+    public static function version(): string {
+        return defined('RANKKERNEL_VERSION') ? (string) RANKKERNEL_VERSION : '0.0.0';
+    }
 
     /**
      * Singleton instance.
