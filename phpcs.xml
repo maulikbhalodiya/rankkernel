@@ -33,7 +33,9 @@
         <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
         <include-pattern>src/Modules/Schema/SchemaModule.php</include-pattern>
         <include-pattern>src/Modules/Schema/blocks/FaqBlock.php</include-pattern>
+        <include-pattern>src/Modules/Schema/blocks/HowtoBlock.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/FaqPiece.php</include-pattern>
+        <include-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</include-pattern>
         <include-pattern>tests/Unit/FaqBlockTest.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
@@ -53,7 +55,9 @@
         <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/SchemaModule.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/blocks/FaqBlock.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Schema/blocks/HowtoBlock.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/FaqPiece.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</exclude-pattern>
         <exclude-pattern>tests/Unit/FaqBlockTest.php</exclude-pattern>
     </rule>
 
