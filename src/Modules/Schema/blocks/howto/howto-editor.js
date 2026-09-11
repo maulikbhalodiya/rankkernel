@@ -528,7 +528,7 @@
             var hasRows = steps.length > 0;
 
             var listContent = hasRows
-                ? el('ol', { className: 'rankkernel-howto-editor-list' }, rows)
+                ? el('ol', { className : 'rankkernel-howto-editor-list' }, rows)
                 : el(
                     'div',
                     { className: 'rankkernel-howto-empty' },
@@ -547,7 +547,9 @@
             return el(
                 'div',
                 { ...blockProps, ref: blockRoot },
-                el(InspectorControls, null,
+                el(
+                    InspectorControls,
+                    null,
                     el(
                         PanelBody,
                         { title: __('HowTo Settings', 'rankkernel'), initialOpen: true },
