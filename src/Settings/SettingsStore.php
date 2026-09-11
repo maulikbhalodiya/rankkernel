@@ -192,7 +192,7 @@ final class SettingsStore {
             return false;
         }
 
-        return 1 === preg_match('/^schema_default_[a-z0-9_]+$/', $key);
+        return 1 === preg_match('/^schema_default_[a-z0-9_-]+$/', $key);
     }
 
     /**

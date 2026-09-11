@@ -246,6 +246,13 @@ final class SchemaSettingsAdminTest extends TestCase {
         $this->assertSame('NewsArticle', $this->options[ SettingsStore::OPTION ]['schema_default_post']);
     }
 
+    public function test_dashed_post_type_slug_default_is_stored(): void {
+        $store = new SettingsStore();
+
+        $this->assertTrue($store->set([ 'schema_default_my-type' => 'Event' ]));
+        $this->assertSame('Event', $this->options[ SettingsStore::OPTION ]['schema_default_my-type']);
+    }
+
     public function test_invalid_default_type_is_dropped_never_stored(): void {
         $store = new SettingsStore();
 
