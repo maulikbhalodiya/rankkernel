@@ -1,0 +1,80 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "rankkernel/faq",
+  "title": "FAQ by RankKernel",
+  "description": "Add SEO friendly frequently asked questions with automatic FAQPage schema.",
+  "category": "rankkernel",
+  "icon": "editor-ul",
+  "textdomain": "rankkernel",
+  "keywords": [
+    "FAQ",
+    "Frequently Asked Questions",
+    "Schema",
+    "Structured Data"
+  ],
+  "supports": {
+    "html": false,
+    "multiple": true,
+    "reusable": true,
+    "anchor": true
+  },
+  "example": {
+    "attributes": {
+      "title": "Common questions",
+      "titleWrapper": "h3",
+      "listStyle": "ul",
+      "questions": [
+        {
+          "question": "What does this block do?",
+          "answer": "It prints visible FAQs and matching FAQPage schema."
+        }
+      ]
+    }
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": ""
+    },
+    "titleWrapper": {
+      "type": "string",
+      "default": "h3",
+      "enum": [
+        "h2",
+        "h3",
+        "h4"
+      ]
+    },
+    "questionTag": {
+      "type": "string",
+      "default": ""
+    },
+    "listStyle": {
+      "type": "string",
+      "default": "ul",
+      "enum": [
+        "ul",
+        "ol"
+      ]
+    },
+    "questions": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

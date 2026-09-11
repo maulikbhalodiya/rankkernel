@@ -45,6 +45,8 @@ if ( isset( $wp_version ) && version_compare( $wp_version, '6.5', '<' ) ) {
 	return;
 }
 
+// Single source of truth for the plugin version. Bump this one value on
+// release and every asset URL and stored version reference follows.
 define( 'RANKKERNEL_VERSION', '0.1.0' );
 define( 'RANKKERNEL_FILE', __FILE__ );
 define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );

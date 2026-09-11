@@ -11,10 +11,12 @@ declare(strict_types=1);
 namespace RankKernel;
 
 use RankKernel\Admin\AdminMenu;
+use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
+use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
 use RankKernel\Rest\ModulesController;
 use RankKernel\Rest\SettingsController;
@@ -24,6 +26,19 @@ use RankKernel\Settings\SettingsStore;
  * Main plugin class, service locator (not a DI container).
  */
 final class Plugin {
+    /**
+     * Plugin version read from the single source constant.
+     *
+     * rankkernel.php defines RANKKERNEL_VERSION, the one place to bump
+     * on release. Every asset URL and stored version reference flows
+     * through here, so changing that one value busts every browser
+     * cache at once. The fallback keeps unit tests that never define
+     * the constant working.
+     */
+    public static function version(): string {
+        return defined('RANKKERNEL_VERSION') ? (string) RANKKERNEL_VERSION : '0.0.0';
+    }
+
     /**
      * Singleton instance.
      */
@@ -110,11 +125,21 @@ final class Plugin {
             $adminMenu = new AdminMenu($settingsStore, $enableMap);
             $adminMenu->register();
             $this->services['admin_menu'] = $adminMenu;
+
+            add_action('admin_menu', [ $adminMenu, 'addSchemaPage' ]);
+
+            $schemaMetabox = new SchemaMetabox();
+            $schemaMetabox->register();
+            $this->services['schema_metabox'] = $schemaMetabox;
         }
 
         // Metadata module (optional, default-ON per activation seed).
         $metadataModule = new MetadataModule($settingsStore, $enableMap);
         $moduleManager->register($metadataModule);
+
+        // Schema module (optional, default-ON per activation seed).
+        $schemaModule = new SchemaModule($settingsStore, $enableMap);
+        $moduleManager->register($schemaModule);
 
         // Sitemaps module (optional, default-ON per activation seed).
         $sitemapsModule = new SitemapsModule($enableMap);

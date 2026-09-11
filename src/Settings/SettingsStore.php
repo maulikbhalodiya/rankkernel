@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Settings;
 
+use RankKernel\Modules\Schema\SchemaTypes;
+
 /**
  * Manages the rankkernel_settings option.
  */
@@ -39,6 +41,13 @@ final class SettingsStore {
         'webmaster_yandex',
         'webmaster_baidu',
         'webmaster_pinterest',
+        'site_represents',
+        'org_name',
+        'org_logo',
+        'org_sameas',
+        'website_search_action',
+        'schema_breadcrumbs',
+        'schema_author',
         'purge_on_uninstall',
     ];
 
@@ -69,8 +78,15 @@ final class SettingsStore {
             'webmaster_bing'       => '',
             'webmaster_yandex'     => '',
             'webmaster_baidu'      => '',
-            'webmaster_pinterest'  => '',
-            'purge_on_uninstall'   => null,
+        'webmaster_pinterest'  => '',
+        'site_represents'        => 'organization',
+        'org_name'               => '',
+        'org_logo'               => '',
+        'org_sameas'             => [],
+        'website_search_action'  => true,
+        'schema_breadcrumbs'     => true,
+        'schema_author'          => true,
+        'purge_on_uninstall'   => null,
         ];
     }
 
@@ -122,6 +138,22 @@ final class SettingsStore {
         $sanitized = [];
 
         foreach ($partial as $key => $value) {
+            if (self::isDefaultTypeKey($key)) {
+                $clean = trim((string) $value);
+
+                if ('' === $clean) {
+                    $sanitized[ $key ] = '';
+                    continue;
+                }
+
+                if (! in_array($clean, SchemaTypes::SUPPORTED, true)) {
+                    continue;
+                }
+
+                $sanitized[ $key ] = $clean;
+                continue;
+            }
+
             if (! in_array($key, self::ALLOWED_KEYS, true)) {
                 continue;
             }
@@ -143,6 +175,27 @@ final class SettingsStore {
     }
 
     /**
+     * Whether a key is a per post type default type key.
+     *
+     * Dynamic keys look like schema_default_{post_type}. They are not
+     * listed in ALLOWED_KEYS, the pattern gates them instead, and values
+     * must match the central type list (empty means Automatic).
+     *
+     * @param mixed $key Raw key.
+     */
+    private static function isDefaultTypeKey( mixed $key ): bool {
+        if (! is_string($key)) {
+            return false;
+        }
+
+        if (! str_starts_with($key, 'schema_default_')) {
+            return false;
+        }
+
+        return 1 === preg_match('/^schema_default_[a-z0-9_-]+$/', $key);
+    }
+
+    /**
      * Sanitize a single value by key.
      *
      * @param string $key   Setting key.
@@ -150,6 +203,53 @@ final class SettingsStore {
      * @return mixed Sanitized value.
      */
     private function sanitize( string $key, mixed $value ): mixed {
+        if ('site_represents' === $key) {
+            $normalized = strtolower(trim((string) $value));
+
+            if (in_array($normalized, [ 'organization', 'person' ], true)) {
+                return $normalized;
+            }
+
+            return 'organization';
+        }
+
+        if ('org_logo' === $key) {
+            return esc_url_raw(trim((string) $value));
+        }
+
+        if ('org_sameas' === $key) {
+            $urls = is_array($value) ? array_values($value) : [ $value ];
+            $clean = [];
+
+            foreach ($urls as $url) {
+                $sanitized = esc_url_raw(trim((string) $url));
+
+                if ('' !== $sanitized) {
+                    $clean[] = $sanitized;
+                }
+            }
+
+            return $clean;
+        }
+
+        if ('website_search_action' === $key || 'schema_breadcrumbs' === $key || 'schema_author' === $key) {
+            if (is_bool($value)) {
+                return $value;
+            }
+
+            $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+            if (null !== $normalized) {
+                return $normalized;
+            }
+
+            return (bool) $value;
+        }
+
+        if ('org_name' === $key) {
+            return sanitize_text_field((string) $value);
+        }
+
         if ('purge_on_uninstall' === $key) {
             if (null === $value) {
                 return null;

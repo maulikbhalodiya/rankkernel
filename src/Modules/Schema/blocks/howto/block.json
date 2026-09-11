@@ -1,0 +1,100 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "rankkernel/howto",
+  "title": "HowTo by RankKernel",
+  "description": "Add SEO friendly how-to steps with automatic HowTo schema.",
+  "category": "rankkernel",
+  "icon": "editor-ol",
+  "textdomain": "rankkernel",
+  "keywords": [ "HowTo", "How To", "Steps", "Schema", "Structured Data" ],
+  "supports": {
+    "html": false,
+    "multiple": true,
+    "reusable": true,
+    "anchor": true
+  },
+  "example": {
+    "attributes": {
+      "title": "Bake bread",
+      "titleWrapper": "h3",
+      "description": "A simple loaf for first time bakers.",
+      "totalTime": "PT1H",
+      "estimatedCost": "5 USD",
+      "tools": [ "Mixing bowl" ],
+      "materials": [ "Flour" ],
+      "steps": [
+        {
+          "title": "Mix",
+          "text": "Mix flour with water.",
+          "image": ""
+        }
+      ]
+    }
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": ""
+    },
+    "titleWrapper": {
+      "type": "string",
+      "default": "h3",
+      "enum": [ "h2", "h3", "h4" ]
+    },
+    "stepTag": {
+      "type": "string",
+      "default": ""
+    },
+    "description": {
+      "type": "string",
+      "default": ""
+    },
+    "totalTime": {
+      "type": "string",
+      "default": ""
+    },
+    "estimatedCost": {
+      "type": "string",
+      "default": ""
+    },
+    "tools": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "materials": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

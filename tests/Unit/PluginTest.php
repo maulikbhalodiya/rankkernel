@@ -80,4 +80,24 @@ final class PluginTest extends TestCase {
         $enabled = $manager->enabledModules();
         $this->assertArrayHasKey('metadata', $enabled);
     }
+
+    public function test_plugin_header_version_matches_the_version_constant(): void {
+        $source = (string) file_get_contents(dirname(__DIR__, 2) . '/rankkernel.php');
+
+        $this->assertSame(
+            1,
+            preg_match('/^\s*\*\s*Version:\s*(\S+)/m', $source, $header),
+            'The plugin header must declare a Version value'
+        );
+        $this->assertSame(
+            1,
+            preg_match("/define\(\s*'RANKKERNEL_VERSION'\s*,\s*'([^']+)'\s*\)/", $source, $define),
+            'rankkernel.php must define RANKKERNEL_VERSION as the single version source'
+        );
+        $this->assertSame(
+            $define[1],
+            $header[1],
+            'The header Version and RANKKERNEL_VERSION must match, assets read only the constant'
+        );
+    }
 }

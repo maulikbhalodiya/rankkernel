@@ -1,0 +1,153 @@
+/**
+ * RankKernel HowTo block editor styles.
+ *
+ * Plain stylesheet, no build step. Every rule stays inside the block
+ * editor wrapper, so site themes and other blocks never see these
+ * styles. Cards group each step with its fields, number badges mirror
+ * the frontend numbering, and focus stays clearly visible.
+ */
+.rankkernel-howto-editor {
+    max-width: 100%;
+}
+
+.rankkernel-howto-editor-title {
+    margin: 0 0 0.75em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-editor-list {
+    list-style: none;
+    margin: 0 0 1em;
+    padding: 0;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row {
+    margin: 0 0 1em;
+    padding: 0;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row-head {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 0.75em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-badge {
+    align-items: center;
+    background: #1e1e1e;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 600;
+    justify-content: center;
+    line-height: 1;
+    min-height: 1.75em;
+    min-width: 1.75em;
+    padding: 0.3em 0.5em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 1em 0 0.25em;
+    text-transform: uppercase;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row-text {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    margin: 0;
+    min-height: 2.5em;
+    padding: 0.25em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row-hint {
+    color: #50575e;
+    font-size: 12px;
+    font-style: italic;
+    margin: 0.5em 0 0;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-image {
+    margin-top: 1em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-image-preview {
+    border: 1px solid #ccd0d4;
+    border-radius: 2px;
+    display: block;
+    height: auto;
+    max-width: 100%;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-image-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin: 0.5em 0;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-left: auto;
+    margin-top: 0;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-tool-row {
+    align-items: flex-end;
+    display: flex;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-tool-row .components-base-control {
+    flex: 1 1 auto;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-empty {
+    background: #f6f7f7;
+    border: 1px dashed #a7aaad;
+    border-radius: 4px;
+    margin: 0 0 1em;
+    padding: 1.25em;
+    text-align: center;
+}
+
+.rankkernel-howto-editor .rankkernel-howto-empty p {
+    margin: 0 0 0.75em;
+}
+
+.rankkernel-howto-editor input:focus-visible,
+.rankkernel-howto-editor textarea:focus-visible,
+.rankkernel-howto-editor [contenteditable]:focus-visible,
+.rankkernel-howto-editor .components-button:focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .rankkernel-howto-editor .rankkernel-howto-row-head {
+        gap: 0.375em;
+    }
+
+    .rankkernel-howto-editor .rankkernel-howto-row-actions .components-button {
+        flex: 1 1 auto;
+    }
+}

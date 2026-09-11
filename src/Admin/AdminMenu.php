@@ -29,6 +29,11 @@ final class AdminMenu {
     private readonly SitemapSettingsPage $sitemapPage;
 
     /**
+     * Schema settings page instance.
+     */
+    private readonly SchemaSettingsPage $schemaPage;
+
+    /**
      * Constructor.
      *
      * @param SettingsStore    $store     Settings store.
@@ -42,6 +47,7 @@ final class AdminMenu {
     ) {
         $this->page        = new SettingsPage($this->store, $this->enableMap);
         $this->sitemapPage = new SitemapSettingsPage($sitemap ?? new SitemapSettings());
+        $this->schemaPage  = new SchemaSettingsPage($this->store);
     }
 
     /**
@@ -56,6 +62,13 @@ final class AdminMenu {
      */
     public function getSitemapPage(): SitemapSettingsPage {
         return $this->sitemapPage;
+    }
+
+    /**
+     * Get the schema settings page (for testing).
+     */
+    public function getSchemaPage(): SchemaSettingsPage {
+        return $this->schemaPage;
     }
 
     /**
@@ -114,5 +127,26 @@ final class AdminMenu {
 
         // Same load hook save pattern, so the tab redirect stays header safe.
         add_action('load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ]);
+    }
+
+    /**
+     * Register the RankKernel schema submenu page.
+     *
+     * Hooked separately from the top level menu so callers control
+     * ordering. Uses the same load hook save pattern as the sitemap
+     * page, so the redirect stays header safe.
+     */
+    public function addSchemaPage(): void {
+        $hook = add_submenu_page(
+            'rankkernel',
+            'Schema Settings',
+            'Schema',
+            'manage_options',
+            'rankkernel-schema',
+            [ $this->schemaPage, 'render' ]
+        );
+
+        add_action('load-' . $hook, [ $this->schemaPage, 'maybeHandleSave' ]);
+        add_action('admin_enqueue_scripts', [ $this->schemaPage, 'enqueueAssets' ]);
     }
 }
