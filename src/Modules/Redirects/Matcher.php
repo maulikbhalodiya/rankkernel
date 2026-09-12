@@ -205,7 +205,7 @@ final class Matcher {
 				continue;
 			}
 
-			if ( $path !== (string) ( $rule['source'] ?? '' ) ) {
+			if ( (string) ( $rule['source'] ?? '' ) !== $path ) {
 				continue;
 			}
 
@@ -228,7 +228,7 @@ final class Matcher {
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_prefix( string $path, array $rules ): ?array {
-		$winner = null;
+		$winner  = null;
 		$bestLen = -1;
 		$bestId  = PHP_INT_MAX;
 
@@ -434,7 +434,15 @@ final class Matcher {
 		}
 
 		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
-		$result  = preg_match( $wrapped, $path );
+
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded regex compile probe for admin entered patterns, the handler swallows only the compile warning and is always restored in finally.
+		set_error_handler( static fn (): bool => true );
+
+		try {
+			$result = preg_match( $wrapped, $path );
+		} finally {
+			restore_error_handler();
+		}
 
 		if ( false === $result || PREG_NO_ERROR !== preg_last_error() ) {
 			return false;

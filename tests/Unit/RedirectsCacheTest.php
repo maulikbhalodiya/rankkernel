@@ -43,8 +43,8 @@ final class RedirectsCacheTest extends TestCase {
 
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $default = false ): mixed {
-				return $this->options[ $key ] ?? $default;
+			function ( string $key, mixed $fallback = false ): mixed {
+				return $this->options[ $key ] ?? $fallback;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
@@ -62,7 +62,7 @@ final class RedirectsCacheTest extends TestCase {
 		Functions\when( 'set_transient' )->alias(
 			function ( string $key, mixed $value, int $ttl = 0 ): bool {
 				$this->transients[ $key ] = $value;
-				$this->ttls[ $key ]        = $ttl;
+				$this->ttls[ $key ]       = $ttl;
 
 				return true;
 			}
@@ -83,7 +83,12 @@ final class RedirectsCacheTest extends TestCase {
 
 	public function test_set_then_get_returns_rule(): void {
 		$cache = new RedirectCache();
-		$rule  = [ 'id' => 1, 'source' => '/old', 'target' => '/new', 'code' => '301' ];
+		$rule  = [
+			'id'     => 1,
+			'source' => '/old',
+			'target' => '/new',
+			'code'   => '301',
+		];
 
 		$cache->set( '/old', $rule );
 
@@ -92,7 +97,12 @@ final class RedirectsCacheTest extends TestCase {
 
 	public function test_transient_fallback_serves_new_instance(): void {
 		$cache = new RedirectCache();
-		$rule  = [ 'id' => 2, 'source' => '/old', 'target' => '/new', 'code' => '302' ];
+		$rule  = [
+			'id'     => 2,
+			'source' => '/old',
+			'target' => '/new',
+			'code'   => '302',
+		];
 
 		$cache->set( '/old', $rule );
 
@@ -103,7 +113,12 @@ final class RedirectsCacheTest extends TestCase {
 
 	public function test_invalidation_drops_cached_rule(): void {
 		$cache = new RedirectCache();
-		$rule  = [ 'id' => 3, 'source' => '/old', 'target' => '/new', 'code' => '301' ];
+		$rule  = [
+			'id'     => 3,
+			'source' => '/old',
+			'target' => '/new',
+			'code'   => '301',
+		];
 
 		$cache->set( '/old', $rule );
 		$cache->invalidate();

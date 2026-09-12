@@ -35,9 +35,9 @@ final class RedirectsHitCounterTest extends TestCase {
 			define( 'ARRAY_A', 'ARRAY_A' );
 		}
 
-		$this->db            = new RedirectsFakeDb();
-		$GLOBALS['wpdb']     = $this->db;
-		$this->db->rows[1]   = [
+		$this->db          = new RedirectsFakeDb();
+		$GLOBALS['wpdb']   = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
+		$this->db->rows[1] = [
 			'id'            => 1,
 			'match_type'    => 'exact',
 			'source'        => '/old',
@@ -47,7 +47,7 @@ final class RedirectsHitCounterTest extends TestCase {
 			'is_active'     => 1,
 			'last_accessed' => null,
 		];
-		$this->db->rows[2]   = [
+		$this->db->rows[2] = [
 			'id'            => 2,
 			'match_type'    => 'exact',
 			'source'        => '/other',
@@ -57,13 +57,17 @@ final class RedirectsHitCounterTest extends TestCase {
 			'is_active'     => 1,
 			'last_accessed' => null,
 		];
-		$this->db->nextId    = 3;
+		$this->db->nextId  = 3;
 
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
-		Functions\when( 'current_time' )->alias( static fn ( string $type ): string => '2026-01-01 00:00:00' );
+		Functions\when( 'current_time' )->alias( static fn (): string => '2026-01-01 00:00:00' );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook, mixed $callback, int $priority = 10 ): bool {
-				$this->hooks[] = [ 'hook' => $hook, 'callback' => $callback, 'priority' => $priority ];
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'callback' => $callback,
+					'priority' => $priority,
+				];
 
 				return true;
 			}

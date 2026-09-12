@@ -21,7 +21,7 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
-				return parse_url( $url, $component );
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
 			}
 		);
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );

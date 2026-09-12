@@ -35,7 +35,10 @@ final class RedirectsModuleTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook, mixed $callback, int $priority = 10 ): bool {
-				$this->hooks[] = [ 'hook' => $hook, 'priority' => $priority ];
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'priority' => $priority,
+				];
 
 				return true;
 			}
@@ -63,12 +66,12 @@ final class RedirectsModuleTest extends TestCase {
 
 	public function test_disabled_module_boots_zero_hooks(): void {
 		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $default = false ): mixed {
+			static function ( string $key, mixed $fallback = false ): mixed {
 				if ( 'rankkernel_modules' === $key ) {
 					return [];
 				}
 
-				return $default;
+				return $fallback;
 			}
 		);
 		Functions\expect( 'add_action' )->never();
@@ -90,12 +93,12 @@ final class RedirectsModuleTest extends TestCase {
 
 	public function test_enabled_module_registers_dispatch_hook(): void {
 		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $default = false ): mixed {
+			static function ( string $key, mixed $fallback = false ): mixed {
 				if ( 'rankkernel_modules' === $key ) {
 					return [ 'redirects' ];
 				}
 
-				return $default;
+				return $fallback;
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );

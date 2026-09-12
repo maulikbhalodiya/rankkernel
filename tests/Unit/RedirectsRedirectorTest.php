@@ -94,7 +94,7 @@ final class RedirectsRedirectorTest extends TestCase {
 		}
 
 		$this->db        = new RedirectsFakeDb();
-		$GLOBALS['wpdb'] = $this->db;
+		$GLOBALS['wpdb'] = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
 			$this->originalUri = $_SERVER['REQUEST_URI'];
@@ -104,27 +104,27 @@ final class RedirectsRedirectorTest extends TestCase {
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
-				return parse_url( $url, $component );
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
 			}
 		);
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );
 		Functions\when( 'wp_allowed_protocols' )->alias( static fn (): array => [ 'http', 'https' ] );
-		Functions\when( 'is_admin' )->alias( function (): bool => $this->isAdmin );
-		Functions\when( 'wp_doing_ajax' )->alias( function (): bool => $this->isAjax );
-		Functions\when( 'wp_doing_cron' )->alias( function (): bool => $this->isCron );
+		Functions\when( 'is_admin' )->alias( fn (): bool => $this->isAdmin );
+		Functions\when( 'wp_doing_ajax' )->alias( fn (): bool => $this->isAjax );
+		Functions\when( 'wp_doing_cron' )->alias( fn (): bool => $this->isCron );
 		Functions\when( 'get_query_var' )->alias(
-			function ( string $key, mixed $default = '' ): mixed {
+			function ( string $key, mixed $fallback = '' ): mixed {
 				if ( 'rankkernel_sitemap' === $key ) {
 					return $this->sitemapVar;
 				}
 
-				return $default;
+				return $fallback;
 			}
 		);
 		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $default = false ): mixed {
-				return $this->options[ $key ] ?? $default;
+			function ( string $key, mixed $fallback = false ): mixed {
+				return $this->options[ $key ] ?? $fallback;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
@@ -149,7 +149,10 @@ final class RedirectsRedirectorTest extends TestCase {
 		);
 		Functions\when( 'wp_redirect' )->alias(
 			function ( string $location, int $status = 302 ): bool {
-				$this->redirects[] = [ 'location' => $location, 'status' => $status ];
+				$this->redirects[] = [
+					'location' => $location,
+					'status'   => $status,
+				];
 
 				return true;
 			}
@@ -159,10 +162,12 @@ final class RedirectsRedirectorTest extends TestCase {
 				$this->statuses[] = $code;
 			}
 		);
-		Functions\when( 'header' )->alias( static fn ( string $header ): bool => true );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook, mixed $callback, int $priority = 10 ): bool {
-				$this->hooks[] = [ 'hook' => $hook, 'priority' => $priority ];
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'priority' => $priority,
+				];
 
 				return true;
 			}
@@ -172,7 +177,8 @@ final class RedirectsRedirectorTest extends TestCase {
 				$this->actions[] = $hook;
 			}
 		);
-		Functions\when( 'current_time' )->alias( static fn ( string $type ): string => '2026-01-01 00:00:00' );
+		Functions\when( 'current_time' )->alias( static fn (): string => '2026-01-01 00:00:00' );
+		Functions\when( 'wp_unslash' )->alias( static fn ( string $v ): string => stripslashes( $v ) );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v ): string => $v );
 	}
 
@@ -203,7 +209,13 @@ final class RedirectsRedirectorTest extends TestCase {
 	 */
 	private function seedExact( string $source = '/old', string $target = '/new', string $code = '301' ): void {
 		$repo = new RedirectRepository( $this->db );
-		$id   = $repo->insert( [ 'source' => $source, 'target' => $target, 'code' => $code ] );
+		$id   = $repo->insert(
+			[
+				'source' => $source,
+				'target' => $target,
+				'code'   => $code,
+			]
+		);
 
 		$this->assertGreaterThan( 0, $id, 'Seed rule must insert' );
 	}
@@ -211,7 +223,7 @@ final class RedirectsRedirectorTest extends TestCase {
 	public function test_cold_miss_exact_runs_one_indexed_lookup(): void {
 		$this->seedExact();
 
-		$readsBefore = $this->db->reads;
+		$readsBefore = $this->db->ruleReads;
 
 		$_SERVER['REQUEST_URI'] = '/old';
 
@@ -220,7 +232,7 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertCount( 1, $this->redirects );
 		$this->assertSame( '/new', $this->redirects[0]['location'] );
 		$this->assertSame( 301, $this->redirects[0]['status'] );
-		$this->assertSame( 1, $this->db->reads - $readsBefore, 'Cold exact miss must cost one indexed lookup' );
+		$this->assertSame( 1, $this->db->ruleReads - $readsBefore, 'Cold exact miss must cost one indexed lookup' );
 	}
 
 	public function test_cache_hit_runs_zero_rule_queries(): void {
@@ -232,20 +244,20 @@ final class RedirectsRedirectorTest extends TestCase {
 
 		Redirector::resetSent();
 
-		$readsAfterFirst = $this->db->reads;
+		$readsAfterFirst = $this->db->ruleReads;
 
 		$this->dispatcher()->maybeRedirect();
 
 		$this->assertCount( 2, $this->redirects );
-		$this->assertSame( $readsAfterFirst, $this->db->reads, 'Cache hit must run zero rule queries' );
+		$this->assertSame( $readsAfterFirst, $this->db->ruleReads, 'Cache hit must run zero rule queries' );
 	}
 
 	public function test_admin_requests_skipped(): void {
 		$this->seedExact();
 
-		$this->isAdmin             = true;
-		$_SERVER['REQUEST_URI']    = '/old';
-		$readsBefore               = $this->db->reads;
+		$this->isAdmin          = true;
+		$_SERVER['REQUEST_URI'] = '/old';
+		$readsBefore            = $this->db->reads;
 
 		$this->dispatcher()->maybeRedirect();
 
@@ -256,8 +268,8 @@ final class RedirectsRedirectorTest extends TestCase {
 	public function test_ajax_requests_skipped(): void {
 		$this->seedExact();
 
-		$this->isAjax             = true;
-		$_SERVER['REQUEST_URI']   = '/old';
+		$this->isAjax           = true;
+		$_SERVER['REQUEST_URI'] = '/old';
 
 		$this->dispatcher()->maybeRedirect();
 
@@ -267,8 +279,8 @@ final class RedirectsRedirectorTest extends TestCase {
 	public function test_cron_requests_skipped(): void {
 		$this->seedExact();
 
-		$this->isCron             = true;
-		$_SERVER['REQUEST_URI']   = '/old';
+		$this->isCron           = true;
+		$_SERVER['REQUEST_URI'] = '/old';
 
 		$this->dispatcher()->maybeRedirect();
 
@@ -278,8 +290,8 @@ final class RedirectsRedirectorTest extends TestCase {
 	public function test_sitemap_requests_skipped(): void {
 		$this->seedExact();
 
-		$this->sitemapVar          = 'post';
-		$_SERVER['REQUEST_URI']    = '/old';
+		$this->sitemapVar       = 'post';
+		$_SERVER['REQUEST_URI'] = '/old';
 
 		$this->dispatcher()->maybeRedirect();
 

@@ -59,13 +59,20 @@ final class Normalizer {
 			return '/';
 		}
 
-		$parts = wp_parse_url( $path );
-
-		if ( is_array( $parts ) && isset( $parts['path'] ) && is_string( $parts['path'] ) && '' !== $parts['path'] ) {
-			$path = $parts['path'];
-		} else {
+		if ( '/' === substr( $path, 0, 1 ) ) {
 			$cut  = strcspn( $path, '?#' );
 			$path = substr( $path, 0, $cut );
+		} else {
+			$parts = wp_parse_url( $path );
+
+			if ( is_array( $parts ) && isset( $parts['path'] ) && '' !== $parts['path'] ) {
+				$path = $parts['path'];
+			} elseif ( is_array( $parts ) && isset( $parts['host'] ) ) {
+				$path = '/';
+			} else {
+				$cut  = strcspn( $path, '?#' );
+				$path = substr( $path, 0, $cut );
+			}
 		}
 
 		$collapsed = preg_replace( '#/+#', '/', $path );
@@ -165,7 +172,7 @@ final class Normalizer {
 
 		$parts = wp_parse_url( $home );
 
-		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) || ! is_string( $parts['path'] ) ) {
+		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) ) {
 			return '';
 		}
 

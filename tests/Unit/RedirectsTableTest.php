@@ -29,12 +29,12 @@ final class RedirectsTableTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
-		$this->db            = new RedirectsFakeDb();
-		$GLOBALS['wpdb']     = $this->db;
-		$this->dbDeltaCalls  = 0;
+		$this->db           = new RedirectsFakeDb();
+		$GLOBALS['wpdb']    = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
+		$this->dbDeltaCalls = 0;
 
 		Functions\when( 'dbDelta' )->alias(
-			function ( string $sql ): void {
+			function (): void {
 				++$this->dbDeltaCalls;
 				$this->db->tableExists = true;
 			}

@@ -75,8 +75,10 @@ final class HitCounter {
 		$now   = function_exists( 'current_time' ) ? (string) current_time( 'mysql' ) : gmdate( 'Y-m-d H:i:s' );
 
 		foreach ( $this->pending as $ruleId => $increments ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single coalesced counter UPDATE per rule with placeholders.
-			$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET hits = hits + %d, last_accessed = %s WHERE id = %d", $increments, $now, $ruleId ) );
+			$sql = "UPDATE `{$table}` SET hits = hits + %d, last_accessed = %s WHERE id = %d";
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single coalesced counter UPDATE per rule with placeholders through prepare unpacking.
+			$wpdb->query( $wpdb->prepare( $sql, $increments, $now, $ruleId ) );
 		}
 
 		$this->pending = [];

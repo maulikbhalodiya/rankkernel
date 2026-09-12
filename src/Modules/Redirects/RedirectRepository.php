@@ -394,12 +394,12 @@ final class RedirectRepository {
 			}
 		}
 
-		$activeFilters            = $args;
-		$activeFilters['status']  = 'active';
-		$inactiveFilters          = $args;
+		$activeFilters             = $args;
+		$activeFilters['status']   = 'active';
+		$inactiveFilters           = $args;
 		$inactiveFilters['status'] = 'inactive';
-		$activeCount              = $this->count( $activeFilters );
-		$inactiveCount            = $this->count( $inactiveFilters );
+		$activeCount               = $this->count( $activeFilters );
+		$inactiveCount             = $this->count( $inactiveFilters );
 
 		return [
 			'rows'     => $clean,
@@ -554,7 +554,7 @@ final class RedirectRepository {
 	 * Build the shared WHERE clause plus params for filtered queries.
 	 *
 	 * @param array<string, mixed> $filters Search, match_type, code, status.
-	 * @return array{0: string, 1: array<int, mixed>} Clause and params.
+	 * @return array{0: string, 1: list<string>} Clause and params.
 	 */
 	private function filteredWhere( array $filters ): array {
 		$where  = 'WHERE 1=1';
@@ -564,7 +564,7 @@ final class RedirectRepository {
 
 		if ( '' !== $search ) {
 			$where   .= ' AND (source LIKE %s OR target LIKE %s)';
-			$like    = '%' . $this->likeEscape( $search ) . '%';
+			$like     = '%' . $this->likeEscape( $search ) . '%';
 			$params[] = $like;
 			$params[] = $like;
 		}
@@ -597,7 +597,7 @@ final class RedirectRepository {
 	/**
 	 * Count rows for a prebuilt WHERE clause plus params.
 	 *
-	 * @param array{0: string, 1: array<int, mixed>} $filtered Clause and params.
+	 * @param array{0: string, 1: list<string>} $filtered Clause and params.
 	 * @return int Row count.
 	 */
 	private function countFiltered( array $filtered ): int {

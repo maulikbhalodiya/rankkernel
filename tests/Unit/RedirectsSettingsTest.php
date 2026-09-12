@@ -34,14 +34,18 @@ final class RedirectsSettingsTest extends TestCase {
 		\Brain\Monkey\setUp();
 
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $default = false ): mixed {
-				return $this->options[ $key ] ?? $default;
+			function ( string $key, mixed $fallback = false ): mixed {
+				return $this->options[ $key ] ?? $fallback;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
 			function ( string $key, mixed $value, mixed $autoload = null ): bool {
 				$this->options[ $key ] = $value;
-				$this->updates[]        = [ 'option' => $key, 'value' => $value, 'autoload' => $autoload ];
+				$this->updates[]       = [
+					'option'   => $key,
+					'value'    => $value,
+					'autoload' => $autoload,
+				];
 
 				return true;
 			}

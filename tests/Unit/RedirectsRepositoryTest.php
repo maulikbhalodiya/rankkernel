@@ -45,18 +45,18 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->db   = new RedirectsFakeDb();
 		$this->repo = new RedirectRepository( $this->db );
 
-		$GLOBALS['wpdb'] = $this->db;
+		$GLOBALS['wpdb'] = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
-				return parse_url( $url, $component );
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
 			}
 		);
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );
-		Functions\when( 'current_time' )->alias( static fn ( string $type ): string => '2026-01-01 00:00:00' );
+		Functions\when( 'current_time' )->alias( static fn (): string => '2026-01-01 00:00:00' );
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $default = false ): mixed {
-				return $this->options[ $key ] ?? $default;
+			function ( string $key, mixed $fallback = false ): mixed {
+				return $this->options[ $key ] ?? $fallback;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
@@ -96,26 +96,69 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_insert_rejects_homepage_source(): void {
-		$this->assertSame( 0, $this->repo->insert( [ 'source' => '/', 'target' => '/new' ] ) );
+		$this->assertSame(
+			0,
+			$this->repo->insert(
+				[
+					'source' => '/',
+					'target' => '/new',
+				]
+			)
+		);
 	}
 
 	public function test_insert_rejects_empty_target_for_redirect_code(): void {
-		$this->assertSame( 0, $this->repo->insert( [ 'source' => '/old', 'target' => '' ] ) );
+		$this->assertSame(
+			0,
+			$this->repo->insert(
+				[
+					'source' => '/old',
+					'target' => '',
+				]
+			)
+		);
 	}
 
 	public function test_insert_allows_empty_target_for_gone(): void {
-		$id = $this->repo->insert( [ 'source' => '/old', 'target' => '', 'code' => '410' ] );
+		$id = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '',
+				'code'   => '410',
+			]
+		);
 
 		$this->assertSame( 1, $id );
 	}
 
 	public function test_insert_blocks_duplicates_by_uniqueness(): void {
-		$this->assertSame( 1, $this->repo->insert( [ 'source' => '/old', 'target' => '/a' ] ) );
-		$this->assertSame( 0, $this->repo->insert( [ 'source' => '/old', 'target' => '/b' ] ) );
+		$this->assertSame(
+			1,
+			$this->repo->insert(
+				[
+					'source' => '/old',
+					'target' => '/a',
+				]
+			)
+		);
+		$this->assertSame(
+			0,
+			$this->repo->insert(
+				[
+					'source' => '/old',
+					'target' => '/b',
+				]
+			)
+		);
 	}
 
 	public function test_find_and_lookup_resolve_by_hash(): void {
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$hash  = Normalizer::hash( 'exact', '/old' );
 		$found = $this->repo->find( 'exact', $hash );
@@ -134,7 +177,12 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_update_rehashes_changed_source(): void {
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$this->assertTrue( $this->repo->update( 1, [ 'source' => '/other' ] ) );
 		$this->assertNull( $this->repo->lookup( '/old' ) );
@@ -146,13 +194,23 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_update_rejects_unknown_fields_only(): void {
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$this->assertFalse( $this->repo->update( 1, [ 'nope' => 'x' ] ) );
 	}
 
 	public function test_delete_removes_row(): void {
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$this->assertTrue( $this->repo->delete( 1 ) );
 		$this->assertNull( $this->repo->lookup( '/old' ) );
@@ -160,16 +218,40 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_set_active_flips_flag(): void {
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$this->assertTrue( $this->repo->set_active( 1, false ) );
 		$this->assertSame( 0, (int) $this->db->rows[1]['is_active'] );
 	}
 
 	public function test_all_patterns_excludes_exact_and_inactive(): void {
-		$this->repo->insert( [ 'source' => '/a', 'target' => '/x', 'match_type' => 'exact' ] );
-		$this->repo->insert( [ 'source' => '/b', 'target' => '/x', 'match_type' => 'prefix' ] );
-		$this->repo->insert( [ 'source' => '/c', 'target' => '/x', 'match_type' => 'prefix', 'is_active' => 0 ] );
+		$this->repo->insert(
+			[
+				'source'     => '/a',
+				'target'     => '/x',
+				'match_type' => 'exact',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'     => '/b',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'     => '/c',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+				'is_active'  => 0,
+			]
+		);
 
 		$patterns = $this->repo->all_patterns();
 
@@ -178,9 +260,29 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_paginate_search_filters_sort_counts(): void {
-		$this->repo->insert( [ 'source' => '/alpha', 'target' => '/x', 'match_type' => 'exact' ] );
-		$this->repo->insert( [ 'source' => '/beta', 'target' => '/x', 'match_type' => 'prefix', 'code' => '302' ] );
-		$this->repo->insert( [ 'source' => '/gamma', 'target' => '/x', 'match_type' => 'prefix', 'is_active' => 0 ] );
+		$this->repo->insert(
+			[
+				'source'     => '/alpha',
+				'target'     => '/x',
+				'match_type' => 'exact',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'     => '/beta',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+				'code'       => '302',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'     => '/gamma',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+				'is_active'  => 0,
+			]
+		);
 
 		$page = $this->repo->paginate( [ 'per_page' => 10 ] );
 
@@ -194,21 +296,49 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 1, $search['total'] );
 		$this->assertSame( '/alpha', $search['rows'][0]['source'] );
 
-		$filtered = $this->repo->paginate( [ 'match_type' => 'prefix', 'status' => 'active' ] );
+		$filtered = $this->repo->paginate(
+			[
+				'match_type' => 'prefix',
+				'status'     => 'active',
+			]
+		);
 
 		$this->assertSame( 1, $filtered['total'] );
 		$this->assertSame( '/beta', $filtered['rows'][0]['source'] );
 
-		$sorted = $this->repo->paginate( [ 'orderby' => 'source', 'order' => 'ASC', 'per_page' => 10 ] );
+		$sorted = $this->repo->paginate(
+			[
+				'orderby'  => 'source',
+				'order'    => 'ASC',
+				'per_page' => 10,
+			]
+		);
 
 		$this->assertSame( '/alpha', $sorted['rows'][0]['source'] );
 		$this->assertSame( '/beta', $sorted['rows'][1]['source'] );
 	}
 
 	public function test_bulk_activate_deactivate_delete(): void {
-		$this->repo->insert( [ 'source' => '/a', 'target' => '/x', 'is_active' => 0 ] );
-		$this->repo->insert( [ 'source' => '/b', 'target' => '/x', 'is_active' => 0 ] );
-		$this->repo->insert( [ 'source' => '/c', 'target' => '/x' ] );
+		$this->repo->insert(
+			[
+				'source'    => '/a',
+				'target'    => '/x',
+				'is_active' => 0,
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'    => '/b',
+				'target'    => '/x',
+				'is_active' => 0,
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/c',
+				'target' => '/x',
+			]
+		);
 
 		$activated = $this->repo->bulk( 'activate', [ 1, 2 ] );
 
@@ -231,8 +361,20 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_count_with_filters(): void {
-		$this->repo->insert( [ 'source' => '/a', 'target' => '/x', 'code' => '301' ] );
-		$this->repo->insert( [ 'source' => '/b', 'target' => '/x', 'code' => '302' ] );
+		$this->repo->insert(
+			[
+				'source' => '/a',
+				'target' => '/x',
+				'code'   => '301',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/x',
+				'code'   => '302',
+			]
+		);
 
 		$this->assertSame( 2, $this->repo->count() );
 		$this->assertSame( 1, $this->repo->count( [ 'code' => '302' ] ) );
@@ -240,9 +382,27 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_cycle_candidates_exclude_terminal_and_inactive(): void {
-		$this->repo->insert( [ 'source' => '/a', 'target' => '/b', 'code' => '301' ] );
-		$this->repo->insert( [ 'source' => '/gone', 'target' => '', 'code' => '410' ] );
-		$this->repo->insert( [ 'source' => '/off', 'target' => '/b', 'is_active' => 0 ] );
+		$this->repo->insert(
+			[
+				'source' => '/a',
+				'target' => '/b',
+				'code'   => '301',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/gone',
+				'target' => '',
+				'code'   => '410',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'    => '/off',
+				'target'    => '/b',
+				'is_active' => 0,
+			]
+		);
 
 		$candidates = $this->repo->find_cycle_candidates();
 
@@ -251,8 +411,18 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	public function test_export_rows_all_and_selected(): void {
-		$this->repo->insert( [ 'source' => '/a', 'target' => '/x' ] );
-		$this->repo->insert( [ 'source' => '/b', 'target' => '/y' ] );
+		$this->repo->insert(
+			[
+				'source' => '/a',
+				'target' => '/x',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/y',
+			]
+		);
 
 		$this->assertCount( 2, $this->repo->export_rows() );
 
@@ -268,7 +438,12 @@ final class RedirectsRepositoryTest extends TestCase {
 
 		$before = (string) get_option( RedirectCache::VALIDATOR_OPTION, '' );
 
-		$this->repo->insert( [ 'source' => '/old', 'target' => '/new' ] );
+		$this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+			]
+		);
 
 		$after = (string) ( $this->options[ RedirectCache::VALIDATOR_OPTION ] ?? '' );
 
@@ -288,7 +463,15 @@ final class RedirectsRepositoryTest extends TestCase {
 
 		$this->assertNull( $repo->lookup( '/old' ) );
 		$this->assertSame( [], $repo->all_patterns() );
-		$this->assertSame( 0, $repo->insert( [ 'source' => '/old', 'target' => '/new' ] ) );
+		$this->assertSame(
+			0,
+			$repo->insert(
+				[
+					'source' => '/old',
+					'target' => '/new',
+				]
+			)
+		);
 		$this->assertFalse( $repo->delete( 1 ) );
 	}
 }

@@ -42,6 +42,11 @@ final class RedirectsFakeDb {
 	public int $reads = 0;
 
 	/**
+	 * Rule table query count, schema probes excluded.
+	 */
+	public int $ruleReads = 0;
+
+	/**
 	 * Write query count.
 	 */
 	public int $writes = 0;
@@ -93,6 +98,7 @@ final class RedirectsFakeDb {
 	 */
 	public function get_var( string $query ): mixed {
 		++$this->reads;
+		$this->noteRuleRead( $query );
 
 		if ( false !== strpos( $query, 'SHOW TABLES LIKE' ) ) {
 			return $this->tableExists ? $this->table() : null;
@@ -110,8 +116,9 @@ final class RedirectsFakeDb {
 	 *
 	 * @param mixed $output Ignored, rows are always arrays.
 	 */
-	public function get_row( string $query, mixed $output = 'ARRAY_A' ): ?array {
+	public function get_row( string $query, mixed $output = 'ARRAY_A' ): ?array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->reads;
+		$this->noteRuleRead( $query );
 
 		$rows = $this->filterRows( $query );
 
@@ -123,8 +130,9 @@ final class RedirectsFakeDb {
 	 *
 	 * @param mixed $output Ignored, rows are always arrays.
 	 */
-	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array {
+	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->reads;
+		$this->noteRuleRead( $query );
 
 		return $this->filterRows( $query );
 	}
@@ -135,19 +143,19 @@ final class RedirectsFakeDb {
 	 * @param array<string, mixed> $data Row data.
 	 * @param mixed                $format Ignored.
 	 */
-	public function insert( string $table, array $data, mixed $format = null ): mixed {
+	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		foreach ( $this->rows as $row ) {
-			if ( (string) $row['match_type'] === (string) ( $data['match_type'] ?? '' )
-				&& (string) $row['source_hash'] === (string) ( $data['source_hash'] ?? '' ) ) {
+			if ( (string) ( $data['match_type'] ?? '' ) === (string) $row['match_type']
+				&& (string) ( $data['source_hash'] ?? '' ) === (string) $row['source_hash'] ) {
 				return false;
 			}
 		}
 
 		++$this->writes;
 
-		$id                 = $this->nextId++;
-		$this->rows[ $id ]  = array_merge( $data, [ 'id' => $id ] );
-		$this->insert_id    = $id;
+		$id                = $this->nextId++;
+		$this->rows[ $id ] = array_merge( $data, [ 'id' => $id ] );
+		$this->insert_id   = $id;
 
 		return 1;
 	}
@@ -158,7 +166,7 @@ final class RedirectsFakeDb {
 	 * @param array<string, mixed> $data Row data.
 	 * @param array<string, mixed> $where Where map.
 	 */
-	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed {
+	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
 		$affected = 0;
@@ -178,7 +186,7 @@ final class RedirectsFakeDb {
 	 *
 	 * @param array<string, mixed> $where Where map.
 	 */
-	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed {
+	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
 		$deleted = 0;
@@ -198,6 +206,7 @@ final class RedirectsFakeDb {
 	 */
 	public function query( string $query ): mixed {
 		++$this->writes;
+		$this->noteRuleRead( $query );
 
 		$hit = [];
 
@@ -266,6 +275,21 @@ final class RedirectsFakeDb {
 	}
 
 	/**
+	 * Count rule table queries, schema probes excluded.
+	 */
+	private function noteRuleRead( string $query ): void {
+		if ( 0 === strpos( ltrim( $query ), 'SHOW' ) ) {
+			return;
+		}
+
+		if ( false === strpos( $query, 'rankkernel_redirects' ) ) {
+			return;
+		}
+
+		++$this->ruleReads;
+	}
+
+	/**
 	 * Whether a row matches a where map.
 	 *
 	 * @param array<string, mixed> $row Row.
@@ -286,10 +310,10 @@ final class RedirectsFakeDb {
 	 *
 	 * @return int[]
 	 */
-	private function wantedIds( string $list ): array {
+	private function wantedIds( string $idList ): array {
 		$ids = [];
 
-		foreach ( explode( ',', $list ) as $part ) {
+		foreach ( explode( ',', $idList ) as $part ) {
 			$id = (int) trim( $part );
 
 			if ( $id > 0 ) {
@@ -306,7 +330,7 @@ final class RedirectsFakeDb {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function filterRows( string $sql ): array {
-		$rows = array_values( $this->rows );
+		$rows  = array_values( $this->rows );
 		$match = [];
 
 		if ( 1 === preg_match( "/match_type = '([a-z]+)'/", $sql, $match ) ) {
@@ -363,7 +387,7 @@ final class RedirectsFakeDb {
 
 		$likeMatches = [];
 
-		if ( 1 === preg_match_all( "/LIKE '%([^']*)%'/", $sql, $likeMatches ) ) {
+		if ( 0 < preg_match_all( "/LIKE '%([^']*)%'/", $sql, $likeMatches ) ) {
 			$needles = $likeMatches[1];
 			$rows    = array_values(
 				array_filter(
