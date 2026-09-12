@@ -368,6 +368,17 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->statuses );
 	}
 
+	public function test_crlf_destination_never_sent(): void {
+		$this->seedExact( '/split', "/new\r\nLocation: https://evil.example/" );
+
+		$_SERVER['REQUEST_URI'] = '/split';
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertSame( [], $this->redirects );
+		$this->assertSame( [], $this->statuses );
+	}
+
 	public function test_missing_table_fails_open(): void {
 		$this->db->tableExists = false;
 

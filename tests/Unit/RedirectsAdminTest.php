@@ -944,4 +944,195 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'value="/a"', $html );
 		$this->assertStringContainsString( 'value="/b"', $html );
 	}
+
+	/**
+	 * Missing capability stops a row action with 403.
+	 */
+	public function test_row_action_without_capability_dies(): void {
+		$this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_GET                      = [
+			'rk_action' => 'delete',
+			'rule'      => '1',
+			'_wpnonce'  => 'valid',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Missing capability stops a bulk action with 403.
+	 */
+	public function test_bulk_without_capability_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_bulk' => '1',
+			'_wpnonce'                 => 'valid',
+			'rk_bulk_action'           => 'delete',
+			'rule_ids'                 => [ '1' ],
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a bulk action.
+	 */
+	public function test_bulk_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_bulk' => '1',
+			'_wpnonce'                 => 'bad',
+			'rk_bulk_action'           => 'delete',
+			'rule_ids'                 => [ '1' ],
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a settings save.
+	 */
+	public function test_settings_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_settings_save' => '1',
+			'_wpnonce'                          => 'bad',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a CSV import.
+	 */
+	public function test_import_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'bad',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a CSV export.
+	 */
+	public function test_export_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_GET                      = [
+			'rk_action' => 'export',
+			'_wpnonce'  => 'bad',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
 }

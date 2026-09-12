@@ -757,4 +757,163 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'rk-clear-form', $html );
 		$this->assertStringContainsString( 'Manual clearing is separate', $html );
 	}
+
+	/**
+	 * Missing capability stops a row delete with 403.
+	 */
+	public function test_row_delete_without_capability_dies(): void {
+		$this->seedEntry( '/a' );
+
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_GET                      = [
+			'rk_action' => 'delete',
+			'entry'     => '1',
+			'_wpnonce'  => 'valid',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Missing capability stops a bulk delete with 403.
+	 */
+	public function test_bulk_without_capability_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_404_bulk' => '1',
+			'_wpnonce'            => 'valid',
+			'rk_bulk_action'      => 'delete',
+			'entry_ids'           => [ '1' ],
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a bulk delete.
+	 */
+	public function test_bulk_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_404_bulk' => '1',
+			'_wpnonce'            => 'bad',
+			'rk_bulk_action'      => 'delete',
+			'entry_ids'           => [ '1' ],
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Missing capability stops a settings save with 403.
+	 */
+	public function test_settings_without_capability_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_404_settings_save' => '1',
+			'_wpnonce'                     => 'valid',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
+
+	/**
+	 * Failed nonce stops a settings save.
+	 */
+	public function test_settings_with_bad_nonce_dies(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_404_settings_save' => '1',
+			'_wpnonce'                     => 'bad',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			ob_end_clean();
+		}
+	}
 }
