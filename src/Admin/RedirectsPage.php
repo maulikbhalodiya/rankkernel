@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace RankKernel\Admin;
 
+use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectRepository;
@@ -56,6 +57,16 @@ final class RedirectsPage {
 	 * Nonce action for the settings form.
 	 */
 	private const NONCE_SETTINGS = 'rankkernel_redirect_settings';
+
+	/**
+	 * Nonce action for the CSV import form.
+	 */
+	private const NONCE_IMPORT = 'rankkernel_redirect_import';
+
+	/**
+	 * Nonce action for the CSV export download.
+	 */
+	private const NONCE_EXPORT = 'rankkernel_redirect_export';
 
 	/**
 	 * Sortable columns shown in the list.
@@ -111,6 +122,13 @@ final class RedirectsPage {
 	private bool $hasFormAttempt = false;
 
 	/**
+	 * CSV import outcome kept on the page for the result card.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private ?array $importResult = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param RedirectRepository|null   $repository           Rule repository, fresh one when null.
@@ -164,12 +182,26 @@ final class RedirectsPage {
 
 				return;
 			}
+
+			// Marker read only, the import branch verifies its nonce in requireAccess.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['rankkernel_redirect_import'] ) ) {
+				$this->handleImport();
+
+				return;
+			}
 		}
 
 		// Read only routing flag, the row handler verifies capability plus nonce.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$rawAction = isset( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';
 		$action    = sanitize_key( $rawAction );
+
+		if ( 'export' === $action ) {
+			$this->handleExport();
+
+			return;
+		}
 
 		if ( in_array( $action, [ 'delete', 'activate', 'deactivate' ], true ) ) {
 			$this->handleRowAction( $action );
@@ -212,6 +244,7 @@ final class RedirectsPage {
 		$this->renderHeader();
 		$this->renderForm();
 		$this->renderList();
+		$this->renderImportExport();
 		$this->renderSettings();
 
 		echo '</div>';
@@ -645,6 +678,116 @@ final class RedirectsPage {
 		$this->redirectSettings->set( $partial );
 
 		$this->redirect( '&rk_notice=settings' );
+	}
+
+	/**
+	 * Latest CSV import outcome, null when no import ran on this load.
+	 *
+	 * @return array<string, mixed>|null Import summary with per row details.
+	 */
+	public function import_result(): ?array {
+		return $this->importResult;
+	}
+
+	/**
+	 * Current rules rendered as a CSV string under the documented contract.
+	 *
+	 * @return string CSV document with the header row first.
+	 */
+	public function export_csv_string(): string {
+		$handler = new CsvHandler( $this->repository );
+
+		return $handler->export_csv();
+	}
+
+	/**
+	 * Handle the CSV import form save, staying on the page with a report.
+	 *
+	 * The uploaded file is validated row by row through the normal pipeline.
+	 * The summary plus the per row error list renders below, without any
+	 * redirect, so the full detail survives.
+	 */
+	private function handleImport(): void {
+		$this->requireAccess( self::NONCE_IMPORT );
+
+		// Verified in requireAccess, checkbox presence is the value.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$updateExisting = isset( $_POST['rk_csv_update'] );
+
+		// Verified in requireAccess, upload metadata is read then validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$file = $_FILES['rk_csv_file'] ?? null;
+
+		if ( ! is_array( $file ) ) {
+			$this->importResult = $this->importFileError( __( 'Please choose a CSV file to import.', 'rankkernel' ) );
+
+			return;
+		}
+
+		$error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+
+		if ( UPLOAD_ERR_OK !== $error ) {
+			$this->importResult = $this->importFileError( __( 'That upload did not complete. Please try again.', 'rankkernel' ) );
+
+			return;
+		}
+
+		$tmp = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+
+		if ( '' === $tmp || ! is_readable( $tmp ) ) {
+			$this->importResult = $this->importFileError( __( 'The uploaded file could not be read.', 'rankkernel' ) );
+
+			return;
+		}
+
+		$handler = new CsvHandler( $this->repository, $this->validator, $this->destinationValidator );
+
+		$this->importResult = $handler->import_csv( $tmp, $updateExisting );
+	}
+
+	/**
+	 * Handle the CSV export download on the load hook, header safe.
+	 */
+	private function handleExport(): void {
+		$this->requireAccess( self::NONCE_EXPORT );
+
+		$csv = $this->export_csv_string();
+
+		if ( defined( 'RANKKERNEL_TESTING' ) ) {
+			return;
+		}
+
+		nocache_headers();
+
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=rankkernel-redirects-' . gmdate( 'Ymd-His' ) . '.csv' );
+
+		// CSV bytes are the download body, escaping would corrupt the format.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $csv;
+
+		exit;
+	}
+
+	/**
+	 * Wrap a file level import failure in the report shape.
+	 *
+	 * @param string $reason Translated reason.
+	 * @return array<string, mixed> Empty summary carrying one file error.
+	 */
+	private function importFileError( string $reason ): array {
+		return [
+			'created'  => 0,
+			'updated'  => 0,
+			'skipped'  => 0,
+			'errors'   => [
+				[
+					'row'    => 0,
+					'reason' => $reason,
+				],
+			],
+			'warnings' => [],
+		];
 	}
 
 	/**
@@ -1532,6 +1675,131 @@ final class RedirectsPage {
 			echo '<a class="button" href="' . esc_url( $this->pageUrl( array_merge( $base, [ 'rk_paged' => $page + 1 ] ) ) ) . '">';
 			echo esc_html__( 'Next', 'rankkernel' );
 			echo '</a>';
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the CSV import and export card.
+	 */
+	private function renderImportExport(): void {
+		$exportUrl = wp_nonce_url( $this->pageUrl( [ 'rk_action' => 'export' ] ), self::NONCE_EXPORT );
+
+		echo '<div class="rk-card" id="rk-redirect-csv">';
+		echo '<h2>' . esc_html__( 'Import and Export', 'rankkernel' ) . '</h2>';
+		echo '<p class="rk-sub">';
+		echo esc_html__( 'Move redirects in and out with a CSV file. Columns in order: source, target, code, match type, active, hits, last accessed. Hits and last accessed are export only and are ignored on import.', 'rankkernel' );
+		echo '</p>';
+
+		echo '<h3>' . esc_html__( 'Export', 'rankkernel' ) . '</h3>';
+		echo '<p><a class="button" href="' . esc_url( $exportUrl ) . '">';
+		echo esc_html__( 'Export Redirects', 'rankkernel' );
+		echo '</a></p>';
+
+		echo '<h3>' . esc_html__( 'Import', 'rankkernel' ) . '</h3>';
+		echo '<form method="post" action="" enctype="multipart/form-data">';
+		wp_nonce_field( self::NONCE_IMPORT );
+		echo '<p><label for="rk-csv-file">' . esc_html__( 'CSV file', 'rankkernel' ) . '</label><br />';
+		echo '<input type="file" id="rk-csv-file" name="rk_csv_file" accept=".csv,text/csv" /></p>';
+		echo '<p><label><input type="checkbox" name="rk_csv_update" value="1" /> ';
+		echo esc_html__( 'Update existing redirects when the source and match type already exist. Leave off to skip duplicates.', 'rankkernel' );
+		echo '</label></p>';
+		submit_button( __( 'Import Redirects', 'rankkernel' ), 'secondary', 'rankkernel_redirect_import', false );
+		echo '</form>';
+
+		$this->renderImportResult();
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the import summary plus the per row error list.
+	 */
+	private function renderImportResult(): void {
+		$result = $this->importResult;
+
+		if ( ! is_array( $result ) ) {
+			return;
+		}
+
+		$created = max( 0, (int) ( $result['created'] ?? 0 ) );
+		$updated = max( 0, (int) ( $result['updated'] ?? 0 ) );
+		$skipped = max( 0, (int) ( $result['skipped'] ?? 0 ) );
+		$errors  = isset( $result['errors'] ) && is_array( $result['errors'] ) ? $result['errors'] : [];
+
+		echo '<div class="rk-import-report">';
+		echo '<p><strong>' . esc_html(
+			sprintf(
+				/* translators: %1$d: created count, %2$d: updated count, %3$d: skipped count, %4$d: error count */
+				__( 'Import finished: %1$d created, %2$d updated, %3$d skipped, %4$d with errors.', 'rankkernel' ),
+				$created,
+				$updated,
+				$skipped,
+				count( $errors )
+			)
+		) . '</strong></p>';
+
+		if ( [] !== $errors ) {
+			echo '<ul class="rk-import-errors">';
+
+			foreach ( $errors as $error ) {
+				if ( ! is_array( $error ) ) {
+					continue;
+				}
+
+				$row    = max( 0, (int) ( $error['row'] ?? 0 ) );
+				$reason = (string) ( $error['reason'] ?? '' );
+
+				if ( $row > 0 ) {
+					echo '<li>' . esc_html(
+						sprintf(
+							/* translators: %1$d: CSV row number, %2$s: reason the row was rejected */
+							__( 'Row %1$d: %2$s', 'rankkernel' ),
+							$row,
+							$reason
+						)
+					) . '</li>';
+				} else {
+					echo '<li>' . esc_html( $reason ) . '</li>';
+				}
+			}
+
+			echo '</ul>';
+		}
+
+		$warnings = isset( $result['warnings'] ) && is_array( $result['warnings'] ) ? $result['warnings'] : [];
+
+		if ( [] !== $warnings ) {
+			echo '<ul class="rk-import-warnings">';
+
+			foreach ( $warnings as $warning ) {
+				if ( ! is_array( $warning ) ) {
+					continue;
+				}
+
+				$row     = max( 0, (int) ( $warning['row'] ?? 0 ) );
+				$message = (string) ( $warning['message'] ?? '' );
+
+				if ( '' === $message ) {
+					continue;
+				}
+
+				if ( $row > 0 ) {
+					echo '<li>' . esc_html(
+						sprintf(
+							/* translators: %1$d: CSV row number, %2$s: advisory warning text */
+							__( 'Row %1$d: %2$s', 'rankkernel' ),
+							$row,
+							$message
+						)
+					) . '</li>';
+				} else {
+					echo '<li>' . esc_html( $message ) . '</li>';
+				}
+			}
+
+			echo '</ul>';
 		}
 
 		echo '</div>';
