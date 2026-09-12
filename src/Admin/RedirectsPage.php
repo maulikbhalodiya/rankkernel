@@ -403,6 +403,21 @@ final class RedirectsPage {
 			return;
 		}
 
+		if ( $this->patternCapReached( $editingId, $proposed, $fields['is_active'] ) ) {
+			$this->stayWithErrors(
+				[
+					'blocked' => sprintf(
+						/* translators: %d: maximum active pattern rules */
+						__( 'The active pattern rule limit of %d is reached. Deactivate or delete a pattern rule before adding another.', 'rankkernel' ),
+						RedirectRepository::MAX_PATTERNS
+					),
+				],
+				$fields
+			);
+
+			return;
+		}
+
 		$row = [
 			'source'     => $clean['source'],
 			'match_type' => $clean['match_type'],
@@ -437,13 +452,50 @@ final class RedirectsPage {
 			if ( is_string( $chain['final'] ) && '' !== $chain['final'] ) {
 				$flags .= '&rk_final=' . rawurlencode( $chain['final'] );
 			}
-		} elseif ( $loop['inconclusive'] ) {
+		}
+
+		if ( $loop['inconclusive'] ) {
 			$flags .= '&rk_mayloop=1';
-		} elseif ( $chain['inconclusive'] ) {
+		}
+
+		if ( $chain['inconclusive'] ) {
 			$flags .= '&rk_chain_unknown=1';
 		}
 
 		$this->redirect( $flags );
+	}
+
+	/**
+	 * Whether saving the proposed rule would exceed the pattern cap.
+	 *
+	 * Rules already inside the active pattern set never count as growth, so
+	 * edits that keep a rule active keep passing at the limit.
+	 *
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $proposed  Proposed source, target, code, match type.
+	 * @param bool                 $isActive  Whether the proposed rule stays active.
+	 * @return bool True when the cap blocks this save.
+	 */
+	private function patternCapReached( int $editingId, array $proposed, bool $isActive ): bool {
+		if ( ! $isActive || 'exact' === (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		if ( $this->repository->count_patterns() < RedirectRepository::MAX_PATTERNS ) {
+			return false;
+		}
+
+		if ( $editingId > 0 ) {
+			$current = $this->repository->get( $editingId );
+
+			if ( is_array( $current )
+				&& 1 === (int) ( $current['is_active'] ?? 0 )
+				&& 'exact' !== (string) ( $current['match_type'] ?? 'exact' ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -489,9 +541,9 @@ final class RedirectsPage {
 		} elseif ( strlen( $sourceRaw ) > 2000 ) {
 			$errors['source'] = __( 'That source is too long. Please keep it under 2000 characters.', 'rankkernel' );
 		} else {
-			$source = Normalizer::normalize( $sourceRaw );
+			$source = Normalizer::normalizeSource( $sourceRaw, $matchType );
 
-			if ( Normalizer::isBlockedSource( $source ) ) {
+			if ( '' === $source || Normalizer::isBlockedSource( $source ) ) {
 				$errors['source'] = __( 'The home page cannot be used as a redirect source. Please enter a path such as /old page.', 'rankkernel' );
 			} elseif ( 'regex' === $matchType && ! $this->regexCompiles( $sourceRaw ) ) {
 				$errors['source'] = __( 'That regex pattern could not be compiled. Please check the pattern and try again.', 'rankkernel' );
@@ -747,11 +799,13 @@ final class RedirectsPage {
 
 	/**
 	 * Handle the CSV export download on the load hook, header safe.
+	 *
+	 * Production streams row batches straight to the download, so export
+	 * memory stays flat however many rules exist. Tests stay on the string
+	 * path, which returns the identical bytes.
 	 */
 	private function handleExport(): void {
 		$this->requireAccess( self::NONCE_EXPORT );
-
-		$csv = $this->export_csv_string();
 
 		if ( defined( 'RANKKERNEL_TESTING' ) ) {
 			return;
@@ -762,9 +816,8 @@ final class RedirectsPage {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename=rankkernel-redirects-' . gmdate( 'Ymd-His' ) . '.csv' );
 
-		// CSV bytes are the download body, escaping would corrupt the format.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo $csv;
+		$handler = new CsvHandler( $this->repository );
+		$handler->stream_csv();
 
 		exit;
 	}
@@ -981,7 +1034,7 @@ final class RedirectsPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['rk_mayloop'] ) ) {
 			echo '<div class="notice notice-warning is-dismissible"><p>';
-			echo esc_html__( 'This redirect may loop through a pattern rule. Please verify it manually.', 'rankkernel' );
+			echo esc_html__( 'The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually.', 'rankkernel' );
 			echo '</p></div>';
 		}
 
