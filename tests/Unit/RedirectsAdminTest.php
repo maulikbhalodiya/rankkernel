@@ -1135,4 +1135,82 @@ final class RedirectsAdminTest extends TestCase {
 			ob_end_clean();
 		}
 	}
+
+	/**
+	 * Loop plus chain inconclusive saves with both flags, never a clean pass.
+	 */
+	public function test_inconclusive_loop_and_chain_saves_with_both_flags(): void {
+		$this->seedRule( '/old-.*', '/new', '301', 'regex' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source' => '/a',
+				'rk_target' => '/old-123',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 2, $this->db->rows );
+		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
+		$this->assertStringContainsString( 'rk_mayloop=1', $this->lastRedirect );
+		$this->assertStringContainsString( 'rk_chain_unknown=1', $this->lastRedirect );
+
+		$_GET = [
+			'rk_notice'        => 'saved',
+			'rk_mayloop'       => '1',
+			'rk_chain_unknown' => '1',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'could not fully verify', $html );
+	}
+
+	/**
+	 * A save past the pattern cap stays on the page with a clear message.
+	 */
+	public function test_add_pattern_past_cap_shows_limit_message(): void {
+		for ( $i = 1; $i <= 500; $i++ ) {
+			$this->db->rows[ $i ] = [
+				'id'            => $i,
+				'match_type'    => 'prefix',
+				'source_hash'   => hash( 'sha256', 'prefix|/cap-' . (string) $i ),
+				'source'        => '/cap-' . (string) $i,
+				'target'        => '/x',
+				'code'          => '301',
+				'is_active'     => 1,
+				'created'       => '2026-01-01 00:00:00',
+				'hits'          => 0,
+				'last_accessed' => null,
+			];
+		}
+
+		$this->db->nextId = 501;
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'     => '/one-more',
+				'rk_match_type' => 'prefix',
+				'rk_target'     => '/x',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 500, $this->db->rows );
+		$this->assertSame( '', $this->lastRedirect, 'A capped save must not redirect away' );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'pattern rule limit', $html );
+	}
 }
