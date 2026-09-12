@@ -18,9 +18,13 @@ The project standard is PSR4 file names, camelCase methods and variables, and sh
 
 ## 3. Whitespace
 
-New and touched files use WordPress whitespace: real tabs for indentation, inner spacing in control structures (`if ( ... )`) and function calls (`function_call( ... )`), spacing around `=` in assignments, and multiline layout for multi item associative arrays.
+Global rule, mandatory for every new file and every new block of code: use one real tab per indentation level. Never use four spaces. Never mix tabs and spaces in the same file. This applies to PHP, and to HTML, JS, and CSS the project authors.
 
-Deliberate no mass reformat policy. Files outside the enforcement map keep their current style until a task brings them into compliance. Never run repo wide `phpcbf`. Never reformat a file you did not otherwise change.
+WordPress whitespace also applies to new and touched code: inner spacing in control structures (`if ( ... )`) and function calls (`function_call( ... )`), spacing around `=` in assignments, and multiline layout for multi item associative arrays.
+
+Enforcement: every brand new module directory is added to the WordPress Extra include map in the same commit that creates it, so tab indentation and WordPress spacing are enforced from the first line. Entire new directories are enforced, not just individual files. Every path added to the WordPress Extra include list must be mirrored in the PSR12 exclude list in the same commit, because WordPress tabs and PSR12 spaces contradict each other and both rules must never cover the same file.
+
+Legacy migration: the existing `src/` tree predates this rule and is migrated progressively, file by file, as tasks touch it. Deliberate no mass reformat policy. Never run repo wide `phpcbf`. Never reformat a file you did not otherwise change.
 
 ## 4. Progressive enforcement map
 
