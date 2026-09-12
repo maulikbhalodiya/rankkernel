@@ -1,0 +1,152 @@
+<?php
+/**
+ * Redirects module, registration and boot.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace RankKernel\Modules\Redirects;
+
+use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\ModuleInterface;
+
+/**
+ * Redirects module, default off.
+ *
+ * Register wires services with no hooks: it ensures the table, seeds the
+ * settings option, and invalidates the match cache. Boot registers frontend
+ * hooks only when the module is enabled. Disabled means no class work and
+ * zero hooks, proven by test.
+ */
+class RedirectsModule implements ModuleInterface {
+	/**
+	 * Cached enabled check.
+	 */
+	private ?bool $enabledCache = null;
+
+	/**
+	 * Shared enable map.
+	 */
+	private ?ModuleEnableMap $enableMap;
+
+	/**
+	 * Redirector instance, built at boot.
+	 */
+	private ?Redirector $redirector = null;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param ModuleEnableMap|null $enableMap Optional shared enable map.
+	 */
+	public function __construct( ?ModuleEnableMap $enableMap = null ) {
+		$this->enableMap = $enableMap;
+	}
+
+	/**
+	 * Get module id.
+	 */
+	public function getId(): string {
+		return 'redirects';
+	}
+
+	/**
+	 * Get human readable name.
+	 */
+	public function getName(): string {
+		return __( 'Redirects', 'rankkernel' );
+	}
+
+	/**
+	 * Module priority.
+	 */
+	public function getPriority(): int {
+		return 40;
+	}
+
+	/**
+	 * Dependencies.
+	 *
+	 * @return string[]
+	 */
+	public function dependsOn(): array {
+		return [];
+	}
+
+	/**
+	 * Whether the module is enabled.
+	 */
+	public function isEnabled(): bool {
+		if ( null !== $this->enabledCache ) {
+			return $this->enabledCache;
+		}
+
+		if ( null !== $this->enableMap ) {
+			$this->enabledCache = $this->enableMap->isEnabled( 'redirects' );
+
+			return $this->enabledCache;
+		}
+
+		$map = get_option( 'rankkernel_modules', [] );
+
+		if ( ! is_array( $map ) ) {
+			$map = [];
+		}
+
+		if ( array_key_exists( 'redirects', $map ) ) {
+			$this->enabledCache = (bool) $map['redirects'];
+		} else {
+			$this->enabledCache = in_array( 'redirects', $map, true );
+		}
+
+		return $this->enabledCache;
+	}
+
+	/**
+	 * Wire services, no hooks.
+	 *
+	 * Ensures the table, seeds settings, flags schema readiness, and clears
+	 * the match cache so a toggle never serves stale matches.
+	 */
+	public function register(): void {
+		if ( ! $this->isEnabled() ) {
+			return;
+		}
+
+		RedirectTable::ensureTables();
+
+		$settings = new RedirectsSettings();
+		$settings->ensureSchema();
+
+		if ( RedirectTable::exists() ) {
+			$settings->set( [ 'schema_ok' => true ] );
+		}
+
+		RedirectCache::invalidateAll();
+	}
+
+	/**
+	 * Boot hooks, only when enabled.
+	 */
+	public function boot(): void {
+		if ( ! $this->isEnabled() ) {
+			return;
+		}
+
+		$redirector = new Redirector();
+
+		$this->redirector = $redirector;
+
+		$redirector->register();
+	}
+
+	/**
+	 * Get the redirector, for testing.
+	 */
+	public function getRedirector(): ?Redirector {
+		return $this->redirector;
+	}
+}

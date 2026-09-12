@@ -16,6 +16,7 @@ use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
+use RankKernel\Modules\Redirects\RedirectsModule;
 use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
 use RankKernel\Rest\ModulesController;
@@ -144,6 +145,10 @@ final class Plugin {
         // Sitemaps module (optional, default-ON per activation seed).
         $sitemapsModule = new SitemapsModule($enableMap);
         $moduleManager->register($sitemapsModule);
+
+        // Redirects module (optional, default off).
+        $redirectsModule = new RedirectsModule($enableMap);
+        $moduleManager->register($redirectsModule);
 
         add_action('init', [ $migrationRunner, 'maybeRun' ], 10);
 
