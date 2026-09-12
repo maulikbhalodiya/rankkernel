@@ -1,0 +1,1579 @@
+<?php
+/**
+ * Redirects admin page, form plus list plus settings.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace RankKernel\Admin;
+
+use RankKernel\Modules\Redirects\DestinationValidator;
+use RankKernel\Modules\Redirects\Normalizer;
+use RankKernel\Modules\Redirects\RedirectRepository;
+use RankKernel\Modules\Redirects\RedirectsSettings;
+use RankKernel\Modules\Redirects\Validator;
+use RankKernel\Plugin;
+
+/**
+ * Renders the Redirect Manager and handles its saves.
+ *
+ * The add and edit form, the searchable filterable sortable paginated list,
+ * and the module settings share one screen under the RankKernel menu. Saves
+ * run on the load hook so the redirect after save stays header safe. A loop
+ * finding blocks the save, a chain finding saves with a warning, and an
+ * inconclusive analysis saves with an informational notice.
+ */
+final class RedirectsPage {
+	/**
+	 * Menu slug for the screen.
+	 */
+	public const SLUG = 'rankkernel-redirects';
+
+	/**
+	 * Hook suffix for the screen, used to gate asset loading.
+	 */
+	public const HOOK_SUFFIX = 'rankkernel_page_rankkernel-redirects';
+
+	/**
+	 * Nonce action for the add and edit form.
+	 */
+	private const NONCE_SAVE = 'rankkernel_redirect_save';
+
+	/**
+	 * Nonce action for single row links.
+	 */
+	private const NONCE_ROW = 'rankkernel_redirect_row';
+
+	/**
+	 * Nonce action for bulk actions.
+	 */
+	private const NONCE_BULK = 'rankkernel_redirect_bulk';
+
+	/**
+	 * Nonce action for the settings form.
+	 */
+	private const NONCE_SETTINGS = 'rankkernel_redirect_settings';
+
+	/**
+	 * Sortable columns shown in the list.
+	 *
+	 * @var array<string, string>
+	 */
+	private const SORTABLE = [
+		'source'        => 'From',
+		'target'        => 'To',
+		'code'          => 'Code',
+		'match_type'    => 'Match',
+		'hits'          => 'Hits',
+		'last_accessed' => 'Last Accessed',
+	];
+
+	/**
+	 * Rule repository.
+	 */
+	private RedirectRepository $repository;
+
+	/**
+	 * Module settings store.
+	 */
+	private RedirectsSettings $redirectSettings;
+
+	/**
+	 * Loop and chain analyzer.
+	 */
+	private Validator $validator;
+
+	/**
+	 * Destination policy checker.
+	 */
+	private DestinationValidator $destinationValidator;
+
+	/**
+	 * Field errors from a save that stayed on the page, keyed by field.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $formErrors = [];
+
+	/**
+	 * Entered values from a save that stayed on the page.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $formValues = [];
+
+	/**
+	 * Whether a form save was attempted without a redirect.
+	 */
+	private bool $hasFormAttempt = false;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param RedirectRepository|null   $repository           Rule repository, fresh one when null.
+	 * @param RedirectsSettings|null    $redirectSettings     Settings store, fresh one when null.
+	 * @param Validator|null            $validator            Safety analyzer, fresh one when null.
+	 * @param DestinationValidator|null $destinationValidator Destination checker, fresh one when null.
+	 */
+	public function __construct(
+		?RedirectRepository $repository = null,
+		?RedirectsSettings $redirectSettings = null,
+		?Validator $validator = null,
+		?DestinationValidator $destinationValidator = null
+	) {
+		$this->repository           = $repository ?? new RedirectRepository();
+		$this->redirectSettings     = $redirectSettings ?? new RedirectsSettings();
+		$this->validator            = $validator ?? new Validator();
+		$this->destinationValidator = $destinationValidator ?? new DestinationValidator();
+	}
+
+	/**
+	 * Handle a save on the load hook, before any output is sent.
+	 *
+	 * Runs on load rankkernel page rankkernel redirects, so wp safe redirect
+	 * can still send headers. Row links arrive by GET, every form arrives by
+	 * POST with its own marker field.
+	 */
+	public function maybeHandleSave(): void {
+		// Delegates to a handler which verifies capability plus its own nonce.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+			// Marker read only, this branch verifies its nonce in requireAccess.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['rankkernel_redirect_save'] ) ) {
+				$this->handleFormSave();
+
+				return;
+			}
+
+			// Marker read only, each branch verifies its nonce in requireAccess.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['rankkernel_redirect_bulk'] ) ) {
+				$this->handleBulk();
+
+				return;
+			}
+
+			// Marker read only, each branch verifies its nonce in requireAccess.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['rankkernel_redirect_settings_save'] ) ) {
+				$this->handleSettingsSave();
+
+				return;
+			}
+		}
+
+		// Read only routing flag, the row handler verifies capability plus nonce.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawAction = isset( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';
+		$action    = sanitize_key( $rawAction );
+
+		if ( in_array( $action, [ 'delete', 'activate', 'deactivate' ], true ) ) {
+			$this->handleRowAction( $action );
+		}
+	}
+
+	/**
+	 * Enqueue screen assets, and only on this screen.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueAssets( string $hookSuffix ): void {
+		if ( self::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		if ( ! function_exists( 'plugins_url' ) ) {
+			return;
+		}
+
+		$version = Plugin::version();
+
+		$css = plugins_url( 'assets/css/redirects-admin.css', (string) RANKKERNEL_FILE );
+		wp_register_style( 'rankkernel-redirects-admin', $css, [], $version );
+		wp_enqueue_style( 'rankkernel-redirects-admin' );
+
+		$js = plugins_url( 'assets/js/redirects-admin.js', (string) RANKKERNEL_FILE );
+		wp_register_script( 'rankkernel-redirects-admin', $js, [], $version, true );
+		wp_enqueue_script( 'rankkernel-redirects-admin' );
+	}
+
+	/**
+	 * Render the page.
+	 */
+	public function render(): void {
+		$this->renderNotices();
+
+		echo '<div class="wrap rk-redirects">';
+
+		$this->renderHeader();
+		$this->renderForm();
+		$this->renderList();
+		$this->renderSettings();
+
+		echo '</div>';
+	}
+
+	/**
+	 * Verify capability plus nonce, stopping with 403 otherwise.
+	 *
+	 * @param string $nonceAction Nonce action expected for this save.
+	 */
+	private function requireAccess( string $nonceAction ): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you are not allowed to manage redirects.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		$verified = check_admin_referer( $nonceAction );
+
+		if ( false === $verified ) {
+			wp_die(
+				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+	}
+
+	/**
+	 * Redirect back to the screen with notice flags, header safe on the load hook.
+	 *
+	 * @param string $query Query flags starting with an ampersand.
+	 */
+	private function redirect( string $query ): void {
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . $query ) );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Read a POST text field, unslashed and sanitized.
+	 *
+	 * Every caller verifies its nonce in requireAccess first.
+	 *
+	 * @param string $key Field name.
+	 * @return string Sanitized value or empty string.
+	 */
+	private function postText( string $key ): string {
+		// Verified by the caller in requireAccess before this helper runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return '';
+		}
+
+		// Verified by the caller, value sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw = wp_unslash( $_POST[ $key ] );
+
+		return is_string( $raw ) ? sanitize_text_field( $raw ) : '';
+	}
+
+	/**
+	 * Read a POST integer field, cast to int with a floor of zero.
+	 *
+	 * Every caller verifies its nonce in requireAccess first.
+	 *
+	 * @param string $key Field name.
+	 * @return int Value or zero.
+	 */
+	private function postInt( string $key ): int {
+		// Verified by the caller, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : 0;
+
+		return max( 0, (int) ( is_scalar( $raw ) ? $raw : 0 ) );
+	}
+
+	/**
+	 * Handle the add and edit form save.
+	 *
+	 * Field problems and loop findings stay on the page with inline errors.
+	 * Successful saves redirect with a notice flag, plus chain or
+	 * inconclusive flags when the analysis reports them.
+	 */
+	private function handleFormSave(): void {
+		$this->requireAccess( self::NONCE_SAVE );
+
+		$editingId = $this->postInt( 'rule_id' );
+
+		$fields = [
+			'source'     => $this->postText( 'rk_source' ),
+			'match_type' => sanitize_key( $this->postText( 'rk_match_type' ) ),
+			'target'     => $this->postText( 'rk_target' ),
+			'code'       => sanitize_key( $this->postText( 'rk_code' ) ),
+			// Verified in requireAccess, checkbox presence is the value.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'is_active'  => isset( $_POST['rk_active'] ),
+			'rule_id'    => $editingId,
+		];
+
+		$clean  = $this->validateFields( $fields );
+		$errors = $clean['errors'];
+
+		if ( [] !== $errors ) {
+			$this->stayWithErrors( $errors, $fields );
+
+			return;
+		}
+
+		if ( $editingId > 0 && null === $this->repository->get( $editingId ) ) {
+			$this->stayWithErrors(
+				[ 'blocked' => __( 'That redirect no longer exists. It may have been deleted.', 'rankkernel' ) ],
+				$fields
+			);
+
+			return;
+		}
+
+		$proposed = [
+			'source'     => $clean['source'],
+			'target'     => $clean['target'],
+			'code'       => $clean['code'],
+			'match_type' => $clean['match_type'],
+		];
+
+		$candidates = $this->candidates( $editingId, $proposed, $fields['is_active'] );
+		$loop       = $this->validator->detect_loop( $proposed, $candidates );
+
+		if ( $loop['has_cycle'] ) {
+			$this->stayWithErrors(
+				[
+					'blocked' => sprintf(
+						/* translators: %s: redirect chain path showing the loop */
+						__( 'This redirect would create a redirect loop: %s. The rule was not saved.', 'rankkernel' ),
+						implode( ' → ', $loop['path'] )
+					),
+				],
+				$fields
+			);
+
+			return;
+		}
+
+		$existing = $this->repository->lookup( $clean['source'], $clean['match_type'] );
+
+		if ( is_array( $existing ) && (int) ( $existing['id'] ?? 0 ) !== $editingId ) {
+			$this->stayWithErrors(
+				[ 'source' => __( 'A redirect with this source and match type already exists.', 'rankkernel' ) ],
+				$fields
+			);
+
+			return;
+		}
+
+		$row = [
+			'source'     => $clean['source'],
+			'match_type' => $clean['match_type'],
+			'target'     => $clean['target'],
+			'code'       => $clean['code'],
+			'is_active'  => $fields['is_active'],
+		];
+
+		if ( $editingId > 0 ) {
+			$saved  = $this->repository->update( $editingId, $row );
+			$notice = 'updated';
+		} else {
+			$saved  = $this->repository->insert( $row ) > 0;
+			$notice = 'saved';
+		}
+
+		if ( ! $saved ) {
+			$this->stayWithErrors(
+				[ 'blocked' => __( 'The redirect could not be saved. Please try again.', 'rankkernel' ) ],
+				$fields
+			);
+
+			return;
+		}
+
+		$chain = $this->validator->detect_chain( $proposed, $candidates );
+		$flags = '&rk_notice=' . $notice;
+
+		if ( $chain['has_chain'] && [] !== $chain['chain'] ) {
+			$flags .= '&rk_chain=' . rawurlencode( implode( ' → ', $chain['chain'] ) );
+
+			if ( is_string( $chain['final'] ) && '' !== $chain['final'] ) {
+				$flags .= '&rk_final=' . rawurlencode( $chain['final'] );
+			}
+		} elseif ( $loop['inconclusive'] ) {
+			$flags .= '&rk_mayloop=1';
+		} elseif ( $chain['inconclusive'] ) {
+			$flags .= '&rk_chain_unknown=1';
+		}
+
+		$this->redirect( $flags );
+	}
+
+	/**
+	 * Keep the entered values on the page with inline errors, no redirect.
+	 *
+	 * @param array<string, string> $errors Field errors.
+	 * @param array<string, mixed>  $fields Entered values.
+	 */
+	private function stayWithErrors( array $errors, array $fields ): void {
+		$this->formErrors     = $errors;
+		$this->formValues     = $fields;
+		$this->hasFormAttempt = true;
+	}
+
+	/**
+	 * Validate the collected fields.
+	 *
+	 * @param array<string, mixed> $fields Raw collected fields.
+	 * @return array{errors: array<string, string>, source: string, match_type: string, target: string, code: string}
+	 */
+	private function validateFields( array $fields ): array {
+		$errors = [];
+
+		$matchType = is_string( $fields['match_type'] ) ? $fields['match_type'] : '';
+
+		if ( ! Normalizer::isMatchType( $matchType ) ) {
+			$errors['match_type'] = __( 'Please choose a valid match type.', 'rankkernel' );
+			$matchType            = 'exact';
+		}
+
+		$code = is_string( $fields['code'] ) ? $fields['code'] : '';
+
+		if ( ! Normalizer::isCode( $code ) ) {
+			$errors['code'] = __( 'Please choose a valid redirect type.', 'rankkernel' );
+			$code           = '301';
+		}
+
+		$sourceRaw = is_string( $fields['source'] ) ? $fields['source'] : '';
+		$source    = '';
+
+		if ( '' === $sourceRaw ) {
+			$errors['source'] = __( 'Please enter a source URL.', 'rankkernel' );
+		} elseif ( strlen( $sourceRaw ) > 2000 ) {
+			$errors['source'] = __( 'That source is too long. Please keep it under 2000 characters.', 'rankkernel' );
+		} else {
+			$source = Normalizer::normalize( $sourceRaw );
+
+			if ( Normalizer::isBlockedSource( $source ) ) {
+				$errors['source'] = __( 'The home page cannot be used as a redirect source. Please enter a path such as /old page.', 'rankkernel' );
+			} elseif ( 'regex' === $matchType && ! $this->regexCompiles( $sourceRaw ) ) {
+				$errors['source'] = __( 'That regex pattern could not be compiled. Please check the pattern and try again.', 'rankkernel' );
+			}
+		}
+
+		$targetRaw = is_string( $fields['target'] ) ? $fields['target'] : '';
+		$target    = '';
+
+		if ( strlen( $targetRaw ) > 2000 ) {
+			$errors['target'] = __( 'That destination is too long. Please keep it under 2000 characters.', 'rankkernel' );
+		} else {
+			$checked = $this->destinationValidator->validate( $targetRaw, $code );
+
+			if ( ! $checked['valid'] ) {
+				$errors['target'] = sprintf(
+					/* translators: %s: reason the destination was rejected */
+					__( 'That destination is not valid: %s.', 'rankkernel' ),
+					$checked['reason']
+				);
+			} else {
+				$target = $checked['destination'];
+			}
+		}
+
+		return [
+			'errors'     => $errors,
+			'source'     => $source,
+			'match_type' => $matchType,
+			'target'     => $target,
+			'code'       => $code,
+		];
+	}
+
+	/**
+	 * Whether a regex source compiles under the matcher wrapping.
+	 *
+	 * Mirrors the matcher length cap and delimiter handling so the form
+	 * rejects patterns the frontend would fail closed on.
+	 *
+	 * @param string $pattern Raw regex body as entered.
+	 * @return bool True when the pattern compiles cleanly.
+	 */
+	private function regexCompiles( string $pattern ): bool {
+		if ( '' === $pattern || strlen( $pattern ) > 200 ) {
+			return false;
+		}
+
+		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
+
+		// Bounded compile probe for an entered pattern. The handler swallows only
+		// the compile warning and is always restored in the finally block below.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		set_error_handler( static fn (): bool => true );
+
+		try {
+			$result = preg_match( $wrapped, '/' );
+		} finally {
+			restore_error_handler();
+		}
+
+		return false !== $result && PREG_NO_ERROR === preg_last_error();
+	}
+
+	/**
+	 * Candidate rows for safety analysis, including the proposed rule itself.
+	 *
+	 * The proposed rule takes part so a rule that matches its own target is
+	 * reported. The edited row is excluded by id when present.
+	 *
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $proposed  Proposed source, target, code, match type.
+	 * @param bool                 $isActive  Whether the proposed rule stays active.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function candidates( int $editingId, array $proposed, bool $isActive ): array {
+		$rows = $this->repository->find_cycle_candidates();
+		$out  = [];
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			if ( $editingId > 0 && (int) ( $row['id'] ?? 0 ) === $editingId ) {
+				continue;
+			}
+
+			$out[] = $row;
+		}
+
+		$out[] = array_merge( $proposed, [ 'is_active' => $isActive ? 1 : 0 ] );
+
+		return $out;
+	}
+
+	/**
+	 * Handle a single row link action.
+	 *
+	 * @param string $action One of delete, activate, deactivate.
+	 */
+	private function handleRowAction( string $action ): void {
+		$this->requireAccess( self::NONCE_ROW );
+
+		// Verified in requireAccess, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawRule = isset( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : 0;
+		$id      = max( 0, (int) ( is_scalar( $rawRule ) ? $rawRule : 0 ) );
+
+		if ( $id <= 0 || null === $this->repository->get( $id ) ) {
+			$this->redirect( '&rk_error=not_found' );
+
+			return;
+		}
+
+		if ( 'delete' === $action ) {
+			$ok = $this->repository->delete( $id );
+			$this->redirect( $ok ? '&rk_notice=deleted' : '&rk_error=save_failed' );
+
+			return;
+		}
+
+		$ok = $this->repository->set_active( $id, 'activate' === $action );
+		$this->redirect( $ok ? '&rk_notice=' . $action . 'd' : '&rk_error=save_failed' );
+	}
+
+	/**
+	 * Handle bulk activate, deactivate, and delete.
+	 */
+	private function handleBulk(): void {
+		$this->requireAccess( self::NONCE_BULK );
+
+		// Verified in requireAccess, value passed through sanitize_key below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$rawAction = isset( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';
+		$action    = sanitize_key( $rawAction );
+
+		// Verified in requireAccess, values unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$unslashedIds = isset( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];
+		$rawIds       = is_array( $unslashedIds ) ? $unslashedIds : [];
+		$ids          = [];
+
+		foreach ( $rawIds as $rawId ) {
+			$id = (int) ( is_scalar( $rawId ) ? $rawId : 0 );
+
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+
+		if ( ! in_array( $action, [ 'activate', 'deactivate', 'delete' ], true ) || [] === $ids ) {
+			$this->redirect( '&rk_error=bulk_none' );
+
+			return;
+		}
+
+		$result   = $this->repository->bulk( $action, $ids );
+		$affected = 'delete' === $action ? (int) $result['deleted'] : (int) $result['updated'];
+
+		$this->redirect( '&rk_notice=bulk&rk_bulk=' . $action . '&rk_count=' . $affected );
+	}
+
+	/**
+	 * Handle the settings form save.
+	 */
+	private function handleSettingsSave(): void {
+		$this->requireAccess( self::NONCE_SETTINGS );
+
+		$partial = [
+			// Verified in requireAccess, checkbox presence is the value.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'preserve_query'     => isset( $_POST['rk_preserve_query'] ),
+			// Verified in requireAccess, checkbox presence is the value.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'auto_slug_redirect' => isset( $_POST['rk_auto_slug_redirect'] ),
+		];
+
+		// Verified in requireAccess, value unslashed then clamped to 1 to 100 below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : 20;
+		$partial['rules_per_page'] = max( 1, min( 100, (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 20 ) ) );
+
+		$this->redirectSettings->set( $partial );
+
+		$this->redirect( '&rk_notice=settings' );
+	}
+
+	/**
+	 * Render success, warning, information, and error notices.
+	 */
+	private function renderNotices(): void {
+		if ( $this->hasFormAttempt && [] !== $this->formErrors ) {
+			$blocked = $this->formErrors['blocked'] ?? '';
+
+			if ( '' === $blocked ) {
+				$blocked = __( 'Please fix the highlighted fields and try again.', 'rankkernel' );
+			}
+
+			echo '<div class="notice notice-error"><p>' . esc_html( $blocked ) . '</p></div>';
+		}
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$notice = isset( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';
+
+		if ( '' !== $notice ) {
+			$this->renderSuccessNotice( $notice );
+		}
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$error = isset( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';
+
+		if ( '' !== $error ) {
+			$this->renderErrorNotice( $error );
+		}
+
+		$this->renderAnalysisNotices();
+	}
+
+	/**
+	 * Render the success notice for a save flag.
+	 *
+	 * @param string $notice Notice flag from the query string.
+	 */
+	private function renderSuccessNotice( string $notice ): void {
+		$message = '';
+
+		switch ( $notice ) {
+			case 'saved':
+				$message = __( 'Redirect saved.', 'rankkernel' );
+				break;
+			case 'updated':
+				$message = __( 'Redirect updated.', 'rankkernel' );
+				break;
+			case 'deleted':
+				$message = __( 'Redirect deleted.', 'rankkernel' );
+				break;
+			case 'activated':
+				$message = __( 'Redirect activated.', 'rankkernel' );
+				break;
+			case 'deactivated':
+				$message = __( 'Redirect deactivated.', 'rankkernel' );
+				break;
+			case 'settings':
+				$message = __( 'Settings saved.', 'rankkernel' );
+				break;
+			case 'bulk':
+				$message = $this->bulkMessage();
+				break;
+		}
+
+		if ( '' !== $message ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		}
+	}
+
+	/**
+	 * Build the bulk result message from the query flags.
+	 *
+	 * @return string Message text.
+	 */
+	private function bulkMessage(): string {
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawBulk = isset( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';
+		$bulk    = sanitize_key( $rawBulk );
+
+		// Read only display flags, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawCount = isset( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : 0;
+		$count    = max( 0, (int) ( is_scalar( $rawCount ) ? $rawCount : 0 ) );
+
+		if ( 'delete' === $bulk ) {
+			return sprintf(
+				/* translators: %d: number of deleted redirects */
+				__( 'Bulk delete finished for %d redirects.', 'rankkernel' ),
+				$count
+			);
+		}
+
+		if ( 'activate' === $bulk ) {
+			return sprintf(
+				/* translators: %d: number of activated redirects */
+				__( 'Bulk activate finished for %d redirects.', 'rankkernel' ),
+				$count
+			);
+		}
+
+		if ( 'deactivate' === $bulk ) {
+			return sprintf(
+				/* translators: %d: number of deactivated redirects */
+				__( 'Bulk deactivate finished for %d redirects.', 'rankkernel' ),
+				$count
+			);
+		}
+
+		return __( 'Bulk action finished.', 'rankkernel' );
+	}
+
+	/**
+	 * Render the error notice for a failure flag.
+	 *
+	 * @param string $error Error flag from the query string.
+	 */
+	private function renderErrorNotice( string $error ): void {
+		$messages = [
+			'not_found'   => __( 'That redirect no longer exists.', 'rankkernel' ),
+			'save_failed' => __( 'The action could not be completed. Please try again.', 'rankkernel' ),
+			'bulk_none'   => __( 'Choose at least one redirect and a bulk action.', 'rankkernel' ),
+		];
+
+		if ( 'loop' === $error ) {
+			// Read only display flag, sanitized and escaped below.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$rawPath = isset( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';
+			$path    = sanitize_text_field( $rawPath );
+
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html(
+				sprintf(
+					/* translators: %s: redirect chain path showing the loop */
+					__( 'This redirect would create a redirect loop: %s. The rule was not saved.', 'rankkernel' ),
+					$path
+				)
+			);
+			echo '</p></div>';
+
+			return;
+		}
+
+		if ( isset( $messages[ $error ] ) ) {
+			echo '<div class="notice notice-error"><p>' . esc_html( $messages[ $error ] ) . '</p></div>';
+		}
+	}
+
+	/**
+	 * Render chain warnings and inconclusive information notices.
+	 */
+	private function renderAnalysisNotices(): void {
+		// Read only display flags, sanitized and escaped below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawChain = isset( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
+		$chain    = sanitize_text_field( $rawChain );
+
+		if ( '' !== $chain ) {
+			// Read only display flag, sanitized and escaped below.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$rawFinal = isset( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';
+			$final    = sanitize_text_field( $rawFinal );
+
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html(
+				sprintf(
+					/* translators: %s: redirect chain path */
+					__( 'Redirect chain detected: %s.', 'rankkernel' ),
+					$chain
+				)
+			);
+
+			if ( '' !== $final ) {
+				echo ' ';
+				echo esc_html(
+					sprintf(
+						/* translators: %s: recommended final destination */
+						__( 'Consider pointing the source directly to %s.', 'rankkernel' ),
+						$final
+					)
+				);
+			}
+
+			echo '</p></div>';
+		}
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['rk_mayloop'] ) ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html__( 'This redirect may loop through a pattern rule. Please verify it manually.', 'rankkernel' );
+			echo '</p></div>';
+		}
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['rk_chain_unknown'] ) ) {
+			echo '<div class="notice notice-info is-dismissible"><p>';
+			echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' );
+			echo '</p></div>';
+		}
+	}
+
+	/**
+	 * Render the page header with the primary action.
+	 */
+	private function renderHeader(): void {
+		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Redirects', 'rankkernel' ) . '</h1>';
+		echo ' <a href="#rk-redirect-form" class="page-title-action">' . esc_html__( 'Add Redirect', 'rankkernel' ) . '</a>';
+		echo '<p class="rk-sub">';
+		echo esc_html__( 'Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning.', 'rankkernel' );
+		echo '</p>';
+	}
+
+	/**
+	 * Match type values to labels.
+	 *
+	 * @return array<string, string>
+	 */
+	private function matchOptions(): array {
+		return [
+			'exact'    => __( 'Exact', 'rankkernel' ),
+			'prefix'   => __( 'Prefix', 'rankkernel' ),
+			'contains' => __( 'Contains', 'rankkernel' ),
+			'suffix'   => __( 'Suffix', 'rankkernel' ),
+			'wildcard' => __( 'Wildcard', 'rankkernel' ),
+			'regex'    => __( 'Regex', 'rankkernel' ),
+		];
+	}
+
+	/**
+	 * Match type values to short explanations.
+	 *
+	 * @return array<string, string>
+	 */
+	private function matchHints(): array {
+		return [
+			'exact'    => __( 'Matches one path exactly. This is the fastest option.', 'rankkernel' ),
+			'prefix'   => __( 'Matches the path and everything under it. The longest match wins.', 'rankkernel' ),
+			'contains' => __( 'Matches when the path includes this text anywhere.', 'rankkernel' ),
+			'suffix'   => __( 'Matches when the path ends with this text.', 'rankkernel' ),
+			'wildcard' => __( 'Use * for any characters, for example /blog/*.', 'rankkernel' ),
+			'regex'    => __( 'Full pattern match for advanced use. The pattern is tested before save.', 'rankkernel' ),
+		];
+	}
+
+	/**
+	 * Status code values to labels.
+	 *
+	 * Keys read as integers because PHP casts numeric strings, so every use
+	 * site casts the key back to string before display or comparison.
+	 *
+	 * @return array<int, string>
+	 */
+	private function codeOptions(): array {
+		return [
+			'301' => __( '301 Permanent', 'rankkernel' ),
+			'302' => __( '302 Temporary', 'rankkernel' ),
+			'307' => __( '307 Temporary, method kept', 'rankkernel' ),
+			'410' => __( '410 Gone', 'rankkernel' ),
+			'451' => __( '451 Legal block', 'rankkernel' ),
+		];
+	}
+
+	/**
+	 * Status code values to short explanations.
+	 *
+	 * Keys read as integers because PHP casts numeric strings, so every use
+	 * site casts the key back to string before display or comparison.
+	 *
+	 * @return array<int, string>
+	 */
+	private function codeHints(): array {
+		return [
+			'301' => __( 'Permanent move. Search engines pass ranking to the new address.', 'rankkernel' ),
+			'302' => __( 'Temporary move. The old address stays indexed.', 'rankkernel' ),
+			'307' => __( 'Temporary move that keeps the request method.', 'rankkernel' ),
+			'410' => __( 'Gone. No destination needed. Use for permanently removed content.', 'rankkernel' ),
+			'451' => __( 'Unavailable for legal reasons. No destination needed.', 'rankkernel' ),
+		];
+	}
+
+	/**
+	 * Render the add and edit form card.
+	 */
+	private function renderForm(): void {
+		$values  = $this->formValues();
+		$editId  = (int) ( $values['rule_id'] ?? 0 );
+		$isEdit  = $editId > 0;
+		$matches = $this->matchOptions();
+		$codes   = $this->codeOptions();
+
+		echo '<div class="rk-card" id="rk-redirect-form">';
+		echo '<h2>' . esc_html( $isEdit ? __( 'Edit Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ) ) . '</h2>';
+
+		echo '<form method="post" action="">';
+
+		wp_nonce_field( self::NONCE_SAVE );
+
+		if ( $isEdit ) {
+			echo '<input type="hidden" name="rule_id" value="' . esc_attr( (string) $editId ) . '" />';
+		}
+
+		echo '<h3>' . esc_html__( 'Redirect details', 'rankkernel' ) . '</h3>';
+		echo '<table class="form-table" role="presentation"><tbody>';
+
+		echo '<tr><th scope="row"><label for="rk-source">' . esc_html__( 'Source URL', 'rankkernel' ) . '</label></th><td>';
+		echo '<input type="text" id="rk-source" name="rk_source" value="' . esc_attr( (string) ( $values['source'] ?? '' ) ) . '" class="regular-text code" />';
+		$this->fieldError( 'source' );
+		echo '<p class="description">';
+		echo esc_html__( 'Enter the old path, for example /old page. The query string is ignored when matching.', 'rankkernel' );
+		echo '</p></td></tr>';
+
+		echo '<tr><th scope="row"><label for="rk-match">' . esc_html__( 'Match type', 'rankkernel' ) . '</label></th><td>';
+		echo '<select id="rk-match" name="rk_match_type">';
+
+		foreach ( $matches as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( (string) ( $values['match_type'] ?? 'exact' ), $value, false ) . '>';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select>';
+		$this->fieldError( 'match_type' );
+		echo '<details class="rk-hints"><summary>';
+		echo esc_html__( 'What do the match types mean', 'rankkernel' );
+		echo '</summary><ul>';
+
+		foreach ( $this->matchHints() as $value => $hint ) {
+			echo '<li><strong>' . esc_html( $matches[ $value ] ?? $value ) . '</strong> ';
+			echo esc_html( $hint ) . '</li>';
+		}
+
+		echo '</ul></details></td></tr>';
+		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Destination', 'rankkernel' ) . '</h3>';
+		echo '<table class="form-table" role="presentation"><tbody>';
+
+		echo '<tr><th scope="row"><label for="rk-target">' . esc_html__( 'Destination URL', 'rankkernel' ) . '</label></th><td>';
+		echo '<input type="text" id="rk-target" name="rk_target" value="' . esc_attr( (string) ( $values['target'] ?? '' ) ) . '" class="regular-text code" />';
+		$this->fieldError( 'target' );
+		echo '<p class="description">';
+		echo esc_html__( 'Enter where visitors should go, for example /new page. Leave empty only for 410 and 451.', 'rankkernel' );
+		echo '</p></td></tr>';
+
+		echo '<tr><th scope="row"><label for="rk-code">' . esc_html__( 'Redirect type', 'rankkernel' ) . '</label></th><td>';
+		echo '<select id="rk-code" name="rk_code">';
+
+		foreach ( $codes as $value => $label ) {
+			$codeValue = (string) $value;
+
+			echo '<option value="' . esc_attr( $codeValue ) . '"' . selected( (string) ( $values['code'] ?? '301' ), $codeValue, false ) . '>';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select>';
+		$this->fieldError( 'code' );
+		echo '<details class="rk-hints"><summary>';
+		echo esc_html__( 'Which redirect type should I use', 'rankkernel' );
+		echo '</summary><ul>';
+
+		foreach ( $this->codeHints() as $value => $hint ) {
+			echo '<li><strong>' . esc_html( (string) ( $codes[ $value ] ?? $value ) ) . '</strong> ';
+			echo esc_html( $hint ) . '</li>';
+		}
+
+		echo '</ul></details></td></tr>';
+		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Status', 'rankkernel' ) . '</h3>';
+		echo '<table class="form-table" role="presentation"><tbody>';
+		echo '<tr><th scope="row">' . esc_html__( 'Active', 'rankkernel' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="rk_active" value="1" ' . checked( ! empty( $values['is_active'] ), true, false ) . ' /> ';
+		echo esc_html__( 'Send visitors now. Turn off to keep the rule saved without redirecting.', 'rankkernel' );
+		echo '</label>';
+		echo '<p class="description">';
+		echo esc_html__( 'Matching ignores the query string. By default the query string is passed to the destination. You can change this under Redirect Settings below.', 'rankkernel' );
+		echo '</p></td></tr>';
+		echo '</tbody></table>';
+
+		submit_button(
+			$isEdit ? __( 'Update Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ),
+			'primary',
+			'rankkernel_redirect_save'
+		);
+
+		if ( $isEdit ) {
+			echo ' <a class="button" href="' . esc_url( admin_url( 'admin.php?page=' . self::SLUG ) ) . '">';
+			echo esc_html__( 'Cancel', 'rankkernel' );
+			echo '</a>';
+		}
+
+		echo '</form>';
+		echo '</div>';
+	}
+
+	/**
+	 * Current form values, preferring a failed attempt, then the edited row, then defaults.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function formValues(): array {
+		if ( $this->hasFormAttempt ) {
+			return $this->formValues;
+		}
+
+		// Read only display flag, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawEdit = isset( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : 0;
+		$id      = max( 0, (int) ( is_scalar( $rawEdit ) ? $rawEdit : 0 ) );
+
+		if ( $id <= 0 ) {
+			return [
+				'source'     => '',
+				'match_type' => 'exact',
+				'target'     => '',
+				'code'       => '301',
+				'is_active'  => true,
+				'rule_id'    => 0,
+			];
+		}
+
+		$row = $this->repository->get( $id );
+
+		if ( null === $row ) {
+			return [
+				'source'     => '',
+				'match_type' => 'exact',
+				'target'     => '',
+				'code'       => '301',
+				'is_active'  => true,
+				'rule_id'    => 0,
+			];
+		}
+
+		return [
+			'source'     => (string) ( $row['source'] ?? '' ),
+			'match_type' => (string) ( $row['match_type'] ?? 'exact' ),
+			'target'     => (string) ( $row['target'] ?? '' ),
+			'code'       => (string) ( $row['code'] ?? '301' ),
+			'is_active'  => 1 === (int) ( $row['is_active'] ?? 0 ),
+			'rule_id'    => (int) ( $row['id'] ?? 0 ),
+		];
+	}
+
+	/**
+	 * Render one inline field error.
+	 *
+	 * @param string $key Field key.
+	 */
+	private function fieldError( string $key ): void {
+		if ( isset( $this->formErrors[ $key ] ) ) {
+			echo '<p class="rk-field-error" role="alert">' . esc_html( $this->formErrors[ $key ] ) . '</p>';
+		}
+	}
+
+	/**
+	 * Current list filters from the query string, sanitized and validated.
+	 *
+	 * @return array{search: string, status: string, match_type: string, code: string, orderby: string, order: string, page: int}
+	 */
+	private function listFilters(): array {
+		// Read only display flags, every value sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$search = isset( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';
+
+		// Read only display flags, value validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawStatus = isset( $_GET['rk_status'] ) ? (string) wp_unslash( $_GET['rk_status'] ) : 'all';
+		$status    = sanitize_key( $rawStatus );
+
+		if ( ! in_array( $status, [ 'all', 'active', 'inactive' ], true ) ) {
+			$status = 'all';
+		}
+
+		// Read only display flags, value validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawMatch = isset( $_GET['rk_match'] ) ? (string) wp_unslash( $_GET['rk_match'] ) : '';
+		$match    = sanitize_key( $rawMatch );
+
+		if ( '' !== $match && ! Normalizer::isMatchType( $match ) ) {
+			$match = '';
+		}
+
+		// Read only display flags, value validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawCode = isset( $_GET['rk_code'] ) ? (string) wp_unslash( $_GET['rk_code'] ) : '';
+		$code    = sanitize_key( $rawCode );
+
+		if ( '' !== $code && ! Normalizer::isCode( $code ) ) {
+			$code = '';
+		}
+
+		// Read only display flags, value validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawOrderBy = isset( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'id';
+		$orderby    = sanitize_key( $rawOrderBy );
+
+		if ( ! array_key_exists( $orderby, self::SORTABLE ) && 'id' !== $orderby ) {
+			$orderby = 'id';
+		}
+
+		// Read only display flags, value validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawOrder = isset( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';
+		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
+
+		// Read only display flags, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawPage = isset( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : 1;
+		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
+
+		return [
+			'search'     => $search,
+			'status'     => $status,
+			'match_type' => $match,
+			'code'       => $code,
+			'orderby'    => $orderby,
+			'order'      => $order,
+			'page'       => $page,
+		];
+	}
+
+	/**
+	 * Build a screen URL with the given parameters.
+	 *
+	 * @param array<string, mixed> $params Query parameters.
+	 * @return string Screen URL.
+	 */
+	private function pageUrl( array $params ): string {
+		$url = admin_url( 'admin.php?page=' . self::SLUG );
+
+		if ( [] === $params ) {
+			return $url;
+		}
+
+		$clean = [];
+
+		foreach ( $params as $key => $value ) {
+			if ( '' !== $value && null !== $value ) {
+				$clean[ $key ] = $value;
+			}
+		}
+
+		$result = add_query_arg( $clean, $url );
+
+		return $result;
+	}
+
+	/**
+	 * Render the redirect list with views, filters, sorting, and pagination.
+	 */
+	private function renderList(): void {
+		$filters = $this->listFilters();
+		$perPage = $this->rulesPerPage();
+
+		$result = $this->repository->paginate(
+			[
+				'search'     => $filters['search'],
+				'status'     => $filters['status'],
+				'match_type' => $filters['match_type'],
+				'code'       => $filters['code'],
+				'orderby'    => $filters['orderby'],
+				'order'      => $filters['order'],
+				'page'       => $filters['page'],
+				'per_page'   => $perPage,
+			]
+		);
+
+		$rows  = $result['rows'];
+		$total = (int) $result['total'];
+		$pages = (int) $result['pages'];
+		$page  = max( 1, (int) $result['page'] );
+
+		echo '<h2>' . esc_html__( 'All Redirects', 'rankkernel' ) . '</h2>';
+
+		$this->renderViews( $filters, $total, (int) $result['active'], (int) $result['inactive'] );
+		$this->renderFilters( $filters );
+
+		if ( [] === $rows ) {
+			$this->renderEmptyState( $filters );
+
+			return;
+		}
+
+		echo '<form method="post" action="' . esc_url( $this->pageUrl( [] ) ) . '" id="rk-bulk-form" data-rk-confirm="'
+			. esc_attr__( 'Delete the selected redirects? This cannot be undone.', 'rankkernel' ) . '">';
+
+		wp_nonce_field( self::NONCE_BULK );
+
+		echo '<div class="tablenav top"><div class="alignleft actions bulkactions">';
+		echo '<select name="rk_bulk_action" id="rk-bulk-action">';
+		echo '<option value="">' . esc_html__( 'Bulk actions', 'rankkernel' ) . '</option>';
+		echo '<option value="activate">' . esc_html__( 'Activate', 'rankkernel' ) . '</option>';
+		echo '<option value="deactivate">' . esc_html__( 'Deactivate', 'rankkernel' ) . '</option>';
+		echo '<option value="delete">' . esc_html__( 'Delete', 'rankkernel' ) . '</option>';
+		echo '</select> ';
+		submit_button( __( 'Apply', 'rankkernel' ), 'action', 'rankkernel_redirect_bulk', false );
+		echo '</div>';
+		$this->renderPagination( $page, $pages, $filters, 'top' );
+		echo '</div>';
+
+		echo '<table class="wp-list-table widefat fixed striped rk-table">';
+		echo '<thead><tr>';
+		echo '<td class="manage-column column-cb check-column"><input type="checkbox" id="rk-select-all" /></td>';
+		$this->renderSortableHeaders( $filters );
+		echo '<th scope="col" class="rk-col-status">' . esc_html__( 'Status', 'rankkernel' ) . '</th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) ) {
+				$this->renderRow( $row );
+			}
+		}
+
+		echo '</tbody></table>';
+
+		echo '<div class="tablenav bottom"><div class="alignleft actions bulkactions">';
+		echo '<span class="displaying-num">' . esc_html(
+			sprintf(
+				/* translators: %d: total number of redirects */
+				__( '%d items', 'rankkernel' ),
+				$total
+			)
+		) . '</span>';
+		echo '</div>';
+		$this->renderPagination( $page, $pages, $filters, 'bottom' );
+		echo '</div>';
+
+		echo '</form>';
+	}
+
+	/**
+	 * Rows per page from settings, clamped to 1 to 100.
+	 *
+	 * @return int Rows per page.
+	 */
+	private function rulesPerPage(): int {
+		$perPage = (int) $this->redirectSettings->get( 'rules_per_page', 20 );
+
+		return max( 1, min( 100, $perPage ) );
+	}
+
+	/**
+	 * Render the All, Active, and Inactive status views.
+	 *
+	 * @param array<string, mixed> $filters  Current filters.
+	 * @param int                  $total    Total rows under the other filters.
+	 * @param int                  $active   Active rows under the other filters.
+	 * @param int                  $inactive Inactive rows under the other filters.
+	 */
+	private function renderViews( array $filters, int $total, int $active, int $inactive ): void {
+		$views = [
+			'all'      => [ __( 'All', 'rankkernel' ), $total ],
+			'active'   => [ __( 'Active', 'rankkernel' ), $active ],
+			'inactive' => [ __( 'Inactive', 'rankkernel' ), $inactive ],
+		];
+
+		echo '<ul class="subsubsub">';
+
+		$first = true;
+
+		foreach ( $views as $status => $view ) {
+			$params = [
+				's'         => $filters['search'],
+				'rk_status' => 'all' === $status ? '' : $status,
+				'rk_match'  => $filters['match_type'],
+				'rk_code'   => $filters['code'],
+			];
+
+			$class = (string) $filters['status'] === (string) $status ? ' class="current"' : '';
+
+			echo ( $first ? '' : ' | ' ) . '<li><a href="' . esc_url( $this->pageUrl( $params ) ) . '"' . esc_attr( $class ) . '>';
+			echo esc_html( $view[0] ) . ' <span class="count">(' . esc_html( (string) $view[1] ) . ')</span>';
+			echo '</a></li>';
+
+			$first = false;
+		}
+
+		echo '</ul><br class="clear" />';
+	}
+
+	/**
+	 * Render the search plus match type plus code filters.
+	 *
+	 * @param array<string, mixed> $filters Current filters.
+	 */
+	private function renderFilters( array $filters ): void {
+		echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="rk-filters">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::SLUG ) . '" />';
+		echo '<p class="search-box">';
+		echo '<input type="search" name="s" value="' . esc_attr( (string) $filters['search'] ) . '" placeholder="'
+			. esc_attr__( 'Search redirects', 'rankkernel' ) . '" />';
+		submit_button( __( 'Search', 'rankkernel' ), '', '', false );
+		echo '</p>';
+
+		echo '<div class="alignleft actions">';
+		echo '<select name="rk_status">';
+		echo '<option value="all"' . selected( $filters['status'], 'all', false ) . '>' . esc_html__( 'All statuses', 'rankkernel' ) . '</option>';
+		echo '<option value="active"' . selected( $filters['status'], 'active', false ) . '>' . esc_html__( 'Active', 'rankkernel' ) . '</option>';
+		echo '<option value="inactive"' . selected( $filters['status'], 'inactive', false ) . '>' . esc_html__( 'Inactive', 'rankkernel' ) . '</option>';
+		echo '</select> ';
+
+		echo '<select name="rk_match">';
+		echo '<option value="">' . esc_html__( 'All match types', 'rankkernel' ) . '</option>';
+
+		foreach ( $this->matchOptions() as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( (string) $filters['match_type'], $value, false ) . '>';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select> ';
+
+		echo '<select name="rk_code">';
+		echo '<option value="">' . esc_html__( 'All codes', 'rankkernel' ) . '</option>';
+
+		foreach ( $this->codeOptions() as $value => $label ) {
+			$codeValue = (string) $value;
+
+			echo '<option value="' . esc_attr( $codeValue ) . '"' . selected( (string) $filters['code'], $codeValue, false ) . '>';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select> ';
+		submit_button( __( 'Filter', 'rankkernel' ), '', 'rk_filter', false );
+		echo '</div><br class="clear" />';
+		echo '</form>';
+	}
+
+	/**
+	 * Render the empty state, helpful on first use and on empty searches.
+	 *
+	 * @param array<string, mixed> $filters Current filters.
+	 */
+	private function renderEmptyState( array $filters ): void {
+		$hasFilter = '' !== (string) $filters['search'] || 'all' !== (string) $filters['status']
+			|| '' !== (string) $filters['match_type'] || '' !== (string) $filters['code'];
+
+		echo '<div class="rk-empty">';
+
+		if ( $hasFilter ) {
+			echo '<p><strong>' . esc_html__( 'No redirects match your search.', 'rankkernel' ) . '</strong></p>';
+			echo '<p>' . esc_html__( 'Try a different search or clear the filters to see every redirect.', 'rankkernel' ) . '</p>';
+			echo '<p><a class="button" href="' . esc_url( $this->pageUrl( [] ) ) . '">';
+			echo esc_html__( 'Clear filters', 'rankkernel' );
+			echo '</a></p>';
+		} else {
+			echo '<p><strong>' . esc_html__( 'No redirects yet.', 'rankkernel' ) . '</strong></p>';
+			echo '<p>' . esc_html__( 'Add your first redirect above to send visitors from an old address to a new one.', 'rankkernel' ) . '</p>';
+			echo '<p><a class="button button-primary" href="#rk-redirect-form">';
+			echo esc_html__( 'Add your first redirect', 'rankkernel' );
+			echo '</a></p>';
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render sortable column headers, preserving the current filters.
+	 *
+	 * @param array<string, mixed> $filters Current filters.
+	 */
+	private function renderSortableHeaders( array $filters ): void {
+		foreach ( self::SORTABLE as $column => $label ) {
+			$current = (string) $filters['orderby'] === $column;
+			$next    = $current && 'ASC' === (string) $filters['order'] ? 'desc' : 'asc';
+			$arrow   = $current ? ( 'ASC' === (string) $filters['order'] ? ' ↑' : ' ↓' ) : '';
+
+			$url = $this->pageUrl(
+				[
+					's'          => $filters['search'],
+					'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+					'rk_match'   => $filters['match_type'],
+					'rk_code'    => $filters['code'],
+					'rk_orderby' => $column,
+					'rk_order'   => $next,
+				]
+			);
+
+			echo '<th scope="col" class="manage-column sortable' . ( $current ? ' sorted' : '' ) . '">';
+			echo '<a href="' . esc_url( $url ) . '"><span>' . esc_html( $label ) . esc_html( $arrow ) . '</span></a>';
+			echo '</th>';
+		}
+	}
+
+	/**
+	 * Render one redirect row with status pill and row actions.
+	 *
+	 * @param array<string, mixed> $row Rule row.
+	 */
+	private function renderRow( array $row ): void {
+		$id       = (int) ( $row['id'] ?? 0 );
+		$source   = (string) ( $row['source'] ?? '' );
+		$target   = (string) ( $row['target'] ?? '' );
+		$code     = (string) ( $row['code'] ?? '301' );
+		$match    = (string) ( $row['match_type'] ?? 'exact' );
+		$hits     = max( 0, (int) ( $row['hits'] ?? 0 ) );
+		$accessed = (string) ( $row['last_accessed'] ?? '' );
+		$active   = 1 === (int) ( $row['is_active'] ?? 0 );
+
+		$toggle      = $active ? 'deactivate' : 'activate';
+		$toggleLabel = $active ? __( 'Deactivate', 'rankkernel' ) : __( 'Activate', 'rankkernel' );
+
+		$base      = admin_url( 'admin.php?page=' . self::SLUG );
+		$editUrl   = add_query_arg( [ 'rk_edit' => $id ], $base );
+		$toggleUrl = wp_nonce_url( $base . '&rk_action=' . $toggle . '&rule=' . $id, self::NONCE_ROW );
+		$deleteUrl = wp_nonce_url( $base . '&rk_action=delete&rule=' . $id, self::NONCE_ROW );
+
+		echo '<tr>';
+		echo '<th scope="row" class="check-column"><input type="checkbox" name="rule_ids[]" value="' . esc_attr( (string) $id ) . '" /></th>';
+
+		echo '<td class="rk-col-from"><strong>' . esc_html( $source ) . '</strong>';
+		echo '<div class="row-actions">';
+		echo '<span class="edit"><a href="' . esc_url( $editUrl ) . '">' . esc_html__( 'Edit', 'rankkernel' ) . '</a> | </span>';
+		echo '<span class="toggle"><a href="' . esc_url( $toggleUrl ) . '">' . esc_html( $toggleLabel ) . '</a> | </span>';
+		echo '<span class="trash"><a href="' . esc_url( $deleteUrl ) . '" class="rk-confirm" data-rk-confirm="'
+			. esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ) . '">'
+			. esc_html__( 'Delete', 'rankkernel' ) . '</a></span>';
+		echo '</div></td>';
+
+		echo '<td class="rk-col-to">' . ( '' === $target ? '<span class="rk-muted">' . esc_html__( '(none)', 'rankkernel' ) . '</span>' : esc_html( $target ) ) . '</td>';
+		echo '<td class="rk-col-code">' . esc_html( $code ) . '</td>';
+		echo '<td class="rk-col-match">' . esc_html( $match ) . '</td>';
+		echo '<td class="rk-col-hits">' . esc_html( (string) number_format_i18n( $hits ) ) . '</td>';
+		echo '<td class="rk-col-accessed">' . ( '' === $accessed ? esc_html__( 'Never', 'rankkernel' ) : esc_html( $accessed ) ) . '</td>';
+
+		echo '<td class="rk-col-status">';
+
+		if ( $active ) {
+			echo '<span class="rk-pill rk-pill-active">' . esc_html__( 'Active', 'rankkernel' ) . '</span>';
+		} else {
+			echo '<span class="rk-pill rk-pill-inactive">' . esc_html__( 'Inactive', 'rankkernel' ) . '</span>';
+		}
+
+		echo '</td>';
+		echo '</tr>';
+	}
+
+	/**
+	 * Render pagination controls.
+	 *
+	 * @param array<string, mixed> $filters  Current filters.
+	 * @param int                  $page     Current page.
+	 * @param int                  $pages    Total pages.
+	 * @param string               $position Top or bottom marker for styling.
+	 */
+	private function renderPagination( int $page, int $pages, array $filters, string $position ): void {
+		if ( $pages <= 1 ) {
+			return;
+		}
+
+		$base = [
+			's'          => $filters['search'],
+			'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+			'rk_match'   => $filters['match_type'],
+			'rk_code'    => $filters['code'],
+			'rk_orderby' => $filters['orderby'],
+			'rk_order'   => strtolower( (string) $filters['order'] ),
+		];
+
+		echo '<div class="tablenav-pages rk-pages-' . esc_attr( $position ) . '">';
+		echo '<span class="paging-text">' . esc_html(
+			sprintf(
+				/* translators: %1$d: current page, %2$d: total pages */
+				__( 'Page %1$d of %2$d', 'rankkernel' ),
+				$page,
+				$pages
+			)
+		) . '</span> ';
+
+		if ( $page > 1 ) {
+			echo '<a class="button" href="' . esc_url( $this->pageUrl( array_merge( $base, [ 'rk_paged' => $page - 1 ] ) ) ) . '">';
+			echo esc_html__( 'Previous', 'rankkernel' );
+			echo '</a> ';
+		}
+
+		if ( $page < $pages ) {
+			echo '<a class="button" href="' . esc_url( $this->pageUrl( array_merge( $base, [ 'rk_paged' => $page + 1 ] ) ) ) . '">';
+			echo esc_html__( 'Next', 'rankkernel' );
+			echo '</a>';
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the settings card.
+	 */
+	private function renderSettings(): void {
+		$all      = $this->redirectSettings->all();
+		$preserve = ! empty( $all['preserve_query'] );
+		$autoSlug = ! empty( $all['auto_slug_redirect'] );
+		$perPage  = max( 1, min( 100, (int) ( $all['rules_per_page'] ?? 20 ) ) );
+
+		echo '<div class="rk-card" id="rk-redirect-settings">';
+		echo '<h2>' . esc_html__( 'Redirect Settings', 'rankkernel' ) . '</h2>';
+
+		echo '<form method="post" action="">';
+
+		wp_nonce_field( self::NONCE_SETTINGS );
+
+		echo '<table class="form-table" role="presentation"><tbody>';
+		echo '<tr><th scope="row">' . esc_html__( 'Query strings', 'rankkernel' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="rk_preserve_query" value="1" ' . checked( $preserve, true, false ) . ' /> ';
+		echo esc_html__( 'Pass the query string to the destination. Turn off to drop it.', 'rankkernel' );
+		echo '</label></td></tr>';
+
+		echo '<tr><th scope="row">' . esc_html__( 'Slug changes', 'rankkernel' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="rk_auto_slug_redirect" value="1" ' . checked( $autoSlug, true, false ) . ' /> ';
+		echo esc_html__( 'Create a 301 redirect automatically when a post slug changes. Turn off to stop creating them.', 'rankkernel' );
+		echo '</label></td></tr>';
+
+		echo '<tr><th scope="row"><label for="rk-per-page">' . esc_html__( 'Rows per page', 'rankkernel' ) . '</label></th><td>';
+		echo '<input type="number" id="rk-per-page" name="rk_rules_per_page" value="' . esc_attr( (string) $perPage ) . '" class="small-text" min="1" max="100" />';
+		echo '<p class="description">';
+		echo esc_html__( 'How many redirects to show per page, from 1 to 100.', 'rankkernel' );
+		echo '</p></td></tr>';
+		echo '</tbody></table>';
+
+		submit_button( __( 'Save Redirect Settings', 'rankkernel' ), 'secondary', 'rankkernel_redirect_settings_save' );
+
+		echo '</form>';
+		echo '</div>';
+	}
+}

@@ -108,6 +108,29 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Get one rule by id, for the admin edit screen.
+	 *
+	 * @param int $id Rule id.
+	 * @return array<string, mixed>|null Rule row or null.
+	 */
+	public function get( int $id ): ?array {
+		$db = $this->connection();
+
+		if ( null === $db || $id <= 0 ) {
+			return null;
+		}
+
+		$table = RedirectTable::name();
+		$sql   = "SELECT * FROM `{$table}` WHERE id = %d LIMIT 1";
+
+		// Custom redirect tables have no core API, primary key fetch with a placeholder.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$row = $db->get_row( $db->prepare( $sql, $id ), ARRAY_A );
+
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
 	 * All active pattern rules for in memory matching, id ordered.
 	 *
 	 * @return array<int, array<string, mixed>>

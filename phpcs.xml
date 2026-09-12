@@ -28,6 +28,7 @@
         <include-pattern>src/Admin/SchemaSettingsPage.php</include-pattern>
         <include-pattern>src/Admin/SitemapSettingsPage.php</include-pattern>
         <include-pattern>src/Admin/SettingsPage.php</include-pattern>
+        <include-pattern>src/Admin/RedirectsPage.php</include-pattern>
         <include-pattern>src/Modules/Metadata/MetaPayload.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
@@ -41,6 +42,7 @@
         <include-pattern>tests/Unit/HowtoBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoPieceTest.php</include-pattern>
         <include-pattern>tests/Unit/Redirects*</include-pattern>
+        <include-pattern>tests/Unit/RedirectsAdminTest.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
         <exclude-pattern>src/.*</exclude-pattern>
@@ -54,6 +56,7 @@
         <exclude-pattern>src/Admin/SchemaSettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/SitemapSettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/SettingsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/RedirectsPage.php</exclude-pattern>
         <exclude-pattern>src/Modules/Metadata/MetaPayload.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>
@@ -67,6 +70,7 @@
         <exclude-pattern>tests/Unit/HowtoBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoPieceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Redirects*</exclude-pattern>
+        <exclude-pattern>tests/Unit/RedirectsAdminTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PSR1.Methods.CamelCapsMethodName">

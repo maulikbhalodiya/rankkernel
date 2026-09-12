@@ -380,6 +380,11 @@ final class RedirectsFakeDb {
 
 		$ids = [];
 
+		if ( 1 === preg_match( '/WHERE id = (\d+)/', $sql, $one ) ) {
+			$want = (int) $one[1];
+			$rows = array_values( array_filter( $rows, static fn ( array $r ): bool => (int) $r['id'] === $want ) );
+		}
+
 		if ( 1 === preg_match( '/id IN \\(([\\d, ]+)\\)/', $sql, $ids ) ) {
 			$wanted = $this->wantedIds( $ids[1] );
 			$rows   = array_values( array_filter( $rows, static fn ( array $r ): bool => in_array( (int) $r['id'], $wanted, true ) ) );
