@@ -242,7 +242,7 @@ final class RedirectsPage {
 		echo '<div class="wrap rk-redirects">';
 
 		$this->renderHeader();
-		$this->renderForm();
+		$this->renderEditor();
 		$this->renderList();
 		$this->renderImportExport();
 		$this->renderSettings();
@@ -278,14 +278,56 @@ final class RedirectsPage {
 	/**
 	 * Redirect back to the screen with notice flags, header safe on the load hook.
 	 *
+	 * The page is whitelisted to this screen and the 404 Monitor, so a flow
+	 * that started on the monitor can route back there after save.
+	 *
 	 * @param string $query Query flags starting with an ampersand.
+	 * @param string $page  Screen slug, only the monitor slug is accepted.
 	 */
-	private function redirect( string $query ): void {
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . $query ) );
+	private function redirect( string $query, string $page = self::SLUG ): void {
+		if ( NotFoundPage::SLUG !== $page ) {
+			$page = self::SLUG;
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . $page . $query ) );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;
 		}
+	}
+
+	/**
+	 * Validated return target from the editor form.
+	 *
+	 * Only the 404 Monitor slug is accepted, everything else reads as no
+	 * return, so the value can never route the save elsewhere.
+	 *
+	 * @return string Monitor slug or empty string.
+	 */
+	private function postedReturn(): string {
+		// Verified by the caller in requireAccess before this helper runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw   = isset( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';
+		$value = is_string( $raw ) ? sanitize_key( $raw ) : '';
+
+		return NotFoundPage::SLUG === $value ? $value : '';
+	}
+
+	/**
+	 * Validated return target from the query string.
+	 *
+	 * Only the 404 Monitor slug is accepted, everything else reads as no
+	 * return, so the editor never links back somewhere unexpected.
+	 *
+	 * @return string Monitor slug or empty string.
+	 */
+	private function requestedReturn(): string {
+		// Read only display value, validated against the monitor slug below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$raw   = isset( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';
+		$value = is_string( $raw ) ? sanitize_key( $raw ) : '';
+
+		return NotFoundPage::SLUG === $value ? $value : '';
 	}
 
 	/**
@@ -347,6 +389,7 @@ final class RedirectsPage {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			'is_active'  => isset( $_POST['rk_active'] ),
 			'rule_id'    => $editingId,
+			'return_to'  => $this->postedReturn(),
 		];
 
 		$clean  = $this->validateFields( $fields );
@@ -462,7 +505,7 @@ final class RedirectsPage {
 			$flags .= '&rk_chain_unknown=1';
 		}
 
-		$this->redirect( $flags );
+		$this->redirect( $flags, $fields['return_to'] );
 	}
 
 	/**
@@ -540,11 +583,15 @@ final class RedirectsPage {
 			$errors['source'] = __( 'Please enter a source URL.', 'rankkernel' );
 		} elseif ( strlen( $sourceRaw ) > 2000 ) {
 			$errors['source'] = __( 'That source is too long. Please keep it under 2000 characters.', 'rankkernel' );
+		} elseif ( 'regex' !== $matchType && str_contains( $sourceRaw, '#' ) ) {
+			$errors['source'] = __( 'Remove the part starting with #. Fragments stay in the browser and are never sent to the server, so they cannot be matched.', 'rankkernel' );
 		} else {
 			$source = Normalizer::normalizeSource( $sourceRaw, $matchType );
 
 			if ( '' === $source || Normalizer::isBlockedSource( $source ) ) {
 				$errors['source'] = __( 'The home page cannot be used as a redirect source. Please enter a path such as /old page.', 'rankkernel' );
+			} elseif ( 'regex' === $matchType && strlen( $sourceRaw ) > 200 ) {
+				$errors['source'] = __( 'That pattern is too long. Please keep regex patterns under 200 characters.', 'rankkernel' );
 			} elseif ( 'regex' === $matchType && ! $this->regexCompiles( $sourceRaw ) ) {
 				$errors['source'] = __( 'That regex pattern could not be compiled. Please check the pattern and try again.', 'rankkernel' );
 			}
@@ -559,11 +606,7 @@ final class RedirectsPage {
 			$checked = $this->destinationValidator->validate( $targetRaw, $code );
 
 			if ( ! $checked['valid'] ) {
-				$errors['target'] = sprintf(
-					/* translators: %s: reason the destination was rejected */
-					__( 'That destination is not valid: %s.', 'rankkernel' ),
-					$checked['reason']
-				);
+				$errors['target'] = $this->destinationError( $checked['reason'] );
 			} else {
 				$target = $checked['destination'];
 			}
@@ -576,6 +619,34 @@ final class RedirectsPage {
 			'target'     => $target,
 			'code'       => $code,
 		];
+	}
+
+	/**
+	 * Human readable destination error for a validator reason.
+	 *
+	 * Every message keeps the shared prefix so programmatic checks keep
+	 * matching, while the suffix explains what to change.
+	 *
+	 * @param string $reason Machine readable rejection reason.
+	 * @return string Translated error text.
+	 */
+	private function destinationError( string $reason ): string {
+		switch ( $reason ) {
+			case 'empty destination':
+				return __( 'That destination is not valid: please enter a destination, or choose 410 Gone or 451 which need none.', 'rankkernel' );
+			case 'control characters rejected':
+				return __( 'That destination is not valid: remove line breaks and control characters.', 'rankkernel' );
+			case 'unsafe scheme':
+				return __( 'That destination is not valid: blocked scheme. Use a relative path or an http or https URL.', 'rankkernel' );
+			case 'external host not allowlisted':
+				return __( 'That destination is not valid: external hosts are not allowlisted. Use a relative path or a URL on this site.', 'rankkernel' );
+			default:
+				return sprintf(
+					/* translators: %s: reason the destination was rejected */
+					__( 'That destination is not valid: %s.', 'rankkernel' ),
+					$reason
+				);
+		}
 	}
 
 	/**
@@ -994,12 +1065,21 @@ final class RedirectsPage {
 
 	/**
 	 * Render chain warnings and inconclusive information notices.
+	 *
+	 * A chain always saves with a warning, never a block. When the analysis
+	 * is inconclusive the notice says plainly that the final destination is
+	 * unknown and offers no recommendation, so uncertainty is never
+	 * presented as safe.
 	 */
 	private function renderAnalysisNotices(): void {
 		// Read only display flags, sanitized and escaped below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$rawChain = isset( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
 		$chain    = sanitize_text_field( $rawChain );
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$chainUnknown = isset( $_GET['rk_chain_unknown'] );
 
 		if ( '' !== $chain ) {
 			// Read only display flag, sanitized and escaped below.
@@ -1016,7 +1096,10 @@ final class RedirectsPage {
 				)
 			);
 
-			if ( '' !== $final ) {
+			if ( $chainUnknown || '' === $final ) {
+				echo ' ';
+				echo esc_html__( 'RankKernel could not determine the final destination, so please verify the chain manually. Saved as entered.', 'rankkernel' );
+			} else {
 				echo ' ';
 				echo esc_html(
 					sprintf(
@@ -1038,9 +1121,10 @@ final class RedirectsPage {
 			echo '</p></div>';
 		}
 
-		// Read only display flags.
+		// Read only display flags. Shown only without a chain path, the chain
+		// branch above already carries the unknown wording when both appear.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['rk_chain_unknown'] ) ) {
+		if ( $chainUnknown && '' === $chain ) {
 			echo '<div class="notice notice-info is-dismissible"><p>';
 			echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' );
 			echo '</p></div>';
@@ -1049,13 +1133,57 @@ final class RedirectsPage {
 
 	/**
 	 * Render the page header with the primary action.
+	 *
+	 * The Add Redirect control toggles the collapsible editor below. The
+	 * link target opens the editor server side, so the flow works without
+	 * JavaScript, while the script turns it into an instant toggle.
 	 */
 	private function renderHeader(): void {
+		$open     = $this->isEditorOpen();
+		$toggle   = $this->pageUrl( [ 'rk_open' => 1 ] );
+		$expanded = $open ? 'true' : 'false';
+
 		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Redirects', 'rankkernel' ) . '</h1>';
-		echo ' <a href="#rk-redirect-form" class="page-title-action">' . esc_html__( 'Add Redirect', 'rankkernel' ) . '</a>';
+		echo ' <a href="' . esc_url( $toggle ) . '" class="page-title-action" id="rk-add-toggle" aria-expanded="' . esc_attr( $expanded ) . '" aria-controls="rk-redirect-editor">';
+		echo esc_html__( 'Add Redirect', 'rankkernel' );
+		echo '</a>';
 		echo '<p class="rk-sub">';
 		echo esc_html__( 'Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning.', 'rankkernel' );
 		echo '</p>';
+	}
+
+	/**
+	 * Whether the editor renders open on this load.
+	 *
+	 * Closed shows only the list. Open on explicit request, while editing,
+	 * while a failed save keeps its errors, and while a 404 prefill waits
+	 * for its destination.
+	 *
+	 * @return bool True when the editor container renders open.
+	 */
+	private function isEditorOpen(): bool {
+		if ( $this->hasFormAttempt ) {
+			return true;
+		}
+
+		// Read only display flags, values validated below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawOpen = isset( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';
+
+		if ( '1' === $rawOpen ) {
+			return true;
+		}
+
+		// Read only display flags, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawEdit = isset( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : 0;
+		$editId  = max( 0, (int) ( is_scalar( $rawEdit ) ? $rawEdit : 0 ) );
+
+		if ( $editId > 0 ) {
+			return true;
+		}
+
+		return '' !== $this->prefillSource();
 	}
 
 	/**
@@ -1127,19 +1255,37 @@ final class RedirectsPage {
 	}
 
 	/**
-	 * Render the add and edit form card.
+	 * Render the collapsible add and edit editor.
+	 *
+	 * One container serves both add and edit, so there is a single form to
+	 * learn. Closed it hides completely and shows only the list. Basic
+	 * fields render first, Advanced options stays collapsed, and only the
+	 * controls relevant to the current match type and code render open.
 	 */
-	private function renderForm(): void {
-		$values  = $this->formValues();
-		$editId  = (int) ( $values['rule_id'] ?? 0 );
-		$isEdit  = $editId > 0;
-		$matches = $this->matchOptions();
-		$codes   = $this->codeOptions();
+	private function renderEditor(): void {
+		$values   = $this->formValues();
+		$editId   = (int) ( $values['rule_id'] ?? 0 );
+		$isEdit   = $editId > 0;
+		$match    = (string) ( $values['match_type'] ?? 'exact' );
+		$code     = (string) ( $values['code'] ?? '301' );
+		$open     = $this->isEditorOpen();
+		$matches  = $this->matchOptions();
+		$codes    = $this->codeOptions();
+		$terminal = in_array( $code, Normalizer::TERMINAL_CODES, true );
+		$isRegex  = 'regex' === $match;
+		$rawBack  = $values['return_to'] ?? '';
+		$returnTo = is_string( $rawBack ) ? $rawBack : '';
 
-		echo '<div class="rk-card" id="rk-redirect-form">';
-		echo '<h2>' . esc_html( $isEdit ? __( 'Edit Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ) ) . '</h2>';
+		echo '<div class="rk-card rk-editor" id="rk-redirect-editor"' . ( $open ? '' : ' hidden' ) . '>';
+		echo '<h2 id="rk-editor-heading">' . esc_html( $isEdit ? __( 'Edit Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ) ) . '</h2>';
 
-		echo '<form method="post" action="">';
+		if ( '' !== $returnTo && ! $isEdit ) {
+			echo '<p class="rk-prefill">';
+			echo esc_html__( 'Source prefilled from the 404 Monitor. Add a destination and save to return to the monitor.', 'rankkernel' );
+			echo '</p>';
+		}
+
+		echo '<form method="post" action="" aria-labelledby="rk-editor-heading">';
 
 		wp_nonce_field( self::NONCE_SAVE );
 
@@ -1147,27 +1293,243 @@ final class RedirectsPage {
 			echo '<input type="hidden" name="rule_id" value="' . esc_attr( (string) $editId ) . '" />';
 		}
 
-		echo '<h3>' . esc_html__( 'Redirect details', 'rankkernel' ) . '</h3>';
+		if ( '' !== $returnTo ) {
+			echo '<input type="hidden" name="rk_return" value="' . esc_attr( $returnTo ) . '" />';
+		}
+
 		echo '<table class="form-table" role="presentation"><tbody>';
 
+		$this->renderSourceField( (string) ( $values['source'] ?? '' ) );
+		$this->renderMatchField( $match, $matches );
+		$this->renderRegexField( (string) ( $values['source'] ?? '' ), $isRegex );
+		$this->renderTargetField( (string) ( $values['target'] ?? '' ), $terminal );
+		$this->renderCodeField( $code, $codes, $terminal );
+
+		echo '<tr><th scope="row">' . esc_html__( 'Active', 'rankkernel' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="rk_active" value="1" ' . checked( ! empty( $values['is_active'] ), true, false ) . ' /> ';
+		echo esc_html__( 'Send visitors now. Turn off to keep the rule saved without redirecting.', 'rankkernel' );
+		echo '</label></td></tr>';
+		echo '</tbody></table>';
+
+		$this->renderAdvancedOptions();
+
+		submit_button(
+			$isEdit ? __( 'Update Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ),
+			'primary',
+			'rankkernel_redirect_save'
+		);
+
+		if ( '' !== $returnTo ) {
+			$cancel = admin_url( 'admin.php?page=' . NotFoundPage::SLUG );
+		} else {
+			$cancel = $this->pageUrl( [] );
+		}
+
+		echo ' <a class="button" href="' . esc_url( $cancel ) . '">';
+		echo esc_html__( 'Cancel', 'rankkernel' );
+		echo '</a>';
+
+		echo '</form>';
+		echo '</div>';
+	}
+
+	/**
+	 * Render the source URL field with fragment guidance.
+	 *
+	 * @param string $value Current source value.
+	 */
+	private function renderSourceField( string $value ): void {
+		$described = 'rk-source-hint' . ( isset( $this->formErrors['source'] ) ? ' rk-source-error' : '' );
+
 		echo '<tr><th scope="row"><label for="rk-source">' . esc_html__( 'Source URL', 'rankkernel' ) . '</label></th><td>';
-		echo '<input type="text" id="rk-source" name="rk_source" value="' . esc_attr( (string) ( $values['source'] ?? '' ) ) . '" class="regular-text code" />';
+		echo '<input type="text" id="rk-source" name="rk_source" value="' . esc_attr( $value ) . '" class="regular-text code" aria-describedby="' . esc_attr( $described ) . '" />';
 		$this->fieldError( 'source' );
-		echo '<p class="description">';
+		echo '<p class="description" id="rk-source-hint" data-fragment="'
+			. esc_attr__( 'Remove the part starting with #. Fragments stay in the browser and are never sent to the server.', 'rankkernel' ) . '">';
 		echo esc_html__( 'Enter the old path, for example /old page. The query string is ignored when matching.', 'rankkernel' );
 		echo '</p></td></tr>';
+	}
+
+	/**
+	 * Render the match type field with a live short meaning.
+	 *
+	 * Every option carries its meaning as a data attribute, so the hint
+	 * below updates instantly while the server renders the current one for
+	 * the no script path.
+	 *
+	 * @param string                $current Current match type.
+	 * @param array<string, string> $matches Match values to labels.
+	 */
+	private function renderMatchField( string $current, array $matches ): void {
+		$hints = $this->matchHints();
 
 		echo '<tr><th scope="row"><label for="rk-match">' . esc_html__( 'Match type', 'rankkernel' ) . '</label></th><td>';
-		echo '<select id="rk-match" name="rk_match_type">';
+		echo '<select id="rk-match" name="rk_match_type" aria-describedby="rk-match-hint">';
 
 		foreach ( $matches as $value => $label ) {
-			echo '<option value="' . esc_attr( $value ) . '"' . selected( (string) ( $values['match_type'] ?? 'exact' ), $value, false ) . '>';
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $current, $value, false )
+				. ' data-hint="' . esc_attr( $hints[ $value ] ?? '' ) . '">';
 			echo esc_html( $label );
 			echo '</option>';
 		}
 
 		echo '</select>';
 		$this->fieldError( 'match_type' );
+		echo '<p class="description" id="rk-match-hint">' . esc_html( $hints[ $current ] ?? '' ) . '</p>';
+		echo '</td></tr>';
+	}
+
+	/**
+	 * Render the regex validation row, open only for the regex matcher.
+	 *
+	 * The feedback element carries its messages as data attributes, so the
+	 * client script stays free of hardcoded strings while the server
+	 * renders the same state for the no script path.
+	 *
+	 * @param string $value   Current source value.
+	 * @param bool   $isRegex Whether the regex matcher is selected.
+	 */
+	private function renderRegexField( string $value, bool $isRegex ): void {
+		$state = $this->regexState( $value );
+		$class = $state['ok'] ? 'rk-regex-ok' : 'rk-regex-bad';
+
+		echo '<tr id="rk-regex-row"' . ( $isRegex ? '' : ' hidden' ) . '><th scope="row">'
+			. esc_html__( 'Pattern check', 'rankkernel' ) . '</th><td>';
+		echo '<p class="' . esc_attr( $class ) . '" id="rk-regex-feedback" role="status"'
+			. ' data-msg-empty="' . esc_attr__( 'Enter a pattern to check it. Patterns are limited to 200 characters.', 'rankkernel' ) . '"'
+			. ' data-msg-long="' . esc_attr__( 'That pattern is too long. Please keep regex patterns under 200 characters.', 'rankkernel' ) . '"'
+			. ' data-msg-invalid="' . esc_attr__( 'That pattern does not compile. Check the syntax and try again.', 'rankkernel' ) . '"'
+			. ' data-msg-valid="' . esc_attr__( 'Pattern compiles cleanly.', 'rankkernel' ) . '"'
+			. ' data-msg-anchor="' . esc_attr__( 'Tip: add ^ at the start and $ at the end to match the whole path.', 'rankkernel' ) . '">';
+		echo esc_html( $state['message'] );
+		echo '</p>';
+		echo '<p class="description" id="rk-regex-help">';
+		echo esc_html__( 'Full pattern match for advanced use, limited to 200 characters. Anchor with ^ and $ when the whole path must match, for example ^/blog/[0-9]+$.', 'rankkernel' );
+		echo '</p></td></tr>';
+	}
+
+	/**
+	 * Regex state for a raw pattern, mirroring the backend constraints.
+	 *
+	 * @param string $pattern Raw pattern as entered.
+	 * @return array{ok: bool, message: string} State plus translated message.
+	 */
+	private function regexState( string $pattern ): array {
+		if ( '' === $pattern ) {
+			return [
+				'ok'      => false,
+				'message' => __( 'Enter a pattern to check it. Patterns are limited to 200 characters.', 'rankkernel' ),
+			];
+		}
+
+		if ( strlen( $pattern ) > 200 ) {
+			return [
+				'ok'      => false,
+				'message' => __( 'That pattern is too long. Please keep regex patterns under 200 characters.', 'rankkernel' ),
+			];
+		}
+
+		if ( ! $this->regexCompiles( $pattern ) ) {
+			return [
+				'ok'      => false,
+				'message' => __( 'That pattern does not compile. Check the syntax and try again.', 'rankkernel' ),
+			];
+		}
+
+		$trimmed = trim( $pattern );
+
+		if ( ! str_starts_with( $trimmed, '^' ) || ! str_ends_with( $trimmed, '$' ) ) {
+			return [
+				'ok'      => true,
+				'message' => __( 'Pattern compiles cleanly. Tip: add ^ at the start and $ at the end to match the whole path.', 'rankkernel' ),
+			];
+		}
+
+		return [
+			'ok'      => true,
+			'message' => __( 'Pattern compiles cleanly.', 'rankkernel' ),
+		];
+	}
+
+	/**
+	 * Render the destination field, hidden and disabled for terminal codes.
+	 *
+	 * @param string $value    Current destination value.
+	 * @param bool   $terminal Whether the selected code needs no destination.
+	 */
+	private function renderTargetField( string $value, bool $terminal ): void {
+		$described = 'rk-target-hint' . ( isset( $this->formErrors['target'] ) ? ' rk-target-error' : '' );
+
+		echo '<tr id="rk-target-row"' . ( $terminal ? ' hidden' : '' ) . '><th scope="row"><label for="rk-target">'
+			. esc_html__( 'Destination URL', 'rankkernel' ) . '</label></th><td>';
+		echo '<input type="text" id="rk-target" name="rk_target" value="' . esc_attr( $value ) . '" class="regular-text code"'
+			. ' aria-describedby="' . esc_attr( $described ) . '"' . ( $terminal ? ' disabled' : '' ) . ' />';
+		$this->fieldError( 'target' );
+		echo '<p class="description" id="rk-target-hint">';
+		echo esc_html__( 'Enter where visitors should go, for example /new page. Leave empty only for 410 and 451.', 'rankkernel' );
+		echo '</p></td></tr>';
+	}
+
+	/**
+	 * Render the redirect type field with a live short meaning.
+	 *
+	 * @param string             $code     Current status code.
+	 * @param array<int, string> $codes    Code values to labels.
+	 * @param bool               $terminal Whether the selected code is terminal.
+	 */
+	private function renderCodeField( string $code, array $codes, bool $terminal ): void {
+		$hints = $this->codeHints();
+
+		echo '<tr><th scope="row"><label for="rk-code">' . esc_html__( 'Redirect type', 'rankkernel' ) . '</label></th><td>';
+		echo '<select id="rk-code" name="rk_code" aria-describedby="rk-code-hint rk-terminal-note">';
+
+		foreach ( $codes as $value => $label ) {
+			$codeValue = (string) $value;
+
+			echo '<option value="' . esc_attr( $codeValue ) . '"' . selected( $code, $codeValue, false )
+				. ' data-hint="' . esc_attr( (string) ( $hints[ $value ] ?? '' ) ) . '">';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select>';
+		$this->fieldError( 'code' );
+		echo '<p class="description" id="rk-code-hint">' . esc_html( (string) ( $hints[ (int) $code ] ?? $hints[ $code ] ?? '' ) ) . '</p>';
+		echo '<p class="description" id="rk-terminal-note"' . ( $terminal ? '' : ' hidden' ) . '>';
+		echo esc_html__( '410 Gone and 451 mean the content is intentionally unavailable, so no destination is needed. The destination field stays disabled while one of these is selected.', 'rankkernel' );
+		echo '</p></td></tr>';
+	}
+
+	/**
+	 * Render the collapsed Advanced options disclosure.
+	 *
+	 * Holds query behavior, the pattern cap, and the full matcher and code
+	 * explanations, so the basic form stays short while nothing is lost.
+	 */
+	private function renderAdvancedOptions(): void {
+		$all      = $this->redirectSettings->all();
+		$preserve = ! empty( $all['preserve_query'] );
+
+		echo '<details class="rk-advanced"><summary>';
+		echo esc_html__( 'Advanced options', 'rankkernel' );
+		echo '</summary>';
+
+		echo '<p class="rk-sub">';
+
+		if ( $preserve ) {
+			echo esc_html__( 'Matching ignores the query string, and the query string is currently passed to the destination. Change this under Redirect Settings below.', 'rankkernel' );
+		} else {
+			echo esc_html__( 'Matching ignores the query string, and the query string is currently dropped. Change this under Redirect Settings below.', 'rankkernel' );
+		}
+
+		echo '</p>';
+
+		echo '<p class="rk-sub">';
+		echo esc_html__( 'Pattern matchers (everything except Exact) are limited in how many active rules they can hold. Exact matches are unlimited and fastest.', 'rankkernel' );
+		echo '</p>';
+
+		$matches = $this->matchOptions();
+
 		echo '<details class="rk-hints"><summary>';
 		echo esc_html__( 'What do the match types mean', 'rankkernel' );
 		echo '</summary><ul>';
@@ -1177,32 +1539,10 @@ final class RedirectsPage {
 			echo esc_html( $hint ) . '</li>';
 		}
 
-		echo '</ul></details></td></tr>';
-		echo '</tbody></table>';
+		echo '</ul></details>';
 
-		echo '<h3>' . esc_html__( 'Destination', 'rankkernel' ) . '</h3>';
-		echo '<table class="form-table" role="presentation"><tbody>';
+		$codes = $this->codeOptions();
 
-		echo '<tr><th scope="row"><label for="rk-target">' . esc_html__( 'Destination URL', 'rankkernel' ) . '</label></th><td>';
-		echo '<input type="text" id="rk-target" name="rk_target" value="' . esc_attr( (string) ( $values['target'] ?? '' ) ) . '" class="regular-text code" />';
-		$this->fieldError( 'target' );
-		echo '<p class="description">';
-		echo esc_html__( 'Enter where visitors should go, for example /new page. Leave empty only for 410 and 451.', 'rankkernel' );
-		echo '</p></td></tr>';
-
-		echo '<tr><th scope="row"><label for="rk-code">' . esc_html__( 'Redirect type', 'rankkernel' ) . '</label></th><td>';
-		echo '<select id="rk-code" name="rk_code">';
-
-		foreach ( $codes as $value => $label ) {
-			$codeValue = (string) $value;
-
-			echo '<option value="' . esc_attr( $codeValue ) . '"' . selected( (string) ( $values['code'] ?? '301' ), $codeValue, false ) . '>';
-			echo esc_html( $label );
-			echo '</option>';
-		}
-
-		echo '</select>';
-		$this->fieldError( 'code' );
 		echo '<details class="rk-hints"><summary>';
 		echo esc_html__( 'Which redirect type should I use', 'rankkernel' );
 		echo '</summary><ul>';
@@ -1212,34 +1552,8 @@ final class RedirectsPage {
 			echo esc_html( $hint ) . '</li>';
 		}
 
-		echo '</ul></details></td></tr>';
-		echo '</tbody></table>';
-
-		echo '<h3>' . esc_html__( 'Status', 'rankkernel' ) . '</h3>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-		echo '<tr><th scope="row">' . esc_html__( 'Active', 'rankkernel' ) . '</th><td>';
-		echo '<label><input type="checkbox" name="rk_active" value="1" ' . checked( ! empty( $values['is_active'] ), true, false ) . ' /> ';
-		echo esc_html__( 'Send visitors now. Turn off to keep the rule saved without redirecting.', 'rankkernel' );
-		echo '</label>';
-		echo '<p class="description">';
-		echo esc_html__( 'Matching ignores the query string. By default the query string is passed to the destination. You can change this under Redirect Settings below.', 'rankkernel' );
-		echo '</p></td></tr>';
-		echo '</tbody></table>';
-
-		submit_button(
-			$isEdit ? __( 'Update Redirect', 'rankkernel' ) : __( 'Add Redirect', 'rankkernel' ),
-			'primary',
-			'rankkernel_redirect_save'
-		);
-
-		if ( $isEdit ) {
-			echo ' <a class="button" href="' . esc_url( admin_url( 'admin.php?page=' . self::SLUG ) ) . '">';
-			echo esc_html__( 'Cancel', 'rankkernel' );
-			echo '</a>';
-		}
-
-		echo '</form>';
-		echo '</div>';
+		echo '</ul></details>';
+		echo '</details>';
 	}
 
 	/**
@@ -1265,6 +1579,7 @@ final class RedirectsPage {
 				'code'       => '301',
 				'is_active'  => true,
 				'rule_id'    => 0,
+				'return_to'  => $this->requestedReturn(),
 			];
 		}
 
@@ -1308,13 +1623,13 @@ final class RedirectsPage {
 	}
 
 	/**
-	 * Render one inline field error.
+	 * Render one inline field error, linked from the field by describedby.
 	 *
 	 * @param string $key Field key.
 	 */
 	private function fieldError( string $key ): void {
 		if ( isset( $this->formErrors[ $key ] ) ) {
-			echo '<p class="rk-field-error" role="alert">' . esc_html( $this->formErrors[ $key ] ) . '</p>';
+			echo '<p class="rk-field-error" id="rk-' . esc_attr( $key ) . '-error" role="alert">' . esc_html( $this->formErrors[ $key ] ) . '</p>';
 		}
 	}
 
@@ -1613,7 +1928,7 @@ final class RedirectsPage {
 		} else {
 			echo '<p><strong>' . esc_html__( 'No redirects yet.', 'rankkernel' ) . '</strong></p>';
 			echo '<p>' . esc_html__( 'Add your first redirect above to send visitors from an old address to a new one.', 'rankkernel' ) . '</p>';
-			echo '<p><a class="button button-primary" href="#rk-redirect-form">';
+			echo '<p><a class="button button-primary" href="' . esc_url( $this->pageUrl( [ 'rk_open' => 1 ] ) ) . '">';
 			echo esc_html__( 'Add your first redirect', 'rankkernel' );
 			echo '</a></p>';
 		}
@@ -1681,7 +1996,7 @@ final class RedirectsPage {
 		echo '<span class="toggle"><a href="' . esc_url( $toggleUrl ) . '">' . esc_html( $toggleLabel ) . '</a> | </span>';
 		echo '<span class="trash"><a href="' . esc_url( $deleteUrl ) . '" class="rk-confirm" data-rk-confirm="'
 			. esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ) . '">'
-			. esc_html__( 'Delete', 'rankkernel' ) . '</a></span>';
+			. esc_html__( 'Trash', 'rankkernel' ) . '</a></span>';
 		echo '</div></td>';
 
 		echo '<td class="rk-col-to">' . ( '' === $target ? '<span class="rk-muted">' . esc_html__( '(none)', 'rankkernel' ) . '</span>' : esc_html( $target ) ) . '</td>';

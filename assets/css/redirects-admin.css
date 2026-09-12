@@ -127,3 +127,53 @@
 .rk-redirects .tablenav .paging-text {
 	margin-right: 8px;
 }
+
+.rk-redirects .rk-editor[hidden] {
+	display: none;
+}
+
+.rk-redirects .rk-prefill {
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	max-width: 72ch;
+	padding: 8px 12px;
+}
+
+.rk-redirects .rk-advanced {
+	border-top: 1px solid #dcdcde;
+	margin-top: 16px;
+	max-width: 72ch;
+	padding-top: 8px;
+}
+
+.rk-redirects .rk-advanced > summary {
+	color: #2271b1;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.rk-redirects .rk-regex-ok {
+	color: #1a7f37;
+	font-weight: 600;
+}
+
+.rk-redirects .rk-regex-bad {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.rk-redirects :focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-redirects .rk-table .rk-col-match,
+	.rk-redirects .rk-table .rk-col-accessed {
+		display: none;
+	}
+
+	.rk-redirects .rk-filters .search-box {
+		float: none;
+	}
+}

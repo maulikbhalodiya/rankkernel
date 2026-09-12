@@ -1213,4 +1213,217 @@ final class RedirectsAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'pattern rule limit', $html );
 	}
+
+	/**
+	 * The editor stays closed by default so the list leads.
+	 */
+	public function test_editor_closed_by_default(): void {
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="false"', $html );
+		$this->assertStringContainsString( 'id="rk-redirect-editor" hidden', $html );
+	}
+
+	/**
+	 * The toggle target opens the editor server side.
+	 */
+	public function test_editor_opens_with_rk_open(): void {
+		$page = $this->makePage();
+
+		$_GET = [ 'rk_open' => '1' ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="true"', $html );
+		$this->assertStringNotContainsString( 'id="rk-redirect-editor" hidden', $html );
+		$this->assertStringContainsString( 'Add Redirect', $html );
+	}
+
+	/**
+	 * Edit reuses the same editor with update wording plus cancel.
+	 */
+	public function test_edit_mode_reuses_editor_with_cancel(): void {
+		$id = $this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+
+		$_GET = [ 'rk_edit' => (string) $id ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Edit Redirect', $html );
+		$this->assertStringContainsString( 'rk-editor-heading', $html );
+		$this->assertStringContainsString( 'Cancel', $html );
+		$this->assertStringContainsString( 'aria-expanded="true"', $html );
+		$this->assertStringNotContainsString( 'id="rk-redirect-editor" hidden', $html );
+	}
+
+	/**
+	 * Terminal codes hide and disable the destination field.
+	 */
+	public function test_terminal_code_hides_destination(): void {
+		$id = $this->seedRule( '/gone', '', '410' );
+
+		$page = $this->makePage();
+
+		$_GET = [ 'rk_edit' => (string) $id ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'id="rk-target-row" hidden', $html );
+		$this->assertStringContainsString( 'disabled', $html );
+		$this->assertStringContainsString( 'no destination is needed', $html );
+	}
+
+	/**
+	 * A 404 prefill opens the editor with source plus return target.
+	 */
+	public function test_prefill_from_404_opens_editor_with_return(): void {
+		$page = $this->makePage();
+
+		$_GET = [
+			'rk_source' => '/missing',
+			'rk_return' => 'rankkernel-404',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="true"', $html );
+		$this->assertStringContainsString( 'value="/missing"', $html );
+		$this->assertStringContainsString( 'name="rk_return" value="rankkernel-404"', $html );
+		$this->assertStringContainsString( 'Source prefilled', $html );
+	}
+
+	/**
+	 * A save from the monitor flow routes back to the monitor.
+	 */
+	public function test_save_with_return_routes_to_monitor(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd( [ 'rk_return' => 'rankkernel-404' ] );
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertStringContainsString( 'rankkernel-404', $this->lastRedirect );
+		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
+	}
+
+	/**
+	 * An unknown return target never routes the save elsewhere.
+	 */
+	public function test_save_with_bad_return_stays_on_redirects(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd( [ 'rk_return' => 'http://evil.example/' ] );
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertStringContainsString( 'rankkernel-redirects', $this->lastRedirect );
+		$this->assertStringNotContainsString( 'rankkernel-404', $this->lastRedirect );
+	}
+
+	/**
+	 * A source fragment is rejected with an explanation.
+	 */
+	public function test_add_fragment_source_shows_error(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd( [ 'rk_source' => '/a#section' ] );
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 0, $this->db->rows );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'never sent to the server', $html );
+	}
+
+	/**
+	 * An overlong regex pattern is rejected with the length cap.
+	 */
+	public function test_add_long_regex_shows_length_error(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'     => str_repeat( 'a', 201 ),
+				'rk_match_type' => 'regex',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 0, $this->db->rows );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'under 200 characters', $html );
+	}
+
+	/**
+	 * A blocked destination scheme names the problem.
+	 */
+	public function test_add_blocked_scheme_names_problem(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd( [ 'rk_target' => 'javascript:alert(1)' ] );
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 0, $this->db->rows );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'blocked scheme', $html );
+	}
+
+	/**
+	 * A deterministic chain recommends the direct destination.
+	 */
+	public function test_chain_with_final_recommends_direct_destination(): void {
+		$page = $this->makePage();
+
+		$_GET = [
+			'rk_chain' => '/a -> /b',
+			'rk_final' => '/c',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Redirect chain detected', $html );
+		$this->assertStringContainsString( 'Consider pointing', $html );
+	}
+
+	/**
+	 * An inconclusive chain never presents a recommendation as safe.
+	 */
+	public function test_chain_unknown_hides_recommendation(): void {
+		$page = $this->makePage();
+
+		$_GET = [
+			'rk_chain'         => '/a -> /b',
+			'rk_final'         => '/c',
+			'rk_chain_unknown' => '1',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Redirect chain detected', $html );
+		$this->assertStringContainsString( 'could not determine the final destination', $html );
+		$this->assertStringNotContainsString( 'Consider pointing', $html );
+	}
 }
