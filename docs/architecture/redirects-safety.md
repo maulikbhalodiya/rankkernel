@@ -36,15 +36,20 @@ Traversal rules:
 - Regex matchers on intermediate rules mark the branch inconclusive
   without blocking.
 - Only conclusive cycles block. Inconclusive branches warn and allow
-  the save, for example `This redirect may loop through a pattern
-  rule. Please verify it manually.`
+  the save, for example `The loop check could not fully verify this
+  redirect, so a loop is still possible. Please verify it manually.`
+  The automatic slug watcher is the exception: with no administrator
+  present to read the warning, it fails closed and creates nothing on
+  an inconclusive analysis.
 
 Limits:
 
 - Maximum traversal depth 10 (`MAX_DEPTH`).
-- Maximum rule examinations 50 (`MAX_NODES`).
+- Maximum matching edge examinations 50 (`MAX_NODES`). Only rules
+  whose source actually matches the current path consume the budget,
+  so a real cycle is still found inside a large unrelated set.
 - Hitting either cap marks the analysis inconclusive instead of
-  blocking.
+  blocking, and inconclusive never reads as proof of safety.
 
 ## Chain detection
 

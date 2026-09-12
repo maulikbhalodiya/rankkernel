@@ -30,6 +30,10 @@ source,target,code,match_type,active,hits,last_accessed
 - Unix or Windows line endings tolerated on read, Unix on write.
 - Comma delimiter, double quote wrapping, doubled quotes for escapes.
 - Export leaves in stable id order with the header row first.
+- Export reads in bounded batches of 500 (`EXPORT_BATCH`) through
+  `export_count` plus `export_batch`, and the admin download streams
+  batches straight to the response, so export memory stays flat
+  however many rules exist. The string export returns identical bytes.
 
 ## Validation
 

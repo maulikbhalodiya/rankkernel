@@ -5,6 +5,9 @@
 - Source matching ignores the query string. The matcher and the hash
   operate on the normalized path only, so `/old?x=1` matches a rule
   with source `/old`.
+- A source entered with a query string is stored without it:
+  `/old?x=1` normalizes to `/old` before hashing, so the stored row
+  and every later match agree.
 - Destination query preservation defaults to on. The
   `preserve_query` setting in `rankkernel_redirects_settings`
   defaults to `true` and is editable on the Redirect Manager screen.
@@ -12,8 +15,24 @@
   the destination only when the destination carries no query of its
   own and the rule is a redirect code. A destination query always
   wins over the incoming query.
+- When preservation is off, the incoming query string is dropped and
+  a destination query still sends untouched.
+- The incoming query appends verbatim. Multiple parameters,
+  percent encoded bytes, and repeated keys pass through exactly as
+  received with no re encoding, no parsing, and no reordering, so
+  `/old?a=1&b=2`, `/old?q=%2Fb%20x`, and `/old?a=1&a=2` arrive
+  intact.
+- Fragments never travel. Browsers do not send fragments, the
+  dispatcher strips any fragment defensively before appending, and
+  the validator strips destination fragments at save and again at
+  send, so a stored `/new#section` sends `/new`.
 - Terminal codes 410 and 451 send no `Location` header at all, so
   query preservation does not apply to them.
+- Regex rules match on the path only, exactly like every other
+  matcher, and the incoming query handling is identical. Capture
+  references such as `$1` in a regex target are never substituted:
+  the destination sends literally, which the save time loop check
+  reports as inconclusive so an administrator verifies it manually.
 - The admin form states the policy next to the active flag:
   matching ignores the query string, and the preserved query can be
   changed under Redirect Settings.

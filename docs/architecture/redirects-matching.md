@@ -30,8 +30,26 @@ insert and update, and the admin save plus CSV import check
 
 Candidate loading: exact resolves with one indexed query. Pattern rules
 (prefix, wildcard, contains, suffix, regex) load through
-`RedirectRepository::all_patterns()` as a small active list for in
-memory matching. This avoids `LIKE` scans on the hot path.
+`RedirectRepository::all_patterns()` as one bounded cached list for in
+memory matching, at most `MAX_PATTERNS` (500) rows served from the
+`RedirectCache` pattern slot when fresh, otherwise read with an
+explicit `LIMIT` and stored. This avoids `LIKE` scans on the hot path
+and keeps a cold miss to one small indexed read. Writes that would
+grow the active pattern set past the cap are refused with a zero or
+false return so the admin reports the limit instead of silently
+exceeding it.
+
+## Normalization rules
+
+`Normalizer::normalize()` is the single shared normalizer. Rule sources
+at create time, request paths at dispatch time, loop and chain targets,
+CSV rows, cache keys, and 404 URIs all pass through it, so hashing and
+comparison stay consistent everywhere. Regex rule sources are the one
+exception: `Normalizer::normalizeSource()` stores pattern bodies
+verbatim (trimmed only), because path normalization would corrupt them
+by cutting at question marks, collapsing slashes, or forcing a leading
+slash. The hash covers the stored form, so identical patterns under
+the same matcher stay one row.
 
 ## Normalization rules
 
