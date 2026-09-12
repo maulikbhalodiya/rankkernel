@@ -38,10 +38,12 @@
         <include-pattern>src/Modules/Schema/Pieces/FaqPiece.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</include-pattern>
         <include-pattern>src/Modules/Redirects/*</include-pattern>
+        <include-pattern>src/Modules/Monitor/*</include-pattern>
         <include-pattern>tests/Unit/FaqBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoPieceTest.php</include-pattern>
         <include-pattern>tests/Unit/Redirects*</include-pattern>
+        <include-pattern>tests/Unit/Monitor*</include-pattern>
         <include-pattern>tests/Unit/RedirectsAdminTest.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
@@ -66,10 +68,12 @@
         <exclude-pattern>src/Modules/Schema/Pieces/FaqPiece.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</exclude-pattern>
         <exclude-pattern>src/Modules/Redirects/*</exclude-pattern>
+        <exclude-pattern>src/Modules/Monitor/*</exclude-pattern>
         <exclude-pattern>tests/Unit/FaqBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoPieceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Redirects*</exclude-pattern>
+        <exclude-pattern>tests/Unit/Monitor*</exclude-pattern>
         <exclude-pattern>tests/Unit/RedirectsAdminTest.php</exclude-pattern>
     </rule>
 

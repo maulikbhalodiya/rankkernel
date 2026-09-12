@@ -68,10 +68,13 @@ final class ModuleManager {
         $this->evaluated = true;
 
         foreach ($this->registry as $id => $module) {
+            // Numeric string ids such as 404 arrive as int keys, normalize once.
+            $key = (string) $id;
+
             if (null !== $this->enableMapSource) {
-                $this->enabledMap[ $id ] = $this->enableMapSource->isEnabled($id);
+                $this->enabledMap[ $key ] = $this->enableMapSource->isEnabled($key);
             } else {
-                $this->enabledMap[ $id ] = $module->isEnabled();
+                $this->enabledMap[ $key ] = $module->isEnabled();
             }
         }
     }
@@ -88,11 +91,14 @@ final class ModuleManager {
             $this->evaluateAll();
         } else {
             foreach ($this->registry as $id => $module) {
-                if (! array_key_exists($id, $this->enabledMap)) {
+                // Numeric string ids such as 404 arrive as int keys, normalize once.
+                $key = (string) $id;
+
+                if (! array_key_exists($key, $this->enabledMap)) {
                     if (null !== $this->enableMapSource) {
-                        $this->enabledMap[ $id ] = $this->enableMapSource->isEnabled($id);
+                        $this->enabledMap[ $key ] = $this->enableMapSource->isEnabled($key);
                     } else {
-                        $this->enabledMap[ $id ] = $module->isEnabled();
+                        $this->enabledMap[ $key ] = $module->isEnabled();
                     }
                 }
             }
@@ -106,7 +112,10 @@ final class ModuleManager {
         );
 
         foreach ($sorted as $id => $module) {
-            if (! $this->isOn($id)) {
+            // Numeric string ids such as 404 arrive as int keys, normalize once.
+            $key = (string) $id;
+
+            if (! $this->isOn($key)) {
                 continue;
             }
 
@@ -119,14 +128,14 @@ final class ModuleManager {
             }
 
             if (null !== $missing) {
-                $this->enabledMap[ $id ] = false;
+                $this->enabledMap[ $key ] = false;
                 /**
                  * Fires when a module is force-disabled due to a missing dependency.
                  *
                  * @param string $moduleId          The module that was disabled.
                  * @param string $missingDependency The missing dependency id.
                  */
-                do_action('rankkernel/module/force_disabled', $id, $missing);
+                do_action('rankkernel/module/force_disabled', $key, $missing);
                 continue;
             }
 
@@ -163,8 +172,11 @@ final class ModuleManager {
 
         $out = [];
         foreach ($sorted as $id => $module) {
-            if ($this->isOn($id)) {
-                $out[ $id ] = $module;
+            // Numeric string ids such as 404 arrive as int keys, normalize once.
+            $key = (string) $id;
+
+            if ($this->isOn($key)) {
+                $out[ $key ] = $module;
             }
         }
 

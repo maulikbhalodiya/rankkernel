@@ -16,6 +16,7 @@ use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
+use RankKernel\Modules\Monitor\MonitorModule;
 use RankKernel\Modules\Redirects\RedirectsModule;
 use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
@@ -150,6 +151,10 @@ final class Plugin {
         // Redirects module (optional, default off).
         $redirectsModule = new RedirectsModule($enableMap);
         $moduleManager->register($redirectsModule);
+
+        // 404 Monitor module (optional, default off).
+        $monitorModule = new MonitorModule($enableMap);
+        $moduleManager->register($monitorModule);
 
         add_action('init', [ $migrationRunner, 'maybeRun' ], 10);
 
