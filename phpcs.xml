@@ -29,6 +29,7 @@
         <include-pattern>src/Admin/SitemapSettingsPage.php</include-pattern>
         <include-pattern>src/Admin/SettingsPage.php</include-pattern>
         <include-pattern>src/Admin/RedirectsPage.php</include-pattern>
+        <include-pattern>src/Admin/NotFoundPage.php</include-pattern>
         <include-pattern>src/Modules/Metadata/MetaPayload.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
@@ -59,6 +60,7 @@
         <exclude-pattern>src/Admin/SitemapSettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/SettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/RedirectsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/NotFoundPage.php</exclude-pattern>
         <exclude-pattern>src/Modules/Metadata/MetaPayload.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>

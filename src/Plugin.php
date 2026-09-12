@@ -130,6 +130,7 @@ final class Plugin {
 
             add_action('admin_menu', [ $adminMenu, 'addSchemaPage' ]);
             add_action('admin_menu', [ $adminMenu, 'addRedirectsPage' ]);
+            add_action('admin_menu', [ $adminMenu, 'addMonitorPage' ]);
 
             $schemaMetabox = new SchemaMetabox();
             $schemaMetabox->register();

@@ -38,6 +38,7 @@ WordPress Extra enforced today:
 * `src/Admin/SitemapSettingsPage.php`
 * `src/Admin/SettingsPage.php`
 * `src/Admin/RedirectsPage.php` (Redirects admin UI, GH-12)
+* `src/Admin/NotFoundPage.php` (404 Monitor admin UI, GH-12)
 * `src/Modules/Metadata/MetaPayload.php`
 * `src/Modules/Sitemaps/Provider/PostsProvider.php`
 * `src/Modules/Sitemaps/Provider/AuthorsProvider.php`

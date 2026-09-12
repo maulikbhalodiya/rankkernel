@@ -41,6 +41,11 @@ final class AdminMenu {
     private readonly RedirectsPage $redirectsPage;
 
     /**
+     * 404 Monitor page instance.
+     */
+    private readonly NotFoundPage $monitorPage;
+
+    /**
      * Constructor.
      *
      * @param SettingsStore    $store     Settings store.
@@ -56,6 +61,7 @@ final class AdminMenu {
         $this->sitemapPage = new SitemapSettingsPage($sitemap ?? new SitemapSettings());
         $this->schemaPage  = new SchemaSettingsPage($this->store);
         $this->redirectsPage = new RedirectsPage(new RedirectRepository(), new RedirectsSettings());
+        $this->monitorPage = new NotFoundPage();
     }
 
     /**
@@ -84,6 +90,13 @@ final class AdminMenu {
      */
     public function getRedirectsPage(): RedirectsPage {
         return $this->redirectsPage;
+    }
+
+    /**
+     * Get the 404 Monitor page (for testing).
+     */
+    public function getMonitorPage(): NotFoundPage {
+        return $this->monitorPage;
     }
 
     /**
@@ -184,5 +197,26 @@ final class AdminMenu {
 
         add_action('load-' . $hook, [ $this->redirectsPage, 'maybeHandleSave' ]);
         add_action('admin_enqueue_scripts', [ $this->redirectsPage, 'enqueueAssets' ]);
+    }
+
+    /**
+     * Register the RankKernel 404 Monitor submenu page.
+     *
+     * Hooked separately from the top level menu so callers control
+     * ordering. Uses the same load hook save pattern as the other
+     * pages, so the redirect stays header safe.
+     */
+    public function addMonitorPage(): void {
+        $hook = add_submenu_page(
+            'rankkernel',
+            '404 Monitor',
+            '404 Monitor',
+            'manage_options',
+            'rankkernel-404',
+            [ $this->monitorPage, 'render' ]
+        );
+
+        add_action('load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ]);
+        add_action('admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ]);
     }
 }

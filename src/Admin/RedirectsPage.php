@@ -1206,7 +1206,7 @@ final class RedirectsPage {
 
 		if ( $id <= 0 ) {
 			return [
-				'source'     => '',
+				'source'     => $this->prefillSource(),
 				'match_type' => 'exact',
 				'target'     => '',
 				'code'       => '301',
@@ -1236,6 +1236,22 @@ final class RedirectsPage {
 			'is_active'  => 1 === (int) ( $row['is_active'] ?? 0 ),
 			'rule_id'    => (int) ( $row['id'] ?? 0 ),
 		];
+	}
+
+	/**
+	 * Prefilled source from the 404 Monitor Create Redirect link.
+	 *
+	 * Read only display value, sanitized below. The save pipeline validates
+	 * and normalizes it again, so this is a convenience only.
+	 *
+	 * @return string Source value or empty string.
+	 */
+	private function prefillSource(): string {
+		// Read only display value, sanitized and escaped by the caller.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$raw = isset( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';
+
+		return is_string( $raw ) ? sanitize_text_field( $raw ) : '';
 	}
 
 	/**
