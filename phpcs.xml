@@ -36,9 +36,11 @@
         <include-pattern>src/Modules/Schema/blocks/HowtoBlock.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/FaqPiece.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</include-pattern>
+        <include-pattern>src/Modules/Redirects/*</include-pattern>
         <include-pattern>tests/Unit/FaqBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoPieceTest.php</include-pattern>
+        <include-pattern>tests/Unit/Redirects*</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
         <exclude-pattern>src/.*</exclude-pattern>
@@ -60,9 +62,11 @@
         <exclude-pattern>src/Modules/Schema/blocks/HowtoBlock.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/FaqPiece.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Redirects/*</exclude-pattern>
         <exclude-pattern>tests/Unit/FaqBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoPieceTest.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/Redirects*</exclude-pattern>
     </rule>
 
     <rule ref="PSR1.Methods.CamelCapsMethodName">

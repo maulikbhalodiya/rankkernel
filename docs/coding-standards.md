@@ -41,6 +41,8 @@ WordPress Extra enforced today:
 * `src/Modules/Sitemaps/Provider/PostsProvider.php`
 * `src/Modules/Sitemaps/Provider/AuthorsProvider.php`
 * `src/Modules/Schema/SchemaModule.php`
+* `src/Modules/Redirects/*` (entire Redirects backend directory, GH-12)
+* `tests/Unit/Redirects*` (Redirects backend tests, GH-12)
 
 Rule for extending the map: the rebuild agents add block files (`FaqBlock.php`, `HowtoBlock.php`, block subfolders) one file per commit, each commit fixing every WordPress Extra finding in that file (real fixes first, line level `phpcs:ignore` with a WordPress specific reason only for safe flows the sniff cannot trace, such as Settings API saves after nonce verification and prepared queries built through argument unpacking), then converting that file to WordPress whitespace, then keeping all three gates green.
 
