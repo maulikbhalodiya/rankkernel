@@ -598,7 +598,7 @@ final class MonitorAdminTest extends TestCase {
 		$html = $this->renderPage( $page );
 
 		$this->assertStringContainsString( 'notice-warning', $html );
-		$this->assertStringContainsString( 'almost at its configured entry limit', $html );
+		$this->assertStringContainsString( 'nearly at its configured entry limit', $html );
 		$this->assertStringContainsString( 'oldest entries are removed automatically', $html );
 	}
 
@@ -915,5 +915,118 @@ final class MonitorAdminTest extends TestCase {
 		} finally {
 			ob_end_clean();
 		}
+	}
+
+	/**
+	 * Create redirect links carry the return target for the round trip.
+	 */
+	public function test_create_redirect_url_carries_return(): void {
+		$page = $this->makePage();
+		$url  = $page->createRedirectUrl( '/old-page' );
+
+		$this->assertStringContainsString( 'rankkernel-redirects', $url );
+		$this->assertStringContainsString( 'rk_source=', $url );
+		$this->assertStringContainsString( 'rk_return=rankkernel-404', $url );
+	}
+
+	/**
+	 * Settings render collapsed with the exclusions editor affordances.
+	 */
+	public function test_render_settings_collapsible_with_exclusions_tools(): void {
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Monitor Settings', $html );
+		$this->assertStringContainsString( 'rk-exclusions-body', $html );
+		$this->assertStringContainsString( 'Add Exclusion', $html );
+		$this->assertStringContainsString( 'rk-exclusion-template', $html );
+		$this->assertStringContainsString( 'Remove', $html );
+	}
+
+	/**
+	 * Row details explain disabled advanced fields instead of empty columns.
+	 */
+	public function test_row_details_explain_disabled_advanced_fields(): void {
+		$this->seedEntry( '/old-page' );
+
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Details', $html );
+		$this->assertStringContainsString( 'logging is off', $html );
+		$this->assertStringNotContainsString( '<dt>Referer</dt>', $html );
+		$this->assertStringNotContainsString( '<dt>User agent</dt>', $html );
+	}
+
+	/**
+	 * Row details show referer and user agent when advanced logging is on.
+	 */
+	public function test_row_details_show_advanced_fields_when_enabled(): void {
+		$this->db->seed(
+			[
+				'uri_hash'   => hash( 'sha256', '/old-page' ),
+				'uri'        => '/old-page',
+				'referer'    => 'https://example.com/start',
+				'user_agent' => 'TestAgent/1.0',
+			]
+		);
+
+		$this->options[ MonitorSettings::OPTION ] = array_merge(
+			MonitorSettings::defaults(),
+			[ 'advanced_fields' => true ]
+		);
+
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<dt>Referer</dt>', $html );
+		$this->assertStringContainsString( 'TestAgent/1.0', $html );
+		$this->assertStringNotContainsString( 'logging is off', $html );
+	}
+
+	/**
+	 * The summary shows the most recent activity when entries exist.
+	 */
+	public function test_render_summary_shows_recent_activity(): void {
+		$this->seedEntry( '/a' );
+
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Most recent', $html );
+	}
+
+	/**
+	 * A redirect save returning here renders its saved notice.
+	 */
+	public function test_redirect_saved_notice_renders(): void {
+		$page = $this->makePage();
+
+		$_GET = [ 'rk_notice' => 'redirect_saved' ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Redirect saved.', $html );
+	}
+
+	/**
+	 * A carried inconclusive chain never presents a recommendation as safe.
+	 */
+	public function test_carried_chain_unknown_hides_recommendation(): void {
+		$page = $this->makePage();
+
+		$_GET = [
+			'rk_notice'        => 'redirect_saved',
+			'rk_chain'         => '/a -> /b',
+			'rk_final'         => '/c',
+			'rk_chain_unknown' => '1',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Redirect saved.', $html );
+		$this->assertStringContainsString( 'Redirect chain detected', $html );
+		$this->assertStringContainsString( 'could not determine the final destination', $html );
+		$this->assertStringNotContainsString( 'Consider pointing', $html );
 	}
 }

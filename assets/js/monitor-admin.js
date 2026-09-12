@@ -56,4 +56,54 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			} );
 		} );
 	}
+
+	var exclusionBody = document.getElementById( 'rk-exclusions-body' );
+	var exclusionAdd = document.getElementById( 'rk-exclusion-add' );
+	var exclusionTemplate = document.getElementById( 'rk-exclusion-template' );
+
+	if ( exclusionAdd && exclusionBody && exclusionTemplate ) {
+		exclusionAdd.addEventListener( 'click', function () {
+			var clone = exclusionTemplate.content.cloneNode( true );
+
+			exclusionBody.appendChild( clone );
+
+			var rows = exclusionBody.querySelectorAll( 'tr' );
+			var lastInput = rows.length ? rows[ rows.length - 1 ].querySelector( 'input' ) : null;
+
+			if ( lastInput ) {
+				lastInput.focus();
+			}
+		} );
+
+		exclusionBody.addEventListener( 'click', function ( event ) {
+			var target = event.target;
+
+			if ( ! target || ! target.closest ) {
+				return;
+			}
+
+			var button = target.closest( '.rk-exclusion-remove' );
+
+			if ( ! button ) {
+				return;
+			}
+
+			var row = button.closest( 'tr' );
+
+			if ( ! row ) {
+				return;
+			}
+
+			if ( exclusionBody.querySelectorAll( 'tr' ).length > 1 ) {
+				row.remove();
+			} else {
+				var input = row.querySelector( 'input' );
+
+				if ( input ) {
+					input.value = '';
+					input.focus();
+				}
+			}
+		} );
+	}
 } );

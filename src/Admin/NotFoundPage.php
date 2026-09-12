@@ -244,16 +244,24 @@ final class NotFoundPage {
 	/**
 	 * Redirects add screen URL with the 404 source prefilled.
 	 *
-	 * The Redirects form reads the rk_source query value on a fresh add, so
-	 * the new rule passes through the normal redirect validation pipeline.
+	 * The Redirects editor reads the rk_source query value on a fresh add,
+	 * so the new rule passes through the normal redirect validation
+	 * pipeline. The rk_return flag opens the editor and routes the save
+	 * back to the monitor, so the address is never copied by hand.
 	 *
 	 * @param string $uri Normalized 404 URI.
-	 * @return string Redirects screen URL with the source attached.
+	 * @return string Redirects screen URL with source plus return attached.
 	 */
 	public function createRedirectUrl( string $uri ): string {
 		$base = admin_url( 'admin.php?page=' . RedirectsPage::SLUG );
 
-		return add_query_arg( [ 'rk_source' => $uri ], $base );
+		return add_query_arg(
+			[
+				'rk_source' => $uri,
+				'rk_return' => self::SLUG,
+			],
+			$base
+		);
 	}
 
 	/**
@@ -481,6 +489,8 @@ final class NotFoundPage {
 		if ( '' !== $error ) {
 			$this->renderErrorNotice( $error );
 		}
+
+		$this->renderCarriedNotices();
 	}
 
 	/**
@@ -500,6 +510,9 @@ final class NotFoundPage {
 				break;
 			case 'settings':
 				$message = __( 'Settings saved.', 'rankkernel' );
+				break;
+			case 'redirect_saved':
+				$message = __( 'Redirect saved.', 'rankkernel' );
 				break;
 			case 'bulk':
 				$message = $this->bulkMessage();
@@ -547,6 +560,73 @@ final class NotFoundPage {
 	}
 
 	/**
+	 * Render chain and loop notices carried back from a redirect save.
+	 *
+	 * A Create Redirect flow saves on the Redirects screen, then returns
+	 * here. The chain warning must survive that return, and an inconclusive
+	 * analysis must say so plainly instead of implying a safe result.
+	 */
+	private function renderCarriedNotices(): void {
+		// Read only display flags, sanitized and escaped below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawChain = isset( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
+		$chain    = sanitize_text_field( $rawChain );
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$chainUnknown = isset( $_GET['rk_chain_unknown'] );
+
+		if ( '' !== $chain ) {
+			// Read only display flag, sanitized and escaped below.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$rawFinal = isset( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';
+			$final    = sanitize_text_field( $rawFinal );
+
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html(
+				sprintf(
+					/* translators: %s: redirect chain path */
+					__( 'Redirect chain detected: %s.', 'rankkernel' ),
+					$chain
+				)
+			);
+
+			if ( $chainUnknown || '' === $final ) {
+				echo ' ';
+				echo esc_html__( 'RankKernel could not determine the final destination, so please verify the chain manually. Saved as entered.', 'rankkernel' );
+			} else {
+				echo ' ';
+				echo esc_html(
+					sprintf(
+						/* translators: %s: recommended final destination */
+						__( 'Consider pointing the source directly to %s.', 'rankkernel' ),
+						$final
+					)
+				);
+			}
+
+			echo '</p></div>';
+		}
+
+		// Read only display flags.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['rk_mayloop'] ) ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html__( 'The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually.', 'rankkernel' );
+			echo '</p></div>';
+		}
+
+		// Read only display flags. Shown only without a chain path, the chain
+		// branch above already carries the unknown wording when both appear.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $chainUnknown && '' === $chain ) {
+			echo '<div class="notice notice-info is-dismissible"><p>';
+			echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' );
+			echo '</p></div>';
+		}
+	}
+
+	/**
 	 * Render the page header.
 	 */
 	private function renderHeader(): void {
@@ -576,6 +656,7 @@ final class NotFoundPage {
 		$max           = max( 1, (int) $usage['max'] );
 		$percent       = min( 100.0, max( 0.0, (float) $usage['percent'] ) );
 		$retentionDays = max( 1, min( 365, (int) $this->monitorSettings->get( 'retention_days', 30 ) ) );
+		$recent        = $this->recentActivity();
 
 		echo '<div class="rk-card rk-summary">';
 		echo '<h2>' . esc_html__( 'Log Status', 'rankkernel' ) . '</h2>';
@@ -608,6 +689,15 @@ final class NotFoundPage {
 		) . '</span>';
 		echo '<span class="rk-stat-hint">' . esc_html__( 'Entries older than this are removed automatically, oldest first.', 'rankkernel' ) . '</span></div>';
 
+		if ( is_array( $recent ) ) {
+			$recentUri  = (string) ( $recent['uri'] ?? '' );
+			$recentSeen = (string) ( $recent['last_accessed'] ?? '' );
+
+			echo '<div class="rk-stat"><span class="rk-stat-label">' . esc_html__( 'Most recent', 'rankkernel' ) . '</span>';
+			echo '<span class="rk-stat-value rk-stat-small">' . ( '' === $recentSeen ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $recentSeen ) ) . '</span>';
+			echo '<span class="rk-stat-hint">' . esc_html( $recentUri ) . '</span></div>';
+		}
+
 		echo '</div>';
 
 		echo '<form method="post" action="' . esc_url( $this->pageUrl( [] ) ) . '" id="rk-clear-form" data-rk-confirm="'
@@ -621,6 +711,29 @@ final class NotFoundPage {
 		echo '</form>';
 
 		echo '</div>';
+	}
+
+	/**
+	 * Most recently hit entry, for the summary recent activity stat.
+	 *
+	 * A single bounded row keeps the summary honest without a heavy query.
+	 * Null when the log is empty.
+	 *
+	 * @return array<string, mixed>|null Newest row or null.
+	 */
+	private function recentActivity(): ?array {
+		$result = $this->repository->paginate(
+			[
+				'orderby'  => 'last_accessed',
+				'order'    => 'DESC',
+				'page'     => 1,
+				'per_page' => 1,
+			]
+		);
+
+		$first = $result['rows'][0] ?? null;
+
+		return is_array( $first ) ? $first : null;
 	}
 
 	/**
@@ -640,7 +753,7 @@ final class NotFoundPage {
 			echo '<div class="notice notice-warning"><p>' . esc_html(
 				sprintf(
 					/* translators: %s: configured maximum entry count */
-					__( 'Your 404 log is almost at its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time.', 'rankkernel' ),
+					__( 'Your 404 log is nearly at its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time.', 'rankkernel' ),
 					number_format_i18n( $max )
 				)
 			) . '</p></div>';
@@ -880,14 +993,21 @@ final class NotFoundPage {
 	/**
 	 * Render one 404 row with its actions.
 	 *
+	 * The URL cell carries a Details disclosure with the full address and
+	 * timing. Referer and user agent appear only while advanced logging is
+	 * enabled, otherwise the disclosure explains how to enable them.
+	 *
 	 * @param array<string, mixed> $row Log row.
 	 */
 	private function renderRow( array $row ): void {
-		$id      = (int) ( $row['id'] ?? 0 );
-		$uri     = (string) ( $row['uri'] ?? '' );
-		$hits    = max( 0, (int) ( $row['hits'] ?? 0 ) );
-		$created = (string) ( $row['created'] ?? '' );
-		$seen    = (string) ( $row['last_accessed'] ?? '' );
+		$id       = (int) ( $row['id'] ?? 0 );
+		$uri      = (string) ( $row['uri'] ?? '' );
+		$hits     = max( 0, (int) ( $row['hits'] ?? 0 ) );
+		$created  = (string) ( $row['created'] ?? '' );
+		$seen     = (string) ( $row['last_accessed'] ?? '' );
+		$advanced = $this->monitorSettings->isAdvancedFields();
+		$referer  = (string) ( $row['referer'] ?? '' );
+		$agent    = (string) ( $row['user_agent'] ?? '' );
 
 		$base      = admin_url( 'admin.php?page=' . self::SLUG );
 		$deleteUrl = wp_nonce_url( $base . '&rk_action=delete&entry=' . $id, self::NONCE_ROW );
@@ -896,17 +1016,27 @@ final class NotFoundPage {
 		echo '<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="' . esc_attr( (string) $id ) . '" /></th>';
 
 		echo '<td class="rk-col-uri"><strong>' . esc_html( $uri ) . '</strong>';
-		echo '<div class="row-actions">';
+		echo '<details class="rk-details"><summary>' . esc_html__( 'Details', 'rankkernel' ) . '</summary>';
+		echo '<dl class="rk-detail-list">';
+		echo '<dt>' . esc_html__( 'Full address', 'rankkernel' ) . '</dt><dd>' . esc_html( $uri ) . '</dd>';
+		echo '<dt>' . esc_html__( 'Hits', 'rankkernel' ) . '</dt><dd>' . esc_html( (string) number_format_i18n( $hits ) ) . '</dd>';
+		echo '<dt>' . esc_html__( 'First seen', 'rankkernel' ) . '</dt><dd>' . ( '' === $created ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $created ) ) . '</dd>';
+		echo '<dt>' . esc_html__( 'Last seen', 'rankkernel' ) . '</dt><dd>' . ( '' === $seen ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $seen ) ) . '</dd>';
 
-		if ( $this->isRedirectsEnabled() ) {
-			echo '<span class="create"><a href="' . esc_url( $this->createRedirectUrl( $uri ) ) . '">'
-				. esc_html__( 'Create Redirect', 'rankkernel' ) . '</a> | </span>';
+		if ( $advanced ) {
+			echo '<dt>' . esc_html__( 'Referer', 'rankkernel' ) . '</dt><dd>' . ( '' === $referer ? esc_html__( 'None recorded', 'rankkernel' ) : esc_html( $referer ) ) . '</dd>';
+			echo '<dt>' . esc_html__( 'User agent', 'rankkernel' ) . '</dt><dd>' . ( '' === $agent ? esc_html__( 'None recorded', 'rankkernel' ) : esc_html( $agent ) ) . '</dd>';
 		}
 
-		echo '<span class="trash"><a href="' . esc_url( $deleteUrl ) . '" class="rk-confirm" data-rk-confirm="'
-			. esc_attr__( 'Delete this entry? This cannot be undone.', 'rankkernel' ) . '">'
-			. esc_html__( 'Delete', 'rankkernel' ) . '</a></span>';
-		echo '</div></td>';
+		echo '</dl>';
+
+		if ( ! $advanced ) {
+			echo '<p class="rk-sub">';
+			echo esc_html__( 'Referer and user agent logging is off. Turn on Advanced fields in Monitor Settings below to capture them.', 'rankkernel' );
+			echo '</p>';
+		}
+
+		echo '</details></td>';
 
 		echo '<td class="rk-col-hits">' . esc_html( (string) number_format_i18n( $hits ) ) . '</td>';
 		echo '<td class="rk-col-created">' . ( '' === $created ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $created ) ) . '</td>';
@@ -990,6 +1120,10 @@ final class NotFoundPage {
 
 	/**
 	 * Render the settings card.
+	 *
+	 * Collapsed by default so the operational list stays the focus. The
+	 * disclosure is a native details element, so it works without
+	 * JavaScript and reports its state to assistive technology.
 	 */
 	private function renderSettings(): void {
 		$all         = $this->monitorSettings->all();
@@ -1002,8 +1136,8 @@ final class NotFoundPage {
 		$exclusions  = $this->monitorSettings->getExclusions();
 		$comparators = $this->exclusionOptions();
 
-		echo '<div class="rk-card" id="rk-monitor-settings">';
-		echo '<h2>' . esc_html__( 'Monitor Settings', 'rankkernel' ) . '</h2>';
+		echo '<details class="rk-card rk-settings" id="rk-monitor-settings">';
+		echo '<summary class="rk-settings-summary">' . esc_html__( 'Monitor Settings', 'rankkernel' ) . '</summary>';
 
 		echo '<form method="post" action="">';
 
@@ -1055,22 +1189,19 @@ final class NotFoundPage {
 
 		echo '<h3>' . esc_html__( 'Exclusions', 'rankkernel' ) . '</h3>';
 		echo '<p class="rk-sub">';
-		echo esc_html__( 'Skip logging for addresses that match a rule. Choose how to compare, then enter the value. Matching is case sensitive.', 'rankkernel' );
+		echo esc_html__( 'Skip logging for addresses that match a rule. Add as many rows as needed. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' );
 		echo '</p>';
 
 		echo '<table class="widefat striped rk-exclusions"><thead><tr>';
 		echo '<th scope="col">' . esc_html__( 'Compare', 'rankkernel' ) . '</th>';
 		echo '<th scope="col">' . esc_html__( 'Value', 'rankkernel' ) . '</th>';
-		echo '</tr></thead><tbody>';
+		echo '<th scope="col"><span class="screen-reader-text">' . esc_html__( 'Remove', 'rankkernel' ) . '</span></th>';
+		echo '</tr></thead><tbody id="rk-exclusions-body">';
 
 		/** @var array<int, array<string, mixed>> $rows */
 		$rows = array_merge(
 			$exclusions,
 			[
-				[
-					'comparator' => 'prefix',
-					'value'      => '',
-				],
 				[
 					'comparator' => 'prefix',
 					'value'      => '',
@@ -1086,8 +1217,8 @@ final class NotFoundPage {
 			$comparator = (string) ( $row['comparator'] ?? 'prefix' );
 			$value      = (string) ( $row['value'] ?? '' );
 
-			echo '<tr><td>';
-			echo '<select name="rk_excl_comparator[]">';
+			echo '<tr class="rk-exclusion-row"><td>';
+			echo '<select name="rk_excl_comparator[]" aria-label="' . esc_attr__( 'How to compare', 'rankkernel' ) . '">';
 
 			foreach ( $comparators as $option => $label ) {
 				echo '<option value="' . esc_attr( $option ) . '"' . selected( $comparator, $option, false ) . '>';
@@ -1096,14 +1227,31 @@ final class NotFoundPage {
 			}
 
 			echo '</select></td>';
-			echo '<td><input type="text" name="rk_excl_value[]" value="' . esc_attr( $value ) . '" class="regular-text code" maxlength="500" /></td></tr>';
+			echo '<td><input type="text" name="rk_excl_value[]" value="' . esc_attr( $value ) . '" class="regular-text code" maxlength="500" aria-label="' . esc_attr__( 'Exclusion value', 'rankkernel' ) . '" /></td>';
+			echo '<td><button type="button" class="button button-small rk-exclusion-remove">' . esc_html__( 'Remove', 'rankkernel' ) . '</button></td></tr>';
 		}
 
 		echo '</tbody></table>';
 
+		echo '<template id="rk-exclusion-template"><tr class="rk-exclusion-row"><td>';
+		echo '<select name="rk_excl_comparator[]" aria-label="' . esc_attr__( 'How to compare', 'rankkernel' ) . '">';
+
+		foreach ( $comparators as $option => $label ) {
+			echo '<option value="' . esc_attr( $option ) . '"' . selected( 'prefix', $option, false ) . '>';
+			echo esc_html( $label );
+			echo '</option>';
+		}
+
+		echo '</select></td>';
+		echo '<td><input type="text" name="rk_excl_value[]" value="" class="regular-text code" maxlength="500" aria-label="' . esc_attr__( 'Exclusion value', 'rankkernel' ) . '" /></td>';
+		echo '<td><button type="button" class="button button-small rk-exclusion-remove">' . esc_html__( 'Remove', 'rankkernel' ) . '</button></td></tr></template>';
+
+		echo '<p><button type="button" class="button" id="rk-exclusion-add">' . esc_html__( 'Add Exclusion', 'rankkernel' ) . '</button> ';
+		echo '<span class="rk-sub">' . esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ) . '</span></p>';
+
 		submit_button( __( 'Save Monitor Settings', 'rankkernel' ), 'secondary', 'rankkernel_404_settings_save' );
 
 		echo '</form>';
-		echo '</div>';
+		echo '</details>';
 	}
 }
