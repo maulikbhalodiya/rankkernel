@@ -38,6 +38,11 @@ class RedirectsModule implements ModuleInterface {
 	private ?Redirector $redirector = null;
 
 	/**
+	 * Slug watcher instance, built at boot.
+	 */
+	private ?SlugWatcher $slugWatcher = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ModuleEnableMap|null $enableMap Optional shared enable map.
@@ -141,6 +146,12 @@ class RedirectsModule implements ModuleInterface {
 		$this->redirector = $redirector;
 
 		$redirector->register();
+
+		$watcher = new SlugWatcher();
+
+		$this->slugWatcher = $watcher;
+
+		$watcher->register();
 	}
 
 	/**
@@ -148,5 +159,12 @@ class RedirectsModule implements ModuleInterface {
 	 */
 	public function getRedirector(): ?Redirector {
 		return $this->redirector;
+	}
+
+	/**
+	 * Get the slug watcher, for testing.
+	 */
+	public function getSlugWatcher(): ?SlugWatcher {
+		return $this->slugWatcher;
 	}
 }
