@@ -27,7 +27,12 @@ final class Validator {
 	public const MAX_DEPTH = 10;
 
 	/**
-	 * Maximum rule examinations per loop analysis.
+	 * Maximum matching edge examinations per loop analysis.
+	 *
+	 * Only rules whose source actually matches the current path consume the
+	 * budget. Scanning past unrelated rules stays free, so a real cycle is
+	 * still found in a large rule set while a genuinely wide fan out still
+	 * reports inconclusive instead of a clean pass.
 	 */
 	public const MAX_NODES = 50;
 
@@ -43,14 +48,19 @@ final class Validator {
 	 * target over the given active internal rules. An edge exists when another
 	 * rule matches the current target path. Returning to any visited path is
 	 * a conclusive cycle and blocks. Dynamic or external branches are marked
-	 * inconclusive and stop that branch without blocking.
+	 * inconclusive and stop that branch without blocking. Depth beyond
+	 * MAX_DEPTH and more than MAX_NODES matching edges mark the analysis
+	 * inconclusive without blocking, and never count as proof of safety.
 	 *
 	 * @param array<string, mixed>       $proposed Proposed rule: source, target, code, match_type.
 	 * @param array<int, array<string, mixed>> $rules Active candidate rules with concrete targets.
 	 * @return array{has_cycle: bool, path: string[], inconclusive: bool}
 	 */
 	public function detect_loop( array $proposed, array $rules ): array {
-		$source = Normalizer::normalize( (string) ( $proposed['source'] ?? '' ) );
+		$source = Normalizer::normalizeSource(
+			(string) ( $proposed['source'] ?? '' ),
+			(string) ( $proposed['match_type'] ?? 'exact' )
+		);
 		$code   = (string) ( $proposed['code'] ?? '301' );
 		$result = [
 			'has_cycle'    => false,
@@ -95,14 +105,6 @@ final class Validator {
 			}
 
 			foreach ( $rules as $rule ) {
-				++$nodes;
-
-				if ( $nodes > self::MAX_NODES ) {
-					$inconclusive = true;
-
-					return false;
-				}
-
 				if ( ! is_array( $rule ) ) {
 					continue;
 				}
@@ -113,6 +115,14 @@ final class Validator {
 
 				if ( ! Matcher::rule_matches( $rule, $current ) ) {
 					continue;
+				}
+
+				++$nodes;
+
+				if ( $nodes > self::MAX_NODES ) {
+					$inconclusive = true;
+
+					return false;
 				}
 
 				$ruleCode = (string) ( $rule['code'] ?? '301' );
@@ -184,7 +194,10 @@ final class Validator {
 	 * @return array{has_chain: bool, chain: string[], final: string|null, inconclusive: bool}
 	 */
 	public function detect_chain( array $proposed, array $rules ): array {
-		$source = Normalizer::normalize( (string) ( $proposed['source'] ?? '' ) );
+		$source = Normalizer::normalizeSource(
+			(string) ( $proposed['source'] ?? '' ),
+			(string) ( $proposed['match_type'] ?? 'exact' )
+		);
 		$code   = (string) ( $proposed['code'] ?? '301' );
 		$result = [
 			'has_chain'    => false,

@@ -14,11 +14,34 @@ namespace RankKernel\Modules\Redirects;
  * All database access for redirect rules, prepared statements only.
  *
  * Exact lookups resolve through the UNIQUE (match_type, source_hash) index in
- * one query. Pattern rules load as a small active list for in memory
- * matching, never through serialized LIKE scans. Every successful write
- * invalidates the match cache through the attached RedirectCache.
+ * one query. Pattern rules load as one bounded cached list for in memory
+ * matching, never through serialized LIKE scans and never unbounded: the
+ * list is capped at MAX_PATTERNS rows, cached in the RedirectCache group,
+ * and retired by the shared validator on every write and toggle. Writes that
+ * would grow the active pattern set past the cap are refused with a zero or
+ * false return so the admin can report the limit instead of silently
+ * exceeding it. Every successful write bumps the shared validator, with or
+ * without an attached cache instance, so admin saves always retire
+ * frontend caches.
  */
 final class RedirectRepository {
+	/**
+	 * Maximum active non exact rules, the matcher memory and cost bound.
+	 *
+	 * Five hundred pattern rows cost about one hundred kilobytes and a few
+	 * hundred string comparisons per cold miss, with at most twenty regex
+	 * evaluations. Ten rules are trivial, one hundred stay cheap, one
+	 * thousand start to cost milliseconds per cold miss, five thousand risk
+	 * multi megabyte payloads in the object cache, and ten thousand would
+	 * turn every cold miss into a full table scan in PHP. The admin reports
+	 * this cap whenever a write would exceed it.
+	 */
+	public const MAX_PATTERNS = 500;
+
+	/**
+	 * Rows read per CSV export batch, keeps export memory bounded.
+	 */
+	public const EXPORT_BATCH = 500;
 	/**
 	 * Sortable columns for paginated lists.
 	 *
@@ -93,11 +116,24 @@ final class RedirectRepository {
 	/**
 	 * Exact lookup for a raw path, normalizes and hashes before find().
 	 *
+	 * Regex sources hash verbatim through normalizeSource, every other
+	 * matcher hashes the normalized path, matching prepareRow exactly.
+	 *
 	 * @param string $path      Raw or normalized path.
 	 * @param string $matchType Matcher name, exact by default.
 	 * @return array<string, mixed>|null Rule row or null.
 	 */
 	public function lookup( string $path, string $matchType = 'exact' ): ?array {
+		if ( 'regex' === $matchType ) {
+			$normalized = trim( $path );
+
+			if ( '' === $normalized || Normalizer::isBlockedSource( $normalized ) ) {
+				return null;
+			}
+
+			return $this->find( $matchType, Normalizer::hash( $matchType, $normalized ) );
+		}
+
 		$normalized = Normalizer::normalize( $path );
 
 		if ( Normalizer::isBlockedSource( $normalized ) ) {
@@ -133,9 +169,22 @@ final class RedirectRepository {
 	/**
 	 * All active pattern rules for in memory matching, id ordered.
 	 *
+	 * Bounded and cached: at most MAX_PATTERNS rows, served from the
+	 * RedirectCache pattern slot when fresh, otherwise read with an explicit
+	 * LIMIT and stored. A cold miss therefore costs one small indexed read,
+	 * never a full table load.
+	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function all_patterns(): array {
+		if ( null !== $this->cache ) {
+			$cached = $this->cache->getPatterns();
+
+			if ( null !== $cached ) {
+				return $cached;
+			}
+		}
+
 		$db = $this->connection();
 
 		if ( null === $db ) {
@@ -143,10 +192,10 @@ final class RedirectRepository {
 		}
 
 		$table = RedirectTable::name();
-		$sql   = "SELECT * FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC";
+		$sql   = "SELECT * FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC LIMIT %d";
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, bounded pattern list with no user input.
-		$rows = $db->get_results( $sql, ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, bounded pattern list with an integer limit and no user input.
+		$rows = $db->get_results( $db->prepare( $sql, self::MAX_PATTERNS ), ARRAY_A );
 
 		if ( ! is_array( $rows ) ) {
 			return [];
@@ -160,14 +209,43 @@ final class RedirectRepository {
 			}
 		}
 
+		if ( null !== $this->cache ) {
+			$this->cache->setPatterns( $out );
+		}
+
 		return $out;
+	}
+
+	/**
+	 * Count the active non exact rules against the pattern cap.
+	 *
+	 * @return int Active pattern rule count.
+	 */
+	public function count_patterns(): int {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 0;
+		}
+
+		$table = RedirectTable::name();
+		$sql   = "SELECT COUNT(*) FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact'";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single bounded count with no user input.
+		$count = $db->get_var( $sql );
+
+		return (int) $count;
 	}
 
 	/**
 	 * Insert a rule, normalizing the source and hashing before storage.
 	 *
+	 * An active non exact rule that would grow the pattern set past
+	 * MAX_PATTERNS is refused with a zero return, so the caller can report
+	 * the cap instead of silently exceeding it.
+	 *
 	 * @param array<string, mixed> $rule Source, target, code, match_type, is_active.
-	 * @return int New row id, or 0 when validation or storage fails.
+	 * @return int New row id, or 0 when validation, the pattern cap, or storage fails.
 	 */
 	public function insert( array $rule ): int {
 		$db = $this->connection();
@@ -179,6 +257,10 @@ final class RedirectRepository {
 		$prepared = $this->prepareRow( $rule );
 
 		if ( null === $prepared ) {
+			return 0;
+		}
+
+		if ( $this->wouldExceedCap( $prepared['data'], null ) ) {
 			return 0;
 		}
 
@@ -203,6 +285,9 @@ final class RedirectRepository {
 	/**
 	 * Update a rule by id, rehashing when source or matcher changes.
 	 *
+	 * A change that would flip a rule into the active pattern set past
+	 * MAX_PATTERNS is refused with false, so the caller can report the cap.
+	 *
 	 * @param int                  $id   Rule id.
 	 * @param array<string, mixed> $rule Partial fields to change.
 	 * @return bool True on success.
@@ -217,6 +302,10 @@ final class RedirectRepository {
 		$prepared = $this->prepareRow( $rule, true );
 
 		if ( null === $prepared || [] === $prepared['data'] ) {
+			return false;
+		}
+
+		if ( $this->wouldExceedCap( $prepared['data'], $id ) ) {
 			return false;
 		}
 
@@ -270,6 +359,8 @@ final class RedirectRepository {
 	/**
 	 * Flip the active flag on one rule.
 	 *
+	 * Activating a non exact rule past MAX_PATTERNS is refused with false.
+	 *
 	 * @param int  $id     Rule id.
 	 * @param bool $active New flag.
 	 * @return bool True on success.
@@ -278,6 +369,10 @@ final class RedirectRepository {
 		$db = $this->connection();
 
 		if ( null === $db || $id <= 0 ) {
+			return false;
+		}
+
+		if ( $active && $this->wouldExceedCap( [ 'is_active' => 1 ], $id ) ) {
 			return false;
 		}
 
@@ -297,6 +392,11 @@ final class RedirectRepository {
 
 	/**
 	 * Bulk activate, deactivate, or delete a list of ids.
+	 *
+	 * Bulk activation respects MAX_PATTERNS: exact rules always flip, non
+	 * exact rules flip in id order only while budget remains, and the
+	 * returned count reports exactly how many rows changed, so the admin
+	 * notice can never claim more than happened.
 	 *
 	 * @param string   $action One of activate, deactivate, delete.
 	 * @param int[]    $ids    Rule ids.
@@ -344,10 +444,29 @@ final class RedirectRepository {
 		}
 
 		if ( 'activate' === $action || 'deactivate' === $action ) {
-			$flag = 'activate' === $action ? 1 : 0;
+			if ( 'deactivate' === $action ) {
+				$flag = 0;
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
+				$affected = $db->query( "UPDATE `{$table}` SET is_active = {$flag} WHERE id IN ({$list})" );
+
+				$result['updated'] = is_int( $affected ) ? $affected : 0;
+				$this->touch();
+
+				return $result;
+			}
+
+			$allowed = $this->capBudgetForBulk( $clean );
+			$flag    = 1;
+
+			if ( [] === $allowed ) {
+				return $result;
+			}
+
+			$allowedList = implode( ',', $allowed );
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
-			$affected = $db->query( "UPDATE `{$table}` SET is_active = {$flag} WHERE id IN ({$list})" );
+			$affected = $db->query( "UPDATE `{$table}` SET is_active = {$flag} WHERE id IN ({$allowedList})" );
 
 			$result['updated'] = is_int( $affected ) ? $affected : 0;
 			$this->touch();
@@ -492,7 +611,9 @@ final class RedirectRepository {
 	 * Export rows for CSV, all rows or the given ids, stable id order.
 	 *
 	 * Hits and last accessed ride along for the export only columns, the
-	 * importer ignores them by contract.
+	 * importer ignores them by contract. Prefer export_count plus
+	 * export_batch for large tables, this helper loads the full set and
+	 * suits small selections only.
 	 *
 	 * @param int[] $ids Optional row ids, all rows when empty.
 	 * @return array<int, array<string, mixed>>
@@ -546,6 +667,108 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Count rows in the export scope, all rows or the given ids.
+	 *
+	 * @param int[] $ids Optional row ids, all rows when empty.
+	 * @return int Row count in scope.
+	 */
+	public function export_count( array $ids = [] ): int {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 0;
+		}
+
+		$table = RedirectTable::name();
+		$clean = $this->cleanIds( $ids );
+
+		if ( [] === $clean ) {
+			$sql = "SELECT COUNT(*) FROM `{$table}`";
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single count with no user input.
+			$count = $db->get_var( $sql );
+
+			return (int) $count;
+		}
+
+		$list = implode( ',', $clean );
+		$sql  = "SELECT COUNT(*) FROM `{$table}` WHERE id IN ({$list})";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
+		$count = $db->get_var( $sql );
+
+		return (int) $count;
+	}
+
+	/**
+	 * Read one bounded export batch in stable id order.
+	 *
+	 * @param int[] $ids    Optional row ids, all rows when empty.
+	 * @param int   $limit  Rows per batch, capped at EXPORT_BATCH.
+	 * @param int   $offset Zero based offset into the id ordered set.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function export_batch( array $ids = [], int $limit = self::EXPORT_BATCH, int $offset = 0 ): array {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return [];
+		}
+
+		$batch = max( 1, min( self::EXPORT_BATCH, $limit ) );
+		$skip  = max( 0, $offset );
+		$table = RedirectTable::name();
+		$clean = $this->cleanIds( $ids );
+
+		if ( [] === $clean ) {
+			$sql = "SELECT * FROM `{$table}` ORDER BY id ASC LIMIT %d OFFSET %d";
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, bounded batch with integer limit and offset.
+			$rows = $db->get_results( $db->prepare( $sql, $batch, $skip ), ARRAY_A );
+		} else {
+			$list = implode( ',', $clean );
+			$sql  = "SELECT * FROM `{$table}` WHERE id IN ({$list}) ORDER BY id ASC LIMIT %d OFFSET %d";
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
+			$rows = $db->get_results( $db->prepare( $sql, $batch, $skip ), ARRAY_A );
+		}
+
+		if ( ! is_array( $rows ) ) {
+			return [];
+		}
+
+		$out = [];
+
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) ) {
+				$out[] = $row;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Cast an id list to unique positive integers.
+	 *
+	 * @param int[] $ids Raw ids.
+	 * @return int[] Clean ids.
+	 */
+	private function cleanIds( array $ids ): array {
+		$clean = [];
+
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+
+			if ( $id > 0 ) {
+				$clean[] = $id;
+			}
+		}
+
+		return array_values( array_unique( $clean ) );
+	}
+
+	/**
 	 * Active connection or null when the database is unavailable.
 	 *
 	 * @return \wpdb|null
@@ -565,12 +788,95 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Whether storing the given fields would grow past the pattern cap.
+	 *
+	 * The check only fires when the resulting row lands inside the active
+	 * non exact set. An existing row that already counts toward the cap is
+	 * excluded by id, so edits that keep a rule inside the set always pass.
+	 *
+	 * @param array<string, mixed> $data      Storage fields for the write.
+	 * @param int|null             $excludeId Row id already in the set, null on insert.
+	 * @return bool True when the write must be refused.
+	 */
+	private function wouldExceedCap( array $data, ?int $excludeId ): bool {
+		$matchType = isset( $data['match_type'] ) ? (string) $data['match_type'] : null;
+		$isActive  = isset( $data['is_active'] ) ? 1 === (int) $data['is_active'] : null;
+
+		if ( null === $excludeId ) {
+			return 'exact' !== $matchType && true === $isActive && $this->count_patterns() >= self::MAX_PATTERNS;
+		}
+
+		$current = $this->get( $excludeId );
+
+		if ( null === $current ) {
+			return false;
+		}
+
+		$nowCounts = 1 === (int) ( $current['is_active'] ?? 0 ) && 'exact' !== (string) ( $current['match_type'] ?? 'exact' );
+		$newType   = null === $matchType ? (string) ( $current['match_type'] ?? 'exact' ) : $matchType;
+		$newActive = null === $isActive ? 1 === (int) ( $current['is_active'] ?? 0 ) : $isActive;
+		$newCounts = $newActive && 'exact' !== $newType;
+
+		if ( ! $newCounts || $nowCounts ) {
+			return false;
+		}
+
+		return $this->count_patterns() >= self::MAX_PATTERNS;
+	}
+
+	/**
+	 * Ids a bulk activate may flip without exceeding the pattern cap.
+	 *
+	 * Exact rows and rows already active always pass. Inactive non exact
+	 * rows pass in id order while budget remains.
+	 *
+	 * @param int[] $ids Requested ids in any order.
+	 * @return int[] Ids allowed to activate.
+	 */
+	private function capBudgetForBulk( array $ids ): array {
+		sort( $ids );
+
+		$budget  = self::MAX_PATTERNS - $this->count_patterns();
+		$allowed = [];
+
+		foreach ( $ids as $id ) {
+			$row = $this->get( $id );
+
+			if ( null === $row ) {
+				continue;
+			}
+
+			if ( 1 === (int) ( $row['is_active'] ?? 0 ) || 'exact' === (string) ( $row['match_type'] ?? 'exact' ) ) {
+				$allowed[] = $id;
+
+				continue;
+			}
+
+			if ( $budget > 0 ) {
+				$allowed[] = $id;
+				--$budget;
+			}
+		}
+
+		return $allowed;
+	}
+
+	/**
 	 * Invalidate the match cache after a successful write.
+	 *
+	 * Always bumps the shared validator, so writes through a repository
+	 * without an attached cache instance still retire every cached match
+	 * and pattern list. The attached instance additionally clears its in
+	 * memory maps.
 	 */
 	private function touch(): void {
 		if ( null !== $this->cache ) {
 			$this->cache->invalidate();
+
+			return;
 		}
+
+		RedirectCache::invalidateAll();
 	}
 
 	/**
@@ -677,9 +983,9 @@ final class RedirectRepository {
 			$matchType = Normalizer::isMatchType( (string) ( $rule['match_type'] ?? '' ) )
 				? (string) $rule['match_type']
 				: 'exact';
-			$source    = Normalizer::normalize( (string) ( $rule['source'] ?? '' ) );
+			$source    = Normalizer::normalizeSource( (string) ( $rule['source'] ?? '' ), $matchType );
 
-			if ( Normalizer::isBlockedSource( $source ) ) {
+			if ( '' === $source || Normalizer::isBlockedSource( $source ) ) {
 				return null;
 			}
 

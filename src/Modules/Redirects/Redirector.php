@@ -78,6 +78,8 @@ final class Redirector {
 		$this->hits       = $hits ?? new HitCounter();
 		$this->settings   = $settings ?? new RedirectsSettings();
 		$this->matcher    = $matcher ?? new Matcher( $this->repository );
+
+		$this->repository->setCache( $this->cache );
 	}
 
 	/**

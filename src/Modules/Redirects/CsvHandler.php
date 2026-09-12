@@ -234,41 +234,88 @@ final class CsvHandler {
 	 *
 	 * Rows leave in stable id order with the header row first, Unix line
 	 * endings, no BOM. Free text cells are escaped against formula injection.
+	 * Rows stream from the repository in bounded batches, so only one batch
+	 * plus the output document sits in memory at a time.
 	 *
 	 * @param int[] $ids Optional row ids, all rows when empty.
 	 * @return string CSV document.
 	 */
 	public function export_csv( array $ids = [] ): string {
-		$rows = $this->repository->export_rows( $ids );
+		$lines  = [ $this->csv_line( self::HEADER ) ];
+		$offset = 0;
+		$total  = $this->repository->export_count( $ids );
 
-		usort(
-			$rows,
-			static function ( array $a, array $b ): int {
-				return (int) ( $a['id'] ?? 0 ) <=> (int) ( $b['id'] ?? 0 );
-			}
-		);
+		while ( $offset < $total ) {
+			$rows = $this->repository->export_batch( $ids, RedirectRepository::EXPORT_BATCH, $offset );
 
-		$lines = [ $this->csv_line( self::HEADER ) ];
-
-		foreach ( $rows as $row ) {
-			if ( ! is_array( $row ) ) {
-				continue;
+			if ( [] === $rows ) {
+				break;
 			}
 
-			$lines[] = $this->csv_line(
-				[
-					(string) ( $row['source'] ?? '' ),
-					(string) ( $row['target'] ?? '' ),
-					(string) ( $row['code'] ?? '301' ),
-					(string) ( $row['match_type'] ?? 'exact' ),
-					1 === (int) ( $row['is_active'] ?? 0 ) ? 'yes' : 'no',
-					(string) ( $row['hits'] ?? '0' ),
-					(string) ( $row['last_accessed'] ?? '' ),
-				]
-			);
+			foreach ( $rows as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+
+				$lines[] = $this->csv_line( $this->export_cells( $row ) );
+			}
+
+			$offset += count( $rows );
 		}
 
 		return implode( "\n", $lines ) . "\n";
+	}
+
+	/**
+	 * Stream rules as CSV straight to the output buffer in bounded batches.
+	 *
+	 * Emits the identical bytes export_csv returns, but row memory never
+	 * exceeds one batch however many rules exist, which keeps the admin
+	 * download flat. Callers send the CSV headers first, then call this.
+	 *
+	 * @param int[] $ids Optional row ids, all rows when empty.
+	 */
+	public function stream_csv( array $ids = [] ): void {
+		echo $this->csv_line( self::HEADER ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV bytes are the download body, escaping would corrupt the format.
+
+		$offset = 0;
+		$total  = $this->repository->export_count( $ids );
+
+		while ( $offset < $total ) {
+			$rows = $this->repository->export_batch( $ids, RedirectRepository::EXPORT_BATCH, $offset );
+
+			if ( [] === $rows ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+
+				echo $this->csv_line( $this->export_cells( $row ) ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV bytes are the download body, escaping would corrupt the format.
+			}
+
+			$offset += count( $rows );
+		}
+	}
+
+	/**
+	 * Map one rule row to the seven contract cells in header order.
+	 *
+	 * @param array<string, mixed> $row Rule row.
+	 * @return list<string> Contract cells in header order.
+	 */
+	private function export_cells( array $row ): array {
+		return [
+			(string) ( $row['source'] ?? '' ),
+			(string) ( $row['target'] ?? '' ),
+			(string) ( $row['code'] ?? '301' ),
+			(string) ( $row['match_type'] ?? 'exact' ),
+			1 === (int) ( $row['is_active'] ?? 0 ) ? 'yes' : 'no',
+			(string) ( $row['hits'] ?? '0' ),
+			(string) ( $row['last_accessed'] ?? '' ),
+		];
 	}
 
 	/**
@@ -428,9 +475,9 @@ final class CsvHandler {
 			);
 		}
 
-		$source = Normalizer::normalize( $sourceRaw );
+		$source = Normalizer::normalizeSource( $sourceRaw, $matchType );
 
-		if ( Normalizer::isBlockedSource( $source ) ) {
+		if ( '' === $source || Normalizer::isBlockedSource( $source ) ) {
 			return $this->row_error( __( 'The home page cannot be used as a redirect source. Please use a path such as /old page.', 'rankkernel' ) );
 		}
 
@@ -469,6 +516,16 @@ final class CsvHandler {
 					/* translators: %s: redirect chain path showing the loop */
 					__( 'This redirect would create a redirect loop: %s. The row was not imported.', 'rankkernel' ),
 					implode( ' → ', $loop['path'] )
+				)
+			);
+		}
+
+		if ( $this->patternCapReached( $editingId, $proposed, $isActive ) ) {
+			return $this->row_error(
+				sprintf(
+					/* translators: %d: maximum active pattern rules */
+					__( 'The active pattern rule limit of %d is reached. The row was not imported.', 'rankkernel' ),
+					RedirectRepository::MAX_PATTERNS
 				)
 			);
 		}
@@ -520,8 +577,12 @@ final class CsvHandler {
 					$chain['final']
 				);
 			}
+
+			if ( $loop['inconclusive'] || $chain['inconclusive'] ) {
+				$warning .= ' ' . __( 'The analysis could not fully verify every branch, so please verify it manually.', 'rankkernel' );
+			}
 		} elseif ( $loop['inconclusive'] || $chain['inconclusive'] ) {
-			$warning = __( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' );
+			$warning = __( 'The analysis could not fully verify the final destination. Saved as entered, please verify it manually.', 'rankkernel' );
 		}
 
 		return [
@@ -529,6 +590,39 @@ final class CsvHandler {
 			'reason'  => '',
 			'warning' => $warning,
 		];
+	}
+
+	/**
+	 * Whether importing the proposed row would exceed the pattern cap.
+	 *
+	 * Rows already inside the active pattern set never count as growth, so
+	 * updates that keep a rule active keep passing at the limit.
+	 *
+	 * @param int                  $editingId Row id being updated, zero when adding.
+	 * @param array<string, mixed> $proposed  Proposed source, target, code, match type.
+	 * @param bool                 $isActive  Whether the proposed rule stays active.
+	 * @return bool True when the cap blocks this row.
+	 */
+	private function patternCapReached( int $editingId, array $proposed, bool $isActive ): bool {
+		if ( ! $isActive || 'exact' === (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		if ( $this->repository->count_patterns() < RedirectRepository::MAX_PATTERNS ) {
+			return false;
+		}
+
+		if ( $editingId > 0 ) {
+			$current = $this->repository->get( $editingId );
+
+			if ( is_array( $current )
+				&& 1 === (int) ( $current['is_active'] ?? 0 )
+				&& 'exact' !== (string) ( $current['match_type'] ?? 'exact' ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

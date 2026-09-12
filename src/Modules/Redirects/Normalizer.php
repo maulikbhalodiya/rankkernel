@@ -16,6 +16,9 @@ namespace RankKernel\Modules\Redirects;
  * Every path that enters the redirect system (rule source at create time, request
  * path at dispatch time, loop and chain targets, CSV rows, cache keys) passes
  * through here first, so hashing and comparison stay consistent everywhere.
+ * Regex rule sources are the one exception: a pattern body is stored verbatim
+ * (trimmed only) because path normalization would corrupt it by cutting at
+ * question marks, collapsing slashes, or forcing a leading slash.
  */
 final class Normalizer {
 	/**
@@ -98,6 +101,25 @@ final class Normalizer {
 		}
 
 		return $path;
+	}
+
+	/**
+	 * Normalize a rule source according to its matcher.
+	 *
+	 * String matchers share normalize(). Regex bodies are kept verbatim apart
+	 * from trimming, so characters with pattern meaning survive storage and
+	 * the matcher compiles exactly what the administrator entered.
+	 *
+	 * @param string $raw       Raw source as entered.
+	 * @param string $matchType Matcher name.
+	 * @return string Storage form of the source.
+	 */
+	public static function normalizeSource( string $raw, string $matchType = 'exact' ): string {
+		if ( 'regex' === $matchType ) {
+			return trim( $raw );
+		}
+
+		return self::normalize( $raw );
 	}
 
 	/**
