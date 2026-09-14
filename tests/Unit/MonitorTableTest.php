@@ -46,6 +46,7 @@ final class MonitorTableTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		LogTable::resetCache();
 		$this->db = new MonitorFakeDb();
 
 		// Test installs the in memory wpdb double here and restores it in tearDown.
@@ -68,6 +69,7 @@ final class MonitorTableTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		LogTable::resetCache();
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -88,6 +90,7 @@ final class MonitorTableTest extends TestCase {
 		$this->assertTrue( LogTable::exists() );
 
 		$this->db->tableExists = false;
+		LogTable::resetCache();
 
 		$this->assertFalse( LogTable::exists() );
 	}

@@ -39,6 +39,7 @@ final class RedirectsTableTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		RedirectTable::resetCache();
 		$this->db           = new RedirectsFakeDb();
 		$GLOBALS['wpdb']    = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 		$this->dbDeltaCalls = 0;
@@ -55,6 +56,7 @@ final class RedirectsTableTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectTable::resetCache();
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -75,6 +77,7 @@ final class RedirectsTableTest extends TestCase {
 		$this->assertTrue( RedirectTable::exists() );
 
 		$this->db->tableExists = false;
+		RedirectTable::resetCache();
 
 		$this->assertFalse( RedirectTable::exists() );
 	}

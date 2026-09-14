@@ -25,6 +25,23 @@ final class RedirectTable {
 	public const SUFFIX = 'rankkernel_redirects';
 
 	/**
+	 * Request-level static cache of table existence state.
+	 *
+	 * Performance optimization: avoids executing repetitive `SHOW TABLES` database queries
+	 * on hot path requests (e.g. template_redirect execution).
+	 *
+	 * @var bool|null
+	 */
+	private static ?bool $existsCache = null;
+
+	/**
+	 * Reset the static existence cache (primarily for unit tests).
+	 */
+	public static function resetCache(): void {
+		self::$existsCache = null;
+	}
+
+	/**
 	 * Full table name for the current site.
 	 *
 	 * @return string Prefixed table name.
@@ -45,6 +62,10 @@ final class RedirectTable {
 	 * @return bool True when the table exists.
 	 */
 	public static function exists(): bool {
+		if ( null !== self::$existsCache ) {
+			return self::$existsCache;
+		}
+
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -56,7 +77,9 @@ final class RedirectTable {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
-		return is_string( $found ) && $found === $table;
+		self::$existsCache = is_string( $found ) && $found === $table;
+
+		return self::$existsCache;
 	}
 
 	/**
@@ -74,6 +97,8 @@ final class RedirectTable {
 		if ( self::exists() ) {
 			return true;
 		}
+
+		self::$existsCache = null;
 
 		if ( ! function_exists( 'dbDelta' ) ) {
 			$upgrade = defined( 'ABSPATH' ) ? ABSPATH . 'wp-admin/includes/upgrade.php' : '';
@@ -118,6 +143,8 @@ final class RedirectTable {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- fallback when the upgrade library is unavailable, same idempotent statement with no user input.
 			$wpdb->query( $sql );
 		}
+
+		self::$existsCache = null;
 
 		return self::exists();
 	}
