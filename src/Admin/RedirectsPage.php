@@ -418,7 +418,22 @@ final class RedirectsPage {
 		];
 
 		$candidates = $this->candidates( $editingId, $proposed, $fields['is_active'] );
-		$loop       = $this->validator->detect_loop( $proposed, $candidates );
+		$safety     = $this->validator->assess_safety( $proposed, $candidates );
+		$loop       = $safety['loop'];
+
+		if ( 'equivalent' === $safety['verdict'] ) {
+			$message = Validator::equivalent_message();
+
+			$this->stayWithErrors(
+				[
+					'blocked' => $message . ' ' . __( 'The rule was not saved.', 'rankkernel' ),
+					'target'  => $message,
+				],
+				$fields
+			);
+
+			return;
+		}
 
 		if ( $loop['has_cycle'] ) {
 			$this->stayWithErrors(
@@ -486,7 +501,7 @@ final class RedirectsPage {
 			return;
 		}
 
-		$chain = $this->validator->detect_chain( $proposed, $candidates );
+		$chain = $safety['chain'];
 		$flags = '&rk_notice=' . $notice;
 
 		if ( $chain['has_chain'] && [] !== $chain['chain'] ) {
@@ -1108,6 +1123,10 @@ final class RedirectsPage {
 						$final
 					)
 				);
+				echo ' ';
+				echo '<button type="button" class="button button-small" data-rk-use-destination="' . esc_attr( $final ) . '">';
+				echo esc_html__( 'Use recommended destination', 'rankkernel' );
+				echo '</button>';
 			}
 
 			echo '</p></div>';

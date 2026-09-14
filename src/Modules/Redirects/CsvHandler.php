@@ -508,7 +508,18 @@ final class CsvHandler {
 		];
 
 		$candidates = $this->candidates( $editingId, $proposed, $isActive );
-		$loop       = $this->validator->detect_loop( $proposed, $candidates );
+		$safety     = $this->validator->assess_safety( $proposed, $candidates );
+		$loop       = $safety['loop'];
+
+		if ( 'equivalent' === $safety['verdict'] ) {
+			return $this->row_error(
+				sprintf(
+					/* translators: %s: equivalence explanation */
+					__( '%s The row was not imported.', 'rankkernel' ),
+					Validator::equivalent_message()
+				)
+			);
+		}
 
 		if ( $loop['has_cycle'] ) {
 			return $this->row_error(
@@ -561,7 +572,7 @@ final class CsvHandler {
 		}
 
 		$warning = '';
-		$chain   = $this->validator->detect_chain( $proposed, $candidates );
+		$chain   = $safety['chain'];
 
 		if ( $chain['has_chain'] && [] !== $chain['chain'] ) {
 			$warning = sprintf(

@@ -226,3 +226,45 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		} );
 	}
 } );
+
+/**
+ * Use recommended destination action.
+ *
+ * Copies the recommended final destination into the editor destination
+ * field only. Never submits or saves, and the notice stays meaningful
+ * when JavaScript is unavailable because the recommendation text itself
+ * remains visible.
+ */
+document.addEventListener( 'DOMContentLoaded', function () {
+	var buttons = document.querySelectorAll( '[data-rk-use-destination]' );
+
+	buttons.forEach( function ( button ) {
+		button.addEventListener( 'click', function () {
+			var destination = button.getAttribute( 'data-rk-use-destination' ) || '';
+
+			if ( '' === destination ) {
+				return;
+			}
+
+			var target = document.getElementById( 'rk-target' );
+
+			if ( ! target ) {
+				return;
+			}
+
+			var editor = document.getElementById( 'rk-redirect-editor' );
+			var toggle = document.getElementById( 'rk-add-toggle' );
+
+			if ( editor && editor.hasAttribute( 'hidden' ) ) {
+				editor.removeAttribute( 'hidden' );
+
+				if ( toggle ) {
+					toggle.setAttribute( 'aria-expanded', 'true' );
+				}
+			}
+
+			target.value = destination;
+			target.focus();
+		} );
+	} );
+} );

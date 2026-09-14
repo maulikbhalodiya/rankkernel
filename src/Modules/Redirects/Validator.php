@@ -42,6 +42,127 @@ final class Validator {
 	public const MAX_CHAIN_HOPS = 5;
 
 	/**
+	 * Shared safety message for a definite self redirect.
+	 *
+	 * Every creation path reports this same text so the hard error reads
+	 * identically in the editor, in CSV row reports, and in tests.
+	 *
+	 * @return string Translated equivalence error text.
+	 */
+	public static function equivalent_message(): string {
+		return __( 'The source and destination resolve to the same URL. Please enter a different destination.', 'rankkernel' );
+	}
+
+	/**
+	 * Whether the proposed rule points at its own effective path.
+	 *
+	 * Compares the normalized source path against the normalized internal
+	 * destination path, ignoring query and fragment per the redirect
+	 * semantics where source matching already ignores the incoming query.
+	 * Only exact matchers with concrete redirect codes can prove this, so
+	 * regex bodies stay verbatim and always read as not equivalent, dynamic
+	 * capture targets read as not equivalent, external targets read as not
+	 * equivalent, and terminal codes read as not equivalent because they
+	 * carry no outgoing edge.
+	 *
+	 * @param array<string, mixed> $proposed Proposed rule: source, target, code, match_type.
+	 * @return bool True when source and destination are the same resource.
+	 */
+	public function is_equivalent_redirect( array $proposed ): bool {
+		$code = (string) ( $proposed['code'] ?? '301' );
+
+		if ( in_array( $code, Normalizer::TERMINAL_CODES, true ) ) {
+			return false;
+		}
+
+		$matchType = (string) ( $proposed['match_type'] ?? 'exact' );
+
+		if ( 'regex' !== $matchType && ! Normalizer::isMatchType( $matchType ) ) {
+			$matchType = 'exact';
+		}
+
+		if ( 'exact' !== $matchType ) {
+			return false;
+		}
+
+		$sourceRaw = trim( (string) ( $proposed['source'] ?? '' ) );
+		$targetRaw = trim( (string) ( $proposed['target'] ?? '' ) );
+
+		if ( '' === $sourceRaw || '' === $targetRaw ) {
+			return false;
+		}
+
+		if ( self::is_dynamic_target( $targetRaw ) ) {
+			return false;
+		}
+
+		$sourcePath = Normalizer::normalize( $sourceRaw );
+		$targetPath = self::target_path( $targetRaw );
+
+		if ( null === $targetPath ) {
+			return false;
+		}
+
+		return $sourcePath === $targetPath;
+	}
+
+	/**
+	 * Apply the shared safety precedence over one proposed rule.
+	 *
+	 * Order is fixed: definite equivalent first as a hard error, then
+	 * definite cycle as a hard error, then known chain as an advisory
+	 * warning with save allowed, then inconclusive as an advisory warning
+	 * with save allowed, otherwise clean. Invalid input stays with the
+	 * caller field validation, this helper only orders the graph findings.
+	 *
+	 * @param array<string, mixed>       $proposed Proposed rule: source, target, code, match_type.
+	 * @param array<int, array<string, mixed>> $rules Active candidate rules with concrete targets.
+	 * @return array{verdict: string, loop: array{has_cycle: bool, path: string[], inconclusive: bool}, chain: array{has_chain: bool, chain: string[], final: string|null, inconclusive: bool}}
+	 */
+	public function assess_safety( array $proposed, array $rules ): array {
+		$loop  = $this->detect_loop( $proposed, $rules );
+		$chain = $this->detect_chain( $proposed, $rules );
+
+		if ( $this->is_equivalent_redirect( $proposed ) ) {
+			return [
+				'verdict' => 'equivalent',
+				'loop'    => $loop,
+				'chain'   => $chain,
+			];
+		}
+
+		if ( $loop['has_cycle'] ) {
+			return [
+				'verdict' => 'cycle',
+				'loop'    => $loop,
+				'chain'   => $chain,
+			];
+		}
+
+		if ( $chain['has_chain'] ) {
+			return [
+				'verdict' => 'chain',
+				'loop'    => $loop,
+				'chain'   => $chain,
+			];
+		}
+
+		if ( $loop['inconclusive'] || $chain['inconclusive'] ) {
+			return [
+				'verdict' => 'inconclusive',
+				'loop'    => $loop,
+				'chain'   => $chain,
+			];
+		}
+
+		return [
+			'verdict' => 'ok',
+			'loop'    => $loop,
+			'chain'   => $chain,
+		];
+	}
+
+	/**
 	 * Detect whether saving the proposed rule would create a redirect loop.
 	 *
 	 * Builds the proposed rule in memory, then depth first searches from its

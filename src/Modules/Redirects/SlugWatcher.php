@@ -93,11 +93,12 @@ final class SlugWatcher {
 	 *
 	 * Skips when the auto slug setting is off, when the post type is outside
 	 * posts and pages, for revisions and autosaves, when the slug is
-	 * unchanged, when the source is already redirected, and when the new rule
-	 * would create a cycle. An inconclusive loop analysis also refuses the
-	 * automatic creation: with no administrator in the loop to show the
-	 * warning to, fail closed instead of storing a possibly looping rule.
-	 * Points directly at the final destination when the new address already
+	 * unchanged, when the source is already redirected, when the new rule
+	 * would resolve to itself, and when the new rule would create a cycle.
+	 * An inconclusive loop or chain analysis also refuses the automatic
+	 * creation: with no administrator in the loop to show the warning to,
+	 * fail closed instead of storing a possibly looping rule. Points
+	 * directly at the final destination when the new address already
 	 * redirects onward, so no avoidable chain is stored.
 	 *
 	 * @param int   $postId     Updated post id.
@@ -161,9 +162,13 @@ final class SlugWatcher {
 		];
 
 		$candidates = $this->candidates( $proposed );
-		$loop       = $this->validator->detect_loop( $proposed, $candidates );
+		$safety     = $this->validator->assess_safety( $proposed, $candidates );
 
-		if ( $loop['has_cycle'] || $loop['inconclusive'] ) {
+		if ( 'equivalent' === $safety['verdict'] || 'cycle' === $safety['verdict'] ) {
+			return false;
+		}
+
+		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
 			return false;
 		}
 
