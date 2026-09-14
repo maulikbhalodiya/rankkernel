@@ -14,7 +14,9 @@ All code follows the configured WordPress standards. Concretely, every change mu
 
 ## 2. Naming decision, encoded once
 
-The project standard is PSR4 file names, camelCase methods and variables, and short array syntax. `phpcs.xml` carries scoped exclusions with justification comments for `WordPress.Files.FileName`, `WordPress.NamingConventions.ValidVariableName`, `WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid`, and `Universal.Arrays.DisallowShortArraySyntax` over `src/` and `tests/` for exactly this reason. Never rename a file or a symbol to satisfy a naming sniff. Never reintroduce a global severity kill.
+RankKernel follows the WordPress Coding Standards. `phpcs.xml` is the single source of truth: it applies the full WordPress ruleset to `rankkernel.php`, `uninstall.php`, `src/`, and `tests/`. Third party and generated paths stay out of the scan: `vendor`, `node_modules`, `build`, and `tests/bootstrap.php`.
+
+The ruleset carries exactly four scoped exceptions, each documented in `phpcs.xml` and each limited to `src/` and `tests/`: `WordPress.Files.FileName` (PSR-4 file names for the Composer autoloader), `WordPress.NamingConventions.ValidVariableName` (camelCase variables), `WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid` (camelCase methods), and `Universal.Arrays.DisallowShortArraySyntax` (short array syntax). These four are the only exclusions, and they are temporary pending the planned naming and autoloader migration. Never add or broaden an exclusion in `phpcs.xml`. Never rename a public hook name, REST route namespace, option key, meta key, or the text domain to satisfy a sniff. Never reintroduce a global severity kill.
 
 ## 3. Whitespace
 
@@ -22,39 +24,19 @@ Global rule, mandatory for every new file and every new block of code: use one r
 
 WordPress whitespace also applies to new and touched code: inner spacing in control structures (`if ( ... )`) and function calls (`function_call( ... )`), spacing around `=` in assignments, and multiline layout for multi item associative arrays.
 
-Enforcement: every brand new module directory is added to the WordPress Extra include map in the same commit that creates it, so tab indentation and WordPress spacing are enforced from the first line. Entire new directories are enforced, not just individual files. Every path added to the WordPress Extra include list must be mirrored in the PSR12 exclude list in the same commit, because WordPress tabs and PSR12 spaces contradict each other and both rules must never cover the same file.
+Enforcement: `phpcs.xml` covers every PHP file under `src/` and `tests/` from the first line, so tab indentation and WordPress spacing apply to all new and touched code. PHPCBF may be used for safe automatic fixes (whitespace, alignment, Yoda order, and similar), scoped to files the change already touches.
 
 Legacy migration: the existing `src/` tree predates this rule and is migrated progressively, file by file, as tasks touch it. Deliberate no mass reformat policy. Never run repo wide `phpcbf`. Never reformat a file you did not otherwise change.
 
-## 4. Progressive enforcement map
+## 4. Compliance expectations
 
-PSR12 is the default for `src/` and `tests/`. WordPress Extra additionally covers exactly the paths below. Both rules must never cover the same file, because WordPress tabs and inner spacing directly contradict PSR12 spaces, so every path added to the WordPress Extra include list must be mirrored in the PSR12 exclude list in the same commit.
+Production and test code are both expected to comply: `vendor/bin/phpcs --standard=phpcs.xml` must report zero errors and zero warnings.
 
-WordPress Extra enforced today:
+Fix real code first: proper docblocks with short descriptions plus `@param`, `@return`, and `@var` tags; `wp_unslash` with the matching sanitizer; WordPress function equivalents where behavior is identical. A single line `phpcs:ignore` with a specific documented reason is allowed only where a sniff genuinely cannot understand legitimate code, such as hook callback signatures that must keep unused parameters, public hook names that must stay stable, custom table queries the database sniff cannot recognize, test doubles mirroring WordPress signatures, and unit tests running without WordPress loaded. Never disable a sniff globally.
 
-* `rankkernel.php` and `uninstall.php` (plugin root, enforced from the start)
-* `src/Admin/SchemaMetabox.php`
-* `src/Admin/SchemaSettingsPage.php`
-* `src/Admin/SitemapSettingsPage.php`
-* `src/Admin/SettingsPage.php`
-* `src/Admin/RedirectsPage.php` (Redirects admin UI, GH-12)
-* `src/Admin/NotFoundPage.php` (404 Monitor admin UI, GH-12)
-* `src/Modules/Metadata/MetaPayload.php`
-* `src/Modules/Sitemaps/Provider/PostsProvider.php`
-* `src/Modules/Sitemaps/Provider/AuthorsProvider.php`
-* `src/Modules/Schema/SchemaModule.php`
-* `src/Modules/Redirects/*` (entire Redirects backend directory, GH-12)
-* `src/Modules/Monitor/*` (entire 404 Monitor backend directory, GH-12)
-* `tests/Unit/Redirects*` (Redirects backend tests, GH-12)
-* `tests/Unit/Monitor*` (404 Monitor backend tests, GH-12)
-* `tests/Unit/RedirectsAdminTest.php` (Redirects admin UI tests, GH-12)
+PHPCS passing is a code quality gate. It is not by itself proof of WordPress.org acceptance.
 
-Rule for extending the map: the rebuild agents add block files (`FaqBlock.php`, `HowtoBlock.php`, block subfolders) one file per commit, each commit fixing every WordPress Extra finding in that file (real fixes first, line level `phpcs:ignore` with a WordPress specific reason only for safe flows the sniff cannot trace, such as Settings API saves after nonce verification and prepared queries built through argument unpacking), then converting that file to WordPress whitespace, then keeping all three gates green.
-
-Deferred, explicitly out of scope for the PHP pass:
-
-* WordPress Docs enforcement (currently reports 122 findings in 45 files, stays excluded until a dedicated docs pass).
-* JS and CSS under `src/blocks` plus `assets/js` (currently unscanned or vacuously scanned). Recommended path: eslint with the WordPress preset for editor scripts plus stylelint for editor styles, recorded here so a later pass can adopt it.
+WordPress Docs enforcement applies across `src/` and `tests/`. JS and CSS under `src/blocks` plus `assets/js` remain outside PHPCS. Recommended path: eslint with the WordPress preset for editor scripts plus stylelint for editor styles, recorded here so a later pass can adopt it.
 
 ## 5. Block category convention
 
@@ -70,9 +52,9 @@ Run all three from the plugin root before claiming done:
 
 * `composer lint` (PHPCS over `rankkernel.php`, `uninstall.php`, `src/`, `tests/`)
 * `composer stan` (PHPStan level 6 over `src/`)
-* `composer test` (PHPUnit, baseline 408 tests and 1702 assertions, report the exact numbers after every run)
+* `composer test` (PHPUnit, baseline 830 tests and 3023 assertions, report the exact numbers after every run)
 
-Triage helper for scoping new files (read only, changes nothing):
+Triage helper for scoping single files (read only, changes nothing):
 
-* `vendor/bin/phpcs --standard=WordPress-Extra -s <file>` shows what the next file needs.
-* `vendor/bin/phpcbf --standard=phpcs.xml <file>` converts one file after its semantic fixes land. Scope it to listed files only.
+* `vendor/bin/phpcs --standard=phpcs.xml -s <file>` shows what one file needs.
+* `vendor/bin/phpcbf --standard=phpcs.xml <file>` applies safe automatic fixes after the semantic fixes land. Scope it to listed files only.
