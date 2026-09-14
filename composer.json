@@ -33,7 +33,9 @@
         "yoast/phpunit-polyfills": "^2.0"
     },
     "scripts": {
-        "lint": "phpcs --standard=phpcs.xml -s rankkernel.php uninstall.php src/ tests/",
+        "lint": "phpcs --standard=phpcs.xml",
+        "phpcs": "phpcs --standard=phpcs.xml",
+        "phpcbf": "phpcbf --standard=phpcs.xml",
         "stan": "phpstan analyse --level=6 src/",
         "test": "phpunit"
     },
