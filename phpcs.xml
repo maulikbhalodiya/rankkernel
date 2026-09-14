@@ -28,6 +28,8 @@
         <include-pattern>src/Admin/SchemaSettingsPage.php</include-pattern>
         <include-pattern>src/Admin/SitemapSettingsPage.php</include-pattern>
         <include-pattern>src/Admin/SettingsPage.php</include-pattern>
+        <include-pattern>src/Admin/RedirectsPage.php</include-pattern>
+        <include-pattern>src/Admin/NotFoundPage.php</include-pattern>
         <include-pattern>src/Modules/Metadata/MetaPayload.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</include-pattern>
         <include-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</include-pattern>
@@ -36,9 +38,14 @@
         <include-pattern>src/Modules/Schema/blocks/HowtoBlock.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/FaqPiece.php</include-pattern>
         <include-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</include-pattern>
+        <include-pattern>src/Modules/Redirects/*</include-pattern>
+        <include-pattern>src/Modules/Monitor/*</include-pattern>
         <include-pattern>tests/Unit/FaqBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoBlockTest.php</include-pattern>
         <include-pattern>tests/Unit/HowtoPieceTest.php</include-pattern>
+        <include-pattern>tests/Unit/Redirects*</include-pattern>
+        <include-pattern>tests/Unit/Monitor*</include-pattern>
+        <include-pattern>tests/Unit/RedirectsAdminTest.php</include-pattern>
     </rule>
     <rule ref="WordPress-Docs">
         <exclude-pattern>src/.*</exclude-pattern>
@@ -52,6 +59,8 @@
         <exclude-pattern>src/Admin/SchemaSettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/SitemapSettingsPage.php</exclude-pattern>
         <exclude-pattern>src/Admin/SettingsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/RedirectsPage.php</exclude-pattern>
+        <exclude-pattern>src/Admin/NotFoundPage.php</exclude-pattern>
         <exclude-pattern>src/Modules/Metadata/MetaPayload.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/PostsProvider.php</exclude-pattern>
         <exclude-pattern>src/Modules/Sitemaps/Provider/AuthorsProvider.php</exclude-pattern>
@@ -60,9 +69,14 @@
         <exclude-pattern>src/Modules/Schema/blocks/HowtoBlock.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/FaqPiece.php</exclude-pattern>
         <exclude-pattern>src/Modules/Schema/Pieces/HowtoPiece.php</exclude-pattern>
+        <exclude-pattern>src/Modules/Redirects/*</exclude-pattern>
+        <exclude-pattern>src/Modules/Monitor/*</exclude-pattern>
         <exclude-pattern>tests/Unit/FaqBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoBlockTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/HowtoPieceTest.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/Redirects*</exclude-pattern>
+        <exclude-pattern>tests/Unit/Monitor*</exclude-pattern>
+        <exclude-pattern>tests/Unit/RedirectsAdminTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PSR1.Methods.CamelCapsMethodName">

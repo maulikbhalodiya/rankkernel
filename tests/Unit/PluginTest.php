@@ -31,6 +31,7 @@ final class PluginTest extends TestCase {
         Functions\when('register_meta')->justReturn(true);
         Functions\when('add_action')->justReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        Functions\when('is_admin')->justReturn(false);
         Functions\when('esc_html')->alias(static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8'));
         Functions\when('__')->alias(static fn (string $v, string $d = ''): string => $v);
     }

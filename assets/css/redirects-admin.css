@@ -1,0 +1,179 @@
+/**
+ * Redirect Manager screen styles.
+ *
+ * Loaded only on the Redirects admin screen. Every rule is scoped under
+ * .rk-redirects so nothing leaks onto other admin pages.
+ */
+
+.rk-redirects .rk-sub {
+	color: #50575e;
+	max-width: 72ch;
+}
+
+.rk-redirects .rk-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	margin: 16px 0;
+	padding: 8px 24px 20px;
+}
+
+.rk-redirects .rk-card h2 {
+	font-size: 1.3em;
+	margin: 1em 0 0.5em;
+}
+
+.rk-redirects .rk-card h3 {
+	font-size: 1.05em;
+	margin: 1.4em 0 0.4em;
+}
+
+.rk-redirects .rk-hints {
+	margin-top: 8px;
+	max-width: 72ch;
+}
+
+.rk-redirects .rk-hints summary {
+	color: #2271b1;
+	cursor: pointer;
+}
+
+.rk-redirects .rk-hints ul {
+	margin: 8px 0 0 18px;
+}
+
+.rk-redirects .rk-hints li {
+	margin-bottom: 4px;
+}
+
+.rk-redirects .rk-field-error {
+	color: #b32d2e;
+	font-weight: 600;
+	margin: 6px 0 0;
+}
+
+.rk-redirects .rk-filters {
+	margin: 12px 0;
+}
+
+.rk-redirects .rk-filters .search-box {
+	float: right;
+	margin: 0 0 8px;
+}
+
+.rk-redirects .rk-table .rk-col-code {
+	width: 7%;
+}
+
+.rk-redirects .rk-table .rk-col-match {
+	width: 11%;
+}
+
+.rk-redirects .rk-table .rk-col-hits {
+	width: 7%;
+}
+
+.rk-redirects .rk-table .rk-col-accessed {
+	width: 15%;
+}
+
+.rk-redirects .rk-table .rk-col-status {
+	width: 10%;
+}
+
+.rk-redirects .rk-table td {
+	overflow-wrap: anywhere;
+}
+
+.rk-redirects .rk-muted {
+	color: #757575;
+}
+
+.rk-redirects .rk-pill {
+	border-radius: 999px;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 2;
+	padding: 0 10px;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-pill-active {
+	background: #edfaef;
+	color: #1a7f37;
+}
+
+.rk-redirects .rk-pill-inactive {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.rk-redirects .rk-empty {
+	background: #fff;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	margin: 16px 0;
+	padding: 40px 24px;
+	text-align: center;
+}
+
+.rk-redirects .rk-empty p {
+	font-size: 14px;
+	margin: 0.5em 0;
+}
+
+.rk-redirects .tablenav .paging-text {
+	margin-right: 8px;
+}
+
+.rk-redirects .rk-editor[hidden] {
+	display: none;
+}
+
+.rk-redirects .rk-prefill {
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	max-width: 72ch;
+	padding: 8px 12px;
+}
+
+.rk-redirects .rk-advanced {
+	border-top: 1px solid #dcdcde;
+	margin-top: 16px;
+	max-width: 72ch;
+	padding-top: 8px;
+}
+
+.rk-redirects .rk-advanced > summary {
+	color: #2271b1;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.rk-redirects .rk-regex-ok {
+	color: #1a7f37;
+	font-weight: 600;
+}
+
+.rk-redirects .rk-regex-bad {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.rk-redirects :focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-redirects .rk-table .rk-col-match,
+	.rk-redirects .rk-table .rk-col-accessed {
+		display: none;
+	}
+
+	.rk-redirects .rk-filters .search-box {
+		float: none;
+	}
+}

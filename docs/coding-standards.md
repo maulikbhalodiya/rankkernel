@@ -18,9 +18,13 @@ The project standard is PSR4 file names, camelCase methods and variables, and sh
 
 ## 3. Whitespace
 
-New and touched files use WordPress whitespace: real tabs for indentation, inner spacing in control structures (`if ( ... )`) and function calls (`function_call( ... )`), spacing around `=` in assignments, and multiline layout for multi item associative arrays.
+Global rule, mandatory for every new file and every new block of code: use one real tab per indentation level. Never use four spaces. Never mix tabs and spaces in the same file. This applies to PHP, and to HTML, JS, and CSS the project authors.
 
-Deliberate no mass reformat policy. Files outside the enforcement map keep their current style until a task brings them into compliance. Never run repo wide `phpcbf`. Never reformat a file you did not otherwise change.
+WordPress whitespace also applies to new and touched code: inner spacing in control structures (`if ( ... )`) and function calls (`function_call( ... )`), spacing around `=` in assignments, and multiline layout for multi item associative arrays.
+
+Enforcement: every brand new module directory is added to the WordPress Extra include map in the same commit that creates it, so tab indentation and WordPress spacing are enforced from the first line. Entire new directories are enforced, not just individual files. Every path added to the WordPress Extra include list must be mirrored in the PSR12 exclude list in the same commit, because WordPress tabs and PSR12 spaces contradict each other and both rules must never cover the same file.
+
+Legacy migration: the existing `src/` tree predates this rule and is migrated progressively, file by file, as tasks touch it. Deliberate no mass reformat policy. Never run repo wide `phpcbf`. Never reformat a file you did not otherwise change.
 
 ## 4. Progressive enforcement map
 
@@ -33,10 +37,17 @@ WordPress Extra enforced today:
 * `src/Admin/SchemaSettingsPage.php`
 * `src/Admin/SitemapSettingsPage.php`
 * `src/Admin/SettingsPage.php`
+* `src/Admin/RedirectsPage.php` (Redirects admin UI, GH-12)
+* `src/Admin/NotFoundPage.php` (404 Monitor admin UI, GH-12)
 * `src/Modules/Metadata/MetaPayload.php`
 * `src/Modules/Sitemaps/Provider/PostsProvider.php`
 * `src/Modules/Sitemaps/Provider/AuthorsProvider.php`
 * `src/Modules/Schema/SchemaModule.php`
+* `src/Modules/Redirects/*` (entire Redirects backend directory, GH-12)
+* `src/Modules/Monitor/*` (entire 404 Monitor backend directory, GH-12)
+* `tests/Unit/Redirects*` (Redirects backend tests, GH-12)
+* `tests/Unit/Monitor*` (404 Monitor backend tests, GH-12)
+* `tests/Unit/RedirectsAdminTest.php` (Redirects admin UI tests, GH-12)
 
 Rule for extending the map: the rebuild agents add block files (`FaqBlock.php`, `HowtoBlock.php`, block subfolders) one file per commit, each commit fixing every WordPress Extra finding in that file (real fixes first, line level `phpcs:ignore` with a WordPress specific reason only for safe flows the sniff cannot trace, such as Settings API saves after nonce verification and prepared queries built through argument unpacking), then converting that file to WordPress whitespace, then keeping all three gates green.
 

@@ -1,0 +1,189 @@
+/**
+ * 404 Monitor screen styles.
+ *
+ * Loaded only on the 404 Monitor admin screen. Every rule is scoped under
+ * .rk-monitor so nothing leaks onto other admin pages.
+ */
+
+.rk-monitor .rk-sub {
+	color: #50575e;
+	max-width: 72ch;
+}
+
+.rk-monitor .rk-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	margin: 16px 0;
+	padding: 8px 24px 20px;
+}
+
+.rk-monitor .rk-card h2 {
+	font-size: 1.3em;
+	margin: 1em 0 0.5em;
+}
+
+.rk-monitor .rk-card h3 {
+	font-size: 1.05em;
+	margin: 1.4em 0 0.4em;
+}
+
+.rk-monitor .rk-stat-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 24px;
+	margin: 12px 0 16px;
+}
+
+.rk-monitor .rk-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 140px;
+}
+
+.rk-monitor .rk-stat-wide {
+	flex: 1 1 280px;
+	max-width: 460px;
+}
+
+.rk-monitor .rk-stat-label {
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.rk-monitor .rk-stat-value {
+	font-size: 20px;
+	font-weight: 600;
+}
+
+.rk-monitor .rk-stat-hint {
+	color: #50575e;
+	font-size: 12px;
+	max-width: 32ch;
+}
+
+.rk-monitor .rk-progress {
+	background: #f0f0f1;
+	border-radius: 999px;
+	height: 10px;
+	margin-top: 8px;
+	overflow: hidden;
+}
+
+.rk-monitor .rk-progress-fill {
+	background: #2271b1;
+	border-radius: 999px;
+	height: 100%;
+	max-width: 100%;
+}
+
+.rk-monitor #rk-clear-form {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.rk-monitor .rk-filters {
+	margin: 12px 0;
+}
+
+.rk-monitor .rk-filters .search-box {
+	float: right;
+	margin: 0 0 8px;
+}
+
+.rk-monitor .rk-table .rk-col-hits {
+	width: 8%;
+}
+
+.rk-monitor .rk-table .rk-col-created {
+	width: 16%;
+}
+
+.rk-monitor .rk-table .rk-col-seen {
+	width: 16%;
+}
+
+.rk-monitor .rk-table .rk-col-actions {
+	width: 20%;
+}
+
+.rk-monitor .rk-table td {
+	overflow-wrap: anywhere;
+}
+
+.rk-monitor .rk-empty {
+	background: #fff;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	margin: 16px 0;
+	padding: 40px 24px;
+	text-align: center;
+}
+
+.rk-monitor .rk-empty p {
+	font-size: 14px;
+	margin: 0.5em 0;
+}
+
+.rk-monitor .rk-exclusions {
+	max-width: 720px;
+}
+
+.rk-monitor .rk-settings > summary {
+	cursor: pointer;
+	font-size: 1.3em;
+	font-weight: 600;
+	margin: 1em 0 0.5em;
+}
+
+.rk-monitor .rk-details > summary {
+	color: #2271b1;
+	cursor: pointer;
+}
+
+.rk-monitor .rk-detail-list {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px 12px;
+	margin: 8px 0;
+}
+
+.rk-monitor .rk-detail-list dt {
+	font-weight: 600;
+}
+
+.rk-monitor .rk-detail-list dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-monitor .rk-stat-small {
+	font-size: 15px;
+}
+
+.rk-monitor :focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+.rk-monitor .tablenav .paging-text {
+	margin-right: 8px;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-monitor .rk-table .rk-col-created,
+	.rk-monitor .rk-table .rk-col-seen {
+		display: none;
+	}
+
+	.rk-monitor .rk-filters .search-box {
+		float: none;
+	}
+}
