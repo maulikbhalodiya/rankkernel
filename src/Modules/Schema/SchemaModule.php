@@ -59,36 +59,50 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Cached enabled check (delegates to shared map if injected).
+	 *
+	 * @var bool|null
 	 */
 	private ?bool $enabledCache = null;
 
 	/**
 	 * Settings store.
+	 *
+	 * @var SettingsStore
 	 */
 	private SettingsStore $settings;
 
 	/**
 	 * Shared enable-map holder (single get_option per request).
+	 *
+	 * @var ModuleEnableMap|null
 	 */
 	private ?ModuleEnableMap $enableMap;
 
 	/**
 	 * Generator, built lazily with the default pieces.
+	 *
+	 * @var Generator|null
 	 */
 	private ?Generator $generator;
 
 	/**
 	 * Cached context (built once per request).
+	 *
+	 * @var Context|null
 	 */
 	private ?Context $context = null;
 
 	/**
 	 * Optional injected context (tests).
+	 *
+	 * @var Context|null
 	 */
 	private ?Context $injectedContext = null;
 
 	/**
 	 * Optional injected query (tests).
+	 *
+	 * @var WP_Query|null
 	 */
 	private ?WP_Query $injectedQuery = null;
 
@@ -117,6 +131,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Get module id.
+	 *
+	 * @return string The result.
 	 */
 	public function getId(): string {
 		return 'schema';
@@ -124,6 +140,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Get human-readable name.
+	 *
+	 * @return string The result.
 	 */
 	public function getName(): string {
 		return __( 'Schema', 'rankkernel' );
@@ -131,6 +149,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Module priority, after metadata.
+	 *
+	 * @return int The result.
 	 */
 	public function getPriority(): int {
 		return 30;
@@ -139,7 +159,7 @@ final class SchemaModule implements ModuleInterface {
 	/**
 	 * Dependencies, needs the metadata Context.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function dependsOn(): array {
 		return [ 'metadata' ];
@@ -147,6 +167,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Whether the module is enabled (delegates to shared map if injected).
+	 *
+	 * @return bool The result.
 	 */
 	public function isEnabled(): bool {
 		if ( null !== $this->enabledCache ) {
@@ -260,6 +282,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Get the generator, built lazily with the default pieces.
+	 *
+	 * @return Generator The result.
 	 */
 	public function getGenerator(): Generator {
 		if ( null !== $this->generator ) {
@@ -304,6 +328,8 @@ final class SchemaModule implements ModuleInterface {
 
 	/**
 	 * Get or build context (once per request, reused on every render call).
+	 *
+	 * @return Context The result.
 	 */
 	private function getContext(): Context {
 		if ( null !== $this->injectedContext ) {

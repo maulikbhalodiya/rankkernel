@@ -67,6 +67,8 @@ final class RedirectRepository {
 
 	/**
 	 * Match cache for invalidation on writes, optional.
+	 *
+	 * @var RedirectCache|null
 	 */
 	private ?RedirectCache $cache = null;
 
@@ -398,8 +400,8 @@ final class RedirectRepository {
 	 * returned count reports exactly how many rows changed, so the admin
 	 * notice can never claim more than happened.
 	 *
-	 * @param string   $action One of activate, deactivate, delete.
-	 * @param int[]    $ids    Rule ids.
+	 * @param string $action One of activate, deactivate, delete.
+	 * @param int[]  $ids    Rule ids.
 	 * @return array{updated: int, deleted: int} Affected counts.
 	 */
 	public function bulk( string $action, array $ids ): array {
@@ -771,7 +773,7 @@ final class RedirectRepository {
 	/**
 	 * Active connection or null when the database is unavailable.
 	 *
-	 * @return \wpdb|null
+	 * @return \wpdb|null The result.
 	 */
 	private function connection() {
 		if ( null !== $this->db ) {

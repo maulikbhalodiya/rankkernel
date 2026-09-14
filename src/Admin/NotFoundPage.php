@@ -91,16 +91,22 @@ final class NotFoundPage {
 
 	/**
 	 * Log repository.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repository;
 
 	/**
 	 * Module settings store.
+	 *
+	 * @var MonitorSettings
 	 */
 	private MonitorSettings $monitorSettings;
 
 	/**
 	 * Shared module enable map.
+	 *
+	 * @var ModuleEnableMap
 	 */
 	private ModuleEnableMap $enableMap;
 
@@ -130,7 +136,7 @@ final class NotFoundPage {
 	 */
 	public function maybeHandleSave(): void {
 		// Delegates to a handler which verifies capability plus its own nonce.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to a handler which verifies capability plus its own nonce, compared strictly against a literal, never stored or output.
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 			// Marker read only, this branch verifies its nonce in requireAccess.
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -158,7 +164,7 @@ final class NotFoundPage {
 		}
 
 		// Read only routing flag, the row handler verifies capability plus nonce.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only routing flag, the row handler verifies capability plus nonce, unslashed here, sanitized on the following statement.
 		$rawAction = isset( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';
 		$action    = sanitize_key( $rawAction );
 
@@ -313,7 +319,7 @@ final class NotFoundPage {
 	 */
 	private function postInt( string $key, int $fallback ): int {
 		// Verified by the caller, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by the caller, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
 		$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $fallback;
 
 		return (int) ( is_scalar( $raw ) ? $raw : $fallback );
@@ -351,7 +357,7 @@ final class NotFoundPage {
 		$this->requireAccess( self::NONCE_ROW );
 
 		// Verified in requireAccess, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
 		$rawEntry = isset( $_GET['entry'] ) ? wp_unslash( $_GET['entry'] ) : 0;
 		$id       = max( 0, (int) ( is_scalar( $rawEntry ) ? $rawEntry : 0 ) );
 
@@ -372,12 +378,12 @@ final class NotFoundPage {
 		$this->requireAccess( self::NONCE_BULK );
 
 		// Verified in requireAccess, value passed through sanitize_key below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, value passed through sanitize_key below, unslashed here, sanitized on the following statement.
 		$rawAction = isset( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';
 		$action    = sanitize_key( $rawAction );
 
 		// Verified in requireAccess, values unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, values unslashed then cast to int below, unslashed here, sanitized or validated on the following statements.
 		$unslashedIds = isset( $_POST['entry_ids'] ) ? wp_unslash( $_POST['entry_ids'] ) : [];
 		$rawIds       = is_array( $unslashedIds ) ? $unslashedIds : [];
 		$ids          = [];
@@ -437,11 +443,11 @@ final class NotFoundPage {
 	 */
 	private function postedExclusions(): array {
 		// Verified by the caller, values sanitized pair by pair below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by the caller, values sanitized pair by pair below, unslashed here, sanitized or validated on the following statements.
 		$unslashedComparators = isset( $_POST['rk_excl_comparator'] ) ? wp_unslash( $_POST['rk_excl_comparator'] ) : [];
 
 		// Verified by the caller, values sanitized pair by pair below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by the caller, values sanitized pair by pair below, unslashed here, sanitized or validated on the following statements.
 		$unslashedValues = isset( $_POST['rk_excl_value'] ) ? wp_unslash( $_POST['rk_excl_value'] ) : [];
 
 		$comparators = is_array( $unslashedComparators ) ? array_values( $unslashedComparators ) : [];
@@ -531,7 +537,7 @@ final class NotFoundPage {
 	 */
 	private function bulkMessage(): string {
 		// Read only display flags, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
 		$rawCount = isset( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : 0;
 		$count    = max( 0, (int) ( is_scalar( $rawCount ) ? $rawCount : 0 ) );
 
@@ -568,7 +574,7 @@ final class NotFoundPage {
 	 */
 	private function renderCarriedNotices(): void {
 		// Read only display flags, sanitized and escaped below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, sanitized and escaped below, unslashed here, sanitized on the following statement.
 		$rawChain = isset( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
 		$chain    = sanitize_text_field( $rawChain );
 
@@ -578,7 +584,7 @@ final class NotFoundPage {
 
 		if ( '' !== $chain ) {
 			// Read only display flag, sanitized and escaped below.
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, sanitized and escaped below, unslashed here, sanitized on the following statement.
 			$rawFinal = isset( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';
 			$final    = sanitize_text_field( $rawFinal );
 
@@ -781,7 +787,7 @@ final class NotFoundPage {
 		$search = isset( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';
 
 		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
 		$rawOrderBy = isset( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'last_accessed';
 		$orderby    = sanitize_key( $rawOrderBy );
 
@@ -790,12 +796,12 @@ final class NotFoundPage {
 		}
 
 		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, validated against an allow list below.
 		$rawOrder = isset( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';
 		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
 
 		// Read only display flags, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
 		$rawPage = isset( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : 1;
 		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
 
@@ -1198,7 +1204,11 @@ final class NotFoundPage {
 		echo '<th scope="col"><span class="screen-reader-text">' . esc_html__( 'Remove', 'rankkernel' ) . '</span></th>';
 		echo '</tr></thead><tbody id="rk-exclusions-body">';
 
-		/** @var array<int, array<string, mixed>> $rows */
+		/**
+		 * Exclusion rows for the table.
+		 *
+		 * @var array<int, array<string, mixed>> $rows
+		 */
 		$rows = array_merge(
 			$exclusions,
 			[

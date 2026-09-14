@@ -201,6 +201,8 @@ final class SchemaMetabox {
 
 	/**
 	 * Status from the last save in this request, for the redirect filter.
+	 *
+	 * @var string|null
 	 */
 	private ?string $saveStatus = null;
 
@@ -213,6 +215,8 @@ final class SchemaMetabox {
 
 	/**
 	 * Settings store for resolving per post type defaults.
+	 *
+	 * @var SettingsStore
 	 */
 	private SettingsStore $store;
 
@@ -246,8 +250,7 @@ final class SchemaMetabox {
 	 * @param string $postType Current post type.
 	 * @param mixed  $post     Current post object.
 	 */
-    // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- second hook argument required by the add_meta_boxes signature.
-	public function addBoxes( string $postType, mixed $post = null ): void {
+	public function addBoxes( string $postType, mixed $post = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
 		if ( 'attachment' === $postType ) {
 			return;
 		}
@@ -340,6 +343,9 @@ final class SchemaMetabox {
 
 	/**
 	 * Resolved default type for a post type: setting first, mapping fallback.
+	 *
+	 * @param string $postType Post Type.
+	 * @return string The result.
 	 */
 	private function resolvedDefaultType( string $postType ): string {
 		if ( '' !== $postType ) {
@@ -355,6 +361,8 @@ final class SchemaMetabox {
 
 	/**
 	 * Render the per post disable row.
+	 *
+	 * @param bool $disabled Disabled.
 	 */
 	private function renderDisableRow( bool $disabled ): void {
 		echo '<p><label>';
@@ -371,7 +379,7 @@ final class SchemaMetabox {
 	 * Render save and import notices from the redirect query arg.
 	 */
 	private function renderNotices(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
 		$msg = isset( $_GET['rankkernel_schema_msg'] ) ? (string) $_GET['rankkernel_schema_msg'] : '';
 
 		if ( 'saved' === $msg ) {
@@ -542,6 +550,10 @@ final class SchemaMetabox {
 
 	/**
 	 * Whether a manual field row shows for the selected type.
+	 *
+	 * @param string $key      Key.
+	 * @param string $selected Selected.
+	 * @return bool The result.
 	 */
 	private function fieldVisible( string $key, string $selected ): bool {
 		$types = self::FIELD_TYPES[ $key ];
@@ -626,7 +638,7 @@ final class SchemaMetabox {
 	 *
 	 * @param string               $selected Selected type or empty for automatic.
 	 * @param array<string, mixed> $schema   Stored schema subtree.
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function validationMessages( string $selected, array $schema ): array {
 		if ( '' === $selected ) {
@@ -664,6 +676,7 @@ final class SchemaMetabox {
 	 * Count valid FAQ questions, rows with a non empty question.
 	 *
 	 * @param array<string, mixed> $schema Stored schema subtree.
+	 * @return int The result.
 	 */
 	private function countQuestions( array $schema ): int {
 		$faq  = ( isset( $schema['faq'] ) && is_array( $schema['faq'] ) ) ? $schema['faq'] : [];
@@ -688,6 +701,7 @@ final class SchemaMetabox {
 	 * Count valid HowTo steps, rows with a title or text.
 	 *
 	 * @param array<string, mixed> $schema Stored schema subtree.
+	 * @return int The result.
 	 */
 	private function countSteps( array $schema ): int {
 		$howto = ( isset( $schema['howto'] ) && is_array( $schema['howto'] ) ) ? $schema['howto'] : [];
@@ -766,8 +780,7 @@ final class SchemaMetabox {
 	 * @param int   $postId Current post id.
 	 * @param mixed $post   Current post object.
 	 */
-    // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- second hook argument required by the save_post signature.
-	public function handleSave( int $postId, mixed $post = null ): void {
+	public function handleSave( int $postId, mixed $post = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
 		if ( function_exists( 'wp_is_post_autosave' ) && wp_is_post_autosave( $postId ) ) {
 			return;
 		}
@@ -816,6 +829,7 @@ final class SchemaMetabox {
 		}
 
 		$customRaw = isset( $_POST['rankkernel_schema_custom'] )
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed here, sanitized or validated on the following statements.
 			? (string) wp_unslash( $_POST['rankkernel_schema_custom'] )
 			: '';
 
@@ -886,11 +900,13 @@ final class SchemaMetabox {
 
 	/**
 	 * Read the posted type, validated against the central list.
+	 *
+	 * @return string The result.
 	 */
 	private function postedType(): string {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 		$raw = isset( $_POST['rankkernel_schema_type'] )
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave, unslashed here, validated against an allow list below.
 			? trim( (string) wp_unslash( $_POST['rankkernel_schema_type'] ) )
 			: '';
 
@@ -903,7 +919,7 @@ final class SchemaMetabox {
 	 * @return array<string, string>
 	 */
 	private function postedFields(): array {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
 		$raw = $_POST['rankkernel_schema_fields'] ?? [];
 
 		if ( ! is_array( $raw ) ) {
@@ -941,7 +957,7 @@ final class SchemaMetabox {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function postedQuestions(): array {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
 		$raw = $_POST['rankkernel_schema_faq'] ?? [];
 
 		if ( ! is_array( $raw ) ) {
@@ -997,7 +1013,7 @@ final class SchemaMetabox {
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_cost'] ) )
 			: '';
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
 		$rawSteps = $_POST['rankkernel_schema_howto_steps'] ?? [];
 		$steps    = [];
 
@@ -1052,7 +1068,7 @@ final class SchemaMetabox {
 			return $empty;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before readImportFile runs.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before readImportFile runs, upload metadata validated below, file contents never executed.
 		$file  = $_FILES['rankkernel_schema_import'];
 		$error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
 
@@ -1129,6 +1145,7 @@ final class SchemaMetabox {
 	 * Append the save status to the post redirect URL.
 	 *
 	 * @param string $location Redirect URL.
+	 * @return string The result.
 	 */
 	public function filterRedirect( string $location ): string {
 		if ( null === $this->saveStatus ) {

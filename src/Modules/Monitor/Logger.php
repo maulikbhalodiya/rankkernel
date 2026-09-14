@@ -98,26 +98,36 @@ final class Logger {
 
 	/**
 	 * Log repository.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repository;
 
 	/**
 	 * Module settings.
+	 *
+	 * @var MonitorSettings
 	 */
 	private MonitorSettings $settings;
 
 	/**
 	 * Flood guard.
+	 *
+	 * @var FloodGuard
 	 */
 	private FloodGuard $flood;
 
 	/**
 	 * Pruner, scheduled on shutdown after an insert.
+	 *
+	 * @var Pruner
 	 */
 	private Pruner $pruner;
 
 	/**
 	 * Response code override, for tests only.
+	 *
+	 * @var int|null
 	 */
 	private ?int $responseCodeOverride = null;
 
@@ -348,6 +358,8 @@ final class Logger {
 	 * Any rankkernel_sitemap query var marks the request as internally
 	 * generated, including the 404 responses the sitemap router sends for
 	 * unknown sets, so those never enter the 404 log.
+	 *
+	 * @return bool The result.
 	 */
 	private function isSitemapRequest(): bool {
 		if ( ! function_exists( 'get_query_var' ) ) {
@@ -367,6 +379,8 @@ final class Logger {
 
 	/**
 	 * Current response code, override wins in tests.
+	 *
+	 * @return int The result.
 	 */
 	private function responseCode(): int {
 		if ( null !== $this->responseCodeOverride ) {
@@ -397,6 +411,7 @@ final class Logger {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- key allowlisted by callers, value unslashed and sanitized below.
 		$raw = $_SERVER[ $name ];
 
 		if ( ! is_string( $raw ) ) {

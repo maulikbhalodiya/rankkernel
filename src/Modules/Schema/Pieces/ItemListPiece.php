@@ -24,147 +24,152 @@ use RankKernel\Settings\SettingsStore;
  * only filters and caps.
  */
 final class ItemListPiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'itemlist';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'itemlist';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if ('ItemList' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( 'ItemList' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return false;
+		}
 
-        return [] !== self::nodes($ctx);
-    }
+		return [] !== self::nodes( $ctx );
+	}
 
-    /**
-     * Build the ItemList node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        if ('ItemList' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return [];
-        }
+	/**
+	 * Build the ItemList node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		if ( 'ItemList' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return [];
+		}
 
-        $nodes = self::nodes($ctx);
+		$nodes = self::nodes( $ctx );
 
-        if ([] === $nodes) {
-            return [];
-        }
+		if ( [] === $nodes ) {
+			return [];
+		}
 
-        $permalink = $ctx->permalink();
+		$permalink = $ctx->permalink();
 
-        if ('' === $permalink) {
-            return [];
-        }
+		if ( '' === $permalink ) {
+			return [];
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
+		$fields = SchemaHelpers::fields( $ctx );
 
-        $node = [
-            '@type'           => 'ItemList',
-            '@id'             => $permalink . '#itemlist',
-            'itemListElement' => self::listItems($nodes),
-        ];
+		$node = [
+			'@type'           => 'ItemList',
+			'@id'             => $permalink . '#itemlist',
+			'itemListElement' => self::listItems( $nodes ),
+		];
 
-        $name = SchemaHelpers::headline($ctx, $fields);
+		$name = SchemaHelpers::headline( $ctx, $fields );
 
-        if ('' !== $name) {
-            $node['name'] = $name;
-        }
+		if ( '' !== $name ) {
+			$node['name'] = $name;
+		}
 
-        $description = SchemaHelpers::description($ctx, $fields);
+		$description = SchemaHelpers::description( $ctx, $fields );
 
-        if ('' !== $description) {
-            $node['description'] = $description;
-        }
+		if ( '' !== $description ) {
+			$node['description'] = $description;
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 
-    /**
-     * Valid item nodes, capped at 50 entries.
-     *
-     * @param Context $ctx Request context.
-     * @return array<int, array<string, mixed>>
-     */
-    private static function nodes( Context $ctx ): array {
-        $meta = $ctx->meta();
+	/**
+	 * Valid item nodes, capped at 50 entries.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function nodes( Context $ctx ): array {
+		$meta = $ctx->meta();
 
-        $schema = $meta['schema'] ?? [];
+		$schema = $meta['schema'] ?? [];
 
-        if (! is_array($schema)) {
-            return [];
-        }
+		if ( ! is_array( $schema ) ) {
+			return [];
+		}
 
-        $raw = $schema['items'] ?? [];
+		$raw = $schema['items'] ?? [];
 
-        if (! is_array($raw)) {
-            return [];
-        }
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
 
-        $out = [];
+		$out = [];
 
-        foreach ($raw as $item) {
-            if (count($out) >= 50) {
-                break;
-            }
+		foreach ( $raw as $item ) {
+			if ( count( $out ) >= 50 ) {
+				break;
+			}
 
-            if (! is_array($item)) {
-                continue;
-            }
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
 
-            $type = $item['@type'] ?? '';
+			$type = $item['@type'] ?? '';
 
-            if (! is_string($type) || '' === trim($type)) {
-                continue;
-            }
+			if ( ! is_string( $type ) || '' === trim( $type ) ) {
+				continue;
+			}
 
-            $out[] = $item;
-        }
+			$out[] = $item;
+		}
 
-        return array_values($out);
-    }
+		return array_values( $out );
+	}
 
-    /**
-     * Wrap nodes in positioned ListItem entries.
-     *
-     * @param array<int, array<string, mixed>> $nodes Valid nodes.
-     * @return array<int, array<string, mixed>>
-     */
-    private static function listItems( array $nodes ): array {
-        $out = [];
+	/**
+	 * Wrap nodes in positioned ListItem entries.
+	 *
+	 * @param array<int, array<string, mixed>> $nodes Valid nodes.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function listItems( array $nodes ): array {
+		$out = [];
 
-        foreach (array_values($nodes) as $index => $item) {
-            $out[] = [
-                '@type'    => 'ListItem',
-                'position' => $index + 1,
-                'item'     => $item,
-            ];
-        }
+		foreach ( array_values( $nodes ) as $index => $item ) {
+			$out[] = [
+				'@type'    => 'ListItem',
+				'position' => $index + 1,
+				'item'     => $item,
+			];
+		}
 
-        return $out;
-    }
+		return $out;
+	}
 }

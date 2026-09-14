@@ -19,175 +19,175 @@ use WP_REST_Response;
  * Handles POST /rankkernel/v1/modules/{id}.
  */
 final class ModulesController {
-    /**
-     * REST namespace.
-     */
-    private const NAMESPACE = 'rankkernel/v1';
+	/**
+	 * REST namespace.
+	 */
+	private const NAMESPACE = 'rankkernel/v1';
 
-    /**
-     * Option name for enabled modules map.
-     */
-    private const OPTION = 'rankkernel_modules';
+	/**
+	 * Option name for enabled modules map.
+	 */
+	private const OPTION = 'rankkernel_modules';
 
-    /**
-     * Known optional module ids.
-     *
-     * Delegates to ModuleRegistry, single source of truth.
-     *
-     * @var string[]
-     */
-    public const KNOWN_MODULES = [
-        'metadata',
-        'sitemaps',
-        'schema',
-        'breadcrumbs',
-        'importer',
-        'redirects',
-        '404',
-        'instant-indexing',
-        'robots',
-        'image-seo',
-        'gutenberg',
-        'ai',
-        'headless',
-    ];
+	/**
+	 * Known optional module ids.
+	 *
+	 * Delegates to ModuleRegistry, single source of truth.
+	 *
+	 * @var string[]
+	 */
+	public const KNOWN_MODULES = [
+		'metadata',
+		'sitemaps',
+		'schema',
+		'breadcrumbs',
+		'importer',
+		'redirects',
+		'404',
+		'instant-indexing',
+		'robots',
+		'image-seo',
+		'gutenberg',
+		'ai',
+		'headless',
+	];
 
-    /**
-     * Register routes.
-     */
-    public function registerRoutes(): void {
-        register_rest_route(
-            self::NAMESPACE,
-            '/modules/(?P<id>[a-z0-9-]+)',
-            [
-                'methods'             => 'POST',
-                'callback'            => [ $this, 'toggleModule' ],
-                'permission_callback' => [ $this, 'checkPermission' ],
-                'args'                => [
-                    'id' => [
-                        'required'          => true,
-                        'type'              => 'string',
-                        'sanitize_callback' => 'sanitize_text_field',
-                        'validate_callback' => [ $this, 'validateModuleId' ],
-                    ],
-                ],
-            ]
-        );
-    }
+	/**
+	 * Register routes.
+	 */
+	public function registerRoutes(): void {
+		register_rest_route(
+			self::NAMESPACE,
+			'/modules/(?P<id>[a-z0-9-]+)',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'toggleModule' ],
+				'permission_callback' => [ $this, 'checkPermission' ],
+				'args'                => [
+					'id' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => [ $this, 'validateModuleId' ],
+					],
+				],
+			]
+		);
+	}
 
-    /**
-     * Check permissions.
-     *
-     * @return bool|WP_Error
-     */
-    public function checkPermission(): bool|WP_Error {
-        if (current_user_can('manage_options')) {
-            return true;
-        }
+	/**
+	 * Check permissions.
+	 *
+	 * @return bool|WP_Error The result.
+	 */
+	public function checkPermission(): bool|WP_Error {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
 
-        return new WP_Error(
-            'rest_forbidden',
-            esc_html__('Sorry, you are not allowed to manage RankKernel modules.', 'rankkernel'),
-            [ 'status' => 403 ]
-        );
-    }
+		return new WP_Error(
+			'rest_forbidden',
+			esc_html__( 'Sorry, you are not allowed to manage RankKernel modules.', 'rankkernel' ),
+			[ 'status' => 403 ]
+		);
+	}
 
-    /**
-     * Validate module id.
-     *
-     * @param string $value Module id.
-     * @return bool|WP_Error
-     */
-    public function validateModuleId( $value ): bool|WP_Error {
-        if (ModuleRegistry::has((string) $value)) {
-            return true;
-        }
+	/**
+	 * Validate module id.
+	 *
+	 * @param string $value Module id.
+	 * @return bool|WP_Error The result.
+	 */
+	public function validateModuleId( $value ): bool|WP_Error {
+		if ( ModuleRegistry::has( (string) $value ) ) {
+			return true;
+		}
 
-        return new WP_Error(
-            'rankkernel_invalid_module',
-            esc_html__('Unknown module id.', 'rankkernel'),
-            [ 'status' => 400 ]
-        );
-    }
+		return new WP_Error(
+			'rankkernel_invalid_module',
+			esc_html__( 'Unknown module id.', 'rankkernel' ),
+			[ 'status' => 400 ]
+		);
+	}
 
-    /**
-     * Toggle a module on/off.
-     *
-     * @param WP_REST_Request $request Request.
-     * @return WP_REST_Response|WP_Error
-     */
-    public function toggleModule( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-        $moduleId = sanitize_text_field((string) $request->get_param('id'));
+	/**
+	 * Toggle a module on/off.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error The result.
+	 */
+	public function toggleModule( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$moduleId = sanitize_text_field( (string) $request->get_param( 'id' ) );
 
-        if (! ModuleRegistry::has($moduleId)) {
-            return new WP_Error(
-                'rankkernel_invalid_module',
-                esc_html__('Unknown module id.', 'rankkernel'),
-                [ 'status' => 400 ]
-            );
-        }
+		if ( ! ModuleRegistry::has( $moduleId ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_module',
+				esc_html__( 'Unknown module id.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
 
-        $params = $request->get_json_params();
-        if (! is_array($params)) {
-            $params = $request->get_params();
-        }
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) ) {
+			$params = $request->get_params();
+		}
 
-        if (! is_array($params) || ! array_key_exists('enabled', $params)) {
-            return new WP_Error(
-                'rankkernel_missing_enabled',
-                esc_html__('Missing required field: enabled.', 'rankkernel'),
-                [ 'status' => 400 ]
-            );
-        }
+		if ( ! is_array( $params ) || ! array_key_exists( 'enabled', $params ) ) {
+			return new WP_Error(
+				'rankkernel_missing_enabled',
+				esc_html__( 'Missing required field: enabled.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
 
-        $rawEnabled = $params['enabled'];
+		$rawEnabled = $params['enabled'];
 
-        if (is_bool($rawEnabled)) {
-            $enabled = $rawEnabled;
-        } else {
-            $normalized = filter_var($rawEnabled, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+		if ( is_bool( $rawEnabled ) ) {
+			$enabled = $rawEnabled;
+		} else {
+			$normalized = filter_var( $rawEnabled, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
 
-            if (null === $normalized) {
-                return new WP_Error(
-                    'rest_invalid_param',
-                    esc_html__('Invalid value for enabled: must be boolean.', 'rankkernel'),
-                    [ 'status' => 400 ]
-                );
-            }
+			if ( null === $normalized ) {
+				return new WP_Error(
+					'rest_invalid_param',
+					esc_html__( 'Invalid value for enabled: must be boolean.', 'rankkernel' ),
+					[ 'status' => 400 ]
+				);
+			}
 
-            $enabled = $normalized;
-        }
+			$enabled = $normalized;
+		}
 
-        $current = get_option(self::OPTION, []);
-        if (! is_array($current)) {
-            $current = [];
-        }
+		$current = get_option( self::OPTION, [] );
+		if ( ! is_array( $current ) ) {
+			$current = [];
+		}
 
-        $current = array_map('strval', $current);
+		$current = array_map( 'strval', $current );
 
-        if ($enabled) {
-            if (! in_array($moduleId, $current, true)) {
-                $current[] = $moduleId;
-            }
-        } else {
-            $current = array_values(array_filter($current, static fn( string $id ): bool => $id !== $moduleId));
-        }
+		if ( $enabled ) {
+			if ( ! in_array( $moduleId, $current, true ) ) {
+				$current[] = $moduleId;
+			}
+		} else {
+			$current = array_values( array_filter( $current, static fn( string $id ): bool => $id !== $moduleId ) );
+		}
 
-        update_option(self::OPTION, $current);
+		update_option( self::OPTION, $current );
 
-        // Rewrite-based modules (sitemaps) register or drop rules depending
-        // on this list, so the cached rules must regenerate.
-        flush_rewrite_rules(false);
+		// Rewrite-based modules (sitemaps) register or drop rules depending
+		// on this list, so the cached rules must regenerate.
+		flush_rewrite_rules( false );
 
-        return new WP_REST_Response(
-            [
-                'modules' => $current,
-                'message' => esc_html__(
-                    'Module status updated. Changes take effect on the next request.',
-                    'rankkernel'
-                ),
-            ],
-            200
-        );
-    }
+		return new WP_REST_Response(
+			[
+				'modules' => $current,
+				'message' => esc_html__(
+					'Module status updated. Changes take effect on the next request.',
+					'rankkernel'
+				),
+			],
+			200
+		);
+	}
 }

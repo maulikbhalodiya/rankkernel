@@ -25,6 +25,8 @@ namespace RankKernel\Modules\Redirects;
 final class Redirector {
 	/**
 	 * Whether this request already sent a redirect.
+	 *
+	 * @var bool
 	 */
 	private static bool $sent = false;
 
@@ -254,7 +256,7 @@ final class Redirector {
 	/**
 	 * Allowlisted external hosts, filterable for future admin control.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	private function allowedHosts(): array {
 		// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- filter name follows the plugin slash namespaced convention used by the rankkernel/sitemap hooks.

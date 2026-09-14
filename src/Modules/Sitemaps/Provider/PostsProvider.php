@@ -56,7 +56,7 @@ class PostsProvider {
 	/**
 	 * Get available post type sets.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function getSets(): array {
 		$postTypes = get_post_types( [ 'public' => true ], 'names' );
@@ -89,7 +89,7 @@ class PostsProvider {
 	 * Get count of published posts for a set.
 	 *
 	 * @param string $postType Post type slug.
-	 * @return int
+	 * @return int The result.
 	 */
 	public function getCount( string $postType ): int {
 		if ( 'attachment' === $postType ) {
@@ -235,7 +235,7 @@ class PostsProvider {
 	/**
 	 * Excluded post ids from settings, unique positive ints.
 	 *
-	 * @return int[]
+	 * @return int[] The result.
 	 */
 	private function excludedPostIds(): array {
 		$ids = $this->settings?->get( 'exclude_posts', [] ) ?? [];
@@ -267,7 +267,7 @@ class PostsProvider {
 	 * @param int         $postId   Post id.
 	 * @param string      $content  Raw post content.
 	 * @param string|null $featured Featured image URL or null.
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	private function extractContentImages( int $postId, string $content, ?string $featured ): array {
 		$home = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
@@ -330,6 +330,11 @@ class PostsProvider {
 	 *
 	 * Skips data URIs and external hosts. Root-relative and
 	 * protocol-relative sources resolve against the home URL.
+	 *
+	 * @param string $src  Src.
+	 * @param string $home Home.
+	 * @param string $host Host.
+	 * @return string The result.
 	 */
 	private function normalizeImageUrl( string $src, string $home, string $host ): string {
 		if ( '' === $src || str_starts_with( $src, 'data:' ) ) {
@@ -359,6 +364,8 @@ class PostsProvider {
 
 	/**
 	 * Whether any image work may run (master images toggle).
+	 *
+	 * @return bool The result.
 	 */
 	private function contentImagesAllowed(): bool {
 		return (bool) ( $this->settings?->get( 'include_images', true ) ?? true );
@@ -368,6 +375,8 @@ class PostsProvider {
 	 * Whether the featured image may lead the list (sub toggle).
 	 *
 	 * Content images are unaffected by this flag.
+	 *
+	 * @return bool The result.
 	 */
 	private function featuredAllowed(): bool {
 		return (bool) ( $this->settings?->get( 'include_featured_image', true ) ?? true );
@@ -379,9 +388,10 @@ class PostsProvider {
 	 * Returns an empty fragment when the list is empty, so default
 	 * queries keep their exact SQL shape.
 	 *
-	 * @param int[]              $ids    Excluded ids.
-	 * @param string             $column Qualified column, e.g. p.ID.
-	 * @param array<int, mixed>  $params Prepare params, ids appended in order.
+	 * @param int[]             $ids    Excluded ids.
+	 * @param string            $column Qualified column, e.g. p.ID.
+	 * @param array<int, mixed> $params Prepare params, ids appended in order.
+	 * @return string The result.
 	 */
 	private function excludeClause( array $ids, string $column, array &$params ): string {
 		$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );

@@ -478,6 +478,7 @@ final class MetaPayload {
 	 * strip_tags when WP is not loaded, as in unit tests.
 	 *
 	 * @param string $text Raw text.
+	 * @return string The result.
 	 */
 	private static function kses( string $text ): string {
 		if ( function_exists( 'wp_kses_post' ) ) {
@@ -620,6 +621,7 @@ final class MetaPayload {
 	 *
 	 * @param string $value Raw string.
 	 * @param int    $max   Max length in chars.
+	 * @return string The result.
 	 */
 	private static function truncate( string $value, int $max ): string {
 		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {

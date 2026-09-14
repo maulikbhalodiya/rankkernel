@@ -30,6 +30,8 @@ final class HitCounter {
 
 	/**
 	 * Whether the shutdown hook is registered.
+	 *
+	 * @var bool
 	 */
 	private bool $hooked = false;
 

@@ -24,21 +24,29 @@ use RankKernel\Modules\ModuleInterface;
 class RedirectsModule implements ModuleInterface {
 	/**
 	 * Cached enabled check.
+	 *
+	 * @var bool|null
 	 */
 	private ?bool $enabledCache = null;
 
 	/**
 	 * Shared enable map.
+	 *
+	 * @var ModuleEnableMap|null
 	 */
 	private ?ModuleEnableMap $enableMap;
 
 	/**
 	 * Redirector instance, built at boot.
+	 *
+	 * @var Redirector|null
 	 */
 	private ?Redirector $redirector = null;
 
 	/**
 	 * Slug watcher instance, built at boot.
+	 *
+	 * @var SlugWatcher|null
 	 */
 	private ?SlugWatcher $slugWatcher = null;
 
@@ -53,6 +61,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Get module id.
+	 *
+	 * @return string The result.
 	 */
 	public function getId(): string {
 		return 'redirects';
@@ -60,6 +70,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Get human readable name.
+	 *
+	 * @return string The result.
 	 */
 	public function getName(): string {
 		return __( 'Redirects', 'rankkernel' );
@@ -67,6 +79,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Module priority.
+	 *
+	 * @return int The result.
 	 */
 	public function getPriority(): int {
 		return 40;
@@ -75,7 +89,7 @@ class RedirectsModule implements ModuleInterface {
 	/**
 	 * Dependencies.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function dependsOn(): array {
 		return [];
@@ -83,6 +97,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Whether the module is enabled.
+	 *
+	 * @return bool The result.
 	 */
 	public function isEnabled(): bool {
 		if ( null !== $this->enabledCache ) {
@@ -156,6 +172,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Get the redirector, for testing.
+	 *
+	 * @return Redirector|null The result.
 	 */
 	public function getRedirector(): ?Redirector {
 		return $this->redirector;
@@ -163,6 +181,8 @@ class RedirectsModule implements ModuleInterface {
 
 	/**
 	 * Get the slug watcher, for testing.
+	 *
+	 * @return SlugWatcher|null The result.
 	 */
 	public function getSlugWatcher(): ?SlugWatcher {
 		return $this->slugWatcher;

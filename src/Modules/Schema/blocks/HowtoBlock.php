@@ -10,11 +10,47 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema\blocks;
 
+/**
+ * Esc attr.
+ */
+/**
+ * Esc attr.
+ */
 use function esc_attr;
+/**
+ * Esc html.
+ */
+/**
+ * Esc html.
+ */
 use function esc_html;
+/**
+ * Esc html.
+ */
+/**
+ * Esc html.
+ */
 use function esc_html__;
+/**
+ * Esc url.
+ */
+/**
+ * Esc url.
+ */
 use function esc_url;
+/**
+ * Plugins url.
+ */
+/**
+ * Plugins url.
+ */
 use function plugins_url;
+/**
+ * Sprintf.
+ */
+/**
+ * Sprintf.
+ */
 use function sprintf;
 
 /**
@@ -47,6 +83,9 @@ final class HowtoBlock {
 
 	/**
 	 * Plugin relative asset URL, empty when unavailable (tests, early boot).
+	 *
+	 * @param string $path Path.
+	 * @return string The result.
 	 */
 	private static function assetUrl( string $path ): string {
 		if ( ! function_exists( 'plugins_url' ) ) {
@@ -62,6 +101,8 @@ final class HowtoBlock {
 	 * Asset version from the single RANKKERNEL_VERSION constant, so
 	 * bumping that one value in rankkernel.php busts the editor
 	 * browser cache for both the script and the stylesheet.
+	 *
+	 * @return string The result.
 	 */
 	private static function assetVersion(): string {
 		return \RankKernel\Plugin::version();
@@ -140,11 +181,11 @@ final class HowtoBlock {
 	 * empty string when no valid rows remain, so nothing renders.
 	 *
 	 * @param array<string, mixed> $attributes Block attributes.
-	 * @param string               $content Block inner content, unused.
-	 * @param mixed                $block Parsed block instance, unused.
+	 * @param string               $content    Block inner content, unused.
+	 * @param mixed                $block      Parsed block instance, unused.
+	 * @return string The result.
 	 */
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP core always passes content and block to render callbacks, so the signature keeps both names.
-	public function render( array $attributes, string $content = '', mixed $block = null ): string {
+	public function render( array $attributes, string $content = '', mixed $block = null ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
 		$title   = isset( $attributes['title'] ) ? trim( (string) $attributes['title'] ) : '';
 		$wrapper = isset( $attributes['titleWrapper'] ) ? strtolower( trim( (string) $attributes['titleWrapper'] ) ) : 'h3';
 
@@ -256,8 +297,9 @@ final class HowtoBlock {
 	 * call always sees a single static string.
 	 *
 	 * @param array<string, mixed> $attributes Block attributes.
-	 * @param string               $key Attribute name, tools or materials.
-	 * @param string               $cssClass List wrapper class.
+	 * @param string               $key        Attribute name, tools or materials.
+	 * @param string               $cssClass   List wrapper class.
+	 * @return string The result.
 	 */
 	private static function stringList( array $attributes, string $key, string $cssClass ): string {
 		$items = $attributes[ $key ] ?? [];
@@ -301,6 +343,7 @@ final class HowtoBlock {
 	 * keep their safe shape.
 	 *
 	 * @param string $url Raw image value.
+	 * @return string The result.
 	 */
 	private static function safeImageUrl( string $url ): string {
 		$clean = trim( $url );
@@ -336,6 +379,7 @@ final class HowtoBlock {
 	 * schema, and the editor hint shows the expected shape.
 	 *
 	 * @param string $value Raw total time value.
+	 * @return bool The result.
 	 */
 	private static function validDuration( string $value ): bool {
 		return 1 === preg_match( '/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$/', $value );

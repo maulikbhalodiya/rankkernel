@@ -436,7 +436,7 @@ final class MonitorRepository {
 	/**
 	 * Active connection or null when the database is unavailable.
 	 *
-	 * @return \wpdb|null
+	 * @return \wpdb|null The result.
 	 */
 	private function connection() {
 		if ( null !== $this->db ) {
@@ -454,6 +454,8 @@ final class MonitorRepository {
 
 	/**
 	 * Current MySQL time.
+	 *
+	 * @return string The result.
 	 */
 	private function now(): string {
 		if ( function_exists( 'current_time' ) ) {

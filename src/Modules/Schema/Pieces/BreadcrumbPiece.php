@@ -24,132 +24,137 @@ use RankKernel\Settings\SettingsStore;
  * the node off entirely.
  */
 final class BreadcrumbPiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'breadcrumb';
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'breadcrumb';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * Needed when the context can produce a trail, singular and archives.
-     * Pure home has no trail beyond itself, so it is skipped.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if (! (bool) $this->settings->get('schema_breadcrumbs', true)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * Needed when the context can produce a trail, singular and archives.
+	 * Pure home has no trail beyond itself, so it is skipped.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( ! (bool) $this->settings->get( 'schema_breadcrumbs', true ) ) {
+			return false;
+		}
 
-        return in_array($ctx->queriedType(), [ 'post', 'term', 'archive' ], true);
-    }
+		return in_array( $ctx->queriedType(), [ 'post', 'term', 'archive' ], true );
+	}
 
-    /**
-     * Build the BreadcrumbList node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        $home = function_exists('home_url') ? (string) home_url('/') : '';
+	/**
+	 * Build the BreadcrumbList node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		$home = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
-        $trail = [
-            [
-                'name' => $ctx->siteName(),
-                'url'  => $home,
-            ],
-        ];
+		$trail = [
+			[
+				'name' => $ctx->siteName(),
+				'url'  => $home,
+			],
+		];
 
-        $currentName = trim($ctx->title());
+		$currentName = trim( $ctx->title() );
 
-        if ('' === $currentName && function_exists('single_term_title')) {
-            $termTitle = single_term_title('', false);
+		if ( '' === $currentName && function_exists( 'single_term_title' ) ) {
+			$termTitle = single_term_title( '', false );
 
-            if (is_string($termTitle)) {
-                $currentName = trim($termTitle);
-            }
-        }
+			if ( is_string( $termTitle ) ) {
+				$currentName = trim( $termTitle );
+			}
+		}
 
-        $permalink = $ctx->permalink();
+		$permalink = $ctx->permalink();
 
-        if ('' !== $currentName || '' !== $permalink) {
-            $trail[] = [
-                'name' => $currentName,
-                'url'  => $permalink,
-            ];
-        }
+		if ( '' !== $currentName || '' !== $permalink ) {
+			$trail[] = [
+				'name' => $currentName,
+				'url'  => $permalink,
+			];
+		}
 
-        /**
-         * Seam for the future breadcrumbs module to supply the full trail.
-         *
-         * @param array<int, mixed> $trail Trail entries.
-         * @param Context           $ctx   Current request context.
-         */
-        $trail = apply_filters('rankkernel/schema/breadcrumb_trail', $trail, $ctx);
+		/**
+		 * Seam for the future breadcrumbs module to supply the full trail.
+		 *
+		 * @param array<int, mixed> $trail Trail entries.
+		 * @param Context           $ctx   Current request context.
+		 */
+		$trail = apply_filters( 'rankkernel/schema/breadcrumb_trail', $trail, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-        if (! is_array($trail) || [] === $trail) {
-            return [];
-        }
+		if ( ! is_array( $trail ) || [] === $trail ) {
+			return [];
+		}
 
-        $base = '' !== $permalink ? $permalink : $home;
+		$base = '' !== $permalink ? $permalink : $home;
 
-        if ('' === $base) {
-            return [];
-        }
+		if ( '' === $base ) {
+			return [];
+		}
 
-        $items    = [];
-        $position = 1;
+		$items    = [];
+		$position = 1;
 
-        foreach ($trail as $crumb) {
-            if (! is_array($crumb)) {
-                continue;
-            }
+		foreach ( $trail as $crumb ) {
+			if ( ! is_array( $crumb ) ) {
+				continue;
+			}
 
-            $name = isset($crumb['name']) ? trim((string) $crumb['name']) : '';
-            $url  = isset($crumb['url']) ? trim((string) $crumb['url']) : '';
+			$name = isset( $crumb['name'] ) ? trim( (string) $crumb['name'] ) : '';
+			$url  = isset( $crumb['url'] ) ? trim( (string) $crumb['url'] ) : '';
 
-            if ('' === $name && '' === $url) {
-                continue;
-            }
+			if ( '' === $name && '' === $url ) {
+				continue;
+			}
 
-            $item = [
-                '@type'    => 'ListItem',
-                'position' => $position,
-                'name'     => $name,
-            ];
+			$item = [
+				'@type'    => 'ListItem',
+				'position' => $position,
+				'name'     => $name,
+			];
 
-            if ('' !== $url) {
-                $item['item'] = $url;
-            }
+			if ( '' !== $url ) {
+				$item['item'] = $url;
+			}
 
-            $items[] = $item;
-            ++$position;
-        }
+			$items[] = $item;
+			++$position;
+		}
 
-        if ([] === $items) {
-            return [];
-        }
+		if ( [] === $items ) {
+			return [];
+		}
 
-        return [
-            '@type'           => 'BreadcrumbList',
-            '@id'             => $base . '#breadcrumb',
-            'itemListElement' => $items,
-        ];
-    }
+		return [
+			'@type'           => 'BreadcrumbList',
+			'@id'             => $base . '#breadcrumb',
+			'itemListElement' => $items,
+		];
+	}
 }

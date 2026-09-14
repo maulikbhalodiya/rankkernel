@@ -20,203 +20,223 @@ use RankKernel\Settings\SettingsStore;
  * Registers the admin menu page and Plugins list action links.
  */
 final class AdminMenu {
-    /**
-     * Settings page instance.
-     */
-    private readonly SettingsPage $page;
+	/**
+	 * Settings page instance.
+	 *
+	 * @var SettingsPage
+	 */
+	private readonly SettingsPage $page;
 
-    /**
-     * Sitemap settings page instance.
-     */
-    private readonly SitemapSettingsPage $sitemapPage;
+	/**
+	 * Sitemap settings page instance.
+	 *
+	 * @var SitemapSettingsPage
+	 */
+	private readonly SitemapSettingsPage $sitemapPage;
 
-    /**
-     * Schema settings page instance.
-     */
-    private readonly SchemaSettingsPage $schemaPage;
+	/**
+	 * Schema settings page instance.
+	 *
+	 * @var SchemaSettingsPage
+	 */
+	private readonly SchemaSettingsPage $schemaPage;
 
-    /**
-     * Redirects page instance.
-     */
-    private readonly RedirectsPage $redirectsPage;
+	/**
+	 * Redirects page instance.
+	 *
+	 * @var RedirectsPage
+	 */
+	private readonly RedirectsPage $redirectsPage;
 
-    /**
-     * 404 Monitor page instance.
-     */
-    private readonly NotFoundPage $monitorPage;
+	/**
+	 * 404 Monitor page instance.
+	 *
+	 * @var NotFoundPage
+	 */
+	private readonly NotFoundPage $monitorPage;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore    $store     Settings store.
-     * @param ModuleEnableMap  $enableMap Module enable map.
-     * @param SitemapSettings|null $sitemap Sitemap settings store, fresh one when null.
-     */
-    public function __construct(
-        private readonly SettingsStore $store,
-        private readonly ModuleEnableMap $enableMap,
-        ?SitemapSettings $sitemap = null
-    ) {
-        $this->page        = new SettingsPage($this->store, $this->enableMap);
-        $this->sitemapPage = new SitemapSettingsPage($sitemap ?? new SitemapSettings());
-        $this->schemaPage  = new SchemaSettingsPage($this->store);
-        $this->redirectsPage = new RedirectsPage(new RedirectRepository(), new RedirectsSettings());
-        $this->monitorPage = new NotFoundPage();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore        $store     Settings store.
+	 * @param ModuleEnableMap      $enableMap Module enable map.
+	 * @param SitemapSettings|null $sitemap Sitemap settings store, fresh one when null.
+	 */
+	public function __construct(
+		private readonly SettingsStore $store,
+		private readonly ModuleEnableMap $enableMap,
+		?SitemapSettings $sitemap = null
+	) {
+		$this->page          = new SettingsPage( $this->store, $this->enableMap );
+		$this->sitemapPage   = new SitemapSettingsPage( $sitemap ?? new SitemapSettings() );
+		$this->schemaPage    = new SchemaSettingsPage( $this->store );
+		$this->redirectsPage = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
+		$this->monitorPage   = new NotFoundPage();
+	}
 
-    /**
-     * Get the settings page (for testing).
-     */
-    public function getPage(): SettingsPage {
-        return $this->page;
-    }
+	/**
+	 * Get the settings page (for testing).
+	 *
+	 * @return SettingsPage The result.
+	 */
+	public function getPage(): SettingsPage {
+		return $this->page;
+	}
 
-    /**
-     * Get the sitemap settings page (for testing).
-     */
-    public function getSitemapPage(): SitemapSettingsPage {
-        return $this->sitemapPage;
-    }
+	/**
+	 * Get the sitemap settings page (for testing).
+	 *
+	 * @return SitemapSettingsPage The result.
+	 */
+	public function getSitemapPage(): SitemapSettingsPage {
+		return $this->sitemapPage;
+	}
 
-    /**
-     * Get the schema settings page (for testing).
-     */
-    public function getSchemaPage(): SchemaSettingsPage {
-        return $this->schemaPage;
-    }
+	/**
+	 * Get the schema settings page (for testing).
+	 *
+	 * @return SchemaSettingsPage The result.
+	 */
+	public function getSchemaPage(): SchemaSettingsPage {
+		return $this->schemaPage;
+	}
 
-    /**
-     * Get the redirects page (for testing).
-     */
-    public function getRedirectsPage(): RedirectsPage {
-        return $this->redirectsPage;
-    }
+	/**
+	 * Get the redirects page (for testing).
+	 *
+	 * @return RedirectsPage The result.
+	 */
+	public function getRedirectsPage(): RedirectsPage {
+		return $this->redirectsPage;
+	}
 
-    /**
-     * Get the 404 Monitor page (for testing).
-     */
-    public function getMonitorPage(): NotFoundPage {
-        return $this->monitorPage;
-    }
+	/**
+	 * Get the 404 Monitor page (for testing).
+	 *
+	 * @return NotFoundPage The result.
+	 */
+	public function getMonitorPage(): NotFoundPage {
+		return $this->monitorPage;
+	}
 
-    /**
-     * Register hooks.
-     */
-    public function register(): void {
-        add_filter(
-            'plugin_action_links_' . plugin_basename(RANKKERNEL_FILE),
-            [ $this, 'addActionLinks' ]
-        );
+	/**
+	 * Register hooks.
+	 */
+	public function register(): void {
+		add_filter(
+			'plugin_action_links_' . plugin_basename( RANKKERNEL_FILE ),
+			[ $this, 'addActionLinks' ]
+		);
 
-        add_action('admin_menu', [ $this, 'addMenuPage' ]);
-    }
+		add_action( 'admin_menu', [ $this, 'addMenuPage' ] );
+	}
 
-    /**
-     * Add Settings link to the plugin row (first position).
-     *
-     * @param string[] $links Existing links.
-     * @return string[]
-     */
-    public function addActionLinks( array $links ): array {
-        $url      = admin_url('admin.php?page=rankkernel');
-        $settings = '<a href="' . esc_url($url) . '">' . esc_html__('Settings', 'rankkernel') . '</a>';
+	/**
+	 * Add Settings link to the plugin row (first position).
+	 *
+	 * @param string[] $links Existing links.
+	 * @return string[] The result.
+	 */
+	public function addActionLinks( array $links ): array {
+		$url      = admin_url( 'admin.php?page=rankkernel' );
+		$settings = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Settings', 'rankkernel' ) . '</a>';
 
-        array_unshift($links, $settings);
+		array_unshift( $links, $settings );
 
-        return $links;
-    }
+		return $links;
+	}
 
-    /**
-     * Register the RankKernel top-level menu.
-     */
-    public function addMenuPage(): void {
-        $hook = add_menu_page(
-            'RankKernel',
-            'RankKernel',
-            'manage_options',
-            'rankkernel',
-            [ $this->page, 'render' ],
-            'dashicons-search',
-            80
-        );
+	/**
+	 * Register the RankKernel top-level menu.
+	 */
+	public function addMenuPage(): void {
+		$hook = add_menu_page(
+			'RankKernel',
+			'RankKernel',
+			'manage_options',
+			'rankkernel',
+			[ $this->page, 'render' ],
+			'dashicons-search',
+			80
+		);
 
-        // Save handling runs on the load hook, before ANY output, so the
-        // post-redirect-get pattern can send its Location header.
-        add_action('load-' . $hook, [ $this->page, 'maybeHandleSave' ]);
+		// Save handling runs on the load hook, before ANY output, so the
+		// post-redirect-get pattern can send its Location header.
+		add_action( 'load-' . $hook, [ $this->page, 'maybeHandleSave' ] );
 
-        $sitemapHook = add_submenu_page(
-            'rankkernel',
-            'Sitemap Settings',
-            'Sitemap',
-            'manage_options',
-            'rankkernel-sitemap',
-            [ $this->sitemapPage, 'render' ]
-        );
+		$sitemapHook = add_submenu_page(
+			'rankkernel',
+			'Sitemap Settings',
+			'Sitemap',
+			'manage_options',
+			'rankkernel-sitemap',
+			[ $this->sitemapPage, 'render' ]
+		);
 
-        // Same load hook save pattern, so the tab redirect stays header safe.
-        add_action('load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ]);
-    }
+		// Same load hook save pattern, so the tab redirect stays header safe.
+		add_action( 'load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ] );
+	}
 
-    /**
-     * Register the RankKernel schema submenu page.
-     *
-     * Hooked separately from the top level menu so callers control
-     * ordering. Uses the same load hook save pattern as the sitemap
-     * page, so the redirect stays header safe.
-     */
-    public function addSchemaPage(): void {
-        $hook = add_submenu_page(
-            'rankkernel',
-            'Schema Settings',
-            'Schema',
-            'manage_options',
-            'rankkernel-schema',
-            [ $this->schemaPage, 'render' ]
-        );
+	/**
+	 * Register the RankKernel schema submenu page.
+	 *
+	 * Hooked separately from the top level menu so callers control
+	 * ordering. Uses the same load hook save pattern as the sitemap
+	 * page, so the redirect stays header safe.
+	 */
+	public function addSchemaPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'Schema Settings',
+			'Schema',
+			'manage_options',
+			'rankkernel-schema',
+			[ $this->schemaPage, 'render' ]
+		);
 
-        add_action('load-' . $hook, [ $this->schemaPage, 'maybeHandleSave' ]);
-        add_action('admin_enqueue_scripts', [ $this->schemaPage, 'enqueueAssets' ]);
-    }
+		add_action( 'load-' . $hook, [ $this->schemaPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->schemaPage, 'enqueueAssets' ] );
+	}
 
-    /**
-     * Register the RankKernel redirects submenu page.
-     *
-     * Hooked separately from the top level menu so callers control
-     * ordering. Uses the same load hook save pattern as the other
-     * pages, so the redirect stays header safe.
-     */
-    public function addRedirectsPage(): void {
-        $hook = add_submenu_page(
-            'rankkernel',
-            'Redirects',
-            'Redirects',
-            'manage_options',
-            'rankkernel-redirects',
-            [ $this->redirectsPage, 'render' ]
-        );
+	/**
+	 * Register the RankKernel redirects submenu page.
+	 *
+	 * Hooked separately from the top level menu so callers control
+	 * ordering. Uses the same load hook save pattern as the other
+	 * pages, so the redirect stays header safe.
+	 */
+	public function addRedirectsPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'Redirects',
+			'Redirects',
+			'manage_options',
+			'rankkernel-redirects',
+			[ $this->redirectsPage, 'render' ]
+		);
 
-        add_action('load-' . $hook, [ $this->redirectsPage, 'maybeHandleSave' ]);
-        add_action('admin_enqueue_scripts', [ $this->redirectsPage, 'enqueueAssets' ]);
-    }
+		add_action( 'load-' . $hook, [ $this->redirectsPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->redirectsPage, 'enqueueAssets' ] );
+	}
 
-    /**
-     * Register the RankKernel 404 Monitor submenu page.
-     *
-     * Hooked separately from the top level menu so callers control
-     * ordering. Uses the same load hook save pattern as the other
-     * pages, so the redirect stays header safe.
-     */
-    public function addMonitorPage(): void {
-        $hook = add_submenu_page(
-            'rankkernel',
-            '404 Monitor',
-            '404 Monitor',
-            'manage_options',
-            'rankkernel-404',
-            [ $this->monitorPage, 'render' ]
-        );
+	/**
+	 * Register the RankKernel 404 Monitor submenu page.
+	 *
+	 * Hooked separately from the top level menu so callers control
+	 * ordering. Uses the same load hook save pattern as the other
+	 * pages, so the redirect stays header safe.
+	 */
+	public function addMonitorPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'404 Monitor',
+			'404 Monitor',
+			'manage_options',
+			'rankkernel-404',
+			[ $this->monitorPage, 'render' ]
+		);
 
-        add_action('load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ]);
-        add_action('admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ]);
-    }
+		add_action( 'load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ] );
+	}
 }

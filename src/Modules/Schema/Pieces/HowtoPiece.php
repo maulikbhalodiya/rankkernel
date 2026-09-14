@@ -30,7 +30,7 @@ final class HowtoPiece implements PieceInterface {
 	/**
 	 * Parsed block data memoized per instance, keyed by content hash.
 	 *
-	 * isNeeded and build run on the same instance within one request,
+	 * The isNeeded and build methods run on the same instance within one request,
 	 * so the post content parses once, not twice.
 	 *
 	 * @var array{title: string, description: string, totalTime: string, estimatedCost: string, tools: array<int, string>, materials: array<int, string>, steps: array<int, array{title: string, text: string, image: string}>}|null
@@ -39,11 +39,15 @@ final class HowtoPiece implements PieceInterface {
 
 	/**
 	 * Content hash for the memoized block data.
+	 *
+	 * @var string
 	 */
 	private string $blockHash = '';
 
 	/**
 	 * Get piece id.
+	 *
+	 * @return string The result.
 	 */
 	public function getId(): string {
 		return 'howto';
@@ -56,6 +60,7 @@ final class HowtoPiece implements PieceInterface {
 	 * reports every singular view as the post type.
 	 *
 	 * @param Context $ctx Request context.
+	 * @return bool The result.
 	 */
 	public function isNeeded( Context $ctx ): bool {
 		if ( 'post' !== $ctx->queriedType() ) {
@@ -327,7 +332,11 @@ final class HowtoPiece implements PieceInterface {
 			return $this->blockData;
 		}
 
-		/** @var array<int, mixed> $blocks */
+		/**
+		 * Parsed blocks from the post content.
+		 *
+		 * @var array<int, mixed> $blocks
+		 */
 		$blocks = parse_blocks( $content );
 
 		if ( ! is_array( $blocks ) ) {
@@ -347,7 +356,7 @@ final class HowtoPiece implements PieceInterface {
 	/**
 	 * Collect block data from a block list, recursing into groups.
 	 *
-	 * @param array<int, mixed> $blocks Block list.
+	 * @param array<int, mixed>                                                                                                                                                                                                   $blocks Block list.
 	 * @param array{title: string, description: string, totalTime: string, estimatedCost: string, tools: array<int, string>, materials: array<int, string>, steps: array<int, array{title: string, text: string, image: string}>} $data Collected data.
 	 */
 	private function walkBlocks( array $blocks, array &$data ): void {
@@ -377,8 +386,8 @@ final class HowtoPiece implements PieceInterface {
 	 * payload name is absent. Tools and materials append unique trimmed
 	 * values in document order.
 	 *
-	 * @param array<string, mixed> $block HowTo block.
-	 * @param array{title: string, description: string, totalTime: string, estimatedCost: string, tools: array<int, string>, materials: array<int, string>, steps: array<int, array{title: string, text: string, image: string}>} $data Collected data.
+	 * @param array<string, mixed>                                                                                                                                                                                                $block HowTo block.
+	 * @param array{title: string, description: string, totalTime: string, estimatedCost: string, tools: array<int, string>, materials: array<int, string>, steps: array<int, array{title: string, text: string, image: string}>} $data  Collected data.
 	 */
 	private function collectFields( array $block, array &$data ): void {
 		$attrs = $block['attrs'] ?? [];
@@ -413,7 +422,7 @@ final class HowtoPiece implements PieceInterface {
 	 * Matching is case insensitive on the trimmed value, so Tool and
 	 * tool do not print twice. The list caps at 100 entries.
 	 *
-	 * @param mixed              $raw Incoming list value.
+	 * @param mixed              $raw       Incoming list value.
 	 * @param array<int, string> $collected Collected values.
 	 */
 	private function collectStrings( mixed $raw, array &$collected ): void {
@@ -460,8 +469,8 @@ final class HowtoPiece implements PieceInterface {
 	 * when an image is present, which mirrors the render callback and
 	 * the payload path exactly.
 	 *
-	 * @param array<string, mixed> $block HowTo block.
-	 * @param array<int, array{title: string, text: string, image: string}> $rows Collected rows.
+	 * @param array<string, mixed>                                          $block HowTo block.
+	 * @param array<int, array{title: string, text: string, image: string}> $rows  Collected rows.
 	 */
 	private function collectRows( array $block, array &$rows ): void {
 		$attrs = $block['attrs'] ?? [];
@@ -518,6 +527,7 @@ final class HowtoPiece implements PieceInterface {
 	 * and after it.
 	 *
 	 * @param string $url Raw image value.
+	 * @return string The result.
 	 */
 	private static function safeImageUrl( string $url ): string {
 		$clean = trim( $url );
@@ -553,6 +563,7 @@ final class HowtoPiece implements PieceInterface {
 	 * hint shows the expected shape.
 	 *
 	 * @param string $value Raw total time value.
+	 * @return bool The result.
 	 */
 	private static function validDuration( string $value ): bool {
 		return 1 === preg_match( '/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$/', $value );
@@ -568,6 +579,7 @@ final class HowtoPiece implements PieceInterface {
 	 * back to strip_tags in contexts without WP loaded.
 	 *
 	 * @param string $text Raw value.
+	 * @return string The result.
 	 */
 	private static function plainText( string $text ): string {
 		$spaced = (string) preg_replace( '#<(?:br\s*/?|/(?:p|div|li|h[1-6]|td|tr|blockquote))\s*>#i', ' ', $text );

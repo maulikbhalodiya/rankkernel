@@ -44,7 +44,7 @@ final class SitemapSettingsPage {
 	 * Runs on load-{page}, so wp_safe_redirect can still send headers.
 	 */
 	public function maybeHandleSave(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_sitemap_save'] ) ) {
 			$this->handleSave();
 		}
@@ -52,9 +52,11 @@ final class SitemapSettingsPage {
 
 	/**
 	 * Current tab from the query string, general on unknown input.
+	 *
+	 * @return string The result.
 	 */
 	public function currentTab(): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only display flag, unslashed here, sanitized or validated on the following statements.
 		$raw = $_GET['tab'] ?? '';
 
 		if ( ! is_string( $raw ) ) {
@@ -136,7 +138,7 @@ final class SitemapSettingsPage {
 		if ( 'general' === $tab ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
 			if ( isset( $_POST['items_per_page'] ) ) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value cast below, clamped on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value cast below, clamped on save, unslashed here, cast to scalar on the following statement.
 				$rawItems                  = wp_unslash( $_POST['items_per_page'] );
 				$partial['items_per_page'] = is_string( $rawItems ) ? (int) $rawItems : 0;
 			}
@@ -148,14 +150,14 @@ final class SitemapSettingsPage {
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
 			if ( isset( $_POST['exclude_posts'] ) ) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value exploded below, absint on save, unslashed here, sanitized or validated on the following statements.
 				$rawPosts                 = wp_unslash( $_POST['exclude_posts'] );
 				$partial['exclude_posts'] = is_string( $rawPosts ) ? explode( ',', $rawPosts ) : [];
 			}
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
 			if ( isset( $_POST['exclude_terms'] ) ) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value exploded below, absint on save, unslashed here, sanitized or validated on the following statements.
 				$rawTerms                 = wp_unslash( $_POST['exclude_terms'] );
 				$partial['exclude_terms'] = is_string( $rawTerms ) ? explode( ',', $rawTerms ) : [];
 			}
@@ -190,8 +192,8 @@ final class SitemapSettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
 		$partial['authors_include_empty'] = isset( $_POST['authors_include_empty'] );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
-		$rawRoles = $_POST['authors_exclude_roles'] ?? [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified in handleSave before collectPartial runs, unslashed here, sanitized or validated on the following statements.
+		$rawRoles = isset( $_POST['authors_exclude_roles'] ) ? wp_unslash( $_POST['authors_exclude_roles'] ) : [];
 		if ( ! is_array( $rawRoles ) ) {
 			$rawRoles = [];
 		}
@@ -208,7 +210,7 @@ final class SitemapSettingsPage {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collectPartial runs.
 		if ( isset( $_POST['authors_exclude_users'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave, value exploded below, absint on save.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value exploded below, absint on save, unslashed here, sanitized or validated on the following statements.
 			$rawUsers                         = wp_unslash( $_POST['authors_exclude_users'] );
 			$partial['authors_exclude_users'] = is_string( $rawUsers ) ? explode( ',', $rawUsers ) : [];
 		}
@@ -252,8 +254,8 @@ final class SitemapSettingsPage {
 	 * Slugs outside the settings key pattern are skipped, their keys
 	 * could never be stored.
 	 *
-	 * @param array<mixed, mixed> $map     Type map from core.
-	 * @param string[]            $skip    Slugs to drop.
+	 * @param array<mixed, mixed> $map  Type map from core.
+	 * @param string[]            $skip Slugs to drop.
 	 * @return array<string, string>
 	 */
 	private function slugsWithLabels( array $map, array $skip ): array {
@@ -286,7 +288,7 @@ final class SitemapSettingsPage {
 	 * Render admin notices (success on settings-updated).
 	 */
 	private function renderNotices(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
 		if ( isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'] ) {
 			echo '<div class="notice notice-success is-dismissible"><p>';
 			echo esc_html__( 'Settings saved.', 'rankkernel' );

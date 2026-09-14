@@ -38,6 +38,9 @@ final class FaqBlock {
 
 	/**
 	 * Plugin relative asset URL, empty when unavailable (tests, early boot).
+	 *
+	 * @param string $path Path.
+	 * @return string The result.
 	 */
 	private static function assetUrl( string $path ): string {
 		if ( ! function_exists( 'plugins_url' ) ) {
@@ -53,6 +56,8 @@ final class FaqBlock {
 	 * Asset version from the single RANKKERNEL_VERSION constant, so
 	 * bumping that one value in rankkernel.php busts the editor
 	 * browser cache for both the script and the stylesheet.
+	 *
+	 * @return string The result.
 	 */
 	private static function assetVersion(): string {
 		return \RankKernel\Plugin::version();
@@ -132,11 +137,11 @@ final class FaqBlock {
 	 * empty string when no valid rows remain, so nothing renders.
 	 *
 	 * @param array<string, mixed> $attributes Block attributes.
-	 * @param string               $content Block inner content, unused.
-	 * @param mixed                $block Parsed block instance, unused.
+	 * @param string               $content    Block inner content, unused.
+	 * @param mixed                $block      Parsed block instance, unused.
+	 * @return string The result.
 	 */
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP core always passes content and block to render callbacks, so the signature keeps both names.
-	public function render( array $attributes, string $content = '', mixed $block = null ): string {
+	public function render( array $attributes, string $content = '', mixed $block = null ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
 		$title   = isset( $attributes['title'] ) ? trim( (string) $attributes['title'] ) : '';
 		$wrapper = isset( $attributes['titleWrapper'] ) ? strtolower( trim( (string) $attributes['titleWrapper'] ) ) : 'h3';
 

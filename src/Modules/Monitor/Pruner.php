@@ -31,11 +31,15 @@ final class Pruner {
 
 	/**
 	 * Log repository.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repository;
 
 	/**
 	 * Module settings.
+	 *
+	 * @var MonitorSettings
 	 */
 	private MonitorSettings $settings;
 

@@ -29,7 +29,7 @@ final class FaqPiece implements PieceInterface {
 	/**
 	 * Parsed block rows memoized per instance, keyed by content hash.
 	 *
-	 * isNeeded and build run on the same instance within one request,
+	 * The isNeeded and build methods run on the same instance within one request,
 	 * so the post content parses once, not twice.
 	 *
 	 * @var array<int, array{question: string, answer: string}>|null
@@ -38,11 +38,15 @@ final class FaqPiece implements PieceInterface {
 
 	/**
 	 * Content hash for the memoized block rows.
+	 *
+	 * @var string
 	 */
 	private string $blockHash = '';
 
 	/**
 	 * Get piece id.
+	 *
+	 * @return string The result.
 	 */
 	public function getId(): string {
 		return 'faq';
@@ -52,6 +56,7 @@ final class FaqPiece implements PieceInterface {
 	 * Whether the piece is needed.
 	 *
 	 * @param Context $ctx Request context.
+	 * @return bool The result.
 	 */
 	public function isNeeded( Context $ctx ): bool {
 		if ( 'post' !== $ctx->queriedType() ) {
@@ -254,7 +259,11 @@ final class FaqPiece implements PieceInterface {
 	private function parseBlockRows( string $content ): array {
 		// Parsed block data is untrusted runtime input, so read it as a
 		// plain list and validate every level before use.
-		/** @var array<int, mixed> $blocks */
+		/**
+		 * Parsed blocks from the post content.
+		 *
+		 * @var array<int, mixed> $blocks
+		 */
 		$blocks = parse_blocks( $content );
 
 		if ( ! is_array( $blocks ) ) {
@@ -271,7 +280,7 @@ final class FaqPiece implements PieceInterface {
 	/**
 	 * Collect question rows from a block list, recursing into groups.
 	 *
-	 * @param array<int, mixed> $blocks Block list.
+	 * @param array<int, mixed>                                   $blocks Block list.
 	 * @param array<int, array{question: string, answer: string}> $rows Collected rows.
 	 */
 	private function walkBlocks( array $blocks, array &$rows ): void {
@@ -302,8 +311,8 @@ final class FaqPiece implements PieceInterface {
 	 * through esc_html, so tags must not reach the Question name.
 	 * Answers are trimmed, so whitespace only input counts as empty.
 	 *
-	 * @param array<string, mixed> $block FAQ block.
-	 * @param array<int, array{question: string, answer: string}> $rows Collected rows.
+	 * @param array<string, mixed>                                $block FAQ block.
+	 * @param array<int, array{question: string, answer: string}> $rows  Collected rows.
 	 */
 	private function collectRows( array $block, array &$rows ): void {
 		$attrs = $block['attrs'] ?? [];
@@ -350,6 +359,7 @@ final class FaqPiece implements PieceInterface {
 	 * back to strip_tags in contexts without WP loaded.
 	 *
 	 * @param string $text Raw value.
+	 * @return string The result.
 	 */
 	private static function plainText( string $text ): string {
 		$spaced = (string) preg_replace( '#<(?:br\s*/?|/(?:p|div|li|h[1-6]|td|tr|blockquote))\s*>#i', ' ', $text );

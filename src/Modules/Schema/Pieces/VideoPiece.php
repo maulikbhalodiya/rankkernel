@@ -25,139 +25,144 @@ use RankKernel\Settings\SettingsStore;
  * PT rule as recipes. The author ref points at the post author.
  */
 final class VideoPiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'videoobject';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'videoobject';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if ('VideoObject' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( 'VideoObject' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return false;
+		}
 
-        return [] !== $this->required($ctx);
-    }
+		return [] !== $this->required( $ctx );
+	}
 
-    /**
-     * Build the VideoObject node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        if ('VideoObject' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return [];
-        }
+	/**
+	 * Build the VideoObject node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		if ( 'VideoObject' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return [];
+		}
 
-        $required = $this->required($ctx);
+		$required = $this->required( $ctx );
 
-        if ([] === $required) {
-            return [];
-        }
+		if ( [] === $required ) {
+			return [];
+		}
 
-        $permalink = $ctx->permalink();
+		$permalink = $ctx->permalink();
 
-        if ('' === $permalink) {
-            return [];
-        }
+		if ( '' === $permalink ) {
+			return [];
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
+		$fields = SchemaHelpers::fields( $ctx );
 
-        $node = [
-            '@type'        => 'VideoObject',
-            '@id'          => $permalink . '#video',
-            'name'         => $required['name'],
-            'description'  => $required['description'],
-            'thumbnailUrl' => $required['thumbnail'],
-            'uploadDate'   => $required['uploadDate'],
-        ];
+		$node = [
+			'@type'        => 'VideoObject',
+			'@id'          => $permalink . '#video',
+			'name'         => $required['name'],
+			'description'  => $required['description'],
+			'thumbnailUrl' => $required['thumbnail'],
+			'uploadDate'   => $required['uploadDate'],
+		];
 
-        $duration = SchemaHelpers::toDuration($fields['duration'] ?? '');
+		$duration = SchemaHelpers::toDuration( $fields['duration'] ?? '' );
 
-        if ('' !== $duration) {
-            $node['duration'] = $duration;
-        }
+		if ( '' !== $duration ) {
+			$node['duration'] = $duration;
+		}
 
-        $content = trim($fields['contentUrl'] ?? '');
+		$content = trim( $fields['contentUrl'] ?? '' );
 
-        if ('' !== $content) {
-            $node['contentUrl'] = $content;
-        }
+		if ( '' !== $content ) {
+			$node['contentUrl'] = $content;
+		}
 
-        $node['author'] = [
-            '@id' => SchemaHelpers::personId($ctx),
-        ];
+		$node['author'] = [
+			'@id' => SchemaHelpers::personId( $ctx ),
+		];
 
-        return $node;
-    }
+		return $node;
+	}
 
-    /**
-     * Required fields, empty array when any one is missing.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, string>
-     */
-    private function required( Context $ctx ): array {
-        $fields = SchemaHelpers::fields($ctx);
+	/**
+	 * Required fields, empty array when any one is missing.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, string>
+	 */
+	private function required( Context $ctx ): array {
+		$fields = SchemaHelpers::fields( $ctx );
 
-        $name = SchemaHelpers::headline($ctx, $fields);
+		$name = SchemaHelpers::headline( $ctx, $fields );
 
-        if ('' === $name) {
-            return [];
-        }
+		if ( '' === $name ) {
+			return [];
+		}
 
-        $description = SchemaHelpers::description($ctx, $fields);
+		$description = SchemaHelpers::description( $ctx, $fields );
 
-        if ('' === $description) {
-            return [];
-        }
+		if ( '' === $description ) {
+			return [];
+		}
 
-        $thumbnail = trim($fields['thumbnailUrl'] ?? '');
+		$thumbnail = trim( $fields['thumbnailUrl'] ?? '' );
 
-        if ('' === $thumbnail) {
-            $thumbnail = $ctx->ogImage();
-        }
+		if ( '' === $thumbnail ) {
+			$thumbnail = $ctx->ogImage();
+		}
 
-        if ('' === $thumbnail) {
-            return [];
-        }
+		if ( '' === $thumbnail ) {
+			return [];
+		}
 
-        $upload = SchemaHelpers::normalizeDate($fields['uploadDate'] ?? '');
+		$upload = SchemaHelpers::normalizeDate( $fields['uploadDate'] ?? '' );
 
-        if ('' === $upload) {
-            $upload = SchemaHelpers::postPublished($ctx);
-        }
+		if ( '' === $upload ) {
+			$upload = SchemaHelpers::postPublished( $ctx );
+		}
 
-        if ('' === $upload) {
-            return [];
-        }
+		if ( '' === $upload ) {
+			return [];
+		}
 
-        return [
-            'name'        => $name,
-            'description' => $description,
-            'thumbnail'   => $thumbnail,
-            'uploadDate'  => $upload,
-        ];
-    }
+		return [
+			'name'        => $name,
+			'description' => $description,
+			'thumbnail'   => $thumbnail,
+			'uploadDate'  => $upload,
+		];
+	}
 }

@@ -87,8 +87,8 @@ final class Matcher {
 	 * Pure function over the given rows, used by match() and covered directly
 	 * by precedence tests without a database.
 	 *
-	 * @param string                   $path  Request path, normalized inside.
-	 * @param array<int, mixed>        $rules Candidate rule rows.
+	 * @param string            $path  Request path, normalized inside.
+	 * @param array<int, mixed> $rules Candidate rule rows.
 	 * @return array<string, mixed>|null Winning rule, or null.
 	 */
 	public static function pick_winner( string $path, array $rules ): ?array {
@@ -192,8 +192,8 @@ final class Matcher {
 	/**
 	 * Exact tier, lowest id wins.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_exact( string $path, array $rules ): ?array {
@@ -223,8 +223,8 @@ final class Matcher {
 	/**
 	 * Prefix tier, longest source wins, lowest id breaks ties.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_prefix( string $path, array $rules ): ?array {
@@ -259,8 +259,8 @@ final class Matcher {
 	/**
 	 * Wildcard tier, lowest id wins.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_wildcard( string $path, array $rules ): ?array {
@@ -296,8 +296,8 @@ final class Matcher {
 	/**
 	 * Contains tier, lowest id wins.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_contains( string $path, array $rules ): ?array {
@@ -329,8 +329,8 @@ final class Matcher {
 	/**
 	 * Suffix tier, lowest id wins.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_suffix( string $path, array $rules ): ?array {
@@ -365,8 +365,8 @@ final class Matcher {
 	 * Only the first MAX_REGEX_RULES regex rules by id are evaluated, longer
 	 * patterns are skipped, compile failures and engine errors fail closed.
 	 *
-	 * @param string                $path  Normalized path.
-	 * @param array<int, mixed>     $rules Active rule rows.
+	 * @param string            $path  Normalized path.
+	 * @param array<int, mixed> $rules Active rule rows.
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_regex( string $path, array $rules ): ?array {

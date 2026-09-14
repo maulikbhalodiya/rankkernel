@@ -24,128 +24,133 @@ use RankKernel\Settings\SettingsStore;
  * back to the excerpt, and the date falls back to the post date.
  */
 final class ReviewPiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'review';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'review';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if ('Review' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( 'Review' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return false;
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
+		$fields = SchemaHelpers::fields( $ctx );
 
-        if ('' === trim($fields['itemName'] ?? '')) {
-            return false;
-        }
+		if ( '' === trim( $fields['itemName'] ?? '' ) ) {
+			return false;
+		}
 
-        $value = trim($fields['ratingValue'] ?? '');
+		$value = trim( $fields['ratingValue'] ?? '' );
 
-        return '' !== $value && is_numeric($value);
-    }
+		return '' !== $value && is_numeric( $value );
+	}
 
-    /**
-     * Build the Review node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        if ('Review' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return [];
-        }
+	/**
+	 * Build the Review node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		if ( 'Review' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return [];
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
-        $item   = trim($fields['itemName'] ?? '');
+		$fields = SchemaHelpers::fields( $ctx );
+		$item   = trim( $fields['itemName'] ?? '' );
 
-        if ('' === $item) {
-            return [];
-        }
+		if ( '' === $item ) {
+			return [];
+		}
 
-        $value = trim($fields['ratingValue'] ?? '');
+		$value = trim( $fields['ratingValue'] ?? '' );
 
-        if ('' === $value || ! is_numeric($value)) {
-            return [];
-        }
+		if ( '' === $value || ! is_numeric( $value ) ) {
+			return [];
+		}
 
-        $id = SchemaHelpers::pageId($ctx, 'review');
+		$id = SchemaHelpers::pageId( $ctx, 'review' );
 
-        if ('' === $id) {
-            return [];
-        }
+		if ( '' === $id ) {
+			return [];
+		}
 
-        $best = trim($fields['bestRating'] ?? '');
+		$best = trim( $fields['bestRating'] ?? '' );
 
-        if ('' === $best || ! is_numeric($best)) {
-            $best = '5';
-        }
+		if ( '' === $best || ! is_numeric( $best ) ) {
+			$best = '5';
+		}
 
-        $worst = trim($fields['worstRating'] ?? '');
+		$worst = trim( $fields['worstRating'] ?? '' );
 
-        if ('' === $worst || ! is_numeric($worst)) {
-            $worst = '1';
-        }
+		if ( '' === $worst || ! is_numeric( $worst ) ) {
+			$worst = '1';
+		}
 
-        $node = [
-            '@type'        => 'Review',
-            '@id'          => $id,
-            'itemReviewed' => [
-                '@type' => 'Thing',
-                'name'  => $item,
-            ],
-            'reviewRating' => [
-                '@type'       => 'Rating',
-                'ratingValue' => $value,
-                'bestRating'  => $best,
-                'worstRating' => $worst,
-            ],
-            'author'       => [
-                '@id' => SchemaHelpers::personId($ctx),
-            ],
-        ];
+		$node = [
+			'@type'        => 'Review',
+			'@id'          => $id,
+			'itemReviewed' => [
+				'@type' => 'Thing',
+				'name'  => $item,
+			],
+			'reviewRating' => [
+				'@type'       => 'Rating',
+				'ratingValue' => $value,
+				'bestRating'  => $best,
+				'worstRating' => $worst,
+			],
+			'author'       => [
+				'@id' => SchemaHelpers::personId( $ctx ),
+			],
+		];
 
-        $body = trim($fields['reviewBody'] ?? '');
+		$body = trim( $fields['reviewBody'] ?? '' );
 
-        if ('' === $body) {
-            $body = SchemaHelpers::description($ctx, $fields);
-        }
+		if ( '' === $body ) {
+			$body = SchemaHelpers::description( $ctx, $fields );
+		}
 
-        if ('' !== $body) {
-            $node['reviewBody'] = $body;
-        }
+		if ( '' !== $body ) {
+			$node['reviewBody'] = $body;
+		}
 
-        $published = SchemaHelpers::normalizeDate($fields['datePublished'] ?? '');
+		$published = SchemaHelpers::normalizeDate( $fields['datePublished'] ?? '' );
 
-        if ('' === $published) {
-            $published = SchemaHelpers::postPublished($ctx);
-        }
+		if ( '' === $published ) {
+			$published = SchemaHelpers::postPublished( $ctx );
+		}
 
-        if ('' !== $published) {
-            $node['datePublished'] = $published;
-        }
+		if ( '' !== $published ) {
+			$node['datePublished'] = $published;
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 }
