@@ -1,0 +1,44 @@
+# .coderabbit.yaml - CodeRabbit Configuration for RankKernel
+language: "en-US"
+reviews:
+  profile: "assertive"
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!vendor/**"
+    - "!node_modules/**"
+    - "!build/**"
+    - "!composer.lock"
+    - "!package-lock.json"
+  path_instructions:
+    - path: "**/*.php"
+      instructions: |
+        Strictly enforce WordPress Coding Standards (WPCS) and WordPress.org Directory Guidelines:
+        1. Security & Sanitization:
+           - All direct SQL queries MUST use `$wpdb->prepare()`. Never concatenate variables into SQL strings.
+           - User input from `$_GET`, `$_POST`, `$_REQUEST`, or `$_SERVER` MUST be sanitized immediately using `sanitize_text_field()`, `absint()`, `wp_unslash()`, etc.
+           - All rendered HTML output MUST be escaped using `esc_html()`, `esc_attr()`, `esc_url()`, or `wp_kses_post()`.
+           - Administrative form submissions, AJAX handlers, and REST API routes MUST verify capabilities (`current_user_can()`) and nonces (`check_admin_referer()`, `wp_verify_nonce()`).
+        2. Global Footprint & Prefixing:
+           - Functions, global variables, action/filter hooks, options, transients, and DB tables MUST be prefixed with `rankkernel` or `RankKernel`.
+        3. Internationalization (i18n):
+           - All translatable strings MUST use the exact text domain `'rankkernel'`. Dynamic values inside translation strings must use `sprintf()`.
+        4. Architecture & Cleanliness:
+           - Ensure direct execution guards (`defined('ABSPATH') || exit;`) exist at the top of PHP files.
+           - Ensure PHP documentation blocks follow WordPress PHP DocBlock standards.
+
+    - path: "uninstall.php"
+      instructions: |
+        Ensure `uninstall.php` is guarded by `defined('WP_UNINSTALL_PLUGIN') || exit;` and completely cleans up all custom database tables (`rankkernel_redirects`, `rankkernel_404_logs`), options, and transients created by RankKernel.
+
+    - path: "readme.txt"
+      instructions: |
+        Validate that `readme.txt` strictly conforms to the WordPress plugin readme standards. Ensure `Stable tag:` matches the version defined in `rankkernel.php`, and `Requires at least:` / `Requires PHP:` match project standards.
+
+    - path: "src/Modules/Schema/blocks/**"
+      instructions: |
+        Audit Gutenberg block renderers for proper attribute escaping, accessibility (WCAG 2.1 AA), dynamic `@wordpress/i18n` string translations, and absence of external CDN assets.
+
+chat:
+  auto_reply: true
