@@ -38,11 +38,15 @@ final class RedirectsAdminTest extends TestCase {
 
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
 	/**
 	 * Last redirect URL captured from wp safe redirect.
+	 *
+	 * @var string
 	 */
 	private string $lastRedirect = '';
 
@@ -202,6 +206,8 @@ final class RedirectsAdminTest extends TestCase {
 
 	/**
 	 * Build the page with the fake database.
+	 *
+	 * @return RedirectsPage The result.
 	 */
 	private function makePage(): RedirectsPage {
 		return new RedirectsPage(
@@ -223,6 +229,11 @@ final class RedirectsAdminTest extends TestCase {
 	/**
 	 * Seed one rule in the fake table.
 	 *
+	 * @param string $source    Source.
+	 * @param string $target    Target.
+	 * @param string $code      Code.
+	 * @param string $matchType Match Type.
+	 * @param bool   $active    Active.
 	 * @return int New row id.
 	 */
 	private function seedRule( string $source, string $target, string $code = '301', string $matchType = 'exact', bool $active = true ): int {
@@ -262,6 +273,9 @@ final class RedirectsAdminTest extends TestCase {
 
 	/**
 	 * Render the page and return the markup.
+	 *
+	 * @param RedirectsPage $page Page.
+	 * @return string The result.
 	 */
 	private function renderPage( RedirectsPage $page ): string {
 		ob_start();

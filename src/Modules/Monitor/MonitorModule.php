@@ -23,16 +23,22 @@ use RankKernel\Modules\ModuleInterface;
 class MonitorModule implements ModuleInterface {
 	/**
 	 * Cached enabled check.
+	 *
+	 * @var bool|null
 	 */
 	private ?bool $enabledCache = null;
 
 	/**
 	 * Shared enable map.
+	 *
+	 * @var ModuleEnableMap|null
 	 */
 	private ?ModuleEnableMap $enableMap;
 
 	/**
 	 * Logger instance, built at boot.
+	 *
+	 * @var Logger|null
 	 */
 	private ?Logger $logger = null;
 
@@ -47,6 +53,8 @@ class MonitorModule implements ModuleInterface {
 
 	/**
 	 * Get module id.
+	 *
+	 * @return string The result.
 	 */
 	public function getId(): string {
 		return '404';
@@ -54,6 +62,8 @@ class MonitorModule implements ModuleInterface {
 
 	/**
 	 * Get human readable name.
+	 *
+	 * @return string The result.
 	 */
 	public function getName(): string {
 		return __( '404 Monitor', 'rankkernel' );
@@ -61,6 +71,8 @@ class MonitorModule implements ModuleInterface {
 
 	/**
 	 * Module priority.
+	 *
+	 * @return int The result.
 	 */
 	public function getPriority(): int {
 		return 50;
@@ -69,7 +81,7 @@ class MonitorModule implements ModuleInterface {
 	/**
 	 * Dependencies.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function dependsOn(): array {
 		return [];
@@ -77,6 +89,8 @@ class MonitorModule implements ModuleInterface {
 
 	/**
 	 * Whether the module is enabled.
+	 *
+	 * @return bool The result.
 	 */
 	public function isEnabled(): bool {
 		if ( null !== $this->enabledCache ) {
@@ -137,6 +151,8 @@ class MonitorModule implements ModuleInterface {
 
 	/**
 	 * Get the logger, for testing.
+	 *
+	 * @return Logger|null The result.
 	 */
 	public function getLogger(): ?Logger {
 		return $this->logger;

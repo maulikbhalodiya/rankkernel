@@ -19,12 +19,21 @@ use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 use RankKernel\Modules\Redirects\RedirectTable;
 
+/**
+ * Redirects Monitor Uninstall Test.
+ */
 final class RedirectsMonitorUninstallTest extends TestCase {
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();

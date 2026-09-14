@@ -15,6 +15,9 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 
+/**
+ * Redirects Cache Test.
+ */
 final class RedirectsCacheTest extends TestCase {
 	/**
 	 * Option store.
@@ -37,6 +40,9 @@ final class RedirectsCacheTest extends TestCase {
 	 */
 	private array $ttls = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -69,11 +75,17 @@ final class RedirectsCacheTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test miss returns null without writing.
+	 */
 	public function test_miss_returns_null_without_writing(): void {
 		$cache = new RedirectCache();
 
@@ -81,6 +93,9 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertSame( [], $this->transients, 'Misses must never populate storage' );
 	}
 
+	/**
+	 * Test set then get returns rule.
+	 */
 	public function test_set_then_get_returns_rule(): void {
 		$cache = new RedirectCache();
 		$rule  = [
@@ -95,6 +110,9 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertSame( $rule, $cache->get( '/old' ) );
 	}
 
+	/**
+	 * Test transient fallback serves new instance.
+	 */
 	public function test_transient_fallback_serves_new_instance(): void {
 		$cache = new RedirectCache();
 		$rule  = [
@@ -111,6 +129,9 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertSame( $rule, $second->get( '/old' ) );
 	}
 
+	/**
+	 * Test invalidation drops cached rule.
+	 */
 	public function test_invalidation_drops_cached_rule(): void {
 		$cache = new RedirectCache();
 		$rule  = [
@@ -128,6 +149,9 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertNull( $fresh->get( '/old' ) );
 	}
 
+	/**
+	 * Test static invalidation bumps validator.
+	 */
 	public function test_static_invalidation_bumps_validator(): void {
 		$before = (string) get_option( RedirectCache::VALIDATOR_OPTION, '' );
 
@@ -138,6 +162,9 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertNotSame( $before, $after );
 	}
 
+	/**
+	 * Test ttl is bounded.
+	 */
 	public function test_ttl_is_bounded(): void {
 		$cache = new RedirectCache();
 
@@ -147,11 +174,17 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertSame( 43200, RedirectCache::TTL );
 	}
 
+	/**
+	 * Test group is separate from sitemaps.
+	 */
 	public function test_group_is_separate_from_sitemaps(): void {
 		$this->assertNotSame( SitemapCache::GROUP, RedirectCache::GROUP );
 		$this->assertSame( 'rankkernel-redirects', RedirectCache::GROUP );
 	}
 
+	/**
+	 * Test keys are stable and distinct.
+	 */
 	public function test_keys_are_stable_and_distinct(): void {
 		$this->assertSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/old' ) );
 		$this->assertNotSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/new' ) );

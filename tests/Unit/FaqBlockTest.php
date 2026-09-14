@@ -19,12 +19,22 @@ use RankKernel\Modules\Schema\Pieces\FaqPiece;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
+/**
+ * Faq Block Test.
+ */
 final class FaqBlockTest extends TestCase {
 	use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
-	/** @var string */
+	/**
+	 * Post Content.
+	 *
+	 * @var string
+	 */
 	private string $postContent = '';
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -80,17 +90,28 @@ final class FaqBlockTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Block Dir.
+	 *
+	 * @return string The result.
+	 */
 	private function blockDir(): string {
 		return dirname( __DIR__, 2 ) . '/src/Modules/Schema/blocks/faq';
 	}
 
 	/**
 	 * Build a singular query mock.
+	 *
+	 * @param int $id Id.
+	 * @return WP_Query The result.
 	 */
 	private function singularQuery( int $id = 1 ): WP_Query {
 		$query = Mockery::mock( WP_Query::class );
@@ -111,11 +132,19 @@ final class FaqBlockTest extends TestCase {
 		return $query;
 	}
 
+	/**
+	 * Make Context.
+	 *
+	 * @param WP_Query $query Query.
+	 * @return Context The result.
+	 */
 	private function makeContext( WP_Query $query ): Context {
 		return new Context( $query, new SettingsStore() );
 	}
 
 	/**
+	 * Stub Post Meta.
+	 *
 	 * @param array<string, mixed> $meta Raw post meta payload.
 	 */
 	private function stubPostMeta( array $meta ): void {
@@ -131,6 +160,8 @@ final class FaqBlockTest extends TestCase {
 	}
 
 	/**
+	 * Stub Blocks.
+	 *
 	 * @param array<int, mixed> $blocks Parsed blocks to return.
 	 */
 	private function stubBlocks( array $blocks ): void {
@@ -141,6 +172,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test block json has binding values.
+	 */
 	public function test_block_json_has_binding_values(): void {
 		$path = $this->blockDir() . '/block.json';
 		$raw  = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local block.json fixture read in a unit test, wp_remote_get is for remote URLs only.
@@ -178,6 +212,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertArrayNotHasKey( 'editorScript', $json );
 	}
 
+	/**
+	 * Test register block registers editor assets with dependencies.
+	 */
 	public function test_register_block_registers_editor_assets_with_dependencies(): void {
 		$registeredScripts = [];
 		$registeredStyles  = [];
@@ -250,6 +287,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertTrue( $found, 'Block type must reference the explicit editor handles' );
 	}
 
+	/**
+	 * Test render numbers each question.
+	 */
 	public function test_render_numbers_each_question(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -273,6 +313,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringContainsString( '<span class="rankkernel-faq-number">2. </span>Second?', $html );
 	}
 
+	/**
+	 * Test render builds list with title per wrapper.
+	 */
 	public function test_render_builds_list_with_title_per_wrapper(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -310,6 +353,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render ordered list and h4 wrapper.
+	 */
 	public function test_render_ordered_list_and_h4_wrapper(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -333,6 +379,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'rankkernel-faq-title', $html );
 	}
 
+	/**
+	 * Test render single numbering without list markers.
+	 */
 	public function test_render_single_numbering_without_list_markers(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -371,6 +420,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'Orphan.', $html );
 	}
 
+	/**
+	 * Test render unordered list uses bullets without numbers.
+	 */
 	public function test_render_unordered_list_uses_bullets_without_numbers(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -396,6 +448,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Second?</h3>', $html );
 	}
 
+	/**
+	 * Test sequential updates keep untouched rows stable.
+	 */
 	public function test_sequential_updates_keep_untouched_rows_stable(): void {
 		$rows = [
 			[
@@ -446,6 +501,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringContainsString( '<h3 class="rankkernel-faq-question">Third?</h3>', $afterItems[0][2] );
 	}
 
+	/**
+	 * Test render escapes markup and skips empty rows.
+	 */
 	public function test_render_escapes_markup_and_skips_empty_rows(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -474,6 +532,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, '<li class="rankkernel-faq-item">' ) );
 	}
 
+	/**
+	 * Test render empty questions returns empty string.
+	 */
 	public function test_render_empty_questions_returns_empty_string(): void {
 		$this->assertSame( '', ( new FaqBlock() )->render( [ 'questions' => [] ] ) );
 		$this->assertSame( '', ( new FaqBlock() )->render( [] ) );
@@ -492,6 +553,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render drops answer only rows like schema.
+	 */
 	public function test_render_drops_answer_only_rows_like_schema(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -516,6 +580,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'rankkernel-faq-number', $html );
 	}
 
+	/**
+	 * Test render answer only rows render nothing.
+	 */
 	public function test_render_answer_only_rows_render_nothing(): void {
 		$this->assertSame(
 			'',
@@ -532,6 +599,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render question tag follows title wrapper by default.
+	 */
 	public function test_render_question_tag_follows_title_wrapper_by_default(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -553,6 +623,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render question tag override beats title wrapper.
+	 */
 	public function test_render_question_tag_override_beats_title_wrapper(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -575,6 +648,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render invalid question tag falls back to title wrapper.
+	 */
 	public function test_render_invalid_question_tag_falls_back_to_title_wrapper(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -596,6 +672,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( '<script>', $html );
 	}
 
+	/**
+	 * Test render ignores extra callback params.
+	 */
 	public function test_render_ignores_extra_callback_params(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -615,6 +694,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'Inner content.', $html );
 	}
 
+	/**
+	 * Test render whitespace only answer prints no answer div.
+	 */
 	public function test_render_whitespace_only_answer_prints_no_answer_div(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -631,6 +713,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( 'rankkernel-faq-answer', $html );
 	}
 
+	/**
+	 * Test render old rows without id still render.
+	 */
 	public function test_render_old_rows_without_id_still_render(): void {
 		$html = ( new FaqBlock() )->render(
 			[
@@ -654,6 +739,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, 'rankkernel-faq-answer' ) );
 	}
 
+	/**
+	 * Test block only questions are picked up.
+	 */
 	public function test_block_only_questions_are_picked_up(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -685,6 +773,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 'Block Q?', $build['mainEntity'][0]['name'] );
 	}
 
+	/**
+	 * Test schema answer is plain text without markup.
+	 */
 	public function test_schema_answer_is_plain_text_without_markup(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -715,6 +806,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringContainsString( 'Fine.', $build['mainEntity'][1]['acceptedAnswer']['text'] );
 	}
 
+	/**
+	 * Test payload and block rows merge with dedupe.
+	 */
 	public function test_payload_and_block_rows_merge_with_dedupe(): void {
 		$this->stubPostMeta(
 			[
@@ -763,6 +857,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 'Other?', $build['mainEntity'][1]['name'] );
 	}
 
+	/**
+	 * Test no blocks and no payload is not needed.
+	 */
 	public function test_no_blocks_and_no_payload_is_not_needed(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<p>Plain content.</p>';
@@ -780,6 +877,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test malformed block attrs are ignored.
+	 */
 	public function test_malformed_block_attrs_are_ignored(): void {
 
 		$this->stubPostMeta( [] );
@@ -814,6 +914,9 @@ final class FaqBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test schema strips question html from names.
+	 */
 	public function test_schema_strips_question_html_from_names(): void {
 		Functions\when( 'wp_strip_all_tags' )->alias(
 			static function ( string $s ): string {
@@ -852,6 +955,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertStringNotContainsString( '<script>', $build['mainEntity'][1]['name'] );
 	}
 
+	/**
+	 * Test schema trims whitespace only answers.
+	 */
 	public function test_schema_trims_whitespace_only_answers(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -878,6 +984,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( '', $build['mainEntity'][0]['acceptedAnswer']['text'] );
 	}
 
+	/**
+	 * Test answer only block rows stay out of render and schema.
+	 */
 	public function test_answer_only_block_rows_stay_out_of_render_and_schema(): void {
 		$attrs = [
 			'questions' => [
@@ -907,6 +1016,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( [], $piece->build( $this->makeContext( $this->singularQuery() ) ) );
 	}
 
+	/**
+	 * Test old block rows without id feed schema.
+	 */
 	public function test_old_block_rows_without_id_feed_schema(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -932,6 +1044,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 'Legacy?', $build['mainEntity'][0]['name'] );
 	}
 
+	/**
+	 * Test payload answers are trimmed.
+	 */
 	public function test_payload_answers_are_trimmed(): void {
 		$this->stubPostMeta(
 			[
@@ -955,6 +1070,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( 'Padded answer.', $build['mainEntity'][0]['acceptedAnswer']['text'] );
 	}
 
+	/**
+	 * Test missing permalink disables schema.
+	 */
 	public function test_missing_permalink_disables_schema(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -981,6 +1099,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertSame( [], $piece->build( $this->makeContext( $this->singularQuery() ) ) );
 	}
 
+	/**
+	 * Test merged rows cap at 100.
+	 */
 	public function test_merged_rows_cap_at_100(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/faq -->';
@@ -1008,6 +1129,9 @@ final class FaqBlockTest extends TestCase {
 		$this->assertCount( 100, $build['mainEntity'] );
 	}
 
+	/**
+	 * Test no per block category registration.
+	 */
 	public function test_no_per_block_category_registration(): void {
 		$this->assertFalse(
 			method_exists( FaqBlock::class, 'addCategory' ),

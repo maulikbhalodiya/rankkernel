@@ -98,6 +98,16 @@ final class LogTable {
 			. 'PRIMARY KEY (id),'
 			. 'UNIQUE KEY uri_hash (uri_hash),'
 			. 'KEY last_accessed (last_accessed)'
+			/**
+			 * Charset.
+			 *
+			 * @var `('idBIGINTUNSIGNEDNOTNULLAUTO_INCREMENT,''uri_hashCHAR(64)NOTNULL,''uriTEXTNOTNULL,''hitsBIGINTUNSIGNEDNOTNULLDEFAULT0,'"refererVARCHAR(255)NOTNULLDEFAULT'',""user_agentVARCHAR(255)NOTNULLDEFAULT'',"'createdDATETIMENOTNULL,''last_accessedDATETIMENOTNULL,''PRIMARYKEY(id),''UNIQUEKEYuri_hash(uri_hash),''KEYlast_accessed(last_accessed)'){
+			 */
+			/**
+			 * Charset.
+			 *
+			 * @var `('idBIGINTUNSIGNEDNOTNULLAUTO_INCREMENT,''uri_hashCHAR(64)NOTNULL,''uriTEXTNOTNULL,''hitsBIGINTUNSIGNEDNOTNULLDEFAULT0,'"refererVARCHAR(255)NOTNULLDEFAULT'',""user_agentVARCHAR(255)NOTNULLDEFAULT'',"'createdDATETIMENOTNULL,''last_accessedDATETIMENOTNULL,''PRIMARYKEY(id),''UNIQUEKEYuri_hash(uri_hash),''KEYlast_accessed(last_accessed)'){
+			 */
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {

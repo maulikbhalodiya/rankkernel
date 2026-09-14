@@ -25,104 +25,109 @@ use RankKernel\Settings\SettingsStore;
  * count are valid.
  */
 final class MoviePiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'movie';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'movie';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if ('Movie' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( 'Movie' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return false;
+		}
 
-        return '' !== SchemaHelpers::headline($ctx, SchemaHelpers::fields($ctx));
-    }
+		return '' !== SchemaHelpers::headline( $ctx, SchemaHelpers::fields( $ctx ) );
+	}
 
-    /**
-     * Build the Movie node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        if ('Movie' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return [];
-        }
+	/**
+	 * Build the Movie node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		if ( 'Movie' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return [];
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
-        $name   = SchemaHelpers::headline($ctx, $fields);
+		$fields = SchemaHelpers::fields( $ctx );
+		$name   = SchemaHelpers::headline( $ctx, $fields );
 
-        if ('' === $name) {
-            return [];
-        }
+		if ( '' === $name ) {
+			return [];
+		}
 
-        $permalink = $ctx->permalink();
+		$permalink = $ctx->permalink();
 
-        if ('' === $permalink) {
-            return [];
-        }
+		if ( '' === $permalink ) {
+			return [];
+		}
 
-        $node = [
-            '@type' => 'Movie',
-            '@id'   => $permalink . '#movie',
-            'name'  => $name,
-        ];
+		$node = [
+			'@type' => 'Movie',
+			'@id'   => $permalink . '#movie',
+			'name'  => $name,
+		];
 
-        $description = SchemaHelpers::description($ctx, $fields);
+		$description = SchemaHelpers::description( $ctx, $fields );
 
-        if ('' !== $description) {
-            $node['description'] = $description;
-        }
+		if ( '' !== $description ) {
+			$node['description'] = $description;
+		}
 
-        $created = SchemaHelpers::normalizeDate($fields['dateCreated'] ?? '');
+		$created = SchemaHelpers::normalizeDate( $fields['dateCreated'] ?? '' );
 
-        if ('' !== $created) {
-            $node['dateCreated'] = $created;
-        }
+		if ( '' !== $created ) {
+			$node['dateCreated'] = $created;
+		}
 
-        $director = trim($fields['director'] ?? '');
+		$director = trim( $fields['director'] ?? '' );
 
-        if ('' !== $director) {
-            $node['director'] = [
-                '@type'    => 'Person',
-                'name'     => $director,
-                'jobTitle' => 'Director',
-            ];
-        }
+		if ( '' !== $director ) {
+			$node['director'] = [
+				'@type'    => 'Person',
+				'name'     => $director,
+				'jobTitle' => 'Director',
+			];
+		}
 
-        $rating = SchemaHelpers::aggregateRating($fields);
+		$rating = SchemaHelpers::aggregateRating( $fields );
 
-        if ([] !== $rating) {
-            $node['aggregateRating'] = $rating;
-        }
+		if ( [] !== $rating ) {
+			$node['aggregateRating'] = $rating;
+		}
 
-        $image = $ctx->ogImage();
+		$image = $ctx->ogImage();
 
-        if ('' !== $image) {
-            $node['image'] = $image;
-        }
+		if ( '' !== $image ) {
+			$node['image'] = $image;
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 }

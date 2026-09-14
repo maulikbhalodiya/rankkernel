@@ -14,10 +14,24 @@ namespace RankKernel\Modules\Schema;
  * Contract for a single Schema.org piece of the @graph.
  */
 interface PieceInterface {
-    public function getId(): string;              // e.g. 'article'
-    public function isNeeded( \RankKernel\Modules\Metadata\Context $ctx ): bool;
-    /**
-     * @return array<string, mixed>
-     */
-    public function build( \RankKernel\Modules\Metadata\Context $ctx ): array;
+	/**
+	 * Get Id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string;              // E.g. article identifier.
+	/**
+	 * Is Needed.
+	 *
+	 * @param \RankKernel\Modules\Metadata\Context $ctx Ctx.
+	 * @return bool The result.
+	 */
+	public function isNeeded( \RankKernel\Modules\Metadata\Context $ctx ): bool;
+	/**
+	 * Build.
+	 *
+	 * @param \RankKernel\Modules\Metadata\Context $ctx Ctx.
+	 * @return array<string, mixed>
+	 */
+	public function build( \RankKernel\Modules\Metadata\Context $ctx ): array;
 }

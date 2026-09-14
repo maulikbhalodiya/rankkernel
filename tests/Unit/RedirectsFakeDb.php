@@ -21,11 +21,15 @@ namespace RankKernel\Tests\Unit;
 final class RedirectsFakeDb {
 	/**
 	 * Table prefix.
+	 *
+	 * @var string
 	 */
 	public string $prefix = 'wp_';
 
 	/**
 	 * Whether SHOW TABLES LIKE reports the table.
+	 *
+	 * @var bool
 	 */
 	public bool $tableExists = true;
 
@@ -38,31 +42,43 @@ final class RedirectsFakeDb {
 
 	/**
 	 * Read query count.
+	 *
+	 * @var int
 	 */
 	public int $reads = 0;
 
 	/**
 	 * Rule table query count, schema probes excluded.
+	 *
+	 * @var int
 	 */
 	public int $ruleReads = 0;
 
 	/**
 	 * Write query count.
+	 *
+	 * @var int
 	 */
 	public int $writes = 0;
 
 	/**
 	 * Next auto increment id.
+	 *
+	 * @var int
 	 */
 	public int $nextId = 1;
 
 	/**
 	 * Last insert id.
+	 *
+	 * @var int
 	 */
 	public int $insert_id = 0;
 
 	/**
 	 * Full table name.
+	 *
+	 * @return string The result.
 	 */
 	public function table(): string {
 		return $this->prefix . 'rankkernel_redirects';
@@ -71,8 +87,9 @@ final class RedirectsFakeDb {
 	/**
 	 * Interpolate placeholders in order.
 	 *
-	 * @param string $query Query with placeholders.
+	 * @param string $query   Query with placeholders.
 	 * @param mixed  ...$args Values.
+	 * @return string The result.
 	 */
 	public function prepare( string $query, mixed ...$args ): string {
 		foreach ( $args as $arg ) {
@@ -95,6 +112,9 @@ final class RedirectsFakeDb {
 
 	/**
 	 * Single value fetch.
+	 *
+	 * @param string $query Query.
+	 * @return mixed The result.
 	 */
 	public function get_var( string $query ): mixed {
 		++$this->reads;
@@ -114,7 +134,9 @@ final class RedirectsFakeDb {
 	/**
 	 * Single row fetch.
 	 *
-	 * @param mixed $output Ignored, rows are always arrays.
+	 * @param string $query  Query.
+	 * @param mixed  $output Ignored, rows are always arrays.
+	 * @return array|null The result.
 	 */
 	public function get_row( string $query, mixed $output = 'ARRAY_A' ): ?array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->reads;
@@ -128,7 +150,9 @@ final class RedirectsFakeDb {
 	/**
 	 * Row list fetch.
 	 *
-	 * @param mixed $output Ignored, rows are always arrays.
+	 * @param string $query  Query.
+	 * @param mixed  $output Ignored, rows are always arrays.
+	 * @return array The result.
 	 */
 	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->reads;
@@ -140,8 +164,10 @@ final class RedirectsFakeDb {
 	/**
 	 * Typed insert with uniqueness enforcement.
 	 *
+	 * @param string               $table  Table.
 	 * @param array<string, mixed> $data Row data.
 	 * @param mixed                $format Ignored.
+	 * @return mixed The result.
 	 */
 	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		foreach ( $this->rows as $row ) {
@@ -163,8 +189,12 @@ final class RedirectsFakeDb {
 	/**
 	 * Typed update against a where map.
 	 *
+	 * @param string               $table       Table.
 	 * @param array<string, mixed> $data Row data.
 	 * @param array<string, mixed> $where Where map.
+	 * @param mixed                $format      Format.
+	 * @param mixed                $whereFormat Where Format.
+	 * @return mixed The result.
 	 */
 	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->writes;
@@ -184,7 +214,10 @@ final class RedirectsFakeDb {
 	/**
 	 * Delete against a where map.
 	 *
+	 * @param string               $table       Table.
 	 * @param array<string, mixed> $where Where map.
+	 * @param mixed                $whereFormat Where Format.
+	 * @return mixed The result.
 	 */
 	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->writes;
@@ -203,6 +236,9 @@ final class RedirectsFakeDb {
 
 	/**
 	 * Raw query, handles counter UPDATEs, bulk writes, and table creation.
+	 *
+	 * @param string $query Query.
+	 * @return mixed The result.
 	 */
 	public function query( string $query ): mixed {
 		++$this->writes;
@@ -262,6 +298,9 @@ final class RedirectsFakeDb {
 
 	/**
 	 * LIKE escaping.
+	 *
+	 * @param string $text Text.
+	 * @return int[] The result.
 	 */
 	public function esc_like( string $text ): string {
 		return addcslashes( $text, '_%\\' );
@@ -269,6 +308,8 @@ final class RedirectsFakeDb {
 
 	/**
 	 * Charset collation, empty for the fake.
+	 *
+	 * @return string The result.
 	 */
 	public function get_charset_collate(): string {
 		return '';
@@ -276,6 +317,8 @@ final class RedirectsFakeDb {
 
 	/**
 	 * Count rule table queries, schema probes excluded.
+	 *
+	 * @param string $query Query.
 	 */
 	private function noteRuleRead( string $query ): void {
 		if ( 0 === strpos( ltrim( $query ), 'SHOW' ) ) {
@@ -294,6 +337,7 @@ final class RedirectsFakeDb {
 	 *
 	 * @param array<string, mixed> $row Row.
 	 * @param array<string, mixed> $where Where map.
+	 * @return bool The result.
 	 */
 	private function whereMatches( array $row, array $where ): bool {
 		foreach ( $where as $col => $val ) {
@@ -308,7 +352,8 @@ final class RedirectsFakeDb {
 	/**
 	 * Parse an id list.
 	 *
-	 * @return int[]
+	 * @param string $idList Id List.
+	 * @return int[] The result.
 	 */
 	private function wantedIds( string $idList ): array {
 		$ids = [];
@@ -327,6 +372,7 @@ final class RedirectsFakeDb {
 	/**
 	 * Filter rows by the clauses the repository emits.
 	 *
+	 * @param string $sql Sql.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function filterRows( string $sql ): array {

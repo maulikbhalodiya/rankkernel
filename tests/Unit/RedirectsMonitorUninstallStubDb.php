@@ -18,26 +18,36 @@ namespace RankKernel\Tests\Unit;
 final class RedirectsMonitorUninstallStubDb {
 	/**
 	 * Site table prefix.
+	 *
+	 * @var string
 	 */
 	public string $prefix = 'wp_';
 
 	/**
 	 * Options table name.
+	 *
+	 * @var string
 	 */
 	public string $options = 'wp_options';
 
 	/**
 	 * Post meta table name.
+	 *
+	 * @var string
 	 */
 	public string $postmeta = 'wp_postmeta';
 
 	/**
 	 * Term meta table name.
+	 *
+	 * @var string
 	 */
 	public string $termmeta = 'wp_termmeta';
 
 	/**
 	 * User meta table name.
+	 *
+	 * @var string
 	 */
 	public string $usermeta = 'wp_usermeta';
 

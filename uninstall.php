@@ -24,6 +24,7 @@ if ( ! $purge ) {
 global $wpdb;
 
 // Purge all rankkernel_* options.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -32,6 +33,7 @@ $wpdb->query(
 );
 
 // Purge all _rankkernel_* post meta (direct $wpdb for scale, meta API would be slow).
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
@@ -40,6 +42,7 @@ $wpdb->query(
 );
 
 // Purge all _rankkernel_* term meta.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE %s",
@@ -48,6 +51,7 @@ $wpdb->query(
 );
 
 // Purge all _rankkernel_* user meta.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",

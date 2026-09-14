@@ -26,130 +26,135 @@ use RankKernel\Settings\SettingsStore;
  * from the post date.
  */
 final class RecipePiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'recipe';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'recipe';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		$fields = SchemaHelpers::fields( $ctx );
+		$type   = SchemaHelpers::effectiveType( $ctx, $this->settings );
 
-        if ('Recipe' !== $type && [] === SchemaHelpers::splitLines($fields['ingredients'] ?? '')) {
-            return false;
-        }
+		if ( 'Recipe' !== $type && [] === SchemaHelpers::splitLines( $fields['ingredients'] ?? '' ) ) {
+			return false;
+		}
 
-        return '' !== SchemaHelpers::headline($ctx, $fields);
-    }
+		return '' !== SchemaHelpers::headline( $ctx, $fields );
+	}
 
-    /**
-     * Build the Recipe node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        $fields = SchemaHelpers::fields($ctx);
-        $type   = SchemaHelpers::effectiveType($ctx, $this->settings);
+	/**
+	 * Build the Recipe node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		$fields = SchemaHelpers::fields( $ctx );
+		$type   = SchemaHelpers::effectiveType( $ctx, $this->settings );
 
-        if ('Recipe' !== $type && [] === SchemaHelpers::splitLines($fields['ingredients'] ?? '')) {
-            return [];
-        }
+		if ( 'Recipe' !== $type && [] === SchemaHelpers::splitLines( $fields['ingredients'] ?? '' ) ) {
+			return [];
+		}
 
-        $name = SchemaHelpers::headline($ctx, $fields);
+		$name = SchemaHelpers::headline( $ctx, $fields );
 
-        if ('' === $name) {
-            return [];
-        }
+		if ( '' === $name ) {
+			return [];
+		}
 
-        $permalink = $ctx->permalink();
+		$permalink = $ctx->permalink();
 
-        if ('' === $permalink) {
-            return [];
-        }
+		if ( '' === $permalink ) {
+			return [];
+		}
 
-        $node = [
-            '@type' => 'Recipe',
-            '@id'   => $permalink . '#recipe',
-            'name'  => $name,
-        ];
+		$node = [
+			'@type' => 'Recipe',
+			'@id'   => $permalink . '#recipe',
+			'name'  => $name,
+		];
 
-        $description = SchemaHelpers::description($ctx, $fields);
+		$description = SchemaHelpers::description( $ctx, $fields );
 
-        if ('' !== $description) {
-            $node['description'] = $description;
-        }
+		if ( '' !== $description ) {
+			$node['description'] = $description;
+		}
 
-        $image = $ctx->ogImage();
+		$image = $ctx->ogImage();
 
-        if ('' !== $image) {
-            $node['image'] = $image;
-        }
+		if ( '' !== $image ) {
+			$node['image'] = $image;
+		}
 
-        $node['author'] = [
-            '@id' => SchemaHelpers::personId($ctx),
-        ];
+		$node['author'] = [
+			'@id' => SchemaHelpers::personId( $ctx ),
+		];
 
-        $published = SchemaHelpers::postPublished($ctx);
+		$published = SchemaHelpers::postPublished( $ctx );
 
-        if ('' !== $published) {
-            $node['datePublished'] = $published;
-        }
+		if ( '' !== $published ) {
+			$node['datePublished'] = $published;
+		}
 
-        foreach ([ 'prepTime', 'cookTime', 'totalTime' ] as $key) {
-            $duration = SchemaHelpers::toDuration($fields[ $key ] ?? '');
+		foreach ( [ 'prepTime', 'cookTime', 'totalTime' ] as $key ) {
+			$duration = SchemaHelpers::toDuration( $fields[ $key ] ?? '' );
 
-            if ('' !== $duration) {
-                $node[ $key ] = $duration;
-            }
-        }
+			if ( '' !== $duration ) {
+				$node[ $key ] = $duration;
+			}
+		}
 
-        $yield = trim($fields['yield'] ?? '');
+		$yield = trim( $fields['yield'] ?? '' );
 
-        if ('' !== $yield) {
-            $node['recipeYield'] = $yield;
-        }
+		if ( '' !== $yield ) {
+			$node['recipeYield'] = $yield;
+		}
 
-        $ingredients = SchemaHelpers::splitLines($fields['ingredients'] ?? '');
+		$ingredients = SchemaHelpers::splitLines( $fields['ingredients'] ?? '' );
 
-        if ([] !== $ingredients) {
-            $node['recipeIngredient'] = $ingredients;
-        }
+		if ( [] !== $ingredients ) {
+			$node['recipeIngredient'] = $ingredients;
+		}
 
-        $instructions = [];
+		$instructions = [];
 
-        foreach (SchemaHelpers::splitLines($fields['instructions'] ?? '') as $line) {
-            $instructions[] = [
-                '@type' => 'HowToStep',
-                'text'  => $line,
-            ];
-        }
+		foreach ( SchemaHelpers::splitLines( $fields['instructions'] ?? '' ) as $line ) {
+			$instructions[] = [
+				'@type' => 'HowToStep',
+				'text'  => $line,
+			];
+		}
 
-        if ([] !== $instructions) {
-            $node['recipeInstructions'] = $instructions;
-        }
+		if ( [] !== $instructions ) {
+			$node['recipeInstructions'] = $instructions;
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 }

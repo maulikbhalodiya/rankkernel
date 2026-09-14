@@ -49,16 +49,22 @@ final class CsvHandler {
 
 	/**
 	 * Rule repository.
+	 *
+	 * @var RedirectRepository
 	 */
 	private RedirectRepository $repository;
 
 	/**
 	 * Loop and chain analyzer.
+	 *
+	 * @var Validator
 	 */
 	private Validator $validator;
 
 	/**
 	 * Destination policy checker.
+	 *
+	 * @var DestinationValidator
 	 */
 	private DestinationValidator $destinationValidator;
 
@@ -419,9 +425,9 @@ final class CsvHandler {
 	 * on match type plus source hash, loop rejection, then chain warning. The
 	 * write happens only after every check passes.
 	 *
-	 * @param list<string> $cells          Contract cells in header order.
-	 * @param int          $rowNumber      One based file row number for reports.
-	 * @param bool         $updateExisting Whether an identical rule is updated instead of skipped.
+	 * @param array<int, string> $cells          Contract cells in header order.
+	 * @param int                $rowNumber      One based file row number for reports.
+	 * @param bool               $updateExisting Whether an identical rule is updated instead of skipped.
 	 * @return array{status: string, reason: string, warning: string} Single row outcome.
 	 */
 	private function import_row( array $cells, int $rowNumber, bool $updateExisting ): array {
@@ -717,7 +723,7 @@ final class CsvHandler {
 	/**
 	 * Encode one CSV line with quote wrapping and doubled quotes.
 	 *
-	 * @param list<string> $fields Cell values in column order.
+	 * @param array<int, string> $fields Cell values in column order.
 	 * @return string Encoded line without the line ending.
 	 */
 	private function csv_line( array $fields ): string {

@@ -15,6 +15,9 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Monitor\FloodGuard;
 use RankKernel\Modules\Monitor\MonitorSettings;
 
+/**
+ * Monitor Flood Guard Test.
+ */
 final class MonitorFloodGuardTest extends TestCase {
 	/**
 	 * Option store.
@@ -30,6 +33,9 @@ final class MonitorFloodGuardTest extends TestCase {
 	 */
 	private array $transients = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -69,11 +75,17 @@ final class MonitorFloodGuardTest extends TestCase {
 		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test budget caps new uris and sets marker.
+	 */
 	public function test_budget_caps_new_uris_and_sets_marker(): void {
 		$this->options['rankkernel_404_settings'] = [ 'flood_budget' => 2 ];
 
@@ -88,6 +100,9 @@ final class MonitorFloodGuardTest extends TestCase {
 		$this->assertTrue( FloodGuard::isSuppressed() );
 	}
 
+	/**
+	 * Test expired window resets the budget.
+	 */
 	public function test_expired_window_resets_the_budget(): void {
 		$this->options['rankkernel_404_settings'] = [
 			'flood_budget' => 1,
@@ -104,6 +119,9 @@ final class MonitorFloodGuardTest extends TestCase {
 		$this->assertFalse( FloodGuard::isSuppressed() );
 	}
 
+	/**
+	 * Test marker clears.
+	 */
 	public function test_marker_clears(): void {
 		$this->options[ FloodGuard::SUPPRESSED_OPTION ] = time();
 
@@ -114,6 +132,9 @@ final class MonitorFloodGuardTest extends TestCase {
 		$this->assertFalse( FloodGuard::isSuppressed() );
 	}
 
+	/**
+	 * Test state is keyed per site.
+	 */
 	public function test_state_is_keyed_per_site(): void {
 		$this->options['rankkernel_404_settings'] = [ 'flood_budget' => 1 ];
 

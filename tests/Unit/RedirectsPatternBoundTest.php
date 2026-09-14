@@ -26,6 +26,8 @@ use RankKernel\Modules\Redirects\RedirectRepository;
 final class RedirectsPatternBoundTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -43,6 +45,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 	 */
 	private array $transients = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -94,6 +99,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
@@ -102,6 +110,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 
 	/**
 	 * Prefill active prefix rules straight into the fake table.
+	 *
+	 * @param int $count  Count.
+	 * @param int $active Active.
 	 */
 	private function seedPatterns( int $count, int $active = 1 ): void {
 		for ( $i = 1; $i <= $count; $i++ ) {
@@ -122,6 +133,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->db->nextId = $count + 1;
 	}
 
+	/**
+	 * Test pattern list is capped at max.
+	 */
 	public function test_pattern_list_is_capped_at_max(): void {
 		$this->seedPatterns( RedirectRepository::MAX_PATTERNS );
 
@@ -131,6 +145,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->assertCount( RedirectRepository::MAX_PATTERNS, $repo->all_patterns() );
 	}
 
+	/**
+	 * Test insert refuses active pattern past cap.
+	 */
 	public function test_insert_refuses_active_pattern_past_cap(): void {
 		$this->seedPatterns( RedirectRepository::MAX_PATTERNS );
 
@@ -176,6 +193,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test activate and update respect cap.
+	 */
 	public function test_activate_and_update_respect_cap(): void {
 		$this->seedPatterns( RedirectRepository::MAX_PATTERNS );
 
@@ -203,6 +223,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->assertTrue( $repo->set_active( 501, true ), 'One freed slot allows one activation' );
 	}
 
+	/**
+	 * Test bulk activate stops at cap and reports real count.
+	 */
 	public function test_bulk_activate_stops_at_cap_and_reports_real_count(): void {
 		$this->seedPatterns( 499 );
 
@@ -242,6 +265,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->assertSame( 0, (int) $this->db->rows[501]['is_active'] );
 	}
 
+	/**
+	 * Test cold miss reads once then serves from cache.
+	 */
 	public function test_cold_miss_reads_once_then_serves_from_cache(): void {
 		$this->seedPatterns( 10 );
 
@@ -267,6 +293,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->assertSame( 1, $this->db->ruleReads - $readsBefore, 'A new instance shares the stored list' );
 	}
 
+	/**
+	 * Test write invalidates the pattern list.
+	 */
 	public function test_write_invalidates_the_pattern_list(): void {
 		$this->seedPatterns( 3 );
 
@@ -297,6 +326,9 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->assertSame( $warmBefore, $this->db->ruleReads, 'The reloaded list caches again' );
 	}
 
+	/**
+	 * Test matcher cold miss costs two indexed reads then one.
+	 */
 	public function test_matcher_cold_miss_costs_two_indexed_reads_then_one(): void {
 		$this->seedPatterns( 5 );
 

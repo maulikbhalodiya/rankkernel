@@ -14,6 +14,9 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Monitor\MonitorSettings;
 
+/**
+ * Monitor Settings Test.
+ */
 final class MonitorSettingsTest extends TestCase {
 	/**
 	 * Option store.
@@ -22,6 +25,9 @@ final class MonitorSettingsTest extends TestCase {
 	 */
 	private array $options = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -41,11 +47,17 @@ final class MonitorSettingsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test defaults match binding contract.
+	 */
 	public function test_defaults_match_binding_contract(): void {
 		$settings = new MonitorSettings();
 
@@ -59,6 +71,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertSame( [], $settings->getExclusions() );
 	}
 
+	/**
+	 * Test ensure schema seeds defaults once.
+	 */
 	public function test_ensure_schema_seeds_defaults_once(): void {
 		$settings = new MonitorSettings();
 		$settings->ensureSchema();
@@ -72,6 +87,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertSame( 60, $settings->getRetentionDays() );
 	}
 
+	/**
+	 * Test retention days cannot be zero or unbounded.
+	 */
 	public function test_retention_days_cannot_be_zero_or_unbounded(): void {
 		$settings = new MonitorSettings();
 
@@ -88,6 +106,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertSame( 90, $settings->getRetentionDays() );
 	}
 
+	/**
+	 * Test max rows cannot be zero or unbounded.
+	 */
 	public function test_max_rows_cannot_be_zero_or_unbounded(): void {
 		$settings = new MonitorSettings();
 
@@ -104,6 +125,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertSame( 2500, $settings->getMaxRows() );
 	}
 
+	/**
+	 * Test flood budget and window clamp.
+	 */
 	public function test_flood_budget_and_window_clamp(): void {
 		$settings = new MonitorSettings();
 
@@ -120,6 +144,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertSame( 3600, $settings->getFloodWindow() );
 	}
 
+	/**
+	 * Test boolean keys sanitize.
+	 */
 	public function test_boolean_keys_sanitize(): void {
 		$settings = new MonitorSettings();
 
@@ -130,6 +157,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertFalse( $settings->isIgnoreQuery() );
 	}
 
+	/**
+	 * Test unknown keys are dropped.
+	 */
 	public function test_unknown_keys_are_dropped(): void {
 		$settings = new MonitorSettings();
 
@@ -137,6 +167,9 @@ final class MonitorSettingsTest extends TestCase {
 		$this->assertFalse( $settings->set( [] ) );
 	}
 
+	/**
+	 * Test exclusions keep only well formed rules.
+	 */
 	public function test_exclusions_keep_only_well_formed_rules(): void {
 		$settings = new MonitorSettings();
 
@@ -181,6 +214,9 @@ final class MonitorSettingsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test exclusions reject non array.
+	 */
 	public function test_exclusions_reject_non_array(): void {
 		$settings = new MonitorSettings();
 

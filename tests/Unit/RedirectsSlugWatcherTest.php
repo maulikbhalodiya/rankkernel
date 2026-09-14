@@ -26,6 +26,8 @@ use RankKernel\Modules\Redirects\SlugWatcher;
 final class RedirectsSlugWatcherTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -45,11 +47,15 @@ final class RedirectsSlugWatcherTest extends TestCase {
 
 	/**
 	 * Whether the revision helper reports a revision.
+	 *
+	 * @var bool
 	 */
 	private bool $isRevision = false;
 
 	/**
 	 * Whether the autosave helper reports an autosave.
+	 *
+	 * @var bool
 	 */
 	private bool $isAutosave = false;
 
@@ -141,6 +147,8 @@ final class RedirectsSlugWatcherTest extends TestCase {
 
 	/**
 	 * Build the watcher over the fake database.
+	 *
+	 * @return SlugWatcher The result.
 	 */
 	private function makeWatcher(): SlugWatcher {
 		return new SlugWatcher( new RedirectRepository( $this->db ), new RedirectsSettings() );
@@ -149,6 +157,8 @@ final class RedirectsSlugWatcherTest extends TestCase {
 	/**
 	 * Build a post object double.
 	 *
+	 * @param string $slug Slug.
+	 * @param string $type Type.
 	 * @return object Post shaped object.
 	 */
 	private function makePost( string $slug, string $type = 'post' ): object {
@@ -162,6 +172,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 	/**
 	 * Seed one rule in the fake table.
 	 *
+	 * @param string $source Source.
+	 * @param string $target Target.
+	 * @param string $code   Code.
 	 * @return int New row id.
 	 */
 	private function seedRule( string $source, string $target, string $code = '301' ): int {
@@ -178,6 +191,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test creates one 301 on real change.
+	 */
 	public function test_creates_one_301_on_real_change(): void {
 		$created = $this->makeWatcher()->handle_post_updated(
 			5,
@@ -197,6 +213,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( 1, (int) $row['is_active'] );
 	}
 
+	/**
+	 * Test creates redirect for pages.
+	 */
 	public function test_creates_redirect_for_pages(): void {
 		$created = $this->makeWatcher()->handle_post_updated(
 			7,
@@ -209,6 +228,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( '/old-page', $this->db->rows[1]['source'] );
 	}
 
+	/**
+	 * Test no action when slug unchanged.
+	 */
 	public function test_no_action_when_slug_unchanged(): void {
 		$created = $this->makeWatcher()->handle_post_updated(
 			5,
@@ -220,6 +242,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test skipped when disabled.
+	 */
 	public function test_skipped_when_disabled(): void {
 		$this->settingsOption = [ 'auto_slug_redirect' => false ];
 
@@ -233,6 +258,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test revisions ignored.
+	 */
 	public function test_revisions_ignored(): void {
 		$this->isRevision = true;
 
@@ -246,6 +274,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test autosaves ignored.
+	 */
 	public function test_autosaves_ignored(): void {
 		$this->isAutosave = true;
 
@@ -259,6 +290,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test duplicate source skipped.
+	 */
 	public function test_duplicate_source_skipped(): void {
 		$this->seedRule( '/old-slug', '/something-else' );
 
@@ -273,6 +307,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( '/something-else', $this->db->rows[1]['target'] );
 	}
 
+	/**
+	 * Test loop skipped.
+	 */
 	public function test_loop_skipped(): void {
 		$this->seedRule( '/new-slug', '/old-slug' );
 
@@ -286,6 +323,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertCount( 1, $this->db->rows );
 	}
 
+	/**
+	 * Test chain shortened to final destination.
+	 */
 	public function test_chain_shortened_to_final_destination(): void {
 		$this->seedRule( '/new-slug', '/final' );
 
@@ -300,6 +340,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( '/final', $this->db->rows[2]['target'] );
 	}
 
+	/**
+	 * Test non post page types ignored.
+	 */
 	public function test_non_post_page_types_ignored(): void {
 		foreach ( [ 'attachment', 'product', 'revision' ] as $type ) {
 			$created = $this->makeWatcher()->handle_post_updated(
@@ -314,6 +357,9 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test register hooks post updated with full signature.
+	 */
 	public function test_register_hooks_post_updated_with_full_signature(): void {
 		$this->makeWatcher()->register();
 

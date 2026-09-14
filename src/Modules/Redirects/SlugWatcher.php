@@ -30,21 +30,29 @@ final class SlugWatcher {
 
 	/**
 	 * Rule repository.
+	 *
+	 * @var RedirectRepository
 	 */
 	private RedirectRepository $repository;
 
 	/**
 	 * Module settings store.
+	 *
+	 * @var RedirectsSettings
 	 */
 	private RedirectsSettings $settings;
 
 	/**
 	 * Loop and chain analyzer.
+	 *
+	 * @var Validator
 	 */
 	private Validator $validator;
 
 	/**
 	 * Destination policy checker.
+	 *
+	 * @var DestinationValidator
 	 */
 	private DestinationValidator $destinationValidator;
 
@@ -280,9 +288,9 @@ final class SlugWatcher {
 	 * policy clean destination, the watcher points the old address straight
 	 * at it. Otherwise the new address itself is the target.
 	 *
-	 * @param array<string, mixed>              $proposed   Proposed source, target, code, match type.
-	 * @param array<int, array<string, mixed>>  $candidates Active candidate rules.
-	 * @param string                            $newPath    Normalized new permalink path.
+	 * @param array<string, mixed>             $proposed   Proposed source, target, code, match type.
+	 * @param array<int, array<string, mixed>> $candidates Active candidate rules.
+	 * @param string                           $newPath    Normalized new permalink path.
 	 * @return string Target to store.
 	 */
 	private function final_target( array $proposed, array $candidates, string $newPath ): string {

@@ -30,6 +30,8 @@ use RankKernel\Modules\Redirects\RedirectRepository;
 final class RedirectsSecurityTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -61,6 +63,9 @@ final class RedirectsSecurityTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -81,6 +86,7 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->redirects  = [];
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -142,6 +148,9 @@ final class RedirectsSecurityTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		if ( null !== $this->originalUri ) {
 			$_SERVER['REQUEST_URI'] = $this->originalUri;
@@ -157,6 +166,10 @@ final class RedirectsSecurityTest extends TestCase {
 
 	/**
 	 * Plant a hostile row straight into the table, bypassing validation.
+	 *
+	 * @param string $source Source.
+	 * @param string $target Target.
+	 * @param string $code   Code.
 	 */
 	private function plantRow( string $source, string $target, string $code = '301' ): void {
 		$this->db->rows[ $this->db->nextId ] = [
@@ -177,6 +190,8 @@ final class RedirectsSecurityTest extends TestCase {
 
 	/**
 	 * Dispatch one request URI.
+	 *
+	 * @param string $uri Uri.
 	 */
 	private function dispatch( string $uri ): void {
 		$_SERVER['REQUEST_URI'] = $uri;
@@ -186,6 +201,9 @@ final class RedirectsSecurityTest extends TestCase {
 		( new Redirector( $repo, new RedirectCache(), new HitCounter(), new \RankKernel\Modules\Redirects\RedirectsSettings() ) )->maybeRedirect();
 	}
 
+	/**
+	 * Test scheme case variants rejected at save.
+	 */
 	public function test_scheme_case_variants_rejected_at_save(): void {
 		$validator = new DestinationValidator();
 
@@ -197,6 +215,9 @@ final class RedirectsSecurityTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Test padded javascript rejected at save.
+	 */
 	public function test_padded_javascript_rejected_at_save(): void {
 		$validator = new DestinationValidator();
 
@@ -204,6 +225,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertFalse( $validator->validate( "javascript\t:alert(1)", '301' )['valid'] );
 	}
 
+	/**
+	 * Test crlf and control characters rejected at save.
+	 */
 	public function test_crlf_and_control_characters_rejected_at_save(): void {
 		$validator = new DestinationValidator();
 
@@ -217,6 +241,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( '/new', $trimmed['destination'], 'Edge null bytes trim away, nothing hostile survives' );
 	}
 
+	/**
+	 * Test protocol relative external blocked without allowlist.
+	 */
 	public function test_protocol_relative_external_blocked_without_allowlist(): void {
 		$validator = new DestinationValidator();
 
@@ -225,6 +252,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertTrue( $validator->validate( 'https://evil.example/x', '301', [ 'evil.example' ] )['valid'] );
 	}
 
+	/**
+	 * Test send never emits raw crlf row.
+	 */
 	public function test_send_never_emits_raw_crlf_row(): void {
 		$this->plantRow( '/old', "/new\r\nX-Evil: 1" );
 
@@ -233,6 +263,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( [], $this->redirects, 'A stored CRLF destination must never send' );
 	}
 
+	/**
+	 * Test send never emits raw javascript row.
+	 */
 	public function test_send_never_emits_raw_javascript_row(): void {
 		$this->plantRow( '/old', 'javascript:alert(1)' );
 
@@ -241,6 +274,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( [], $this->redirects, 'A stored script destination must never send' );
 	}
 
+	/**
+	 * Test send never emits raw external row.
+	 */
 	public function test_send_never_emits_raw_external_row(): void {
 		$this->plantRow( '/old', 'https://evil.example/x' );
 
@@ -249,6 +285,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( [], $this->redirects, 'A stored external destination must never send without an allowlist' );
 	}
 
+	/**
+	 * Test query manipulation cannot change the match.
+	 */
 	public function test_query_manipulation_cannot_change_the_match(): void {
 		$this->plantRow( '/old', '/new' );
 
@@ -258,6 +297,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( '/new?x=/other&redirect=https://evil.example', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test malformed regex fails closed.
+	 */
 	public function test_malformed_regex_fails_closed(): void {
 		$winner = Matcher::pick_winner(
 			'/anything',
@@ -276,6 +318,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertNull( $winner, 'A malformed pattern must fail closed' );
 	}
 
+	/**
+	 * Test overlong regex fails closed.
+	 */
 	public function test_overlong_regex_fails_closed(): void {
 		$winner = Matcher::pick_winner(
 			'/anything',
@@ -294,6 +339,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertNull( $winner, 'An overlong pattern must fail closed' );
 	}
 
+	/**
+	 * Test wildcard metacharacters match literally.
+	 */
 	public function test_wildcard_metacharacters_match_literally(): void {
 		$rule = [
 			'id'         => 1,
@@ -308,6 +356,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/oldXplus', [ $rule ] ), 'Pattern metacharacters must stay literal' );
 	}
 
+	/**
+	 * Test formula cells neutralized both directions.
+	 */
 	public function test_formula_cells_neutralized_both_directions(): void {
 		foreach ( [ '=cmd', '+cmd', '-cmd', '@cmd' ] as $cell ) {
 			$this->assertStringStartsWith( "'", CsvHandler::sanitize_cell( $cell ), 'Import must neutralize: ' . $cell );
@@ -323,6 +374,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( '/old', CsvHandler::escape_cell( '/old' ) );
 	}
 
+	/**
+	 * Test traversal input round trips literally.
+	 */
 	public function test_traversal_input_round_trips_literally(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -341,6 +395,9 @@ final class RedirectsSecurityTest extends TestCase {
 		$this->assertSame( '/new', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test encoded traversal canonicalizes before match.
+	 */
 	public function test_encoded_traversal_canonicalizes_before_match(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(

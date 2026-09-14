@@ -18,9 +18,14 @@ use RankKernel\Modules\Redirects\Redirector;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 
+/**
+ * Redirects Redirector Test.
+ */
 final class RedirectsRedirectorTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -66,12 +71,32 @@ final class RedirectsRedirectorTest extends TestCase {
 	 */
 	private array $hooks = [];
 
+	/**
+	 * Is Admin.
+	 *
+	 * @var bool
+	 */
 	private bool $isAdmin = false;
 
+	/**
+	 * Is Ajax.
+	 *
+	 * @var bool
+	 */
 	private bool $isAjax = false;
 
+	/**
+	 * Is Cron.
+	 *
+	 * @var bool
+	 */
 	private bool $isCron = false;
 
+	/**
+	 * Sitemap Var.
+	 *
+	 * @var string
+	 */
 	private string $sitemapVar = '';
 
 	/**
@@ -81,6 +106,9 @@ final class RedirectsRedirectorTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -97,6 +125,7 @@ final class RedirectsRedirectorTest extends TestCase {
 		$GLOBALS['wpdb'] = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -182,6 +211,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		if ( null !== $this->originalUri ) {
 			$_SERVER['REQUEST_URI'] = $this->originalUri;
@@ -197,6 +229,8 @@ final class RedirectsRedirectorTest extends TestCase {
 
 	/**
 	 * Build a dispatcher with real collaborators on the fake database.
+	 *
+	 * @return Redirector The result.
 	 */
 	private function dispatcher(): Redirector {
 		$repo = new RedirectRepository( $this->db );
@@ -206,6 +240,10 @@ final class RedirectsRedirectorTest extends TestCase {
 
 	/**
 	 * Seed one exact rule.
+	 *
+	 * @param string $source Source.
+	 * @param string $target Target.
+	 * @param string $code   Code.
 	 */
 	private function seedExact( string $source = '/old', string $target = '/new', string $code = '301' ): void {
 		$repo = new RedirectRepository( $this->db );
@@ -220,6 +258,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertGreaterThan( 0, $id, 'Seed rule must insert' );
 	}
 
+	/**
+	 * Test cold miss exact runs one indexed lookup.
+	 */
 	public function test_cold_miss_exact_runs_one_indexed_lookup(): void {
 		$this->seedExact();
 
@@ -235,6 +276,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( 1, $this->db->ruleReads - $readsBefore, 'Cold exact miss must cost one indexed lookup' );
 	}
 
+	/**
+	 * Test cache hit runs zero rule queries.
+	 */
 	public function test_cache_hit_runs_zero_rule_queries(): void {
 		$this->seedExact();
 
@@ -252,6 +296,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( $readsAfterFirst, $this->db->ruleReads, 'Cache hit must run zero rule queries' );
 	}
 
+	/**
+	 * Test admin requests skipped.
+	 */
 	public function test_admin_requests_skipped(): void {
 		$this->seedExact();
 
@@ -265,6 +312,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( $readsBefore, $this->db->reads );
 	}
 
+	/**
+	 * Test ajax requests skipped.
+	 */
 	public function test_ajax_requests_skipped(): void {
 		$this->seedExact();
 
@@ -276,6 +326,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects );
 	}
 
+	/**
+	 * Test cron requests skipped.
+	 */
 	public function test_cron_requests_skipped(): void {
 		$this->seedExact();
 
@@ -287,6 +340,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects );
 	}
 
+	/**
+	 * Test sitemap requests skipped.
+	 */
 	public function test_sitemap_requests_skipped(): void {
 		$this->seedExact();
 
@@ -298,6 +354,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects );
 	}
 
+	/**
+	 * Test homepage never redirects.
+	 */
 	public function test_homepage_never_redirects(): void {
 		$this->seedExact();
 
@@ -308,6 +367,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects );
 	}
 
+	/**
+	 * Test gone sends status without location.
+	 */
 	public function test_gone_sends_status_without_location(): void {
 		$this->seedExact( '/gone', '', '410' );
 
@@ -319,6 +381,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [ 410 ], $this->statuses );
 	}
 
+	/**
+	 * Test query preserved by default.
+	 */
 	public function test_query_preserved_by_default(): void {
 		$this->seedExact();
 
@@ -330,6 +395,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( '/new?x=1', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test query dropped when setting off.
+	 */
 	public function test_query_dropped_when_setting_off(): void {
 		$this->options[ RedirectsSettings::OPTION ] = [ 'preserve_query' => false ];
 
@@ -343,6 +411,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( '/new', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test reentry sends exactly once.
+	 */
 	public function test_reentry_sends_exactly_once(): void {
 		$this->seedExact();
 
@@ -357,6 +428,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertContains( 'rankkernel/redirect/reentry', $this->actions );
 	}
 
+	/**
+	 * Test unsafe destination never sent.
+	 */
 	public function test_unsafe_destination_never_sent(): void {
 		$this->seedExact( '/evil', 'javascript:alert(1)' );
 
@@ -368,6 +442,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->statuses );
 	}
 
+	/**
+	 * Test crlf destination never sent.
+	 */
 	public function test_crlf_destination_never_sent(): void {
 		$this->seedExact( '/split', "/new\r\nLocation: https://evil.example/" );
 
@@ -379,6 +456,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->statuses );
 	}
 
+	/**
+	 * Test missing table fails open.
+	 */
 	public function test_missing_table_fails_open(): void {
 		$this->db->tableExists = false;
 
@@ -389,6 +469,9 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects );
 	}
 
+	/**
+	 * Test register uses template redirect priority one.
+	 */
 	public function test_register_uses_template_redirect_priority_one(): void {
 		$this->dispatcher()->register();
 

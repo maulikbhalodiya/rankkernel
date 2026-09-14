@@ -18,12 +18,22 @@ use RankKernel\Modules\Schema\Pieces\HowtoPiece;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
+/**
+ * Howto Piece Test.
+ */
 final class HowtoPieceTest extends TestCase {
 	use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
-	/** @var string */
+	/**
+	 * Post Content.
+	 *
+	 * @var string
+	 */
 	private string $postContent = '';
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -74,6 +84,9 @@ final class HowtoPieceTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -81,6 +94,9 @@ final class HowtoPieceTest extends TestCase {
 
 	/**
 	 * Build a singular query mock.
+	 *
+	 * @param int $id Id.
+	 * @return WP_Query The result.
 	 */
 	private function singularQuery( int $id = 1 ): WP_Query {
 		$query = Mockery::mock( WP_Query::class );
@@ -101,11 +117,19 @@ final class HowtoPieceTest extends TestCase {
 		return $query;
 	}
 
+	/**
+	 * Make Context.
+	 *
+	 * @param WP_Query $query Query.
+	 * @return Context The result.
+	 */
 	private function makeContext( WP_Query $query ): Context {
 		return new Context( $query, new SettingsStore() );
 	}
 
 	/**
+	 * Stub Post Meta.
+	 *
 	 * @param array<string, mixed> $meta Raw post meta payload.
 	 */
 	private function stubPostMeta( array $meta ): void {
@@ -121,6 +145,8 @@ final class HowtoPieceTest extends TestCase {
 	}
 
 	/**
+	 * Stub Blocks.
+	 *
 	 * @param array<int, mixed> $blocks Parsed blocks to return.
 	 */
 	private function stubBlocks( array $blocks ): void {
@@ -131,6 +157,9 @@ final class HowtoPieceTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test pages are included on singular views.
+	 */
 	public function test_pages_are_included_on_singular_views(): void {
 		$this->stubPostMeta(
 			[
@@ -156,6 +185,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Page step', $piece->build( $ctx )['step'][0]['name'] );
 	}
 
+	/**
+	 * Test unsafe image urls never reach schema.
+	 */
 	public function test_unsafe_image_urls_never_reach_schema(): void {
 		$this->stubPostMeta(
 			[
@@ -198,6 +230,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'https://example.com/ok.png', $build['step'][3]['image'] );
 	}
 
+	/**
+	 * Test block image urls are validated.
+	 */
 	public function test_block_image_urls_are_validated(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/howto -->';
@@ -224,6 +259,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertArrayNotHasKey( 'image', $build['step'][0] );
 	}
 
+	/**
+	 * Test invalid total time is dropped.
+	 */
 	public function test_invalid_total_time_is_dropped(): void {
 		$this->stubPostMeta(
 			[
@@ -248,6 +286,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertArrayNotHasKey( 'totalTime', $build );
 	}
 
+	/**
+	 * Test block total time fills in when meta value is invalid.
+	 */
 	public function test_block_total_time_fills_in_when_meta_value_is_invalid(): void {
 		$this->stubPostMeta(
 			[
@@ -290,6 +331,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'PT1H', $build['totalTime'] );
 	}
 
+	/**
+	 * Test meta total time wins over block value.
+	 */
 	public function test_meta_total_time_wins_over_block_value(): void {
 		$this->stubPostMeta(
 			[
@@ -332,6 +376,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'PT1H', $build['totalTime'] );
 	}
 
+	/**
+	 * Test block title feeds schema name when meta name is absent.
+	 */
 	public function test_block_title_feeds_schema_name_when_meta_name_is_absent(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/howto -->';
@@ -358,6 +405,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Block guide', $build['name'] );
 	}
 
+	/**
+	 * Test meta name wins over block title.
+	 */
 	public function test_meta_name_wins_over_block_title(): void {
 		$this->stubPostMeta(
 			[
@@ -399,6 +449,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Meta guide', $build['name'] );
 	}
 
+	/**
+	 * Test merge order is payload first then blocks.
+	 */
 	public function test_merge_order_is_payload_first_then_blocks(): void {
 		$this->stubPostMeta(
 			[
@@ -440,6 +493,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Second', $build['step'][1]['name'] );
 	}
 
+	/**
+	 * Test dedupe keeps steps differing only by image.
+	 */
 	public function test_dedupe_keeps_steps_differing_only_by_image(): void {
 		$this->stubPostMeta(
 			[
@@ -482,6 +538,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'https://example.com/b.png', $build['step'][1]['image'] );
 	}
 
+	/**
+	 * Test dedupe drops exact image duplicates.
+	 */
 	public function test_dedupe_drops_exact_image_duplicates(): void {
 		$this->stubPostMeta(
 			[
@@ -522,6 +581,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertCount( 1, $build['step'] );
 	}
 
+	/**
+	 * Test image only and whitespace steps are dropped.
+	 */
 	public function test_image_only_and_whitespace_steps_are_dropped(): void {
 		$this->stubPostMeta(
 			[
@@ -556,6 +618,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Kept', $build['step'][0]['name'] );
 	}
 
+	/**
+	 * Test block description tools materials emit schema fields.
+	 */
 	public function test_block_description_tools_materials_emit_schema_fields(): void {
 		$this->stubPostMeta( [] );
 		$this->postContent = '<!-- wp:rankkernel/howto -->';
@@ -587,6 +652,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( [ 'Flour' ], $build['supply'] );
 	}
 
+	/**
+	 * Test full meta list starves block rows at 100.
+	 */
 	public function test_full_meta_list_starves_block_rows_at_100(): void {
 		$rows = [];
 
@@ -632,6 +700,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( 'Step 99', $build['step'][99]['name'] );
 	}
 
+	/**
+	 * Test cost prefers meta else block estimated cost.
+	 */
 	public function test_cost_prefers_meta_else_block_estimated_cost(): void {
 		$this->stubPostMeta(
 			[
@@ -674,6 +745,9 @@ final class HowtoPieceTest extends TestCase {
 		$this->assertSame( '5 USD', $build['estimatedCost'] );
 	}
 
+	/**
+	 * Test block estimated cost fills in when meta cost is absent.
+	 */
 	public function test_block_estimated_cost_fills_in_when_meta_cost_is_absent(): void {
 		$this->stubPostMeta(
 			[

@@ -30,6 +30,8 @@ use RankKernel\Modules\Redirects\RedirectsSettings;
 final class RedirectsQuerySemanticsTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -68,14 +70,37 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Is Admin.
+	 *
+	 * @var bool
+	 */
 	private bool $isAdmin = false;
 
+	/**
+	 * Is Ajax.
+	 *
+	 * @var bool
+	 */
 	private bool $isAjax = false;
 
+	/**
+	 * Is Cron.
+	 *
+	 * @var bool
+	 */
 	private bool $isCron = false;
 
+	/**
+	 * Sitemap Var.
+	 *
+	 * @var string
+	 */
 	private string $sitemapVar = '';
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -100,6 +125,7 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->sitemapVar = '';
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -172,6 +198,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		if ( null !== $this->originalUri ) {
 			$_SERVER['REQUEST_URI'] = $this->originalUri;
@@ -187,6 +216,8 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 
 	/**
 	 * Build a dispatcher with real collaborators on the fake database.
+	 *
+	 * @return Redirector The result.
 	 */
 	private function dispatcher(): Redirector {
 		$repo = new RedirectRepository( $this->db );
@@ -196,6 +227,10 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 
 	/**
 	 * Seed one exact rule.
+	 *
+	 * @param string $source Source.
+	 * @param string $target Target.
+	 * @param string $code   Code.
 	 */
 	private function seedExact( string $source, string $target, string $code = '301' ): void {
 		$repo = new RedirectRepository( $this->db );
@@ -217,6 +252,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->options['rankkernel_redirects_settings'] = [ 'preserve_query' => false ];
 	}
 
+	/**
+	 * Test incoming query preserved by default.
+	 */
 	public function test_incoming_query_preserved_by_default(): void {
 		$this->seedExact( '/old', '/new' );
 
@@ -228,6 +266,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?x=1', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test multiple params preserved verbatim.
+	 */
 	public function test_multiple_params_preserved_verbatim(): void {
 		$this->seedExact( '/old', '/new' );
 
@@ -239,6 +280,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?a=1&b=2', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test destination query wins over incoming.
+	 */
 	public function test_destination_query_wins_over_incoming(): void {
 		$this->seedExact( '/old', '/new?src=direct' );
 
@@ -250,6 +294,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?src=direct', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test preserve off drops incoming query.
+	 */
 	public function test_preserve_off_drops_incoming_query(): void {
 		$this->disablePreserve();
 		$this->seedExact( '/old', '/new' );
@@ -262,6 +309,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test preserve off keeps destination query.
+	 */
 	public function test_preserve_off_keeps_destination_query(): void {
 		$this->disablePreserve();
 		$this->seedExact( '/old', '/new?src=direct' );
@@ -274,6 +324,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?src=direct', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test encoded params pass verbatim.
+	 */
 	public function test_encoded_params_pass_verbatim(): void {
 		$this->seedExact( '/old', '/new' );
 
@@ -285,6 +338,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?q=%2Fb%20x', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test repeated params pass verbatim.
+	 */
 	public function test_repeated_params_pass_verbatim(): void {
 		$this->seedExact( '/old', '/new' );
 
@@ -296,6 +352,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?a=1&a=2', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test incoming fragment never reaches destination.
+	 */
 	public function test_incoming_fragment_never_reaches_destination(): void {
 		$this->seedExact( '/old', '/new' );
 
@@ -307,6 +366,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?x=1', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test stored destination fragment stripped at send.
+	 */
 	public function test_stored_destination_fragment_stripped_at_send(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -327,6 +389,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test terminal 410 sends no location and ignores query.
+	 */
 	public function test_terminal_410_sends_no_location_and_ignores_query(): void {
 		$this->seedExact( '/gone', '', '410' );
 
@@ -338,6 +403,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( [ 410 ], $this->statuses );
 	}
 
+	/**
+	 * Test terminal 451 sends no location and ignores query.
+	 */
 	public function test_terminal_451_sends_no_location_and_ignores_query(): void {
 		$this->seedExact( '/blocked', '', '451' );
 
@@ -349,6 +417,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( [ 451 ], $this->statuses );
 	}
 
+	/**
+	 * Test regex rule matches path and sends literal target.
+	 */
 	public function test_regex_rule_matches_path_and_sends_literal_target(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -370,6 +441,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?x=1', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test regex capture reference sends literally without substitution.
+	 */
 	public function test_regex_capture_reference_sends_literally_without_substitution(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -391,6 +465,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/item/$1', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test source query stripped at storage and ignored at match.
+	 */
 	public function test_source_query_stripped_at_storage_and_ignored_at_match(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -411,6 +488,9 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 		$this->assertSame( '/new?y=2', $this->redirects[0]['location'] );
 	}
 
+	/**
+	 * Test pattern rule match ignores query.
+	 */
 	public function test_pattern_rule_match_ignores_query(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(

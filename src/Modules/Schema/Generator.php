@@ -36,125 +36,125 @@ use RankKernel\Modules\Metadata\Context;
  * Third parties add pieces through register(), not new hooks.
  */
 final class Generator {
-    /**
-     * Registered pieces keyed by piece id.
-     *
-     * @var array<string, PieceInterface>
-     */
-    private array $pieces = [];
+	/**
+	 * Registered pieces keyed by piece id.
+	 *
+	 * @var array<string, PieceInterface>
+	 */
+	private array $pieces = [];
 
-    /**
-     * Register a piece (replaces any piece with the same id).
-     *
-     * @param PieceInterface $piece Piece to register.
-     */
-    public function register( PieceInterface $piece ): void {
-        $this->pieces[ $piece->getId() ] = $piece;
-    }
+	/**
+	 * Register a piece (replaces any piece with the same id).
+	 *
+	 * @param PieceInterface $piece Piece to register.
+	 */
+	public function register( PieceInterface $piece ): void {
+		$this->pieces[ $piece->getId() ] = $piece;
+	}
 
-    /**
-     * Generate the full JSON-LD document for a request context.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed> Document with @context and @graph.
-     */
-    public function generate( Context $ctx ): array {
-        $empty = [
-            '@context' => 'https://schema.org',
-            '@graph'   => [],
-        ];
+	/**
+	 * Generate the full JSON-LD document for a request context.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed> Document with @context and @graph.
+	 */
+	public function generate( Context $ctx ): array {
+		$empty = [
+			'@context' => 'https://schema.org',
+			'@graph'   => [],
+		];
 
-        /**
-         * Page level kill switch for the whole graph.
-         *
-         * Runs before the stored per post flag, so integrations can
-         * suppress output for request shapes the payload cannot see
-         * (password walls, staging copies, consent states).
-         *
-         * @param bool    $disabled Whether the graph is disabled.
-         * @param Context $ctx      Current request context.
-         */
-        $disabled = apply_filters('rankkernel/schema/disabled', false, $ctx);
+		/**
+		 * Page level kill switch for the whole graph.
+		 *
+		 * Runs before the stored per post flag, so integrations can
+		 * suppress output for request shapes the payload cannot see
+		 * (password walls, staging copies, consent states).
+		 *
+		 * @param bool    $disabled Whether the graph is disabled.
+		 * @param Context $ctx      Current request context.
+		 */
+		$disabled = apply_filters( 'rankkernel/schema/disabled', false, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-        if ($disabled) {
-            return $empty;
-        }
+		if ( $disabled ) {
+			return $empty;
+		}
 
-        $meta   = $ctx->meta();
-        $schema = ( isset($meta['schema']) && is_array($meta['schema']) ) ? $meta['schema'] : [];
+		$meta   = $ctx->meta();
+		$schema = ( isset( $meta['schema'] ) && is_array( $meta['schema'] ) ) ? $meta['schema'] : [];
 
-        if (! empty($schema['disabled'])) {
-            return $empty;
-        }
+		if ( ! empty( $schema['disabled'] ) ) {
+			return $empty;
+		}
 
-        $postId = $ctx->queriedId();
+		$postId = $ctx->queriedId();
 
-        if ($postId > 0 && function_exists('post_password_required') && post_password_required($postId)) {
-            return $empty;
-        }
+		if ( $postId > 0 && function_exists( 'post_password_required' ) && post_password_required( $postId ) ) {
+			return $empty;
+		}
 
-        $graph = [];
+		$graph = [];
 
-        foreach ($this->pieces as $id => $piece) {
-            $needed = $piece->isNeeded($ctx);
+		foreach ( $this->pieces as $id => $piece ) {
+			$needed = $piece->isNeeded( $ctx );
 
-            /**
-             * Toggle filter for a single piece.
-             *
-             * @param bool    $needed Whether the piece is needed.
-             * @param Context $ctx    Current request context.
-             */
-            $needed = apply_filters('rankkernel/schema/needs_' . $id, $needed, $ctx);
+			/**
+			 * Toggle filter for a single piece.
+			 *
+			 * @param bool    $needed Whether the piece is needed.
+			 * @param Context $ctx    Current request context.
+			 */
+			$needed = apply_filters( 'rankkernel/schema/needs_' . $id, $needed, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-            if (! $needed) {
-                continue;
-            }
+			if ( ! $needed ) {
+				continue;
+			}
 
-            $output = $piece->build($ctx);
+			$output = $piece->build( $ctx );
 
-            /**
-             * Per piece output filter.
-             *
-             * A single node is an assoc array, a piece may also return
-             * a list of nodes, which merges item by item.
-             *
-             * @param array<mixed, mixed> $output Piece output.
-             * @param Context             $ctx    Current request context.
-             */
-            $output = apply_filters('rankkernel/schema/piece/' . $id, $output, $ctx);
+			/**
+			 * Per piece output filter.
+			 *
+			 * A single node is an assoc array, a piece may also return
+			 * a list of nodes, which merges item by item.
+			 *
+			 * @param array<mixed, mixed> $output Piece output.
+			 * @param Context             $ctx    Current request context.
+			 */
+			$output = apply_filters( 'rankkernel/schema/piece/' . $id, $output, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-            if (! is_array($output) || [] === $output) {
-                continue;
-            }
+			if ( ! is_array( $output ) || [] === $output ) {
+				continue;
+			}
 
-            if (array_is_list($output)) {
-                foreach ($output as $item) {
-                    if (is_array($item) && [] !== $item) {
-                        $graph[] = $item;
-                    }
-                }
+			if ( array_is_list( $output ) ) {
+				foreach ( $output as $item ) {
+					if ( is_array( $item ) && [] !== $item ) {
+						$graph[] = $item;
+					}
+				}
 
-                continue;
-            }
+				continue;
+			}
 
-            $graph[] = $output;
-        }
+			$graph[] = $output;
+		}
 
-        /**
-         * Graph filter for the assembled graph.
-         *
-         * @param array<int, mixed> $graph Assembled piece outputs.
-         * @param Context           $ctx   Current request context.
-         */
-        $graph = apply_filters('rankkernel/schema/graph', $graph, $ctx);
+		/**
+		 * Graph filter for the assembled graph.
+		 *
+		 * @param array<int, mixed> $graph Assembled piece outputs.
+		 * @param Context           $ctx   Current request context.
+		 */
+		$graph = apply_filters( 'rankkernel/schema/graph', $graph, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-        if (! is_array($graph)) {
-            $graph = [];
-        }
+		if ( ! is_array( $graph ) ) {
+			$graph = [];
+		}
 
-        return [
-            '@context' => 'https://schema.org',
-            '@graph'   => GraphNormalizer::normalize($graph),
-        ];
-    }
+		return [
+			'@context' => 'https://schema.org',
+			'@graph'   => GraphNormalizer::normalize( $graph ),
+		];
+	}
 }

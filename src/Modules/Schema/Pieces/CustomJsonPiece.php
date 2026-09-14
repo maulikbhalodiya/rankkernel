@@ -27,156 +27,159 @@ use RankKernel\Modules\Schema\PieceInterface;
  * graph carries exactly one @context.
  */
 final class CustomJsonPiece implements PieceInterface {
-    /**
-     * Max custom nodes merged into the graph.
-     */
-    private const MAX_NODES = 10;
+	/**
+	 * Max custom nodes merged into the graph.
+	 */
+	private const MAX_NODES = 10;
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'custom';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'custom';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        return [] !== self::nodes($ctx);
-    }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		return [] !== self::nodes( $ctx );
+	}
 
-    /**
-     * Build the custom nodes.
-     *
-     * Returns a single node directly when exactly one resolves, else
-     * a numeric list of nodes, which the Generator appends item by
-     * item.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string|int, mixed>
-     */
-    public function build( Context $ctx ): array {
-        $nodes = self::nodes($ctx);
+	/**
+	 * Build the custom nodes.
+	 *
+	 * Returns a single node directly when exactly one resolves, else
+	 * a numeric list of nodes, which the Generator appends item by
+	 * item.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string|int, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		$nodes = self::nodes( $ctx );
 
-        if ([] === $nodes) {
-            return [];
-        }
+		if ( [] === $nodes ) {
+			return [];
+		}
 
-        if (1 === count($nodes)) {
-            return $nodes[0];
-        }
+		if ( 1 === count( $nodes ) ) {
+			return $nodes[0];
+		}
 
-        return array_values($nodes);
-    }
+		return array_values( $nodes );
+	}
 
-    /**
-     * Valid custom nodes, capped.
-     *
-     * @param Context $ctx Request context.
-     * @return array<int, array<string, mixed>>
-     */
-    private static function nodes( Context $ctx ): array {
-        $meta = $ctx->meta();
+	/**
+	 * Valid custom nodes, capped.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string|int, mixed>
+	 */
+	private static function nodes( Context $ctx ): array {
+		$meta = $ctx->meta();
 
-        $schema = $meta['schema'] ?? [];
+		$schema = $meta['schema'] ?? [];
 
-        if (! is_array($schema)) {
-            return [];
-        }
+		if ( ! is_array( $schema ) ) {
+			return [];
+		}
 
-        $custom = $schema['custom'] ?? [];
+		$custom = $schema['custom'] ?? [];
 
-        if (! is_array($custom) || [] === $custom) {
-            return [];
-        }
+		if ( ! is_array( $custom ) || [] === $custom ) {
+			return [];
+		}
 
-        if (array_is_list($custom)) {
-            $raw = $custom;
-        } elseif (isset($custom['@graph']) && is_array($custom['@graph'])) {
-            $raw = $custom['@graph'];
-        } else {
-            $raw = [ $custom ];
-        }
+		if ( array_is_list( $custom ) ) {
+			$raw = $custom;
+		} elseif ( isset( $custom['@graph'] ) && is_array( $custom['@graph'] ) ) {
+			$raw = $custom['@graph'];
+		} else {
+			$raw = [ $custom ];
+		}
 
-        $out = [];
+		$out = [];
 
-        foreach ($raw as $item) {
-            if (count($out) >= self::MAX_NODES) {
-                break;
-            }
+		foreach ( $raw as $item ) {
+			if ( count( $out ) >= self::MAX_NODES ) {
+				break;
+			}
 
-            $node = self::cleanNode($item);
+			$node = self::cleanNode( $item );
 
-            if ([] !== $node) {
-                $out[] = $node;
-            }
-        }
+			if ( [] !== $node ) {
+				$out[] = $node;
+			}
+		}
 
-        return array_values($out);
-    }
+		return array_values( $out );
+	}
 
-    /**
-     * Clean one custom value into a graph node.
-     *
-     * Non arrays and empty values are dropped. Nested @context keys
-     * are stripped at every level. Typeless objects are wrapped as a
-     * generic Thing, typeless scalars never become nodes.
-     *
-     * @param mixed $item Raw custom value.
-     * @return array<string, mixed>
-     */
-    private static function cleanNode( mixed $item ): array {
-        if (! is_array($item) || [] === $item) {
-            return [];
-        }
+	/**
+	 * Clean one custom value into a graph node.
+	 *
+	 * Non arrays and empty values are dropped. Nested @context keys
+	 * are stripped at every level. Typeless objects are wrapped as a
+	 * generic Thing, typeless scalars never become nodes.
+	 *
+	 * @param mixed $item Raw custom value.
+	 * @return array<string, mixed>
+	 */
+	private static function cleanNode( mixed $item ): array {
+		if ( ! is_array( $item ) || [] === $item ) {
+			return [];
+		}
 
-        if (array_is_list($item)) {
-            return [];
-        }
+		if ( array_is_list( $item ) ) {
+			return [];
+		}
 
-        $node = self::stripContext($item);
+		$node = self::stripContext( $item );
 
-        if ([] === $node) {
-            return [];
-        }
+		if ( [] === $node ) {
+			return [];
+		}
 
-        $type = $node['@type'] ?? '';
+		$type = $node['@type'] ?? '';
 
-        if (is_array($type)) {
-            $type = implode(',', array_map(static fn (mixed $t): string => (string) $t, $type));
-        }
+		if ( is_array( $type ) ) {
+			$type = implode( ',', array_map( static fn ( mixed $t ): string => (string) $t, $type ) );
+		}
 
-        if (! is_string($type) || '' === trim($type)) {
-            $node['@type'] = 'Thing';
-        }
+		if ( ! is_string( $type ) || '' === trim( $type ) ) {
+			$node['@type'] = 'Thing';
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 
-    /**
-     * Strip @context keys from a custom level.
-     *
-     * @param array<string|int, mixed> $level Raw level.
-     * @return array<string|int, mixed>
-     */
-    private static function stripContext( array $level ): array {
-        $out = [];
+	/**
+	 * Strip @context keys from a custom level.
+	 *
+	 * @param array<string|int, mixed> $level Raw level.
+	 * @return array<string|int, mixed>
+	 */
+	private static function stripContext( array $level ): array {
+		$out = [];
 
-        foreach ($level as $key => $value) {
-            if ('@context' === $key) {
-                continue;
-            }
+		foreach ( $level as $key => $value ) {
+			if ( '@context' === $key ) {
+				continue;
+			}
 
-            if (is_array($value) && ! array_is_list($value)) {
-                $value = self::stripContext($value);
-            }
+			if ( is_array( $value ) && ! array_is_list( $value ) ) {
+				$value = self::stripContext( $value );
+			}
 
-            $out[ $key ] = $value;
-        }
+			$out[ $key ] = $value;
+		}
 
-        return $out;
-    }
+		return $out;
+	}
 }

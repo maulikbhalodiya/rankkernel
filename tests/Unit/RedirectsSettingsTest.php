@@ -14,6 +14,9 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 
+/**
+ * Redirects Settings Test.
+ */
 final class RedirectsSettingsTest extends TestCase {
 	/**
 	 * Option store.
@@ -29,6 +32,9 @@ final class RedirectsSettingsTest extends TestCase {
 	 */
 	private array $updates = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -52,11 +58,17 @@ final class RedirectsSettingsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test defaults.
+	 */
 	public function test_defaults(): void {
 		$settings = new RedirectsSettings();
 
@@ -67,10 +79,16 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertSame( 'fallback', $settings->get( 'missing', 'fallback' ) );
 	}
 
+	/**
+	 * Test option name.
+	 */
 	public function test_option_name(): void {
 		$this->assertSame( 'rankkernel_redirects_settings', RedirectsSettings::OPTION );
 	}
 
+	/**
+	 * Test set whitelists and disables autoload.
+	 */
 	public function test_set_whitelists_and_disables_autoload(): void {
 		$settings = new RedirectsSettings();
 
@@ -89,6 +107,9 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertArrayNotHasKey( 'evil_key', (array) $this->updates[0]['value'] );
 	}
 
+	/**
+	 * Test set unknown only returns false without write.
+	 */
 	public function test_set_unknown_only_returns_false_without_write(): void {
 		Functions\expect( 'update_option' )->never();
 
@@ -97,6 +118,9 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->set( [ 'evil_key' => 'x' ] ) );
 	}
 
+	/**
+	 * Test rules per page clamped.
+	 */
 	public function test_rules_per_page_clamped(): void {
 		$settings = new RedirectsSettings();
 
@@ -113,6 +137,9 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertSame( 50, $settings->get( 'rules_per_page' ) );
 	}
 
+	/**
+	 * Test boolean strings normalized.
+	 */
 	public function test_boolean_strings_normalized(): void {
 		$settings = new RedirectsSettings();
 
@@ -121,6 +148,9 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->get( 'preserve_query' ) );
 	}
 
+	/**
+	 * Test ensure schema seeds defaults.
+	 */
 	public function test_ensure_schema_seeds_defaults(): void {
 		$settings = new RedirectsSettings();
 
@@ -131,6 +161,9 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $this->updates[0]['autoload'] );
 	}
 
+	/**
+	 * Test ensure schema keeps stored values.
+	 */
 	public function test_ensure_schema_keeps_stored_values(): void {
 		$this->options[ RedirectsSettings::OPTION ] = [ 'preserve_query' => false ];
 

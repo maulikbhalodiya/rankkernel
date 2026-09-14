@@ -24,100 +24,106 @@ use RankKernel\Settings\SettingsStore;
  * integers and appear only when numeric.
  */
 final class ImageObjectPiece implements PieceInterface {
-    /**
-     * Settings store.
-     */
-    private readonly SettingsStore $settings;
+	/**
+	 * Settings store.
+	 *
+	 * @var SettingsStore
+	 */
+	private readonly SettingsStore $settings;
 
-    /**
-     * Constructor.
-     *
-     * @param SettingsStore|null $settings Optional settings store.
-     */
-    public function __construct( ?SettingsStore $settings = null ) {
-        $this->settings = $settings ?? new SettingsStore();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param SettingsStore|null $settings Optional settings store.
+	 */
+	public function __construct( ?SettingsStore $settings = null ) {
+		$this->settings = $settings ?? new SettingsStore();
+	}
 
-    /**
-     * Get piece id.
-     */
-    public function getId(): string {
-        return 'imageobject';
-    }
+	/**
+	 * Get piece id.
+	 *
+	 * @return string The result.
+	 */
+	public function getId(): string {
+		return 'imageobject';
+	}
 
-    /**
-     * Whether the piece is needed.
-     *
-     * @param Context $ctx Request context.
-     */
-    public function isNeeded( Context $ctx ): bool {
-        if ('ImageObject' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return false;
-        }
+	/**
+	 * Whether the piece is needed.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool The result.
+	 */
+	public function isNeeded( Context $ctx ): bool {
+		if ( 'ImageObject' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return false;
+		}
 
-        return '' !== $this->imageUrl($ctx);
-    }
+		return '' !== $this->imageUrl( $ctx );
+	}
 
-    /**
-     * Build the ImageObject node.
-     *
-     * @param Context $ctx Request context.
-     * @return array<string, mixed>
-     */
-    public function build( Context $ctx ): array {
-        if ('ImageObject' !== SchemaHelpers::effectiveType($ctx, $this->settings)) {
-            return [];
-        }
+	/**
+	 * Build the ImageObject node.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return array<string, mixed>
+	 */
+	public function build( Context $ctx ): array {
+		if ( 'ImageObject' !== SchemaHelpers::effectiveType( $ctx, $this->settings ) ) {
+			return [];
+		}
 
-        $url = $this->imageUrl($ctx);
+		$url = $this->imageUrl( $ctx );
 
-        if ('' === $url) {
-            return [];
-        }
+		if ( '' === $url ) {
+			return [];
+		}
 
-        $fields = SchemaHelpers::fields($ctx);
+		$fields = SchemaHelpers::fields( $ctx );
 
-        $node = [
-            '@type' => 'ImageObject',
-            '@id'   => $url,
-            'url'   => $url,
-        ];
+		$node = [
+			'@type' => 'ImageObject',
+			'@id'   => $url,
+			'url'   => $url,
+		];
 
-        $caption = trim($fields['caption'] ?? '');
+		$caption = trim( $fields['caption'] ?? '' );
 
-        if ('' === $caption) {
-            $caption = SchemaHelpers::headline($ctx, $fields);
-        }
+		if ( '' === $caption ) {
+			$caption = SchemaHelpers::headline( $ctx, $fields );
+		}
 
-        if ('' !== $caption) {
-            $node['caption'] = $caption;
-        }
+		if ( '' !== $caption ) {
+			$node['caption'] = $caption;
+		}
 
-        foreach ([ 'width', 'height' ] as $dim) {
-            $raw = trim($fields[ $dim ] ?? '');
+		foreach ( [ 'width', 'height' ] as $dim ) {
+			$raw = trim( $fields[ $dim ] ?? '' );
 
-            if ('' !== $raw && ctype_digit($raw)) {
-                $node[ $dim ] = (int) $raw;
-            }
-        }
+			if ( '' !== $raw && ctype_digit( $raw ) ) {
+				$node[ $dim ] = (int) $raw;
+			}
+		}
 
-        return $node;
-    }
+		return $node;
+	}
 
-    /**
-     * Image URL, manual override first, then the og image chain.
-     *
-     * @param Context $ctx Request context.
-     */
-    private function imageUrl( Context $ctx ): string {
-        $fields = SchemaHelpers::fields($ctx);
+	/**
+	 * Image URL, manual override first, then the og image chain.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return string The result.
+	 */
+	private function imageUrl( Context $ctx ): string {
+		$fields = SchemaHelpers::fields( $ctx );
 
-        $manual = SchemaHelpers::httpUrl($fields['contentUrl'] ?? '');
+		$manual = SchemaHelpers::httpUrl( $fields['contentUrl'] ?? '' );
 
-        if ('' !== $manual) {
-            return $manual;
-        }
+		if ( '' !== $manual ) {
+			return $manual;
+		}
 
-        return SchemaHelpers::httpUrl($ctx->ogImage());
-    }
+		return SchemaHelpers::httpUrl( $ctx->ogImage() );
+	}
 }

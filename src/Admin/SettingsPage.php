@@ -36,7 +36,7 @@ final class SettingsPage {
 	 * Runs on load-{page}, so wp_safe_redirect can still send headers.
 	 */
 	public function maybeHandleSave(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_save'] ) ) {
 			$this->handleSave();
 		}
@@ -100,8 +100,8 @@ final class SettingsPage {
 		$this->store->set( $partial );
 
 		// Modules: validate ids against registry; save enabled-id list.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified.
-		$rawModules = $_POST['rankkernel_modules'] ?? [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified, unslashed here, sanitized or validated on the following statements.
+		$rawModules = isset( $_POST['rankkernel_modules'] ) ? wp_unslash( $_POST['rankkernel_modules'] ) : [];
 		if ( ! is_array( $rawModules ) ) {
 			$rawModules = [];
 		}
@@ -135,7 +135,7 @@ final class SettingsPage {
 	 * Render admin notices (success on settings-updated).
 	 */
 	private function renderNotices(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
 		if ( isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'] ) {
 			echo '<div class="notice notice-success is-dismissible"><p>';
 			echo esc_html__( 'Settings saved.', 'rankkernel' );

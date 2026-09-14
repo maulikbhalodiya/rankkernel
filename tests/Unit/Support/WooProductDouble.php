@@ -19,26 +19,36 @@ use RankKernel\Modules\Schema\Pieces\ProductPiece;
  * mapping, the override order, and the absent Woo path.
  */
 class WooProductDouble extends ProductPiece {
-    /**
-     * Canned Woo values keyed by field name.
-     *
-     * @var array<string, string>
-     */
-    public static array $woo = [];
+	/**
+	 * Canned Woo values keyed by field name.
+	 *
+	 * @var array<string, string>
+	 */
+	public static array $woo = [];
 
-    /**
-     * Forced availability flag.
-     */
-    public static bool $available = true;
+	/**
+	 * Forced availability flag.
+	 *
+	 * @var bool
+	 */
+	public static bool $available = true;
 
-    protected function isWooCommerceAvailable(): bool {
-        return self::$available;
-    }
+	/**
+	 * Is Woo Commerce Available.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function isWooCommerceAvailable(): bool {
+		return self::$available;
+	}
 
-    /**
-     * @return array<string, string>
-     */
-    protected function readWooFields( int $postId ): array {
-        return self::$woo;
-    }
+	/**
+	 * Read Woo Fields.
+	 *
+	 * @param int $postId Post Id.
+	 * @return array<string, string>
+	 */
+	protected function readWooFields( int $postId ): array {
+		return self::$woo;
+	}
 }

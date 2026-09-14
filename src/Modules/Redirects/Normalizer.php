@@ -129,8 +129,8 @@ final class Normalizer {
 	 * query string never affects identity and identical paths under different
 	 * matchers stay distinct rows.
 	 *
-	 * @param string $matchType      Matcher name.
-	 * @param string $normalizedPath Canonical path from normalize().
+	 * @param string $matchType       Matcher name.
+	 * @param string $normalizedPath  Canonical path from normalize().
 	 * @param bool   $caseInsensitive Whether the rule folds case.
 	 * @return string SHA256 hex digest.
 	 */

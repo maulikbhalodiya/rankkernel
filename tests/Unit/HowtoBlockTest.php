@@ -19,12 +19,22 @@ use RankKernel\Modules\Schema\Pieces\HowtoPiece;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
+/**
+ * Howto Block Test.
+ */
 final class HowtoBlockTest extends TestCase {
 	use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
-	/** @var string */
+	/**
+	 * Post Content.
+	 *
+	 * @var string
+	 */
 	private string $postContent = '';
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -86,15 +96,26 @@ final class HowtoBlockTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Block Dir.
+	 *
+	 * @return string The result.
+	 */
 	private function blockDir(): string {
 		return dirname( __DIR__, 2 ) . '/src/Modules/Schema/blocks/howto';
 	}
 
+	/**
+	 * Test block json has binding values.
+	 */
 	public function test_block_json_has_binding_values(): void {
 		$path = $this->blockDir() . '/block.json';
 		$raw  = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local block.json fixture read in a unit test, wp_remote_get is for remote URLs only.
@@ -112,6 +133,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertArrayNotHasKey( 'editorStyle', $json );
 	}
 
+	/**
+	 * Test block json declares additive fields and editor supports.
+	 */
 	public function test_block_json_declares_additive_fields_and_editor_supports(): void {
 		$path = $this->blockDir() . '/block.json';
 		$raw  = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local block.json fixture read in a unit test, wp_remote_get is for remote URLs only.
@@ -142,6 +166,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertArrayHasKey( 'example', $json );
 	}
 
+	/**
+	 * Test register block registers editor assets with dependencies.
+	 */
 	public function test_register_block_registers_editor_assets_with_dependencies(): void {
 		$registeredScripts = [];
 		$registeredStyles  = [];
@@ -214,6 +241,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertTrue( $found, 'Block type must reference the explicit editor handles' );
 	}
 
+	/**
+	 * Test register never registers category.
+	 */
 	public function test_register_never_registers_category(): void {
 		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_register_style' )->justReturn( true );
@@ -229,6 +259,9 @@ final class HowtoBlockTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test render numbers each step.
+	 */
 	public function test_render_numbers_each_step(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -255,6 +288,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( '<ol class="rankkernel-howto-list" role="list" style="list-style-type:none;">', $html );
 	}
 
+	/**
+	 * Test render shows details time cost tools materials.
+	 */
 	public function test_render_shows_details_time_cost_tools_materials(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -283,6 +319,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertSame( 2, substr_count( $html, '<li>' ) );
 	}
 
+	/**
+	 * Test render hides invalid total time.
+	 */
 	public function test_render_hides_invalid_total_time(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -302,6 +341,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( 'Mix', $html );
 	}
 
+	/**
+	 * Test render step tag overrides title wrapper.
+	 */
 	public function test_render_step_tag_overrides_title_wrapper(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -322,6 +364,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( '<h2 class="rankkernel-howto-step-title">', $html );
 	}
 
+	/**
+	 * Test render steps follow title wrapper by default.
+	 */
 	public function test_render_steps_follow_title_wrapper_by_default(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -340,6 +385,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( '<h2 class="rankkernel-howto-step-title">', $html );
 	}
 
+	/**
+	 * Test render uses step alt and rejects unsafe image.
+	 */
 	public function test_render_uses_step_alt_and_rejects_unsafe_image(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -365,6 +413,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, '<img' ) );
 	}
 
+	/**
+	 * Test render preserves step order with numbering.
+	 */
 	public function test_render_preserves_step_order_with_numbering(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -399,6 +450,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertGreaterThan( $second, $third );
 	}
 
+	/**
+	 * Test render skips image only and whitespace steps.
+	 */
 	public function test_render_skips_image_only_and_whitespace_steps(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -426,6 +480,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( 'Kept', $html );
 	}
 
+	/**
+	 * Test render accepts legacy shape and extra params.
+	 */
 	public function test_render_accepts_legacy_shape_and_extra_params(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -445,6 +502,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertStringContainsString( 'Old step', $html );
 	}
 
+	/**
+	 * Test render escapes markup and skips empty rows.
+	 */
 	public function test_render_escapes_markup_and_skips_empty_rows(): void {
 		$html = ( new HowtoBlock() )->render(
 			[
@@ -471,6 +531,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, '<li class="rankkernel-howto-item">' ) );
 	}
 
+	/**
+	 * Test render empty steps returns empty string.
+	 */
 	public function test_render_empty_steps_returns_empty_string(): void {
 		$this->assertSame( '', ( new HowtoBlock() )->render( [ 'steps' => [] ] ) );
 		$this->assertSame( '', ( new HowtoBlock() )->render( [] ) );
@@ -478,6 +541,9 @@ final class HowtoBlockTest extends TestCase {
 
 	/**
 	 * Build a singular query mock.
+	 *
+	 * @param int $id Id.
+	 * @return WP_Query The result.
 	 */
 	private function singularQuery( int $id = 1 ): WP_Query {
 		$query = Mockery::mock( WP_Query::class );
@@ -498,10 +564,19 @@ final class HowtoBlockTest extends TestCase {
 		return $query;
 	}
 
+	/**
+	 * Make Context.
+	 *
+	 * @param WP_Query $query Query.
+	 * @return Context The result.
+	 */
 	private function makeContext( WP_Query $query ): Context {
 		return new Context( $query, new SettingsStore() );
 	}
 
+	/**
+	 * Test block only steps are picked up.
+	 */
 	public function test_block_only_steps_are_picked_up(): void {
 		$this->postContent = 'has blocks';
 
@@ -536,6 +611,9 @@ final class HowtoBlockTest extends TestCase {
 		$this->assertSame( 'Block step', $build['step'][0]['name'] );
 	}
 
+	/**
+	 * Test schema step text is plain without markup.
+	 */
 	public function test_schema_step_text_is_plain_without_markup(): void {
 		$this->postContent = 'has blocks';
 

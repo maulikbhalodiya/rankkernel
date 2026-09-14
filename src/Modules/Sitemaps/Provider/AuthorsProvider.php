@@ -35,7 +35,7 @@ class AuthorsProvider {
 	/**
 	 * Get available sets, returns authors if there are published authors.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	public function getSets(): array {
 		if ( ! (bool) ( $this->settings?->get( 'authors_sitemap', true ) ?? true ) ) {
@@ -58,7 +58,7 @@ class AuthorsProvider {
 	 * minus role and user exclusions.
 	 *
 	 * @param string $set Set name, expected authors.
-	 * @return int
+	 * @return int The result.
 	 */
 	public function getCount( string $set ): int {
 		if ( 'authors' !== $set ) {
@@ -94,21 +94,19 @@ class AuthorsProvider {
 		$placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
 
         // phpcs:ignore Generic.Files.LineLength.TooLong
-		$sql = "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders)";
-
+		$sql    = "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders)";
 		$params = array_merge( [ 'publish' ], $types );
 		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
-
-		$args = array_merge( [ $sql ], $params );
-
+		$args   = array_merge( [ $sql ], $params );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
 		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
-
 		return (int) $count;
 	}
 
 	/**
 	 * Count every user, minus exclusions.
+	 *
+	 * @return int The result.
 	 */
 	private function getCountIncludingEmpty(): int {
 		global $wpdb;
@@ -307,7 +305,7 @@ class AuthorsProvider {
 	/**
 	 * Excluded user ids from settings, unique positive ints.
 	 *
-	 * @return int[]
+	 * @return int[] The result.
 	 */
 	private function excludedUserIds(): array {
 		$ids = $this->settings?->get( 'authors_exclude_users', [] ) ?? [];
@@ -332,7 +330,7 @@ class AuthorsProvider {
 	/**
 	 * Excluded role slugs from settings.
 	 *
-	 * @return string[]
+	 * @return string[] The result.
 	 */
 	private function excludedRoles(): array {
 		$roles = $this->settings?->get( 'authors_exclude_roles', [] ) ?? [];
@@ -365,6 +363,7 @@ class AuthorsProvider {
 	 *
 	 * @param string            $userColumn Qualified user id column.
 	 * @param array<int, mixed> $params     Prepare params, values appended in order.
+	 * @return string The result.
 	 */
 	private function authorExclusionClauses( string $userColumn, array &$params ): string {
 		global $wpdb;

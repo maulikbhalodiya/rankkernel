@@ -14,7 +14,13 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\Validator;
 
+/**
+ * Redirects Validator Test.
+ */
 final class RedirectsValidatorTest extends TestCase {
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -27,6 +33,9 @@ final class RedirectsValidatorTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -54,6 +63,9 @@ final class RedirectsValidatorTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Test direct loop blocked.
+	 */
 	public function test_direct_loop_blocked(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 1, '/a', '/b' ) ];
@@ -72,6 +84,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test two hop loop blocked.
+	 */
 	public function test_two_hop_loop_blocked(): void {
 		$validator = new Validator();
 		$rules     = [
@@ -92,6 +107,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertSame( [ '/c', '/a', '/b', '/c' ], $result['path'] );
 	}
 
+	/**
+	 * Test three hop loop blocked.
+	 */
 	public function test_three_hop_loop_blocked(): void {
 		$validator = new Validator();
 		$rules     = [
@@ -113,6 +131,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertSame( [ '/d', '/a', '/b', '/c', '/d' ], $result['path'] );
 	}
 
+	/**
+	 * Test longer cycle blocked.
+	 */
 	public function test_longer_cycle_blocked(): void {
 		$validator = new Validator();
 		$rules     = [
@@ -137,6 +158,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertSame( '/f', end( $result['path'] ) );
 	}
 
+	/**
+	 * Test inactive rule ignored.
+	 */
 	public function test_inactive_rule_ignored(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 1, '/a', '/b', 'exact', '301', 0 ) ];
@@ -154,6 +178,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test terminal proposed rule has no cycle.
+	 */
 	public function test_terminal_proposed_rule_has_no_cycle(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 1, '/a', '/b' ) ];
@@ -170,6 +197,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['has_cycle'] );
 	}
 
+	/**
+	 * Test pattern rule branch inconclusive.
+	 */
 	public function test_pattern_rule_branch_inconclusive(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 5, '^/a$', '/c', 'regex' ) ];
@@ -187,6 +217,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test capture target inconclusive.
+	 */
 	public function test_capture_target_inconclusive(): void {
 		$validator = new Validator();
 
@@ -203,6 +236,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test external target inconclusive.
+	 */
 	public function test_external_target_inconclusive(): void {
 		$validator = new Validator();
 
@@ -219,6 +255,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test depth cap stops long traversal.
+	 */
 	public function test_depth_cap_stops_long_traversal(): void {
 		$validator = new Validator();
 		$rules     = [];
@@ -240,6 +279,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test node cap stops wide traversal.
+	 */
 	public function test_node_cap_stops_wide_traversal(): void {
 		$validator = new Validator();
 		$rules     = [];
@@ -261,6 +303,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test chain one intermediate recommends final.
+	 */
 	public function test_chain_one_intermediate_recommends_final(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 2, '/b', '/c' ) ];
@@ -279,6 +324,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test chain two intermediates.
+	 */
 	public function test_chain_two_intermediates(): void {
 		$validator = new Validator();
 		$rules     = [
@@ -299,6 +347,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertSame( '/d', $result['final'] );
 	}
 
+	/**
+	 * Test chain longer than cap is inconclusive.
+	 */
 	public function test_chain_longer_than_cap_is_inconclusive(): void {
 		$validator = new Validator();
 		$rules     = [];
@@ -320,6 +371,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test chain through external terminates.
+	 */
 	public function test_chain_through_external_terminates(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 2, '/b', 'https://external.example/x' ) ];
@@ -337,6 +391,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test chain through pattern is inconclusive.
+	 */
 	public function test_chain_through_pattern_is_inconclusive(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 2, '/b', '/c', 'prefix' ) ];
@@ -353,6 +410,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test single hop is not a chain.
+	 */
 	public function test_single_hop_is_not_a_chain(): void {
 		$validator = new Validator();
 
@@ -370,6 +430,9 @@ final class RedirectsValidatorTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test chain never reports a block.
+	 */
 	public function test_chain_never_reports_a_block(): void {
 		$validator = new Validator();
 		$rules     = [ $this->rule( 2, '/b', '/c' ) ];

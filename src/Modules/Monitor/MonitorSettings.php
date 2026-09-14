@@ -165,6 +165,8 @@ final class MonitorSettings {
 
 	/**
 	 * Retention window in days, always inside 1 to 365.
+	 *
+	 * @return int The result.
 	 */
 	public function getRetentionDays(): int {
 		return (int) $this->get( 'retention_days', 30 );
@@ -172,6 +174,8 @@ final class MonitorSettings {
 
 	/**
 	 * Maximum log rows, always inside 100 to 10000.
+	 *
+	 * @return int The result.
 	 */
 	public function getMaxRows(): int {
 		return (int) $this->get( 'max_rows', 1000 );
@@ -179,6 +183,8 @@ final class MonitorSettings {
 
 	/**
 	 * New URI budget per flood window.
+	 *
+	 * @return int The result.
 	 */
 	public function getFloodBudget(): int {
 		return (int) $this->get( 'flood_budget', 50 );
@@ -186,6 +192,8 @@ final class MonitorSettings {
 
 	/**
 	 * Flood window in seconds.
+	 *
+	 * @return int The result.
 	 */
 	public function getFloodWindow(): int {
 		return (int) $this->get( 'flood_window', 300 );
@@ -193,6 +201,8 @@ final class MonitorSettings {
 
 	/**
 	 * Whether the query string is ignored when logging.
+	 *
+	 * @return bool The result.
 	 */
 	public function isIgnoreQuery(): bool {
 		return (bool) $this->get( 'ignore_query', true );
@@ -200,6 +210,8 @@ final class MonitorSettings {
 
 	/**
 	 * Whether referer and user agent capture is enabled.
+	 *
+	 * @return bool The result.
 	 */
 	public function isAdvancedFields(): bool {
 		return (bool) $this->get( 'advanced_fields', false );

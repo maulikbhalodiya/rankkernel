@@ -13,7 +13,13 @@ namespace RankKernel\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Monitor\Exclusions;
 
+/**
+ * Monitor Exclusions Test.
+ */
 final class MonitorExclusionsTest extends TestCase {
+	/**
+	 * Test exact matches full uri only.
+	 */
 	public function test_exact_matches_full_uri_only(): void {
 		$rules = [
 			[
@@ -27,6 +33,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/gon', $rules ) );
 	}
 
+	/**
+	 * Test prefix matches leading segment.
+	 */
 	public function test_prefix_matches_leading_segment(): void {
 		$rules = [
 			[
@@ -40,6 +49,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/public/private', $rules ) );
 	}
 
+	/**
+	 * Test contains matches anywhere.
+	 */
 	public function test_contains_matches_anywhere(): void {
 		$rules = [
 			[
@@ -52,6 +64,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/files/perm/file', $rules ) );
 	}
 
+	/**
+	 * Test suffix matches trailing segment.
+	 */
 	public function test_suffix_matches_trailing_segment(): void {
 		$rules = [
 			[
@@ -64,6 +79,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/files/report.pdf/view', $rules ) );
 	}
 
+	/**
+	 * Test wildcard star matches any sequence.
+	 */
 	public function test_wildcard_star_matches_any_sequence(): void {
 		$rules = [
 			[
@@ -87,6 +105,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertTrue( Exclusions::matches( '/tmpfile', $open ) );
 	}
 
+	/**
+	 * Test wildcard treats other characters as literal.
+	 */
 	public function test_wildcard_treats_other_characters_as_literal(): void {
 		$rules = [
 			[
@@ -99,6 +120,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/fileXpdfY', $rules ) );
 	}
 
+	/**
+	 * Test matching is case sensitive.
+	 */
 	public function test_matching_is_case_sensitive(): void {
 		$rules = [
 			[
@@ -111,6 +135,9 @@ final class MonitorExclusionsTest extends TestCase {
 		$this->assertFalse( Exclusions::matches( '/gone', $rules ) );
 	}
 
+	/**
+	 * Test malformed rules never match and never fatal.
+	 */
 	public function test_malformed_rules_never_match_and_never_fatal(): void {
 		$this->assertFalse( Exclusions::matches( '/anything', [] ) );
 		$this->assertFalse(
@@ -135,6 +162,9 @@ final class MonitorExclusionsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test first match short circuits.
+	 */
 	public function test_first_match_short_circuits(): void {
 		$rules = [
 			[

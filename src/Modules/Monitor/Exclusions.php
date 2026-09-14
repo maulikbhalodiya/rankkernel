@@ -43,8 +43,8 @@ final class Exclusions {
 	 * Malformed rules are skipped, never fatal. An empty rule set excludes
 	 * nothing.
 	 *
-	 * @param string               $uri   Normalized 404 URI.
-	 * @param array<int, mixed>    $rules Exclusion rules, comparator plus value pairs.
+	 * @param string            $uri   Normalized 404 URI.
+	 * @param array<int, mixed> $rules Exclusion rules, comparator plus value pairs.
 	 * @return bool True when a rule matches.
 	 */
 	public static function matches( string $uri, array $rules ): bool {

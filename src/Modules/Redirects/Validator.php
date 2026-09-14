@@ -115,8 +115,8 @@ final class Validator {
 	 * with save allowed, otherwise clean. Invalid input stays with the
 	 * caller field validation, this helper only orders the graph findings.
 	 *
-	 * @param array<string, mixed>       $proposed Proposed rule: source, target, code, match_type.
-	 * @param array<int, array<string, mixed>> $rules Active candidate rules with concrete targets.
+	 * @param array<string, mixed>             $proposed Proposed rule: source, target, code, match_type.
+	 * @param array<int, array<string, mixed>> $rules    Active candidate rules with concrete targets.
 	 * @return array{verdict: string, loop: array{has_cycle: bool, path: string[], inconclusive: bool}, chain: array{has_chain: bool, chain: string[], final: string|null, inconclusive: bool}}
 	 */
 	public function assess_safety( array $proposed, array $rules ): array {
@@ -173,8 +173,8 @@ final class Validator {
 	 * MAX_DEPTH and more than MAX_NODES matching edges mark the analysis
 	 * inconclusive without blocking, and never count as proof of safety.
 	 *
-	 * @param array<string, mixed>       $proposed Proposed rule: source, target, code, match_type.
-	 * @param array<int, array<string, mixed>> $rules Active candidate rules with concrete targets.
+	 * @param array<string, mixed>             $proposed Proposed rule: source, target, code, match_type.
+	 * @param array<int, array<string, mixed>> $rules    Active candidate rules with concrete targets.
 	 * @return array{has_cycle: bool, path: string[], inconclusive: bool}
 	 */
 	public function detect_loop( array $proposed, array $rules ): array {
@@ -310,8 +310,8 @@ final class Validator {
 	 * recommended direct target. Pattern, capture, external ambiguity, or hop
 	 * cap overruns report inconclusive instead of a recommendation.
 	 *
-	 * @param array<string, mixed>       $proposed Proposed rule: source, target, code.
-	 * @param array<int, array<string, mixed>> $rules Active candidate rules.
+	 * @param array<string, mixed>             $proposed Proposed rule: source, target, code.
+	 * @param array<int, array<string, mixed>> $rules    Active candidate rules.
 	 * @return array{has_chain: bool, chain: string[], final: string|null, inconclusive: bool}
 	 */
 	public function detect_chain( array $proposed, array $rules ): array {

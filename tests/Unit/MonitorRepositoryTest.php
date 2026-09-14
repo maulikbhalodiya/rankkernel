@@ -14,17 +14,27 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Monitor\MonitorRepository;
 
+/**
+ * Monitor Repository Test.
+ */
 final class MonitorRepositoryTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var MonitorFakeDb
 	 */
 	private MonitorFakeDb $db;
 
 	/**
 	 * Repository under test.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repo;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -43,12 +53,18 @@ final class MonitorRepositoryTest extends TestCase {
 		Functions\when( 'current_time' )->alias( static fn (): string => '2026-06-01 12:00:00' );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test record inserts then increments without duplicate row.
+	 */
 	public function test_record_inserts_then_increments_without_duplicate_row(): void {
 		$hash = hash( 'sha256', '/missing-page' );
 
@@ -66,11 +82,17 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( '2026-06-01 12:00:00', $row['last_accessed'] );
 	}
 
+	/**
+	 * Test record rejects empty identity.
+	 */
 	public function test_record_rejects_empty_identity(): void {
 		$this->assertSame( '', $this->repo->record( '', '' ) );
 		$this->assertCount( 0, $this->db->rows );
 	}
 
+	/**
+	 * Test record race on unique hash falls back to update.
+	 */
 	public function test_record_race_on_unique_hash_falls_back_to_update(): void {
 		$hash = hash( 'sha256', '/race' );
 
@@ -100,6 +122,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( 6, (int) $row['hits'] );
 	}
 
+	/**
+	 * Test count and usage.
+	 */
 	public function test_count_and_usage(): void {
 		$this->assertSame( 0, $this->repo->count() );
 
@@ -115,6 +140,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( 0.2, $usage['percent'] );
 	}
 
+	/**
+	 * Test paginate search sort and filters.
+	 */
 	public function test_paginate_search_sort_and_filters(): void {
 		$this->db->seed(
 			[
@@ -174,6 +202,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertCount( 1, $paged['rows'] );
 	}
 
+	/**
+	 * Test find by id and delete by id.
+	 */
 	public function test_find_by_id_and_delete_by_id(): void {
 		$id = $this->db->seed(
 			[
@@ -193,6 +224,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertNull( $this->repo->findById( $id ) );
 	}
 
+	/**
+	 * Test delete many removes only listed ids.
+	 */
 	public function test_delete_many_removes_only_listed_ids(): void {
 		$keep  = $this->db->seed(
 			[
@@ -219,6 +253,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertIsArray( $this->repo->findById( $keep ) );
 	}
 
+	/**
+	 * Test clear all bounded loops without truncate.
+	 */
 	public function test_clear_all_bounded_loops_without_truncate(): void {
 		for ( $i = 1; $i <= 5; $i++ ) {
 			$this->db->seed(
@@ -245,6 +282,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test delete older than removes only stale rows.
+	 */
 	public function test_delete_older_than_removes_only_stale_rows(): void {
 		$this->db->seed(
 			[
@@ -266,6 +306,9 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( '/fresh', $this->repo->paginate()['rows'][0]['uri'] );
 	}
 
+	/**
+	 * Test delete oldest over removes oldest first bounded.
+	 */
 	public function test_delete_oldest_over_removes_oldest_first_bounded(): void {
 		$this->db->seed(
 			[

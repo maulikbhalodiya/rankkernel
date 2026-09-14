@@ -29,11 +29,15 @@ use RankKernel\Modules\Monitor\Pruner;
 final class MonitorFloodRetentionTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var MonitorFakeDb
 	 */
 	private MonitorFakeDb $db;
 
 	/**
 	 * Repository under test.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repo;
 
@@ -51,6 +55,11 @@ final class MonitorFloodRetentionTest extends TestCase {
 	 */
 	private array $transients = [];
 
+	/**
+	 * Is404.
+	 *
+	 * @var bool
+	 */
 	private bool $is404 = true;
 
 	/**
@@ -60,6 +69,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -80,6 +92,7 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$this->is404      = true;
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -142,6 +155,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 
@@ -158,6 +174,8 @@ final class MonitorFloodRetentionTest extends TestCase {
 
 	/**
 	 * Build a logger over the test doubles.
+	 *
+	 * @return Logger The result.
 	 */
 	private function makeLogger(): Logger {
 		$logger = new Logger( $this->repo, new MonitorSettings() );
@@ -168,6 +186,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 
 	/**
 	 * Simulate one request for a URI.
+	 *
+	 * @param Logger $logger Logger.
+	 * @param string $uri    Uri.
 	 */
 	private function request( Logger $logger, string $uri ): void {
 		$_SERVER['REQUEST_URI'] = $uri;
@@ -175,6 +196,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$logger->maybeLog();
 	}
 
+	/**
+	 * Test configured budget controls unique intake.
+	 */
 	public function test_configured_budget_controls_unique_intake(): void {
 		$this->options['rankkernel_404_settings'] = [ 'flood_budget' => 5 ];
 
@@ -191,6 +215,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$this->assertTrue( FloodGuard::isSuppressed() );
 	}
 
+	/**
+	 * Test window reset restores intake.
+	 */
 	public function test_window_reset_restores_intake(): void {
 		$this->options['rankkernel_404_settings'] = [
 			'flood_budget' => 1,
@@ -220,6 +247,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$this->assertNotNull( $this->repo->findByHash( hash( 'sha256', '/second' ) ) );
 	}
 
+	/**
+	 * Test repeated hits never spend budget.
+	 */
 	public function test_repeated_hits_never_spend_budget(): void {
 		$this->options['rankkernel_404_settings'] = [ 'flood_budget' => 1 ];
 
@@ -244,6 +274,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$this->assertSame( 1, $this->repo->count(), 'Repeats cost rows, the stranger is suppressed' );
 	}
 
+	/**
+	 * Test pruner holds flood intake at maximum oldest first.
+	 */
 	public function test_pruner_holds_flood_intake_at_maximum_oldest_first(): void {
 		$this->options['rankkernel_404_settings'] = [
 			'flood_budget' => 10,
@@ -290,6 +323,9 @@ final class MonitorFloodRetentionTest extends TestCase {
 		$this->assertNotNull( $this->repo->findByHash( hash( 'sha256', '/flood-4' ) ) );
 	}
 
+	/**
+	 * Test no ip address is read or stored.
+	 */
 	public function test_no_ip_address_is_read_or_stored(): void {
 		$_SERVER['REMOTE_ADDR']          = '203.0.113.7';
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = '198.51.100.9';

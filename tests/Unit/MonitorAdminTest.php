@@ -36,11 +36,15 @@ final class MonitorAdminTest extends TestCase {
 
 	/**
 	 * In memory 404 table.
+	 *
+	 * @var MonitorFakeDb
 	 */
 	private MonitorFakeDb $db;
 
 	/**
 	 * Last redirect URL captured from wp safe redirect.
+	 *
+	 * @var string
 	 */
 	private string $lastRedirect = '';
 
@@ -178,6 +182,7 @@ final class MonitorAdminTest extends TestCase {
 	 * Build the page with the fake database.
 	 *
 	 * @param bool $redirectsOn Whether the Redirects module reads as enabled.
+	 * @return NotFoundPage The result.
 	 */
 	private function makePage( bool $redirectsOn = true ): NotFoundPage {
 		$this->options['rankkernel_modules'] = $redirectsOn ? [ 'redirects' ] : [];
@@ -243,6 +248,9 @@ final class MonitorAdminTest extends TestCase {
 
 	/**
 	 * Render the page and return the markup.
+	 *
+	 * @param NotFoundPage $page Page.
+	 * @return string The result.
 	 */
 	private function renderPage( NotFoundPage $page ): string {
 		ob_start();

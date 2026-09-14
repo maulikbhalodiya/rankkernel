@@ -39,6 +39,8 @@ final class FloodGuard {
 
 	/**
 	 * Module settings.
+	 *
+	 * @var MonitorSettings
 	 */
 	private MonitorSettings $settings;
 
@@ -119,6 +121,8 @@ final class FloodGuard {
 
 	/**
 	 * Cache key for the current site.
+	 *
+	 * @return string The result.
 	 */
 	private function key(): string {
 		$siteId = 1;
