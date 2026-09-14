@@ -14,7 +14,13 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\DestinationValidator;
 
+/**
+ * Redirects Destination Validator Test.
+ */
 final class RedirectsDestinationValidatorTest extends TestCase {
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -28,11 +34,17 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		Functions\when( 'wp_allowed_protocols' )->alias( static fn (): array => [ 'http', 'https' ] );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test relative destination allowed.
+	 */
 	public function test_relative_destination_allowed(): void {
 		$validator = new DestinationValidator();
 
@@ -42,6 +54,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( '/new', $result['destination'] );
 	}
 
+	/**
+	 * Test bare slug expands to path.
+	 */
 	public function test_bare_slug_expands_to_path(): void {
 		$validator = new DestinationValidator();
 
@@ -51,6 +66,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( '/new-page', $result['destination'] );
 	}
 
+	/**
+	 * Test query kept fragment stripped.
+	 */
 	public function test_query_kept_fragment_stripped(): void {
 		$validator = new DestinationValidator();
 
@@ -60,6 +78,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( '/new?x=1', $result['destination'] );
 	}
 
+	/**
+	 * Test unsafe schemes rejected.
+	 */
 	public function test_unsafe_schemes_rejected(): void {
 		$validator = new DestinationValidator();
 
@@ -71,6 +92,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Test http external requires allowlist.
+	 */
 	public function test_http_external_requires_allowlist(): void {
 		$validator = new DestinationValidator();
 
@@ -85,6 +109,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( 'https://external.example/x', $allowed['destination'] );
 	}
 
+	/**
+	 * Test allowlist match is case insensitive.
+	 */
 	public function test_allowlist_match_is_case_insensitive(): void {
 		$validator = new DestinationValidator();
 
@@ -93,6 +120,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertTrue( $result['valid'] );
 	}
 
+	/**
+	 * Test same host absolute folds to relative.
+	 */
 	public function test_same_host_absolute_folds_to_relative(): void {
 		$validator = new DestinationValidator();
 
@@ -102,6 +132,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( '/new?x=1', $result['destination'] );
 	}
 
+	/**
+	 * Test protocol relative external rejected.
+	 */
 	public function test_protocol_relative_external_rejected(): void {
 		$validator = new DestinationValidator();
 
@@ -110,6 +143,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertFalse( $result['valid'] );
 	}
 
+	/**
+	 * Test crlf rejected.
+	 */
 	public function test_crlf_rejected(): void {
 		$validator = new DestinationValidator();
 
@@ -119,6 +155,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertSame( 'control characters rejected', $result['reason'] );
 	}
 
+	/**
+	 * Test control characters rejected.
+	 */
 	public function test_control_characters_rejected(): void {
 		$validator = new DestinationValidator();
 
@@ -127,6 +166,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertFalse( $result['valid'] );
 	}
 
+	/**
+	 * Test empty destination rules.
+	 */
 	public function test_empty_destination_rules(): void {
 		$validator = new DestinationValidator();
 
@@ -145,6 +187,9 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertTrue( $legal['valid'] );
 	}
 
+	/**
+	 * Test never returns raw input.
+	 */
 	public function test_never_returns_raw_input(): void {
 		$validator = new DestinationValidator();
 

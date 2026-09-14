@@ -17,6 +17,9 @@ use RankKernel\Modules\ModuleManager;
 use RankKernel\Modules\Monitor\MonitorModule;
 use RankKernel\Modules\Redirects\RedirectsModule;
 
+/**
+ * Redirects Monitor Gating Test.
+ */
 final class RedirectsMonitorGatingTest extends TestCase {
 	/**
 	 * Registered hooks.
@@ -25,6 +28,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 	 */
 	private array $hooks = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -48,6 +54,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
@@ -102,6 +111,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 		return false;
 	}
 
+	/**
+	 * Test both disabled boot zero hooks.
+	 */
 	public function test_both_disabled_boot_zero_hooks(): void {
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ): mixed {
@@ -135,6 +147,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 		$this->assertNull( $monitor->getLogger() );
 	}
 
+	/**
+	 * Test only redirects enabled registers dispatch only.
+	 */
 	public function test_only_redirects_enabled_registers_dispatch_only(): void {
 		[ $manager, $redirects, $monitor ] = $this->bootWith( [ 'redirects' ] );
 
@@ -147,6 +162,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 		$this->assertFalse( $this->hasHook( 'template_redirect', 99 ) );
 	}
 
+	/**
+	 * Test only monitor enabled registers capture only.
+	 */
 	public function test_only_monitor_enabled_registers_capture_only(): void {
 		[ $manager, $redirects, $monitor ] = $this->bootWith( [ '404' ] );
 
@@ -159,6 +177,9 @@ final class RedirectsMonitorGatingTest extends TestCase {
 		$this->assertTrue( $this->hasHook( 'template_redirect', 99 ) );
 	}
 
+	/**
+	 * Test both enabled register both hooks.
+	 */
 	public function test_both_enabled_register_both_hooks(): void {
 		[ $manager, $redirects, $monitor ] = $this->bootWith( [ 'redirects', '404' ] );
 

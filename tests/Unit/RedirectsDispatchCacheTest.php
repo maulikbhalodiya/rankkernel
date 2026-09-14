@@ -28,6 +28,8 @@ use RankKernel\Modules\Redirects\RedirectsSettings;
 final class RedirectsDispatchCacheTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -59,6 +61,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -79,6 +84,7 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->redirects  = [];
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -137,6 +143,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		Functions\when( 'wp_unslash' )->alias( static fn ( string $v ): string => stripslashes( $v ) );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		if ( null !== $this->originalUri ) {
 			$_SERVER['REQUEST_URI'] = $this->originalUri;
@@ -165,6 +174,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		return [ $dispatcher, $repo ];
 	}
 
+	/**
+	 * Test update invalidates cached match.
+	 */
 	public function test_update_invalidates_cached_match(): void {
 		[ $dispatcher, $repo ] = $this->wiredDispatcher();
 
@@ -193,6 +205,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->assertSame( '/v2', $this->redirects[1]['location'], 'An update must retire the cached destination' );
 	}
 
+	/**
+	 * Test delete stops dispatch.
+	 */
 	public function test_delete_stops_dispatch(): void {
 		[ $dispatcher, $repo ] = $this->wiredDispatcher();
 
@@ -220,6 +235,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->assertCount( 1, $this->redirects, 'A deleted rule must stop dispatching' );
 	}
 
+	/**
+	 * Test deactivate stops dispatch.
+	 */
 	public function test_deactivate_stops_dispatch(): void {
 		[ $dispatcher, $repo ] = $this->wiredDispatcher();
 
@@ -247,6 +265,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->assertCount( 1, $this->redirects, 'A deactivated rule must stop dispatching' );
 	}
 
+	/**
+	 * Test counters never write before response.
+	 */
 	public function test_counters_never_write_before_response(): void {
 		$hits = new HitCounter();
 
@@ -277,6 +298,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->assertSame( 1, (int) $this->db->rows[ $id ]['hits'] );
 	}
 
+	/**
+	 * Test uncached admin write retires frontend cache.
+	 */
 	public function test_uncached_admin_write_retires_frontend_cache(): void {
 		[ $dispatcher, $repo ] = $this->wiredDispatcher();
 
@@ -309,6 +333,9 @@ final class RedirectsDispatchCacheTest extends TestCase {
 		$this->assertSame( '/v2', $this->redirects[1]['location'], 'An admin save without a cache instance must still retire frontend caches' );
 	}
 
+	/**
+	 * Test multiple hits coalesce to one update per rule.
+	 */
 	public function test_multiple_hits_coalesce_to_one_update_per_rule(): void {
 		$this->db->rows[1] = [
 			'id'            => 1,

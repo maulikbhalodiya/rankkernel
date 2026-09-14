@@ -16,9 +16,14 @@ use RankKernel\Modules\Monitor\MonitorRepository;
 use RankKernel\Modules\Monitor\MonitorSettings;
 use RankKernel\Modules\Monitor\Pruner;
 
+/**
+ * Monitor Pruner Test.
+ */
 final class MonitorPrunerTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var MonitorFakeDb
 	 */
 	private MonitorFakeDb $db;
 
@@ -29,6 +34,9 @@ final class MonitorPrunerTest extends TestCase {
 	 */
 	private array $options = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -58,6 +66,9 @@ final class MonitorPrunerTest extends TestCase {
 		Functions\when( 'current_time' )->alias( static fn (): string => '2026-06-01 12:00:00' );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
@@ -66,17 +77,25 @@ final class MonitorPrunerTest extends TestCase {
 
 	/**
 	 * Build a pruner over the test doubles.
+	 *
+	 * @return Pruner The result.
 	 */
 	private function makePruner(): Pruner {
 		return new Pruner( new MonitorRepository( $this->db ), new MonitorSettings() );
 	}
 
+	/**
+	 * Test cutoff follows retention days.
+	 */
 	public function test_cutoff_follows_retention_days(): void {
 		$this->options['rankkernel_404_settings'] = [ 'retention_days' => 30 ];
 
 		$this->assertSame( '2026-05-02 12:00:00', $this->makePruner()->cutoff() );
 	}
 
+	/**
+	 * Test prune by age removes only stale rows.
+	 */
 	public function test_prune_by_age_removes_only_stale_rows(): void {
 		$this->db->seed(
 			[
@@ -97,6 +116,9 @@ final class MonitorPrunerTest extends TestCase {
 		$this->assertSame( 1, count( $this->db->rows ) );
 	}
 
+	/**
+	 * Test prune by count removes oldest first with margin.
+	 */
 	public function test_prune_by_count_removes_oldest_first_with_margin(): void {
 		$this->options['rankkernel_404_settings'] = [ 'max_rows' => 3 ];
 
@@ -144,6 +166,9 @@ final class MonitorPrunerTest extends TestCase {
 		$this->assertArrayNotHasKey( 2, $this->db->rows );
 	}
 
+	/**
+	 * Test prune by count within limit removes nothing.
+	 */
 	public function test_prune_by_count_within_limit_removes_nothing(): void {
 		$this->options['rankkernel_404_settings'] = [ 'max_rows' => 1000 ];
 
@@ -158,6 +183,9 @@ final class MonitorPrunerTest extends TestCase {
 		$this->assertSame( 1, count( $this->db->rows ) );
 	}
 
+	/**
+	 * Test prune runs age then count and never truncates.
+	 */
 	public function test_prune_runs_age_then_count_and_never_truncates(): void {
 		$this->options['rankkernel_404_settings'] = [
 			'retention_days' => 30,

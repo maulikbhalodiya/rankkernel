@@ -16,14 +16,21 @@ use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
 
+/**
+ * Redirects Repository Test.
+ */
 final class RedirectsRepositoryTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
 	/**
 	 * Repository under test.
+	 *
+	 * @var RedirectRepository
 	 */
 	private RedirectRepository $repo;
 
@@ -34,6 +41,9 @@ final class RedirectsRepositoryTest extends TestCase {
 	 */
 	private array $options = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -71,12 +81,18 @@ final class RedirectsRepositoryTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test insert normalizes and hashes.
+	 */
 	public function test_insert_normalizes_and_hashes(): void {
 		$id = $this->repo->insert(
 			[
@@ -95,6 +111,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( Normalizer::hash( 'exact', '/Old/page' ), $stored['source_hash'] );
 	}
 
+	/**
+	 * Test insert rejects homepage source.
+	 */
 	public function test_insert_rejects_homepage_source(): void {
 		$this->assertSame(
 			0,
@@ -107,6 +126,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test insert rejects empty target for redirect code.
+	 */
 	public function test_insert_rejects_empty_target_for_redirect_code(): void {
 		$this->assertSame(
 			0,
@@ -119,6 +141,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test insert allows empty target for gone.
+	 */
 	public function test_insert_allows_empty_target_for_gone(): void {
 		$id = $this->repo->insert(
 			[
@@ -131,6 +156,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 1, $id );
 	}
 
+	/**
+	 * Test insert blocks duplicates by uniqueness.
+	 */
 	public function test_insert_blocks_duplicates_by_uniqueness(): void {
 		$this->assertSame(
 			1,
@@ -152,6 +180,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test find and lookup resolve by hash.
+	 */
 	public function test_find_and_lookup_resolve_by_hash(): void {
 		$this->repo->insert(
 			[
@@ -172,10 +203,16 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 1, $lookup['id'] );
 	}
 
+	/**
+	 * Test lookup ignores blocked source.
+	 */
 	public function test_lookup_ignores_blocked_source(): void {
 		$this->assertNull( $this->repo->lookup( '/' ) );
 	}
 
+	/**
+	 * Test update rehashes changed source.
+	 */
 	public function test_update_rehashes_changed_source(): void {
 		$this->repo->insert(
 			[
@@ -193,6 +230,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( '/new', $moved['target'] );
 	}
 
+	/**
+	 * Test update rejects unknown fields only.
+	 */
 	public function test_update_rejects_unknown_fields_only(): void {
 		$this->repo->insert(
 			[
@@ -204,6 +244,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertFalse( $this->repo->update( 1, [ 'nope' => 'x' ] ) );
 	}
 
+	/**
+	 * Test delete removes row.
+	 */
 	public function test_delete_removes_row(): void {
 		$this->repo->insert(
 			[
@@ -217,6 +260,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertFalse( $this->repo->delete( 0 ) );
 	}
 
+	/**
+	 * Test set active flips flag.
+	 */
 	public function test_set_active_flips_flag(): void {
 		$this->repo->insert(
 			[
@@ -229,6 +275,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 0, (int) $this->db->rows[1]['is_active'] );
 	}
 
+	/**
+	 * Test all patterns excludes exact and inactive.
+	 */
 	public function test_all_patterns_excludes_exact_and_inactive(): void {
 		$this->repo->insert(
 			[
@@ -259,6 +308,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( '/b', $patterns[0]['source'] );
 	}
 
+	/**
+	 * Test paginate search filters sort counts.
+	 */
 	public function test_paginate_search_filters_sort_counts(): void {
 		$this->repo->insert(
 			[
@@ -318,6 +370,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( '/beta', $sorted['rows'][1]['source'] );
 	}
 
+	/**
+	 * Test bulk activate deactivate delete.
+	 */
 	public function test_bulk_activate_deactivate_delete(): void {
 		$this->repo->insert(
 			[
@@ -360,6 +415,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 0, $unknown['deleted'] );
 	}
 
+	/**
+	 * Test count with filters.
+	 */
 	public function test_count_with_filters(): void {
 		$this->repo->insert(
 			[
@@ -381,6 +439,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count( [ 'status' => 'inactive' ] ) );
 	}
 
+	/**
+	 * Test cycle candidates exclude terminal and inactive.
+	 */
 	public function test_cycle_candidates_exclude_terminal_and_inactive(): void {
 		$this->repo->insert(
 			[
@@ -410,6 +471,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( '/a', $candidates[0]['source'] );
 	}
 
+	/**
+	 * Test export rows all and selected.
+	 */
 	public function test_export_rows_all_and_selected(): void {
 		$this->repo->insert(
 			[
@@ -432,6 +496,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertSame( '/b', $selected[0]['source'] );
 	}
 
+	/**
+	 * Test writes invalidate cache.
+	 */
 	public function test_writes_invalidate_cache(): void {
 		$cache = new RedirectCache();
 		$this->repo->setCache( $cache );
@@ -456,6 +523,9 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertNotSame( $after, $later );
 	}
 
+	/**
+	 * Test no connection fails quietly.
+	 */
 	public function test_no_connection_fails_quietly(): void {
 		unset( $GLOBALS['wpdb'] );
 

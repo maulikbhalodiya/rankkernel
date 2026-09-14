@@ -25,6 +25,8 @@ use RankKernel\Modules\Redirects\RedirectRepository;
 final class RedirectsExportStreamTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -35,6 +37,9 @@ final class RedirectsExportStreamTest extends TestCase {
 	 */
 	private array $options = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -73,6 +78,9 @@ final class RedirectsExportStreamTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
@@ -81,6 +89,8 @@ final class RedirectsExportStreamTest extends TestCase {
 
 	/**
 	 * Prefill exact rules straight into the fake table.
+	 *
+	 * @param int $count Count.
 	 */
 	private function seedRows( int $count ): void {
 		for ( $i = 1; $i <= $count; $i++ ) {
@@ -101,6 +111,9 @@ final class RedirectsExportStreamTest extends TestCase {
 		$this->db->nextId = $count + 1;
 	}
 
+	/**
+	 * Test large export reads in bounded batches.
+	 */
 	public function test_large_export_reads_in_bounded_batches(): void {
 		$this->seedRows( 1200 );
 
@@ -119,6 +132,9 @@ final class RedirectsExportStreamTest extends TestCase {
 		$this->assertSame( '/row-1200,/dest-1200,301,exact,yes,1200,2026-01-02 00:00:00', $lines[1200] );
 	}
 
+	/**
+	 * Test streamed bytes match string export.
+	 */
 	public function test_streamed_bytes_match_string_export(): void {
 		$this->seedRows( 1200 );
 
@@ -138,6 +154,9 @@ final class RedirectsExportStreamTest extends TestCase {
 		$this->assertStringContainsString( "'=HYPERLINK", $string, 'Formula cells stay escaped on both paths' );
 	}
 
+	/**
+	 * Test selected ids export in stable order.
+	 */
 	public function test_selected_ids_export_in_stable_order(): void {
 		$this->seedRows( 10 );
 
@@ -153,6 +172,9 @@ final class RedirectsExportStreamTest extends TestCase {
 		$this->assertStringStartsWith( '/row-9,', $lines[3] );
 	}
 
+	/**
+	 * Test empty table exports header only.
+	 */
 	public function test_empty_table_exports_header_only(): void {
 		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
 

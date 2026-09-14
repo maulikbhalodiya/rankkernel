@@ -33,6 +33,8 @@ use RankKernel\Modules\Redirects\Validator;
 final class RedirectsSafetyPrecedenceTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -45,6 +47,8 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 
 	/**
 	 * Last redirect URL captured from wp safe redirect.
+	 *
+	 * @var string
 	 */
 	private string $lastRedirect = '';
 
@@ -235,6 +239,8 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 
 	/**
 	 * Build the admin page over the fake database.
+	 *
+	 * @return RedirectsPage The result.
 	 */
 	private function makePage(): RedirectsPage {
 		return new RedirectsPage(
@@ -247,6 +253,8 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 
 	/**
 	 * Build the watcher over the fake database.
+	 *
+	 * @return SlugWatcher The result.
 	 */
 	private function makeWatcher(): SlugWatcher {
 		return new SlugWatcher( new RedirectRepository( $this->db ), new RedirectsSettings() );
@@ -255,6 +263,7 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 	/**
 	 * Build a post object double.
 	 *
+	 * @param string $slug Slug.
 	 * @return object Post shaped object.
 	 */
 	private function makePost( string $slug ): object {
@@ -268,6 +277,10 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 	/**
 	 * Seed one rule in the fake table.
 	 *
+	 * @param string $source    Source.
+	 * @param string $target    Target.
+	 * @param string $code      Code.
+	 * @param string $matchType Match Type.
 	 * @return int New row id.
 	 */
 	private function seedRule( string $source, string $target, string $code = '301', string $matchType = 'exact' ): int {
@@ -315,6 +328,9 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 
 	/**
 	 * Render the page and return the markup.
+	 *
+	 * @param RedirectsPage $page Page.
+	 * @return string The result.
 	 */
 	private function renderPage( RedirectsPage $page ): string {
 		ob_start();
@@ -326,6 +342,9 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 
 	/**
 	 * Write CSV content to a temp file.
+	 *
+	 * @param string $content Content.
+	 * @return string The result.
 	 */
 	private function write_csv( string $content ): string {
 		$path = tempnam( sys_get_temp_dir(), 'rksafe' );

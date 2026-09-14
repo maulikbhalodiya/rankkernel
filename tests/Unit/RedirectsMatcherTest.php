@@ -15,7 +15,13 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\Matcher;
 use RankKernel\Modules\Redirects\Normalizer;
 
+/**
+ * Redirects Matcher Test.
+ */
 final class RedirectsMatcherTest extends TestCase {
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -28,6 +34,9 @@ final class RedirectsMatcherTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -54,6 +63,9 @@ final class RedirectsMatcherTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test exact beats every pattern.
+	 */
 	public function test_exact_beats_every_pattern(): void {
 		$rules = [
 			$this->rule(
@@ -106,6 +118,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 5, $winner['id'] );
 	}
 
+	/**
+	 * Test prefix beats wildcard contains suffix regex.
+	 */
 	public function test_prefix_beats_wildcard_contains_suffix_regex(): void {
 		$rules = [
 			$this->rule(
@@ -151,6 +166,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 6, $winner['id'] );
 	}
 
+	/**
+	 * Test wildcard beats contains suffix regex.
+	 */
 	public function test_wildcard_beats_contains_suffix_regex(): void {
 		$rules = [
 			$this->rule(
@@ -189,6 +207,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 7, $winner['id'] );
 	}
 
+	/**
+	 * Test contains beats suffix regex.
+	 */
 	public function test_contains_beats_suffix_regex(): void {
 		$rules = [
 			$this->rule(
@@ -220,6 +241,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 8, $winner['id'] );
 	}
 
+	/**
+	 * Test suffix beats regex.
+	 */
 	public function test_suffix_beats_regex(): void {
 		$rules = [
 			$this->rule(
@@ -244,6 +268,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 9, $winner['id'] );
 	}
 
+	/**
+	 * Test regex wins when only regex matches.
+	 */
 	public function test_regex_wins_when_only_regex_matches(): void {
 		$rules = [
 			$this->rule(
@@ -261,6 +288,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 10, $winner['id'] );
 	}
 
+	/**
+	 * Test longest prefix wins.
+	 */
 	public function test_longest_prefix_wins(): void {
 		$rules = [
 			$this->rule(
@@ -285,6 +315,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 2, $winner['id'] );
 	}
 
+	/**
+	 * Test lowest id breaks ties.
+	 */
 	public function test_lowest_id_breaks_ties(): void {
 		$rules = [
 			$this->rule(
@@ -309,6 +342,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 2, $winner['id'] );
 	}
 
+	/**
+	 * Test inactive rules never win.
+	 */
 	public function test_inactive_rules_never_win(): void {
 		$rules = [
 			$this->rule(
@@ -324,6 +360,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/old/page', $rules ) );
 	}
 
+	/**
+	 * Test no match returns null.
+	 */
 	public function test_no_match_returns_null(): void {
 		$rules = [
 			$this->rule(
@@ -338,6 +377,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/old/page', $rules ) );
 	}
 
+	/**
+	 * Test homepage never matches.
+	 */
 	public function test_homepage_never_matches(): void {
 		$rules = [
 			$this->rule(
@@ -352,6 +394,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/', $rules ) );
 	}
 
+	/**
+	 * Test regex cap ignores rules past twenty.
+	 */
 	public function test_regex_cap_ignores_rules_past_twenty(): void {
 		$rules = [];
 
@@ -376,6 +421,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/old/page', $rules ) );
 	}
 
+	/**
+	 * Test regex over length limit ignored.
+	 */
 	public function test_regex_over_length_limit_ignored(): void {
 		$rules = [
 			$this->rule(
@@ -390,6 +438,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/old/page', $rules ) );
 	}
 
+	/**
+	 * Test invalid regex fails closed.
+	 */
 	public function test_invalid_regex_fails_closed(): void {
 		$rules = [
 			$this->rule(
@@ -404,6 +455,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertNull( Matcher::pick_winner( '/old/page', $rules ) );
 	}
 
+	/**
+	 * Test rule matches single rule check.
+	 */
 	public function test_rule_matches_single_rule_check(): void {
 		$this->assertTrue(
 			Matcher::rule_matches(
@@ -430,6 +484,9 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertFalse( Matcher::rule_matches( $this->rule( [ 'is_active' => 0 ] ), '/old/page' ) );
 	}
 
+	/**
+	 * Test match uses indexed exact first.
+	 */
 	public function test_match_uses_indexed_exact_first(): void {
 		$exact = $this->rule(
 			[
@@ -440,11 +497,15 @@ final class RedirectsMatcherTest extends TestCase {
 
 		$repo = new class( $exact ) {
 			/**
+			 * Exact row under test.
+			 *
 			 * @var array<string, mixed>
 			 */
 			private array $exact;
 
 			/**
+			 * Create a new instance.
+			 *
 			 * @param array<string, mixed> $exact Exact row.
 			 */
 			public function __construct( array $exact ) {
@@ -452,6 +513,9 @@ final class RedirectsMatcherTest extends TestCase {
 			}
 
 			/**
+			 * Lookup.
+			 *
+			 * @param string $path Path.
 			 * @return array<string, mixed>|null
 			 */
 			public function lookup( string $path ): ?array {
@@ -459,6 +523,8 @@ final class RedirectsMatcherTest extends TestCase {
 			}
 
 			/**
+			 * All patterns.
+			 *
 			 * @return array<int, array<string, mixed>>
 			 */
 			public function all_patterns(): array {
@@ -473,9 +539,15 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertSame( 3, $winner['id'] );
 	}
 
+	/**
+	 * Test match falls back to patterns.
+	 */
 	public function test_match_falls_back_to_patterns(): void {
 		$repo = new class() {
 			/**
+			 * Lookup.
+			 *
+			 * @param string $path Path.
 			 * @return array<string, mixed>|null
 			 */
 			public function lookup( string $path ): ?array {
@@ -483,6 +555,8 @@ final class RedirectsMatcherTest extends TestCase {
 			}
 
 			/**
+			 * All patterns.
+			 *
 			 * @return array<int, array<string, mixed>>
 			 */
 			public function all_patterns(): array {

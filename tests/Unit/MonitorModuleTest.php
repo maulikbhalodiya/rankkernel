@@ -16,6 +16,9 @@ use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
 use RankKernel\Modules\Monitor\MonitorModule;
 
+/**
+ * Monitor Module Test.
+ */
 final class MonitorModuleTest extends TestCase {
 	/**
 	 * Registered hooks.
@@ -24,6 +27,9 @@ final class MonitorModuleTest extends TestCase {
 	 */
 	private array $hooks = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -47,12 +53,18 @@ final class MonitorModuleTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test contract values.
+	 */
 	public function test_contract_values(): void {
 		Functions\when( 'get_option' )->justReturn( [] );
 
@@ -64,6 +76,9 @@ final class MonitorModuleTest extends TestCase {
 		$this->assertSame( [], $module->dependsOn() );
 	}
 
+	/**
+	 * Test disabled module boots zero hooks.
+	 */
 	public function test_disabled_module_boots_zero_hooks(): void {
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ): mixed {
@@ -91,6 +106,9 @@ final class MonitorModuleTest extends TestCase {
 		$this->assertNull( $module->getLogger() );
 	}
 
+	/**
+	 * Test enabled module registers capture hook.
+	 */
 	public function test_enabled_module_registers_capture_hook(): void {
 		$db = new MonitorFakeDb();
 

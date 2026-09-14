@@ -21,11 +21,15 @@ namespace RankKernel\Tests\Unit;
 final class MonitorFakeDb {
 	/**
 	 * Table prefix.
+	 *
+	 * @var string
 	 */
 	public string $prefix = 'wp_';
 
 	/**
 	 * Whether SHOW TABLES LIKE reports the table.
+	 *
+	 * @var bool
 	 */
 	public bool $tableExists = true;
 
@@ -38,26 +42,36 @@ final class MonitorFakeDb {
 
 	/**
 	 * Read query count.
+	 *
+	 * @var int
 	 */
 	public int $reads = 0;
 
 	/**
 	 * Write query count.
+	 *
+	 * @var int
 	 */
 	public int $writes = 0;
 
 	/**
 	 * Next auto increment id.
+	 *
+	 * @var int
 	 */
 	public int $nextId = 1;
 
 	/**
 	 * Last insert id.
+	 *
+	 * @var int
 	 */
 	public int $insert_id = 0;
 
 	/**
 	 * Full table name.
+	 *
+	 * @return string The result.
 	 */
 	public function table(): string {
 		return $this->prefix . 'rankkernel_404_log';
@@ -91,8 +105,9 @@ final class MonitorFakeDb {
 	/**
 	 * Interpolate placeholders in order.
 	 *
-	 * @param string $query Query with placeholders.
+	 * @param string $query   Query with placeholders.
 	 * @param mixed  ...$args Values.
+	 * @return string The result.
 	 */
 	public function prepare( string $query, mixed ...$args ): string {
 		foreach ( $args as $arg ) {
@@ -115,6 +130,9 @@ final class MonitorFakeDb {
 
 	/**
 	 * Single value fetch.
+	 *
+	 * @param string $query Query.
+	 * @return mixed The result.
 	 */
 	public function get_var( string $query ): mixed {
 		++$this->reads;
@@ -130,14 +148,15 @@ final class MonitorFakeDb {
 		return null;
 	}
 
+	// Test double mirrors the wpdb method signature, so the parameter stays.
 	/**
 	 * Single row fetch.
 	 *
-	 * @param mixed $output Unused, rows are always arrays.
+	 * @param string $query  Query.
+	 * @param mixed  $output Unused, rows are always arrays.
+	 * @return array|null The result.
 	 */
-	// Test double mirrors the wpdb method signature, so the parameter stays.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-	public function get_row( string $query, mixed $output = 'ARRAY_A' ): ?array {
+	public function get_row( string $query, mixed $output = 'ARRAY_A' ): ?array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->reads;
 
 		$rows = $this->filterRows( $query );
@@ -145,28 +164,30 @@ final class MonitorFakeDb {
 		return $rows[0] ?? null;
 	}
 
+	// Test double mirrors the wpdb method signature, so the parameter stays.
 	/**
 	 * Row list fetch.
 	 *
-	 * @param mixed $output Unused, rows are always arrays.
+	 * @param string $query  Query.
+	 * @param mixed  $output Unused, rows are always arrays.
+	 * @return array The result.
 	 */
-	// Test double mirrors the wpdb method signature, so the parameter stays.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array {
+	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->reads;
 
 		return $this->filterRows( $query );
 	}
 
+	// Test double mirrors the wpdb method signature, so the parameter stays.
 	/**
 	 * Typed insert with uniqueness enforcement on uri_hash.
 	 *
+	 * @param string               $table  Table.
 	 * @param array<string, mixed> $data Row data.
 	 * @param mixed                $format Unused.
+	 * @return mixed The result.
 	 */
-	// Test double mirrors the wpdb method signature, so the parameter stays.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-	public function insert( string $table, array $data, mixed $format = null ): mixed {
+	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		foreach ( $this->rows as $row ) {
 			if ( (string) ( $data['uri_hash'] ?? '' ) === (string) $row['uri_hash'] ) {
 				return false;
@@ -182,15 +203,18 @@ final class MonitorFakeDb {
 		return 1;
 	}
 
+	// Test double mirrors the wpdb method signature, so the parameters stay.
 	/**
 	 * Typed update against a where map.
 	 *
+	 * @param string               $table       Table.
 	 * @param array<string, mixed> $data Row data.
 	 * @param array<string, mixed> $where Where map.
+	 * @param mixed                $format      Format.
+	 * @param mixed                $whereFormat Where Format.
+	 * @return mixed The result.
 	 */
-	// Test double mirrors the wpdb method signature, so the parameters stay.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed {
+	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
 		$affected = 0;
@@ -205,14 +229,16 @@ final class MonitorFakeDb {
 		return $affected;
 	}
 
+	// Test double mirrors the wpdb method signature, so the parameter stays.
 	/**
 	 * Delete against a where map.
 	 *
+	 * @param string               $table       Table.
 	 * @param array<string, mixed> $where Where map.
+	 * @param mixed                $whereFormat Where Format.
+	 * @return mixed The result.
 	 */
-	// Test double mirrors the wpdb method signature, so the parameter stays.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
-	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed {
+	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
 		$deleted = 0;
@@ -229,6 +255,9 @@ final class MonitorFakeDb {
 
 	/**
 	 * Raw query, handles bounded DELETE batches and table creation.
+	 *
+	 * @param string $query Query.
+	 * @return mixed The result.
 	 */
 	public function query( string $query ): mixed {
 		++$this->writes;
@@ -301,6 +330,9 @@ final class MonitorFakeDb {
 
 	/**
 	 * LIKE escaping.
+	 *
+	 * @param string $text Text.
+	 * @return string The result.
 	 */
 	public function esc_like( string $text ): string {
 		return addcslashes( $text, '_%\\' );
@@ -308,6 +340,8 @@ final class MonitorFakeDb {
 
 	/**
 	 * Charset collation, empty for the fake.
+	 *
+	 * @return string The result.
 	 */
 	public function get_charset_collate(): string {
 		return '';
@@ -339,6 +373,9 @@ final class MonitorFakeDb {
 
 	/**
 	 * LIMIT value from a DELETE statement, defaults to 500.
+	 *
+	 * @param string $query Query.
+	 * @return int[] The result.
 	 */
 	private function wantedLimit( string $query ): int {
 		$limit = [];
@@ -355,6 +392,7 @@ final class MonitorFakeDb {
 	 *
 	 * @param array<string, mixed> $row Row.
 	 * @param array<string, mixed> $where Where map.
+	 * @return bool The result.
 	 */
 	private function whereMatches( array $row, array $where ): bool {
 		foreach ( $where as $col => $val ) {
@@ -369,7 +407,8 @@ final class MonitorFakeDb {
 	/**
 	 * Parse an id list.
 	 *
-	 * @return int[]
+	 * @param string $idList Id List.
+	 * @return int[] The result.
 	 */
 	private function wantedIds( string $idList ): array {
 		$ids = [];
@@ -388,6 +427,7 @@ final class MonitorFakeDb {
 	/**
 	 * Filter rows by the clauses the repository emits.
 	 *
+	 * @param string $sql Sql.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function filterRows( string $sql ): array {

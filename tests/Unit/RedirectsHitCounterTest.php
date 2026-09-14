@@ -14,9 +14,14 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\HitCounter;
 
+/**
+ * Redirects Hit Counter Test.
+ */
 final class RedirectsHitCounterTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -27,6 +32,9 @@ final class RedirectsHitCounterTest extends TestCase {
 	 */
 	private array $hooks = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -74,12 +82,18 @@ final class RedirectsHitCounterTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Test records coalesce until flush.
+	 */
 	public function test_records_coalesce_until_flush(): void {
 		$counter = new HitCounter();
 
@@ -98,6 +112,9 @@ final class RedirectsHitCounterTest extends TestCase {
 		$this->assertSame( [], $counter->pending() );
 	}
 
+	/**
+	 * Test each rule gets one update.
+	 */
 	public function test_each_rule_gets_one_update(): void {
 		$counter = new HitCounter();
 
@@ -112,6 +129,9 @@ final class RedirectsHitCounterTest extends TestCase {
 		$this->assertSame( 2, $this->db->rows[2]['hits'] );
 	}
 
+	/**
+	 * Test empty flush writes nothing.
+	 */
 	public function test_empty_flush_writes_nothing(): void {
 		$counter = new HitCounter();
 
@@ -120,6 +140,9 @@ final class RedirectsHitCounterTest extends TestCase {
 		$this->assertSame( 0, $this->db->writes );
 	}
 
+	/**
+	 * Test shutdown hook registered once.
+	 */
 	public function test_shutdown_hook_registered_once(): void {
 		$counter = new HitCounter();
 
@@ -131,6 +154,9 @@ final class RedirectsHitCounterTest extends TestCase {
 		$this->assertCount( 1, $shutdowns );
 	}
 
+	/**
+	 * Test invalid ids ignored.
+	 */
 	public function test_invalid_ids_ignored(): void {
 		$counter = new HitCounter();
 
@@ -141,6 +167,9 @@ final class RedirectsHitCounterTest extends TestCase {
 		$this->assertSame( [], $this->hooks );
 	}
 
+	/**
+	 * Test flush without database clears silently.
+	 */
 	public function test_flush_without_database_clears_silently(): void {
 		unset( $GLOBALS['wpdb'] );
 

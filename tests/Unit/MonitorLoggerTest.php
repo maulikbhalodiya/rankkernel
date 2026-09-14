@@ -18,14 +18,21 @@ use RankKernel\Modules\Monitor\Logger;
 use RankKernel\Modules\Monitor\MonitorRepository;
 use RankKernel\Modules\Monitor\MonitorSettings;
 
+/**
+ * Monitor Logger Test.
+ */
 final class MonitorLoggerTest extends TestCase {
 	/**
 	 * Fake database.
+	 *
+	 * @var MonitorFakeDb
 	 */
 	private MonitorFakeDb $db;
 
 	/**
 	 * Repository under test.
+	 *
+	 * @var MonitorRepository
 	 */
 	private MonitorRepository $repo;
 
@@ -50,16 +57,46 @@ final class MonitorLoggerTest extends TestCase {
 	 */
 	private array $hooks = [];
 
+	/**
+	 * Is404.
+	 *
+	 * @var bool
+	 */
 	private bool $is404 = true;
 
+	/**
+	 * Is Admin.
+	 *
+	 * @var bool
+	 */
 	private bool $isAdmin = false;
 
+	/**
+	 * Is Ajax.
+	 *
+	 * @var bool
+	 */
 	private bool $isAjax = false;
 
+	/**
+	 * Is Cron.
+	 *
+	 * @var bool
+	 */
 	private bool $isCron = false;
 
+	/**
+	 * Sitemap Var.
+	 *
+	 * @var string
+	 */
 	private string $sitemapVar = '';
 
+	/**
+	 * Xsl Var.
+	 *
+	 * @var string
+	 */
 	private string $xslVar = '';
 
 	/**
@@ -69,6 +106,9 @@ final class MonitorLoggerTest extends TestCase {
 	 */
 	private ?string $originalUri = null;
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -95,6 +135,7 @@ final class MonitorLoggerTest extends TestCase {
 		$this->xslVar     = '';
 
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- test fixture preserves the superglobal, restored in tearDown.
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
@@ -178,6 +219,9 @@ final class MonitorLoggerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
 
@@ -194,6 +238,8 @@ final class MonitorLoggerTest extends TestCase {
 
 	/**
 	 * Build a logger over the test doubles, HTTP 200 unless changed.
+	 *
+	 * @return Logger The result.
 	 */
 	private function makeLogger(): Logger {
 		$logger = new Logger( $this->repo, new MonitorSettings() );
@@ -204,6 +250,9 @@ final class MonitorLoggerTest extends TestCase {
 
 	/**
 	 * Simulate one request for a URI.
+	 *
+	 * @param Logger $logger Logger.
+	 * @param string $uri    Uri.
 	 */
 	private function request( Logger $logger, string $uri ): void {
 		$_SERVER['REQUEST_URI'] = $uri;
@@ -211,6 +260,9 @@ final class MonitorLoggerTest extends TestCase {
 		$logger->maybeLog();
 	}
 
+	/**
+	 * Test genuine 404 creates exactly one row.
+	 */
 	public function test_genuine_404_creates_exactly_one_row(): void {
 		$logger = $this->makeLogger();
 
@@ -230,6 +282,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( [ 'created', 'hits', 'id', 'last_accessed', 'referer', 'uri', 'uri_hash', 'user_agent' ], $keys );
 	}
 
+	/**
+	 * Test repeat 404 increments same row across requests.
+	 */
 	public function test_repeat_404_increments_same_row_across_requests(): void {
 		$logger = $this->makeLogger();
 
@@ -247,6 +302,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 2, (int) $row['hits'] );
 	}
 
+	/**
+	 * Test second hit inside one request counts once.
+	 */
 	public function test_second_hit_inside_one_request_counts_once(): void {
 		$logger = $this->makeLogger();
 
@@ -261,6 +319,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 1, (int) $row['hits'] );
 	}
 
+	/**
+	 * Test insert schedules shutdown prune.
+	 */
 	public function test_insert_schedules_shutdown_prune(): void {
 		$logger = $this->makeLogger();
 
@@ -271,6 +332,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertNotEmpty( $shutdown );
 	}
 
+	/**
+	 * Test skips non 404.
+	 */
 	public function test_skips_non_404(): void {
 		$this->is404 = false;
 
@@ -279,6 +343,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips admin ajax and cron.
+	 */
 	public function test_skips_admin_ajax_and_cron(): void {
 		$logger = $this->makeLogger();
 
@@ -303,6 +370,12 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips rest requests.
+	 */
+	/**
+	 * Test skips rest requests.
+	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
 	public function test_skips_rest_requests(): void {
@@ -313,6 +386,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips sitemap requests.
+	 */
 	public function test_skips_sitemap_requests(): void {
 		$logger = $this->makeLogger();
 
@@ -330,6 +406,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips gone and unavailable codes.
+	 */
 	public function test_skips_gone_and_unavailable_codes(): void {
 		$logger = $this->makeLogger();
 
@@ -346,6 +425,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips static assets but logs content.
+	 */
 	public function test_skips_static_assets_but_logs_content(): void {
 		$logger = $this->makeLogger();
 
@@ -362,6 +444,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 1, $this->repo->count() );
 	}
 
+	/**
+	 * Test skips probe patterns.
+	 */
 	public function test_skips_probe_patterns(): void {
 		$logger = $this->makeLogger();
 
@@ -374,6 +459,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 0, $this->repo->count() );
 	}
 
+	/**
+	 * Test exclusions are honored before any write.
+	 */
 	public function test_exclusions_are_honored_before_any_write(): void {
 		$this->options['rankkernel_404_settings'] = [
 			'exclusions' => [
@@ -398,6 +486,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 1, $this->repo->count() );
 	}
 
+	/**
+	 * Test ignore query on collapses variants.
+	 */
 	public function test_ignore_query_on_collapses_variants(): void {
 		$logger = $this->makeLogger();
 
@@ -415,6 +506,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 2, (int) $row['hits'] );
 	}
 
+	/**
+	 * Test ignore query off keeps variants distinct.
+	 */
 	public function test_ignore_query_off_keeps_variants_distinct(): void {
 		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
 
@@ -429,6 +523,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 2, $this->repo->count() );
 	}
 
+	/**
+	 * Test advanced fields off by default.
+	 */
 	public function test_advanced_fields_off_by_default(): void {
 		$_SERVER['HTTP_REFERER']    = 'https://referrer.example/entry';
 		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent/1.0';
@@ -442,6 +539,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( '', $row['user_agent'] );
 	}
 
+	/**
+	 * Test advanced fields on captures and truncates.
+	 */
 	public function test_advanced_fields_on_captures_and_truncates(): void {
 		$this->options['rankkernel_404_settings'] = [ 'advanced_fields' => true ];
 
@@ -457,6 +557,9 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertSame( 255, strlen( (string) $row['user_agent'] ) );
 	}
 
+	/**
+	 * Test flood budget suppresses new uris but keeps existing counting.
+	 */
 	public function test_flood_budget_suppresses_new_uris_but_keeps_existing_counting(): void {
 		$this->options['rankkernel_404_settings'] = [ 'flood_budget' => 2 ];
 

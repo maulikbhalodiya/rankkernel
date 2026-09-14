@@ -28,6 +28,8 @@ use RankKernel\Modules\Redirects\Validator;
 final class RedirectsLoopBoundaryTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -45,6 +47,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 	 */
 	private array $tempFiles = [];
 
+	/**
+	 * Set up the test fixture.
+	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
@@ -94,6 +99,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
 	}
 
+	/**
+	 * Tear down the test fixture.
+	 */
 	protected function tearDown(): void {
 		foreach ( $this->tempFiles as $path ) {
 			if ( is_file( $path ) ) {
@@ -128,6 +136,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Test depth overrun with cycle reports inconclusive not clean.
+	 */
 	public function test_depth_overrun_with_cycle_reports_inconclusive_not_clean(): void {
 		$rules = [];
 
@@ -150,6 +161,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'], 'A depth overrun must report inconclusive, never a clean pass' );
 	}
 
+	/**
+	 * Test node overrun reports inconclusive not clean.
+	 */
 	public function test_node_overrun_reports_inconclusive_not_clean(): void {
 		$rules = [];
 
@@ -170,6 +184,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		$this->assertTrue( $result['inconclusive'], 'A node overrun must report inconclusive, never a clean pass' );
 	}
 
+	/**
+	 * Test real cycle still blocked among many unrelated rules.
+	 */
 	public function test_real_cycle_still_blocked_among_many_unrelated_rules(): void {
 		$rules = [
 			$this->rule( 1, '/a', '/b' ),
@@ -195,6 +212,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		$this->assertFalse( $result['inconclusive'] );
 	}
 
+	/**
+	 * Test slug watcher fails closed on inconclusive analysis.
+	 */
 	public function test_slug_watcher_fails_closed_on_inconclusive_analysis(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
@@ -228,6 +248,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		$this->assertCount( 1, $this->db->rows, 'No automatic rule may be stored on inconclusive analysis' );
 	}
 
+	/**
+	 * Test csv import carries could not fully verify warning.
+	 */
 	public function test_csv_import_carries_could_not_fully_verify_warning(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(

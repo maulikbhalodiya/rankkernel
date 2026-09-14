@@ -27,6 +27,8 @@ use RankKernel\Modules\Redirects\RedirectRepository;
 final class RedirectsCsvTest extends TestCase {
 	/**
 	 * In memory redirect table.
+	 *
+	 * @var RedirectsFakeDb
 	 */
 	private RedirectsFakeDb $db;
 
@@ -105,6 +107,8 @@ final class RedirectsCsvTest extends TestCase {
 
 	/**
 	 * Build the handler over the fake database.
+	 *
+	 * @return CsvHandler The result.
 	 */
 	private function makeHandler(): CsvHandler {
 		return new CsvHandler( new RedirectRepository( $this->db ) );
@@ -112,6 +116,9 @@ final class RedirectsCsvTest extends TestCase {
 
 	/**
 	 * Write CSV content to a temp file.
+	 *
+	 * @param string $content Content.
+	 * @return string The result.
 	 */
 	private function write_csv( string $content ): string {
 		$path = tempnam( sys_get_temp_dir(), 'rkcsv' );
@@ -130,6 +137,11 @@ final class RedirectsCsvTest extends TestCase {
 	/**
 	 * Seed one rule in the fake table.
 	 *
+	 * @param string $source    Source.
+	 * @param string $target    Target.
+	 * @param string $code      Code.
+	 * @param string $matchType Match Type.
+	 * @param bool   $active    Active.
 	 * @return int New row id.
 	 */
 	private function seedRule( string $source, string $target, string $code = '301', string $matchType = 'exact', bool $active = true ): int {
@@ -146,6 +158,9 @@ final class RedirectsCsvTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Test valid file imports rows with defaults.
+	 */
 	public function test_valid_file_imports_rows_with_defaults(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -178,6 +193,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertNotEmpty( $this->options['rankkernel_redirects_validator'] ?? '' );
 	}
 
+	/**
+	 * Test malformed rows rejected per row without corrupting others.
+	 */
 	public function test_malformed_rows_rejected_per_row_without_corrupting_others(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -194,6 +212,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertCount( 2, $this->db->rows );
 	}
 
+	/**
+	 * Test invalid match type rejected.
+	 */
 	public function test_invalid_match_type_rejected(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -207,6 +228,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test invalid regex rejected.
+	 */
 	public function test_invalid_regex_rejected(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -220,6 +244,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test unsafe destination rejected.
+	 */
 	public function test_unsafe_destination_rejected(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -233,6 +260,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( [], $this->db->rows );
 	}
 
+	/**
+	 * Test loop row rejected while others save.
+	 */
 	public function test_loop_row_rejected_while_others_save(): void {
 		$this->seedRule( '/b', '/a' );
 
@@ -251,6 +281,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertCount( 2, $this->db->rows );
 	}
 
+	/**
+	 * Test chain row warned and saved.
+	 */
 	public function test_chain_row_warned_and_saved(): void {
 		$this->seedRule( '/b', '/c' );
 
@@ -267,6 +300,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( 2, $result['warnings'][0]['row'] );
 	}
 
+	/**
+	 * Test duplicate updates when update existing is on.
+	 */
 	public function test_duplicate_updates_when_update_existing_is_on(): void {
 		$this->seedRule( '/old', '/first' );
 
@@ -283,6 +319,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( '/second', $this->db->rows[1]['target'] );
 	}
 
+	/**
+	 * Test duplicate skips when update existing is off.
+	 */
 	public function test_duplicate_skips_when_update_existing_is_off(): void {
 		$this->seedRule( '/old', '/first' );
 
@@ -300,6 +339,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( '/first', $this->db->rows[1]['target'] );
 	}
 
+	/**
+	 * Test bom and windows line endings tolerated.
+	 */
 	public function test_bom_and_windows_line_endings_tolerated(): void {
 		$path = $this->write_csv(
 			"\xEF\xBB\xBFsource,target,code,match_type,active,hits,last_accessed\r\n" .
@@ -313,6 +355,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( '/old', $this->db->rows[1]['source'] );
 	}
 
+	/**
+	 * Test formula prefix neutralized on import.
+	 */
 	public function test_formula_prefix_neutralized_on_import(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -328,6 +373,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertStringContainsString( "'=", $stored );
 	}
 
+	/**
+	 * Test row count limit stops the run.
+	 */
 	public function test_row_count_limit_stops_the_run(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
@@ -344,6 +392,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertCount( 2, $this->db->rows );
 	}
 
+	/**
+	 * Test export header and column order.
+	 */
 	public function test_export_header_and_column_order(): void {
 		$this->seedRule( '/old', '/new' );
 
@@ -354,6 +405,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( '/old,/new,301,exact,yes,0,', $lines[1] );
 	}
 
+	/**
+	 * Test export escapes formula cells.
+	 */
 	public function test_export_escapes_formula_cells(): void {
 		$this->seedRule( '/x', '=evil' );
 
@@ -362,6 +416,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertStringContainsString( "'=evil", $csv );
 	}
 
+	/**
+	 * Test export uses stable id order.
+	 */
 	public function test_export_uses_stable_id_order(): void {
 		$this->seedRule( '/b', '/new-b' );
 		$this->seedRule( '/a', '/new-a' );
@@ -375,6 +432,9 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertLessThan( $posA, $posB );
 	}
 
+	/**
+	 * Test round trip export then import.
+	 */
 	public function test_round_trip_export_then_import(): void {
 		$this->seedRule( '/old-one', '/new-one' );
 		$this->seedRule( '/old-two', '/new-two', '302', 'prefix', false );
