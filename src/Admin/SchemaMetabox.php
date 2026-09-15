@@ -381,8 +381,9 @@ final class SchemaMetabox {
 	 * Render save and import notices from the redirect query arg.
 	 */
 	private function renderNotices(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
-		$msg = isset( $_GET['rankkernel_schema_msg'] ) ? (string) $_GET['rankkernel_schema_msg'] : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag used for admin notice display, sanitized on the following statement.
+		$rawMsg = isset( $_GET['rankkernel_schema_msg'] ) ? (string) wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
+		$msg    = function_exists( 'sanitize_key' ) ? sanitize_key( $rawMsg ) : preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $rawMsg ) );
 
 		if ( 'saved' === $msg ) {
 			echo '<div class="notice notice-success is-dismissible"><p>';
@@ -1167,8 +1168,9 @@ final class SchemaMetabox {
 	 * Export handler, downloads the stored schema object as JSON.
 	 */
 	public function handleExport(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified below.
-		$postId = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified below, unslashed here, cast to scalar on the following statement.
+		$rawPostId = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : 0;
+		$postId    = max( 0, (int) ( is_scalar( $rawPostId ) ? $rawPostId : 0 ) );
 
 		if ( $postId <= 0 ) {
 			wp_die(
