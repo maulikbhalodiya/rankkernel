@@ -1,0 +1,35 @@
+/**
+ * RankKernel breadcrumbs frontend styles.
+ *
+ * Scoped to .rk-breadcrumbs, no build step. The separator travels as
+ * the --rk-breadcrumb-separator custom property set inline on the nav
+ * and renders through generated content between items, so it stays
+ * decorative and hidden from assistive technology.
+ */
+.rk-breadcrumbs {
+	--rk-breadcrumb-separator: "/";
+}
+
+.rk-breadcrumbs-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25em 0.5em;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.rk-breadcrumbs-item {
+	margin: 0;
+	padding: 0;
+}
+
+.rk-breadcrumbs-item + .rk-breadcrumbs-item::before {
+	content: var(--rk-breadcrumb-separator);
+	display: inline-block;
+	margin-right: 0.5em;
+}
+
+.rk-breadcrumbs-item-current span {
+	font-weight: 600;
+}

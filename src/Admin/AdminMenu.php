@@ -165,6 +165,7 @@ final class AdminMenu {
 		// Save handling runs on the load hook, before ANY output, so the
 		// post-redirect-get pattern can send its Location header.
 		add_action( 'load-' . $hook, [ $this->page, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->page, 'enqueueAssets' ] );
 
 		$sitemapHook = add_submenu_page(
 			'rankkernel',

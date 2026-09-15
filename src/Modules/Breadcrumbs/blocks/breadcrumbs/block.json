@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "rankkernel/breadcrumbs",
+  "title": "Breadcrumbs by RankKernel",
+  "description": "Add an accessible breadcrumb trail that matches your RankKernel breadcrumb schema.",
+  "category": "rankkernel",
+  "icon": "admin-links",
+  "textdomain": "rankkernel",
+  "keywords": [
+    "Breadcrumbs",
+    "Trail",
+    "Navigation",
+    "SEO"
+  ],
+  "supports": {
+    "html": false,
+    "multiple": true,
+    "reusable": true,
+    "anchor": true
+  },
+  "usesContext": [ "postId", "postType" ],
+  "attributes": {
+    "showHomeItem": {
+      "type": "boolean",
+      "default": true
+    },
+    "showCurrentItem": {
+      "type": "boolean",
+      "default": true
+    },
+    "showOnHomePage": {
+      "type": "boolean",
+      "default": false
+    },
+    "separator": {
+      "type": "string",
+      "default": ""
+    }
+  }
+}
