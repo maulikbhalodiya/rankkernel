@@ -1440,4 +1440,24 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'could not determine the final destination', $html );
 		$this->assertStringNotContainsString( 'Consider pointing', $html );
 	}
+
+	/**
+	 * Table controls carry accessible screen-reader and ARIA labels.
+	 */
+	public function test_table_controls_have_accessible_labels(): void {
+		$this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Select bulk action', $html );
+		$this->assertStringContainsString( 'Select All', $html );
+		$this->assertStringContainsString( 'Search redirects', $html );
+		$this->assertStringContainsString( 'Filter by status', $html );
+		$this->assertStringContainsString( 'Filter by match type', $html );
+		$this->assertStringContainsString( 'Filter by redirect type', $html );
+		$this->assertStringContainsString( 'aria-label="Select redirect for /a"', $html );
+	}
 }
