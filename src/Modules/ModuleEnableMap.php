@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Holds the normalized enable map; performs THE one option read.
  */

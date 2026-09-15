@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Admin;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\Normalizer;

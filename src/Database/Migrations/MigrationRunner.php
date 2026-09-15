@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Database\Migrations;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Runs versioned migrations against the rankkernel_db_version ledger.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
