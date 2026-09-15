@@ -1,0 +1,22 @@
+/**
+ * RankKernel breadcrumbs block editor styles.
+ *
+ * Plain stylesheet, no build step. Every rule stays inside the block
+ * editor wrapper, so site themes and other blocks never see these
+ * styles. The editor shows a placeholder note; the live trail renders
+ * on the frontend through the server render callback.
+ */
+.rankkernel-breadcrumbs-editor {
+    max-width: 100%;
+}
+
+.rankkernel-breadcrumbs-editor .rankkernel-breadcrumbs-preview {
+    background: #f6f7f7;
+    border: 1px dashed #a7aaad;
+    border-radius: 4px;
+    color: #50575e;
+    font-size: 13px;
+    margin: 0;
+    padding: 1em 1.25em;
+    text-align: center;
+}

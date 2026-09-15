@@ -13,6 +13,7 @@ namespace RankKernel;
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
+use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
@@ -150,6 +151,10 @@ final class Plugin {
 		// Schema module (optional, default-ON per activation seed).
 		$schemaModule = new SchemaModule( $settingsStore, $enableMap );
 		$moduleManager->register( $schemaModule );
+
+		// Breadcrumbs module (optional, default-ON per activation seed).
+		$breadcrumbsModule = new BreadcrumbsModule( $enableMap );
+		$moduleManager->register( $breadcrumbsModule );
 
 		// Sitemaps module (optional, default-ON per activation seed).
 		$sitemapsModule = new SitemapsModule( $enableMap );
