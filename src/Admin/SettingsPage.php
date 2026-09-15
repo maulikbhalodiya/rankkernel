@@ -401,10 +401,20 @@ final class SettingsPage {
 		echo '<h2>' . esc_html__( 'Modules', 'rankkernel' ) . '</h2>';
 		echo '<p class="description">';
 		echo esc_html__(
-			'Enable or disable optional modules. Changes take effect on the next request.',
+			'Visible trail and breadcrumb schema share one trail. Place it with the block, shortcode, or template tag.',
 			'rankkernel'
 		);
 		echo '</p>';
+
+		echo '<div class="notice notice-info inline">';
+		echo '<p><strong>' . esc_html__( 'Display breadcrumbs', 'rankkernel' ) . '</strong></p>';
+		echo '<p>' . esc_html__( 'Use the following code in your theme template files to display breadcrumbs.', 'rankkernel' ) . '</p>';
+		echo '<pre><code>' . esc_html( "<?php\nif ( function_exists( 'rankkernel_breadcrumbs' ) ) {\n\trankkernel_breadcrumbs();\n}\n?>" ) . '</code></pre>';
+		echo '<p>' . esc_html__( 'Or use the shortcode in post content or a compatible shortcode area:', 'rankkernel' ) . '</p>';
+		echo '<pre><code>' . esc_html( '[rankkernel_breadcrumbs]' ) . '</code></pre>';
+		echo '<p class="description">' . esc_html__( 'Both render the same canonical trail, so hide options here apply to either method.', 'rankkernel' ) . '</p>';
+		echo '</div>';
+
 		echo '<table class="form-table" role="presentation"><tbody>';
 		foreach ( ModuleRegistry::all() as $id => $label ) {
 			$idStr   = (string) $id;

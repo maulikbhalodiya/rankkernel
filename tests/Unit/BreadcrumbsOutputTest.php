@@ -710,6 +710,61 @@ final class BreadcrumbsOutputTest extends TestCase {
 	}
 
 	/**
+	 * Test the shortcode respects show_home when the attribute is absent.
+	 */
+	public function test_shortcode_respects_show_home_setting(): void {
+		$this->useSingularPost();
+
+		$this->options['rankkernel_breadcrumbs_settings'] = [ 'show_home' => false ];
+
+		$result = ( new BreadcrumbsModule() )->renderShortcode( [] );
+
+		$this->assertStringNotContainsString( '>Home<', $result, 'A hidden home must not render' );
+		$this->assertStringContainsString( 'Hello World', $result, 'The current item must remain' );
+	}
+
+	/**
+	 * Test the shortcode respects show_current when the attribute is absent.
+	 */
+	public function test_shortcode_respects_show_current_setting(): void {
+		$this->useSingularPost();
+
+		$this->options['rankkernel_breadcrumbs_settings'] = [ 'show_current' => false ];
+
+		$result = ( new BreadcrumbsModule() )->renderShortcode( [] );
+
+		$this->assertStringNotContainsString( 'Hello World', $result, 'A hidden current item must not render' );
+		$this->assertStringContainsString( '>Home<', $result, 'Home must remain' );
+	}
+
+	/**
+	 * Test an explicit shortcode attribute overrides the stored setting.
+	 */
+	public function test_shortcode_attribute_overrides_setting(): void {
+		$this->useSingularPost();
+
+		$this->options['rankkernel_breadcrumbs_settings'] = [ 'show_home' => true ];
+
+		$result = ( new BreadcrumbsModule() )->renderShortcode( [ 'show_home' => '0' ] );
+
+		$this->assertStringNotContainsString( '>Home<', $result, 'The attribute must win over the setting' );
+	}
+
+	/**
+	 * Test the template tag respects the show_home setting.
+	 */
+	public function test_getter_respects_show_home_setting(): void {
+		$this->useSingularPost();
+
+		$this->options['rankkernel_breadcrumbs_settings'] = [ 'show_home' => false ];
+
+		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
+
+		$this->assertStringNotContainsString( '>Home<', $html, 'A hidden home must not render' );
+		$this->assertStringContainsString( 'Hello World', $html );
+	}
+
+	/**
 	 * Test shortcode attributes sanitize.
 	 */
 	public function test_shortcode_attributes_sanitize(): void {

@@ -240,11 +240,14 @@ class BreadcrumbsModule implements ModuleInterface {
 		$raw = is_array( $atts ) ? $atts : [];
 
 		if ( function_exists( 'shortcode_atts' ) ) {
+			// Empty sentinels, so an attribute the author did not pass is
+			// skipped below and the stored setting keeps control. Truthy
+			// defaults here would silently override the Breadcrumbs settings.
 			$raw = shortcode_atts(
 				[
 					'separator'    => '',
-					'show_home'    => '1',
-					'show_current' => '1',
+					'show_home'    => '',
+					'show_current' => '',
 				],
 				$raw,
 				'rankkernel_breadcrumbs'
@@ -267,6 +270,12 @@ class BreadcrumbsModule implements ModuleInterface {
 			}
 
 			$value = $raw[ $key ];
+
+			// An empty value means the attribute was not passed, so the
+			// stored Breadcrumbs setting applies instead.
+			if ( is_string( $value ) && '' === trim( $value ) ) {
+				continue;
+			}
 
 			if ( is_bool( $value ) ) {
 				$args[ $key ] = $value;
