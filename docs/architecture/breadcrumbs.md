@@ -49,7 +49,7 @@ The primary taxonomy mapping (`primary_taxonomy_{post_type}`) selects the single
 
 One per module option, `rankkernel_breadcrumbs_settings`, autoload yes, following the `SitemapSettings` shape with defaults, `get`, `all`, `set`, whitelist, and sanitize. Per object labels reuse the existing single meta row `flags.breadcrumb_title`, never a second breadcrumb meta key.
 
-1. `separator` (string, default `/`, tags stripped).
+1. `separator` (string, default `/`, tags stripped, capped at 10 characters, empty falls back to `/`). Exactly one canonical value is stored. The admin renders it as a native radio chooser with presets `/`, `›`, `»`, `*`, `|`, `•` plus a Custom radio that reveals a text input; a stored non preset value preselects Custom and prefills its input, so existing settings survive unchanged. The full preset list lives in `BreadcrumbsSettings::SEPARATOR_PRESETS`.
 2. `home_label` (string, default `Home`, sanitized text).
 3. `show_home` (bool, default true).
 4. `show_current` (bool, default true).
@@ -58,7 +58,17 @@ One per module option, `rankkernel_breadcrumbs_settings`, autoload yes, followin
 7. `show_ancestors` (bool, default true, hierarchical term ancestors).
 8. `primary_taxonomy_{post_type}` (string, optional, sanitized against the registered public taxonomies for that post type).
 
-The settings UI is a Breadcrumbs section on the existing settings page, saved through the module settings class with the established capability and nonce pattern. Proven by `BreadcrumbsOutputTest::test_settings_section_renders_fields` and `::test_settings_save_persists_breadcrumbs`.
+The settings UI is a Breadcrumbs section on the existing settings page, saved through the module settings class with the established capability and nonce pattern. The section keeps its `h2` heading and native `form-table` markup, grouped as Appearance (separator chooser, home label, show home, show current, hide on front page), Trail behavior (show blog page, show term ancestors), and a collapsible native `details` block titled Taxonomy preferences. The intro states the visible trail and schema share one trail and that disabling the module in the module list disables breadcrumb integration. A closing note records that archive, search, and 404 labels follow the trail builder defaults. There is no second enable setting; the module toggle stays in the module list. Proven by `BreadcrumbsOutputTest` (grouped fields, preset radios, Custom preselect, taxonomy progressive disclosure, chooser saves, hostile and empty separator handling, hidden taxonomy preservation, scoped asset enqueue).
+
+Taxonomy progressive disclosure: an active select renders only for post types with two or more usable public taxonomies. A post type with exactly one usable public taxonomy shows informational text naming it; a post type with none shows nothing. The save handler only accepts mappings for types with two or more usable public taxonomies and otherwise skips the key, so stored values for hidden controls are preserved and never deleted.
+
+The separator script (`assets/js/breadcrumbs-admin.js`) is vanilla progressive enhancement only: without JavaScript the Custom input stays visible and usable; with JavaScript it hides until Custom is selected. It registers and enqueues only on the RankKernel settings screen, versioned with `Plugin::version()`, scoped to the chooser names, with no framework and no custom dropdown behavior. Proven by `node --check`.
+
+## Deferred settings with reasons
+
+1. Archive, search, and 404 label formats (for example `Archives for %s`, `Results for %s`, `404 Page Not Found`) are deferred. Search and 404 labels live in `TrailBuilder::buildSearch` and `::build404` as fixed translatable strings, while archive labels are derived per context from post type objects, author names, and date parts rather than one shared format. There is no single centralized format to expose, and adding settings now would change shipped translatable output and widen the settings surface for no approved requirement. The admin carries an evaluation note instead.
+2. Hide post title is deferred. `show_current` already drops the current item from the identical canonical trail that feeds both visible HTML and schema, so a second toggle would duplicate it and invite visible versus schema divergence.
+3. Show taxonomy name is deferred. The taxonomy name crumb on custom taxonomy archives is structural disambiguation, and removing it needs UX review plus placeholder handling for the empty branch case. No setting without a clean effect is shipped.
 
 ## Schema integration
 
@@ -83,6 +93,7 @@ What is not claimed: cold object caches can still query inside WordPress core it
 1. `rankkernel/breadcrumbs/items` filters the item array with per item `allow_html` semantics, matching the core contract. Escaped by default, `wp_kses_post` only on explicit opt in.
 2. `rankkernel/breadcrumbs/args` filters the resolved display args, sanitized again before rendering.
 3. `rankkernel/breadcrumbs` filters the final HTML.
-4. `rankkernel/schema/breadcrumb_trail` receives the same canonical items for schema use. Third parties add schema nodes through `Generator::register()`, not new hooks.
+4. `rankkernel/breadcrumbs/post_type_settings` filters the resolved per post type configuration (`post_type` plus `primary_taxonomy`) after stored settings load and before `TrailBuilder` consumes it. The returned taxonomy is validated again against the public taxonomies registered for that post type; an invalid or malicious value is ignored and the stored value applies. This extends the settings architecture without replacing it, and both the visible renderer and the schema adapter receive identical items because both consume the same filtered trail.
+5. `rankkernel/schema/breadcrumb_trail` receives the same canonical items for schema use. Third parties add schema nodes through `Generator::register()`, not new hooks.
 
 The full call signatures live in `breadcrumbs-api.md`.
