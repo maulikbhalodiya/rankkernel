@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Redirects;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Save time graph analysis, administrator context only, never on the frontend.
  *

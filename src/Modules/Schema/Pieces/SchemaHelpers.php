@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema\Pieces;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Settings\SettingsStore;

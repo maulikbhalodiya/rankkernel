@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Sitemaps;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
 use WP_Post;

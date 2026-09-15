@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Monitor;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Manages the rankkernel_404_settings option.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Contract for a RankKernel module.
  */

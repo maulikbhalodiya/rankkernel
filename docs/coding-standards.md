@@ -38,6 +38,8 @@ PHPCS passing is a code quality gate. It is not by itself proof of WordPress.org
 
 WordPress Docs enforcement applies across `src/` and `tests/`. JS and CSS under `src/blocks` plus `assets/js` remain outside PHPCS. Recommended path: eslint with the WordPress preset for editor scripts plus stylelint for editor styles, recorded here so a later pass can adopt it.
 
+Direct access guards are part of compliance too, per `.coderabbit.yaml`. Every PHP file under `src/` opens with `defined( 'ABSPATH' ) || exit;` immediately after the `namespace` declaration, and `src/Modules/Breadcrumbs/template-tags.php` opens with it after `declare(strict_types=1);` because that file carries no namespace. `rankkernel.php` keeps `if ( ! defined( 'ABSPATH' ) ) { exit; }` and `uninstall.php` keeps `WP_UNINSTALL_PLUGIN`. The tree is guarded as a whole, never partially: a tree where some classes are guarded and others are not is exactly the state this rule exists to prevent, and the guard is what stops a direct hit on a class file from leaking an absolute path through a fatal error. `tests/` stays out of scope, because those files never ship and the bootstrap defines `ABSPATH`.
+
 ## 5. Block category convention
 
 There is exactly one block category: slug `rankkernel`, title `RankKernel`, single icon, registered centrally in `SchemaModule::boot` through `SchemaModule::addCategory`. Individual blocks must not register their own category copies. (History: `FaqBlock` and `HowtoBlock` each carried an `addCategory` with the same slug but divergent icons. The central registration lands first, the rebuild pass removes the copies.)

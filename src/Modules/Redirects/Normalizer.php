@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Redirects;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Single shared normalizer for redirect sources, lookups, cache keys, and safety checks.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Central allowlist for the schema payload type override.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Redirects;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Matches a normalized request path against redirect rules in fixed precedence.
  *

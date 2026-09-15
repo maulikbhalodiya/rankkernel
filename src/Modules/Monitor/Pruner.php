@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Monitor;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Enforces the two independent growth limits: retention age and maximum rows.
  *

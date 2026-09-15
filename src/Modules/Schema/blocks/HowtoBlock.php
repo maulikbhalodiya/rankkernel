@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema\blocks;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Esc attr.
  */

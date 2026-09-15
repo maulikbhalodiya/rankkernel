@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Monitor;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Caps how many new URIs enter the log per time window, per site.
  *

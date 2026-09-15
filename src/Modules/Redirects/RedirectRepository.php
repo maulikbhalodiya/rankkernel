@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Redirects;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * All database access for redirect rules, prepared statements only.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Monitor;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Owns the wp_rankkernel_404_log table.
  *
