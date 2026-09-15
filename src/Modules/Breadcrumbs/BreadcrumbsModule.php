@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Breadcrumbs;
 
+use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
@@ -136,13 +137,153 @@ class BreadcrumbsModule implements ModuleInterface {
 
 	/**
 	 * Boot hooks, only when enabled.
+	 *
+	 * Loads the template tags so they exist only when the module is
+	 * enabled, registers the schema trail filter, the shortcode shim,
+	 * the server-rendered block, and the scoped frontend stylesheet.
 	 */
 	public function boot(): void {
 		if ( ! $this->isEnabled() ) {
 			return;
 		}
 
+		require_once __DIR__ . '/functions.php';
+		require_once __DIR__ . '/template-tags.php';
+
 		add_filter( 'rankkernel/schema/breadcrumb_trail', [ $this, 'filterBreadcrumbTrail' ], 10, 2 ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+		if ( function_exists( 'add_shortcode' ) ) {
+			add_shortcode( 'rankkernel_breadcrumbs', [ $this, 'renderShortcode' ] );
+		}
+
+		$this->registerStyle();
+
+		add_filter( 'block_categories_all', [ $this, 'addCategory' ] );
+
+		( new BreadcrumbsBlock( $this->settings ) )->register();
+	}
+
+	/**
+	 * Plugin relative asset URL, empty when unavailable (tests, early boot).
+	 *
+	 * @param string $path Plugin relative path.
+	 * @return string The result.
+	 */
+	private static function assetUrl( string $path ): string {
+		if ( ! function_exists( 'plugins_url' ) ) {
+			return '';
+		}
+
+		$main = dirname( __DIR__, 3 ) . '/rankkernel.php';
+
+		return (string) plugins_url( $path, $main );
+	}
+
+	/**
+	 * Register the scoped frontend stylesheet, enqueued only where used.
+	 *
+	 * The separator travels as a CSS custom property with the default
+	 * carried by this stylesheet, so no inline style tag is emitted.
+	 */
+	private function registerStyle(): void {
+		if ( ! function_exists( 'wp_register_style' ) ) {
+			return;
+		}
+
+		wp_register_style(
+			'rankkernel-breadcrumbs',
+			self::assetUrl( 'src/Modules/Breadcrumbs/breadcrumbs.css' ),
+			[],
+			\RankKernel\Plugin::version()
+		);
+	}
+
+	/**
+	 * Append the shared RankKernel block category when missing.
+	 *
+	 * Mirrors the central SchemaModule registration so the breadcrumbs
+	 * block keeps its category even when the schema module is off.
+	 *
+	 * @param mixed $categories Registered categories.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function addCategory( mixed $categories ): array {
+		$out = is_array( $categories ) ? array_values( $categories ) : [];
+
+		foreach ( $out as $existing ) {
+			$slug = is_array( $existing ) && isset( $existing['slug'] ) ? (string) $existing['slug'] : '';
+
+			if ( 'rankkernel' === $slug ) {
+				return $out;
+			}
+		}
+
+		$out[] = [
+			'slug'  => 'rankkernel',
+			'title' => 'RankKernel',
+			'icon'  => 'editor-ul',
+		];
+
+		return $out;
+	}
+
+	/**
+	 * Render the shortcode shim.
+	 *
+	 * Returns output, never echoes. Attributes sanitize before they
+	 * reach the shared builder and renderer.
+	 *
+	 * @param mixed $atts Shortcode attributes.
+	 * @return string Rendered HTML, empty without items.
+	 */
+	public function renderShortcode( mixed $atts ): string {
+		$raw = is_array( $atts ) ? $atts : [];
+
+		if ( function_exists( 'shortcode_atts' ) ) {
+			$raw = shortcode_atts(
+				[
+					'separator'    => '',
+					'show_home'    => '1',
+					'show_current' => '1',
+				],
+				$raw,
+				'rankkernel_breadcrumbs'
+			);
+		}
+
+		if ( ! is_array( $raw ) ) {
+			$raw = [];
+		}
+
+		$args = [];
+
+		if ( isset( $raw['separator'] ) && '' !== trim( (string) $raw['separator'] ) ) {
+			$args['separator'] = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( (string) $raw['separator'] ) : trim( (string) $raw['separator'] );
+		}
+
+		foreach ( [ 'show_home', 'show_current' ] as $key ) {
+			if ( ! array_key_exists( $key, $raw ) ) {
+				continue;
+			}
+
+			$value = $raw[ $key ];
+
+			if ( is_bool( $value ) ) {
+				$args[ $key ] = $value;
+
+				continue;
+			}
+
+			$normalized = filter_var( $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+
+			$args[ $key ] = null !== $normalized ? $normalized : (bool) $value;
+		}
+
+		if ( function_exists( __NAMESPACE__ . '\rankkernel_get_breadcrumbs' ) ) {
+			return (string) rankkernel_get_breadcrumbs( $args );
+		}
+
+		return '';
 	}
 
 	/**
