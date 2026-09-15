@@ -76,7 +76,7 @@
 - Parity #9: attachments never listed in sets, entries, or counts
 - Parity #9: invalidation on `delete_user/profile_update/clean_term_cache/delete_term` (per taxonomy where the hook provides it)
 
-### 2.2 Schema / JSON-LD ⬜, next (issue will be #9)
+### 2.2 Schema / JSON-LD ✅ (issue #11, merge 2ea6846)
 **Get:** one `<script type="application/ld+json">` per page, assembled lazily.
 **Do:**
 - Generator + piece registry; each piece: `is_needed($ctx)` + `build($ctx)`; single `@graph`, emitted in the `rankkernel/head/after_tags` slot
@@ -85,7 +85,7 @@
 - No separate meta rows (RM antipattern), lazy assembly at render
 - Tests: lazy is_needed, one tag only, JSON escaping
 
-### 2.3 Breadcrumbs ⬜
+### 2.3 Breadcrumbs ✅ (issue #15, branch GH-15)
 **Get:** breadcrumb trail + shortcode + block; zero cost when unused.
 **Do:**
 - Generator: home → CPT archive → taxonomy parents → term → paginated; context-aware (single/archive/search/404)
@@ -94,7 +94,7 @@
 - Lazy: only builds when requested or when Schema's BreadcrumbList piece needs it
 - Tests: zero queries when not rendered, hierarchy correctness
 
-### 2.4 Redirects ⬜ (default OFF)
+### 2.4 Redirects ✅ (issue #12, merge 348e1e3) (default OFF)
 **Get:** full redirect manager free (Yoast Premium territory), cache-first cost.
 **Do:**
 - Migrations create tables ON module enable: `wp_rankkernel_redirects` (source_url_hash UNIQUE, code enum 301/302/307/410/451, regex flag, hits) + `wp_rankkernel_redirects_cache`
@@ -104,7 +104,7 @@
 - Admin: list/add/edit/delete, search, hit counts (reuses 4.1 layout if landed, else plain)
 - Tests: OFF = zero hooks; hit = 0 queries; miss = 1; regex; CSV round-trip
 
-### 2.5 404 Monitor ⬜ (default OFF)
+### 2.5 404 Monitor ✅ (issue #12, merge 348e1e3) (default OFF)
 **Get:** 404 log with sane pruning + 1-click redirect creation.
 **Do:**
 - Table `wp_rankkernel_404_log` (uri_hash indexed, uri, referer, user_agent, created)
