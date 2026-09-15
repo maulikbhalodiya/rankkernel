@@ -25,20 +25,21 @@ final class RedirectTable {
 	public const SUFFIX = 'rankkernel_redirects';
 
 	/**
-	 * Request-level static cache of table existence state.
+	 * Request-level cache of table existence, keyed by resolved table name.
 	 *
-	 * Performance optimization: avoids executing repetitive `SHOW TABLES` database queries
-	 * on hot path requests (e.g. template_redirect execution).
+	 * Keying by the resolved table name keeps a switch_to_blog() or a prefix
+	 * change from reusing another site's result, while still skipping repeat
+	 * queries for the same table within one request.
 	 *
-	 * @var bool|null
+	 * @var array<string, bool>
 	 */
-	private static ?bool $existsCache = null;
+	private static array $existsCache = array();
 
 	/**
 	 * Reset the static existence cache (primarily for unit tests).
 	 */
 	public static function resetCache(): void {
-		self::$existsCache = null;
+		self::$existsCache = array();
 	}
 
 	/**
@@ -62,10 +63,6 @@ final class RedirectTable {
 	 * @return bool True when the table exists.
 	 */
 	public static function exists(): bool {
-		if ( null !== self::$existsCache ) {
-			return self::$existsCache;
-		}
-
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -74,12 +71,16 @@ final class RedirectTable {
 
 		$table = self::name();
 
+		if ( array_key_exists( $table, self::$existsCache ) ) {
+			return self::$existsCache[ $table ];
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
-		self::$existsCache = is_string( $found ) && $found === $table;
+		self::$existsCache[ $table ] = is_string( $found ) && $found === $table;
 
-		return self::$existsCache;
+		return self::$existsCache[ $table ];
 	}
 
 	/**
@@ -98,7 +99,7 @@ final class RedirectTable {
 			return true;
 		}
 
-		self::$existsCache = null;
+		self::resetCache();
 
 		if ( ! function_exists( 'dbDelta' ) ) {
 			$upgrade = defined( 'ABSPATH' ) ? ABSPATH . 'wp-admin/includes/upgrade.php' : '';
@@ -144,7 +145,7 @@ final class RedirectTable {
 			$wpdb->query( $sql );
 		}
 
-		self::$existsCache = null;
+		self::resetCache();
 
 		return self::exists();
 	}

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Tests\Unit;
 
+use RankKernel\Modules\Monitor\LogTable;
+
 /**
  * Minimal behavioral fake for the 404 log table.
  *
@@ -67,6 +69,20 @@ final class MonitorFakeDb {
 	 * @var int
 	 */
 	public int $insert_id = 0;
+
+	/**
+	 * Schema probe count, SHOW TABLES only.
+	 *
+	 * @var int
+	 */
+	public int $schemaProbes = 0;
+
+	/**
+	 * Reset the 404 log table existence cache so each test starts clean.
+	 */
+	public function __construct() {
+		LogTable::resetCache();
+	}
 
 	/**
 	 * Full table name.
@@ -138,6 +154,8 @@ final class MonitorFakeDb {
 		++$this->reads;
 
 		if ( false !== strpos( $query, 'SHOW TABLES LIKE' ) ) {
+			++$this->schemaProbes;
+
 			return $this->tableExists ? $this->table() : null;
 		}
 
