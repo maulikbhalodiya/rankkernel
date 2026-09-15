@@ -73,6 +73,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			if ( lastInput ) {
 				lastInput.focus();
 			}
+
+			if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+				var msgAdd = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+					? window.wp.i18n.__( 'Exclusion row added.', 'rankkernel' )
+					: 'Exclusion row added.';
+				window.wp.a11y.speak( msgAdd );
+			}
 		} );
 
 		exclusionBody.addEventListener( 'click', function ( event ) {
@@ -96,12 +103,26 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			if ( exclusionBody.querySelectorAll( 'tr' ).length > 1 ) {
 				row.remove();
+
+				if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+					var msgRemove = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+						? window.wp.i18n.__( 'Exclusion row removed.', 'rankkernel' )
+						: 'Exclusion row removed.';
+					window.wp.a11y.speak( msgRemove );
+				}
 			} else {
 				var input = row.querySelector( 'input' );
 
 				if ( input ) {
 					input.value = '';
 					input.focus();
+				}
+
+				if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+					var msgClear = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+						? window.wp.i18n.__( 'Exclusion row cleared.', 'rankkernel' )
+						: 'Exclusion row cleared.';
+					window.wp.a11y.speak( msgClear );
 				}
 			}
 		} );
