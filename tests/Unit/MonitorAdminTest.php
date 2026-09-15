@@ -690,6 +690,33 @@ final class MonitorAdminTest extends TestCase {
 	}
 
 	/**
+	 * The monitor script declares the accessibility and i18n dependencies.
+	 *
+	 * The exclusion row announcements call wp.a11y.speak and wp.i18n.__, so
+	 * both handles must stay declared as dependencies of the monitor script.
+	 * Dropping either one removes the announcement silently.
+	 */
+	public function test_monitor_script_declares_a11y_and_i18n_dependencies(): void {
+		$deps = [];
+
+		Functions\when( 'wp_register_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( string $handle, string $src = '', array $registered = [] ) use ( &$deps ): void {
+				$deps[ $handle ] = $registered;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+
+		$page = $this->makePage();
+		$page->enqueueAssets( NotFoundPage::HOOK_SUFFIX );
+
+		$this->assertArrayHasKey( 'rankkernel-monitor-admin', $deps );
+		$this->assertContains( 'wp-a11y', $deps['rankkernel-monitor-admin'] );
+		$this->assertContains( 'wp-i18n', $deps['rankkernel-monitor-admin'] );
+	}
+
+	/**
 	 * Empty screens explain what will appear here.
 	 */
 	public function test_render_empty_state_explains_tracking(): void {

@@ -5,6 +5,19 @@
  * JavaScript, this file only asks for confirmation first.
  */
 document.addEventListener( 'DOMContentLoaded', function () {
+	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+	function rkAnnounce( message ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+			? window.wp.i18n.__( message, 'rankkernel' )
+			: message;
+
+		window.wp.a11y.speak( text );
+	}
+
 	var confirmLinks = document.querySelectorAll( '.rk-monitor .rk-confirm' );
 
 	confirmLinks.forEach( function ( link ) {
@@ -73,6 +86,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			if ( lastInput ) {
 				lastInput.focus();
 			}
+
+			rkAnnounce( 'Exclusion row added.' );
 		} );
 
 		exclusionBody.addEventListener( 'click', function ( event ) {
@@ -95,7 +110,19 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 
 			if ( exclusionBody.querySelectorAll( 'tr' ).length > 1 ) {
+				// Removing the focused row drops focus to the page body, so move it to the next
+				// surviving row when there is one, and to the previous row when the removed row was last.
+				var focusRow = row.nextElementSibling || row.previousElementSibling;
+
 				row.remove();
+
+				var focusInput = focusRow ? focusRow.querySelector( 'input' ) : null;
+
+				if ( focusInput ) {
+					focusInput.focus();
+				}
+
+				rkAnnounce( 'Exclusion row removed.' );
 			} else {
 				var input = row.querySelector( 'input' );
 
@@ -103,6 +130,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					input.value = '';
 					input.focus();
 				}
+
+				rkAnnounce( 'Exclusion row cleared.' );
 			}
 		} );
 	}
