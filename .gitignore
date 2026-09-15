@@ -17,3 +17,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Automated agent journals
+.jules/

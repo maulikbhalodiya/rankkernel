@@ -25,6 +25,24 @@ final class LogTable {
 	public const SUFFIX = 'rankkernel_404_log';
 
 	/**
+	 * Request-level cache of table existence, keyed by resolved table name.
+	 *
+	 * Keying by the resolved table name keeps a switch_to_blog() or a prefix
+	 * change from reusing another site's result, while still skipping repeat
+	 * queries for the same table within one request.
+	 *
+	 * @var array<string, bool>
+	 */
+	private static array $existsCache = array();
+
+	/**
+	 * Reset the static existence cache (primarily for unit tests).
+	 */
+	public static function resetCache(): void {
+		self::$existsCache = array();
+	}
+
+	/**
 	 * Full table name for the current site.
 	 *
 	 * @return string Prefixed table name.
@@ -53,11 +71,17 @@ final class LogTable {
 
 		$table = self::name();
 
+		if ( array_key_exists( $table, self::$existsCache ) ) {
+			return self::$existsCache[ $table ];
+		}
+
 		// Custom table existence probe, single prepared SHOW statement, fail open guard.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
-		return is_string( $found ) && $found === $table;
+		self::$existsCache[ $table ] = is_string( $found ) && $found === $table;
+
+		return self::$existsCache[ $table ];
 	}
 
 	/**
@@ -75,6 +99,8 @@ final class LogTable {
 		if ( self::exists() ) {
 			return true;
 		}
+
+		self::resetCache();
 
 		if ( ! function_exists( 'dbDelta' ) ) {
 			$upgrade = defined( 'ABSPATH' ) ? ABSPATH . 'wp-admin/includes/upgrade.php' : '';
@@ -119,6 +145,8 @@ final class LogTable {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared
 			$wpdb->query( $sql );
 		}
+
+		self::resetCache();
 
 		return self::exists();
 	}

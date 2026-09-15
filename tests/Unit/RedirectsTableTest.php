@@ -39,6 +39,7 @@ final class RedirectsTableTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		RedirectTable::resetCache();
 		$this->db           = new RedirectsFakeDb();
 		$GLOBALS['wpdb']    = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 		$this->dbDeltaCalls = 0;
@@ -55,6 +56,7 @@ final class RedirectsTableTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectTable::resetCache();
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -75,8 +77,61 @@ final class RedirectsTableTest extends TestCase {
 		$this->assertTrue( RedirectTable::exists() );
 
 		$this->db->tableExists = false;
+		RedirectTable::resetCache();
 
 		$this->assertFalse( RedirectTable::exists() );
+	}
+
+	/**
+	 * Test repeated existence checks hit the database once.
+	 */
+	public function test_exists_queries_once_then_serves_from_cache(): void {
+		$this->assertTrue( RedirectTable::exists() );
+		$this->assertSame( 1, $this->db->schemaProbes, 'First call performs one schema probe' );
+
+		$this->assertTrue( RedirectTable::exists() );
+		$this->assertSame( 1, $this->db->schemaProbes, 'Second call must not probe the database again' );
+	}
+
+	/**
+	 * Test a missing table is cached without a repeat query.
+	 */
+	public function test_missing_table_is_cached_without_repeat_query(): void {
+		$this->db->tableExists = false;
+
+		$this->assertFalse( RedirectTable::exists() );
+		$this->assertSame( 1, $this->db->schemaProbes );
+
+		$this->assertFalse( RedirectTable::exists() );
+		$this->assertSame( 1, $this->db->schemaProbes, 'Cached false must not probe again' );
+	}
+
+	/**
+	 * Test ensure tables clears a cached false after creation.
+	 */
+	public function test_ensure_tables_refreshes_cache_after_creation(): void {
+		$this->db->tableExists = false;
+
+		$this->assertFalse( RedirectTable::exists() );
+
+		$this->assertTrue( RedirectTable::ensureTables() );
+		$this->assertTrue( RedirectTable::exists(), 'Cache must not keep the stale false after creation' );
+	}
+
+	/**
+	 * Test the cache is scoped by resolved table name.
+	 */
+	public function test_cache_is_scoped_by_resolved_table_name(): void {
+		$this->db->tableExists = true;
+
+		$this->assertTrue( RedirectTable::exists() );
+
+		// A different prefix resolves to a different table, so the cached true must not be reused.
+		$this->db->prefix      = 'wp_2_';
+		$this->db->tableExists = false;
+
+		$this->assertFalse( RedirectTable::exists() );
+		$this->assertSame( 2, $this->db->schemaProbes, 'Each distinct table name performs its own probe' );
 	}
 
 	/**

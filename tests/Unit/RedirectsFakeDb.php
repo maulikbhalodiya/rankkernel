@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Tests\Unit;
 
+use RankKernel\Modules\Redirects\RedirectTable;
+
 /**
  * Minimal behavioral fake for the redirect table.
  *
@@ -76,6 +78,20 @@ final class RedirectsFakeDb {
 	public int $insert_id = 0;
 
 	/**
+	 * Schema probe count, SHOW TABLES only.
+	 *
+	 * @var int
+	 */
+	public int $schemaProbes = 0;
+
+	/**
+	 * Reset the redirect table existence cache so each test starts clean.
+	 */
+	public function __construct() {
+		RedirectTable::resetCache();
+	}
+
+	/**
 	 * Full table name.
 	 *
 	 * @return string The result.
@@ -121,6 +137,8 @@ final class RedirectsFakeDb {
 		$this->noteRuleRead( $query );
 
 		if ( false !== strpos( $query, 'SHOW TABLES LIKE' ) ) {
+			++$this->schemaProbes;
+
 			return $this->tableExists ? $this->table() : null;
 		}
 
