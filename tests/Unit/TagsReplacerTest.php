@@ -194,4 +194,30 @@ final class TagsReplacerTest extends TestCase {
 
 		$this->assertSame( 'X CustomVal Y', $result );
 	}
+
+	/**
+	 * Test token caching reuses individual token values across different fields.
+	 */
+	public function test_token_caching_across_different_fields(): void {
+		$query    = $this->makeQuery( 5, 'post' );
+		$ctx      = $this->makeContext( $query );
+		$replacer = new TagsReplacer();
+
+		$categoryCallCount = 0;
+		Functions\when( 'get_the_category' )->alias(
+			static function () use ( &$categoryCallCount ) {
+				++$categoryCallCount;
+				return [ (object) [ 'name' => 'News' ] ];
+			}
+		);
+
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, $map ) => $map );
+
+		$res1 = $replacer->replace( $ctx, 'Cat: %%category%%', 'field1' );
+		$res2 = $replacer->replace( $ctx, 'Category: %%category%%', 'field2' );
+
+		$this->assertSame( 'Cat: News', $res1 );
+		$this->assertSame( 'Category: News', $res2 );
+		$this->assertSame( 1, $categoryCallCount, 'get_the_category should be invoked only once due to token caching' );
+	}
 }
