@@ -1064,4 +1064,19 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'could not determine the final destination', $html );
 		$this->assertStringNotContainsString( 'Consider pointing', $html );
 	}
+
+	/**
+	 * Table controls carry accessible screen-reader and ARIA labels.
+	 */
+	public function test_table_controls_have_accessible_labels(): void {
+		$this->seedEntry( '/missing-page' );
+
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Select bulk action', $html );
+		$this->assertStringContainsString( 'Select All', $html );
+		$this->assertStringContainsString( 'Search addresses', $html );
+		$this->assertStringContainsString( 'aria-label="Select 404 entry for /missing-page"', $html );
+	}
 }

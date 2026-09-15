@@ -879,6 +879,7 @@ final class NotFoundPage {
 		wp_nonce_field( self::NONCE_BULK );
 
 		echo '<div class="tablenav top"><div class="alignleft actions bulkactions">';
+		echo '<label for="rk-bulk-action" class="screen-reader-text">' . esc_html__( 'Select bulk action', 'rankkernel' ) . '</label>';
 		echo '<select name="rk_bulk_action" id="rk-bulk-action">';
 		echo '<option value="">' . esc_html__( 'Bulk actions', 'rankkernel' ) . '</option>';
 		echo '<option value="delete">' . esc_html__( 'Delete', 'rankkernel' ) . '</option>';
@@ -890,7 +891,10 @@ final class NotFoundPage {
 
 		echo '<table class="wp-list-table widefat fixed striped rk-table">';
 		echo '<thead><tr>';
-		echo '<td class="manage-column column-cb check-column"><input type="checkbox" id="rk-select-all" /></td>';
+		echo '<td class="manage-column column-cb check-column">';
+		echo '<label for="rk-select-all" class="screen-reader-text">' . esc_html__( 'Select All', 'rankkernel' ) . '</label>';
+		echo '<input type="checkbox" id="rk-select-all" />';
+		echo '</td>';
 		$this->renderSortableHeaders( $filters );
 		echo '<th scope="col">' . esc_html__( 'Actions', 'rankkernel' ) . '</th>';
 		echo '</tr></thead><tbody>';
@@ -927,7 +931,8 @@ final class NotFoundPage {
 		echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="rk-filters">';
 		echo '<input type="hidden" name="page" value="' . esc_attr( self::SLUG ) . '" />';
 		echo '<p class="search-box">';
-		echo '<input type="search" name="s" value="' . esc_attr( (string) $filters['search'] ) . '" placeholder="'
+		echo '<label for="rk-search-input" class="screen-reader-text">' . esc_html__( 'Search addresses', 'rankkernel' ) . '</label>';
+		echo '<input type="search" id="rk-search-input" name="s" value="' . esc_attr( (string) $filters['search'] ) . '" placeholder="'
 			. esc_attr__( 'Search addresses', 'rankkernel' ) . '" />';
 		submit_button( __( 'Search', 'rankkernel' ), '', '', false );
 		echo '</p><br class="clear" />';
@@ -1020,8 +1025,14 @@ final class NotFoundPage {
 		$base      = admin_url( 'admin.php?page=' . self::SLUG );
 		$deleteUrl = wp_nonce_url( $base . '&rk_action=delete&entry=' . $id, self::NONCE_ROW );
 
+		$selectLabel = sprintf(
+			/* translators: %s: 404 URI */
+			__( 'Select 404 entry for %s', 'rankkernel' ),
+			$uri
+		);
+
 		echo '<tr>';
-		echo '<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="' . esc_attr( (string) $id ) . '" /></th>';
+		echo '<th scope="row" class="check-column"><input type="checkbox" name="entry_ids[]" value="' . esc_attr( (string) $id ) . '" aria-label="' . esc_attr( $selectLabel ) . '" /></th>';
 
 		echo '<td class="rk-col-uri"><strong>' . esc_html( $uri ) . '</strong>';
 		echo '<details class="rk-details"><summary>' . esc_html__( 'Details', 'rankkernel' ) . '</summary>';
