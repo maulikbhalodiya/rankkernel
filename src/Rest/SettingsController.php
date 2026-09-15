@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Rest;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Settings\SettingsStore;
 use WP_Error;
 use WP_REST_Request;

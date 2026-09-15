@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Settings;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Schema\SchemaTypes;
 
 /**

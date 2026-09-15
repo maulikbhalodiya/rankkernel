@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Monitor;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Matches a normalized 404 URI against configured exclusion rules.
  *

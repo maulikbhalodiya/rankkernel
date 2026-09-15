@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Sitemaps\Provider;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Breadcrumbs;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;

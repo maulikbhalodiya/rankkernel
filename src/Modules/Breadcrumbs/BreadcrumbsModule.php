@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Breadcrumbs;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\ModuleEnableMap;

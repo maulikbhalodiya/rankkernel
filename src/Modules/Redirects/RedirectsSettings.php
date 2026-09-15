@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Redirects;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Manages the rankkernel_redirects_settings option.
  *

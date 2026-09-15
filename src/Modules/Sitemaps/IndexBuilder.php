@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Sitemaps;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Sitemaps\Provider\AuthorsProvider;
 use RankKernel\Modules\Sitemaps\Provider\PostsProvider;
 use RankKernel\Modules\Sitemaps\Provider\TaxonomiesProvider;

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Final cleanup pass over the assembled @graph.
  *

@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Admin;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;

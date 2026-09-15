@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Metadata;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 

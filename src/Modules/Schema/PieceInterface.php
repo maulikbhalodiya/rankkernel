@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Schema;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Contract for a single Schema.org piece of the @graph.
  */

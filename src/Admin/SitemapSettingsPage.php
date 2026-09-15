@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Admin;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Sitemaps\Router;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 use RankKernel\Modules\Sitemaps\SitemapSettings;

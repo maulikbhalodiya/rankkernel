@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Breadcrumbs\blocks;
 
+defined( 'ABSPATH' ) || exit;
+
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\Breadcrumbs\Renderer;
 use RankKernel\Modules\Breadcrumbs\TrailBuilder;

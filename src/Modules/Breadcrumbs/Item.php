@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Breadcrumbs;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * One immutable breadcrumb trail entry.
  *

@@ -12,6 +12,8 @@
 
 declare(strict_types=1);
 
+defined( 'ABSPATH' ) || exit;
+
 if ( ! function_exists( 'rankkernel_breadcrumbs' ) ) {
 	/**
 	 * Echo the visible breadcrumb trail.
