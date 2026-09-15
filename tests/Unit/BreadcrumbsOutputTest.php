@@ -59,6 +59,41 @@ final class BreadcrumbsOutputTest extends TestCase {
 	private array $enqueuedStyles = [];
 
 	/**
+	 * Enqueued script handles.
+	 *
+	 * @var string[]
+	 */
+	private array $enqueuedScripts = [];
+
+	/**
+	 * Post type fixtures as slug to label.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $postTypesMap = [];
+
+	/**
+	 * Taxonomy fixtures per post type as slug to label.
+	 *
+	 * @var array<string, array<string, string>>
+	 */
+	private array $objectTaxesMap = [];
+
+	/**
+	 * Override taxonomy for the post type settings filter test.
+	 *
+	 * @var string|null
+	 */
+	private ?string $postTypeSettingsOverride = null;
+
+	/**
+	 * Arguments seen by the post type settings filter.
+	 *
+	 * @var array<int, array{config: mixed, post_type: mixed}>
+	 */
+	private array $seenPostTypeFilterArgs = [];
+
+	/**
 	 * Option store.
 	 *
 	 * @var array<string, mixed>
@@ -204,11 +239,57 @@ final class BreadcrumbsOutputTest extends TestCase {
 		Functions\when( 'get_term' )->justReturn( null );
 		Functions\when( 'get_the_terms' )->justReturn( [] );
 		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/go/term/' );
-		Functions\when( 'get_taxonomy' )->justReturn( false );
-		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->alias(
+			function ( string $taxonomy ): mixed {
+				foreach ( $this->objectTaxesMap as $taxes ) {
+					if ( array_key_exists( $taxonomy, $taxes ) ) {
+						return (object) [
+							'name'   => $taxonomy,
+							'public' => true,
+						];
+					}
+				}
+
+				return false;
+			}
+		);
+		Functions\when( 'get_object_taxonomies' )->alias(
+			function ( string $postType, string $output = 'names' ): array {
+				$taxes = $this->objectTaxesMap[ $postType ] ?? [];
+
+				if ( 'objects' === $output ) {
+					$out = [];
+
+					foreach ( $taxes as $slug => $label ) {
+						$out[ $slug ] = (object) [
+							'name'   => $slug,
+							'label'  => $label,
+							'public' => true,
+						];
+					}
+
+					return $out;
+				}
+
+				return array_keys( $taxes );
+			}
+		);
 		Functions\when( 'is_taxonomy_hierarchical' )->justReturn( false );
 		Functions\when( 'is_post_type_hierarchical' )->justReturn( false );
-		Functions\when( 'get_post_types' )->justReturn( [] );
+		Functions\when( 'get_post_types' )->alias(
+			function (): array {
+				$out = [];
+
+				foreach ( $this->postTypesMap as $slug => $label ) {
+					$out[ $slug ] = (object) [
+						'name'  => $slug,
+						'label' => $label,
+					];
+				}
+
+				return $out;
+			}
+		);
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'get_post_type_object' )->justReturn( false );
 		Functions\when( 'get_post_type_archive_link' )->justReturn( '' );
@@ -218,8 +299,16 @@ final class BreadcrumbsOutputTest extends TestCase {
 		Functions\when( 'get_the_author_meta' )->justReturn( '' );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => (string) $n );
 		Functions\when( 'apply_filters' )->alias(
-			function ( string $hook, mixed $value ): mixed {
+			function ( string $hook, mixed $value, mixed ...$rest ): mixed {
 				$this->appliedFilters[] = $hook;
+
+				if ( 'rankkernel/breadcrumbs/post_type_settings' === $hook && is_array( $value ) && null !== $this->postTypeSettingsOverride ) {
+					$this->seenPostTypeFilterArgs[] = [
+						'config'    => $value,
+						'post_type' => $rest[0] ?? null,
+					];
+					$value['primary_taxonomy']      = $this->postTypeSettingsOverride;
+				}
 
 				if ( 'rankkernel/breadcrumbs/args' === $hook && is_array( $value ) && null !== $this->argsFilterSeparator ) {
 					$value['separator'] = $this->argsFilterSeparator;
@@ -268,6 +357,13 @@ final class BreadcrumbsOutputTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( string $handle ): bool {
+				$this->enqueuedScripts[] = $handle;
+
+				return true;
+			}
+		);
 		Functions\when( 'wp_register_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->alias(
 			function ( string $handle ): bool {
@@ -735,7 +831,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 	}
 
 	/**
-	 * Test settings section renders the breadcrumbs fields.
+	 * Test settings section renders the grouped breadcrumbs fields.
 	 */
 	public function test_settings_section_renders_fields(): void {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
@@ -745,13 +841,235 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Breadcrumbs', $output );
-		$this->assertStringContainsString( 'rk_breadcrumbs_separator', $output );
+		$this->assertStringContainsString( 'Appearance', $output );
+		$this->assertStringContainsString( 'Trail behavior', $output );
+		$this->assertStringContainsString( 'Taxonomy preferences', $output );
+		$this->assertStringContainsString( 'rk_breadcrumbs_separator_choice', $output );
+		$this->assertStringContainsString( 'rk_breadcrumbs_separator_custom', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_home_label', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_show_home', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_show_current', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_hide_on_front_page', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_show_blog_page', $output );
 		$this->assertStringContainsString( 'rk_breadcrumbs_show_ancestors', $output );
+	}
+
+	/**
+	 * Test settings section renders native radio inputs for every preset.
+	 */
+	public function test_settings_section_renders_separator_preset_radios(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( 7, substr_count( $output, 'name="rk_breadcrumbs_separator_choice"' ) );
+		$this->assertStringContainsString( '<fieldset>', $output );
+		$this->assertStringContainsString( 'value="custom"', $output );
+		$this->assertStringContainsString( 'id="rk-breadcrumbs-separator-custom-wrap"', $output );
+		$this->assertStringContainsString( '<label for="rk-breadcrumbs-separator-custom">', $output );
+	}
+
+	/**
+	 * Test settings section preselects Custom for a stored non preset value.
+	 */
+	public function test_settings_section_preselects_custom_for_stored_non_preset(): void {
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'separator' => '→' ];
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'value="custom" checked="checked"', $output );
+		$this->assertStringContainsString( 'value="→"', $output );
+	}
+
+	/**
+	 * Test taxonomy selects render only for types with several taxonomies.
+	 */
+	public function test_settings_section_renders_taxonomy_selects_only_for_multi_taxonomy_types(): void {
+		$this->postTypesMap   = [
+			'post' => 'Posts',
+			'page' => 'Pages',
+			'book' => 'Books',
+		];
+		$this->objectTaxesMap = [
+			'post' => [
+				'category' => 'Categories',
+				'post_tag' => 'Tags',
+			],
+			'page' => [ 'genre' => 'Genres' ],
+			'book' => [],
+		];
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="rk_breadcrumbs_primary_taxonomy_post"', $output );
+		$this->assertStringNotContainsString( 'name="rk_breadcrumbs_primary_taxonomy_page"', $output );
+		$this->assertStringNotContainsString( 'name="rk_breadcrumbs_primary_taxonomy_book"', $output );
+		$this->assertSame( 1, substr_count( $output, '<select' ) );
+		$this->assertStringContainsString( 'the only public taxonomy available', $output );
+	}
+
+	/**
+	 * Test settings save stores the chosen separator preset.
+	 */
+	public function test_settings_save_with_preset_separator_choice(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'                   => '1',
+			'_wpnonce'                          => 'valid',
+			'rk_breadcrumbs_separator_choice'   => '›',
+			'rk_breadcrumbs_home_label'         => 'Start',
+			'rk_breadcrumbs_show_home'          => '1',
+			'rk_breadcrumbs_show_current'       => '1',
+			'rk_breadcrumbs_hide_on_front_page' => '1',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$stored = $this->options[ BreadcrumbsSettings::OPTION ] ?? [];
+
+		$this->assertSame( '›', $stored['separator'] );
+		$this->assertSame( 'Start', $stored['home_label'] );
+	}
+
+	/**
+	 * Test settings save stores a custom separator.
+	 */
+	public function test_settings_save_with_custom_separator(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'                 => '1',
+			'_wpnonce'                        => 'valid',
+			'rk_breadcrumbs_separator_choice' => 'custom',
+			'rk_breadcrumbs_separator_custom' => '→',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$stored = $this->options[ BreadcrumbsSettings::OPTION ] ?? [];
+
+		$this->assertSame( '→', $stored['separator'] );
+	}
+
+	/**
+	 * Test settings save strips markup from a hostile custom separator.
+	 */
+	public function test_settings_save_strips_hostile_separator(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'                 => '1',
+			'_wpnonce'                        => 'valid',
+			'rk_breadcrumbs_separator_choice' => 'custom',
+			'rk_breadcrumbs_separator_custom' => '<script>alert(1)</script>',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$stored = $this->options[ BreadcrumbsSettings::OPTION ] ?? [];
+
+		$this->assertSame( 'alert(1)', $stored['separator'] );
+	}
+
+	/**
+	 * Test settings save falls back to a slash for an empty custom separator.
+	 */
+	public function test_settings_save_empty_custom_separator_falls_back_to_slash(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'                 => '1',
+			'_wpnonce'                        => 'valid',
+			'rk_breadcrumbs_separator_choice' => 'custom',
+			'rk_breadcrumbs_separator_custom' => '',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$stored = $this->options[ BreadcrumbsSettings::OPTION ] ?? [];
+
+		$this->assertSame( '/', $stored['separator'] );
+	}
+
+	/**
+	 * Test settings save preserves taxonomy values for hidden controls.
+	 */
+	public function test_settings_save_preserves_hidden_taxonomy_values(): void {
+		$this->postTypesMap                           = [
+			'post' => 'Posts',
+			'page' => 'Pages',
+		];
+		$this->objectTaxesMap                         = [
+			'post' => [
+				'category' => 'Categories',
+				'post_tag' => 'Tags',
+			],
+			'page' => [ 'genre' => 'Genres' ],
+		];
+		$this->options[ BreadcrumbsSettings::OPTION ] = [
+			'primary_taxonomy_post' => 'category',
+			'primary_taxonomy_page' => 'genre',
+		];
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'                      => '1',
+			'_wpnonce'                             => 'valid',
+			'rk_breadcrumbs_separator_choice'      => '/',
+			'rk_breadcrumbs_primary_taxonomy_post' => 'post_tag',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$stored = $this->options[ BreadcrumbsSettings::OPTION ] ?? [];
+
+		$this->assertSame( '/', $stored['separator'] );
+		$this->assertSame( 'post_tag', $stored['primary_taxonomy_post'] );
+		$this->assertSame( 'genre', $stored['primary_taxonomy_page'] );
+	}
+
+	/**
+	 * Test the assets enqueue only on the RankKernel settings screen.
+	 */
+	public function test_enqueue_assets_only_on_settings_screen(): void {
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+
+		$this->assertContains( 'rankkernel-breadcrumbs-admin', $this->enqueuedScripts );
+
+		$this->enqueuedScripts = [];
+
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-schema' );
+
+		$this->assertSame( [], $this->enqueuedScripts );
 	}
 
 	/**
