@@ -29,12 +29,6 @@ final class TrailBuilder {
 	/**
 	 * Constructor.
 	 *
-	 * @param Context             $ctx      Request context.
-	 * @param BreadcrumbsSettings $settings Breadcrumb settings.
-	 */
-	/**
-	 * Constructor.
-	 *
 	 * @param Context              $ctx       Request context.
 	 * @param BreadcrumbsSettings  $settings  Breadcrumb settings.
 	 * @param array<string, mixed> $overrides Optional visibility overrides: show_home, show_current.
