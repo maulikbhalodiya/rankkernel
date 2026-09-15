@@ -37,7 +37,14 @@ function rankkernel_get_breadcrumbs( array $args = [] ): string {
 	}
 
 	$ctx     = new Context( $query, new SettingsStore() );
-	$builder = new TrailBuilder( $ctx, $settings );
+	$builder = new TrailBuilder(
+		$ctx,
+		$settings,
+		[
+			'show_home'    => $resolved['show_home'],
+			'show_current' => $resolved['show_current'],
+		]
+	);
 	$items   = normalize_breadcrumb_items( filter_breadcrumb_items( $builder->build() ) );
 
 	if ( [] === $items && ! $resolved['show_home'] && ! $resolved['show_current'] ) {
@@ -46,7 +53,12 @@ function rankkernel_get_breadcrumbs( array $args = [] ): string {
 
 	enqueue_breadcrumb_style();
 
-	$html = ( new Renderer() )->render( $items, $resolved );
+	// Visibility is already applied by the builder, before pagination, so the
+	// renderer must not trim again or it would drop a Page N crumb.
+	$renderArgs                     = $resolved;
+	$renderArgs['apply_visibility'] = false;
+
+	$html = ( new Renderer() )->render( $items, $renderArgs );
 
 	if ( function_exists( 'apply_filters' ) ) {
 		$html = (string) apply_filters( 'rankkernel/breadcrumbs', $html, $resolved ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.

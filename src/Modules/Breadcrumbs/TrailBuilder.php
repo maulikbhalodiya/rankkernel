@@ -32,10 +32,39 @@ final class TrailBuilder {
 	 * @param Context             $ctx      Request context.
 	 * @param BreadcrumbsSettings $settings Breadcrumb settings.
 	 */
+	/**
+	 * Constructor.
+	 *
+	 * @param Context              $ctx       Request context.
+	 * @param BreadcrumbsSettings  $settings  Breadcrumb settings.
+	 * @param array<string, mixed> $overrides Optional visibility overrides: show_home, show_current.
+	 */
 	public function __construct(
 		private readonly Context $ctx,
-		private readonly BreadcrumbsSettings $settings
+		private readonly BreadcrumbsSettings $settings,
+		private readonly array $overrides = []
 	) {
+	}
+
+	/**
+	 * Whether the home crumb is shown, caller override first.
+	 *
+	 * Visibility is decided here, before pagination is appended, so a
+	 * hidden home or current item never removes a Page N crumb.
+	 */
+	private function showHome(): bool {
+		return array_key_exists( 'show_home', $this->overrides )
+			? (bool) $this->overrides['show_home']
+			: (bool) $this->settings->get( 'show_home', true );
+	}
+
+	/**
+	 * Whether the current crumb is shown, caller override first.
+	 */
+	private function showCurrent(): bool {
+		return array_key_exists( 'show_current', $this->overrides )
+			? (bool) $this->overrides['show_current']
+			: (bool) $this->settings->get( 'show_current', true );
 	}
 
 	/**
@@ -1233,7 +1262,7 @@ final class TrailBuilder {
 	 * @return Item[] Trail without the current item when hidden.
 	 */
 	private function applyShowCurrent( array $items ): array {
-		if ( (bool) $this->settings->get( 'show_current', true ) ) {
+		if ( $this->showCurrent() ) {
 			return $items;
 		}
 
@@ -1274,7 +1303,7 @@ final class TrailBuilder {
 	 * @param Item[] $items Trail under construction.
 	 */
 	private function addHome( array &$items ): void {
-		if ( (bool) $this->settings->get( 'show_home', true ) ) {
+		if ( $this->showHome() ) {
 			$items[] = $this->homeItem();
 		}
 	}

@@ -160,7 +160,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
 		}
 
-		if ( ! self::$constantsDefined && ! defined( 'RANKERNEL_TESTING' ) ) {
+		if ( ! self::$constantsDefined && ! defined( 'RANKKERNEL_TESTING' ) ) {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
@@ -828,6 +828,30 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$html = ( new BreadcrumbsBlock() )->render( [ 'separator' => '<script>alert(1)</script>' ] );
 
 		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
+	/**
+	 * Test the renderer does not trim a trail whose visibility was already applied.
+	 *
+	 * The canonical paths (template tag and block) decide visibility in the
+	 * builder, before pagination, so the renderer must not drop the first or
+	 * last item again or it would remove a real crumb or a Page N crumb.
+	 */
+	public function test_renderer_skips_visibility_when_already_applied(): void {
+		$html = ( new Renderer() )->render(
+			[
+				new Item( 'Blog', 'https://example.com/blog/' ),
+				new Item( 'Page 2', '' ),
+			],
+			[
+				'show_home'        => false,
+				'show_current'     => false,
+				'apply_visibility' => false,
+			]
+		);
+
+		$this->assertStringContainsString( 'Blog', $html, 'First item must survive' );
+		$this->assertStringContainsString( 'Page 2', $html, 'Last item must survive' );
 	}
 
 	/**

@@ -38,7 +38,7 @@ Unknown attributes are ignored through `shortcode_atts` defaults. Hostile attrib
 
 ## Block
 
-`rankkernel/breadcrumbs` is a dynamic server rendered block with no view script and no frontend JS. Registration mirrors the schema block pattern: explicit editor script and style, `render_callback` delegating to the same `TrailBuilder` and `Renderer`, category `rankkernel`, versioned with `RANKERNEL_VERSION`.
+`rankkernel/breadcrumbs` is a dynamic server rendered block with no view script and no frontend JS. Registration mirrors the schema block pattern: explicit editor script and style, `render_callback` delegating to the same `TrailBuilder` and `Renderer`, category `rankkernel`, versioned with `RANKKERNEL_VERSION`.
 
 Attributes mirror core names for theme compatibility:
 

@@ -19,7 +19,7 @@ use WP_Query;
 
 use function RankKernel\Modules\Breadcrumbs\filter_breadcrumb_items;
 use function RankKernel\Modules\Breadcrumbs\normalize_breadcrumb_items;
-use function RankKernel\Modules\Breadcrumbs\sanitize_breadcrumb_args;
+use function RankKernel\Modules\Breadcrumbs\resolve_breadcrumb_args;
 
 /**
  * Registers the rankkernel/breadcrumbs block and renders it on the server.
@@ -172,13 +172,27 @@ final class BreadcrumbsBlock {
 			'show_current' => array_key_exists( 'showCurrentItem', $attributes ) ? (bool) $attributes['showCurrentItem'] : (bool) $settings->get( 'show_current', true ),
 		];
 
-		$args = sanitize_breadcrumb_args( $args );
+		// Route through the shared resolver so the block honors the
+		// rankkernel/breadcrumbs/args filter exactly like the template tag.
+		$args = resolve_breadcrumb_args( $settings, $args );
 
 		$ctx     = new Context( $query, new SettingsStore() );
-		$builder = new TrailBuilder( $ctx, $settings );
+		$builder = new TrailBuilder(
+			$ctx,
+			$settings,
+			[
+				'show_home'    => $args['show_home'],
+				'show_current' => $args['show_current'],
+			]
+		);
 		$items   = normalize_breadcrumb_items( filter_breadcrumb_items( $builder->build() ) );
 
-		$html = ( new Renderer() )->render( $items, $args );
+		// Visibility is applied by the builder before pagination, so the
+		// renderer must not trim again.
+		$renderArgs                     = $args;
+		$renderArgs['apply_visibility'] = false;
+
+		$html = ( new Renderer() )->render( $items, $renderArgs );
 
 		if ( '' === $html ) {
 			return '';

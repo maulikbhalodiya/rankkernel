@@ -45,15 +45,19 @@ final class Renderer {
 			)
 		);
 
-		$showHome    = $this->argBool( $args, 'show_home', true );
-		$showCurrent = $this->argBool( $args, 'show_current', true );
+		$applyVisibility = $this->argBool( $args, 'apply_visibility', true );
 
-		if ( ! $showHome && [] !== $items ) {
-			array_shift( $items );
-		}
+		if ( $applyVisibility ) {
+			$showHome    = $this->argBool( $args, 'show_home', true );
+			$showCurrent = $this->argBool( $args, 'show_current', true );
 
-		if ( ! $showCurrent && [] !== $items ) {
-			array_pop( $items );
+			if ( ! $showHome && [] !== $items ) {
+				array_shift( $items );
+			}
+
+			if ( ! $showCurrent && [] !== $items ) {
+				array_pop( $items );
+			}
 		}
 
 		if ( [] === $items ) {

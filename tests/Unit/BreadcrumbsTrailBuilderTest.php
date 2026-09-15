@@ -1000,6 +1000,42 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 	}
 
 	/**
+	 * Test hiding the current item still keeps the Page N crumb.
+	 */
+	public function test_hidden_current_with_pagination_keeps_page_n(): void {
+		$this->settingsOption     = [ 'show_current' => false ];
+		$this->queryVars['paged'] = 3;
+		$this->queriedObject      = $this->term( 5, 'category', 'Tech', 'tech' );
+		$this->termAncestors[5]   = [];
+
+		$this->seedCategoryTaxonomy();
+
+		$q = $this->makeQuery( [ 'is_category' => true ], 5 );
+
+		$items = $this->trail( $q );
+
+		$this->assertSame( [ 'Home', 'Page 3' ], $this->labels( $items ), 'Pagination must survive a hidden current item' );
+	}
+
+	/**
+	 * Test hiding home keeps the first real crumb and the Page N crumb.
+	 */
+	public function test_hidden_home_with_pagination_keeps_first_crumb(): void {
+		$this->settingsOption     = [ 'show_home' => false ];
+		$this->queryVars['paged'] = 3;
+		$this->queriedObject      = $this->term( 5, 'category', 'Tech', 'tech' );
+		$this->termAncestors[5]   = [];
+
+		$this->seedCategoryTaxonomy();
+
+		$q = $this->makeQuery( [ 'is_category' => true ], 5 );
+
+		$items = $this->trail( $q );
+
+		$this->assertSame( [ 'Tech', 'Page 3' ], $this->labels( $items ), 'A hidden home must not drop the first real crumb' );
+	}
+
+	/**
 	 * Test paginated singular appends a visible only Page N.
 	 */
 	public function test_paginated_singular_appends_visible_only_page_n(): void {
