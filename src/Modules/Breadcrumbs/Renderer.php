@@ -64,7 +64,7 @@ final class Renderer {
 		$after      = isset( $args['after'] ) && is_string( $args['after'] ) ? $args['after'] : '';
 		$wrapBefore = isset( $args['wrap_before'] ) && is_string( $args['wrap_before'] ) ? $args['wrap_before'] : '';
 		$wrapAfter  = isset( $args['wrap_after'] ) && is_string( $args['wrap_after'] ) ? $args['wrap_after'] : '';
-		$separator  = isset( $args['separator'] ) ? (string) $args['separator'] : '/';
+		$separator  = isset( $args['separator'] ) ? self::sanitizeSeparator( (string) $args['separator'] ) : '/';
 		$ariaLabel  = isset( $args['aria_label'] ) && is_string( $args['aria_label'] ) && '' !== trim( $args['aria_label'] ) ? $args['aria_label'] : __( 'Breadcrumbs', 'rankkernel' );
 
 		$count = count( $items );
@@ -136,5 +136,36 @@ final class Renderer {
 		}
 
 		return $fallback;
+	}
+
+	/**
+	 * Sanitize a separator for safe use inside a CSS custom property.
+	 *
+	 * The separator travels in the style attribute as the value of
+	 * `--rk-breadcrumb-separator`. Escaping alone is not enough there,
+	 * because a semicolon or a parenthesis can terminate the declaration
+	 * and start a second one, so the value is reduced to a short, safe
+	 * decorative string. Anything that could break out of the declaration
+	 * or reference a resource is removed, and an empty result falls back
+	 * to a slash. A leading slash is guaranteed so the default is stable.
+	 *
+	 * @param string $separator Raw separator, possibly attacker controlled.
+	 * @return string Safe separator, never empty.
+	 */
+	private static function sanitizeSeparator( string $separator ): string {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- fallback for contexts without WP loaded, where wp_strip_all_tags is unavailable.
+		$clean = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $separator ) : strip_tags( $separator );
+		$clean = (string) preg_replace( '/[;{}()"\'\\\\]|url\s*\(|[\x00-\x1F\x7F]/i', '', $clean );
+		$clean = trim( $clean );
+
+		if ( function_exists( 'mb_substr' ) ) {
+			$clean = mb_substr( $clean, 0, 10, 'UTF-8' );
+		} else {
+			$clean = substr( $clean, 0, 10 );
+		}
+
+		$clean = trim( $clean );
+
+		return '' === $clean ? '/' : $clean;
 	}
 }

@@ -404,8 +404,35 @@ final class BreadcrumbsSecurityTest extends TestCase {
 			[ 'separator' => 'x" onmouseover="alert(1)' ]
 		);
 
+		$this->assertStringNotContainsString( 'onmouseover', $html );
 		$this->assertStringNotContainsString( '" onmouseover="', $html );
-		$this->assertStringContainsString( '&quot;', $html );
+		$this->assertSame( 1, substr_count( $html, 'style="' ), 'Only one style attribute is emitted' );
 		$this->assertStringContainsString( '<li class="rk-breadcrumbs-item">', $html );
+	}
+
+	/**
+	 * Test a separator cannot inject a second CSS declaration.
+	 */
+	public function test_separator_cannot_inject_a_second_css_declaration(): void {
+		$html = ( new Renderer() )->render(
+			[
+				new Item( 'Home', 'https://example.com/' ),
+				new Item( 'Section', '' ),
+			],
+			[ 'separator' => '/;background-image:url(https://attacker.example/x)' ]
+		);
+
+		$style = '';
+
+		if ( 1 === preg_match( '/style="([^"]*)"/', $html, $matches ) ) {
+			$style = $matches[1];
+		}
+
+		$this->assertSame( 1, substr_count( $style, ';' ), 'Only the declaration terminator remains' );
+		$this->assertStringNotContainsString( '(', $style );
+		$this->assertStringNotContainsString( ')', $style );
+		$this->assertStringNotContainsString( 'url(', $style );
+		$this->assertStringStartsWith( '--rk-breadcrumb-separator:', $style );
+		$this->assertSame( 1, substr_count( $html, 'style="' ), 'Only one style attribute is emitted' );
 	}
 }
