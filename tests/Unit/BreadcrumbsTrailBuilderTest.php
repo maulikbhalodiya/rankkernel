@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Breadcrumbs\Item;
 use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
@@ -167,6 +168,13 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 	private array $postMeta = [];
 
 	/**
+	 * Post type settings filter double, null for passthrough.
+	 *
+	 * @var callable|null
+	 */
+	private mixed $postTypeFilter = null;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -209,6 +217,16 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 		);
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
+		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );
+		Functions\when( 'apply_filters' )->alias(
+			function ( string $hook, mixed $value, mixed ...$rest ): mixed {
+				if ( 'rankkernel/breadcrumbs/post_type_settings' === $hook && null !== $this->postTypeFilter ) {
+					return call_user_func( $this->postTypeFilter, $value, ...$rest );
+				}
+
+				return $value;
+			}
+		);
 		Functions\when( 'esc_url_raw' )->alias( static fn ( string $v ): string => $v );
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
@@ -1141,5 +1159,98 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 		} finally {
 			unset( $GLOBALS['wpdb'] );
 		}
+	}
+
+	/**
+	 * Seed a post with two usable taxonomies for filter tests.
+	 */
+	private function seedTwoTaxonomyPost(): void {
+		$this->titles[11]              = 'Hello World';
+		$this->settingsOption          = [ 'primary_taxonomy_post' => 'category' ];
+		$this->objectTaxes['post']     = [
+			'category' => true,
+			'post_tag' => true,
+		];
+		$this->queriedObject           = $this->post( 11, 'post', 'Hello World' );
+		$this->termsMap['11:category'] = [ $this->term( 3, 'category', 'Tech', 'tech' ) ];
+		$this->termsMap['11:post_tag'] = [ $this->term( 9, 'post_tag', 'Tagged', 'tagged' ) ];
+		$this->termsById[9]            = $this->term( 9, 'post_tag', 'Tagged', 'tagged' );
+		$this->termAncestors[3]        = [];
+		$this->taxonomies['post_tag']  = (object) [
+			'name'        => 'post_tag',
+			'public'      => true,
+			'object_type' => [ 'post' ],
+		];
+		$this->taxHier['post_tag']     = false;
+
+		$this->seedCategoryTaxonomy();
+	}
+
+	/**
+	 * Test the post type settings filter can switch the term branch.
+	 */
+	public function test_post_type_settings_filter_switches_term_branch(): void {
+		$this->seedTwoTaxonomyPost();
+		$this->postTypeFilter = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => 'post_tag' ] );
+
+		$q = $this->makeQuery( [ 'is_singular' => true ], 11 );
+
+		$items = $this->trail( $q );
+
+		$this->assertSame( [ 'Home', 'Tagged', 'Hello World' ], $this->labels( $items ) );
+		$this->assertSame( 'https://example.com/go/tagged/', $items[1]->url() );
+	}
+
+	/**
+	 * Test the post type settings filter with an unknown taxonomy is ignored.
+	 */
+	public function test_post_type_settings_filter_invalid_taxonomy_ignored(): void {
+		$this->seedTwoTaxonomyPost();
+		$this->postTypeFilter = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => 'nope' ] );
+
+		$q = $this->makeQuery( [ 'is_singular' => true ], 11 );
+
+		$items = $this->trail( $q );
+
+		$this->assertSame( [ 'Home', 'Tech', 'Hello World' ], $this->labels( $items ) );
+	}
+
+	/**
+	 * Test the post type settings filter cannot bypass validation with markup.
+	 */
+	public function test_post_type_settings_filter_malicious_value_ignored(): void {
+		$this->seedTwoTaxonomyPost();
+		$this->postTypeFilter = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => '<script>post_tag</script>' ] );
+
+		$q = $this->makeQuery( [ 'is_singular' => true ], 11 );
+
+		$items = $this->trail( $q );
+
+		$this->assertSame( [ 'Home', 'Tech', 'Hello World' ], $this->labels( $items ) );
+
+		foreach ( $items as $item ) {
+			$this->assertStringNotContainsString( '<script>', $item->label() );
+		}
+	}
+
+	/**
+	 * Test visible and schema items stay identical under an active filter.
+	 */
+	public function test_filtered_taxonomy_keeps_visible_and_schema_identical(): void {
+		$this->seedTwoTaxonomyPost();
+		$this->postTypeFilter = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => 'post_tag' ] );
+
+		$q        = $this->makeQuery( [ 'is_singular' => true ], 11 );
+		$ctx      = new Context( $q, new SettingsStore() );
+		$settings = new BreadcrumbsSettings();
+		$items    = ( new TrailBuilder( $ctx, $settings ) )->build();
+		$schema   = ( new BreadcrumbsModule( null, $settings ) )->filterBreadcrumbTrail( [], $ctx );
+
+		$this->assertSame( [ 'Home', 'Tagged', 'Hello World' ], $this->labels( $items ) );
+		$this->assertSame( $this->labels( $items ), array_map( static fn ( array $crumb ): string => $crumb['name'], $schema ) );
+		$this->assertSame(
+			array_map( static fn ( Item $item ): string => $item->url(), $items ),
+			array_map( static fn ( array $crumb ): string => $crumb['url'], $schema )
+		);
 	}
 }

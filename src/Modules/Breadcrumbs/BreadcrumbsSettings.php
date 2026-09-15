@@ -26,6 +26,18 @@ final class BreadcrumbsSettings {
 	public const OPTION = 'rankkernel_breadcrumbs_settings';
 
 	/**
+	 * Separator preset choices shown as native radio inputs.
+	 *
+	 * @var string[]
+	 */
+	public const SEPARATOR_PRESETS = [ '/', '›', '»', '*', '|', '•' ];
+
+	/**
+	 * Maximum stored separator length in characters.
+	 */
+	public const SEPARATOR_MAX_LENGTH = 10;
+
+	/**
 	 * Fixed setting keys (dynamic primary taxonomy keys match by pattern).
 	 *
 	 * @var string[]
@@ -46,6 +58,25 @@ final class BreadcrumbsSettings {
 	 * @var array<string, mixed>|null
 	 */
 	private ?array $cache = null;
+
+	/**
+	 * Separator preset choices for the admin chooser.
+	 *
+	 * @return string[]
+	 */
+	public static function separatorPresets(): array {
+		return self::SEPARATOR_PRESETS;
+	}
+
+	/**
+	 * Whether a value is one of the separator presets.
+	 *
+	 * @param string $value Candidate separator.
+	 * @return bool The result.
+	 */
+	public static function isSeparatorPreset( string $value ): bool {
+		return in_array( $value, self::SEPARATOR_PRESETS, true );
+	}
 
 	/**
 	 * Get default settings.
@@ -191,7 +222,11 @@ final class BreadcrumbsSettings {
 	 * @return mixed Sanitized value.
 	 */
 	private function sanitize( string $key, mixed $value ): mixed {
-		if ( 'separator' === $key || 'home_label' === $key ) {
+		if ( 'separator' === $key ) {
+			return $this->sanitizeSeparator( $value );
+		}
+
+		if ( 'home_label' === $key ) {
 			return sanitize_text_field( (string) $value );
 		}
 
@@ -210,6 +245,102 @@ final class BreadcrumbsSettings {
 		}
 
 		return (bool) $value;
+	}
+
+	/**
+	 * Sanitize the canonical separator as plain text.
+	 *
+	 * Tags are stripped, the value is capped at SEPARATOR_MAX_LENGTH
+	 * characters, and an empty result falls back to a slash so the
+	 * renderer never receives an unusable separator.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string Sanitized separator.
+	 */
+	private function sanitizeSeparator( mixed $value ): string {
+		$clean = sanitize_text_field( (string) $value );
+
+		if ( function_exists( 'mb_substr' ) ) {
+			$clean = mb_substr( $clean, 0, self::SEPARATOR_MAX_LENGTH );
+		} else {
+			$clean = substr( $clean, 0, self::SEPARATOR_MAX_LENGTH );
+		}
+
+		if ( '' === trim( $clean ) ) {
+			return '/';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Effective per post type configuration for the trail builder.
+	 *
+	 * Applied after the stored settings are loaded and before
+	 * TrailBuilder consumes the configuration, so developers can adjust
+	 * the primary taxonomy through the
+	 * rankkernel/breadcrumbs/post_type_settings filter.
+	 *
+	 * Filter contract: receives the resolved configuration map with
+	 * post_type and primary_taxonomy keys, plus the post type slug as
+	 * the second argument, and must return the same shape. The returned
+	 * taxonomy is validated again against the public taxonomies
+	 * registered for that post type and must exist in the registry. An
+	 * invalid or malicious value is ignored and the stored value
+	 * applies, falling back to an empty string (first public taxonomy
+	 * with terms) when the stored value is unusable.
+	 *
+	 * @param string $postType Post type slug.
+	 * @return array{post_type: string, primary_taxonomy: string} Resolved configuration.
+	 */
+	public function postTypeSettings( string $postType ): array {
+		$stored = (string) $this->get( 'primary_taxonomy_' . $postType, '' );
+
+		$resolved = [
+			'post_type'        => $postType,
+			'primary_taxonomy' => $stored,
+		];
+
+		if ( function_exists( 'apply_filters' ) ) {
+			$filtered = apply_filters( 'rankkernel/breadcrumbs/post_type_settings', $resolved, $postType ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+			if ( is_array( $filtered ) && isset( $filtered['primary_taxonomy'] ) && is_string( $filtered['primary_taxonomy'] ) && $filtered['primary_taxonomy'] !== $stored ) {
+				$candidate = sanitize_key( $filtered['primary_taxonomy'] );
+
+				if ( '' === $candidate ) {
+					$resolved['primary_taxonomy'] = '';
+				} elseif ( $this->isValidTaxonomyForType( $candidate, $postType ) ) {
+					$resolved['primary_taxonomy'] = $candidate;
+				}
+			}
+		}
+
+		return $resolved;
+	}
+
+	/**
+	 * Whether a taxonomy is public and registered for a post type.
+	 *
+	 * @param string $taxonomy Taxonomy slug.
+	 * @param string $postType Post type slug.
+	 * @return bool The result.
+	 */
+	private function isValidTaxonomyForType( string $taxonomy, string $postType ): bool {
+		$registered = function_exists( 'get_object_taxonomies' ) ? get_object_taxonomies( $postType ) : [];
+
+		if ( ! is_array( $registered ) || ! in_array( $taxonomy, $registered, true ) ) {
+			return false;
+		}
+
+		if ( function_exists( 'get_taxonomy' ) ) {
+			$tax = get_taxonomy( $taxonomy );
+
+			if ( ! is_object( $tax ) || empty( $tax->public ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -238,18 +369,8 @@ final class BreadcrumbsSettings {
 			return '';
 		}
 
-		$registered = function_exists( 'get_object_taxonomies' ) ? get_object_taxonomies( $postType ) : [];
-
-		if ( ! is_array( $registered ) || ! in_array( $taxonomy, $registered, true ) ) {
+		if ( ! $this->isValidTaxonomyForType( $taxonomy, $postType ) ) {
 			return '';
-		}
-
-		if ( function_exists( 'get_taxonomy' ) ) {
-			$tax = get_taxonomy( $taxonomy );
-
-			if ( ! is_object( $tax ) || empty( $tax->public ) ) {
-				return '';
-			}
 		}
 
 		return $taxonomy;

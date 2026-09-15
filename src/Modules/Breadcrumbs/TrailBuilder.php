@@ -739,17 +739,21 @@ final class TrailBuilder {
 	/**
 	 * Primary taxonomy for a post: mapped value or safe fallback.
 	 *
-	 * The mapped primary_taxonomy_{post_type} value wins when it names a
-	 * public taxonomy registered for the post type that actually has
-	 * terms on this post. Otherwise the first public taxonomy with
-	 * terms supplies the single term branch.
+	 * The mapped primary_taxonomy_{post_type} value passes through the
+	 * rankkernel/breadcrumbs/post_type_settings filter inside
+	 * BreadcrumbsSettings::postTypeSettings, so the returned taxonomy is
+	 * already validated against the public taxonomies registered for the
+	 * post type. It wins when it names a usable taxonomy with terms on
+	 * this post. Otherwise the first public taxonomy with terms supplies
+	 * the single term branch.
 	 *
 	 * @param string $postType Post type.
 	 * @param int    $postId   Post id.
 	 * @return string Taxonomy slug or empty string.
 	 */
 	private function primaryTaxonomyFor( string $postType, int $postId ): string {
-		$mapped = (string) $this->settings->get( 'primary_taxonomy_' . $postType, '' );
+		$config = $this->settings->postTypeSettings( $postType );
+		$mapped = (string) $config['primary_taxonomy'];
 
 		if ( '' !== $mapped && in_array( $mapped, $this->publicTaxonomies( $postType ), true ) && [] !== $this->postTerms( $postId, $mapped ) ) {
 			return $mapped;

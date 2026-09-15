@@ -47,6 +47,20 @@ final class BreadcrumbsSettingsTest extends TestCase {
 	private array $taxPublic = [];
 
 	/**
+	 * Post type settings filter double, null for passthrough.
+	 *
+	 * @var callable|null
+	 */
+	private mixed $settingsFilter = null;
+
+	/**
+	 * Arguments seen by the post type settings filter double.
+	 *
+	 * @var array<int, array{config: mixed, post_type: mixed}>
+	 */
+	private array $seenFilterArgs = [];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -87,6 +101,22 @@ final class BreadcrumbsSettingsTest extends TestCase {
 					'name'   => $taxonomy,
 					'public' => $this->taxPublic[ $taxonomy ],
 				];
+			}
+		);
+		Functions\when( 'apply_filters' )->alias(
+			function ( string $hook, mixed $value, mixed ...$rest ): mixed {
+				if ( 'rankkernel/breadcrumbs/post_type_settings' === $hook ) {
+					$this->seenFilterArgs[] = [
+						'config'    => $value,
+						'post_type' => $rest[0] ?? null,
+					];
+
+					if ( null !== $this->settingsFilter ) {
+						return call_user_func( $this->settingsFilter, $value, ...$rest );
+					}
+				}
+
+				return $value;
 			}
 		);
 	}
@@ -288,5 +318,148 @@ final class BreadcrumbsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->get( 'show_home' ) );
 		$this->assertTrue( $settings->get( 'show_current' ) );
 		$this->assertSame( [], $this->updates );
+	}
+
+	/**
+	 * Test separator presets exact.
+	 */
+	public function test_separator_presets_exact(): void {
+		$this->assertSame( [ '/', '›', '»', '*', '|', '•' ], BreadcrumbsSettings::separatorPresets() );
+		$this->assertSame( 10, BreadcrumbsSettings::SEPARATOR_MAX_LENGTH );
+		$this->assertTrue( BreadcrumbsSettings::isSeparatorPreset( '/' ) );
+		$this->assertFalse( BreadcrumbsSettings::isSeparatorPreset( 'custom-value' ) );
+		$this->assertFalse( BreadcrumbsSettings::isSeparatorPreset( '' ) );
+	}
+
+	/**
+	 * Test custom non preset separator is stored verbatim.
+	 */
+	public function test_custom_separator_stored_verbatim(): void {
+		$settings = new BreadcrumbsSettings();
+
+		$this->assertTrue( $settings->set( [ 'separator' => '→' ] ) );
+		$this->assertSame( '→', $settings->get( 'separator' ) );
+	}
+
+	/**
+	 * Test hostile separator is stripped and capped at ten characters.
+	 */
+	public function test_hostile_separator_stripped_and_capped(): void {
+		$settings = new BreadcrumbsSettings();
+
+		$this->assertTrue( $settings->set( [ 'separator' => '<script>alert(1)</script>abcdefghijklmnop' ] ) );
+
+		$stored = (string) $settings->get( 'separator' );
+
+		$this->assertStringNotContainsString( '<', $stored );
+		$this->assertStringNotContainsString( '>', $stored );
+		$this->assertLessThanOrEqual( 10, strlen( $stored ) );
+	}
+
+	/**
+	 * Test empty separator falls back to a slash.
+	 */
+	public function test_empty_separator_falls_back_to_slash(): void {
+		$settings = new BreadcrumbsSettings();
+
+		$this->assertTrue( $settings->set( [ 'separator' => '   ' ] ) );
+		$this->assertSame( '/', $settings->get( 'separator' ) );
+	}
+
+	/**
+	 * Test stored non preset separator survives without migration.
+	 */
+	public function test_stored_non_preset_separator_preserved(): void {
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'separator' => '→' ];
+
+		$settings = new BreadcrumbsSettings();
+
+		$this->assertSame( '→', $settings->get( 'separator' ) );
+		$this->assertFalse( BreadcrumbsSettings::isSeparatorPreset( (string) $settings->get( 'separator' ) ) );
+	}
+
+	/**
+	 * Test post type settings filter receives the post type and config.
+	 */
+	public function test_post_type_settings_filter_receives_post_type_and_config(): void {
+		$this->objectTaxes                            = [ 'post' => [ 'category' ] ];
+		$this->taxPublic                              = [ 'category' => true ];
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'primary_taxonomy_post' => 'category' ];
+
+		$settings = new BreadcrumbsSettings();
+		$resolved = $settings->postTypeSettings( 'post' );
+
+		$this->assertSame(
+			[
+				'post_type'        => 'post',
+				'primary_taxonomy' => 'category',
+			],
+			$resolved
+		);
+		$this->assertCount( 1, $this->seenFilterArgs );
+		$this->assertSame( 'post', $this->seenFilterArgs[0]['post_type'] );
+		$this->assertSame( $resolved, $this->seenFilterArgs[0]['config'] );
+	}
+
+	/**
+	 * Test post type settings filter change to a valid taxonomy is respected.
+	 */
+	public function test_post_type_settings_filter_change_respected(): void {
+		$this->objectTaxes    = [ 'post' => [ 'category', 'post_tag' ] ];
+		$this->taxPublic      = [
+			'category' => true,
+			'post_tag' => true,
+		];
+		$this->settingsFilter = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => 'post_tag' ] );
+
+		$settings = new BreadcrumbsSettings();
+		$resolved = $settings->postTypeSettings( 'post' );
+
+		$this->assertSame( 'post_tag', $resolved['primary_taxonomy'] );
+	}
+
+	/**
+	 * Test post type settings filter with an unknown taxonomy is ignored.
+	 */
+	public function test_post_type_settings_filter_invalid_taxonomy_ignored(): void {
+		$this->objectTaxes                            = [ 'post' => [ 'category' ] ];
+		$this->taxPublic                              = [ 'category' => true ];
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'primary_taxonomy_post' => 'category' ];
+		$this->settingsFilter                         = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => 'nope' ] );
+
+		$settings = new BreadcrumbsSettings();
+		$resolved = $settings->postTypeSettings( 'post' );
+
+		$this->assertSame( 'category', $resolved['primary_taxonomy'] );
+	}
+
+	/**
+	 * Test post type settings filter cannot bypass validation with markup.
+	 */
+	public function test_post_type_settings_filter_malicious_value_ignored(): void {
+		$this->objectTaxes                            = [ 'post' => [ 'category' ] ];
+		$this->taxPublic                              = [ 'category' => true ];
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'primary_taxonomy_post' => 'category' ];
+		$this->settingsFilter                         = static fn ( array $config ): array => array_merge( $config, [ 'primary_taxonomy' => '<script>category</script>' ] );
+
+		$settings = new BreadcrumbsSettings();
+		$resolved = $settings->postTypeSettings( 'post' );
+
+		$this->assertSame( 'category', $resolved['primary_taxonomy'] );
+	}
+
+	/**
+	 * Test post type settings filter returning a non array is ignored.
+	 */
+	public function test_post_type_settings_filter_non_array_ignored(): void {
+		$this->objectTaxes                            = [ 'post' => [ 'category' ] ];
+		$this->taxPublic                              = [ 'category' => true ];
+		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'primary_taxonomy_post' => 'category' ];
+		$this->settingsFilter                         = static fn (): string => 'post_tag';
+
+		$settings = new BreadcrumbsSettings();
+		$resolved = $settings->postTypeSettings( 'post' );
+
+		$this->assertSame( 'category', $resolved['primary_taxonomy'] );
 	}
 }
