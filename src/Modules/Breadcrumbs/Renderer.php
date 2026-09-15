@@ -76,7 +76,7 @@ final class Renderer {
 		}
 
 		$out  = $wrapBefore . $before;
-		$out .= '<nav class="rk-breadcrumbs" aria-label="' . esc_attr( $ariaLabel ) . '" style="--rk-breadcrumb-separator:' . esc_attr( $separator ) . ';">';
+		$out .= '<nav class="rk-breadcrumbs" aria-label="' . esc_attr( $ariaLabel ) . '" style="--rk-breadcrumb-separator:' . esc_attr( self::cssString( $separator ) ) . ';">';
 		$out .= '<ol class="rk-breadcrumbs-list">' . $lis . '</ol>';
 		$out .= '</nav>';
 		$out .= $after . $wrapAfter;
@@ -167,5 +167,24 @@ final class Renderer {
 		$clean = trim( $clean );
 
 		return '' === $clean ? '/' : $clean;
+	}
+
+	/**
+	 * Wrap a sanitized separator as a CSS string literal.
+	 *
+	 * The value is consumed by `content: var( --rk-breadcrumb-separator )`,
+	 * and the `content` property only accepts a string, a url, a counter,
+	 * or a keyword. A bare identifier such as `/` or `›` is not a valid
+	 * `content` value, so the separator would silently render nothing.
+	 * Quoting it here keeps the property a valid CSS string. The wrapped
+	 * value is escaped for use inside the style attribute by the caller.
+	 *
+	 * @param string $separator Sanitized separator text.
+	 * @return string Quoted CSS string literal.
+	 */
+	private static function cssString( string $separator ): string {
+		$escaped = str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), $separator );
+
+		return '"' . $escaped . '"';
 	}
 }

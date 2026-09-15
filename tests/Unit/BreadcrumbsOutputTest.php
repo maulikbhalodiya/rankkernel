@@ -488,7 +488,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 			[ 'separator' => '>' ]
 		);
 
-		$this->assertStringContainsString( '--rk-breadcrumb-separator:&gt;', $html );
+		$this->assertStringContainsString( '--rk-breadcrumb-separator:&quot;&gt;&quot;', $html );
 		$this->assertStringNotContainsString( 'aria-hidden', $html );
 		$this->assertSame( false, (bool) preg_match( '/<\/li>\s*>\s*<li/', $html ) );
 	}
@@ -608,7 +608,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 			]
 		);
 
-		$this->assertStringContainsString( '--rk-breadcrumb-separator:&gt;', $html );
+		$this->assertStringContainsString( '--rk-breadcrumb-separator:&quot;&gt;&quot;', $html );
 		$this->assertStringNotContainsString( 'https://example.com/">Home', $html );
 	}
 
@@ -634,7 +634,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
 
 		$this->assertContains( 'rankkernel/breadcrumbs/args', $this->appliedFilters );
-		$this->assertStringContainsString( '--rk-breadcrumb-separator:&gt;', $html );
+		$this->assertStringContainsString( '--rk-breadcrumb-separator:&quot;&gt;&quot;', $html );
 	}
 
 	/**
@@ -798,7 +798,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		);
 
 		$this->assertStringNotContainsString( 'https://example.com/">Home', $html );
-		$this->assertStringContainsString( '--rk-breadcrumb-separator:&gt;', $html );
+		$this->assertStringContainsString( '--rk-breadcrumb-separator:&quot;&gt;&quot;', $html );
 	}
 
 	/**

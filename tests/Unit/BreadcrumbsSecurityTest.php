@@ -428,11 +428,11 @@ final class BreadcrumbsSecurityTest extends TestCase {
 			$style = $matches[1];
 		}
 
-		$this->assertSame( 1, substr_count( $style, ';' ), 'Only the declaration terminator remains' );
+		$this->assertStringNotContainsString( 'background-image', $html );
 		$this->assertStringNotContainsString( '(', $style );
 		$this->assertStringNotContainsString( ')', $style );
 		$this->assertStringNotContainsString( 'url(', $style );
-		$this->assertStringStartsWith( '--rk-breadcrumb-separator:', $style );
+		$this->assertSame( 1, preg_match( '/^--rk-breadcrumb-separator:&quot;.*&quot;;$/', $style ), 'Style holds exactly one declaration whose value is a quoted CSS string' );
 		$this->assertSame( 1, substr_count( $html, 'style="' ), 'Only one style attribute is emitted' );
 	}
 }
