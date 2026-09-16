@@ -1446,11 +1446,25 @@ final class RedirectsAdminTest extends TestCase {
 	 */
 	public function test_table_controls_have_accessible_labels(): void {
 		$this->seedRule( '/a', '/b' );
+		$this->seedRule( '/c', '/d' );
 
 		$page = $this->makePage();
 		$this->allowAccess();
 
 		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<label for="rk-bulk-action"', $html );
+		$this->assertStringContainsString( 'id="rk-bulk-action"', $html );
+		$this->assertStringContainsString( '<label for="rk-select-all"', $html );
+		$this->assertStringContainsString( 'id="rk-select-all"', $html );
+		$this->assertStringContainsString( '<label for="rk-search-input"', $html );
+		$this->assertStringContainsString( 'id="rk-search-input"', $html );
+		$this->assertStringContainsString( '<label for="rk-filter-status"', $html );
+		$this->assertStringContainsString( 'id="rk-filter-status"', $html );
+		$this->assertStringContainsString( '<label for="rk-filter-match"', $html );
+		$this->assertStringContainsString( 'id="rk-filter-match"', $html );
+		$this->assertStringContainsString( '<label for="rk-filter-code"', $html );
+		$this->assertStringContainsString( 'id="rk-filter-code"', $html );
 
 		$this->assertStringContainsString( 'Select bulk action', $html );
 		$this->assertStringContainsString( 'Select All', $html );
@@ -1458,6 +1472,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Filter by status', $html );
 		$this->assertStringContainsString( 'Filter by match type', $html );
 		$this->assertStringContainsString( 'Filter by redirect type', $html );
+
 		$this->assertStringContainsString( 'aria-label="Select redirect for /a"', $html );
+		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
+		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
 	}
 }
