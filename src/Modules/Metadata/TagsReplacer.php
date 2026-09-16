@@ -27,6 +27,16 @@ final class TagsReplacer {
 	private array $memo = [];
 
 	/**
+	 * Per-context token cache keyed by (hash|token).
+	 *
+	 * Caches individual token values per Context hash to eliminate redundant DB
+	 * queries (e.g. get_the_category, get_the_author_meta) across multiple fields.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $tokenCache = [];
+
+	/**
 	 * Replace tokens in a template, memoized by context hash + field.
 	 *
 	 * Unknown tokens are stripped (replaced with ''). Custom tokens may be
@@ -60,16 +70,18 @@ final class TagsReplacer {
 	 * @return string Resolved string.
 	 */
 	private function doReplace( Context $ctx, string $template ): string {
+		// Performance optimization: token values are fetched via resolveToken() which uses $tokenCache
+		// to avoid repeating expensive queries/functions across different fields on the same context.
 		$map = [
-			'title'       => $ctx->title(),
-			'sitename'    => $ctx->siteName(),
-			'sep'         => $ctx->separator(),
-			'excerpt'     => $ctx->excerpt(),
-			'date'        => $this->resolveDate( $ctx ),
-			'author'      => $this->resolveAuthor( $ctx ),
-			'category'    => $this->resolveCategory( $ctx ),
-			'page'        => $this->resolvePage( $ctx ),
-			'currentdate' => $this->resolveCurrentDate(),
+			'title'       => $this->resolveToken( 'title', $ctx ),
+			'sitename'    => $this->resolveToken( 'sitename', $ctx ),
+			'sep'         => $this->resolveToken( 'sep', $ctx ),
+			'excerpt'     => $this->resolveToken( 'excerpt', $ctx ),
+			'date'        => $this->resolveToken( 'date', $ctx ),
+			'author'      => $this->resolveToken( 'author', $ctx ),
+			'category'    => $this->resolveToken( 'category', $ctx ),
+			'page'        => $this->resolveToken( 'page', $ctx ),
+			'currentdate' => $this->resolveToken( 'currentdate', $ctx ),
 		];
 
 		/**
@@ -95,6 +107,41 @@ final class TagsReplacer {
 		);
 
 		return is_string( $resolved ) ? $resolved : $template;
+	}
+
+	/**
+	 * Resolve a single token with context-level memoization.
+	 *
+	 * Performance optimization: caches individual token values per Context hash to prevent
+	 * re-evaluating taxonomy queries or author metadata when replacing tokens across multiple fields.
+	 *
+	 * @param string  $token Token name (without %%).
+	 * @param Context $ctx   Request context.
+	 * @return string Resolved token value.
+	 */
+	private function resolveToken( string $token, Context $ctx ): string {
+		$tokenKey = $ctx->hash() . '|' . $token;
+
+		if ( array_key_exists( $tokenKey, $this->tokenCache ) ) {
+			return $this->tokenCache[ $tokenKey ];
+		}
+
+		$value = match ( $token ) {
+			'title'       => $ctx->title(),
+			'sitename'    => $ctx->siteName(),
+			'sep'         => $ctx->separator(),
+			'excerpt'     => $ctx->excerpt(),
+			'date'        => $this->resolveDate( $ctx ),
+			'author'      => $this->resolveAuthor( $ctx ),
+			'category'    => $this->resolveCategory( $ctx ),
+			'page'        => $this->resolvePage( $ctx ),
+			'currentdate' => $this->resolveCurrentDate(),
+			default       => '',
+		};
+
+		$this->tokenCache[ $tokenKey ] = $value;
+
+		return $value;
 	}
 
 	/**
@@ -241,6 +288,7 @@ final class TagsReplacer {
 	 * Clear memo (useful in tests).
 	 */
 	public function clearMemo(): void {
-		$this->memo = [];
+		$this->memo       = [];
+		$this->tokenCache = [];
 	}
 }
