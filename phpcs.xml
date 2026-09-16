@@ -3,7 +3,7 @@
     <description>RankKernel strict WordPress.org standard formatting and security ruleset.</description>
 
     <!-- Set the minimum PHP version RankKernel is being checked against. -->
-    <config name="testVersion" value="8.2-"/>
+    <config name="testVersion" value="8.1-"/>
     <config name="minimum_supported_wp_version" value="6.5"/>
     <config name="text_domain" value="rankkernel"/>
 
