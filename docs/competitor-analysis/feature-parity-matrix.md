@@ -91,13 +91,13 @@ Rows marked `EXTERNAL` are listed in full in section 8 of `feature-parity-master
 
 | Feature / Functionality | Rank Math Free | Yoast Free | Rank Math PRO | Yoast Premium | RankKernel Status | Notes & RankKernel Edge |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Per-post SEO title editing UI | yes | yes | yes | yes | MISSING | **Gap:** free in both competitors today. |
-| Per-post meta description editing UI | yes | yes | yes | yes | MISSING | **Gap:** free in both competitors today. |
-| Per-post robots editing UI | yes | yes | yes | yes | MISSING | **Gap:** free in both competitors today. |
-| Per-post canonical override | yes | yes | yes | yes | PARTIAL | At parity with both competitors, no cost. |
-| Per-post Open Graph and Twitter editing UI | yes | yes | yes | yes | MISSING | **Gap:** free in both competitors today. |
-| Snippet or SERP preview | yes | yes | yes | yes | PLANNED | At parity with both competitors, no cost. |
-| Social network previews | yes | no | yes | yes | PLANNED | **RankKernel Edge:** Free, where Yoast paywalls it. |
+| Per-post SEO title editing UI | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free, and built on issue #27 as a Classic Editor meta box plus a Gutenberg sidebar. Unit and contract tested; awaiting manual browser verification before it is called DONE. |
+| Per-post meta description editing UI | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free, same surface as the title field, with template fallback and a per field reset. Built on issue #27, awaiting manual browser verification. |
+| Per-post robots editing UI | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free. Issue #27 adds the directives UI and routes output through the single core wp_robots tag with most restrictive wins. Awaiting manual browser verification. |
+| Per-post canonical override | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free. Issue #27 adds the override field and unhooks core rel_canonical so exactly one canonical is emitted. Awaiting manual browser verification. |
+| Per-post Open Graph and Twitter editing UI | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free, including media library pick and remove for both images and a card type selector. Built on issue #27, awaiting manual browser verification. |
+| Snippet or SERP preview | yes | yes | yes | yes | PARTIAL | **RankKernel Edge:** free. Issue #27 adds a live preview with desktop and mobile frames and pixel and character budgets. Awaiting manual browser verification. |
+| Social network previews | yes | no | yes | yes | PARTIAL | **RankKernel Edge:** free, where Yoast paywalls it. Issue #27 adds a live social unfurl card that falls back to the General values. Awaiting manual browser verification. |
 | Bulk edit titles and descriptions | yes | yes | yes | yes | MISSING | **Gap:** free in both competitors today. |
 | Global title and description templates | yes | yes | yes | yes | DONE | At parity with both competitors, no cost. |
 | Per-post-type title or description templates | yes | yes | yes | yes | PLANNED | At parity with both competitors, no cost. |
