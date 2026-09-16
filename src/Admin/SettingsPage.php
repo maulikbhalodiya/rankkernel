@@ -308,7 +308,7 @@ final class SettingsPage {
 		$src     = plugins_url( 'assets/js/breadcrumbs-admin.js', (string) RANKKERNEL_FILE );
 		$version = \RankKernel\Plugin::version();
 
-		wp_register_script( 'rankkernel-breadcrumbs-admin', $src, [], $version, true );
+		wp_register_script( 'rankkernel-breadcrumbs-admin', $src, [ 'wp-i18n', 'wp-a11y' ], $version, true );
 		wp_enqueue_script( 'rankkernel-breadcrumbs-admin' );
 	}
 
