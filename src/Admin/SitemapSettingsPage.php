@@ -75,20 +75,166 @@ final class SitemapSettingsPage {
 	}
 
 	/**
-	 * Render the page.
+	 * Prepare the view state and load the sitemap settings view.
 	 */
 	public function render(): void {
-		$this->renderNotices();
+		$all = $this->settings->all();
+
+		// Read only display flag, compared strictly against a literal, never stored or output.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
 		$tab = $this->currentTab();
 
-		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'Sitemap Settings', 'rankkernel' ) . '</h1>';
+		$tabLabels = [
+			'general'    => __( 'General', 'rankkernel' ),
+			'post-types' => __( 'Post Types', 'rankkernel' ),
+			'taxonomies' => __( 'Taxonomies', 'rankkernel' ),
+			'authors'    => __( 'Authors', 'rankkernel' ),
+		];
 
-		$this->renderTabs( $tab );
-		$this->renderForm( $tab );
+		$tabItems = [];
 
-		echo '</div>';
+		foreach ( $tabLabels as $tabId => $tabLabel ) {
+			$tabItems[] = [
+				'url'   => admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $tabId ),
+				'class' => 'nav-tab' . ( $tabId === $tab ? ' nav-tab-active' : '' ),
+				'label' => $tabLabel,
+			];
+		}
+
+		$showGeneral    = 'general' === $tab;
+		$showPostTypes  = 'post-types' === $tab;
+		$showTaxonomies = 'taxonomies' === $tab;
+		$showAuthors    = 'authors' === $tab;
+
+		if ( $showGeneral ) {
+			$indexUrl     = Router::indexUrl();
+			$itemsPerPage = (string) ( $all['items_per_page'] ?? 1000 );
+
+			$generalRows = [
+				[
+					'kind'    => 'checkbox',
+					'name'    => 'include_images',
+					'title'   => __( 'Images in Sitemaps', 'rankkernel' ),
+					'checked' => ! empty( $all['include_images'] ),
+					'hint'    => __( 'Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages.', 'rankkernel' ),
+				],
+				[
+					'kind'    => 'checkbox',
+					'name'    => 'include_featured_image',
+					'title'   => __( 'Include Featured Images', 'rankkernel' ),
+					'checked' => ! empty( $all['include_featured_image'] ),
+					'hint'    => __( 'Include the Featured Image too, even if it does not appear directly in the post content.', 'rankkernel' ),
+				],
+				[
+					'kind'  => 'ids',
+					'name'  => 'exclude_posts',
+					'title' => __( 'Exclude Posts', 'rankkernel' ),
+					'value' => $this->idsText( $all['exclude_posts'] ?? [] ),
+					'hint'  => __( 'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types.', 'rankkernel' ),
+				],
+				[
+					'kind'  => 'ids',
+					'name'  => 'exclude_terms',
+					'title' => __( 'Exclude Terms', 'rankkernel' ),
+					'value' => $this->idsText( $all['exclude_terms'] ?? [] ),
+					'hint'  => __( 'Add term IDs, separated by comma. This option is applied for all taxonomies.', 'rankkernel' ),
+				],
+				[
+					'kind'    => 'checkbox',
+					'name'    => 'include_empty_terms',
+					'title'   => __( 'Include empty terms', 'rankkernel' ),
+					'checked' => ! empty( $all['include_empty_terms'] ),
+					'hint'    => __( 'List terms that have no published posts.', 'rankkernel' ),
+				],
+			];
+		}
+
+		if ( $showPostTypes ) {
+			$postTypeRows = [];
+
+			foreach ( $this->publicPostTypes() as $slug => $label ) {
+				$key            = 'pt_' . $slug . '_sitemap';
+				$postTypeRows[] = [
+					'key'     => $key,
+					'label'   => $label,
+					'enabled' => (bool) ( $all[ $key ] ?? true ),
+					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
+				];
+			}
+		}
+
+		if ( $showTaxonomies ) {
+			$taxonomyRows = [];
+
+			foreach ( $this->publicTaxonomies() as $slug => $label ) {
+				$key            = 'tax_' . $slug . '_sitemap';
+				$taxonomyRows[] = [
+					'key'     => $key,
+					'label'   => $label,
+					'enabled' => (bool) ( $all[ $key ] ?? true ),
+					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
+				];
+			}
+		}
+
+		if ( $showAuthors ) {
+			$authorsRows = [
+				[
+					'name'    => 'authors_sitemap',
+					'title'   => __( 'Authors sitemap', 'rankkernel' ),
+					'checked' => ! empty( $all['authors_sitemap'] ),
+					'hint'    => __( 'List authors in the sitemap index.', 'rankkernel' ),
+				],
+				[
+					'name'    => 'authors_include_empty',
+					'title'   => __( 'Include authors without posts', 'rankkernel' ),
+					'checked' => ! empty( $all['authors_include_empty'] ),
+					'hint'    => __( 'List every user, not just authors with published posts.', 'rankkernel' ),
+				],
+			];
+
+			$excludedRoles = $all['authors_exclude_roles'] ?? [];
+
+			if ( ! is_array( $excludedRoles ) ) {
+				$excludedRoles = [];
+			}
+
+			$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
+
+			$hasEditableRoles = is_array( $roles ) && [] !== $roles;
+			$roleRows         = [];
+
+			if ( $hasEditableRoles ) {
+				foreach ( $roles as $slug => $details ) {
+					if ( ! is_string( $slug ) || '' === $slug ) {
+						continue;
+					}
+
+					$roleName = $slug;
+
+					if ( is_array( $details ) && isset( $details['name'] ) && is_string( $details['name'] ) ) {
+						$roleName = $details['name'];
+					}
+
+					$roleRows[] = [
+						'slug'     => $slug,
+						'name'     => $roleName,
+						'excluded' => in_array( $slug, $excludedRoles, true ),
+					];
+				}
+			}
+
+			$authorsExcludeUsers = [
+				'name'  => 'authors_exclude_users',
+				'title' => __( 'Exclude users', 'rankkernel' ),
+				'value' => $this->idsText( $all['authors_exclude_users'] ?? [] ),
+				'hint'  => __( 'Comma separated user ids to leave out of the authors sitemap.', 'rankkernel' ),
+			];
+		}
+
+		require __DIR__ . '/Views/sitemap-settings.php';
 	}
 
 	/**
@@ -287,322 +433,26 @@ final class SitemapSettingsPage {
 	}
 
 	/**
-	 * Render admin notices (success on settings-updated).
-	 */
-	private function renderNotices(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
-		if ( isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'] ) {
-			echo '<div class="notice notice-success is-dismissible"><p>';
-			echo esc_html__( 'Settings saved.', 'rankkernel' );
-			echo '</p></div>';
-		}
-	}
-
-	/**
-	 * Render the tab links.
+	 * Comma list of positive integer ids from a stored value.
 	 *
-	 * @param string $current Current tab id.
+	 * @param mixed $value Stored ids.
+	 * @return string The result.
 	 */
-	private function renderTabs( string $current ): void {
-		$tabs = [
-			'general'    => __( 'General', 'rankkernel' ),
-			'post-types' => __( 'Post Types', 'rankkernel' ),
-			'taxonomies' => __( 'Taxonomies', 'rankkernel' ),
-			'authors'    => __( 'Authors', 'rankkernel' ),
-		];
-
-		echo '<h2 class="nav-tab-wrapper">';
-
-		foreach ( $tabs as $id => $label ) {
-			$url   = admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $id );
-			$class = 'nav-tab' . ( $id === $current ? ' nav-tab-active' : '' );
-
-			echo '<a href="' . esc_url( $url ) . '" class="' . esc_attr( $class ) . '">';
-			echo esc_html( $label );
-			echo '</a>';
-		}
-
-		echo '</h2>';
-	}
-
-	/**
-	 * Render the tabbed form.
-	 *
-	 * @param string $tab Current tab id.
-	 */
-	private function renderForm( string $tab ): void {
-		$all = $this->settings->all();
-
-		echo '<form method="post" action="">';
-
-		wp_nonce_field( 'rankkernel_sitemap_settings' );
-
-		if ( 'general' === $tab ) {
-			$this->renderGeneral( $all );
-		} elseif ( 'post-types' === $tab ) {
-			$this->renderPostTypes( $all );
-		} elseif ( 'taxonomies' === $tab ) {
-			$this->renderTaxonomies( $all );
-		} else {
-			$this->renderAuthors( $all );
-		}
-
-		submit_button( __( 'Save Sitemap Settings', 'rankkernel' ), 'primary', 'rankkernel_sitemap_save' );
-
-		echo '</form>';
-	}
-
-	/**
-	 * Render the general section.
-	 *
-	 * @param array<string, mixed> $all Merged settings.
-	 */
-	private function renderGeneral( array $all ): void {
-		echo '<h2>' . esc_html__( 'General', 'rankkernel' ) . '</h2>';
-		echo '<p>';
-		echo esc_html__( 'Your sitemap index can be found here: ', 'rankkernel' );
-		echo '<a href="' . esc_url( Router::indexUrl() ) . '">' . esc_html( Router::indexUrl() ) . '</a>';
-		echo '</p>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-
-		echo '<tr><th scope="row"><label for="rk-items-per-page">';
-		echo esc_html__( 'Links Per Sitemap', 'rankkernel' );
-		echo '</label></th><td>';
-		echo '<input type="number" id="rk-items-per-page" name="items_per_page" value="'
-			. esc_attr( (string) ( $all['items_per_page'] ?? 1000 ) )
-			. '" class="small-text" min="1" max="50000" />';
-		echo '<p class="description">';
-		echo esc_html__( 'Max number of links on each sitemap page.', 'rankkernel' );
-		echo '</p></td></tr>';
-
-		$this->renderCheckboxRow(
-			'include_images',
-			__( 'Images in Sitemaps', 'rankkernel' ),
-			! empty( $all['include_images'] ),
-			__(
-				'Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages.',
-				'rankkernel'
-			)
-		);
-
-		$this->renderCheckboxRow(
-			'include_featured_image',
-			__( 'Include Featured Images', 'rankkernel' ),
-			! empty( $all['include_featured_image'] ),
-			__( 'Include the Featured Image too, even if it does not appear directly in the post content.', 'rankkernel' )
-		);
-
-		$this->renderIdsRow(
-			'exclude_posts',
-			__( 'Exclude Posts', 'rankkernel' ),
-			$all['exclude_posts'] ?? [],
-			__(
-				'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types.',
-				'rankkernel'
-			)
-		);
-
-		$this->renderIdsRow(
-			'exclude_terms',
-			__( 'Exclude Terms', 'rankkernel' ),
-			$all['exclude_terms'] ?? [],
-			__( 'Add term IDs, separated by comma. This option is applied for all taxonomies.', 'rankkernel' )
-		);
-
-		$this->renderCheckboxRow(
-			'include_empty_terms',
-			__( 'Include empty terms', 'rankkernel' ),
-			! empty( $all['include_empty_terms'] ),
-			__( 'List terms that have no published posts.', 'rankkernel' )
-		);
-
-		echo '</tbody></table>';
-	}
-
-	/**
-	 * Render the post types section.
-	 *
-	 * @param array<string, mixed> $all Merged settings.
-	 */
-	private function renderPostTypes( array $all ): void {
-		echo '<h2>' . esc_html__( 'Post Types', 'rankkernel' ) . '</h2>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-
-		foreach ( $this->publicPostTypes() as $slug => $label ) {
-			$key     = 'pt_' . $slug . '_sitemap';
-			$enabled = $all[ $key ] ?? true;
-			$url     = home_url( '/' . $slug . '-sitemap.xml' );
-
-			echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>';
-			echo '<label>';
-			echo '<input type="checkbox" name="' . esc_attr( $key ) . '" value="1" '
-				. checked( (bool) $enabled, true, false ) . ' /> ';
-			echo esc_html__( 'Include in Sitemap', 'rankkernel' );
-			echo '</label>';
-			echo '<p class="description">';
-			echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' );
-			echo '</p>';
-			echo '<p class="description">' . esc_html__( 'Sitemap URL:', 'rankkernel' ) . ' ' . esc_url( $url ) . '</p>';
-			echo '</td></tr>';
-		}
-
-		echo '</tbody></table>';
-	}
-
-	/**
-	 * Render the taxonomies section.
-	 *
-	 * @param array<string, mixed> $all Merged settings.
-	 */
-	private function renderTaxonomies( array $all ): void {
-		echo '<h2>' . esc_html__( 'Taxonomies', 'rankkernel' ) . '</h2>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-
-		foreach ( $this->publicTaxonomies() as $slug => $label ) {
-			$key     = 'tax_' . $slug . '_sitemap';
-			$enabled = $all[ $key ] ?? true;
-			$url     = home_url( '/' . $slug . '-sitemap.xml' );
-
-			echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>';
-			echo '<label>';
-			echo '<input type="checkbox" name="' . esc_attr( $key ) . '" value="1" '
-				. checked( (bool) $enabled, true, false ) . ' /> ';
-			echo esc_html__( 'Include in Sitemap', 'rankkernel' );
-			echo '</label>';
-			echo '<p class="description">';
-			echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' );
-			echo '</p>';
-			echo '<p class="description">' . esc_html__( 'Sitemap URL:', 'rankkernel' ) . ' ' . esc_url( $url ) . '</p>';
-			echo '</td></tr>';
-		}
-
-		echo '<tr><td colspan="2"><p class="description">';
-		echo esc_html__(
-			'Empty terms are listed only when the general include empty terms setting is on.',
-			'rankkernel'
-		);
-		echo '</p></td></tr>';
-
-		echo '</tbody></table>';
-	}
-
-	/**
-	 * Render the authors section.
-	 *
-	 * @param array<string, mixed> $all Merged settings.
-	 */
-	private function renderAuthors( array $all ): void {
-		echo '<h2>' . esc_html__( 'Authors', 'rankkernel' ) . '</h2>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-
-		$this->renderCheckboxRow(
-			'authors_sitemap',
-			__( 'Authors sitemap', 'rankkernel' ),
-			! empty( $all['authors_sitemap'] ),
-			__( 'List authors in the sitemap index.', 'rankkernel' )
-		);
-
-		$this->renderCheckboxRow(
-			'authors_include_empty',
-			__( 'Include authors without posts', 'rankkernel' ),
-			! empty( $all['authors_include_empty'] ),
-			__( 'List every user, not just authors with published posts.', 'rankkernel' )
-		);
-
-		echo '<tr><th scope="row">' . esc_html__( 'Exclude roles', 'rankkernel' ) . '</th><td>';
-
-		$excludedRoles = $all['authors_exclude_roles'] ?? [];
-		if ( ! is_array( $excludedRoles ) ) {
-			$excludedRoles = [];
-		}
-
-		$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
-
-		if ( ! is_array( $roles ) || [] === $roles ) {
-			echo '<p class="description">';
-			echo esc_html__( 'No editable roles found.', 'rankkernel' );
-			echo '</p>';
-		} else {
-			foreach ( $roles as $slug => $details ) {
-				if ( ! is_string( $slug ) || '' === $slug ) {
-					continue;
-				}
-
-				$name = $slug;
-
-				if ( is_array( $details ) && isset( $details['name'] ) && is_string( $details['name'] ) ) {
-					$name = $details['name'];
-				}
-
-				echo '<label>';
-				echo '<input type="checkbox" name="authors_exclude_roles[]" value="'
-					. esc_attr( $slug ) . '" '
-					. checked( in_array( $slug, $excludedRoles, true ), true, false ) . ' /> ';
-				echo esc_html( $name );
-				echo '</label><br />';
-			}
-		}
-
-		echo '</td></tr>';
-
-		$this->renderIdsRow(
-			'authors_exclude_users',
-			__( 'Exclude users', 'rankkernel' ),
-			$all['authors_exclude_users'] ?? [],
-			__( 'Comma separated user ids to leave out of the authors sitemap.', 'rankkernel' )
-		);
-
-		echo '</tbody></table>';
-	}
-
-	/**
-	 * Render a checkbox row.
-	 *
-	 * @param string $name    Field name.
-	 * @param string $title   Row title.
-	 * @param bool   $checked Whether checked.
-	 * @param string $hint    Description text.
-	 */
-	private function renderCheckboxRow( string $name, string $title, bool $checked, string $hint ): void {
-		echo '<tr><th scope="row">' . esc_html( $title ) . '</th><td>';
-		echo '<label>';
-		echo '<input type="checkbox" name="' . esc_attr( $name ) . '" value="1" '
-			. checked( $checked, true, false ) . ' /> ';
-		echo esc_html( $hint );
-		echo '</label>';
-		echo '</td></tr>';
-	}
-
-	/**
-	 * Render a comma ids textarea row.
-	 *
-	 * @param string $name  Field name.
-	 * @param string $title Row title.
-	 * @param mixed  $value Stored ids.
-	 * @param string $hint  Description text.
-	 */
-	private function renderIdsRow( string $name, string $title, mixed $value, string $hint ): void {
+	private function idsText( mixed $value ): string {
 		if ( ! is_array( $value ) ) {
-			$value = [];
+			return '';
 		}
 
 		$ids = [];
 
-		foreach ( $value as $id ) {
-			$int = (int) $id;
+		foreach ( $value as $item ) {
+			$int = (int) $item;
 
 			if ( $int > 0 ) {
 				$ids[] = (string) $int;
 			}
 		}
 
-		echo '<tr><th scope="row"><label for="rk-' . esc_attr( $name ) . '">';
-		echo esc_html( $title );
-		echo '</label></th><td>';
-		echo '<textarea id="rk-' . esc_attr( $name ) . '" name="' . esc_attr( $name ) . '" rows="2" cols="40">';
-		echo esc_textarea( implode( ',', $ids ) );
-		echo '</textarea>';
-		echo '<p class="description">' . esc_html( $hint ) . '</p>';
-		echo '</td></tr>';
+		return implode( ',', $ids );
 	}
 }

@@ -60,3 +60,22 @@ Triage helper for scoping single files (read only, changes nothing):
 
 * `vendor/bin/phpcs --standard=phpcs.xml -s <file>` shows what one file needs.
 * `vendor/bin/phpcbf --standard=phpcs.xml <file>` applies safe automatic fixes after the semantic fixes land. Scope it to listed files only.
+
+## 8. Admin view templates
+
+RankKernel substantial admin menu and page rendering uses dedicated PHP view templates. Admin page classes handle admin logic and prepare view data. View templates handle the HTML structure and escaped presentation output.
+
+* Page classes live in `src/Admin/` and own capability checks, nonce verification, request handling, form processing, validation, redirects, data loading, value computation, and view state preparation.
+* Page templates live in `src/Admin/Views/`, one template per substantial screen, and hold the HTML structure plus presentation-only PHP.
+* A page class ends `render()` by preparing explicit local variables and loading its template with `require __DIR__ . '/Views/<name>.php';`. There is no template engine, no view factory, and no view-model abstraction.
+* Templates carry no business logic. No queries, no validation, no permission checks, no request processing, no redirects, no service calls, and no `$this`. No static calls on plugin classes either: a value that needs computing belongs in the class.
+* Template variables use camelCase, matching the rest of `src/`, and each template declares them with `@var` lines in its file docblock so PHPStan level 6 stays clean.
+* A template is not a class file, so its direct access guard sits after `declare(strict_types=1);`, matching `src/Modules/Breadcrumbs/template-tags.php`.
+* One template per substantial screen. Never create micro-templates for a label, a select, a button, a form, or a table.
+* Templates call only the WordPress functions the renderer already called, so the unit tests keep stubbing exactly the same set. `esc_html_e`, `esc_attr_e` and `_e` are not stubbed, so templates echo `esc_html__` and `esc_attr__` instead.
+* `selected()` and `checked()` are always used in the three argument return form and echoed, for example `<?php echo checked( $flag, true, false ); ?>`. The two argument echo form produces nothing under the test stubs, so it silently loses the attribute.
+* Never use a WordPress global name as a template or loop variable. Names such as `$type`, `$post`, `$id`, `$page`, `$args`, `$content`, `$term` and `$taxonomy` are blocked by PHPCS.
+* Escaping stays at the output location in the template, using the function that matches the context. Escaping is never pushed back into the class to make a template look tidier.
+* Small fragments stay inline. A compact metabox fragment or a single row of markup does not need its own template. The rule targets substantial page rendering, not every echo statement.
+
+New substantial admin pages must follow this architecture. Do not add a new admin menu or screen whose body is built through a long sequence of `echo` statements. The smallest correct shape is a `NewPage` class in `src/Admin/` plus `src/Admin/Views/new-page.php`, with the class handling requests and preparing data and the template rendering it.
