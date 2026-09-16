@@ -519,6 +519,97 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * Every hook the classic editor script binds to exists in the view.
+	 *
+	 * The view is the canonical side of the contract. This extracts the data
+	 * attribute selectors and the element ids metadata-editor.js reads from
+	 * the DOM and fails with a readable list whenever the rendered markup
+	 * stops providing one, which is exactly the runtime break this locks.
+	 */
+	public function test_classic_editor_script_binds_only_to_rendered_hooks(): void {
+		$this->storedMeta = [];
+
+		$markup = $this->renderBox();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local plugin asset, not a remote URL.
+		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/metadata-editor.js' );
+
+		$attributes = $this->extract_queried_data_attributes( $script );
+		$ids        = $this->extract_looked_up_element_ids( $script );
+
+		$this->assertNotSame( [], $attributes, 'The contract extractor found no data attributes, so the extraction logic is broken.' );
+		$this->assertNotSame( [], $ids, 'The contract extractor found no element ids, so the extraction logic is broken.' );
+
+		$missing = [];
+
+		foreach ( $attributes as $attribute ) {
+			if ( false === strpos( $markup, $attribute ) ) {
+				$missing[] = 'data attribute ' . $attribute;
+			}
+		}
+
+		foreach ( $ids as $id ) {
+			if ( false === strpos( $markup, 'id="' . $id . '"' ) ) {
+				$missing[] = 'element id ' . $id;
+			}
+		}
+
+		$this->assertSame(
+			[],
+			$missing,
+			"metadata-editor.js queries hooks the view does not render:\n - " . implode( "\n - ", $missing )
+		);
+	}
+
+	/**
+	 * The block editor sidebar does not bind to the metabox view.
+	 *
+	 * It reads and writes post meta through wp.data, so it must stay free of
+	 * DOM lookups against the classic view. Extracting the same contract and
+	 * finding it empty documents and locks that separation.
+	 */
+	public function test_block_editor_sidebar_does_not_bind_to_the_metabox_view(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local plugin asset, not a remote URL.
+		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/metadata-sidebar.js' );
+
+		$this->assertSame( [], $this->extract_queried_data_attributes( $script ) );
+		$this->assertSame( [], $this->extract_looked_up_element_ids( $script ) );
+	}
+
+	/**
+	 * Extract the data attributes a script queries from the DOM.
+	 *
+	 * Only reads are part of the contract: attribute selectors ([data-...])
+	 * and getAttribute( 'data-...' ) lookups. Attributes written through
+	 * setAttribute() are deliberately skipped because the view does not need
+	 * to render them for the script to run.
+	 *
+	 * @param string $script Script source.
+	 * @return array<int, string> Queried data attribute names.
+	 */
+	private function extract_queried_data_attributes( string $script ): array {
+		preg_match_all( '/\[\s*(data-[a-z0-9-]+)/', $script, $inSelectors );
+		preg_match_all( "/getAttribute\(\s*'(data-[a-z0-9-]+)'/", $script, $inGetter );
+
+		return array_values( array_unique( array_merge( $inSelectors[1], $inGetter[1] ) ) );
+	}
+
+	/**
+	 * Extract the element ids a script looks up by string literal.
+	 *
+	 * View ids live in the rankkernel-meta namespace. Filtering on that
+	 * namespace keeps DOM API names and CSS class literals out of the
+	 * contract without needing an ignore list.
+	 *
+	 * @param string $script Script source.
+	 * @return array<int, string> Looked up element ids.
+	 */
+	private function extract_looked_up_element_ids( string $script ): array {
+		preg_match_all( "/'(rankkernel-meta[a-z0-9-]*)'/", $script, $matches );
+
+		return array_values( array_unique( $matches[1] ) );
+	}
+
+	/**
 	 * Add boxes registers the high priority normal box for supported types.
 	 */
 	public function test_add_boxes_registers_supported_types(): void {

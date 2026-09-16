@@ -35,6 +35,7 @@
  * @var array<int, array{value: string, label: string}> $maxImagePreviewOptions Max image preview option rows.
  * @var string $previewUrl               Permalink used by the SERP preview shell.
  * @var string $previewSiteName          Site name used by the SERP preview shell.
+ * @var string $defaultOgImage           Default Open Graph image used by the social preview card.
  */
 
 declare(strict_types=1);
@@ -53,6 +54,14 @@ $twitterDescription = isset( $twitter['description'] ) ? (string) $twitter['desc
 $ogTitle            = isset( $og['title'] ) ? (string) $og['title'] : '';
 $ogDescription      = isset( $og['description'] ) ? (string) $og['description'] : '';
 $canonicalValue     = $canonical;
+
+// Social unfurl card state. Social fields win, then the General effective
+// values, then the inherited default Open Graph image.
+$socialTitle       = '' !== trim( $ogTitle ) ? $ogTitle : $effectiveTitle;
+$socialDescription = '' !== trim( $ogDescription ) ? $ogDescription : $effectiveDescription;
+$socialImage       = '' !== trim( $ogImageUrl ) ? $ogImageUrl : $defaultOgImage;
+$socialCard        = 'summary' === $twitterCard ? 'summary' : 'summary_large_image';
+$socialCardLabel   = 'summary' === $socialCard ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' );
 ?>
 <?php wp_nonce_field( 'rankkernel_meta_save', 'rankkernel_meta_nonce' ); ?>
 <input type="hidden" name="rankkernel_meta_fields" value="1" />
@@ -80,7 +89,8 @@ $canonicalValue     = $canonical;
 						<span data-rankkernel-inherited-title="1"><?php echo esc_html( $titleInherited ? __( 'Inherited from the template', 'rankkernel' ) : __( 'Custom override active', 'rankkernel' ) ); ?></span>
 					</p>
 					<p class="description"><?php echo esc_html( sprintf( /* translators: %d: maximum length in characters. */ __( 'Recommended length: up to %d characters.', 'rankkernel' ), $titleLimit ) ); ?></p>
-					<label class="rankkernel-meta-reset"><input type="checkbox" id="rankkernel-meta-reset-title" name="rankkernel_meta_reset[title]" value="1" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
+					<p class="rankkernel-meta-count" data-rk-count-for="title" data-rk-state="ok" role="status"></p>
+					<label class="rankkernel-meta-reset"><input type="checkbox" id="rankkernel-meta-reset-title" name="rankkernel_meta_reset[title]" value="1" data-rk-reset="title" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
 					<p class="description"><?php echo esc_html__( 'Effective value:', 'rankkernel' ); ?> <span data-rankkernel-effective-title="1"><?php echo esc_html( $effectiveTitle ); ?></span></p>
 				</td>
 			</tr>
@@ -93,7 +103,8 @@ $canonicalValue     = $canonical;
 						<span data-rankkernel-inherited-description="1"><?php echo esc_html( $descriptionInherited ? __( 'Inherited from the template', 'rankkernel' ) : __( 'Custom override active', 'rankkernel' ) ); ?></span>
 					</p>
 					<p class="description"><?php echo esc_html( sprintf( /* translators: %d: maximum length in characters. */ __( 'Recommended length: up to %d characters.', 'rankkernel' ), $descriptionLimit ) ); ?></p>
-					<label class="rankkernel-meta-reset"><input type="checkbox" id="rankkernel-meta-reset-description" name="rankkernel_meta_reset[description]" value="1" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
+					<p class="rankkernel-meta-count" data-rk-count-for="description" data-rk-state="ok" role="status"></p>
+					<label class="rankkernel-meta-reset"><input type="checkbox" id="rankkernel-meta-reset-description" name="rankkernel_meta_reset[description]" value="1" data-rk-reset="description" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
 					<p class="description"><?php echo esc_html__( 'Effective value:', 'rankkernel' ); ?> <span data-rankkernel-effective-description="1"><?php echo esc_html( $effectiveDescription ); ?></span></p>
 				</td>
 			</tr>
@@ -117,6 +128,7 @@ $canonicalValue     = $canonical;
 							<button type="button" class="button" data-rk-preview="mobile" aria-pressed="false"><?php echo esc_html__( 'Mobile', 'rankkernel' ); ?></button>
 						</div>
 						<div class="rankkernel-meta-preview-frame" data-rk-preview-frame="desktop">
+							<span class="rankkernel-meta-preview-site" id="rankkernel-meta-preview-site"><?php echo esc_html( $previewSiteName ); ?></span>
 							<span class="rankkernel-meta-preview-url" id="rankkernel-meta-preview-url"><?php echo esc_html( $previewUrl ); ?></span>
 							<span class="rankkernel-meta-preview-title" id="rankkernel-meta-preview-title"><?php echo esc_html( $effectiveTitle ); ?></span>
 							<span class="rankkernel-meta-preview-description" id="rankkernel-meta-preview-description"><?php echo esc_html( $effectiveDescription ); ?></span>
@@ -180,6 +192,21 @@ $canonicalValue     = $canonical;
 					<button type="button" class="button" data-rankkernel-select-image="twitter" data-rankkernel-image-target="rankkernel-meta-twitter-image" data-rankkernel-image-id-target="rankkernel-meta-twitter-image-id"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
 					<button type="button" class="button-link" data-rankkernel-remove-image="twitter" data-rankkernel-image-target="rankkernel-meta-twitter-image" data-rankkernel-image-id-target="rankkernel-meta-twitter-image-id"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
 					<p class="description" data-rankkernel-image-preview="twitter"><?php echo esc_html( $twitterImageUrl ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Social preview', 'rankkernel' ); ?></th>
+				<td>
+					<div class="rankkernel-meta-social" data-rk-social="1" data-rk-card="<?php echo esc_attr( $socialCard ); ?>" aria-label="<?php echo esc_attr( __( 'Social unfurl preview', 'rankkernel' ) ); ?>">
+						<img class="rankkernel-meta-social-image" data-rk-social-image="1" src="<?php echo esc_url( $socialImage ); ?>" alt=""<?php echo '' === $socialImage ? ' hidden' : ''; ?> />
+						<div class="rankkernel-meta-social-body">
+							<span class="rankkernel-meta-social-site" data-rk-social-site="1"><?php echo esc_html( $previewSiteName ); ?></span>
+							<span class="rankkernel-meta-social-title" data-rk-social-title="1"><?php echo esc_html( '' !== $socialTitle ? $socialTitle : __( 'Untitled', 'rankkernel' ) ); ?></span>
+							<span class="rankkernel-meta-social-desc" data-rk-social-desc="1"><?php echo esc_html( $socialDescription ); ?></span>
+							<span class="rankkernel-meta-social-card" data-rk-social-card="1"><?php echo esc_html( $socialCardLabel ); ?></span>
+						</div>
+					</div>
+					<p class="description"><?php echo esc_html__( 'The card social networks will unfurl for this post.', 'rankkernel' ); ?></p>
 				</td>
 			</tr>
 		</tbody></table>

@@ -257,12 +257,146 @@
 	outline-offset: 2px;
 }
 
+/*
+ * Classic editor metabox. Its wrapper class is rankkernel-meta-editor, so the
+ * hooks assets/js/metadata-editor.js binds to are styled here. They mirror the
+ * Gutenberg preview rules above so both editors read the same.
+ */
+.rankkernel-meta-editor [data-rankkernel-tokens] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count {
+	font-weight: 600;
+	margin: 6px 0 0;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-ok,
+.rankkernel-meta-editor [data-rk-count-for].rk-is-ok {
+	color: #1a7f37;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-warn,
+.rankkernel-meta-editor [data-rk-count-for].rk-is-warn {
+	color: #946200;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-over,
+.rankkernel-meta-editor [data-rk-count-for].rk-is-over {
+	color: #b32d2e;
+}
+
+.rankkernel-meta-editor [data-rankkernel-inherited-title],
+.rankkernel-meta-editor [data-rankkernel-inherited-description] {
+	display: inline-block;
+	font-weight: 600;
+}
+
+.rankkernel-meta-editor [data-rankkernel-inherited-title].rk-is-custom,
+.rankkernel-meta-editor [data-rankkernel-inherited-description].rk-is-custom {
+	color: #1a7f37;
+}
+
+.rankkernel-meta-editor [data-rankkernel-inherited-title].rk-is-inherited,
+.rankkernel-meta-editor [data-rankkernel-inherited-description].rk-is-inherited {
+	color: #50575e;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-preview {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 12px 0;
+	max-width: 600px;
+	padding: 14px 16px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-preview.rk-is-mobile {
+	max-width: 360px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-preview-site {
+	color: #50575e;
+	display: block;
+	font-size: 12px;
+	margin: 0 0 2px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 12px 0;
+	max-width: 520px;
+	overflow: hidden;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-image {
+	display: block;
+	height: auto;
+	width: 100%;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social[data-rk-card="summary"] {
+	display: flex;
+	gap: 12px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social[data-rk-card="summary"] .rankkernel-meta-social-image {
+	max-width: 140px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-body {
+	padding: 12px 14px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-title {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 4px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-desc {
+	color: #50575e;
+	display: block;
+	font-size: 13px;
+	margin: 0 0 4px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-site {
+	color: #50575e;
+	display: block;
+	font-size: 12px;
+	margin: 0 0 4px;
+	text-transform: uppercase;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-card {
+	color: #50575e;
+	display: block;
+	font-size: 12px;
+	margin: 0;
+}
+
+.rankkernel-meta-editor :focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
 @media screen and (max-width: 782px) {
 	.rk-meta .rk-meta-serp {
 		max-width: 100%;
 	}
 
 	.rk-meta .rk-meta-social {
+		max-width: 100%;
+	}
+
+	.rankkernel-meta-editor .rankkernel-meta-preview,
+	.rankkernel-meta-editor .rankkernel-meta-social {
 		max-width: 100%;
 	}
 }

@@ -292,6 +292,7 @@ final class MetadataBox {
 		$ogImageId       = isset( $og['image_id'] ) ? (int) $og['image_id'] : 0;
 		$twitterImageUrl = isset( $twitter['image'] ) ? (string) $twitter['image'] : '';
 		$twitterImageId  = isset( $twitter['image_id'] ) ? (int) $twitter['image_id'] : 0;
+		$defaultOgImage  = $this->defaultOgImage( $postId );
 
 		$cardOptions = [
 			[

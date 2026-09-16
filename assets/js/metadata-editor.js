@@ -21,26 +21,26 @@
 	var DEBOUNCE_MS = 150;
 
 	var FIELD_NAMES = {
-		title: 'rankkernel_meta[title]',
-		description: 'rankkernel_meta[description]',
-		canonical: 'rankkernel_meta[canonical]',
-		robotsIndex: 'rankkernel_meta[robots][index]',
-		robotsNofollow: 'rankkernel_meta[robots][nofollow]',
-		robotsNoarchive: 'rankkernel_meta[robots][noarchive]',
-		robotsNosnippet: 'rankkernel_meta[robots][nosnippet]',
-		robotsNoimageindex: 'rankkernel_meta[robots][noimageindex]',
-		robotsMaxSnippet: 'rankkernel_meta[robots][max_snippet]',
-		robotsMaxImage: 'rankkernel_meta[robots][max_image_preview]',
-		robotsMaxVideo: 'rankkernel_meta[robots][max_video_preview]',
-		ogTitle: 'rankkernel_meta[og][title]',
-		ogDescription: 'rankkernel_meta[og][description]',
-		ogImage: 'rankkernel_meta[og][image]',
-		ogImageId: 'rankkernel_meta[og][image_id]',
-		twCard: 'rankkernel_meta[twitter][card]',
-		twTitle: 'rankkernel_meta[twitter][title]',
-		twDescription: 'rankkernel_meta[twitter][description]',
-		twImage: 'rankkernel_meta[twitter][image]',
-		twImageId: 'rankkernel_meta[twitter][image_id]'
+		title: 'rankkernel_meta_title',
+		description: 'rankkernel_meta_description',
+		canonical: 'rankkernel_meta_canonical',
+		robotsIndex: 'rankkernel_meta_robots[noindex]',
+		robotsNofollow: 'rankkernel_meta_robots[nofollow]',
+		robotsNoarchive: 'rankkernel_meta_robots[noarchive]',
+		robotsNosnippet: 'rankkernel_meta_robots[nosnippet]',
+		robotsNoimageindex: 'rankkernel_meta_robots[noimageindex]',
+		robotsMaxSnippet: 'rankkernel_meta_robots[max_snippet]',
+		robotsMaxImage: 'rankkernel_meta_robots[max_image_preview]',
+		robotsMaxVideo: 'rankkernel_meta_robots[max_video_preview]',
+		ogTitle: 'rankkernel_meta_og[title]',
+		ogDescription: 'rankkernel_meta_og[description]',
+		ogImage: 'rankkernel_meta_og[image]',
+		ogImageId: 'rankkernel_meta_og[image_id]',
+		twCard: 'rankkernel_meta_twitter[card]',
+		twTitle: 'rankkernel_meta_twitter[title]',
+		twDescription: 'rankkernel_meta_twitter[description]',
+		twImage: 'rankkernel_meta_twitter[image]',
+		twImageId: 'rankkernel_meta_twitter[image_id]'
 	};
 
 	var TOKEN_TARGETS = [ 'title', 'description', 'ogTitle', 'ogDescription', 'twTitle', 'twDescription' ];
@@ -59,6 +59,16 @@
 
 	function $all( root, selector ) {
 		return Array.prototype.slice.call( root.querySelectorAll( selector ) );
+	}
+
+	/**
+	 * Id lookup scoped to the editor root. The PHP view owns the stable ids,
+	 * so binding through them keeps this working when class names change.
+	 * Returns null when the node is missing or lives outside the root.
+	 */
+	function byId( root, id ) {
+		var node = document.getElementById( id );
+		return node && root.contains( node ) ? node : null;
 	}
 
 	function str( key, fallback ) {
@@ -267,7 +277,7 @@
 	}
 
 	function buildTokenPicker( root, getTarget ) {
-		var lists = $all( root, '[data-rk-token-list]' );
+		var lists = $all( root, '[data-rankkernel-tokens]' );
 		if ( ! lists.length ) {
 			return;
 		}
@@ -316,25 +326,27 @@
 	}
 
 	function updateInheritedBadge( root, key, inherited ) {
-		var badge = $( root, '[data-rk-state-for="' + key + '"]' );
+		var badge = $( root, '[data-rankkernel-inherited-' + key + ']' );
 		if ( ! badge ) {
 			return;
 		}
-		badge.textContent = inherited ? str( 'inheritedLabel', 'Inherited' ) : str( 'customLabel', 'Custom' );
+		badge.textContent = inherited
+			? str( 'inherited', 'Inherited from the template' )
+			: str( 'customOverride', 'Custom override active' );
 		badge.setAttribute( 'data-rk-state', inherited ? 'inherited' : 'custom' );
 		badge.classList.toggle( 'rk-is-inherited', inherited );
 		badge.classList.toggle( 'rk-is-custom', ! inherited );
 	}
 
 	function updateSerp( root, values ) {
-		var box = $( root, '[data-rk-serp]' );
+		var box = $( root, '[data-rankkernel-preview]' );
 		if ( ! box ) {
 			return;
 		}
-		var titleNode = $( box, '[data-rk-serp-title]' );
-		var urlNode = $( box, '[data-rk-serp-url]' );
-		var descNode = $( box, '[data-rk-serp-desc]' );
-		var siteNode = $( box, '[data-rk-serp-site]' );
+		var titleNode = byId( root, 'rankkernel-meta-preview-title' );
+		var urlNode = byId( root, 'rankkernel-meta-preview-url' );
+		var descNode = byId( root, 'rankkernel-meta-preview-description' );
+		var siteNode = byId( root, 'rankkernel-meta-preview-site' );
 		var title = effectiveValue( values.title, 'title' );
 		var desc = effectiveValue( values.description, 'description' );
 		if ( titleNode ) {
@@ -363,6 +375,7 @@
 		var descNode = $( box, '[data-rk-social-desc]' );
 		var siteNode = $( box, '[data-rk-social-site]' );
 		var imgNode = $( box, '[data-rk-social-image]' );
+		var cardNode = $( box, '[data-rk-social-card]' );
 		var card = String( values.twCard || 'summary_large_image' );
 		if ( titleNode ) {
 			titleNode.textContent = title || str( 'untitledLabel', 'Untitled' );
@@ -382,6 +395,11 @@
 				imgNode.setAttribute( 'hidden', '' );
 			}
 			imgNode.setAttribute( 'alt', '' );
+		}
+		if ( cardNode ) {
+			cardNode.textContent = 'summary' === card
+				? str( 'smallCardLabel', 'Small image card' )
+				: str( 'largeCardLabel', 'Large image card' );
 		}
 		box.setAttribute( 'data-rk-card', 'summary' === card ? 'summary' : 'summary_large_image' );
 	}
@@ -462,16 +480,16 @@
 	}
 
 	function initDeviceToggle( root ) {
-		var box = $( root, '[data-rk-serp]' );
+		var box = $( root, '[data-rankkernel-preview]' );
 		if ( ! box ) {
 			return;
 		}
-		$all( root, '[data-rk-device]' ).forEach( function ( button ) {
+		$all( root, '[data-rk-preview]' ).forEach( function ( button ) {
 			button.addEventListener( 'click', function () {
-				var device = button.getAttribute( 'data-rk-device' );
+				var device = button.getAttribute( 'data-rk-preview' );
 				box.setAttribute( 'data-rk-device-view', 'mobile' === device ? 'mobile' : 'desktop' );
 				box.classList.toggle( 'rk-is-mobile', 'mobile' === device );
-				$all( root, '[data-rk-device]' ).forEach( function ( other ) {
+				$all( root, '[data-rk-preview]' ).forEach( function ( other ) {
 					other.setAttribute( 'aria-pressed', other === button ? 'true' : 'false' );
 				} );
 			} );
@@ -511,14 +529,14 @@
 	}
 
 	function initMedia( root, schedule ) {
-		$all( root, '[data-rk-media-pick]' ).forEach( function ( button ) {
+		$all( root, '[data-rankkernel-select-image]' ).forEach( function ( button ) {
 			button.addEventListener( 'click', function () {
-				openMedia( root, button.getAttribute( 'data-rk-media-pick' ), schedule );
+				openMedia( root, button.getAttribute( 'data-rankkernel-select-image' ), schedule );
 			} );
 		} );
-		$all( root, '[data-rk-media-remove]' ).forEach( function ( button ) {
+		$all( root, '[data-rankkernel-remove-image]' ).forEach( function ( button ) {
 			button.addEventListener( 'click', function () {
-				var kind = button.getAttribute( 'data-rk-media-remove' );
+				var kind = button.getAttribute( 'data-rankkernel-remove-image' );
 				var isOg = 'og' === kind;
 				var urlField = field( root, isOg ? FIELD_NAMES.ogImage : FIELD_NAMES.twImage, isOg ? 'rankkernel-meta-og-image' : 'rankkernel-meta-twitter-image' );
 				var idField = field( root, isOg ? FIELD_NAMES.ogImageId : FIELD_NAMES.twImageId, isOg ? 'rankkernel-meta-og-image-id' : 'rankkernel-meta-twitter-image-id' );
@@ -597,6 +615,6 @@
 	};
 
 	document.addEventListener( 'DOMContentLoaded', function () {
-		$all( document, '[data-rk-meta-editor]' ).forEach( initRoot );
+		$all( document, '[data-rankkernel-meta-editor]' ).forEach( initRoot );
 	} );
 } )();
