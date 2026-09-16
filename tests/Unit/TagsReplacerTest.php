@@ -220,4 +220,52 @@ final class TagsReplacerTest extends TestCase {
 		$this->assertSame( 'Category: News', $res2 );
 		$this->assertSame( 1, $categoryCallCount, 'get_the_category should be invoked only once due to token caching' );
 	}
+
+	/**
+	 * Test cached token values stay isolated between contexts.
+	 */
+	public function test_cached_token_values_stay_isolated_between_contexts(): void {
+		$replacer = new TagsReplacer();
+		$ctxA     = $this->makeContext( $this->makeQuery( 10, 'post' ) );
+		$ctxB     = $this->makeContext( $this->makeQuery( 20, 'post' ) );
+
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value = null ): mixed => $value );
+		Functions\when( 'get_the_category' )->alias(
+			static fn ( int $id ): array => [ (object) [ 'name' => 10 === $id ? 'News' : 'Sports' ] ]
+		);
+
+		$this->assertSame( 'News', $replacer->replace( $ctxA, '%%category%%', 'title' ) );
+		$this->assertSame( 'Sports', $replacer->replace( $ctxB, '%%category%%', 'title' ) );
+		$this->assertSame( 'News', $replacer->replace( $ctxA, '%%category%%', 'description' ) );
+	}
+
+	/**
+	 * Test clear memo also drops the cached token values.
+	 */
+	public function test_clear_memo_drops_the_cached_token_values(): void {
+		$replacer = new TagsReplacer();
+		$ctx      = $this->makeContext( $this->makeQuery( 10, 'post' ) );
+
+		$categoryCallCount = 0;
+
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value = null ): mixed => $value );
+		Functions\when( 'get_the_category' )->alias(
+			static function () use ( &$categoryCallCount ): array {
+				++$categoryCallCount;
+
+				return [ (object) [ 'name' => 'News' ] ];
+			}
+		);
+
+		$replacer->replace( $ctx, '%%category%%', 'title' );
+		$replacer->replace( $ctx, '%%category%%', 'description' );
+
+		$this->assertSame( 1, $categoryCallCount, 'A second field on the same context must reuse the cached token value.' );
+
+		$replacer->clearMemo();
+
+		$replacer->replace( $ctx, '%%category%%', 'title' );
+
+		$this->assertSame( 2, $categoryCallCount, 'Clearing the memo must drop the cached token values as well.' );
+	}
 }
