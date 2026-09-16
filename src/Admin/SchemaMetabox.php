@@ -714,6 +714,12 @@ final class SchemaMetabox {
 			$newSchema['howto'] = $existingSchema['howto'];
 		}
 
+		// An invalid JSON submission is a typo, not a delete. Keep the
+		// previously stored custom schema untouched instead of wiping it.
+		if ( 'invalid-json' === $status && isset( $existingSchema['custom'] ) && is_array( $existingSchema['custom'] ) ) {
+			$newSchema['custom'] = $existingSchema['custom'];
+		}
+
 		$existing['schema'] = $newSchema;
 		$this->saveStatus   = $status;
 

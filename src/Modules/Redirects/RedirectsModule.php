@@ -18,10 +18,11 @@ use RankKernel\Modules\ModuleInterface;
 /**
  * Redirects module, default off.
  *
- * Register wires services with no hooks: it ensures the table, seeds the
- * settings option, and invalidates the match cache. Boot registers frontend
- * hooks only when the module is enabled. Disabled means no class work and
- * zero hooks, proven by test.
+ * Register wires services with no hooks: it ensures the table and seeds the
+ * settings option. It never invalidates the match cache, so the frontend
+ * lookup stays cache first across requests. Boot registers frontend hooks
+ * only when the module is enabled. Disabled means no class work and zero
+ * hooks, proven by test.
  */
 class RedirectsModule implements ModuleInterface {
 	/**
@@ -131,8 +132,10 @@ class RedirectsModule implements ModuleInterface {
 	/**
 	 * Wire services, no hooks.
 	 *
-	 * Ensures the table, seeds settings, flags schema readiness, and clears
-	 * the match cache so a toggle never serves stale matches.
+	 * Ensures the table, seeds settings, and flags schema readiness. It must
+	 * not invalidate the match cache, because invalidation belongs to rule and
+	 * setting writes. Bumping the validator here would retire the cache on
+	 * every request and defeat the cache first frontend lookup.
 	 */
 	public function register(): void {
 		if ( ! $this->isEnabled() ) {
@@ -147,8 +150,6 @@ class RedirectsModule implements ModuleInterface {
 		if ( RedirectTable::exists() ) {
 			$settings->set( [ 'schema_ok' => true ] );
 		}
-
-		RedirectCache::invalidateAll();
 	}
 
 	/**

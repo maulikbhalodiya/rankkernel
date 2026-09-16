@@ -80,6 +80,16 @@ final class HeadRenderer {
 	public function boot(): void {
 		add_action( 'wp_head', [ $this, 'render' ], 1 );
 		add_filter( 'pre_get_document_title', [ $this, 'title' ], 10 );
+
+		// Core adds rel_canonical at wp_head 10. RankKernel owns the canonical for
+		// every context it renders, so core must not emit a second, conflicting one.
+		remove_action( 'wp_head', 'rel_canonical' );
+
+		// Core owns the single robots tag through wp_robots. RankKernel contributes
+		// directives through that filter instead of echoing its own tag, so there is
+		// exactly one tag, core defaults survive, and other plugins still merge.
+		// Priority 99 runs last so RankKernel's restrictive wins.
+		add_filter( 'wp_robots', [ $this, 'filterRobots' ], 99 );
 	}
 
 	/**
@@ -159,12 +169,7 @@ final class HeadRenderer {
 			echo '<meta name="description" content="' . esc_attr( $description ) . '" />' . "\n";
 		}
 
-		// Robots.
-		$robotsContent = $this->buildRobotsContent( $ctx, $meta );
-
-		if ( 'index, follow' !== $robotsContent ) {
-			echo '<meta name="robots" content="' . esc_attr( $robotsContent ) . '" />' . "\n";
-		}
+		// Robots are emitted exactly once by core wp_robots, merged in filterRobots().
 
 		// Canonical (omitted on search/404).
 		$canonical = $this->resolveCanonical( $ctx, $meta );
@@ -308,13 +313,34 @@ final class HeadRenderer {
 	}
 
 	/**
-	 * Build robots content string.
+	 * Merge RankKernel robots directives into core's wp_robots array.
+	 *
+	 * Runs on the wp_robots filter so core emits the single robots tag for the
+	 * page. Directives merge most restrictive wins, so a noindex from either
+	 * side survives and any max budget keeps the tighter of the two values.
+	 *
+	 * @param array<string, mixed> $robots Directives from core and other plugins.
+	 * @return array<string, mixed> Merged directives.
+	 */
+	public function filterRobots( array $robots ): array {
+		$ctx = $this->getContext();
+
+		// Feeds and previews render no RankKernel head output, core stays untouched.
+		if ( in_array( $ctx->queriedType(), [ 'feed', 'preview' ], true ) ) {
+			return $robots;
+		}
+
+		return $this->mergeRobots( $robots, $this->robotsDirectives( $ctx, $ctx->meta() ) );
+	}
+
+	/**
+	 * Translate payload robots settings into wp_robots directive keys.
 	 *
 	 * @param Context              $ctx  Context.
 	 * @param array<string, mixed> $meta Meta payload.
-	 * @return string The result.
+	 * @return array<string, mixed> Directive map.
 	 */
-	private function buildRobotsContent( Context $ctx, array $meta ): string {
+	private function robotsDirectives( Context $ctx, array $meta ): array {
 		$robots = $meta['robots'] ?? MetaPayload::defaults()['robots'];
 
 		if ( ! is_array( $robots ) ) {
@@ -327,47 +353,116 @@ final class HeadRenderer {
 			$robots['follow'] = true;
 		}
 
-		$parts   = [];
-		$parts[] = ! empty( $robots['index'] ) ? 'index' : 'noindex';
-		$parts[] = ! empty( $robots['follow'] ) ? 'follow' : 'nofollow';
+		$directives = [];
 
-		if ( ! empty( $robots['noarchive'] ) ) {
-			$parts[] = 'noarchive';
+		if ( empty( $robots['index'] ) ) {
+			$directives['noindex'] = true;
 		}
 
-		if ( ! empty( $robots['noimageindex'] ) ) {
-			$parts[] = 'noimageindex';
+		if ( empty( $robots['follow'] ) ) {
+			$directives['nofollow'] = true;
 		}
 
-		if ( ! empty( $robots['nosnippet'] ) ) {
-			$parts[] = 'nosnippet';
+		foreach ( [ 'noarchive', 'noimageindex', 'nosnippet' ] as $flag ) {
+			if ( ! empty( $robots[ $flag ] ) ) {
+				$directives[ $flag ] = true;
+			}
 		}
 
-		if (
-			array_key_exists( 'max_snippet', $robots )
-			&& null !== $robots['max_snippet']
-			&& '' !== $robots['max_snippet']
-		) {
-			$parts[] = 'max-snippet:' . (int) $robots['max_snippet'];
+		if ( isset( $robots['max_snippet'] ) && null !== $robots['max_snippet'] && '' !== $robots['max_snippet'] ) {
+			$directives['max-snippet'] = (int) $robots['max_snippet'];
 		}
 
 		if (
-			array_key_exists( 'max_image_preview', $robots )
+			isset( $robots['max_image_preview'] )
 			&& null !== $robots['max_image_preview']
 			&& '' !== $robots['max_image_preview']
 		) {
-			$parts[] = 'max-image-preview:' . (string) $robots['max_image_preview'];
+			$directives['max-image-preview'] = (string) $robots['max_image_preview'];
 		}
 
 		if (
-			array_key_exists( 'max_video_preview', $robots )
+			isset( $robots['max_video_preview'] )
 			&& null !== $robots['max_video_preview']
 			&& '' !== $robots['max_video_preview']
 		) {
-			$parts[] = 'max-video-preview:' . (int) $robots['max_video_preview'];
+			$directives['max-video-preview'] = (int) $robots['max_video_preview'];
 		}
 
-		return implode( ', ', $parts );
+		return $directives;
+	}
+
+	/**
+	 * Merge two directive maps, keeping the most restrictive value.
+	 *
+	 * @param array<string, mixed> $base Directives from core and other plugins.
+	 * @param array<string, mixed> $ours RankKernel directives.
+	 * @return array<string, mixed> Merged directives.
+	 */
+	private function mergeRobots( array $base, array $ours ): array {
+		$merged = $base;
+
+		foreach ( [ 'noindex', 'nofollow', 'noarchive', 'noimageindex', 'nosnippet' ] as $flag ) {
+			if ( ! empty( $ours[ $flag ] ) ) {
+				$merged[ $flag ] = true;
+			}
+		}
+
+		foreach ( [ 'max-snippet', 'max-video-preview' ] as $budget ) {
+			if ( ! isset( $ours[ $budget ] ) ) {
+				continue;
+			}
+
+			$merged[ $budget ] = isset( $merged[ $budget ] )
+				? self::tighterBudget( (int) $merged[ $budget ], (int) $ours[ $budget ] )
+				: $ours[ $budget ];
+		}
+
+		if ( isset( $ours['max-image-preview'] ) ) {
+			$merged['max-image-preview'] = isset( $merged['max-image-preview'] )
+				? self::tighterImagePreview( (string) $merged['max-image-preview'], (string) $ours['max-image-preview'] )
+				: $ours['max-image-preview'];
+		}
+
+		return $merged;
+	}
+
+	/**
+	 * Tighter of two numeric snippet or video budgets.
+	 *
+	 * A negative value means no limit, so any non negative value is tighter.
+	 *
+	 * @param int $a First budget.
+	 * @param int $b Second budget.
+	 * @return int Tighter budget.
+	 */
+	private static function tighterBudget( int $a, int $b ): int {
+		if ( $a < 0 ) {
+			return $b;
+		}
+
+		if ( $b < 0 ) {
+			return $a;
+		}
+
+		return min( $a, $b );
+	}
+
+	/**
+	 * Tighter of two max-image-preview values.
+	 *
+	 * @param string $a First value.
+	 * @param string $b Second value.
+	 * @return string Tighter value.
+	 */
+	private static function tighterImagePreview( string $a, string $b ): string {
+		$rank = [
+			'none'     => 0,
+			'standard' => 1,
+			'large'    => 2,
+		];
+
+		return ( $rank[ $a ] ?? 2 ) <= ( $rank[ $b ] ?? 2 ) ? $a : $b;
 	}
 
 	/**

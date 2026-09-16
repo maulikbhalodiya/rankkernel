@@ -169,6 +169,16 @@ final class TagsReplacer {
 	 * @return string The result.
 	 */
 	private function resolveAuthor( Context $ctx ): string {
+		// Author archives resolve the display name of the queried author,
+		// never the author of an unrelated post sharing the queried id.
+		if ( $ctx->isAuthorArchive() ) {
+			$archiveName = $ctx->authorDisplayName();
+
+			if ( '' !== $archiveName ) {
+				return $archiveName;
+			}
+		}
+
 		// Prefer author of queried post.
 		$id = $ctx->queriedId();
 
@@ -202,6 +212,16 @@ final class TagsReplacer {
 	 * @return string The result.
 	 */
 	private function resolveCategory( Context $ctx ): string {
+		// Term archives resolve the queried term name, never a category
+		// looked up against the term id as if it were a post.
+		if ( 'term' === $ctx->queriedType() ) {
+			$termName = $ctx->termName();
+
+			if ( '' !== $termName ) {
+				return $termName;
+			}
+		}
+
 		$id = $ctx->queriedId();
 
 		if ( $id > 0 && function_exists( 'get_the_category' ) ) {

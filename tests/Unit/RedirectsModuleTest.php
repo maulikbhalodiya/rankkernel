@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
+use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectsModule;
 
 /**
@@ -140,5 +141,39 @@ final class RedirectsModuleTest extends TestCase {
 		);
 
 		$this->assertCount( 1, $dispatch );
+	}
+
+	/**
+	 * Test an enabled register never bumps the cache validator per request.
+	 */
+	public function test_enabled_register_does_not_invalidate_match_cache(): void {
+		$options = [];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$options ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'redirects' ];
+				}
+
+				return $options[ $key ] ?? $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$options ): bool {
+				$options[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		$module = new RedirectsModule();
+		$module->register();
+
+		$this->assertTrue( $module->isEnabled() );
+		$this->assertArrayNotHasKey(
+			RedirectCache::VALIDATOR_OPTION,
+			$options,
+			'register must not invalidate the match cache on every request'
+		);
 	}
 }

@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\RedirectCache;
+use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 
 /**
@@ -47,6 +48,17 @@ final class RedirectsCacheTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		if ( ! defined( 'ARRAY_A' ) ) {
+			define( 'ARRAY_A', 'ARRAY_A' );
+		}
+
+		Functions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://example.com' . $path );
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ): mixed {
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -188,5 +200,80 @@ final class RedirectsCacheTest extends TestCase {
 	public function test_keys_are_stable_and_distinct(): void {
 		$this->assertSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/old' ) );
 		$this->assertNotSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/new' ) );
+	}
+
+	/**
+	 * Test a stored pattern set survives across requests without a new read.
+	 */
+	public function test_stored_rule_served_from_cache_without_new_database_read(): void {
+		$db          = new RedirectsFakeDb();
+		$db->rows[1] = [
+			'id'            => 1,
+			'match_type'    => 'prefix',
+			'source_hash'   => hash( 'sha256', 'prefix|/blog' ),
+			'source'        => '/blog',
+			'target'        => '/news',
+			'code'          => '301',
+			'is_active'     => 1,
+			'hits'          => 0,
+			'last_accessed' => null,
+		];
+
+		$repo  = new RedirectRepository( $db, new RedirectCache() );
+		$first = $repo->all_patterns();
+
+		$this->assertCount( 1, $first );
+		$readsAfterFirst = $db->ruleReads;
+
+		$second = $repo->all_patterns();
+
+		$this->assertSame( $readsAfterFirst, $db->ruleReads, 'A warm lookup must be served from cache without a new database read' );
+		$this->assertSame( $first, $second );
+
+		// A fresh cache instance models the next request, the transient survives.
+		$nextRequest = new RedirectRepository( $db, new RedirectCache() );
+
+		$this->assertSame( $first, $nextRequest->all_patterns() );
+		$this->assertSame( $readsAfterFirst, $db->ruleReads, 'The cache must survive across requests without a new database read' );
+	}
+
+	/**
+	 * Test saving, updating and deleting a rule each invalidate the cache.
+	 */
+	public function test_saving_updating_and_deleting_a_rule_invalidates_the_cache(): void {
+		$db    = new RedirectsFakeDb();
+		$cache = new RedirectCache();
+		$repo  = new RedirectRepository( $db, $cache );
+
+		$rule = [
+			'id'     => 1,
+			'source' => '/old',
+			'target' => '/new',
+			'code'   => '301',
+		];
+
+		$cache->set( '/old', $rule );
+
+		$this->assertSame( $rule, $cache->get( '/old' ) );
+
+		$id = $repo->insert(
+			[
+				'source' => '/a',
+				'target' => '/b',
+			]
+		);
+
+		$this->assertGreaterThan( 0, $id );
+		$this->assertNull( $cache->get( '/old' ), 'A create must invalidate the cached matches' );
+
+		$cache->set( '/old', $rule );
+
+		$this->assertTrue( $repo->update( $id, [ 'target' => '/c' ] ) );
+		$this->assertNull( $cache->get( '/old' ), 'An update must invalidate the cached matches' );
+
+		$cache->set( '/old', $rule );
+
+		$this->assertTrue( $repo->delete( $id ) );
+		$this->assertNull( $cache->get( '/old' ), 'A delete must invalidate the cached matches' );
 	}
 }

@@ -556,8 +556,9 @@ final class SchemaMetaboxTest extends TestCase {
 	 * Test save invalid custom json error path.
 	 */
 	public function test_save_invalid_custom_json_error_path(): void {
-		$stored = $this->storedPayload();
-		$saved  = null;
+		$stored                     = $this->storedPayload();
+		$stored['schema']['custom'] = [ 'kept' => [ 'deep' => true ] ];
+		$saved                      = null;
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -584,9 +585,61 @@ final class SchemaMetaboxTest extends TestCase {
 		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
 		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
 		$this->assertIsArray( $saved );
-		$this->assertSame( [], $saved['schema']['custom'] );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $saved['schema']['custom'], 'Invalid JSON must keep the stored custom schema, never wipe it' );
 		$this->assertSame( 'Widget', $saved['schema']['fields']['headline'] );
 		$this->assertSame( 'Keep me', $saved['title'] );
+	}
+
+	/**
+	 * Test an invalid custom JSON save preserves the previous custom and renders it.
+	 */
+	public function test_save_invalid_custom_json_preserves_previous_custom_and_renders(): void {
+		$stored = $this->storedPayload();
+		$saved  = null;
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( &$stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$stored, &$saved ): bool {
+				$stored = $value;
+				$saved  = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'get_permalink' )->alias( static fn ( int $id ): string => 'https://example.com/hello/' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_permalink signature.
+
+		// First save: valid custom JSON is stored.
+		$_POST                             = $this->validPost();
+		$_POST['rankkernel_schema_custom'] = '{"kept":{"deep":true}}';
+
+		$first = new SchemaMetabox();
+		$first->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $saved['schema']['custom'] );
+
+		// Second save: invalid JSON must not destroy the stored custom schema.
+		$_POST['rankkernel_schema_custom'] = '{broken';
+
+		$second = new SchemaMetabox();
+		$second->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $second->filterRedirect( 'https://example.com/wp-admin/post.php' );
+		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $stored['schema']['custom'] );
+
+		// The preserved custom schema still renders in the metabox.
+		$out = $this->renderBox( 11 );
+
+		$this->assertStringContainsString( 'kept', $out );
+		$this->assertStringContainsString( 'deep', $out );
 	}
 
 	/**

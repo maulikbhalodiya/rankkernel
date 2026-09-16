@@ -102,6 +102,26 @@ class IndexBuilder {
 	}
 
 	/**
+	 * Escape a value for XML text exactly once.
+	 *
+	 * The esc_xml function is the WordPress XML entity encoder when
+	 * available; the htmlspecialchars fallback keeps unit tests and early
+	 * bootstrap working. XML text is never run through esc_url first,
+	 * because that would encode the ampersand and the later XML escape
+	 * would encode it a second time, producing a double escaped loc.
+	 *
+	 * @param string $value Raw value.
+	 * @return string XML safe value.
+	 */
+	private function xmlEscape( string $value ): string {
+		if ( function_exists( 'esc_xml' ) ) {
+			return esc_xml( $value );
+		}
+
+		return htmlspecialchars( $value, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+	}
+
+	/**
 	 * Get posts provider, lazy create.
 	 *
 	 * @return PostsProvider The result.
@@ -234,20 +254,19 @@ class IndexBuilder {
 	public function buildIndexXml(): string {
 		$sets = $this->getSetsWithPageCounts();
 
-		$xslHref = esc_url( add_query_arg( 'ver', $this->stylesheetVersion(), $this->xslBase() ) );
+		$xslHref = add_query_arg( 'ver', $this->stylesheetVersion(), $this->xslBase() );
 
 		$xml     = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		$hrefEsc = htmlspecialchars( $xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+		$hrefEsc = $this->xmlEscape( $xslHref );
 		$xml    .= '<?xml-stylesheet type="text/xsl" href="' . $hrefEsc . '"?>' . "\n";
 		$xml    .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
 		foreach ( $sets as $set => $pages ) {
 			for ( $i = 1; $i <= $pages; $i++ ) {
 				$loc     = $this->sitemapLoc( $set, $i );
-				$loc     = esc_url( $loc );
 				$date    = (string) mysql2date( DATE_W3C, current_time( 'mysql', true ), false );
-				$locEsc  = htmlspecialchars( $loc, ENT_QUOTES | ENT_XML1, 'UTF-8' );
-				$dateEsc = htmlspecialchars( $date, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+				$locEsc  = $this->xmlEscape( $loc );
+				$dateEsc = $this->xmlEscape( $date );
 
 				$xml .= '  <sitemap>' . "\n";
 				$xml .= '    <loc>' . $locEsc . '</loc>' . "\n";
@@ -301,9 +320,9 @@ class IndexBuilder {
 
 		$entries = $this->getEntriesForSet( $set, $page, $perPage );
 
-		$xslHref = esc_url( add_query_arg( 'ver', $this->stylesheetVersion(), $this->xslBase() ) );
+		$xslHref = add_query_arg( 'ver', $this->stylesheetVersion(), $this->xslBase() );
 
-		$hrefEsc2 = htmlspecialchars( $xslHref, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+		$hrefEsc2 = $this->xmlEscape( $xslHref );
 		$xml      = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 		$xml     .= '<?xml-stylesheet type="text/xsl" href="' . $hrefEsc2 . '"?>' . "\n";
 		$xml     .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
@@ -315,8 +334,6 @@ class IndexBuilder {
 				continue;
 			}
 
-			$loc = esc_url( $loc );
-
 			$lastmod = (string) $entry['lastmod'];
 			$images  = $entry['images'];
 
@@ -324,12 +341,12 @@ class IndexBuilder {
 				$images = [];
 			}
 
-			$locEsc = htmlspecialchars( $loc, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+			$locEsc = $this->xmlEscape( $loc );
 			$xml   .= '  <url>' . "\n";
 			$xml   .= '    <loc>' . $locEsc . '</loc>' . "\n";
 
 			if ( '' !== $lastmod ) {
-				$lastEsc = htmlspecialchars( $lastmod, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+				$lastEsc = $this->xmlEscape( $lastmod );
 				$xml    .= '    <lastmod>' . $lastEsc . '</lastmod>' . "\n";
 			}
 
@@ -338,8 +355,7 @@ class IndexBuilder {
 					continue;
 				}
 
-				$image  = esc_url( $image );
-				$imgEsc = htmlspecialchars( $image, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+				$imgEsc = $this->xmlEscape( $image );
 				$xml   .= '    <image:image>' . "\n";
 				$xml   .= '      <image:loc>' . $imgEsc . '</image:loc>' . "\n";
 				$xml   .= '    </image:image>' . "\n";
