@@ -1477,4 +1477,165 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
 	}
+
+	/**
+	 * CSV import rejects non-uploaded files.
+	 */
+	public function test_import_rejects_non_uploaded_file(): void {
+		$page = new RedirectsPage(
+			new RedirectRepository( $this->db ),
+			new RedirectsSettings(),
+			new Validator(),
+			new DestinationValidator(),
+			static fn (): bool => false
+		);
+
+		$this->allowAccess();
+
+		$tmp = tempnam( sys_get_temp_dir(), 'rktest' );
+		$this->assertIsString( $tmp );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/old,/new,,,,\n" );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'valid',
+		];
+		$_FILES                    = [
+			'rk_csv_file' => [
+				'name'     => 'test.csv',
+				'type'     => 'text/csv',
+				'tmp_name' => $tmp,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => filesize( $tmp ),
+			],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$result = $page->import_result();
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'could not be read', $result['errors'][0]['reason'] );
+
+		if ( file_exists( $tmp ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $tmp );
+		}
+	}
+
+	/**
+	 * CSV import rejects invalid file types.
+	 */
+	public function test_import_rejects_invalid_filetype(): void {
+		$page = new RedirectsPage(
+			new RedirectRepository( $this->db ),
+			new RedirectsSettings(),
+			new Validator(),
+			new DestinationValidator(),
+			static fn (): bool => true
+		);
+
+		$this->allowAccess();
+
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn (): array => [
+				'ext'  => false,
+				'type' => false,
+			]
+		);
+
+		$tmp = tempnam( sys_get_temp_dir(), 'rktest' );
+		$this->assertIsString( $tmp );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/old,/new,,,,\n" );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'valid',
+		];
+		$_FILES                    = [
+			'rk_csv_file' => [
+				'name'     => 'malicious.php',
+				'type'     => 'application/x-php',
+				'tmp_name' => $tmp,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => filesize( $tmp ),
+			],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$result = $page->import_result();
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'valid CSV file', $result['errors'][0]['reason'] );
+
+		if ( file_exists( $tmp ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $tmp );
+		}
+	}
+
+	/**
+	 * CSV import succeeds with valid uploaded file.
+	 */
+	public function test_import_succeeds_with_valid_uploaded_csv(): void {
+		$page = new RedirectsPage(
+			new RedirectRepository( $this->db ),
+			new RedirectsSettings(),
+			new Validator(),
+			new DestinationValidator(),
+			static fn (): bool => true
+		);
+
+		$this->allowAccess();
+
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn (): array => [
+				'ext'  => 'csv',
+				'type' => 'text/csv',
+			]
+		);
+
+		$tmp = tempnam( sys_get_temp_dir(), 'rktest' );
+		$this->assertIsString( $tmp );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/old-test,/new-test,,,,\n" );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'valid',
+		];
+		$_FILES                    = [
+			'rk_csv_file' => [
+				'name'     => 'valid.csv',
+				'type'     => 'text/csv',
+				'tmp_name' => $tmp,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => filesize( $tmp ),
+			],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$result = $page->import_result();
+		$this->assertIsArray( $result );
+		$this->assertSame( 1, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+
+		if ( file_exists( $tmp ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $tmp );
+		}
+	}
 }
