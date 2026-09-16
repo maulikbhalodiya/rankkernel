@@ -1799,6 +1799,7 @@ final class RedirectsPage {
 		wp_nonce_field( self::NONCE_BULK );
 
 		echo '<div class="tablenav top"><div class="alignleft actions bulkactions">';
+		echo '<label for="rk-bulk-action" class="screen-reader-text">' . esc_html__( 'Select bulk action', 'rankkernel' ) . '</label>';
 		echo '<select name="rk_bulk_action" id="rk-bulk-action">';
 		echo '<option value="">' . esc_html__( 'Bulk actions', 'rankkernel' ) . '</option>';
 		echo '<option value="activate">' . esc_html__( 'Activate', 'rankkernel' ) . '</option>';
@@ -1812,7 +1813,10 @@ final class RedirectsPage {
 
 		echo '<table class="wp-list-table widefat fixed striped rk-table">';
 		echo '<thead><tr>';
-		echo '<td class="manage-column column-cb check-column"><input type="checkbox" id="rk-select-all" /></td>';
+		echo '<td class="manage-column column-cb check-column">';
+		echo '<label for="rk-select-all" class="screen-reader-text">' . esc_html__( 'Select All', 'rankkernel' ) . '</label>';
+		echo '<input type="checkbox" id="rk-select-all" />';
+		echo '</td>';
 		$this->renderSortableHeaders( $filters );
 		echo '<th scope="col" class="rk-col-status">' . esc_html__( 'Status', 'rankkernel' ) . '</th>';
 		echo '</tr></thead><tbody>';
@@ -1899,19 +1903,22 @@ final class RedirectsPage {
 		echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="rk-filters">';
 		echo '<input type="hidden" name="page" value="' . esc_attr( self::SLUG ) . '" />';
 		echo '<p class="search-box">';
-		echo '<input type="search" name="s" value="' . esc_attr( (string) $filters['search'] ) . '" placeholder="'
+		echo '<label for="rk-search-input" class="screen-reader-text">' . esc_html__( 'Search redirects', 'rankkernel' ) . '</label>';
+		echo '<input type="search" id="rk-search-input" name="s" value="' . esc_attr( (string) $filters['search'] ) . '" placeholder="'
 			. esc_attr__( 'Search redirects', 'rankkernel' ) . '" />';
 		submit_button( __( 'Search', 'rankkernel' ), '', '', false );
 		echo '</p>';
 
 		echo '<div class="alignleft actions">';
-		echo '<select name="rk_status">';
+		echo '<label for="rk-filter-status" class="screen-reader-text">' . esc_html__( 'Filter by status', 'rankkernel' ) . '</label>';
+		echo '<select name="rk_status" id="rk-filter-status">';
 		echo '<option value="all"' . selected( $filters['status'], 'all', false ) . '>' . esc_html__( 'All statuses', 'rankkernel' ) . '</option>';
 		echo '<option value="active"' . selected( $filters['status'], 'active', false ) . '>' . esc_html__( 'Active', 'rankkernel' ) . '</option>';
 		echo '<option value="inactive"' . selected( $filters['status'], 'inactive', false ) . '>' . esc_html__( 'Inactive', 'rankkernel' ) . '</option>';
 		echo '</select> ';
 
-		echo '<select name="rk_match">';
+		echo '<label for="rk-filter-match" class="screen-reader-text">' . esc_html__( 'Filter by match type', 'rankkernel' ) . '</label>';
+		echo '<select name="rk_match" id="rk-filter-match">';
 		echo '<option value="">' . esc_html__( 'All match types', 'rankkernel' ) . '</option>';
 
 		foreach ( $this->matchOptions() as $value => $label ) {
@@ -1922,7 +1929,8 @@ final class RedirectsPage {
 
 		echo '</select> ';
 
-		echo '<select name="rk_code">';
+		echo '<label for="rk-filter-code" class="screen-reader-text">' . esc_html__( 'Filter by redirect type', 'rankkernel' ) . '</label>';
+		echo '<select name="rk_code" id="rk-filter-code">';
 		echo '<option value="">' . esc_html__( 'All codes', 'rankkernel' ) . '</option>';
 
 		foreach ( $this->codeOptions() as $value => $label ) {
@@ -2018,8 +2026,14 @@ final class RedirectsPage {
 		$toggleUrl = wp_nonce_url( $base . '&rk_action=' . $toggle . '&rule=' . $id, self::NONCE_ROW );
 		$deleteUrl = wp_nonce_url( $base . '&rk_action=delete&rule=' . $id, self::NONCE_ROW );
 
+		$selectLabel = sprintf(
+			/* translators: %s: redirect source URL */
+			__( 'Select redirect for %s', 'rankkernel' ),
+			$source
+		);
+
 		echo '<tr>';
-		echo '<th scope="row" class="check-column"><input type="checkbox" name="rule_ids[]" value="' . esc_attr( (string) $id ) . '" /></th>';
+		echo '<th scope="row" class="check-column"><input type="checkbox" name="rule_ids[]" value="' . esc_attr( (string) $id ) . '" aria-label="' . esc_attr( $selectLabel ) . '" /></th>';
 
 		echo '<td class="rk-col-from"><strong>' . esc_html( $source ) . '</strong>';
 		echo '<div class="row-actions">';

@@ -1064,4 +1064,30 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'could not determine the final destination', $html );
 		$this->assertStringNotContainsString( 'Consider pointing', $html );
 	}
+
+	/**
+	 * Table controls carry accessible screen-reader and ARIA labels.
+	 */
+	public function test_table_controls_have_accessible_labels(): void {
+		$this->seedEntry( '/missing-page' );
+		$this->seedEntry( '/other-page' );
+
+		$page = $this->makePage();
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<label for="rk-bulk-action"', $html );
+		$this->assertStringContainsString( 'id="rk-bulk-action"', $html );
+		$this->assertStringContainsString( '<label for="rk-select-all"', $html );
+		$this->assertStringContainsString( 'id="rk-select-all"', $html );
+		$this->assertStringContainsString( '<label for="rk-search-input"', $html );
+		$this->assertStringContainsString( 'id="rk-search-input"', $html );
+
+		$this->assertStringContainsString( 'Select bulk action', $html );
+		$this->assertStringContainsString( 'Select All', $html );
+		$this->assertStringContainsString( 'Search addresses', $html );
+
+		$this->assertStringContainsString( 'aria-label="Select 404 entry for /missing-page"', $html );
+		$this->assertStringContainsString( 'aria-label="Select 404 entry for /other-page"', $html );
+		$this->assertSame( 2, substr_count( $html, 'aria-label="Select 404 entry for' ) );
+	}
 }
