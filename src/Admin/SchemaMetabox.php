@@ -381,9 +381,9 @@ final class SchemaMetabox {
 	 * Render save and import notices from the redirect query arg.
 	 */
 	private function renderNotices(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag used for admin notice display, sanitized on the following statement.
-		$rawMsg = isset( $_GET['rankkernel_schema_msg'] ) ? (string) wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
-		$msg    = function_exists( 'sanitize_key' ) ? sanitize_key( $rawMsg ) : preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $rawMsg ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, non-scalar input is discarded and scalars are sanitized on the following statement.
+		$rawMsg = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
+		$msg    = is_scalar( $rawMsg ) ? sanitize_key( (string) $rawMsg ) : '';
 
 		if ( 'saved' === $msg ) {
 			echo '<div class="notice notice-success is-dismissible"><p>';
