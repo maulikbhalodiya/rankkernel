@@ -1,0 +1,268 @@
+/**
+ * RankKernel metadata editor styles.
+ *
+ * Loaded only on editor screens for the metadata feature. Every rule is
+ * scoped under .rk-meta so nothing leaks onto other admin screens.
+ */
+
+.rk-meta {
+	max-width: 760px;
+}
+
+.rk-meta .rk-meta-tabs {
+	border-bottom: 1px solid #c3c4c7;
+	display: flex;
+	gap: 4px;
+	margin: 0 0 16px;
+}
+
+.rk-meta .rk-meta-tab {
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	border-bottom: none;
+	border-radius: 4px 4px 0 0;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 8px 14px;
+}
+
+.rk-meta .rk-meta-tab.is-active,
+.rk-meta [role="tab"][aria-selected="true"] {
+	background: #fff;
+	color: #1d2327;
+}
+
+.rk-meta [role="tabpanel"][hidden] {
+	display: none;
+}
+
+.rk-meta .rk-meta-field {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 0 0 12px;
+	padding: 12px 14px;
+}
+
+.rk-meta .rk-meta-field-head {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-meta-field label,
+.rk-meta .rk-meta-field-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-meta-field input[type="text"],
+.rk-meta .rk-meta-field input[type="url"],
+.rk-meta .rk-meta-field textarea,
+.rk-meta .rk-meta-field select {
+	width: 100%;
+}
+
+.rk-meta .rk-meta-field .description {
+	color: #50575e;
+	margin: 6px 0 0;
+}
+
+.rk-meta .rk-meta-badge {
+	border-radius: 999px;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 2;
+	padding: 0 10px;
+	white-space: nowrap;
+}
+
+.rk-meta .rk-meta-badge.rk-is-inherited,
+.rk-meta .rk-meta-badge[data-rk-state="inherited"] {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.rk-meta .rk-meta-badge.rk-is-custom,
+.rk-meta .rk-meta-badge[data-rk-state="custom"] {
+	background: #edfaef;
+	color: #1a7f37;
+}
+
+.rk-meta .rk-meta-count {
+	font-weight: 600;
+	margin: 6px 0 0;
+}
+
+.rk-meta .rk-meta-count.rk-is-ok,
+.rk-meta [data-rk-count-for].rk-is-ok {
+	color: #1a7f37;
+}
+
+.rk-meta .rk-meta-count.rk-is-warn,
+.rk-meta [data-rk-count-for].rk-is-warn {
+	color: #946200;
+}
+
+.rk-meta .rk-meta-count.rk-is-over,
+.rk-meta [data-rk-count-for].rk-is-over {
+	color: #b32d2e;
+}
+
+.rk-meta .rk-meta-tokens {
+	margin-top: 8px;
+}
+
+.rk-meta .rk-meta-tokens-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-meta-token-list,
+.rk-meta [data-rk-token-list] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.rk-meta .rk-meta-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.rk-meta .rk-meta-thumb {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	display: block;
+	height: auto;
+	margin-top: 8px;
+	max-width: 280px;
+}
+
+.rk-meta .rk-meta-serp {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 12px 0;
+	max-width: 600px;
+	padding: 14px 16px;
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile,
+.rk-meta [data-rk-serp].rk-is-mobile {
+	max-width: 360px;
+}
+
+.rk-meta .rk-meta-serp-tools {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+
+.rk-meta .rk-meta-serp-tools .is-active {
+	border-color: #2271b1;
+	color: #2271b1;
+}
+
+.rk-meta .rk-meta-serp-site {
+	color: #50575e;
+	font-size: 12px;
+	margin: 0 0 2px;
+}
+
+.rk-meta .rk-meta-serp-title {
+	color: #1a0dab;
+	font-size: 18px;
+	line-height: 1.3;
+	margin: 0 0 2px;
+}
+
+.rk-meta .rk-meta-serp-url {
+	color: #1a7f37;
+	font-size: 13px;
+	margin: 0 0 4px;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-serp-desc {
+	color: #3c434a;
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0;
+}
+
+.rk-meta .rk-meta-social {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 12px 0;
+	max-width: 520px;
+	overflow: hidden;
+}
+
+.rk-meta .rk-meta-social-image,
+.rk-meta [data-rk-social-image] {
+	display: block;
+	height: auto;
+	width: 100%;
+}
+
+.rk-meta .rk-meta-social.rk-card-summary {
+	display: flex;
+	gap: 12px;
+}
+
+.rk-meta .rk-meta-social.rk-card-summary .rk-meta-social-image {
+	max-width: 140px;
+}
+
+.rk-meta .rk-meta-social-body {
+	padding: 12px 14px;
+}
+
+.rk-meta .rk-meta-social-title {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 4px;
+}
+
+.rk-meta .rk-meta-social-desc {
+	color: #50575e;
+	font-size: 13px;
+	margin: 0 0 4px;
+}
+
+.rk-meta .rk-meta-social-site {
+	color: #50575e;
+	font-size: 12px;
+	margin: 0;
+	text-transform: uppercase;
+}
+
+.rk-meta fieldset.rk-meta-field legend {
+	font-weight: 600;
+	padding: 0;
+}
+
+.rk-meta :focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-meta .rk-meta-serp {
+		max-width: 100%;
+	}
+
+	.rk-meta .rk-meta-social {
+		max-width: 100%;
+	}
+}
