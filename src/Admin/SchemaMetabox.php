@@ -24,6 +24,10 @@ use RankKernel\Settings\SettingsStore;
  * links, and import/export controls. Saves merge the schema subtree
  * only, every other payload key stays byte identical. Revisions are
  * skipped entirely, the parent keeps the canonical copy.
+ *
+ * Owns capability checks, nonce verification, request handling, saving,
+ * validation, and view state preparation. The HTML lives in
+ * src/Admin/Views/schema-metabox.php.
  */
 final class SchemaMetabox {
 	/**
@@ -313,7 +317,9 @@ final class SchemaMetabox {
 			return;
 		}
 
-		$this->renderNotices();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, non-scalar input is discarded and scalars are sanitized on the following statement.
+		$rawMsg        = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
+		$noticeMessage = is_scalar( $rawMsg ) ? sanitize_key( (string) $rawMsg ) : '';
 
 		$schema   = $this->readSchema( $this->readPayload( $postId ) );
 		$rawType  = $schema['type'] ?? '';
@@ -328,19 +334,58 @@ final class SchemaMetabox {
 
 		$fields = ( isset( $schema['fields'] ) && is_array( $schema['fields'] ) ) ? $schema['fields'] : [];
 
-		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD );
+		$autoLabel = '' !== $resolved
+			// translators: %s: schema type name, e.g. Blog Posting.
+			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $resolved ) )
+			: __( 'Automatic', 'rankkernel' );
 
-		$this->renderDisableRow( $disabled );
-		$this->renderTypeSelector( $selected, $resolved, $postType );
-		$this->renderFields( $fields, $selected );
-		echo '<details><summary>'
-			. esc_html__( 'Advanced: custom JSON, import, export', 'rankkernel' )
-			. '</summary>';
-		$this->renderCustom( $schema );
-		$this->renderValidation( $selected, $schema );
-		$this->renderLinks( $postId );
-		$this->renderImportExport( $postId );
-		echo '</details>';
+		$typeOptions = [];
+
+		foreach ( SchemaTypes::SUPPORTED as $schemaType ) {
+			$typeOptions[] = [
+				'value' => $schemaType,
+				'label' => SchemaTypes::label( $schemaType ),
+			];
+		}
+
+		$fieldRows = [];
+
+		foreach ( self::FIELD_KEYS as $fieldKey ) {
+			$fieldRows[] = [
+				'id'    => 'rankkernel-schema-field-' . $fieldKey,
+				'name'  => 'rankkernel_schema_fields[' . $fieldKey . ']',
+				'label' => self::FIELD_LABELS[ $fieldKey ],
+				'value' => isset( $fields[ $fieldKey ] ) && is_scalar( $fields[ $fieldKey ] ) ? (string) $fields[ $fieldKey ] : '',
+				'types' => implode( ',', self::FIELD_TYPES[ $fieldKey ] ),
+				'hide'  => $this->fieldVisible( $fieldKey, $selected ) ? '' : ' style="display:none;"',
+			];
+		}
+
+		$custom = ( isset( $schema['custom'] ) && is_array( $schema['custom'] ) ) ? $schema['custom'] : [];
+
+		if ( function_exists( 'wp_json_encode' ) ) {
+			$customJson = (string) wp_json_encode( $custom, JSON_PRETTY_PRINT );
+		} else {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
+			$customJson = (string) json_encode( $custom, JSON_PRETTY_PRINT );
+		}
+
+		$validationMessages = $this->validationMessages( $selected, $schema );
+		$validationLabel    = '' === $selected ? 'Automatic' : $selected;
+
+		$permalink = function_exists( 'get_permalink' ) ? (string) get_permalink( $postId ) : '';
+
+		$richResultsUrl = 'https://search.google.com/test/rich-results?url=' . rawurlencode( $permalink );
+		$validatorUrl   = 'https://validator.schema.org/';
+
+		$exportUrl = function_exists( 'wp_nonce_url' )
+			? wp_nonce_url(
+				admin_url( 'admin-post.php?action=' . self::EXPORT_ACTION . '&post=' . $postId ),
+				self::EXPORT_ACTION . '_' . $postId
+			)
+			: '#';
+
+		require __DIR__ . '/Views/schema-metabox.php';
 	}
 
 	/**
@@ -359,84 +404,6 @@ final class SchemaMetabox {
 		}
 
 		return SchemaTypes::defaultForPostType( $postType );
-	}
-
-	/**
-	 * Render the per post disable row.
-	 *
-	 * @param bool $disabled Disabled.
-	 */
-	private function renderDisableRow( bool $disabled ): void {
-		echo '<p><label>';
-		echo '<input type="checkbox" name="rankkernel_schema_disabled" value="1" '
-			. checked( $disabled, true, false ) . ' /> ';
-		echo esc_html__( 'Disable schema output for this post', 'rankkernel' );
-		echo '</label><br />';
-		echo '<span class="description">';
-		echo esc_html__( 'No structured data prints on this post while checked.', 'rankkernel' );
-		echo '</span></p>';
-	}
-
-	/**
-	 * Render save and import notices from the redirect query arg.
-	 */
-	private function renderNotices(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, non-scalar input is discarded and scalars are sanitized on the following statement.
-		$rawMsg = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
-		$msg    = is_scalar( $rawMsg ) ? sanitize_key( (string) $rawMsg ) : '';
-
-		if ( 'saved' === $msg ) {
-			echo '<div class="notice notice-success is-dismissible"><p>';
-			echo esc_html__( 'Schema saved.', 'rankkernel' );
-			echo '</p></div>';
-		} elseif ( 'invalid-json' === $msg ) {
-			echo '<div class="notice notice-error is-dismissible"><p>';
-			echo esc_html__( 'Custom JSON was invalid, it was cleared and nothing else changed.', 'rankkernel' );
-			echo '</p></div>';
-		} elseif ( 'invalid-import' === $msg ) {
-			echo '<div class="notice notice-error is-dismissible"><p>';
-			echo esc_html__( 'Import file was invalid, nothing was saved.', 'rankkernel' );
-			echo '</p></div>';
-		}
-	}
-
-	/**
-	 * Render the type selector.
-	 *
-	 * @param string $selected Selected type or empty for automatic.
-	 * @param string $resolved Resolved automatic type shown in the label.
-	 * @param string $postType Current post type slug.
-	 */
-	private function renderTypeSelector( string $selected, string $resolved, string $postType ): void {
-		echo '<h3>' . esc_html__( 'Schema type', 'rankkernel' ) . '</h3>';
-		echo '<p><label for="rankkernel-schema-type">' . esc_html__( 'Type', 'rankkernel' ) . '</label> ';
-		echo '<select name="rankkernel_schema_type" id="rankkernel-schema-type">';
-
-		$autoLabel = '' !== $resolved
-			// translators: %s: schema type name, e.g. Blog Posting.
-			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $resolved ) )
-			: __( 'Automatic', 'rankkernel' );
-		$auto = '' === $selected ? ' selected="selected"' : '';
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded selected attribute fragment.
-		echo '<option value=""' . $auto . '>' . esc_html( $autoLabel ) . '</option>';
-
-		foreach ( SchemaTypes::SUPPORTED as $type ) {
-			$mark = $type === $selected ? ' selected="selected"' : '';
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded selected attribute fragment.
-			echo '<option value="' . esc_attr( $type ) . '"' . $mark . '>'
-				. esc_html( SchemaTypes::label( $type ) ) . '</option>';
-		}
-
-		echo '</select></p>';
-
-		if ( '' !== $postType ) {
-			echo '<p class="description">';
-			echo esc_html__(
-				'Automatic uses the default type set for this post type in RankKernel Schema settings.',
-				'rankkernel'
-			);
-			echo '</p>';
-		}
 	}
 
 	/**
@@ -513,45 +480,6 @@ final class SchemaMetabox {
 	];
 
 	/**
-	 * Render the manual field overrides, collapsed with per type rows.
-	 *
-	 * @param array<string, mixed> $fields   Stored field values.
-	 * @param string               $selected Currently selected type or empty.
-	 */
-	private function renderFields( array $fields, string $selected ): void {
-		echo '<details><summary>'
-			. esc_html__( 'Manual field overrides (optional)', 'rankkernel' )
-			. '</summary>';
-		echo '<p class="description">';
-		echo esc_html__(
-			'Only needed when a value must differ from the post itself. Rows unrelated to the chosen type stay hidden.',
-			'rankkernel'
-		);
-		echo '</p>';
-		echo '<table class="form-table" role="presentation"><tbody>';
-
-		foreach ( self::FIELD_KEYS as $key ) {
-			$value = isset( $fields[ $key ] ) && is_scalar( $fields[ $key ] ) ? (string) $fields[ $key ] : '';
-			$id    = 'rankkernel-schema-field-' . $key;
-			$label = self::FIELD_LABELS[ $key ];
-			$types = implode( ',', self::FIELD_TYPES[ $key ] );
-			$hide  = $this->fieldVisible( $key, $selected ) ? '' : ' style="display:none;"';
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value is empty or a hardcoded style attribute fragment.
-			echo '<tr data-rankkernel-field-types="' . esc_attr( $types ) . '"' . $hide . '>';
-			echo '<th scope="row"><label for="' . esc_attr( $id ) . '">'
-				. esc_html( $label ) . '</label></th><td>';
-			echo '<input type="text" id="' . esc_attr( $id ) . '" class="regular-text" name="'
-				. esc_attr( 'rankkernel_schema_fields[' . $key . ']' ) . '" value="'
-				. esc_attr( $value ) . '" />';
-			echo '</td></tr>';
-		}
-
-		echo '</tbody></table>';
-		echo '</details>';
-	}
-
-	/**
 	 * Whether a manual field row shows for the selected type.
 	 *
 	 * @param string $key      Key.
@@ -566,69 +494,6 @@ final class SchemaMetabox {
 		}
 
 		return '' !== $selected && in_array( $selected, $types, true );
-	}
-
-	/**
-	 * Render the custom JSON box.
-	 *
-	 * @param array<string, mixed> $schema Stored schema subtree.
-	 */
-	private function renderCustom( array $schema ): void {
-		$custom = ( isset( $schema['custom'] ) && is_array( $schema['custom'] ) ) ? $schema['custom'] : [];
-
-		if ( function_exists( 'wp_json_encode' ) ) {
-			$json = (string) wp_json_encode( $custom, JSON_PRETTY_PRINT );
-		} else {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
-			$json = (string) json_encode( $custom, JSON_PRETTY_PRINT );
-		}
-
-		echo '<h3>' . esc_html__( 'Custom JSON', 'rankkernel' ) . '</h3>';
-		echo '<p><label for="rankkernel-schema-custom">' . esc_html__( 'Extra schema properties', 'rankkernel' )
-			. '</label></p>';
-		echo '<textarea id="rankkernel-schema-custom" class="large-text code" rows="6" name="'
-			. esc_attr( 'rankkernel_schema_custom' ) . '">' . esc_textarea( $json ) . '</textarea>';
-		echo '<p class="description">';
-		echo esc_html__(
-			'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.',
-			'rankkernel'
-		);
-		echo '</p>';
-	}
-
-	/**
-	 * Render the server computed validation warnings.
-	 *
-	 * @param string               $selected Selected type or empty for automatic.
-	 * @param array<string, mixed> $schema   Stored schema subtree.
-	 */
-	private function renderValidation( string $selected, array $schema ): void {
-		$messages = $this->validationMessages( $selected, $schema );
-		$label    = '' === $selected ? 'Automatic' : $selected;
-
-		echo '<h3>' . esc_html__( 'Validation', 'rankkernel' ) . '</h3>';
-
-		if ( [] === $messages ) {
-			echo '<div class="notice notice-success inline"><p>';
-			echo esc_html(
-				sprintf(
-					/* translators: %s: schema type name */
-					__( 'All required fields for %s are present.', 'rankkernel' ),
-					$label
-				)
-			);
-			echo '</p></div>';
-
-			return;
-		}
-
-		echo '<div class="notice notice-warning inline"><ul>';
-
-		foreach ( $messages as $message ) {
-			echo '<li>' . esc_html( $message ) . '</li>';
-		}
-
-		echo '</ul></div>';
 	}
 
 	/**
@@ -726,52 +591,6 @@ final class SchemaMetabox {
 		}
 
 		return $count;
-	}
-
-	/**
-	 * Render the external validator links.
-	 *
-	 * @param int $postId Current post id.
-	 */
-	private function renderLinks( int $postId ): void {
-		$permalink = function_exists( 'get_permalink' ) ? (string) get_permalink( $postId ) : '';
-
-		$richResults = 'https://search.google.com/test/rich-results?url=' . rawurlencode( $permalink );
-		$validator   = 'https://validator.schema.org/';
-
-		echo '<h3>' . esc_html__( 'Test this page', 'rankkernel' ) . '</h3>';
-		echo '<p><a href="' . esc_url( $richResults ) . '" target="_blank" rel="noopener">'
-			. esc_html__( 'Rich Results Test', 'rankkernel' ) . '</a> | ';
-		echo '<a href="' . esc_url( $validator ) . '" target="_blank" rel="noopener">'
-			. esc_html__( 'Schema Validator', 'rankkernel' ) . '</a></p>';
-	}
-
-	/**
-	 * Render the import and export controls.
-	 *
-	 * @param int $postId Current post id.
-	 */
-	private function renderImportExport( int $postId ): void {
-		$exportUrl = function_exists( 'wp_nonce_url' )
-			? wp_nonce_url(
-				admin_url( 'admin-post.php?action=' . self::EXPORT_ACTION . '&post=' . $postId ),
-				self::EXPORT_ACTION . '_' . $postId
-			)
-			: '#';
-
-		echo '<h3>' . esc_html__( 'Import and export', 'rankkernel' ) . '</h3>';
-		echo '<p><a class="button" href="' . esc_url( $exportUrl ) . '">'
-			. esc_html__( 'Export JSON', 'rankkernel' ) . '</a></p>';
-		echo '<p><label for="rankkernel-schema-import">' . esc_html__( 'Import JSON', 'rankkernel' )
-			. '</label> ';
-		echo '<input type="file" id="rankkernel-schema-import" name="rankkernel_schema_import" '
-			. 'accept=".json,application/json" /></p>';
-		echo '<p class="description">';
-		echo esc_html__(
-			'Upload a file previously exported with the Export JSON button above.',
-			'rankkernel'
-		);
-		echo '</p>';
 	}
 
 	/**
