@@ -41,6 +41,7 @@ final class SchemaMetaboxTest extends TestCase {
 		}
 
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
+		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', $v ) ) );
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) );
 		Functions\when( 'esc_url_raw' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : '' );
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
@@ -912,5 +913,42 @@ final class SchemaMetaboxTest extends TestCase {
 		$this->assertContains( 'save_post', $hooks );
 		$this->assertContains( 'admin_post_rankkernel_schema_export', $hooks );
 		$this->assertInstanceOf( SchemaMetabox::class, $plugin->get( 'schema_metabox' ) );
+	}
+
+	/**
+	 * Test array shaped message arg renders no notice and raises no warning.
+	 *
+	 * PHPUnit is configured with failOnWarning, so any warning raised while
+	 * this arg is handled fails the test as well as the assertion below.
+	 */
+	public function test_array_shaped_message_arg_is_ignored_without_warning(): void {
+		$this->stubRenderCommon( $this->renderPayload() );
+
+		$_GET['rankkernel_schema_msg'] = [ 'saved' ];
+
+		try {
+			$out = $this->renderBox();
+		} finally {
+			unset( $_GET['rankkernel_schema_msg'] );
+		}
+
+		$this->assertStringNotContainsString( 'Schema saved.', $out );
+	}
+
+	/**
+	 * Test scalar message arg still renders its notice.
+	 */
+	public function test_scalar_message_arg_still_renders_its_notice(): void {
+		$this->stubRenderCommon( $this->renderPayload() );
+
+		$_GET['rankkernel_schema_msg'] = 'saved';
+
+		try {
+			$out = $this->renderBox();
+		} finally {
+			unset( $_GET['rankkernel_schema_msg'] );
+		}
+
+		$this->assertStringContainsString( 'Schema saved.', $out );
 	}
 }
