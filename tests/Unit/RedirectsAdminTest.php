@@ -856,11 +856,13 @@ final class RedirectsAdminTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_register_script' )->alias(
-			static function (): void {
+			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registered ): void {
+				$registered[ $handle ] = $deps;
 			}
 		);
 		Functions\when( 'wp_enqueue_script' )->alias(
-			static function (): void {
+			static function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
 			}
 		);
 
@@ -874,7 +876,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registered );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueued );
-		$this->assertStringContainsString( 'redirects-admin.css', (string) $registered['rankkernel-redirects-admin'] );
+		$this->assertSame( [ 'wp-a11y', 'wp-i18n' ], $registered['rankkernel-redirects-admin'] );
 	}
 
 	/**

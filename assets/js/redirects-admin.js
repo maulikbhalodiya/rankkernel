@@ -4,6 +4,21 @@
  * Small progressive enhancement only. Every destructive link works without
  * JavaScript, this file only asks for confirmation first.
  */
+/**
+ * Announcement helper for screen readers using wp.a11y.speak.
+ */
+function rkAnnounce( message ) {
+	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+		return;
+	}
+
+	var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__( message, 'rankkernel' )
+		: message;
+
+	window.wp.a11y.speak( text );
+}
+
 document.addEventListener( 'DOMContentLoaded', function () {
 	var confirmLinks = document.querySelectorAll( '.rk-redirects .rk-confirm' );
 
@@ -42,6 +57,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			boxes.forEach( function ( box ) {
 				box.checked = selectAll.checked;
 			} );
+
+			rkAnnounce( selectAll.checked ? 'All redirects selected.' : 'All redirects deselected.' );
 		} );
 	}
 } );
@@ -66,6 +83,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			if ( editor.hasAttribute( 'hidden' ) ) {
 				editor.removeAttribute( 'hidden' );
 				toggle.setAttribute( 'aria-expanded', 'true' );
+				rkAnnounce( 'Redirect editor opened.' );
 
 				var first = document.getElementById( 'rk-source' );
 
@@ -76,6 +94,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				editor.setAttribute( 'hidden', '' );
 				toggle.setAttribute( 'aria-expanded', 'false' );
 				toggle.focus();
+				rkAnnounce( 'Redirect editor closed.' );
 			}
 		} );
 	}
@@ -265,6 +284,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			target.value = destination;
 			target.focus();
+			rkAnnounce( 'Recommended destination applied.' );
 		} );
 	} );
 } );
