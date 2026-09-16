@@ -276,4 +276,51 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertTrue( $repo->delete( $id ) );
 		$this->assertNull( $cache->get( '/old' ), 'A delete must invalidate the cached matches' );
 	}
+
+	/**
+	 * Test the validator option is read once per instance and cleared on invalidation.
+	 */
+	public function test_validator_is_cached_in_memory_per_request(): void {
+		$validatorReads = 0;
+
+		Functions\when( 'get_option' )->alias(
+			function ( string $key, mixed $fallback = false ) use ( &$validatorReads ): mixed {
+				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
+					++$validatorReads;
+				}
+
+				return $this->options[ $key ] ?? $fallback;
+			}
+		);
+
+		$rule = [
+			'id'     => 10,
+			'source' => '/test-mem',
+			'target' => '/target-mem',
+			'code'   => '301',
+		];
+
+		$writer = new RedirectCache();
+		$writer->set( '/test-mem', $rule );
+
+		$this->assertSame( 1, $validatorReads, 'A write must read the validator option once' );
+
+		$writer->setPatterns( [ $rule ] );
+
+		$this->assertSame( 1, $validatorReads, 'A second write on the same instance must reuse the memoized validator' );
+
+		$reader = new RedirectCache();
+
+		$this->assertSame( $rule, $reader->get( '/test-mem' ) );
+		$this->assertSame( 2, $validatorReads, 'A store hit on a fresh instance must read the validator option once' );
+
+		$reader->set( '/other', $rule );
+
+		$this->assertSame( 2, $validatorReads, 'A write after a read on the same instance must reuse the memoized validator' );
+
+		$reader->invalidate();
+		$reader->set( '/third', $rule );
+
+		$this->assertSame( 3, $validatorReads, 'invalidate() must clear the memoized validator' );
+	}
 }

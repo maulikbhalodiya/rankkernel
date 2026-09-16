@@ -65,6 +65,13 @@ final class RedirectCache {
 	private ?array $patternsMemory = null;
 
 	/**
+	 * In-memory validator string for the current request context, null when not loaded.
+	 *
+	 * @var string|null
+	 */
+	private ?string $validatorMemory = null;
+
+	/**
 	 * Cache key for a normalized request path.
 	 *
 	 * @param string $normalizedPath Canonical path.
@@ -93,7 +100,7 @@ final class RedirectCache {
 			return null;
 		}
 
-		$current = (string) get_option( self::VALIDATOR_OPTION, '' );
+		$current = $this->getValidator();
 		$stored  = isset( $payload['validator'] ) ? (string) $payload['validator'] : '';
 
 		if ( $stored !== $current ) {
@@ -118,7 +125,7 @@ final class RedirectCache {
 
 		$payload = [
 			'rule'      => $rule,
-			'validator' => (string) get_option( self::VALIDATOR_OPTION, '' ),
+			'validator' => $this->getValidator(),
 		];
 
 		$this->writeStore( $key, $payload );
@@ -131,8 +138,9 @@ final class RedirectCache {
 	 * never leave a stale pattern set behind a fresh single match.
 	 */
 	public function invalidate(): void {
-		$this->memory         = [];
-		$this->patternsMemory = null;
+		$this->memory          = [];
+		$this->patternsMemory  = null;
+		$this->validatorMemory = null;
 
 		self::invalidateAll();
 	}
@@ -166,7 +174,7 @@ final class RedirectCache {
 			return null;
 		}
 
-		$current = (string) get_option( self::VALIDATOR_OPTION, '' );
+		$current = $this->getValidator();
 		$stored  = isset( $payload['validator'] ) ? (string) $payload['validator'] : '';
 
 		if ( $stored !== $current ) {
@@ -204,10 +212,26 @@ final class RedirectCache {
 
 		$payload = [
 			'rules'     => $clean,
-			'validator' => (string) get_option( self::VALIDATOR_OPTION, '' ),
+			'validator' => $this->getValidator(),
 		];
 
 		$this->writeStore( self::PATTERNS_KEY, $payload );
+	}
+
+	/**
+	 * Fetch the current validator string, cached in memory per request.
+	 *
+	 * Performance optimization: Caching the non-autoloaded validator option in memory
+	 * eliminates repeated get_option() calls and DB lookups during request dispatch.
+	 *
+	 * @return string Current validator string.
+	 */
+	private function getValidator(): string {
+		if ( null === $this->validatorMemory ) {
+			$this->validatorMemory = (string) get_option( self::VALIDATOR_OPTION, '' );
+		}
+
+		return $this->validatorMemory;
 	}
 
 	/**

@@ -61,6 +61,20 @@ class SitemapCache {
 	private bool $shutdownHooked = false;
 
 	/**
+	 * In-memory global validator string for the current request context.
+	 *
+	 * @var string|null
+	 */
+	private ?string $globalValidatorMemory = null;
+
+	/**
+	 * In-memory per-set validator strings for the current request context.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $setValidatorMemory = [];
+
+	/**
 	 * Check if cache is enabled.
 	 *
 	 * @return bool The result.
@@ -92,8 +106,8 @@ class SitemapCache {
 		$cached = $this->getFromStore( $this->cacheKey( $set, $page ) );
 
 		if ( is_array( $cached ) && isset( $cached['xml'] ) && is_string( $cached['xml'] ) ) {
-			$currentGlobal = (string) get_option( self::VALIDATOR_GLOBAL, '' );
-			$currentSet    = (string) get_option( self::VALIDATOR_PREFIX . $set, '' );
+			$currentGlobal = $this->getGlobalValidator();
+			$currentSet    = $this->getSetValidator( $set );
 
 			$cachedGlobal = isset( $cached['validator_global'] ) ? (string) $cached['validator_global'] : '';
 			$cachedSet    = isset( $cached['validator_set'] ) ? (string) $cached['validator_set'] : '';
@@ -127,7 +141,7 @@ class SitemapCache {
 		$cached = $this->getFromStore( $this->mapKey( $key ) );
 
 		if ( is_array( $cached ) && isset( $cached['map'] ) && is_array( $cached['map'] ) ) {
-			$currentGlobal = (string) get_option( self::VALIDATOR_GLOBAL, '' );
+			$currentGlobal = $this->getGlobalValidator();
 			$cachedGlobal  = isset( $cached['validator_global'] ) ? (string) $cached['validator_global'] : '';
 
 			if ( $cachedGlobal === $currentGlobal ) {
@@ -141,7 +155,7 @@ class SitemapCache {
 			$this->mapKey( $key ),
 			[
 				'map'              => $map,
-				'validator_global' => (string) get_option( self::VALIDATOR_GLOBAL, '' ),
+				'validator_global' => $this->getGlobalValidator(),
 			]
 		);
 
@@ -158,8 +172,8 @@ class SitemapCache {
 	public function store( string $set, int $page, string $xml ): void {
 		$payload = [
 			'xml'              => $xml,
-			'validator_global' => (string) get_option( self::VALIDATOR_GLOBAL, '' ),
-			'validator_set'    => (string) get_option( self::VALIDATOR_PREFIX . $set, '' ),
+			'validator_global' => $this->getGlobalValidator(),
+			'validator_set'    => $this->getSetValidator( $set ),
 		];
 
 		$this->setToStore( $this->cacheKey( $set, $page ), $payload );
@@ -202,6 +216,9 @@ class SitemapCache {
 				update_option( self::VALIDATOR_PREFIX . $set, $new, false );
 			}
 		}
+
+		$this->globalValidatorMemory = null;
+		$this->setValidatorMemory    = [];
 
 		$this->queue = [];
 	}
@@ -330,6 +347,39 @@ class SitemapCache {
 	 */
 	public function onSettingsUpdate( mixed $oldValue, mixed $value, string $option ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- unused parameter required by the WordPress hook signature.
 		$this->queueInvalidation( 'global' );
+	}
+
+	/**
+	 * Fetch global validator string, cached in memory per request instance.
+	 *
+	 * Performance optimization: Caches the non-autoloaded global validator option
+	 * in memory to avoid repeated option reads and DB queries.
+	 *
+	 * @return string Current global validator.
+	 */
+	private function getGlobalValidator(): string {
+		if ( null === $this->globalValidatorMemory ) {
+			$this->globalValidatorMemory = (string) get_option( self::VALIDATOR_GLOBAL, '' );
+		}
+
+		return $this->globalValidatorMemory;
+	}
+
+	/**
+	 * Fetch set validator string, cached in memory per request instance.
+	 *
+	 * Performance optimization: Caches the non-autoloaded per-set validator option
+	 * in memory to avoid repeated option reads and DB queries.
+	 *
+	 * @param string $set Sitemap set slug.
+	 * @return string Current set validator.
+	 */
+	private function getSetValidator( string $set ): string {
+		if ( ! array_key_exists( $set, $this->setValidatorMemory ) ) {
+			$this->setValidatorMemory[ $set ] = (string) get_option( self::VALIDATOR_PREFIX . $set, '' );
+		}
+
+		return $this->setValidatorMemory[ $set ];
 	}
 
 	/**

@@ -175,11 +175,12 @@ final class SitemapCacheTest extends TestCase {
 		$this->assertSame( '<cached>old</cached>', $xmlHit );
 		$this->assertSame( 0, $calls );
 
-		// Change global validator, now mismatch should rebuild.
+		// Change global validator, now mismatch should rebuild on fresh request/instance.
 		$store[ SitemapCache::VALIDATOR_GLOBAL ] = 'new_global';
+		$fresh                                   = new SitemapCache();
 
 		$calls      = 0;
-		$xmlRebuilt = $cache->get(
+		$xmlRebuilt = $fresh->get(
 			'post',
 			1,
 			static function () use ( &$calls ): string {
@@ -365,5 +366,61 @@ final class SitemapCacheTest extends TestCase {
 			}
 		);
 		$this->assertSame( 2, $builds );
+	}
+
+	/**
+	 * Test sitemap validators are cached in memory per request.
+	 */
+	public function test_sitemap_validators_are_cached_in_memory_per_request(): void {
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
+
+		$store = [
+			SitemapCache::VALIDATOR_GLOBAL          => 'global_v1',
+			SitemapCache::VALIDATOR_PREFIX . 'page' => 'set_v1',
+		];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				return $store[ $key ] ?? $fallback;
+			}
+		);
+
+		Functions\when( 'get_transient' )->alias(
+			static function ( string $key ) use ( &$store ): mixed {
+				return $store[ 'transient_' . $key ] ?? false;
+			}
+		);
+
+		Functions\when( 'set_transient' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ): bool {
+				$store[ 'transient_' . $key ] = $value;
+				return true;
+			}
+		);
+
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$cache = new SitemapCache();
+
+		// Warm cache on page 1.
+		$cache->get( 'page', 1, static fn (): string => '<xml>page1</xml>' );
+
+		// Mutate global validator option in option store without flushing cache instance.
+		$store[ SitemapCache::VALIDATOR_GLOBAL ] = 'global_v2';
+
+		// On same instance, in-memory validator retains initial request state and serves cached XML.
+		$calls  = 0;
+		$cached = $cache->get(
+			'page',
+			1,
+			static function () use ( &$calls ): string {
+				++$calls;
+				return '<xml>rebuilt</xml>';
+			}
+		);
+
+		$this->assertSame( '<xml>page1</xml>', $cached );
+		$this->assertSame( 0, $calls );
 	}
 }
