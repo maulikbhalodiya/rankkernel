@@ -753,6 +753,7 @@
 					},
 					onKeyDown: onListKey
 				} ),
+				el( 'p', { className: 'description rk-token-help' }, __( 'Tokens insert at the cursor and update the preview.', 'rankkernel' ) ),
 				filtered.length ? groupOrder.map( function ( name ) {
 					return el(
 						'div',
@@ -761,6 +762,7 @@
 						groups[ name ].map( function ( token ) {
 							flatIndex++;
 							var mine = flatIndex;
+							var readable = tokenLabels[ token ] || token;
 							return el(
 								'button',
 								{
@@ -768,8 +770,8 @@
 									type: 'button',
 									className: 'button button-small' + ( mine === activeIndex ? ' rk-token-active' : '' ),
 									'aria-current': mine === activeIndex ? 'true' : 'false',
-									title: ( tokenLabels[ token ] || token ) + ' ' + token,
-									'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + token + ', ' + ( tokenLabels[ token ] || '' ),
+									title: readable + ' ' + token,
+									'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + readable + ', ' + token,
 									onMouseEnter: function () { setActiveIndex( mine ); },
 									onFocus: function () { setActiveIndex( mine ); },
 									onKeyDown: onListKey,
@@ -777,11 +779,18 @@
 										insert( token );
 									}
 								},
-								token
+								el( 'span', { className: 'rk-token-name' }, readable ),
+								el( 'span', { className: 'rk-token-value', 'aria-hidden': 'true' }, token )
 							);
 						} )
 					);
-				} ) : el( 'p', { className: 'description' }, __( 'No tokens match your search.', 'rankkernel' ) )
+				} ) : el( 'p', { className: 'description' }, __( 'No tokens match your search.', 'rankkernel' ) ),
+				el( 'button', {
+					type: 'button',
+					className: 'button button-small rk-token-close',
+					'aria-label': __( 'Close token picker', 'rankkernel' ),
+					onClick: closeAndRefocus
+				}, __( 'Close', 'rankkernel' ) )
 			) : null
 		);
 	}
@@ -813,16 +822,21 @@
 		);
 	}
 
-	// One coherent search preview: heading, device switch, preview card,
-	// then the fields that drive it (rendered by the caller right after).
+	// One coherent search preview: header row with the title and the
+	// device switch, the preview surface, then a footer row with the
+	// Edit Snippet action. Compact for a roughly 280px sidebar.
 	function SerpPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
 		return el(
 			'section',
 			{ className: 'rk-serp-block', 'aria-labelledby': props.headingId },
-			el( 'h3', { className: 'rk-serp-heading', id: props.headingId }, __( 'Search Preview', 'rankkernel' ) ),
-			el( DeviceSwitch, { device: props.device, onDevice: props.onDevice } ),
+			el(
+				'div',
+				{ className: 'rk-serp-head' },
+				el( 'h3', { className: 'rk-serp-heading', id: props.headingId }, __( 'Search Preview', 'rankkernel' ) ),
+				el( DeviceSwitch, { device: props.device, onDevice: props.onDevice } )
+			),
 			el(
 				'div',
 				{ className: 'rk-meta-serp rk-serp' + ( 'mobile' === props.device ? ' rk-is-mobile' : '' ) },
@@ -840,11 +854,29 @@
 				el( 'p', { className: 'rk-meta-serp-title' }, titleEff.text || __( 'Untitled', 'rankkernel' ) ),
 				el( 'p', { className: 'rk-meta-serp-desc' }, descEff.text || '' )
 			),
-			el( 'p', { className: 'description rk-serp-note' }, __( 'Preview is approximate, not exact search rendering.', 'rankkernel' ) )
+			el( 'p', { className: 'description rk-serp-note' }, __( 'Preview is approximate, not exact search rendering.', 'rankkernel' ) ),
+			props.onEdit ? el(
+				'div',
+				{ className: 'rk-serp-foot' },
+				el(
+					'button',
+					{
+						type: 'button',
+						className: 'button button-secondary rk-preview-open',
+						'aria-label': __( 'Edit Snippet', 'rankkernel' ),
+						onClick: props.onEdit
+					},
+					el( 'span', { className: 'dashicons dashicons-edit', 'aria-hidden': 'true' } ),
+					el( 'span', null, __( 'Edit Snippet', 'rankkernel' ) )
+				)
+			) : null
 		);
 	}
 
 	// Social preview card, driven by the active network the caller picks.
+	// Each platform keeps its own chrome: Facebook shows a page source
+	// line above the image, title, description and URL; Twitter shows a
+	// profile row plus the card size, then image, title, description.
 	function SocialPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
@@ -856,17 +888,44 @@
 		var image = ! isEmpty( primary.image ) ? primary.image : ( ! isEmpty( fallback.image ) ? fallback.image : String( defaults.ogImage || '' ) );
 		var card = 'summary' === props.meta.twitter.card ? 'summary' : 'summary_large_image';
 		var compact = isTwitter && 'summary' === card;
+		var site = cfg.siteName || cfg.siteUrl || '';
+		var link = shortUrl( props.url || cfg.permalink || cfg.homeUrl || '' );
+		if ( isTwitter ) {
+			return el(
+				'div',
+				{ className: 'rk-meta-social rk-social rk-social-twitter' + ( compact ? ' rk-is-compact' : '' ) },
+				el(
+					'div',
+					{ className: 'rk-social-profile' },
+					siteMark(),
+					el(
+						'div',
+						{ className: 'rk-social-id' },
+						el( 'p', { className: 'rk-social-name' }, site || __( 'Site', 'rankkernel' ) ),
+						el( 'p', { className: 'description rk-social-card' }, 'summary' === card ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' ) )
+					)
+				),
+				image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : el( 'p', { className: 'description rk-social-noimage' }, __( 'No image', 'rankkernel' ) ),
+				el(
+					'div',
+					{ className: 'rk-meta-social-body' },
+					el( 'p', { className: 'rk-meta-social-title' }, title || __( 'Untitled', 'rankkernel' ) ),
+					el( 'p', { className: 'rk-meta-social-desc' }, desc || '' ),
+					el( 'p', { className: 'rk-meta-social-site' }, link )
+				)
+			);
+		}
 		return el(
 			'div',
-			{ className: 'rk-meta-social rk-social' + ( compact ? ' rk-is-compact' : '' ) },
-			image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : null,
+			{ className: 'rk-meta-social rk-social rk-social-facebook' },
+			el( 'p', { className: 'rk-social-source' }, site || __( 'Site', 'rankkernel' ) ),
+			image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : el( 'p', { className: 'description rk-social-noimage' }, __( 'No image', 'rankkernel' ) ),
 			el(
 				'div',
 				{ className: 'rk-meta-social-body' },
 				el( 'p', { className: 'rk-meta-social-title' }, title || __( 'Untitled', 'rankkernel' ) ),
 				el( 'p', { className: 'rk-meta-social-desc' }, desc || '' ),
-				el( 'p', { className: 'rk-meta-social-site' }, cfg.siteName || cfg.siteUrl || '' ),
-				isTwitter ? el( 'p', { className: 'description' }, 'summary' === card ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' ) ) : null
+				el( 'p', { className: 'rk-meta-social-site' }, link )
 			)
 		);
 	}
@@ -876,10 +935,15 @@
 	// warning under the minimum, and an invalid warning when the file
 	// cannot load. Guidance carries the recommended and minimum sizes.
 	function SocialImageControl( props ) {
+		var Spinner = components.Spinner;
+		var Notice = components.Notice;
 		var current = props.current || { image: '', image_id: 0 };
 		var checkState = useState( { status: 'idle', width: 0, height: 0 } );
 		var check = checkState[ 0 ];
 		var setCheck = checkState[ 1 ];
+		var failedState = useState( '' );
+		var failed = failedState[ 0 ];
+		var setFailed = failedState[ 1 ];
 
 		useEffect( function () {
 			if ( isEmpty( current.image ) ) {
@@ -917,6 +981,8 @@
 		var checking = 'checking' === check.status;
 		var tooSmall = 'small' === check.status;
 		var invalid = 'error' === check.status;
+		var empty = isEmpty( current.image );
+		var smallNotice = __( 'This image is smaller than the minimum', 'rankkernel' ) + ' ' + SOCIAL_MIN_W + 'x' + SOCIAL_MIN_H + ' (' + check.width + 'x' + check.height + ').';
 
 		return el(
 			'div',
@@ -927,18 +993,33 @@
 				el( 'span', { className: 'rk-meta-field-label rk-field-label', id: labelId }, props.label ),
 				current.image && ! checking && ! invalid ? el( StateBadge, { inherited: false } ) : null
 			),
-			current.image ? el(
+			empty ? el(
+				'div',
+				{ className: 'rk-thumb-empty', role: 'presentation' },
+				el( 'span', { className: 'dashicons dashicons-format-image', 'aria-hidden': 'true' } ),
+				el( 'span', null, __( 'No image', 'rankkernel' ) )
+			) : el(
 				'div',
 				{ className: 'rk-thumb-wrap' + ( checking ? ' rk-is-checking' : '' ) },
 				el( 'img', { className: 'rk-meta-thumb rk-thumb', src: current.image, alt: '' } ),
-				checking ? el( 'p', { className: 'description', role: 'status' }, __( 'Checking image…', 'rankkernel' ) ) : null
-			) : null,
+				checking ? el(
+					'p',
+					{ className: 'description rk-thumb-loading', role: 'status' },
+					Spinner ? el( Spinner, null ) : null,
+					el( 'span', null, __( 'Checking image…', 'rankkernel' ) )
+				) : null
+			),
 			invalid ? el( 'p', { className: 'rk-error', role: 'alert' }, __( 'This image cannot be loaded. Select a different file.', 'rankkernel' ) ) : null,
-			tooSmall ? el(
+			tooSmall ? ( Notice ? el(
+				Notice,
+				{ status: 'warning', isDismissible: false, className: 'rk-image-notice' },
+				smallNotice
+			) : el(
 				'p',
 				{ className: 'rk-warn', role: 'status' },
-				__( 'This image is smaller than the minimum', 'rankkernel' ) + ' ' + SOCIAL_MIN_W + 'x' + SOCIAL_MIN_H + ' (' + check.width + 'x' + check.height + ').'
-			) : null,
+				smallNotice
+			) ) : null,
+			failed ? el( 'p', { className: 'rk-error', role: 'alert' }, failed ) : null,
 			el(
 				'div',
 				{ className: 'rk-meta-row-actions', role: 'group', 'aria-labelledby': labelId },
@@ -946,11 +1027,22 @@
 					type: 'button',
 					className: 'button button-small',
 					disabled: ! props.mediaAvailable,
-					'aria-label': ( current.image ? __( 'Change image', 'rankkernel' ) : props.selectLabel ) + ': ' + props.label,
+					'aria-label': ( current.image ? __( 'Replace image', 'rankkernel' ) : props.selectLabel ) + ': ' + props.label,
 					onClick: function () {
-						props.onPick();
+						setFailed( '' );
+						var opened = false;
+						try {
+							opened = pickImage( props.onPick, function () {
+								setFailed( __( 'Could not load the selected image. Try a different file.', 'rankkernel' ) );
+							} );
+						} catch ( e ) {
+							opened = false;
+						}
+						if ( ! opened ) {
+							setFailed( __( 'Could not open the media library. Try again.', 'rankkernel' ) );
+						}
 					}
-				}, current.image ? __( 'Change image', 'rankkernel' ) : props.selectLabel ),
+				}, current.image ? __( 'Replace image', 'rankkernel' ) : props.selectLabel ),
 				current.image ? el( 'button', {
 					type: 'button',
 					className: 'button button-small',
@@ -989,26 +1081,45 @@
 		);
 	}
 
-	function pickImage( onPick ) {
-		if ( ! window.wp || ! window.wp.media ) {
+	function pickImage( onPick, onFail ) {
+		try {
+			if ( ! window.wp || ! window.wp.media ) {
+				return false;
+			}
+			var frame = window.wp.media( {
+				title: __( 'Select preview image', 'rankkernel' ),
+				button: { text: __( 'Use this image', 'rankkernel' ) },
+				multiple: false
+			} );
+			frame.on( 'select', function () {
+				try {
+					var attachment = frame.state().get( 'selection' ).first();
+					if ( ! attachment ) {
+						return;
+					}
+					var json = attachment.toJSON();
+					var src = ( json.sizes && json.sizes.full && json.sizes.full.url ) || json.url || '';
+					if ( '' === String( src ).trim() ) {
+						if ( onFail ) {
+							onFail();
+						}
+						return;
+					}
+					onPick( src, json.id || 0 );
+				} catch ( e ) {
+					if ( onFail ) {
+						onFail();
+					}
+				}
+			} );
+			frame.open();
+			return true;
+		} catch ( e ) {
+			if ( onFail ) {
+				onFail();
+			}
 			return false;
 		}
-		var frame = window.wp.media( {
-			title: __( 'Select preview image', 'rankkernel' ),
-			button: { text: __( 'Use this image', 'rankkernel' ) },
-			multiple: false
-		} );
-		frame.on( 'select', function () {
-			var attachment = frame.state().get( 'selection' ).first();
-			if ( ! attachment ) {
-				return;
-			}
-			var json = attachment.toJSON();
-			var src = ( json.sizes && json.sizes.full && json.sizes.full.url ) || json.url || '';
-			onPick( src, json.id || 0 );
-		} );
-		frame.open();
-		return true;
 	}
 
 	function downloadJson( filename, data ) {
@@ -1034,10 +1145,10 @@
 	// the sidebar preview immediately.
 	function PreviewModal( props ) {
 		var Modal = components.Modal;
-		var titleText = __( 'Preview Snippet Editor', 'rankkernel' );
+		var titleText = __( 'Edit Snippet', 'rankkernel' );
 		var body = el(
 			'div',
-			{ className: 'rk-modal-body' },
+			{ className: 'rk-modal-body rk-meta' },
 			el( SerpPreview, {
 				headingId: 'rk-modal-serp-heading',
 				title: props.titleValue,
@@ -1245,10 +1356,42 @@
 			pushValue( path, '' );
 		}
 
-		function appendToken( path, token ) {
-			var raw = display( path, pathValue( path ) );
-			setDraft( path, String( raw || '' ) + token );
+	function appendToken( path, token, inputId ) {
+		var raw = display( path, pathValue( path ) );
+		var base = String( raw == null ? '' : raw );
+		var node = null;
+		try {
+			node = inputId && document && document.getElementById ? document.getElementById( inputId ) : null;
+		} catch ( e ) {
+			node = null;
 		}
+		// Insert at the caret when the field is available so the token
+		// lands where the user was typing; otherwise append. Either way
+		// the write goes through the same draft/store path, so counters,
+		// badges and both previews recompute from one state.
+		if ( node && ( 'TEXTAREA' === node.tagName || 'INPUT' === node.tagName ) && null !== node.selectionStart ) {
+			var start = node.selectionStart;
+			var end = null !== node.selectionEnd ? node.selectionEnd : start;
+			var next = base.slice( 0, start ) + token + base.slice( end );
+			setDraft( path, next );
+			var caret = start + String( token ).length;
+			setTimeout( function () {
+				try {
+					var live = document.getElementById( inputId );
+					if ( live && live.focus ) {
+						live.focus();
+						if ( null !== live.selectionStart && live.setSelectionRange ) {
+							live.setSelectionRange( caret, caret );
+						}
+					}
+				} catch ( e ) {
+					return;
+				}
+			}, 0 );
+			return;
+		}
+		setDraft( path, base + token );
+	}
 
 		function pathValue( path ) {
 			if ( 'title' === path || 'description' === path || 'canonical' === path ) {
@@ -1300,7 +1443,7 @@
 				listId: listId,
 				fieldLabel: fieldLabel,
 				inputId: inputId,
-				onInsert: function ( token ) { appendToken( path, token ); }
+				onInsert: function ( token ) { appendToken( path, token, inputId ); }
 			} );
 		}
 
@@ -1464,18 +1607,16 @@
 				selectLabel: __( 'Select image', 'rankkernel' ),
 				current: current,
 				mediaAvailable: mediaAvailable,
-				onPick: function () {
-					pickImage( function ( src, id ) {
-						if ( ! editPost ) {
-							return;
-						}
-						var next = withMeta( meta );
-						next[ group ].image = src;
-						next[ group ].image_id = id;
-						var payload = {};
-						payload[ META_KEY ] = next;
-						editPost( { meta: payload } );
-					} );
+				onPick: function ( src, id ) {
+					if ( ! editPost ) {
+						return;
+					}
+					var next = withMeta( meta );
+					next[ group ].image = src;
+					next[ group ].image_id = id;
+					var payload = {};
+					payload[ META_KEY ] = next;
+					editPost( { meta: payload } );
 				},
 				onRemove: function () {
 					if ( ! editPost ) {
@@ -1504,18 +1645,9 @@
 					description: descValue,
 					device: device,
 					onDevice: setDevice,
-					url: permalink
+					url: permalink,
+					onEdit: function () { setModalOpen( true ); }
 				} ),
-				el(
-					'button',
-					{
-						type: 'button',
-						className: 'button button-secondary rk-preview-open',
-						onClick: function () { setModalOpen( true ); }
-					},
-					el( 'span', { className: 'dashicons dashicons-visibility', 'aria-hidden': 'true' } ),
-					el( 'span', null, __( 'Preview snippet editor', 'rankkernel' ) )
-				),
 				metaField( { id: 'rk-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
 				metaField( { id: 'rk-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 3 } ),
 				// Extension seam: future focus keyword and content analysis

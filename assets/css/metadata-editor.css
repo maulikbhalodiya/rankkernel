@@ -27,7 +27,7 @@
 .rk-meta .rk-meta-tabs {
 	border-bottom: 1px solid var(--rk-color-border);
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: var(--rk-space-1);
 	margin: 0 0 var(--rk-space-4);
 }
@@ -137,8 +137,7 @@
 
 /* State badges: text plus a shape marker, never colour alone. */
 
-.rk-meta .rk-meta-badge,
-.rk-meta .rk-field-badge {
+.rk-meta .rk-meta-badge {
 	align-items: center;
 	border-radius: 999px;
 	display: inline-flex;
@@ -152,58 +151,44 @@
 	white-space: nowrap;
 }
 
-.rk-meta .rk-meta-badge::before,
-.rk-meta .rk-field-badge::before {
+.rk-meta .rk-meta-badge::before {
 	font-weight: 700;
 }
 
 .rk-meta .rk-meta-badge.rk-is-inherited,
-.rk-meta .rk-meta-badge[data-rk-state="inherited"],
-.rk-meta .rk-field-badge[data-rk-state="inherited"] {
+.rk-meta .rk-meta-badge[data-rk-state="inherited"] {
 	background: var(--rk-color-surface-muted);
 	color: var(--rk-color-text-secondary);
 }
 
 .rk-meta .rk-meta-badge.rk-is-inherited::before,
-.rk-meta .rk-meta-badge[data-rk-state="inherited"]::before,
-.rk-meta .rk-field-badge[data-rk-state="inherited"]::before {
+.rk-meta .rk-meta-badge[data-rk-state="inherited"]::before {
 	content: "○";
 }
 
 .rk-meta .rk-meta-badge.rk-is-custom,
-.rk-meta .rk-meta-badge[data-rk-state="custom"],
-.rk-meta .rk-field-badge[data-rk-state="custom"] {
+.rk-meta .rk-meta-badge[data-rk-state="custom"] {
 	background: var(--rk-color-secondary-1-soft);
 	color: var(--rk-color-secondary-1);
 }
 
 .rk-meta .rk-meta-badge.rk-is-custom::before,
-.rk-meta .rk-meta-badge[data-rk-state="custom"]::before,
-.rk-meta .rk-field-badge[data-rk-state="custom"]::before {
+.rk-meta .rk-meta-badge[data-rk-state="custom"]::before {
 	content: "●";
 }
 
-.rk-meta .rk-meta-badge[data-rk-state="invalid"],
-.rk-meta .rk-field-badge[data-rk-state="invalid"] {
+.rk-meta .rk-meta-badge[data-rk-state="invalid"] {
 	background: var(--rk-color-secondary-4-soft);
 	color: var(--rk-color-secondary-4);
 }
 
-.rk-meta .rk-meta-badge[data-rk-state="invalid"]::before,
-.rk-meta .rk-field-badge[data-rk-state="invalid"]::before {
+.rk-meta .rk-meta-badge[data-rk-state="invalid"]::before {
 	content: "!";
 }
 
 /* Counter meter: thin progress bar under the control. */
 
-.rk-meta .rk-count,
-.rk-meta .rk-field-meter {
-	margin-top: var(--rk-space-2);
-	min-width: 0;
-}
-
-.rk-meta .rk-count-bar,
-.rk-meta .rk-field-bar {
+.rk-meta .rk-count-bar {
 	background: var(--rk-color-surface-muted);
 	border-radius: 999px;
 	height: var(--rk-space-1);
@@ -211,25 +196,21 @@
 	overflow: hidden;
 }
 
-.rk-meta .rk-count-fill,
-.rk-meta .rk-field-fill {
+.rk-meta .rk-count-fill {
 	display: block;
 	height: 100%;
 	max-width: 100%;
 }
 
-.rk-meta .rk-count-fill.rk-is-ok,
-.rk-meta .rk-field-fill[data-rk-state="ok"] {
+.rk-meta .rk-count-fill.rk-is-ok {
 	background: var(--rk-color-secondary-1);
 }
 
-.rk-meta .rk-count-fill.rk-is-warn,
-.rk-meta .rk-field-fill[data-rk-state="warn"] {
+.rk-meta .rk-count-fill.rk-is-warn {
 	background: var(--rk-color-secondary-3);
 }
 
-.rk-meta .rk-count-fill.rk-is-over,
-.rk-meta .rk-field-fill[data-rk-state="over"] {
+.rk-meta .rk-count-fill.rk-is-over {
 	background: var(--rk-color-secondary-4);
 }
 
@@ -237,21 +218,6 @@
 	font-weight: 400;
 	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
-}
-
-.rk-meta .rk-meta-count.rk-is-ok,
-.rk-meta [data-rk-count-for].rk-is-ok {
-	color: var(--rk-color-text-muted);
-}
-
-.rk-meta .rk-meta-count.rk-is-warn,
-.rk-meta [data-rk-count-for].rk-is-warn {
-	color: var(--rk-color-secondary-3);
-}
-
-.rk-meta .rk-meta-count.rk-is-over,
-.rk-meta [data-rk-count-for].rk-is-over {
-	color: var(--rk-color-secondary-4);
 }
 
 /* Supporting row: counter and status on the left, actions on the right. */
@@ -331,13 +297,6 @@ visibly disabled until the field becomes custom. */
 	position: relative;
 }
 
-.rk-meta .rk-meta-tokens-label {
-	display: block;
-	font-weight: 600;
-	margin-bottom: var(--rk-space-2);
-}
-
-.rk-meta .rk-meta-token-list,
 .rk-meta .rk-token-pop {
 	background: var(--rk-color-surface);
 	border: 1px solid var(--rk-color-border);
@@ -358,17 +317,9 @@ visibly disabled until the field becomes custom. */
 	z-index: 5;
 }
 
-.rk-meta .rk-meta-token-list .button,
 .rk-meta .rk-token-pop .button {
 	max-width: 100%;
 	overflow-wrap: anywhere;
-}
-
-.rk-meta [data-rk-token-list] {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--rk-space-2);
-	max-width: 100%;
 }
 
 .rk-meta .rk-meta-row-actions {
@@ -403,8 +354,7 @@ visibly disabled until the field becomes custom. */
 	padding: var(--rk-space-3) var(--rk-space-4);
 }
 
-.rk-meta .rk-meta-serp.rk-is-mobile,
-.rk-meta [data-rk-serp].rk-is-mobile {
+.rk-meta .rk-meta-serp.rk-is-mobile {
 	max-width: 100%;
 }
 
@@ -415,10 +365,12 @@ visibly disabled until the field becomes custom. */
 	border: 1px solid var(--rk-color-border);
 	border-radius: 999px;
 	display: flex;
+	flex: 1 1 auto;
 	gap: 0;
-	margin-bottom: var(--rk-space-3);
+	margin: 0;
 	max-width: 100%;
-	padding: 2px;
+	min-width: 0;
+	padding: var(--rk-space-1);
 }
 
 .rk-meta .rk-meta-serp-tools .button {
@@ -517,22 +469,19 @@ visibly disabled until the field becomes custom. */
 	overflow: hidden;
 }
 
-.rk-meta .rk-meta-social-image,
-.rk-meta [data-rk-social-image] {
+.rk-meta .rk-meta-social-image {
 	display: block;
 	height: auto;
 	max-width: 100%;
 	width: 100%;
 }
 
-.rk-meta .rk-meta-social.rk-card-summary,
 .rk-meta .rk-meta-social.rk-is-compact {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--rk-space-3);
 }
 
-.rk-meta .rk-meta-social.rk-card-summary .rk-meta-social-image,
 .rk-meta .rk-meta-social.rk-is-compact .rk-meta-social-image {
 	flex: 0 1 120px;
 	max-width: 120px;
@@ -719,10 +668,6 @@ visibly disabled until the field becomes custom. */
 the active tab shows its text label; inactive tabs keep icon plus
 accessible name and tooltip. */
 
-.rk-meta .rk-meta-tabs {
-	flex-wrap: nowrap;
-}
-
 .rk-meta .rk-meta-tab-wrap {
 	display: flex;
 	flex: 1 1 0;
@@ -820,7 +765,7 @@ accessible name and tooltip. */
 
 .rk-modal-fallback-veil {
 	align-items: flex-start;
-	background: rgba(15, 23, 42, .45);
+	background: color-mix(in srgb, var(--rk-color-text) 45%, transparent);
 	bottom: 0;
 	display: flex;
 	justify-content: center;
@@ -914,8 +859,7 @@ accessible name and tooltip. */
 	overflow-wrap: anywhere;
 }
 
-.rk-meta .rk-meta-badge.rk-is-invalid,
-.rk-meta .rk-field-badge[data-rk-state="invalid"] {
+.rk-meta .rk-meta-badge.rk-is-invalid {
 	background: var(--rk-color-secondary-4-soft);
 	color: var(--rk-color-secondary-4);
 }
@@ -962,7 +906,7 @@ accessible name and tooltip. */
 	gap: 0;
 	margin-bottom: var(--rk-space-3);
 	max-width: 100%;
-	padding: 2px;
+	padding: var(--rk-space-1);
 }
 
 .rk-meta .rk-social-switch .button {
@@ -999,4 +943,159 @@ accessible name and tooltip. */
 	max-width: 100%;
 	object-fit: cover;
 	width: 100%;
+}
+
+/* Search preview header and footer rows: title plus device switch, then
+the Edit Snippet action. */
+
+.rk-meta .rk-serp-head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-head .rk-serp-heading {
+	margin: 0;
+}
+
+.rk-meta .rk-serp-head .rk-meta-serp-tools {
+	margin-bottom: 0;
+}
+
+.rk-meta .rk-serp-foot {
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-foot .rk-preview-open {
+	margin-bottom: 0;
+}
+
+/* Token picker readable names, help text and close control. */
+
+.rk-meta .rk-token-help {
+	flex: 1 1 100%;
+}
+
+.rk-meta .rk-token-pop .button .rk-token-name {
+	font-weight: 600;
+}
+
+.rk-meta .rk-token-pop .button .rk-token-value {
+	color: var(--rk-color-text-muted);
+	font-weight: 400;
+}
+
+.rk-meta .rk-token-close {
+	flex: 1 1 100%;
+	margin-top: var(--rk-space-1);
+}
+
+/* Social image states: bordered empty placeholder, loading row. */
+
+.rk-meta .rk-thumb-empty {
+	align-items: center;
+	border: 1px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-muted);
+	display: flex;
+	gap: var(--rk-space-2);
+	justify-content: center;
+	margin-top: var(--rk-space-2);
+	max-width: 100%;
+	min-height: 96px;
+	padding: var(--rk-space-3);
+}
+
+.rk-meta .rk-thumb-loading {
+	align-items: center;
+	display: flex;
+	gap: var(--rk-space-2);
+}
+
+.rk-meta .rk-image-notice {
+	margin: var(--rk-space-2) 0 0;
+	max-width: 100%;
+}
+
+/* Social platform chrome: each network reads as its own card. */
+
+.rk-meta .rk-social-source {
+	border-bottom: 1px solid var(--rk-color-border);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: 0;
+	overflow-wrap: anywhere;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-social-profile {
+	align-items: center;
+	border-bottom: 1px solid var(--rk-color-border);
+	display: flex;
+	gap: var(--rk-space-2);
+	min-width: 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-social-profile .rk-serp-mark {
+	height: 24px;
+	width: 24px;
+}
+
+.rk-meta .rk-social-id {
+	min-width: 0;
+}
+
+.rk-meta .rk-social-name {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-social-card {
+	margin: 0;
+}
+
+.rk-meta .rk-social-noimage {
+	margin: 0;
+	padding: var(--rk-space-3);
+	text-align: center;
+}
+
+/* Edit Snippet modal: roomy on desktop, usable small, scrolls inside. */
+
+.rk-preview-modal {
+	box-sizing: border-box;
+	max-height: calc(100vh - 60px);
+	max-width: 640px;
+	overflow: auto;
+	width: calc(100% - 32px);
+}
+
+.rk-preview-modal .rk-modal-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-preview-modal .rk-serp-block {
+	margin-bottom: 0;
+}
+
+.rk-preview-modal .rk-token-pop {
+	max-height: 220px;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-preview-modal {
+		max-width: 100%;
+		width: calc(100% - 24px);
+	}
 }
