@@ -545,12 +545,42 @@ a small marker before the status line, never a purple tab. */
 }
 
 .rankkernel-meta-editor .rk-classic-serp {
+	margin-inline: 0;
 	max-width: 100%;
 	min-width: 0;
 }
 
 .rankkernel-meta-editor .rk-classic-serp.rk-is-mobile {
-	max-width: 100%;
+	margin-inline: auto;
+	max-width: 360px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp.rk-is-mobile .rk-classic-serp-title {
+	font-size: var(--rk-font-size-md);
+	-webkit-line-clamp: 3;
+}
+
+.rankkernel-meta-editor .rk-classic-serp.rk-is-mobile .rk-classic-serp-desc {
+	font-size: var(--rk-font-size-xs);
+	-webkit-line-clamp: 2;
+}
+
+.rankkernel-meta-editor .rk-classic-noindex {
+	background: var(--rk-color-secondary-3-soft);
+	border-left: 4px solid var(--rk-color-secondary-3);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: var(--rk-space-2) 0 0;
+	overflow-wrap: anywhere;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rankkernel-meta-editor .rk-classic-noindex::before {
+	color: var(--rk-color-secondary-3);
+	content: "! ";
+	font-weight: 700;
 }
 
 .rankkernel-meta-editor .rk-serp-row {

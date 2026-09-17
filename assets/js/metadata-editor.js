@@ -115,12 +115,39 @@
 		return input.value || '';
 	}
 
+	var tokenValues = cfg.tokens || null;
+
+	/**
+	 * Resolve every %%token%% through the server provided token map.
+	 * Unknown tokens render as an empty string, never as raw text. When
+	 * the map itself is absent every token is stripped, so a preview can
+	 * never show a literal %%token%% string.
+	 */
+	function resolveTokens( text ) {
+		var str = String( text == null ? '' : text );
+		if ( str.indexOf( '%%' ) < 0 ) {
+			return str;
+		}
+		if ( ! tokenValues || 'object' !== typeof tokenValues ) {
+			return str.replace( /%%[A-Za-z_]+%%/g, '' );
+		}
+		return str.replace( /%%([A-Za-z_]+)%%/g, function ( match, name ) {
+			var value = tokenValues[ name ];
+			return value == null ? '' : String( value );
+		} );
+	}
+
 	function effectiveValue( raw, templateKey ) {
 		var value = String( raw == null ? '' : raw ).trim();
 		if ( '' !== value ) {
-			return { text: String( raw ), inherited: false };
+			return { text: resolveTokens( String( raw ) ), inherited: false };
 		}
-		return { text: String( templates[ templateKey ] || '' ), inherited: true };
+		// Without a token map the raw template cannot be trusted: it may
+		// hold unresolved tokens, so render empty rather than raw text.
+		if ( ! tokenValues || 'object' !== typeof tokenValues ) {
+			return { text: '', inherited: true };
+		}
+		return { text: resolveTokens( String( templates[ templateKey ] || '' ) ), inherited: true };
 	}
 
 	var measureCanvas = null;
@@ -587,6 +614,34 @@
 		};
 	}
 
+	function updateNoindexNotice( root ) {
+		var box = $( root, '[data-rankkernel-preview]' );
+		if ( ! box ) {
+			return;
+		}
+		var radio = byId( root, 'rankkernel-meta-robots-noindex' );
+		var hidden = Boolean( radio && radio.checked );
+		var note = box.querySelector( '.rk-classic-noindex' );
+		if ( ! hidden ) {
+			if ( note && note.parentNode ) {
+				note.parentNode.removeChild( note );
+			}
+			return;
+		}
+		if ( ! note ) {
+			note = document.createElement( 'p' );
+			note.className = 'rk-classic-noindex';
+			note.setAttribute( 'role', 'status' );
+			var desc = byId( root, 'rankkernel-meta-preview-description' );
+			if ( desc && desc.parentNode ) {
+				desc.parentNode.insertBefore( note, desc.nextSibling );
+			} else {
+				box.appendChild( note );
+			}
+		}
+		note.textContent = str( 'noindexNotice', 'Noindex is on: this post is hidden from search results.' );
+	}
+
 	function refresh( root ) {
 		var values = readValues( root );
 		var title = effectiveValue( values.title, 'title' );
@@ -601,6 +656,7 @@
 		updateThumbs( root, values );
 		updateCanonical( root, values );
 		updateSchemaStatus( root );
+		updateNoindexNotice( root );
 	}
 
 	function updateFieldResets( root, values ) {
@@ -822,6 +878,7 @@
 	// Shared preview helpers for the Gutenberg sidebar. The sidebar calls
 	// these when present and falls back to its own copies otherwise.
 	window.rankkernelMetaEditorPreview = {
+		resolveTokens: resolveTokens,
 		effectiveValue: effectiveValue,
 		measureWidth: measureWidth,
 		counterStatus: counterStatus,

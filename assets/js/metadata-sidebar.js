@@ -98,18 +98,44 @@
 		};
 	}
 
-	// Effective value: the stored override when set, otherwise the server
-	// resolved template. Never invents token values here; templates arrive
-	// resolved in window.rankkernelMetaEditor.
+	var tokenValues = cfg.tokens || null;
+
+	// Single token resolver for the sidebar preview and the modal
+	// preview. Both render through SerpPreview and effectiveValue below,
+	// so no preview path can show a literal %%token%% string.
+	function resolveTokens( text ) {
+		if ( shared.resolveTokens ) {
+			return shared.resolveTokens( text );
+		}
+		var str = String( text == null ? '' : text );
+		if ( str.indexOf( '%%' ) < 0 ) {
+			return str;
+		}
+		if ( ! tokenValues || 'object' !== typeof tokenValues ) {
+			return str.replace( /%%[A-Za-z_]+%%/g, '' );
+		}
+		return str.replace( /%%([A-Za-z_]+)%%/g, function ( match, name ) {
+			var value = tokenValues[ name ];
+			return value == null ? '' : String( value );
+		} );
+	}
+
+	// Effective value: the stored override when set, otherwise the
+	// resolved template. Every token resolves through the token map
+	// before render; without a map an empty override renders empty,
+	// never the raw template.
 	function effectiveValue( raw, templateKey ) {
 		if ( shared.effectiveValue ) {
 			return shared.effectiveValue( raw, templateKey );
 		}
 		var value = String( raw == null ? '' : raw ).trim();
 		if ( '' !== value ) {
-			return { text: String( raw ), inherited: false };
+			return { text: resolveTokens( String( raw ) ), inherited: false };
 		}
-		return { text: String( templates[ templateKey ] || '' ), inherited: true };
+		if ( ! tokenValues || 'object' !== typeof tokenValues ) {
+			return { text: '', inherited: true };
+		}
+		return { text: resolveTokens( String( templates[ templateKey ] || '' ) ), inherited: true };
 	}
 
 	function counterStatus( length, limit ) {
@@ -830,20 +856,42 @@
 	}
 
 	function DeviceSwitch( props ) {
+		var desktopRef = useRef( null );
+		var mobileRef = useRef( null );
+		function focusDevice( device ) {
+			var node = 'mobile' === device ? mobileRef.current : desktopRef.current;
+			if ( node && node.focus ) {
+				node.focus();
+			}
+		}
+		function onSwitchKey( event ) {
+			if ( 'ArrowRight' === event.key || 'ArrowLeft' === event.key ) {
+				event.preventDefault();
+				var next = 'mobile' === props.device ? 'desktop' : 'mobile';
+				props.onDevice( next );
+				focusDevice( next );
+			}
+		}
 		return el(
 			'div',
 			{ className: 'rk-meta-serp-tools', role: 'group', 'aria-label': props.label || __( 'Preview width', 'rankkernel' ) },
 			el( 'button', {
 				type: 'button',
+				ref: desktopRef,
 				className: 'button button-small' + ( 'desktop' === props.device ? ' is-active' : '' ),
 				'aria-pressed': 'desktop' === props.device ? 'true' : 'false',
-				onClick: function () { props.onDevice( 'desktop' ); }
+				tabIndex: 'desktop' === props.device ? 0 : -1,
+				onClick: function () { props.onDevice( 'desktop' ); },
+				onKeyDown: onSwitchKey
 			}, __( 'Desktop', 'rankkernel' ) ),
 			el( 'button', {
 				type: 'button',
+				ref: mobileRef,
 				className: 'button button-small' + ( 'mobile' === props.device ? ' is-active' : '' ),
 				'aria-pressed': 'mobile' === props.device ? 'true' : 'false',
-				onClick: function () { props.onDevice( 'mobile' ); }
+				tabIndex: 'mobile' === props.device ? 0 : -1,
+				onClick: function () { props.onDevice( 'mobile' ); },
+				onKeyDown: onSwitchKey
 			}, __( 'Mobile', 'rankkernel' ) )
 		);
 	}
@@ -854,6 +902,7 @@
 	function SerpPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
+		var isMobile = 'mobile' === props.device;
 		return el(
 			'section',
 			{ className: 'rk-serp-block', 'aria-labelledby': props.headingId },
@@ -865,7 +914,7 @@
 			),
 			el(
 				'div',
-				{ className: 'rk-meta-serp rk-serp' + ( 'mobile' === props.device ? ' rk-is-mobile' : '' ) },
+				{ className: 'rk-meta-serp rk-serp' + ( isMobile ? ' rk-is-mobile' : ' rk-is-desktop' ) },
 				el(
 					'div',
 					{ className: 'rk-serp-row' },
@@ -878,7 +927,8 @@
 					)
 				),
 				el( 'p', { className: 'rk-meta-serp-title' }, titleEff.text || __( 'Untitled', 'rankkernel' ) ),
-				el( 'p', { className: 'rk-meta-serp-desc' }, descEff.text || '' )
+				el( 'p', { className: 'rk-meta-serp-desc' }, descEff.text || '' ),
+				props.noindex ? el( 'p', { className: 'rk-serp-noindex', role: 'status' }, __( 'Noindex is on: this post is hidden from search results.', 'rankkernel' ) ) : null
 			),
 			el( 'p', { className: 'description rk-serp-note' }, __( 'Preview is approximate, not exact search rendering.', 'rankkernel' ) ),
 			props.onEdit ? el(
@@ -1236,6 +1286,7 @@
 					description: props.descValue,
 					device: props.device,
 					onDevice: props.onDevice,
+					noindex: props.noindex,
 					url: props.url
 				} ),
 				el(
@@ -1982,23 +2033,25 @@
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-general', 'aria-labelledby': 'rk-tab-general', tabIndex: 0 },
-				el( SerpPreview, {
-					headingId: 'rk-serp-heading',
-					title: titleValue,
-					description: descValue,
-					device: device,
-					onDevice: setDevice,
-					url: permalink,
-					onEdit: function () { setModalTab( 'general' ); }
-				} ),
+			el( SerpPreview, {
+				headingId: 'rk-serp-heading',
+				title: titleValue,
+				description: descValue,
+				device: device,
+				onDevice: setDevice,
+				noindex: ! meta.robots.index,
+				url: permalink,
+				onEdit: function () { setModalTab( 'general' ); }
+			} ),
 				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview shows the published values.', 'rankkernel' ) ),
-				modalTab ? el( PreviewModal, {
-					initialTab: modalTab,
-					titleValue: titleValue,
-					descValue: descValue,
-					device: device,
-					onDevice: setDevice,
-					url: permalink,
+			modalTab ? el( PreviewModal, {
+				initialTab: modalTab,
+				titleValue: titleValue,
+				descValue: descValue,
+				device: device,
+				onDevice: setDevice,
+				noindex: ! meta.robots.index,
+				url: permalink,
 					onClose: function () { setModalTab( null ); },
 					titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, pixelLimit: TITLE_PX, tokenizable: true, resettable: true, help: __( 'Shown as the first line of the search result. Blank uses the template.', 'rankkernel' ) } ),
 					descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, pixelLimit: DESC_PX, tokenizable: true, resettable: true, textarea: true, rows: 4, help: __( 'Shown under the title in the search result. Blank uses the template.', 'rankkernel' ) } ),

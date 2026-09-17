@@ -371,6 +371,12 @@ visibly disabled until the field becomes custom. */
 	padding: var(--rk-space-3) var(--rk-space-4);
 }
 
+.rk-meta .rk-meta-serp.rk-is-desktop,
+.rk-meta .rk-serp.rk-is-desktop {
+	margin-inline: 0;
+	max-width: 100%;
+}
+
 .rk-meta .rk-meta-serp.rk-is-mobile,
 .rk-meta .rk-serp.rk-is-mobile {
 	margin-inline: auto;
@@ -486,6 +492,24 @@ visibly disabled until the field becomes custom. */
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 3;
+}
+
+.rk-meta .rk-serp-noindex {
+	background: var(--rk-color-secondary-3-soft);
+	border-left: 4px solid var(--rk-color-secondary-3);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: var(--rk-space-2) 0 0;
+	overflow-wrap: anywhere;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-serp-noindex::before {
+	color: var(--rk-color-secondary-3);
+	content: "! ";
+	font-weight: 700;
 }
 
 /* Social preview card speaks the same card language. */
