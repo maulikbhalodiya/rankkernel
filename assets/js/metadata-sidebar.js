@@ -7,6 +7,12 @@
  * queries no Classic metabox DOM: every value flows through the editor
  * data store, so the hook contract test stays empty for this file.
  *
+ * Render contract: registerPlugin slug is rankkernel-seo and the
+ * PluginSidebar name is rankkernel-seo, so the open identifier is
+ * rankkernel-seo/rankkernel-seo. Those two strings must stay identical;
+ * renaming either one blanks the sidebar while the store still reports
+ * it as open.
+ *
  * Tab order: General, Advanced, Schema, Social. Designed for narrow
  * sidebar width, not a mirror of the Classic metabox.
  */
@@ -25,8 +31,15 @@
 	var useDispatch = window.wp.data.useDispatch;
 	var registerPlugin = window.wp.plugins.registerPlugin;
 	var PluginSidebar = window.wp.editPost.PluginSidebar;
+
+	if ( ! registerPlugin || ! PluginSidebar ) {
+		return;
+	}
+
 	var components = window.wp.components || {};
 	var __ = window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
+
+	var SIDEBAR_NAME = 'rankkernel-seo';
 
 	var cfg = window.rankkernelMetaEditor || {};
 	var templates = cfg.templates || {};
@@ -37,8 +50,33 @@
 	var TITLE_LIMIT = parseInt( limits.title, 10 ) || 60;
 	var DESC_LIMIT = parseInt( limits.description, 10 ) || 160;
 	var DEBOUNCE_MS = 150;
+	var SOCIAL_MIN_W = 600;
+	var SOCIAL_MIN_H = 315;
 
 	var shared = window.rankkernelMetaEditorPreview || {};
+
+	// Last tokenizable field that held focus, so a token insert can hand
+	// focus back to the field the user was editing.
+	var lastTokenInputId = null;
+
+	function rememberTokenFocus( inputId ) {
+		lastTokenInputId = inputId;
+	}
+
+	function refocusTokenField( inputId ) {
+		var id = inputId || lastTokenInputId;
+		if ( ! id || ! document || ! document.getElementById ) {
+			return;
+		}
+		try {
+			var node = document.getElementById( id );
+			if ( node && node.focus ) {
+				node.focus();
+			}
+		} catch ( e ) {
+			return;
+		}
+	}
 
 	function debounce( fn, wait ) {
 		if ( shared.debounce ) {
@@ -280,6 +318,24 @@
 
 	var SCHEMA_NO_FIELDS_REQUIRED = [ 'WebPage', 'FAQPage', 'HowTo', 'Carousel', 'QAPage', 'ItemList' ];
 
+	// Visual grouping for the token picker. Tokens always come from
+	// tokenLabels; this map only groups them, anything unlisted lands in
+	// Other and nothing here is ever inserted on its own.
+	var TOKEN_GROUPS = {
+		'%%title%%': 'Post',
+		'%%excerpt%%': 'Post',
+		'%%category%%': 'Post',
+		'%%author%%': 'Post',
+		'%%date%%': 'Post',
+		'%%page%%': 'Post',
+		'%%sitename%%': 'Site',
+		'%%sep%%': 'Site'
+	};
+
+	function tokenGroupName( token ) {
+		return TOKEN_GROUPS[ token ] || 'Other';
+	}
+
 	function schemaRequiredFields( type ) {
 		if ( 'Event' === type ) {
 			return [ 'headline', 'startDate', 'locationName' ];
@@ -454,6 +510,8 @@
 		return /^https?:\/\/\S+\.\S+/.test( String( value ).trim() );
 	}
 
+	// Tab button: icon only while inactive, icon plus text label while
+	// active. The accessible name never depends on the visible label.
 	function TabButton( props ) {
 		return el(
 			'button',
@@ -463,56 +521,46 @@
 				id: props.id,
 				'aria-selected': props.selected ? 'true' : 'false',
 				'aria-controls': props.panelId,
+				'aria-label': props.label,
+				title: props.selected ? undefined : props.label,
 				tabIndex: props.selected ? 0 : -1,
 				className: 'rk-meta-tab' + ( props.selected ? ' is-active' : '' ),
 				onClick: props.onSelect
 			},
 			el( 'span', { className: 'dashicons dashicons-' + props.icon, 'aria-hidden': 'true' } ),
-			el( 'span', { className: 'rk-meta-tab-label' }, props.label )
+			props.selected ? el( 'span', { className: 'rk-meta-tab-label', 'aria-hidden': 'true' }, props.label ) : null
 		);
 	}
 
+	// State badge: text plus a shape marker, never colour alone.
 	function StateBadge( props ) {
+		var state = props.invalid ? 'invalid' : ( props.inherited ? 'inherited' : 'custom' );
+		var text = props.invalid ? __( 'Invalid', 'rankkernel' ) : ( props.inherited ? __( 'Inherited', 'rankkernel' ) : __( 'Custom', 'rankkernel' ) );
 		return el(
 			'span',
-			{ className: 'rk-meta-badge' + ( props.inherited ? ' rk-is-inherited' : ' rk-is-custom' ) },
-			props.inherited ? __( 'Inherited', 'rankkernel' ) : __( 'Custom', 'rankkernel' )
+			{
+				className: 'rk-meta-badge' + ( props.invalid ? ' rk-is-invalid' : ( props.inherited ? ' rk-is-inherited' : ' rk-is-custom' ) ),
+				'data-rk-state': state
+			},
+			text,
+			props.modified ? el( 'span', { className: 'screen-reader-text' }, __( 'Modified from template', 'rankkernel' ) ) : null
 		);
 	}
 
-	function Counter( props ) {
+	// Thin progress meter under the control.
+	function FieldMeter( props ) {
+		var status = counterStatus( String( props.text || '' ).length, props.limit );
 		var chars = String( props.text || '' ).length;
-		var status = counterStatus( chars, props.limit );
-		var pct = Math.min( 100, Math.round( ( chars / props.limit ) * 100 ) );
+		var pct = props.limit > 0 ? Math.min( 100, Math.round( ( chars / props.limit ) * 100 ) ) : 0;
 		var tone = 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' );
 		return el(
 			'div',
-			{ className: 'rk-count rk-field-meter' },
-			el(
-				'div',
-				{ className: 'rk-count-bar', role: 'presentation' },
-				el( 'div', {
-					className: 'rk-count-fill ' + tone,
-					style: { width: pct + '%' }
-				} )
-			),
-			el(
-				'div',
-				{ className: 'rk-field-foot' },
-				el(
-					'p',
-					{
-						className: 'rk-meta-count ' + tone,
-						role: 'status'
-					},
-					chars + ' / ' + props.limit + ' ' + __( 'chars', 'rankkernel' ) + ', ' + statusWord( status )
-				),
-				el(
-					'span',
-					{ className: 'rk-field-status', 'data-rk-state': status, 'aria-hidden': 'true' },
-					statusWord( status )
-				)
-			)
+			{ className: 'rk-count-bar', role: 'presentation' },
+			el( 'div', {
+				className: 'rk-count-fill ' + tone,
+				'data-rk-state': status,
+				style: { width: pct + '%' }
+			} )
 		);
 	}
 
@@ -528,38 +576,146 @@
 				'aria-label': ( disabled
 					? __( 'Using template value', 'rankkernel' )
 					: __( 'Remove post-level override', 'rankkernel' ) ) + ': ' + props.label,
+				title: disabled ? __( 'Using template value', 'rankkernel' ) : __( 'Remove post-level override', 'rankkernel' ),
 				onClick: props.onReset
 			},
-			__( 'Reset to template', 'rankkernel' )
+			__( 'Reset', 'rankkernel' )
 		);
 	}
 
 	// Collapsible section, collapsed by default. Uses PanelBody when the
-	// components package provides it, native disclosure markup otherwise.
+	// components package provides it, otherwise a button disclosure with
+	// aria-expanded so the state is always announced.
 	function Collapsible( props ) {
 		var PanelBody = components.PanelBody;
 		if ( PanelBody ) {
 			return el( PanelBody, { title: props.title, initialOpen: false }, el( 'div', { className: 'rk-collapsible-body' }, props.children ) );
 		}
+		var openState = useState( false );
+		var open = openState[ 0 ];
+		var setOpen = openState[ 1 ];
+		var bodyId = props.bodyId || ( 'rk-collapsible-' + Math.random().toString( 36 ).slice( 2, 8 ) );
 		return el(
-			'details',
+			'div',
 			{ className: 'rk-collapsible' },
-			el( 'summary', { className: 'rk-collapsible-summary' }, props.title ),
-			el( 'div', { className: 'rk-collapsible-body' }, props.children )
+			el(
+				'button',
+				{
+					type: 'button',
+					className: 'rk-collapsible-summary',
+					'aria-expanded': open ? 'true' : 'false',
+					'aria-controls': bodyId,
+					onClick: function () { setOpen( ! open ); }
+				},
+				el( 'span', { className: open ? 'dashicons dashicons-arrow-down-alt2' : 'dashicons dashicons-arrow-right-alt2', 'aria-hidden': 'true' } ),
+				props.title
+			),
+			open ? el( 'div', { className: 'rk-collapsible-body', id: bodyId }, props.children ) : null
 		);
 	}
 
+	// Token picker: searchable, keyboard navigable, visually grouped, kept
+	// inside the sidebar. Only lists tokens present in tokenLabels and
+	// never invents a token value.
 	function TokenPicker( props ) {
 		var tokens = Object.keys( tokenLabels );
 		var openState = useState( false );
 		var open = openState[ 0 ];
 		var setOpen = openState[ 1 ];
+		var queryState = useState( '' );
+		var query = queryState[ 0 ];
+		var setQuery = queryState[ 1 ];
+		var activeState = useState( 0 );
+		var activeIndex = activeState[ 0 ];
+		var setActiveIndex = activeState[ 1 ];
+		var rootRef = useRef( null );
+
+		var q = String( query || '' ).toLowerCase();
+		var filtered = tokens.filter( function ( token ) {
+			if ( '' === q ) {
+				return true;
+			}
+			var label = String( tokenLabels[ token ] || '' ).toLowerCase();
+			return token.toLowerCase().indexOf( q ) >= 0 || label.indexOf( q ) >= 0;
+		} );
+
+		var groups = {};
+		var groupOrder = [];
+		filtered.forEach( function ( token ) {
+			var name = tokenGroupName( token );
+			if ( ! groups[ name ] ) {
+				groups[ name ] = [];
+				groupOrder.push( name );
+			}
+			groups[ name ].push( token );
+		} );
+
+		function closeAndRefocus() {
+			setOpen( false );
+			setQuery( '' );
+			setActiveIndex( 0 );
+			refocusTokenField( props.inputId );
+		}
+
+		function insert( token ) {
+			props.onInsert( token );
+			closeAndRefocus();
+		}
+
+		useEffect( function () {
+			if ( ! open ) {
+				return undefined;
+			}
+			function onDown( event ) {
+				if ( rootRef.current && rootRef.current.contains && rootRef.current.contains( event.target ) ) {
+					return;
+				}
+				setOpen( false );
+				setQuery( '' );
+				setActiveIndex( 0 );
+			}
+			function onKey( event ) {
+				if ( 'Escape' === event.key ) {
+					setOpen( false );
+					setQuery( '' );
+					setActiveIndex( 0 );
+				}
+			}
+			document.addEventListener( 'mousedown', onDown );
+			document.addEventListener( 'keydown', onKey );
+			return function () {
+				document.removeEventListener( 'mousedown', onDown );
+				document.removeEventListener( 'keydown', onKey );
+			};
+		}, [ open ] );
+
 		if ( ! tokens.length ) {
 			return el( 'p', { className: 'description' }, __( 'No tokens available for this post type.', 'rankkernel' ) );
 		}
+
+		function onListKey( event ) {
+			if ( 'ArrowDown' === event.key ) {
+				event.preventDefault();
+				setActiveIndex( filtered.length ? ( activeIndex + 1 ) % filtered.length : 0 );
+			} else if ( 'ArrowUp' === event.key ) {
+				event.preventDefault();
+				setActiveIndex( filtered.length ? ( activeIndex - 1 + filtered.length ) % filtered.length : 0 );
+			} else if ( 'Enter' === event.key ) {
+				event.preventDefault();
+				if ( filtered[ activeIndex ] ) {
+					insert( filtered[ activeIndex ] );
+				}
+			} else if ( 'Escape' === event.key ) {
+				event.preventDefault();
+				closeAndRefocus();
+			}
+		}
+
+		var flatIndex = -1;
+
 		return el(
 			'div',
-			{ className: 'rk-meta-tokens rk-field-tokens' },
+			{ className: 'rk-meta-tokens rk-field-tokens', ref: rootRef },
 			el(
 				'button',
 				{
@@ -567,29 +723,65 @@
 					className: 'button button-small rk-token-toggle',
 					'aria-expanded': open ? 'true' : 'false',
 					'aria-controls': props.listId,
-					onClick: function () { setOpen( ! open ); }
+					'aria-label': __( 'Insert token', 'rankkernel' ) + ': ' + props.fieldLabel,
+					title: __( 'Insert token', 'rankkernel' ),
+					onClick: function () {
+						if ( open ) {
+							closeAndRefocus();
+							return;
+						}
+						setQuery( '' );
+						setActiveIndex( 0 );
+						setOpen( true );
+					}
 				},
-				__( 'Insert token', 'rankkernel' )
+				el( 'span', { className: 'dashicons dashicons-plus-alt', 'aria-hidden': 'true' } ),
+				el( 'span', null, __( 'Token', 'rankkernel' ) )
 			),
 			open ? el(
 				'div',
 				{ className: 'rk-token-pop', role: 'group', id: props.listId, 'aria-label': __( 'Insert token', 'rankkernel' ) },
-				tokens.map( function ( token ) {
+				el( 'input', {
+					type: 'search',
+					className: 'rk-token-search',
+					placeholder: __( 'Search tokens…', 'rankkernel' ),
+					'aria-label': __( 'Search tokens', 'rankkernel' ),
+					value: query,
+					onChange: function ( next ) {
+						setQuery( next );
+						setActiveIndex( 0 );
+					},
+					onKeyDown: onListKey
+				} ),
+				filtered.length ? groupOrder.map( function ( name ) {
 					return el(
-						'button',
-						{
-							key: token,
-							type: 'button',
-							className: 'button button-small',
-							title: tokenLabels[ token ] || token,
-							'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + token,
-							onClick: function () {
-								props.onInsert( token );
-							}
-						},
-						token
+						'div',
+						{ className: 'rk-token-group', key: name },
+						el( 'p', { className: 'rk-token-group-label', 'aria-hidden': 'true' }, name ),
+						groups[ name ].map( function ( token ) {
+							flatIndex++;
+							var mine = flatIndex;
+							return el(
+								'button',
+								{
+									key: token,
+									type: 'button',
+									className: 'button button-small' + ( mine === activeIndex ? ' rk-token-active' : '' ),
+									'aria-current': mine === activeIndex ? 'true' : 'false',
+									title: ( tokenLabels[ token ] || token ) + ' ' + token,
+									'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + token + ', ' + ( tokenLabels[ token ] || '' ),
+									onMouseEnter: function () { setActiveIndex( mine ); },
+									onFocus: function () { setActiveIndex( mine ); },
+									onKeyDown: onListKey,
+									onClick: function () {
+										insert( token );
+									}
+								},
+								token
+							);
+						} )
 					);
-				} )
+				} ) : el( 'p', { className: 'description' }, __( 'No tokens match your search.', 'rankkernel' ) )
 			) : null
 		);
 	}
@@ -602,59 +794,71 @@
 		return el( 'span', { className: 'rk-serp-mark rk-serp-letter', 'aria-hidden': 'true' }, name ? name.charAt( 0 ).toUpperCase() : 'R' );
 	}
 
+	function DeviceSwitch( props ) {
+		return el(
+			'div',
+			{ className: 'rk-meta-serp-tools', role: 'group', 'aria-label': props.label || __( 'Preview width', 'rankkernel' ) },
+			el( 'button', {
+				type: 'button',
+				className: 'button button-small' + ( 'desktop' === props.device ? ' is-active' : '' ),
+				'aria-pressed': 'desktop' === props.device ? 'true' : 'false',
+				onClick: function () { props.onDevice( 'desktop' ); }
+			}, __( 'Desktop', 'rankkernel' ) ),
+			el( 'button', {
+				type: 'button',
+				className: 'button button-small' + ( 'mobile' === props.device ? ' is-active' : '' ),
+				'aria-pressed': 'mobile' === props.device ? 'true' : 'false',
+				onClick: function () { props.onDevice( 'mobile' ); }
+			}, __( 'Mobile', 'rankkernel' ) )
+		);
+	}
+
+	// One coherent search preview: heading, device switch, preview card,
+	// then the fields that drive it (rendered by the caller right after).
 	function SerpPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
 		return el(
-			'div',
-			{ className: 'rk-meta-serp rk-serp' + ( 'mobile' === props.device ? ' rk-is-mobile' : '' ) },
+			'section',
+			{ className: 'rk-serp-block', 'aria-labelledby': props.headingId },
+			el( 'h3', { className: 'rk-serp-heading', id: props.headingId }, __( 'Search Preview', 'rankkernel' ) ),
+			el( DeviceSwitch, { device: props.device, onDevice: props.onDevice } ),
 			el(
 				'div',
-				{ className: 'rk-meta-serp-tools', role: 'group', 'aria-label': __( 'Preview width', 'rankkernel' ) },
-				el( 'button', {
-					type: 'button',
-					className: 'button button-small' + ( 'desktop' === props.device ? ' is-active' : '' ),
-					'aria-pressed': 'desktop' === props.device ? 'true' : 'false',
-					onClick: function () { props.onDevice( 'desktop' ); }
-				}, __( 'Desktop', 'rankkernel' ) ),
-				el( 'button', {
-					type: 'button',
-					className: 'button button-small' + ( 'mobile' === props.device ? ' is-active' : '' ),
-					'aria-pressed': 'mobile' === props.device ? 'true' : 'false',
-					onClick: function () { props.onDevice( 'mobile' ); }
-				}, __( 'Mobile', 'rankkernel' ) )
-			),
-			el(
-				'div',
-				{ className: 'rk-serp-row' },
-				siteMark(),
+				{ className: 'rk-meta-serp rk-serp' + ( 'mobile' === props.device ? ' rk-is-mobile' : '' ) },
 				el(
 					'div',
-					{ className: 'rk-serp-id' },
-					el( 'p', { className: 'rk-meta-serp-site' }, cfg.siteName || cfg.siteUrl || '' ),
-					el( 'p', { className: 'rk-meta-serp-url' }, shortUrl( cfg.permalink || cfg.homeUrl || '' ) )
-				)
+					{ className: 'rk-serp-row' },
+					siteMark(),
+					el(
+						'div',
+						{ className: 'rk-serp-id' },
+						el( 'p', { className: 'rk-meta-serp-site' }, cfg.siteName || cfg.siteUrl || '' ),
+						el( 'p', { className: 'rk-meta-serp-url' }, shortUrl( props.url || cfg.permalink || cfg.homeUrl || '' ) )
+					)
+				),
+				el( 'p', { className: 'rk-meta-serp-title' }, titleEff.text || __( 'Untitled', 'rankkernel' ) ),
+				el( 'p', { className: 'rk-meta-serp-desc' }, descEff.text || '' )
 			),
-			el( 'p', { className: 'rk-meta-serp-title' }, titleEff.text || __( 'Untitled', 'rankkernel' ) ),
-			el( 'p', { className: 'rk-meta-serp-desc' }, descEff.text || '' ),
-			el( 'p', { className: 'description' }, __( 'Preview is approximate, not exact search rendering.', 'rankkernel' ) )
+			el( 'p', { className: 'description rk-serp-note' }, __( 'Preview is approximate, not exact search rendering.', 'rankkernel' ) )
 		);
 	}
 
+	// Social preview card, driven by the active network the caller picks.
 	function SocialPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
-		var twTitle = isEmpty( props.meta.twitter.title ) ? '' : props.meta.twitter.title;
-		var ogTitle = isEmpty( props.meta.og.title ) ? '' : props.meta.og.title;
-		var title = twTitle || ogTitle || titleEff.text;
-		var twDesc = isEmpty( props.meta.twitter.description ) ? '' : props.meta.twitter.description;
-		var ogDesc = isEmpty( props.meta.og.description ) ? '' : props.meta.og.description;
-		var desc = twDesc || ogDesc || descEff.text;
-		var image = ! isEmpty( props.meta.twitter.image ) ? props.meta.twitter.image : ( ! isEmpty( props.meta.og.image ) ? props.meta.og.image : String( defaults.ogImage || '' ) );
+		var isTwitter = 'twitter' === props.network;
+		var primary = isTwitter ? props.meta.twitter : props.meta.og;
+		var fallback = isTwitter ? props.meta.og : props.meta.twitter;
+		var title = ! isEmpty( primary.title ) ? primary.title : ( ! isEmpty( fallback.title ) ? fallback.title : titleEff.text );
+		var desc = ! isEmpty( primary.description ) ? primary.description : ( ! isEmpty( fallback.description ) ? fallback.description : descEff.text );
+		var image = ! isEmpty( primary.image ) ? primary.image : ( ! isEmpty( fallback.image ) ? fallback.image : String( defaults.ogImage || '' ) );
 		var card = 'summary' === props.meta.twitter.card ? 'summary' : 'summary_large_image';
+		var compact = isTwitter && 'summary' === card;
 		return el(
 			'div',
-			{ className: 'rk-meta-social rk-social' + ( 'summary' === card ? ' rk-is-compact' : '' ) },
+			{ className: 'rk-meta-social rk-social' + ( compact ? ' rk-is-compact' : '' ) },
 			image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : null,
 			el(
 				'div',
@@ -662,8 +866,100 @@
 				el( 'p', { className: 'rk-meta-social-title' }, title || __( 'Untitled', 'rankkernel' ) ),
 				el( 'p', { className: 'rk-meta-social-desc' }, desc || '' ),
 				el( 'p', { className: 'rk-meta-social-site' }, cfg.siteName || cfg.siteUrl || '' ),
-				el( 'p', { className: 'description' }, 'summary' === card ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' ) )
+				isTwitter ? el( 'p', { className: 'description' }, 'summary' === card ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' ) ) : null
 			)
+		);
+	}
+
+	// Social image control: thumbnail, select/replace/remove through
+	// wp.media, checking state while dimensions resolve, a too-small
+	// warning under the minimum, and an invalid warning when the file
+	// cannot load. Guidance carries the recommended and minimum sizes.
+	function SocialImageControl( props ) {
+		var current = props.current || { image: '', image_id: 0 };
+		var checkState = useState( { status: 'idle', width: 0, height: 0 } );
+		var check = checkState[ 0 ];
+		var setCheck = checkState[ 1 ];
+
+		useEffect( function () {
+			if ( isEmpty( current.image ) ) {
+				setCheck( { status: 'idle', width: 0, height: 0 } );
+				return undefined;
+			}
+			var cancelled = false;
+			setCheck( { status: 'checking', width: 0, height: 0 } );
+			var probe = new Image();
+			probe.onload = function () {
+				if ( cancelled ) {
+					return;
+				}
+				var w = probe.naturalWidth || 0;
+				var h = probe.naturalHeight || 0;
+				if ( w > 0 && ( w < SOCIAL_MIN_W || h < SOCIAL_MIN_H ) ) {
+					setCheck( { status: 'small', width: w, height: h } );
+					return;
+				}
+				setCheck( { status: 'ok', width: w, height: h } );
+			};
+			probe.onerror = function () {
+				if ( cancelled ) {
+					return;
+				}
+				setCheck( { status: 'error', width: 0, height: 0 } );
+			};
+			probe.src = current.image;
+			return function () {
+				cancelled = true;
+			};
+		}, [ current.image ] );
+
+		var labelId = props.idPrefix + '-label';
+		var checking = 'checking' === check.status;
+		var tooSmall = 'small' === check.status;
+		var invalid = 'error' === check.status;
+
+		return el(
+			'div',
+			{ className: 'rk-meta-field rk-field rk-image-field' + ( invalid ? ' is-invalid' : '' ) },
+			el(
+				'div',
+				{ className: 'rk-meta-field-head rk-field-head' },
+				el( 'span', { className: 'rk-meta-field-label rk-field-label', id: labelId }, props.label ),
+				current.image && ! checking && ! invalid ? el( StateBadge, { inherited: false } ) : null
+			),
+			current.image ? el(
+				'div',
+				{ className: 'rk-thumb-wrap' + ( checking ? ' rk-is-checking' : '' ) },
+				el( 'img', { className: 'rk-meta-thumb rk-thumb', src: current.image, alt: '' } ),
+				checking ? el( 'p', { className: 'description', role: 'status' }, __( 'Checking image…', 'rankkernel' ) ) : null
+			) : null,
+			invalid ? el( 'p', { className: 'rk-error', role: 'alert' }, __( 'This image cannot be loaded. Select a different file.', 'rankkernel' ) ) : null,
+			tooSmall ? el(
+				'p',
+				{ className: 'rk-warn', role: 'status' },
+				__( 'This image is smaller than the minimum', 'rankkernel' ) + ' ' + SOCIAL_MIN_W + 'x' + SOCIAL_MIN_H + ' (' + check.width + 'x' + check.height + ').'
+			) : null,
+			el(
+				'div',
+				{ className: 'rk-meta-row-actions', role: 'group', 'aria-labelledby': labelId },
+				el( 'button', {
+					type: 'button',
+					className: 'button button-small',
+					disabled: ! props.mediaAvailable,
+					'aria-label': ( current.image ? __( 'Change image', 'rankkernel' ) : props.selectLabel ) + ': ' + props.label,
+					onClick: function () {
+						props.onPick();
+					}
+				}, current.image ? __( 'Change image', 'rankkernel' ) : props.selectLabel ),
+				current.image ? el( 'button', {
+					type: 'button',
+					className: 'button button-small',
+					'aria-label': __( 'Remove image', 'rankkernel' ) + ': ' + props.label,
+					onClick: props.onRemove
+				}, __( 'Remove', 'rankkernel' ) ) : null
+			),
+			props.mediaAvailable ? null : el( 'p', { className: 'description' }, __( 'The media library is unavailable here, image selection is disabled.', 'rankkernel' ) ),
+			el( 'p', { className: 'description' }, __( 'Recommended 1200x630, minimum 600x315.', 'rankkernel' ) )
 		);
 	}
 
@@ -674,15 +970,16 @@
 			el( 'legend', null, props.legend ),
 			props.options.map( function ( option ) {
 				var id = props.name + '-' + option.value;
+				var checked = props.value === option.value;
 				return el(
 					'label',
-					{ key: option.value, className: 'rk-radio', htmlFor: id },
+					{ key: option.value, className: 'rk-radio' + ( checked ? ' rk-is-checked' : '' ), htmlFor: id },
 					el( 'input', {
 						type: 'radio',
 						id: id,
 						name: props.name,
 						value: option.value,
-						checked: props.value === option.value,
+						checked: checked,
 						onChange: function () { props.onChange( option.value ); }
 					} ),
 					option.label
@@ -694,7 +991,7 @@
 
 	function pickImage( onPick ) {
 		if ( ! window.wp || ! window.wp.media ) {
-			return;
+			return false;
 		}
 		var frame = window.wp.media( {
 			title: __( 'Select preview image', 'rankkernel' ),
@@ -711,6 +1008,7 @@
 			onPick( src, json.id || 0 );
 		} );
 		frame.open();
+		return true;
 	}
 
 	function downloadJson( filename, data ) {
@@ -729,11 +1027,69 @@
 		}
 	}
 
+	// Preview snippet editor modal: an alternate editing surface over the
+	// SAME metadata state the sidebar writes, never a second data model.
+	// The title, description and reset controls below are the shared field
+	// component bound to the same store paths, so every keystroke updates
+	// the sidebar preview immediately.
+	function PreviewModal( props ) {
+		var Modal = components.Modal;
+		var titleText = __( 'Preview Snippet Editor', 'rankkernel' );
+		var body = el(
+			'div',
+			{ className: 'rk-modal-body' },
+			el( SerpPreview, {
+				headingId: 'rk-modal-serp-heading',
+				title: props.titleValue,
+				description: props.descValue,
+				device: props.device,
+				onDevice: props.onDevice,
+				url: props.url
+			} ),
+			el(
+				'p',
+				{ className: 'rk-modal-url' },
+				el( 'span', { className: 'rk-modal-url-label' }, __( 'URL', 'rankkernel' ) + ': ' ),
+				el( 'span', { className: 'rk-modal-url-value' }, props.url || shortUrl( cfg.permalink || cfg.homeUrl || '' ) )
+			),
+			props.titleField,
+			props.descField
+		);
+		if ( Modal ) {
+			return el(
+				Modal,
+				{ title: titleText, onRequestClose: props.onClose, className: 'rk-preview-modal' },
+				body
+			);
+		}
+		return el(
+			'div',
+			{ className: 'rk-modal-fallback-veil', role: 'presentation', onClick: props.onClose },
+			el(
+				'div',
+				{
+					className: 'rk-modal-fallback',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': titleText,
+					onClick: function ( event ) { event.stopPropagation(); }
+				},
+				el(
+					'div',
+					{ className: 'rk-modal-fallback-head' },
+					el( 'h2', null, titleText ),
+					el( 'button', { type: 'button', className: 'button button-small', onClick: props.onClose }, __( 'Close', 'rankkernel' ) )
+				),
+				body
+			)
+		);
+	}
+
 	function RankKernelSidebar() {
 		var postId = useSelect( function ( select ) {
 			try {
 				var editor = select( 'core/editor' );
-				if ( editor.getCurrentPostId ) {
+				if ( editor && editor.getCurrentPostId ) {
 					return editor.getCurrentPostId();
 				}
 			} catch ( e ) {
@@ -753,15 +1109,29 @@
 		var deviceState = useState( 'desktop' );
 		var device = deviceState[ 0 ];
 		var setDevice = deviceState[ 1 ];
+		var modalState = useState( false );
+		var modalOpen = modalState[ 0 ];
+		var setModalOpen = modalState[ 1 ];
+		var socialState = useState( 'facebook' );
+		var socialNetwork = socialState[ 0 ];
+		var setSocialNetwork = socialState[ 1 ];
 
 		var stored = useSelect( function ( select ) {
-			var edited = select( 'core/editor' ).getEditedPostAttribute( 'meta' );
-			return edited && edited[ META_KEY ] ? edited[ META_KEY ] : null;
+			try {
+				var editor = select( 'core/editor' );
+				if ( ! editor || ! editor.getEditedPostAttribute ) {
+					return null;
+				}
+				var edited = editor.getEditedPostAttribute( 'meta' );
+				return edited && edited[ META_KEY ] ? edited[ META_KEY ] : null;
+			} catch ( e ) {
+				return null;
+			}
 		}, [] );
 		var postType = useSelect( function ( select ) {
 			try {
 				var editor = select( 'core/editor' );
-				if ( editor.getEditedPostAttribute ) {
+				if ( editor && editor.getEditedPostAttribute ) {
 					return editor.getEditedPostAttribute( 'type' ) || '';
 				}
 			} catch ( e ) {
@@ -769,7 +1139,8 @@
 			}
 			return '';
 		}, [] );
-		var editPost = useDispatch( 'core/editor' ).editPost;
+		var dispatchers = useDispatch( 'core/editor' ) || {};
+		var editPost = dispatchers.editPost || null;
 		var meta = withMeta( stored );
 
 		// Local drafts keep typing instant; the store write trails by ~150ms.
@@ -779,9 +1150,13 @@
 		var errorsState = useState( {} );
 		var errors = errorsState[ 0 ];
 		var setErrors = errorsState[ 1 ];
-		var timers = useRef ? useRef( {} ).current : {};
+		var timersRef = useRef( {} );
+		var timers = timersRef.current || {};
 
 		function pushValue( path, value ) {
+			if ( ! editPost ) {
+				return;
+			}
 			var next = withMeta( meta );
 			if ( 'title' === path || 'description' === path ) {
 				next[ path ] = value;
@@ -895,6 +1270,9 @@
 		}
 
 		function saveSchema( nextSchema ) {
+			if ( ! editPost ) {
+				return;
+			}
 			var next = withMeta( meta );
 			next.schema = nextSchema;
 			var payload = {};
@@ -917,176 +1295,244 @@
 		var SelectControl = components.SelectControl;
 		var CheckboxControl = components.CheckboxControl;
 
-		function tokenGroup( path, listId ) {
-			return el( TokenPicker, { listId: listId, onInsert: function ( token ) { appendToken( path, token ); } } );
+		function tokenGroup( path, listId, fieldLabel, inputId ) {
+			return el( TokenPicker, {
+				listId: listId,
+				fieldLabel: fieldLabel,
+				inputId: inputId,
+				onInsert: function ( token ) { appendToken( path, token ); }
+			} );
 		}
 
-		// Sidebar text field: label, draft-backed input, inherited/custom
-		// badge, char counter with thin progress bar, token insert and a
-		// reset that clears only this field.
-		function textRow( opts ) {
+		// The one shared field component. Header row carries the visible
+		// label plus the state badge; the control follows; a thin meter
+		// follows that; a single supporting row carries the counter, the
+		// status word, and the token plus reset actions. State travels as
+		// text and shape as well as colour: inherited versus custom badges,
+		// an error or warning notice with role alert or status, a status
+		// pill with its own glyph, and a reset that stays hidden until
+		// there is an override to remove.
+		function metaField( opts ) {
 			var path = opts.path;
 			var value = display( path, pathValue( path ) );
 			var templateKey = opts.template || null;
 			var eff = templateKey ? effectiveValue( value, templateKey ) : null;
 			var inherited = isEmpty( value );
-			var error = errors[ path ] || '';
+			var modified = ! inherited;
+			var error = opts.error || errors[ path ] || '';
+			var warning = opts.warning || '';
+			var disabled = true === opts.disabled;
+			var loading = true === opts.loading;
 			var inputId = opts.id;
-			var Control = opts.textarea ? TextareaControl : TextControl;
+			var useTextarea = true === opts.textarea;
+			var Control = useTextarea ? TextareaControl : TextControl;
 			if ( ! Control ) {
 				return null;
 			}
+			var limit = opts.limit || 0;
+			var counterText = eff ? eff.text : value;
+			var chars = String( counterText || '' ).length;
+			var status = limit > 0 ? counterStatus( chars, limit ) : 'ok';
+			var invalid = '' !== error;
 			var controlProps = {
 				id: inputId,
 				label: opts.label,
-				value: value,
-				placeholder: eff && eff.inherited ? eff.text : '',
-				help: opts.help || '',
+				hideLabelFromVision: true,
+				value: loading ? '' : value,
+				disabled: disabled || loading,
+				placeholder: eff && eff.inherited ? eff.text : ( opts.placeholder || '' ),
+				help: '',
+				onFocus: function () {
+					if ( opts.tokenizable ) {
+						rememberTokenFocus( inputId );
+					}
+				},
 				onChange: function ( next ) {
 					setError( path, '' );
+					if ( opts.validate ) {
+						opts.validate( next );
+					}
 					setDraft( path, next );
 				}
 			};
-			if ( opts.number ) {
-				controlProps.type = 'number';
-			}
 			if ( opts.rows ) {
 				controlProps.rows = opts.rows;
 			}
-		return el(
-			'div',
-			{ className: 'rk-meta-field rk-field' + ( error ? ' is-invalid' : '' ) },
-			eff ? el(
+			var resettable = true === opts.resettable && ! disabled && ! loading;
+			var showReset = resettable && ! inherited;
+			return el(
 				'div',
-				{ className: 'rk-meta-field-head rk-field-head' },
-				el( StateBadge, { inherited: inherited } )
-			) : null,
-			el( Control, controlProps ),
-			error ? el( 'p', { className: 'rk-error', role: 'alert' }, error ) : null,
-			opts.limit ? el( Counter, { text: eff ? eff.text : value, limit: opts.limit } ) : null,
-			opts.tokenizable || opts.resettable ? el(
-				'div',
-				{ className: 'rk-field-foot rk-field-actions' },
-				opts.tokenizable ? tokenGroup( path, opts.id + '-tokens' ) : null,
-				opts.resettable ? el( FieldReset, {
-					label: opts.label,
-					disabled: inherited,
-					onReset: function () { resetField( path ); }
-				} ) : null
-			) : null
-		);
-	}
-
-		// Canonical flushes through URL validation: invalid input shows an
-		// error and is never written to the store.
-		if ( useEffect ) {
-			useEffect( function () {
-				var pending = drafts.canonical;
-				if ( pending === undefined ) {
-					return;
-				}
-				if ( '' === String( pending ).trim() ) {
-					setError( 'canonical', '' );
-					return;
-				}
-				if ( ! isValidHttpUrl( pending ) ) {
-					setError( 'canonical', __( 'Enter a full URL starting with http:// or https://. Invalid input is not saved.', 'rankkernel' ) );
-					if ( timers.canonical ) {
-						clearTimeout( timers.canonical );
-					}
-					return;
-				}
-				setError( 'canonical', '' );
-			}, [ drafts.canonical ] );
+				{ className: 'rk-meta-field rk-field' + ( invalid ? ' is-invalid' : '' ) + ( disabled ? ' is-disabled' : '' ) + ( loading ? ' is-loading' : '' ) },
+				el(
+					'div',
+					{ className: 'rk-meta-field-head rk-field-head' },
+					el( 'label', { className: 'rk-meta-field-label rk-field-label', htmlFor: inputId }, opts.label ),
+					eff ? el( StateBadge, { inherited: inherited, modified: modified, invalid: invalid } ) : null
+				),
+				el( Control, controlProps ),
+				invalid ? el( 'p', { className: 'rk-error', role: 'alert' }, error ) : null,
+				( '' !== warning && ! invalid ) ? el( 'p', { className: 'rk-warn', role: 'status' }, warning ) : null,
+				opts.help ? el( 'p', { className: 'description' }, opts.help ) : null,
+				loading ? el( 'p', { className: 'description', role: 'status' }, __( 'Loading…', 'rankkernel' ) ) : null,
+				limit > 0 ? el( FieldMeter, { text: counterText, limit: limit } ) : null,
+				el(
+					'div',
+					{ className: 'rk-field-foot rk-field-support' },
+					el(
+						'div',
+						{ className: 'rk-field-count-group' },
+						limit > 0 ? el(
+							'p',
+							{ className: 'rk-meta-count rk-count-text', role: 'status' },
+							chars + ' / ' + limit + ' ' + __( 'chars', 'rankkernel' )
+						) : null,
+						limit > 0 ? el(
+							'span',
+							{ className: 'rk-field-status', 'data-rk-state': status },
+							el( 'span', { className: 'screen-reader-text' }, __( 'Length status', 'rankkernel' ) + ': ' ),
+							statusWord( status )
+						) : null
+					),
+					( opts.tokenizable || resettable ) ? el(
+						'div',
+						{ className: 'rk-field-actions' },
+						opts.tokenizable ? tokenGroup( path, opts.id + '-tokens', opts.label, inputId ) : null,
+						resettable && showReset ? el( FieldReset, {
+							label: opts.label,
+							disabled: false,
+							onReset: function () { resetField( path ); }
+						} ) : null
+					) : null
+				)
+			);
 		}
+
+		// Canonical validation: invalid input shows an error and is never
+		// written to the store.
+		useEffect( function () {
+			var pending = drafts.canonical;
+			if ( pending === undefined ) {
+				return undefined;
+			}
+			if ( '' === String( pending ).trim() ) {
+				if ( errors.canonical ) {
+					setError( 'canonical', '' );
+				}
+				return undefined;
+			}
+			if ( ! isValidHttpUrl( pending ) ) {
+				if ( timers.canonical ) {
+					clearTimeout( timers.canonical );
+				}
+				var invalidMsg = __( 'Enter a full URL starting with http:// or https://. Invalid input is not saved.', 'rankkernel' );
+				if ( errors.canonical !== invalidMsg ) {
+					setError( 'canonical', invalidMsg );
+				}
+				return undefined;
+			}
+			if ( errors.canonical ) {
+				setError( 'canonical', '' );
+			}
+			return undefined;
+		}, [ drafts.canonical ] );
 
 		function canonicalRow() {
 			var value = display( 'canonical', meta.canonical );
 			var inherited = isEmpty( value );
-			var error = errors.canonical || '';
-			if ( ! TextControl ) {
-				return null;
-			}
-		return el(
-			'div',
-			{ className: 'rk-meta-field rk-field' + ( error ? ' is-invalid' : '' ) },
-			el(
+			return el(
 				'div',
-				{ className: 'rk-meta-field-head rk-field-head' },
-				el( StateBadge, { inherited: inherited } )
-			),
-				el( TextControl, {
+				null,
+				metaField( {
 					id: 'rk-canonical',
+					path: 'canonical',
 					label: __( 'Canonical URL', 'rankkernel' ),
-					value: value,
 					placeholder: cfg.permalink || cfg.homeUrl || '',
-					help: __( 'Leave blank to use the generated canonical. A full URL is required when set.', 'rankkernel' ),
-					onChange: function ( next ) { setDraft( 'canonical', next ); }
+					help: __( 'Leave blank to use the generated canonical. A full URL is required when set.', 'rankkernel' )
 				} ),
-				error ? el( 'p', { className: 'rk-error', role: 'alert' }, error ) : null,
 				inherited
 					? el( 'p', { className: 'description' }, __( 'Using the generated canonical.', 'rankkernel' ) )
 					: el( 'p', { className: 'description' }, __( 'Custom canonical set.', 'rankkernel' ) )
 			);
 		}
 
-		function imageRow( group, label, selectLabel ) {
-			var current = meta[ group ];
-			var prefix = 'rk-' + group + '-image';
-		return el(
-			'div',
-			{ className: 'rk-meta-field rk-field' },
-			el( 'span', { className: 'rk-meta-field-label rk-field-label', id: prefix + '-label' }, label ),
-				current.image ? el( 'img', { className: 'rk-meta-thumb', src: current.image, alt: '' } ) : null,
-				el(
-					'div',
-					{ className: 'rk-meta-row-actions', role: 'group', 'aria-labelledby': prefix + '-label' },
-					el( 'button', {
-						type: 'button',
-						className: 'button button-small',
-						'aria-label': ( current.image ? __( 'Change image', 'rankkernel' ) : selectLabel ) + ': ' + label,
-						onClick: function () {
-							pickImage( function ( src, id ) {
-								var next = withMeta( meta );
-								next[ group ].image = src;
-								next[ group ].image_id = id;
-								var payload = {};
-								payload[ META_KEY ] = next;
-								editPost( { meta: payload } );
-							} );
+		function socialImageRow( group, label ) {
+			var current = meta[ group ] || { image: '', image_id: 0 };
+			var mediaAvailable = Boolean( window.wp && window.wp.media );
+			return el( SocialImageControl, {
+				idPrefix: 'rk-' + group + '-image',
+				label: label,
+				selectLabel: __( 'Select image', 'rankkernel' ),
+				current: current,
+				mediaAvailable: mediaAvailable,
+				onPick: function () {
+					pickImage( function ( src, id ) {
+						if ( ! editPost ) {
+							return;
 						}
-					}, current.image ? __( 'Change image', 'rankkernel' ) : selectLabel ),
-					current.image ? el( 'button', {
-						type: 'button',
-						className: 'button button-small',
-						'aria-label': __( 'Remove image', 'rankkernel' ) + ': ' + label,
-						onClick: function () {
-							var next = withMeta( meta );
-							next[ group ].image = '';
-							next[ group ].image_id = 0;
-							var payload = {};
-							payload[ META_KEY ] = next;
-							editPost( { meta: payload } );
-						}
-					}, __( 'Remove', 'rankkernel' ) ) : null
-				)
-			);
+						var next = withMeta( meta );
+						next[ group ].image = src;
+						next[ group ].image_id = id;
+						var payload = {};
+						payload[ META_KEY ] = next;
+						editPost( { meta: payload } );
+					} );
+				},
+				onRemove: function () {
+					if ( ! editPost ) {
+						return;
+					}
+					var next = withMeta( meta );
+					next[ group ].image = '';
+					next[ group ].image_id = 0;
+					var payload = {};
+					payload[ META_KEY ] = next;
+					editPost( { meta: payload } );
+				}
+			} );
 		}
 
 		function generalPanel() {
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
+			var permalink = cfg.permalink || cfg.homeUrl || '';
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-general', 'aria-labelledby': 'rk-tab-general', tabIndex: 0 },
-				el( SerpPreview, { title: titleValue, description: descValue, device: device, onDevice: setDevice } ),
-				textRow( { id: 'rk-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
-				textRow( { id: 'rk-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 3 } ),
+				el( SerpPreview, {
+					headingId: 'rk-serp-heading',
+					title: titleValue,
+					description: descValue,
+					device: device,
+					onDevice: setDevice,
+					url: permalink
+				} ),
+				el(
+					'button',
+					{
+						type: 'button',
+						className: 'button button-secondary rk-preview-open',
+						onClick: function () { setModalOpen( true ); }
+					},
+					el( 'span', { className: 'dashicons dashicons-visibility', 'aria-hidden': 'true' } ),
+					el( 'span', null, __( 'Preview snippet editor', 'rankkernel' ) )
+				),
+				metaField( { id: 'rk-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
+				metaField( { id: 'rk-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 3 } ),
 				// Extension seam: future focus keyword and content analysis
 				// modules mount here. This container is intentionally empty;
 				// it reserves the slot at the end of General without building
 				// those modules now.
-				el( 'div', { className: 'rk-ext-seam', id: 'rk-ext-analysis' } )
+				el( 'div', { className: 'rk-ext-seam', id: 'rk-ext-analysis' } ),
+				modalOpen ? el( PreviewModal, {
+					titleValue: titleValue,
+					descValue: descValue,
+					device: device,
+					onDevice: setDevice,
+					url: permalink,
+					onClose: function () { setModalOpen( false ); },
+					titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
+					descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 4 } )
+				} ) : null
 			);
 		}
 
@@ -1104,6 +1550,9 @@
 						{ value: 'noindex', label: __( 'Noindex', 'rankkernel' ) }
 					],
 					onChange: function ( next ) {
+						if ( ! editPost ) {
+							return;
+						}
 						var updated = withMeta( meta );
 						updated.robots.index = 'index' === next;
 						var payload = {};
@@ -1121,6 +1570,9 @@
 						{ value: 'nofollow', label: __( 'Nofollow', 'rankkernel' ) }
 					],
 					onChange: function ( next ) {
+						if ( ! editPost ) {
+							return;
+						}
 						var updated = withMeta( meta );
 						updated.robots.follow = 'follow' === next;
 						var payload = {};
@@ -1128,7 +1580,7 @@
 						editPost( { meta: payload } );
 					}
 				} ),
-				el( Collapsible, { title: __( 'Additional robots settings', 'rankkernel' ) },
+				el( Collapsible, { title: __( 'Additional robots settings', 'rankkernel' ), bodyId: 'rk-robots-extra' },
 					el(
 						'div',
 						null,
@@ -1136,6 +1588,9 @@
 							label: __( 'No archive', 'rankkernel' ),
 							checked: meta.robots.noarchive,
 							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
 								var updated = withMeta( meta );
 								updated.robots.noarchive = true === next;
 								var payload = {};
@@ -1147,6 +1602,9 @@
 							label: __( 'No snippet', 'rankkernel' ),
 							checked: meta.robots.nosnippet,
 							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
 								var updated = withMeta( meta );
 								updated.robots.nosnippet = true === next;
 								var payload = {};
@@ -1158,6 +1616,9 @@
 							label: __( 'No image index', 'rankkernel' ),
 							checked: meta.robots.noimageindex,
 							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
 								var updated = withMeta( meta );
 								updated.robots.noimageindex = true === next;
 								var payload = {};
@@ -1165,7 +1626,7 @@
 								editPost( { meta: payload } );
 							}
 						} ) : null,
-						textRow( { id: 'rk-max-snippet', path: 'robots.max_snippet', label: __( 'Max snippet', 'rankkernel' ), help: __( 'Max characters for the snippet. Blank means unlimited.', 'rankkernel' ), number: true } ),
+						metaField( { id: 'rk-max-snippet', path: 'robots.max_snippet', label: __( 'Max snippet', 'rankkernel' ), help: __( 'Max characters for the snippet. Blank means unlimited.', 'rankkernel' ) } ),
 						SelectControl ? el( SelectControl, {
 							id: 'rk-max-image-preview',
 							label: __( 'Max image preview', 'rankkernel' ),
@@ -1177,6 +1638,9 @@
 								{ label: __( 'Large', 'rankkernel' ), value: 'large' }
 							],
 							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
 								var updated = withMeta( meta );
 								updated.robots.max_image_preview = next;
 								var payload = {};
@@ -1184,7 +1648,7 @@
 								editPost( { meta: payload } );
 							}
 						} ) : null,
-						textRow( { id: 'rk-max-video-preview', path: 'robots.max_video_preview', label: __( 'Max video preview', 'rankkernel' ), help: __( 'Max seconds for a video preview. Blank means unlimited.', 'rankkernel' ), number: true } )
+						metaField( { id: 'rk-max-video-preview', path: 'robots.max_video_preview', label: __( 'Max video preview', 'rankkernel' ), help: __( 'Max seconds for a video preview. Blank means unlimited.', 'rankkernel' ) } )
 					)
 				),
 				canonicalRow()
@@ -1207,12 +1671,12 @@
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-schema', 'aria-labelledby': 'rk-tab-schema', tabIndex: 0 },
-			el(
-				'div',
-				{ className: 'rk-meta-field rk-field' },
 				el(
-					'p',
-					{ className: 'rk-status rk-schema-accent', role: 'status' },
+					'div',
+					{ className: 'rk-meta-field rk-field' },
+					el(
+						'p',
+						{ className: 'rk-status rk-schema-accent', role: 'status' },
 						disabled ? __( 'Schema output is disabled for this post.', 'rankkernel' ) : __( 'Schema output is enabled for this post.', 'rankkernel' )
 					),
 					CheckboxControl ? el( CheckboxControl, {
@@ -1221,12 +1685,13 @@
 						onChange: function ( next ) { setSchemaKey( 'disabled', true === next ); }
 					} ) : null
 				),
-			SelectControl ? el(
-				'div',
-				{ className: 'rk-meta-field rk-field' },
+				SelectControl ? el(
+					'div',
+					{ className: 'rk-meta-field rk-field' },
 					el( SelectControl, {
 						id: 'rk-schema-type',
 						label: __( 'Schema type', 'rankkernel' ),
+						disabled: disabled,
 						help: '' === selected
 							? __( 'Automatic resolves to', 'rankkernel' ) + ' ' + autoType + '.'
 							: __( 'Manual type selected. Clear it to return to Automatic.', 'rankkernel' ),
@@ -1237,17 +1702,17 @@
 						onChange: function ( next ) { setSchemaKey( 'type', next ); }
 					} )
 				) : null,
-				el( Collapsible, { title: __( 'Manual overrides', 'rankkernel' ) },
+				el( Collapsible, { title: __( 'Manual overrides', 'rankkernel' ), bodyId: 'rk-schema-manual' },
 					el(
 						'div',
 						null,
 						el( 'p', { className: 'description' }, __( 'Only needed when a value must differ from the post itself. Only fields relevant to the chosen type are shown.', 'rankkernel' ) ),
 						visibleKeys.map( function ( key ) {
-							return textRow( { id: 'rk-schema-' + key, path: 'schema.fields.' + key, label: SCHEMA_FIELD_LABELS[ key ] } );
+							return metaField( { key: key, id: 'rk-schema-' + key, path: 'schema.fields.' + key, label: SCHEMA_FIELD_LABELS[ key ], disabled: disabled } );
 						} )
 					)
 				),
-				el( Collapsible, { title: __( 'Advanced', 'rankkernel' ) },
+				el( Collapsible, { title: __( 'Advanced', 'rankkernel' ), bodyId: 'rk-schema-advanced' },
 					el(
 						'div',
 						null,
@@ -1256,6 +1721,7 @@
 							label: __( 'Custom JSON', 'rankkernel' ),
 							help: __( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ),
 							rows: 6,
+							disabled: disabled,
 							value: customText,
 							onChange: function ( next ) {
 								setDraft( 'schema.customText', next );
@@ -1300,6 +1766,7 @@
 							el( 'button', {
 								type: 'button',
 								className: 'button button-small',
+								disabled: disabled,
 								onClick: function () {
 									downloadJson( 'schema.json', schemaObject( schema ) );
 								}
@@ -1313,6 +1780,7 @@
 								type: 'file',
 								id: 'rk-schema-import',
 								accept: '.json,application/json',
+								disabled: disabled,
 								onChange: function ( event ) {
 									var file = event.target && event.target.files ? event.target.files[ 0 ] : null;
 									if ( ! file ) {
@@ -1338,7 +1806,12 @@
 								}
 							} )
 						),
-						el( 'p', { className: 'description' }, __( 'Import replaces the schema settings with the uploaded file.', 'rankkernel' ) )
+						el( 'p', { className: 'description' }, __( 'Import replaces the schema settings with the uploaded file.', 'rankkernel' ) ),
+						( 'FAQPage' === selected || 'HowTo' === selected ) ? el(
+							'p',
+							{ className: 'description' },
+							__( 'Questions and steps live in the FAQ and How-To blocks; this tab validates them but does not duplicate their editors.', 'rankkernel' )
+						) : null
 					)
 				)
 			);
@@ -1347,23 +1820,58 @@
 		function socialPanel() {
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
+			var isTwitter = 'twitter' === socialNetwork;
+			var group = isTwitter ? 'twitter' : 'og';
+			var groupLabel = isTwitter ? __( 'Twitter', 'rankkernel' ) : __( 'Facebook', 'rankkernel' );
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-social', 'aria-labelledby': 'rk-tab-social', tabIndex: 0 },
-				el( Collapsible, { title: __( 'Open Graph', 'rankkernel' ) },
-					el(
-						'div',
-						null,
-						textRow( { id: 'rk-og-title', path: 'og.title', label: __( 'Open Graph title', 'rankkernel' ), template: 'title', tokenizable: true, resettable: true } ),
-						textRow( { id: 'rk-og-description', path: 'og.description', label: __( 'Open Graph description', 'rankkernel' ), template: 'description', tokenizable: true, resettable: true, textarea: true, rows: 2 } ),
-						imageRow( 'og', __( 'Open Graph image', 'rankkernel' ), __( 'Select image', 'rankkernel' ) ),
-						textRow( { id: 'rk-og-type', path: 'og.type', label: __( 'Open Graph type', 'rankkernel' ), help: __( 'Leave blank to inherit (article for posts, website for pages).', 'rankkernel' ) } )
-					)
+				el(
+					'div',
+					{ className: 'rk-social-switch', role: 'group', 'aria-label': __( 'Social network', 'rankkernel' ) },
+					el( 'button', {
+						type: 'button',
+						className: 'button button-small' + ( ! isTwitter ? ' is-active' : '' ),
+						'aria-pressed': ! isTwitter ? 'true' : 'false',
+						onClick: function () { setSocialNetwork( 'facebook' ); }
+					}, __( 'Facebook', 'rankkernel' ) ),
+					el( 'button', {
+						type: 'button',
+						className: 'button button-small' + ( isTwitter ? ' is-active' : '' ),
+						'aria-pressed': isTwitter ? 'true' : 'false',
+						onClick: function () { setSocialNetwork( 'twitter' ); }
+					}, __( 'Twitter', 'rankkernel' ) )
 				),
-				el( Collapsible, { title: __( 'Twitter', 'rankkernel' ) },
+				el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } ),
+				socialImageRow( group, groupLabel + ' ' + __( 'image', 'rankkernel' ) ),
+				metaField( {
+					id: 'rk-social-title',
+					path: group + '.title',
+					label: groupLabel + ' ' + __( 'title', 'rankkernel' ),
+					template: 'title',
+					tokenizable: true,
+					resettable: true
+				} ),
+				metaField( {
+					id: 'rk-social-description',
+					path: group + '.description',
+					label: groupLabel + ' ' + __( 'description', 'rankkernel' ),
+					template: 'description',
+					tokenizable: true,
+					resettable: true,
+					textarea: true,
+					rows: 2
+				} ),
+				el( Collapsible, { title: __( 'Network settings', 'rankkernel' ), bodyId: 'rk-social-settings' },
 					el(
 						'div',
 						null,
+						metaField( {
+							id: 'rk-og-type',
+							path: 'og.type',
+							label: __( 'Open Graph type', 'rankkernel' ),
+							help: __( 'Leave blank to inherit (article for posts, website for pages).', 'rankkernel' )
+						} ),
 						SelectControl ? el( SelectControl, {
 							id: 'rk-twitter-card',
 							label: __( 'Twitter card', 'rankkernel' ),
@@ -1373,19 +1881,18 @@
 								{ label: __( 'Summary', 'rankkernel' ), value: 'summary' }
 							],
 							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
 								var updated = withMeta( meta );
 								updated.twitter.card = next;
 								var payload = {};
 								payload[ META_KEY ] = updated;
 								editPost( { meta: payload } );
 							}
-						} ) : null,
-						textRow( { id: 'rk-twitter-title', path: 'twitter.title', label: __( 'Twitter title', 'rankkernel' ), template: 'title', tokenizable: true, resettable: true } ),
-						textRow( { id: 'rk-twitter-description', path: 'twitter.description', label: __( 'Twitter description', 'rankkernel' ), template: 'description', tokenizable: true, resettable: true, textarea: true, rows: 2 } ),
-						imageRow( 'twitter', __( 'Twitter image', 'rankkernel' ), __( 'Select image', 'rankkernel' ) )
+						} ) : null
 					)
-				),
-				el( SocialPreview, { meta: meta, title: titleValue, description: descValue } )
+				)
 			);
 		}
 
@@ -1432,7 +1939,7 @@
 				tabs.map( function ( tab, index ) {
 					return el(
 						'div',
-						{ key: tab.id, onKeyDown: function ( event ) { onTabKey( event, index ); } },
+						{ key: tab.id, className: 'rk-meta-tab-wrap', onKeyDown: function ( event ) { onTabKey( event, index ); } },
 						el( TabButton, {
 							id: 'rk-tab-' + tab.id,
 							panelId: 'rk-panel-' + tab.id,
@@ -1451,6 +1958,7 @@
 	// Keep a reference for tests and for future reuse.
 	window.rankkernelSeoSidebar = window.rankkernelSeoSidebar || {};
 	window.rankkernelSeoSidebar.withMeta = withMeta;
+	window.rankkernelSeoSidebar.sidebarName = SIDEBAR_NAME;
 	window.rankkernelSeoSidebar.usesSharedPreview = function () {
 		return Boolean( window.rankkernelMetaEditorPreview && window.rankkernelMetaEditorPreview.effectiveValue );
 	};
@@ -1459,7 +1967,7 @@
 		render: function () {
 			return el(
 				PluginSidebar,
-				{ name: 'rankkernel-seo-sidebar', title: __( 'RankKernel SEO', 'rankkernel' ) },
+				{ name: SIDEBAR_NAME, title: __( 'RankKernel SEO', 'rankkernel' ) },
 				el( RankKernelSidebar, null )
 			);
 		}

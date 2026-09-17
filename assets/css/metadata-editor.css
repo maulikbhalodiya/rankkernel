@@ -714,3 +714,289 @@ visibly disabled until the field becomes custom. */
 		flex-direction: column;
 	}
 }
+
+/* Icon-only tab bar: four equal tabs, fixed height, no layout jump. Only
+the active tab shows its text label; inactive tabs keep icon plus
+accessible name and tooltip. */
+
+.rk-meta .rk-meta-tabs {
+	flex-wrap: nowrap;
+}
+
+.rk-meta .rk-meta-tab-wrap {
+	display: flex;
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-tab-wrap:has(.rk-meta-tab.is-active) {
+	flex-grow: 2;
+}
+
+.rk-meta .rk-meta-tab {
+	flex: 1 1 0;
+	justify-content: center;
+	min-height: 40px;
+	min-width: 0;
+	padding: var(--rk-space-2);
+}
+
+.rk-meta .rk-meta-tab .rk-meta-tab-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Search preview block: heading, switch, card and fields with no gaps. */
+
+.rk-meta .rk-serp-block {
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-meta .rk-serp-heading {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 var(--rk-space-2);
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-serp-block .rk-meta-serp-tools {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-block .rk-meta-serp,
+.rk-meta .rk-serp-block .rk-serp {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-note {
+	margin: 0 0 var(--rk-space-1);
+}
+
+/* Preview modal entry point and dialog room. */
+
+.rk-meta .rk-preview-open {
+	align-items: center;
+	display: inline-flex;
+	gap: var(--rk-space-2);
+	justify-content: center;
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-preview-open .dashicons {
+	flex: 0 0 auto;
+}
+
+.rk-preview-modal .rk-modal-body {
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-preview-modal .rk-serp-block {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-preview-modal .rk-modal-url {
+	font-size: var(--rk-font-size-sm);
+	margin: 0 0 var(--rk-space-3);
+	overflow-wrap: anywhere;
+}
+
+.rk-preview-modal .rk-modal-url-label {
+	color: var(--rk-color-text-muted);
+	font-weight: 600;
+}
+
+.rk-preview-modal .rk-modal-url-value {
+	color: var(--rk-color-secondary-1);
+}
+
+/* Fallback dialog when wp.components.Modal is unavailable. */
+
+.rk-modal-fallback-veil {
+	align-items: flex-start;
+	background: rgba(15, 23, 42, .45);
+	bottom: 0;
+	display: flex;
+	justify-content: center;
+	left: 0;
+	overflow: auto;
+	padding: var(--rk-space-6) var(--rk-space-4);
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 100000;
+}
+
+.rk-modal-fallback {
+	background: var(--rk-color-surface);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-md);
+	box-sizing: border-box;
+	max-width: 640px;
+	min-width: 0;
+	padding: var(--rk-space-4);
+	width: 100%;
+}
+
+.rk-modal-fallback-head {
+	align-items: center;
+	display: flex;
+	gap: var(--rk-space-3);
+	justify-content: space-between;
+	margin-bottom: var(--rk-space-3);
+}
+
+.rk-modal-fallback-head h2 {
+	font-size: var(--rk-font-size-lg);
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Shared field: single supporting row, grouped counter and actions. */
+
+.rk-meta .rk-field-support {
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-field-count-group {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-count.rk-count-text {
+	margin: 0;
+}
+
+.rk-meta .rk-field-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-meta .rk-token-toggle {
+	align-items: center;
+	display: inline-flex;
+	gap: var(--rk-space-1);
+}
+
+.rk-meta .rk-token-toggle .dashicons {
+	flex: 0 0 auto;
+	font-size: var(--rk-font-size-md);
+	height: var(--rk-font-size-md);
+	width: var(--rk-font-size-md);
+}
+
+.rk-meta .rk-meta-field.is-disabled,
+.rk-meta .rk-field.is-disabled {
+	opacity: .75;
+}
+
+.rk-meta .rk-meta-field.is-loading .components-base-control,
+.rk-meta .rk-field.is-loading .components-base-control {
+	opacity: .6;
+}
+
+.rk-meta .rk-warn {
+	color: var(--rk-color-secondary-3);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-badge.rk-is-invalid,
+.rk-meta .rk-field-badge[data-rk-state="invalid"] {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-meta-badge.rk-is-invalid::before {
+	content: "!";
+}
+
+/* Token picker: search, groups, keyboard-active item. */
+
+.rk-meta .rk-token-search {
+	box-sizing: border-box;
+	margin-bottom: var(--rk-space-2);
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-token-group {
+	display: contents;
+}
+
+.rk-meta .rk-token-group-label {
+	color: var(--rk-color-text-muted);
+	flex: 1 1 100%;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	margin: var(--rk-space-1) 0 0;
+	text-transform: uppercase;
+}
+
+.rk-meta .rk-token-pop .button.rk-token-active {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+/* Social tab: network switch, image states, responsive thumbnail. */
+
+.rk-meta .rk-social-switch {
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 999px;
+	display: flex;
+	gap: 0;
+	margin-bottom: var(--rk-space-3);
+	max-width: 100%;
+	padding: 2px;
+}
+
+.rk-meta .rk-social-switch .button {
+	border: 0;
+	border-radius: 999px;
+	box-shadow: none;
+	flex: 1 1 0;
+	margin: 0;
+	min-height: 30px;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.rk-meta .rk-social-switch .is-active,
+.rk-meta .rk-social-switch .button[aria-pressed="true"] {
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+	color: var(--rk-color-primary-active);
+	font-weight: 600;
+}
+
+.rk-meta .rk-thumb-wrap {
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-meta .rk-thumb-wrap.rk-is-checking {
+	opacity: .6;
+}
+
+.rk-meta .rk-thumb {
+	height: auto;
+	max-height: 220px;
+	max-width: 100%;
+	object-fit: cover;
+	width: 100%;
+}

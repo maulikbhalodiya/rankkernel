@@ -66,6 +66,7 @@
 	color: var(--rk-color-text);
 }
 
+.rankkernel-meta-editor .rk-classic-tab.is-active,
 .rankkernel-meta-editor .rk-classic-tab[aria-selected="true"] {
 	background: var(--rk-color-primary-soft);
 	border-bottom-color: var(--rk-color-primary);
@@ -150,22 +151,26 @@
 	font-weight: 700;
 }
 
+.rankkernel-meta-editor .rk-classic-badge.rk-is-inherited,
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="inherited"],
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="default"] {
 	background: var(--rk-color-surface-muted);
 	color: var(--rk-color-text-secondary);
 }
 
+.rankkernel-meta-editor .rk-classic-badge.rk-is-inherited::before,
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="inherited"]::before,
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="default"]::before {
 	content: "○";
 }
 
+.rankkernel-meta-editor .rk-classic-badge.rk-is-custom,
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="custom"] {
 	background: var(--rk-color-secondary-1-soft);
 	color: var(--rk-color-secondary-1);
 }
 
+.rankkernel-meta-editor .rk-classic-badge.rk-is-custom::before,
 .rankkernel-meta-editor .rk-classic-badge[data-rk-state="custom"]::before {
 	content: "●";
 }
@@ -312,6 +317,7 @@ visibly disabled until the field becomes custom. */
 .rankkernel-meta-editor .rk-classic-reset.is-disabled {
 	color: var(--rk-color-text-muted);
 	cursor: not-allowed;
+	opacity: .55;
 }
 
 /* Token pickers and image rows stay inside the card at any width. */
@@ -340,6 +346,13 @@ visibly disabled until the field becomes custom. */
 .rankkernel-meta-editor .rk-classic-token-list .button {
 	max-width: 100%;
 	overflow-wrap: anywhere;
+}
+
+.rankkernel-meta-editor .rk-classic-image-row {
+	border-top: 1px solid var(--rk-color-border);
+	margin-top: var(--rk-space-3);
+	min-width: 0;
+	padding-top: var(--rk-space-3);
 }
 
 .rankkernel-meta-editor .rk-classic-thumb {
@@ -375,6 +388,38 @@ visibly disabled until the field becomes custom. */
 	font-weight: 600;
 	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
+}
+
+/* Validation notices share the sidebar notice component language: a
+soft surface with a coloured left rule, never colour alone. */
+
+.rankkernel-meta-editor .rk-classic-notice {
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-left: 4px solid var(--rk-color-border-strong);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	margin: var(--rk-space-2) 0;
+	max-width: 100%;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rankkernel-meta-editor .rk-classic-notice.rk-is-ok {
+	border-left-color: var(--rk-color-secondary-1);
+}
+
+.rankkernel-meta-editor .rk-classic-notice.rk-is-warn {
+	border-left-color: var(--rk-color-secondary-3);
+}
+
+.rankkernel-meta-editor .rk-classic-notice p,
+.rankkernel-meta-editor .rk-classic-notice ul {
+	margin: 0;
+	max-width: 100%;
+	padding-left: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-notice ul {
+	padding-left: var(--rk-space-4);
 }
 
 /* Advanced: positive radio controls and collapsed extras. */

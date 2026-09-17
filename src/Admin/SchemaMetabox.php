@@ -257,6 +257,12 @@ final class SchemaMetabox {
 	 * @param mixed  $post     Current post object.
 	 */
 	public function addBoxes( string $postType, mixed $post = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
+		// The block editor renders the schema controls through the RankKernel
+		// SEO sidebar, so registering the box there would duplicate them.
+		if ( ScreenGuard::isBlockEditorScreen() ) {
+			return;
+		}
+
 		if ( 'attachment' === $postType ) {
 			return;
 		}

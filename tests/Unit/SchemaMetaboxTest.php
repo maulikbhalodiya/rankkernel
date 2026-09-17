@@ -48,6 +48,10 @@ final class SchemaMetaboxTest extends TestCase {
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'get_option' )->alias( static fn ( string $k, mixed $d = false ): mixed => $d );
 		Functions\when( 'get_post_type' )->alias( static fn ( mixed $p = null ): string => 'post' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_type signature.
+		// The metabox gate calls get_current_screen. Stub it here so the
+		// default is the Classic Editor path and the suite stays independent
+		// of any get_current_screen patch left by a previously run test.
+		Functions\when( 'get_current_screen' )->justReturn( null );
 		Functions\when( 'checked' )->alias(
 			static fn ( mixed $a, mixed $b, bool $display = true ): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : '' // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress checked signature.
 		);
@@ -853,6 +857,97 @@ final class SchemaMetaboxTest extends TestCase {
 				\PHPUnit\Framework\Assert::assertSame( 'post', $type );
 			}
 		);
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Build a screen double carrying only the block editor flag.
+	 *
+	 * Mirrors the slice of WP_Screen the metabox gate reads, and exposes
+	 * is_block_editor() as a real method so the method_exists guard
+	 * exercised by the shared ScreenGuard sees it.
+	 *
+	 * @param bool $isBlockEditor Whether the screen reports the block editor.
+	 * @return object The result.
+	 */
+	private function screenDouble( bool $isBlockEditor ): object {
+		return new class( $isBlockEditor ) {
+			/**
+			 * Block editor flag.
+			 *
+			 * @var bool
+			 */
+			private bool $blockEditor;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param bool $blockEditor Block editor flag.
+			 */
+			public function __construct( bool $blockEditor ) {
+				$this->blockEditor = $blockEditor;
+			}
+
+			/**
+			 * Whether the screen is the block editor.
+			 *
+			 * @return bool The result.
+			 */
+			public function is_block_editor(): bool {
+				return $this->blockEditor;
+			}
+		};
+	}
+
+	/**
+	 * The schema metabox is not registered on the block editor screen.
+	 *
+	 * Gutenberg renders the schema controls through the RankKernel SEO
+	 * sidebar, so registering the box there duplicates every field.
+	 */
+	public function test_add_boxes_skipped_on_block_editor_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( true ) );
+		Functions\expect( 'add_meta_box' )->never();
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * The schema metabox is registered when the screen is not the block editor.
+	 */
+	public function test_add_boxes_registered_on_classic_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( false ) );
+		Functions\expect( 'add_meta_box' )->once()->andReturnUsing(
+			static function ( string $id, string $title, callable $cb, string $type ): void {
+				\PHPUnit\Framework\Assert::assertSame( 'rankkernel-schema', $id );
+				\PHPUnit\Framework\Assert::assertSame( 'post', $type );
+			}
+		);
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * The schema metabox is registered when no screen is available.
+	 *
+	 * A null screen must fail safe to Classic Editor behavior.
+	 */
+	public function test_add_boxes_registered_when_no_screen_available(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		Functions\expect( 'add_meta_box' )->once();
 
 		$box = new SchemaMetabox();
 		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );

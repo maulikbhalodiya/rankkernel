@@ -281,9 +281,9 @@ if ( $schemaDisabled ) {
 			</p>
 			<h4><?php echo esc_html__( 'Validation', 'rankkernel' ); ?></h4>
 			<?php if ( [] === $schemaValidationMessages ) : ?>
-				<div class="notice notice-success inline"><p><?php echo esc_html( sprintf( /* translators: %s: schema type name */ __( 'All required fields for %s are present.', 'rankkernel' ), $schemaValidationLabel ) ); ?></p></div>
+				<div class="rk-classic-notice rk-is-ok" role="status"><p><?php echo esc_html( sprintf( /* translators: %s: schema type name */ __( 'All required fields for %s are present.', 'rankkernel' ), $schemaValidationLabel ) ); ?></p></div>
 			<?php else : ?>
-				<div class="notice notice-warning inline"><ul>
+				<div class="rk-classic-notice rk-is-warn" role="status"><ul>
 					<?php foreach ( $schemaValidationMessages as $schemaValidationMessage ) : ?>
 						<li><?php echo esc_html( $schemaValidationMessage ); ?></li>
 					<?php endforeach; ?>

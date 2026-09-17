@@ -144,6 +144,10 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'rest_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-json/' . ltrim( $p, '/' ) );
 		Functions\when( 'get_post_type' )->alias( static fn ( mixed $p = null ): string => 'post' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_type signature.
+		// The metabox gate calls get_current_screen. Stub it here so the
+		// default is the Classic Editor path and the suite stays independent
+		// of any get_current_screen patch left by a previously run test.
+		Functions\when( 'get_current_screen' )->justReturn( null );
 		Functions\when( 'get_post_type_object' )->alias(
 			static function ( string $type ): object {
 				return (object) [
@@ -519,6 +523,39 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * The Schema tab validation notice uses the shared notice component.
+	 *
+	 * Classic shares the design system with the sidebar, so validation
+	 * feedback must not fall back to raw WordPress admin notices.
+	 */
+	public function test_schema_validation_notice_uses_shared_component(): void {
+		$this->storedMeta = [
+			'schema' => [
+				'type'   => 'Event',
+				'fields' => [],
+			],
+		];
+
+		$warn = $this->renderBox();
+		$this->assertStringContainsString( 'rk-classic-notice rk-is-warn', $warn );
+		$this->assertStringContainsString( 'Name (headline) is required for Event.', $warn );
+
+		$this->storedMeta = [
+			'schema' => [
+				'type'   => 'Event',
+				'fields' => [
+					'headline'     => 'My event',
+					'startDate'    => '2026-01-01',
+					'locationName' => 'Venue',
+				],
+			],
+		];
+
+		$ok = $this->renderBox();
+		$this->assertStringContainsString( 'rk-classic-notice rk-is-ok', $ok );
+	}
+
+	/**
 	 * Every hook the classic editor script binds to exists in the view.
 	 *
 	 * The view is the canonical side of the contract. This extracts the data
@@ -745,5 +782,128 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertStringContainsString( 'metadata-sidebar.js', $deps['rankkernel-metadata-sidebar']['src'] );
 		$this->assertSame( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n' ], $deps['rankkernel-metadata-sidebar']['tax'] );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
+	}
+
+	/**
+	 * Build a screen double carrying only the block editor flag.
+	 *
+	 * Mirrors the slice of WP_Screen the metabox gate reads, and exposes
+	 * is_block_editor() as a real method so the method_exists guard
+	 * exercised by MetadataBox sees it.
+	 *
+	 * @param bool $isBlockEditor Whether the screen reports the block editor.
+	 * @return object The result.
+	 */
+	private function screenDouble( bool $isBlockEditor ): object {
+		return new class( $isBlockEditor ) {
+			/**
+			 * Block editor flag.
+			 *
+			 * @var bool
+			 */
+			private bool $blockEditor;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param bool $blockEditor Block editor flag.
+			 */
+			public function __construct( bool $blockEditor ) {
+				$this->blockEditor = $blockEditor;
+			}
+
+			/**
+			 * Whether the screen is the block editor.
+			 *
+			 * @return bool The result.
+			 */
+			public function is_block_editor(): bool {
+				return $this->blockEditor;
+			}
+		};
+	}
+
+	/**
+	 * The metabox is not registered on the block editor screen.
+	 *
+	 * Gutenberg already renders the same controls through the sidebar, so
+	 * registering the box there duplicates every field.
+	 */
+	public function test_add_boxes_skipped_on_block_editor_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( true ) );
+		Functions\expect( 'add_meta_box' )->never();
+
+		$this->newBox()->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * The metabox is registered when the screen is not the block editor.
+	 */
+	public function test_add_boxes_registered_on_classic_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( false ) );
+		Functions\expect( 'add_meta_box' )->once()->andReturnUsing(
+			static function ( string $id, string $title, callable $cb, string $type, string $context, string $priority ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress add_meta_box signature.
+				\PHPUnit\Framework\Assert::assertSame( 'rankkernel-meta', $id );
+				\PHPUnit\Framework\Assert::assertSame( 'post', $type );
+			}
+		);
+
+		$this->newBox()->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+	}
+
+	/**
+	 * The metabox is registered when no screen is available.
+	 *
+	 * A null screen must fail safe to Classic Editor behavior.
+	 */
+	public function test_add_boxes_registered_when_no_screen_available(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		Functions\expect( 'add_meta_box' )->once();
+
+		$this->newBox()->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+	}
+
+	/**
+	 * A fresh install resolves the default templates to title and excerpt.
+	 *
+	 * No saved settings means the store defaults apply, so the effective
+	 * title is "title sep sitename" and the description is the excerpt.
+	 */
+	public function test_default_templates_resolve_fresh_install(): void {
+		$this->options  = [];
+		$this->settings = new SettingsStore();
+
+		Functions\when( 'get_the_excerpt' )->justReturn( 'Fresh install excerpt' );
+
+		$box = $this->newBox();
+
+		$expectedTitle = 'Hello post ' . SettingsStore::defaults()['separator'] . ' Example Site';
+
+		$this->assertSame( $expectedTitle, $box->effectiveTitleFor( 7 ) );
+		$this->assertSame( 'Fresh install excerpt', $box->effectiveDescriptionFor( 7 ) );
+	}
+
+	/**
+	 * A stored custom template always overrides the default.
+	 */
+	public function test_stored_templates_override_defaults(): void {
+		$this->options  = [
+			'rankkernel_settings' => [
+				'separator'            => '-',
+				'title_template'       => 'Custom: %%title%%',
+				'description_template' => 'Desc: %%title%%',
+			],
+		];
+		$this->settings = new SettingsStore();
+
+		$box = $this->newBox();
+
+		$this->assertSame( 'Custom: Hello post', $box->effectiveTitleFor( 7 ) );
+		$this->assertSame( 'Desc: Hello post', $box->effectiveDescriptionFor( 7 ) );
 	}
 }
