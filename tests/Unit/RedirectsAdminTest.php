@@ -878,6 +878,29 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * The redirects script declares the accessibility and i18n dependencies.
+	 */
+	public function test_redirects_script_declares_a11y_and_i18n_dependencies(): void {
+		$deps = [];
+
+		Functions\when( 'wp_register_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( string $handle, string $src = '', array $registered = [] ) use ( &$deps ): void {
+				$deps[ $handle ] = $registered;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+
+		$page = $this->makePage();
+		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
+
+		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $deps );
+		$this->assertContains( 'wp-a11y', $deps['rankkernel-redirects-admin'] );
+		$this->assertContains( 'wp-i18n', $deps['rankkernel-redirects-admin'] );
+	}
+
+	/**
 	 * Empty screens guide the admin toward the first redirect.
 	 */
 	public function test_render_empty_state_invites_first_redirect(): void {
