@@ -244,19 +244,21 @@ final class MetadataBox {
 	 * The keys are the raw token names without percent signs and the values
 	 * are the human labels. This list is the single source for the tokens
 	 * map, the tokenLabels map, and the quick insert control, so the editor
-	 * can never advertise a token the backend cannot resolve.
+	 * can never advertise a token the backend cannot resolve. It must hold
+	 * exactly TagsReplacer::SUPPORTED_TOKENS; a test locks that parity.
 	 *
 	 * @var array<string, string>
 	 */
 	private const TOKEN_LABELS = [
-		'title'    => 'Title',
-		'sitename' => 'Site name',
-		'sep'      => 'Separator',
-		'excerpt'  => 'Excerpt',
-		'date'     => 'Date',
-		'author'   => 'Author',
-		'category' => 'Category',
-		'page'     => 'Page',
+		'title'       => 'Title',
+		'sitename'    => 'Site name',
+		'sep'         => 'Separator',
+		'excerpt'     => 'Excerpt',
+		'date'        => 'Date',
+		'author'      => 'Author',
+		'category'    => 'Category',
+		'page'        => 'Page',
+		'currentdate' => 'Current date',
 	];
 
 	/**
@@ -281,16 +283,25 @@ final class MetadataBox {
 	private $contextFactory;
 
 	/**
+	 * Synthetic query factory, test double seam.
+	 *
+	 * @var callable(): WP_Query|null
+	 */
+	private $queryFactory;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore|null          $store          Settings store override, test double seam.
 	 * @param TagsReplacer|null           $replacer       Replacer override, test double seam.
 	 * @param callable(int): Context|null $contextFactory Context factory override, test double seam.
+	 * @param callable(): WP_Query|null   $queryFactory   Query factory override, test double seam.
 	 */
-	public function __construct( ?SettingsStore $store = null, ?TagsReplacer $replacer = null, ?callable $contextFactory = null ) {
+	public function __construct( ?SettingsStore $store = null, ?TagsReplacer $replacer = null, ?callable $contextFactory = null, ?callable $queryFactory = null ) {
 		$this->store          = $store ?? new SettingsStore();
 		$this->replacer       = $replacer ?? new TagsReplacer();
 		$this->contextFactory = $contextFactory;
+		$this->queryFactory   = $queryFactory;
 	}
 
 	/**
@@ -881,10 +892,28 @@ final class MetadataBox {
 	 * @return Context The result.
 	 */
 	private function buildContext( int $postId ): Context {
-		$query = new WP_Query();
+		$query = null !== $this->queryFactory ? ( $this->queryFactory )() : new WP_Query();
+
+		if ( ! $query instanceof WP_Query ) {
+			$query = new WP_Query();
+		}
 
 		$query->queried_object_id = $postId;
 		$query->is_singular       = true;
+
+		// WP_Query::get_queried_object_id() rebuilds the id through
+		// get_queried_object() and resets it to null when the queried object
+		// is unset, so seeding the id alone is lost on the first read. Seed
+		// the post object too so %%title%% and every other id backed token
+		// resolve against the edited post.
+		if ( function_exists( 'get_post' ) ) {
+			$post = get_post( $postId );
+
+			if ( is_object( $post ) ) {
+				$query->post           = $post;
+				$query->queried_object = $post;
+			}
+		}
 
 		return new Context( $query, $this->store, $this->replacer );
 	}

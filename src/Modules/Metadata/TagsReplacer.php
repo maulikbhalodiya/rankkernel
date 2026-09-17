@@ -20,6 +20,26 @@ defined( 'ABSPATH' ) || exit;
  */
 final class TagsReplacer {
 	/**
+	 * Built-in tokens this replacer resolves, in display order.
+	 *
+	 * The editor advertises exactly this set; a test locks the parity so
+	 * no surface can ever offer a token the backend cannot resolve.
+	 *
+	 * @var string[]
+	 */
+	public const SUPPORTED_TOKENS = [
+		'title',
+		'sitename',
+		'sep',
+		'excerpt',
+		'date',
+		'author',
+		'category',
+		'page',
+		'currentdate',
+	];
+
+	/**
 	 * Memo cache keyed by (hash|field).
 	 *
 	 * @var array<string, string>
@@ -72,17 +92,11 @@ final class TagsReplacer {
 	private function doReplace( Context $ctx, string $template ): string {
 		// Performance optimization: token values are fetched via resolveToken() which uses $tokenCache
 		// to avoid repeating expensive queries/functions across different fields on the same context.
-		$map = [
-			'title'       => $this->resolveToken( 'title', $ctx ),
-			'sitename'    => $this->resolveToken( 'sitename', $ctx ),
-			'sep'         => $this->resolveToken( 'sep', $ctx ),
-			'excerpt'     => $this->resolveToken( 'excerpt', $ctx ),
-			'date'        => $this->resolveToken( 'date', $ctx ),
-			'author'      => $this->resolveToken( 'author', $ctx ),
-			'category'    => $this->resolveToken( 'category', $ctx ),
-			'page'        => $this->resolveToken( 'page', $ctx ),
-			'currentdate' => $this->resolveToken( 'currentdate', $ctx ),
-		];
+		$map = [];
+
+		foreach ( self::SUPPORTED_TOKENS as $token ) {
+			$map[ $token ] = $this->resolveToken( $token, $ctx );
+		}
 
 		/**
 		 * Filter the token map.

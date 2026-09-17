@@ -390,4 +390,56 @@ final class TagsReplacerTest extends TestCase {
 
 		$this->assertSame( 'Tech', $replacer->replace( $ctx, '%%category%%', 'title' ) );
 	}
+
+	/**
+	 * Every supported token resolves a real value in its correct context.
+	 *
+	 * One assertion per built in token proves the backend resolves each
+	 * token the editor advertises, including %%currentdate%% which the
+	 * editor previously did not offer.
+	 */
+	public function test_every_supported_token_resolves_a_real_value(): void {
+		$ctx = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+
+		Functions\when( 'get_the_title' )->justReturn( 'Real Title' );
+		Functions\when( 'get_the_excerpt' )->justReturn( 'Real excerpt' );
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-01' );
+		Functions\when( 'get_the_author' )->justReturn( 'Real Author' );
+		Functions\when( 'get_the_category' )->justReturn( [ (object) [ 'name' => 'News' ] ] );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $queryVar, mixed $fallback = '' ): mixed {
+				if ( 'paged' === $queryVar ) {
+					return 2;
+				}
+
+				if ( 'max_num_pages' === $queryVar ) {
+					return 5;
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value = null ): mixed => $value );
+
+		$expected = [
+			'title'       => 'Real Title',
+			'sitename'    => 'My Site',
+			'sep'         => '–',
+			'excerpt'     => 'Real excerpt',
+			'date'        => '2026-01-01',
+			'author'      => 'Real Author',
+			'category'    => 'News',
+			'page'        => 'Page 2 of 5',
+			'currentdate' => 'January 1, 2026',
+		];
+
+		// The canonical backend list must cover every expectation exactly.
+		$this->assertSame( array_keys( $expected ), TagsReplacer::SUPPORTED_TOKENS );
+
+		$replacer = new TagsReplacer();
+
+		foreach ( $expected as $token => $value ) {
+			$this->assertSame( $value, $replacer->replace( $ctx, '%%' . $token . '%%', 'field_' . $token ), 'token ' . $token );
+		}
+	}
 }

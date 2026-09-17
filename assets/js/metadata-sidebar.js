@@ -481,6 +481,44 @@
 		};
 	}
 
+	// A robots budget of '' would be rejected by the REST schema before the
+	// server sanitizer runs, so an empty or non numeric value must become
+	// null at the point of assembly. Numbers stay numbers.
+	function robotsIntOrNull( value ) {
+		if ( value === null || value === undefined ) {
+			return null;
+		}
+		var text = String( value ).trim();
+		if ( '' === text || ! /^-?\d+$/.test( text ) ) {
+			return null;
+		}
+		return parseInt( text, 10 );
+	}
+
+	// The empty option of the max-image-preview select maps to null, never
+	// an empty string, and an unknown value falls back to null.
+	function robotsPreviewOrNull( value ) {
+		if ( value === null || value === undefined ) {
+			return null;
+		}
+		var text = String( value ).trim();
+		if ( '' === text ) {
+			return null;
+		}
+		return [ 'none', 'standard', 'large' ].indexOf( text ) >= 0 ? text : null;
+	}
+
+	// Convert the UI shaped meta object into the REST payload shape. The
+	// three max_* robots budgets are normalized here so no editor write can
+	// hard block a save with an empty or malformed string.
+	function toRestMeta( meta ) {
+		var next = withMeta( meta );
+		next.robots.max_snippet = robotsIntOrNull( next.robots.max_snippet );
+		next.robots.max_video_preview = robotsIntOrNull( next.robots.max_video_preview );
+		next.robots.max_image_preview = robotsPreviewOrNull( next.robots.max_image_preview );
+		return next;
+	}
+
 	function schemaObject( schema ) {
 		if ( schema && 'object' === typeof schema && ! Array.isArray( schema ) ) {
 			return schema;
@@ -1419,6 +1457,17 @@
 		var timersRef = useRef( {} );
 		var timers = timersRef.current || {};
 
+		// Every store write funnels through here so the REST payload shape is
+		// normalized in exactly one place.
+		function writeMeta( next ) {
+			if ( ! editPost ) {
+				return;
+			}
+			var payload = {};
+			payload[ META_KEY ] = toRestMeta( next );
+			editPost( { meta: payload } );
+		}
+
 		function pushValue( path, value ) {
 			if ( ! editPost ) {
 				return;
@@ -1455,9 +1504,7 @@
 				} );
 				next.schema.fields = fields;
 			}
-			var payload = {};
-			payload[ META_KEY ] = next;
-			editPost( { meta: payload } );
+			writeMeta( next );
 		}
 
 		function display( path, raw ) {
@@ -1575,9 +1622,7 @@
 			}
 			var next = withMeta( meta );
 			next.schema = nextSchema;
-			var payload = {};
-			payload[ META_KEY ] = next;
-			editPost( { meta: payload } );
+			writeMeta( next );
 		}
 
 		function setSchemaKey( key, value ) {
@@ -1778,9 +1823,7 @@
 					var next = withMeta( meta );
 					next[ group ].image = src;
 					next[ group ].image_id = id;
-					var payload = {};
-					payload[ META_KEY ] = next;
-					editPost( { meta: payload } );
+					writeMeta( next );
 				},
 				onRemove: function () {
 					if ( ! editPost ) {
@@ -1789,9 +1832,7 @@
 					var next = withMeta( meta );
 					next[ group ].image = '';
 					next[ group ].image_id = 0;
-					var payload = {};
-					payload[ META_KEY ] = next;
-					editPost( { meta: payload } );
+					writeMeta( next );
 				}
 			} );
 		}
@@ -2016,9 +2057,7 @@
 								}
 								var updated = withMeta( meta );
 								updated.twitter.card = next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
+								writeMeta( updated );
 							}
 						} ) : null
 					)
@@ -2079,9 +2118,7 @@
 						}
 						var updated = withMeta( meta );
 						updated.robots.index = 'index' === next;
-						var payload = {};
-						payload[ META_KEY ] = updated;
-						editPost( { meta: payload } );
+						writeMeta( updated );
 					}
 				} ),
 				el( RadioPair, {
@@ -2099,9 +2136,7 @@
 						}
 						var updated = withMeta( meta );
 						updated.robots.follow = 'follow' === next;
-						var payload = {};
-						payload[ META_KEY ] = updated;
-						editPost( { meta: payload } );
+						writeMeta( updated );
 					}
 				} ),
 				el( Collapsible, { title: __( 'Additional robots settings', 'rankkernel' ), bodyId: 'rk-robots-extra' },
@@ -2117,9 +2152,7 @@
 								}
 								var updated = withMeta( meta );
 								updated.robots.noarchive = true === next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
+								writeMeta( updated );
 							}
 						} ) : null,
 						CheckboxControl ? el( CheckboxControl, {
@@ -2131,9 +2164,7 @@
 								}
 								var updated = withMeta( meta );
 								updated.robots.nosnippet = true === next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
+								writeMeta( updated );
 							}
 						} ) : null,
 						CheckboxControl ? el( CheckboxControl, {
@@ -2145,9 +2176,7 @@
 								}
 								var updated = withMeta( meta );
 								updated.robots.noimageindex = true === next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
+								writeMeta( updated );
 							}
 						} ) : null,
 						metaField( { id: 'rk-max-snippet', path: 'robots.max_snippet', label: __( 'Max snippet', 'rankkernel' ), help: __( 'Max characters for the snippet. Blank means unlimited.', 'rankkernel' ) } ),
@@ -2167,9 +2196,7 @@
 								}
 								var updated = withMeta( meta );
 								updated.robots.max_image_preview = next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
+								writeMeta( updated );
 							}
 						} ) : null,
 						metaField( { id: 'rk-max-video-preview', path: 'robots.max_video_preview', label: __( 'Max video preview', 'rankkernel' ), help: __( 'Max seconds for a video preview. Blank means unlimited.', 'rankkernel' ) } )

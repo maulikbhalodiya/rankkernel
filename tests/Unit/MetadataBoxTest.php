@@ -278,6 +278,32 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * The Classic save path normalizes blank or malformed robots budgets.
+	 *
+	 * The metabox posts a max_image_preview select whose empty option is an
+	 * empty string, so the save path must normalize blanks and malformed
+	 * strings to null rather than 0, matching the REST path.
+	 */
+	public function test_classic_save_normalizes_blank_robots_budgets_to_null(): void {
+		$_POST = [
+			'rankkernel_meta_nonce'  => 'valid',
+			'rankkernel_meta_fields' => '1',
+			'rankkernel_meta_robots' => [
+				'max_snippet'       => '',
+				'max_video_preview' => 'abc',
+				'max_image_preview' => '',
+			],
+		];
+
+		$this->newBox()->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertIsArray( $this->savedMeta );
+		$this->assertNull( $this->savedMeta['robots']['max_snippet'] );
+		$this->assertNull( $this->savedMeta['robots']['max_video_preview'] );
+		$this->assertNull( $this->savedMeta['robots']['max_image_preview'] );
+	}
+
+	/**
 	 * Save preserves unrelated subtrees that were not submitted.
 	 */
 	public function test_save_preserves_unrelated_subtrees(): void {
@@ -473,10 +499,169 @@ final class MetadataBoxTest extends TestCase {
 
 		$state = $this->newBox()->localizedState( 7 );
 
-		$expected = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%date%%', '%%author%%', '%%category%%', '%%page%%' ];
+		$expected = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%date%%', '%%author%%', '%%category%%', '%%page%%', '%%currentdate%%' ];
 
 		$this->assertSame( $expected, array_keys( $state['tokenLabels'] ) );
 		$this->assertSame( $expected, array_map( static fn ( string $name ): string => '%%' . $name . '%%', array_keys( $state['tokens'] ) ) );
+	}
+
+	/**
+	 * The advertised tokens equal the tokens the backend resolves exactly.
+	 *
+	 * TagsReplacer::SUPPORTED_TOKENS is the canonical backend list, so the
+	 * editor can never advertise a token the backend cannot resolve and can
+	 * never hide one it can.
+	 */
+	public function test_token_labels_match_tags_replacer_supported_tokens(): void {
+		$this->storedMeta = [];
+
+		$state      = $this->newBox()->localizedState( 7 );
+		$advertised = array_map(
+			static fn ( string $token ): string => trim( $token, '%' ),
+			array_keys( $state['tokenLabels'] )
+		);
+
+		$this->assertSame( TagsReplacer::SUPPORTED_TOKENS, $advertised );
+	}
+
+	/**
+	 * A singular post with an empty stored override resolves %%title%%.
+	 *
+	 * The editor builds a synthetic singular query. WP_Query rebuilds the
+	 * queried id through get_queried_object(), which resets it to null when
+	 * the queried object is unset, so the id was lost and %%title%% came
+	 * back empty while %%sep%% and %%sitename%% resolved. The synthetic
+	 * query must seed the post object so the title token resolves.
+	 */
+	public function test_singular_post_with_empty_override_resolves_title_token(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) [
+				'ID'         => 78771,
+				'post_title' => 'Real Post Title',
+				'post_type'  => 'post',
+			]
+		);
+		Functions\when( 'get_the_title' )->justReturn( 'Real Post Title' );
+
+		$this->storedMeta = [];
+
+		$box = new MetadataBox(
+			$this->settings,
+			new TagsReplacer(),
+			null,
+			static function (): WP_Query {
+				return new class() extends WP_Query {
+					/**
+					 * Queried object id.
+					 *
+					 * @var int|null
+					 */
+					public $queried_object_id = 0;
+
+					/**
+					 * Queried object.
+					 *
+					 * @var object|null
+					 */
+					public $queried_object = null;
+
+					/**
+					 * Queried post.
+					 *
+					 * @var object|null
+					 */
+					public $post = null;
+
+					/**
+					 * Whether the query is singular.
+					 *
+					 * @var bool
+					 */
+					public $is_singular = false;
+
+					/**
+					 * Whether the query is singular, mirroring WP_Query.
+					 *
+					 * @param mixed $post Optional post type filter, unused here.
+					 * @return bool The result.
+					 */
+					public function is_singular( $post = '' ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- mirrors the WordPress WP_Query signature.
+						return (bool) $this->is_singular;
+					}
+
+					/**
+					 * Get the queried object, mirroring WP_Query.
+					 *
+					 * @return mixed The result.
+					 */
+					public function get_queried_object(): mixed {
+						if ( isset( $this->queried_object ) ) {
+							return $this->queried_object;
+						}
+
+						$this->queried_object    = null;
+						$this->queried_object_id = null;
+
+						return null;
+					}
+
+					/**
+					 * Get the queried object id, mirroring WP_Query.
+					 *
+					 * @return int The result.
+					 */
+					public function get_queried_object_id(): int {
+						$this->get_queried_object();
+
+						return isset( $this->queried_object_id ) ? (int) $this->queried_object_id : 0;
+					}
+				};
+			}
+		);
+
+		$resolved = $box->effectiveTitleFor( 78771 );
+
+		$this->assertSame( 'Real Post Title - Example Site', $resolved );
+		$this->assertNotSame( '', $resolved );
+		$this->assertStringNotContainsString( '%%title%%', $resolved );
+
+		// The frontend resolves the identical template through the same
+		// primitives, so the two surfaces cannot disagree on this post.
+		$frontend = new Context( $this->frontendQuery( 78771 ), $this->settings, new TagsReplacer() );
+
+		$this->assertSame(
+			$frontend->resolved( 'title_template', '%%title%% %%sep%% %%sitename%%' ),
+			$resolved
+		);
+	}
+
+	/**
+	 * Build a frontend shaped singular query for the given post id.
+	 *
+	 * Mirrors the global $wp_query on a singular request: the queried
+	 * object and its id are both populated.
+	 *
+	 * @param int $postId Post id.
+	 * @return WP_Query The result.
+	 */
+	private function frontendQuery( int $postId ): WP_Query {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( true )->byDefault();
+		$query->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->andReturn( $postId )->byDefault();
+		$query->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $postId ] )->byDefault();
+		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		return $query;
 	}
 
 	/**

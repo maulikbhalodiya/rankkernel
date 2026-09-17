@@ -166,6 +166,136 @@ final class MetaPayloadTest extends TestCase {
 	}
 
 	/**
+	 * A malformed budget string normalizes to null, never 0.
+	 *
+	 * 0 is the explicit "no snippet" budget, so coercing an empty or non
+	 * numeric value to it would silently change meaning. This locks the
+	 * authority contract for both integer budgets.
+	 */
+	public function test_sanitize_robots_budgets_treat_malformed_as_null(): void {
+		$cases = [
+			[ null, null ],
+			[ '', null ],
+			[ 'abc', null ],
+			[ '   ', null ],
+			[ '120', 120 ],
+			[ '0', 0 ],
+			[ 45, 45 ],
+			[ 0, 0 ],
+		];
+
+		foreach ( $cases as $index => $case ) {
+			$snippet = MetaPayload::sanitize( [ 'robots' => [ 'max_snippet' => $case[0] ] ] );
+			$video   = MetaPayload::sanitize( [ 'robots' => [ 'max_video_preview' => $case[0] ] ] );
+
+			$this->assertSame( $case[1], $snippet['robots']['max_snippet'], 'max_snippet case ' . $index );
+			$this->assertSame( $case[1], $video['robots']['max_video_preview'], 'max_video_preview case ' . $index );
+		}
+	}
+
+	/**
+	 * Max image preview keeps its string values and normalizes blanks to null.
+	 */
+	public function test_sanitize_robots_max_image_preview_values(): void {
+		$cases = [
+			[ null, null ],
+			[ '', null ],
+			[ '   ', null ],
+			[ 'none', 'none' ],
+			[ 'standard', 'standard' ],
+			[ 'large', 'large' ],
+			[ 120, 120 ],
+		];
+
+		foreach ( $cases as $index => $case ) {
+			$clean = MetaPayload::sanitize( [ 'robots' => [ 'max_image_preview' => $case[0] ] ] );
+
+			$this->assertSame( $case[1], $clean['robots']['max_image_preview'], 'max_image_preview case ' . $index );
+		}
+	}
+
+	/**
+	 * The declared schema accepts every value the client actually sends.
+	 *
+	 * The REST layer validates the payload against this schema before the
+	 * sanitize callback runs, so a type the schema rejects hard blocks the
+	 * whole save. This exercises the real declared type list for the three
+	 * robots budgets with the client values and with the defensive empty
+	 * and malformed strings, so the save blocking bug cannot return.
+	 */
+	public function test_rest_schema_accepts_every_client_robots_value(): void {
+		$robots = MetaPayload::restSchema()['properties']['robots']['properties'];
+
+		$clientValues = [
+			'max_snippet'       => [ null, 0, 120, '', 'abc', '120' ],
+			'max_video_preview' => [ null, 0, 30, '', 'abc', '30' ],
+			'max_image_preview' => [ null, '', 'none', 'standard', 'large', 120 ],
+		];
+
+		foreach ( $clientValues as $field => $values ) {
+			$this->assertArrayHasKey( $field, $robots );
+
+			foreach ( $values as $index => $value ) {
+				$this->assertTrue(
+					$this->accepts_type( $value, $robots[ $field ]['type'] ),
+					$field . ' must accept client value #' . $index
+				);
+			}
+		}
+
+		// A genuinely wrong shape stays rejected, so the widening did not
+		// turn the schema into a blanket pass.
+		$this->assertFalse( $this->accepts_type( [ 'nope' ], $robots['max_snippet']['type'] ) );
+		$this->assertFalse( $this->accepts_type( [ 'nope' ], $robots['max_video_preview']['type'] ) );
+		$this->assertFalse( $this->accepts_type( [ 'nope' ], $robots['max_image_preview']['type'] ) );
+	}
+
+	/**
+	 * Whether a declared REST type list accepts a JSON value.
+	 *
+	 * Mirrors the subset of WordPress REST schema type checking the payload
+	 * uses, so the test exercises the real declared types without booting
+	 * WordPress.
+	 *
+	 * @param mixed              $value Value a client may send.
+	 * @param array<int, string> $types Allowed type words.
+	 * @return bool The result.
+	 */
+	private function accepts_type( mixed $value, array $types ): bool {
+		foreach ( $types as $type ) {
+			if ( 'null' === $type && null === $value ) {
+				return true;
+			}
+
+			if ( 'integer' === $type && is_int( $value ) ) {
+				return true;
+			}
+
+			if ( 'number' === $type && ( is_int( $value ) || is_float( $value ) ) ) {
+				return true;
+			}
+
+			if ( 'string' === $type && is_string( $value ) ) {
+				return true;
+			}
+
+			if ( 'boolean' === $type && is_bool( $value ) ) {
+				return true;
+			}
+
+			if ( 'array' === $type && is_array( $value ) ) {
+				return true;
+			}
+
+			if ( 'object' === $type && is_array( $value ) && ! array_is_list( $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Test user prefs schema is permissive.
 	 */
 	public function test_user_prefs_schema_is_permissive(): void {
