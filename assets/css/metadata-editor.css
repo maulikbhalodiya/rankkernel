@@ -571,6 +571,10 @@ visibly disabled until the field becomes custom. */
 	text-transform: uppercase;
 }
 
+.rk-meta.rk-side div[role="tabpanel"] {
+	padding: 0px 10px;
+}
+
 /* Advanced: positive radio controls and collapsed extras. */
 
 .rk-meta fieldset.rk-meta-field legend,
@@ -780,7 +784,7 @@ accessible name and tooltip. */
 /* Preview modal entry point and dialog room. */
 
 .rk-meta .rk-preview-open {
-	align-items: center;
+	/* align-items: center; */
 	display: inline-flex;
 	gap: var(--rk-space-2);
 	justify-content: center;
@@ -1146,7 +1150,7 @@ the Edit Snippet action. */
 	box-sizing: border-box;
 	max-height: calc(100vh - 60px);
 	max-width: 640px;
-	overflow: auto;
+	/* overflow: auto; */
 	width: calc(100% - 32px);
 }
 
@@ -1371,7 +1375,7 @@ the Edit Snippet action. */
 }
 
 .rk-meta .rk-social-notice-card .rk-edit-snippet-btn {
-	align-items: center;
+	/* align-items: center; */
 	display: inline-flex;
 	font-weight: 600;
 	gap: 6px;
