@@ -31,6 +31,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Normalizer::resetHomePath();
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
@@ -139,6 +140,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 */
 	public function test_subdirectory_home_stripped(): void {
 		$this->homeUrl = 'https://example.com/blog';
+		Normalizer::resetHomePath();
 
 		$this->assertSame( '/old', Normalizer::normalize( '/blog/old' ) );
 		$this->assertSame( '/old', Normalizer::normalize( 'https://example.com/blog/old/' ) );
@@ -186,5 +188,24 @@ final class RedirectsNormalizerTest extends TestCase {
 		$this->assertFalse( Normalizer::isMatchType( 'fuzzy' ) );
 		$this->assertTrue( Normalizer::isCode( '451' ) );
 		$this->assertFalse( Normalizer::isCode( '308' ) );
+	}
+
+	/**
+	 * Test homePath memoization across calls.
+	 */
+	public function test_home_path_memoization(): void {
+		$this->homeUrl = 'https://example.com/sub';
+		Normalizer::resetHomePath();
+
+		$first = Normalizer::homePath();
+		$this->assertSame( '/sub', $first );
+
+		// Change underlying property without resetting memo - memoized value should persist.
+		$this->homeUrl = 'https://example.com/different';
+		$this->assertSame( '/sub', Normalizer::homePath() );
+
+		// Explicit reset should pick up the new value.
+		Normalizer::resetHomePath();
+		$this->assertSame( '/different', Normalizer::homePath() );
 	}
 }

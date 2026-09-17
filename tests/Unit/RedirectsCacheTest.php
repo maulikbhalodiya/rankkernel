@@ -189,4 +189,31 @@ final class RedirectsCacheTest extends TestCase {
 		$this->assertSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/old' ) );
 		$this->assertNotSame( RedirectCache::cacheKey( '/old' ), RedirectCache::cacheKey( '/new' ) );
 	}
+
+	/**
+	 * Test validator token memoization within an instance.
+	 */
+	public function test_validator_memoization_per_instance(): void {
+		$this->options[ RedirectCache::VALIDATOR_OPTION ] = 'v1';
+
+		$cache = new RedirectCache();
+		$rule  = [
+			'id'     => 10,
+			'source' => '/memo',
+			'target' => '/target',
+			'code'   => '301',
+		];
+
+		$cache->set( '/memo', $rule );
+
+		// Externally update option without calling invalidate() on $cache.
+		$this->options[ RedirectCache::VALIDATOR_OPTION ] = 'v2';
+
+		// Memoized validator string keeps reading cached rule on same instance.
+		$this->assertSame( $rule, $cache->get( '/memo' ) );
+
+		// Invalidation clears validator memo and forces new get_option read.
+		$cache->invalidate();
+		$this->assertNull( $cache->get( '/memo' ) );
+	}
 }

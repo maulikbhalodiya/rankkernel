@@ -177,32 +177,62 @@ final class Normalizer {
 	}
 
 	/**
+	 * Memoized home path per request to avoid redundant home_url() filter and URL parsing overhead.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $homePathMemo = null;
+
+	/**
+	 * Reset the static home path memoization (primarily for unit testing).
+	 */
+	public static function resetHomePath(): void {
+		self::$homePathMemo = null;
+	}
+
+	/**
 	 * Subdirectory home path, derived from home_url parsing.
+	 *
+	 * Performance optimization: memoizes the parsed home path in a static property
+	 * to prevent repeated home_url() filter executions and wp_parse_url calls across multiple
+	 * path normalizations in a single request.
 	 *
 	 * Returns an empty string for root installs and for unparseable values.
 	 *
 	 * @return string Home path like /blog, or empty when none applies.
 	 */
 	public static function homePath(): string {
+		if ( null !== self::$homePathMemo ) {
+			return self::$homePathMemo;
+		}
+
 		if ( ! function_exists( 'home_url' ) ) {
-			return '';
+			self::$homePathMemo = '';
+
+			return self::$homePathMemo;
 		}
 
 		$home = home_url( '/' );
 
 		if ( ! is_string( $home ) || '' === $home ) {
-			return '';
+			self::$homePathMemo = '';
+
+			return self::$homePathMemo;
 		}
 
 		$parts = wp_parse_url( $home );
 
 		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) ) {
-			return '';
+			self::$homePathMemo = '';
+
+			return self::$homePathMemo;
 		}
 
 		$base = '/' . trim( $parts['path'], '/' );
 
-		return '/' === $base ? '' : $base;
+		self::$homePathMemo = '/' === $base ? '' : $base;
+
+		return self::$homePathMemo;
 	}
 
 	/**
