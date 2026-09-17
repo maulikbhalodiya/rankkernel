@@ -1151,6 +1151,99 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Unvalidated upload temp file is rejected during CSV import.
+	 */
+	public function test_import_rejects_unvalidated_upload_file(): void {
+		$page = new RedirectsPage(
+			new RedirectRepository( $this->db ),
+			new RedirectsSettings(),
+			new Validator(),
+			new DestinationValidator(),
+			static fn (): bool => false
+		);
+
+		$this->allowAccess();
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'valid',
+		];
+		$_FILES                    = [
+			'rk_csv_file' => [
+				'name'     => 'redirects.csv',
+				'type'     => 'text/csv',
+				'tmp_name' => '/tmp/fake_upload',
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 100,
+			],
+		];
+
+		$page->maybeHandleSave();
+
+		$result = $page->import_result();
+		$this->assertIsArray( $result );
+		$this->assertSame( 'The uploaded file could not be read.', $result['errors'][0]['reason'] ?? '' );
+	}
+
+	/**
+	 * Non-CSV file extension is rejected during CSV import.
+	 */
+	public function test_import_rejects_invalid_file_extension(): void {
+		$page = new RedirectsPage(
+			new RedirectRepository( $this->db ),
+			new RedirectsSettings(),
+			new Validator(),
+			new DestinationValidator(),
+			static fn (): bool => true
+		);
+
+		$this->allowAccess();
+
+		Functions\when( 'wp_check_filetype' )->justReturn(
+			[
+				'ext'  => false,
+				'type' => false,
+			]
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_redirect_import' => '1',
+			'_wpnonce'                   => 'valid',
+		];
+
+		$tmpFile = tempnam( sys_get_temp_dir(), 'rk_test' );
+		if ( false !== $tmpFile ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $tmpFile, 'sample content' );
+		}
+
+		$_FILES = [
+			'rk_csv_file' => [
+				'name'     => 'shell.php',
+				'type'     => 'application/x-php',
+				'tmp_name' => false !== $tmpFile ? $tmpFile : __FILE__,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 100,
+			],
+		];
+
+		try {
+			$page->maybeHandleSave();
+		} finally {
+			if ( false !== $tmpFile && file_exists( $tmpFile ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.VIP.FileSystemWritesDisallowed
+				unlink( $tmpFile );
+			}
+		}
+
+		$result = $page->import_result();
+		$this->assertIsArray( $result );
+		$this->assertSame( 'The uploaded file must be a valid CSV file.', $result['errors'][0]['reason'] ?? '' );
+	}
+
+	/**
 	 * Loop plus chain inconclusive saves with both flags, never a clean pass.
 	 */
 	public function test_inconclusive_loop_and_chain_saves_with_both_flags(): void {
