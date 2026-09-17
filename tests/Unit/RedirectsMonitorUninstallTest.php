@@ -94,12 +94,16 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 
 		$db             = new RedirectsMonitorUninstallStubDb();
 		$db->optionRows = [
-			'rankkernel_modules'             => [ 'redirects' ],
-			'rankkernel_redirects_settings'  => [ 'preserve_query' => true ],
-			'rankkernel_404_settings'        => [ 'max_rows' => 1000 ],
-			'rankkernel_redirects_validator' => 'stale',
-			'rankkernel_404_suppressed'      => 123,
-			'other_plugin_option'            => 'keep',
+			'rankkernel_modules'                 => [ 'redirects' ],
+			'rankkernel_redirects_settings'      => [ 'preserve_query' => true ],
+			'rankkernel_404_settings'            => [ 'max_rows' => 1000 ],
+			'rankkernel_redirects_validator'     => 'stale',
+			'rankkernel_404_suppressed'          => 123,
+			'_transient_rkredir_hash123'         => 'redirect_cache_data',
+			'_transient_timeout_rkredir_hash123' => 1900000000,
+			'_transient_rk404_flood_1'           => 'flood_data',
+			'_transient_timeout_rk404_flood_1'   => 1900000000,
+			'other_plugin_option'                => 'keep',
 		];
 		$db->tables     = [
 			'wp_rankkernel_redirects',

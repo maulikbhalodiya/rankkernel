@@ -108,7 +108,15 @@ final class RedirectsMonitorUninstallStubDb {
 
 		if ( str_contains( $query, 'DELETE FROM' ) && str_contains( $query, 'option_name LIKE' ) ) {
 			foreach ( array_keys( $this->optionRows ) as $name ) {
-				if ( str_starts_with( $name, 'rankkernel_' ) ) {
+				if (
+					str_starts_with( $name, 'rankkernel_' ) ||
+					str_starts_with( $name, '_transient_rankkernel_' ) ||
+					str_starts_with( $name, '_transient_timeout_rankkernel_' ) ||
+					str_starts_with( $name, '_transient_rk404_flood_' ) ||
+					str_starts_with( $name, '_transient_timeout_rk404_flood_' ) ||
+					str_starts_with( $name, '_transient_rkredir_' ) ||
+					str_starts_with( $name, '_transient_timeout_rkredir_' )
+				) {
 					unset( $this->optionRows[ $name ] );
 				}
 			}

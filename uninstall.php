@@ -23,12 +23,18 @@ if ( ! $purge ) {
 
 global $wpdb;
 
-// Purge all rankkernel_* options.
+// Purge all rankkernel_* options and plugin transients.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
 	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-		$wpdb->esc_like( 'rankkernel_' ) . '%'
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
+		$wpdb->esc_like( 'rankkernel_' ) . '%',
+		$wpdb->esc_like( '_transient_rankkernel_' ) . '%',
+		$wpdb->esc_like( '_transient_timeout_rankkernel_' ) . '%',
+		$wpdb->esc_like( '_transient_rk404_flood_' ) . '%',
+		$wpdb->esc_like( '_transient_timeout_rk404_flood_' ) . '%',
+		$wpdb->esc_like( '_transient_rkredir_' ) . '%',
+		$wpdb->esc_like( '_transient_timeout_rkredir_' ) . '%'
 	)
 );
 
