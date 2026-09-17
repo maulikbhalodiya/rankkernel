@@ -49,6 +49,8 @@
 	var META_KEY = '_rankkernel_meta_data';
 	var TITLE_LIMIT = parseInt( limits.title, 10 ) || 60;
 	var DESC_LIMIT = parseInt( limits.description, 10 ) || 160;
+	var TITLE_PX = 580;
+	var DESC_PX = 920;
 	var DEBOUNCE_MS = 150;
 	var SOCIAL_MIN_W = 600;
 	var SOCIAL_MIN_H = 315;
@@ -141,6 +143,27 @@
 			return shared.shortUrl( permalink );
 		}
 		return String( permalink || '' ).replace( /^https?:\/\//, '' ).replace( /\/$/, '' );
+	}
+
+	// Approximate rendered pixel width for the length readout. Wide
+	// glyphs cost more, narrow glyphs less, the rest a middle weight.
+	// A heuristic only, announced next to the character count.
+	function estimatePixels( text ) {
+		var str = String( text || '' );
+		var px = 0;
+		var i = 0;
+		var ch = '';
+		for ( i = 0; i < str.length; i++ ) {
+			ch = str.charAt( i );
+			if ( 'mwMW@%'.indexOf( ch ) >= 0 ) {
+				px += 11;
+			} else if ( 'il1t.,:;!|\' '.indexOf( ch ) >= 0 ) {
+				px += 4;
+			} else {
+				px += 8;
+			}
+		}
+		return px;
 	}
 
 	function isEmpty( value ) {
@@ -379,6 +402,7 @@
 			robots: { index: true, follow: true, noarchive: false, nosnippet: false, noimageindex: false, max_snippet: '', max_image_preview: '', max_video_preview: '' },
 			og: { title: '', description: '', image: '', image_id: 0, type: '' },
 			twitter: { card: 'summary_large_image', title: '', description: '', image: '', image_id: 0 },
+			focus_keywords: [],
 			schema: []
 		};
 	}
@@ -393,6 +417,7 @@
 		var robots = input.robots && 'object' === typeof input.robots ? input.robots : {};
 		var og = input.og && 'object' === typeof input.og ? input.og : {};
 		var twitter = input.twitter && 'object' === typeof input.twitter ? input.twitter : {};
+		var focus_keywords = Array.isArray( input.focus_keywords ) ? input.focus_keywords : ( typeof input.focus_keywords === 'string' && input.focus_keywords ? input.focus_keywords.split( ',' ).map( function ( s ) { return s.trim(); } ).filter( Boolean ) : [] );
 		// The schema subtree passes through untouched: fresh rows hold an
 		// empty list, later saves normalize it to the object shape. Readers
 		// stay defensive and never reshape it here.
@@ -425,6 +450,7 @@
 				image: strOrEmpty( twitter.image ),
 				image_id: parseInt( twitter.image_id, 10 ) || 0
 			},
+			focus_keywords: focus_keywords,
 			schema: schema
 		};
 	}
@@ -768,10 +794,10 @@
 								{
 									key: token,
 									type: 'button',
-									className: 'button button-small' + ( mine === activeIndex ? ' rk-token-active' : '' ),
+									className: 'button button-small rk-token-row' + ( mine === activeIndex ? ' rk-token-active' : '' ),
 									'aria-current': mine === activeIndex ? 'true' : 'false',
-									title: readable + ' ' + token,
-									'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + readable + ', ' + token,
+									title: token + ' ' + readable,
+									'aria-label': __( 'Insert token', 'rankkernel' ) + ' ' + token + ', ' + readable,
 									onMouseEnter: function () { setActiveIndex( mine ); },
 									onFocus: function () { setActiveIndex( mine ); },
 									onKeyDown: onListKey,
@@ -779,8 +805,8 @@
 										insert( token );
 									}
 								},
-								el( 'span', { className: 'rk-token-name' }, readable ),
-								el( 'span', { className: 'rk-token-value', 'aria-hidden': 'true' }, token )
+								el( 'span', { className: 'rk-token-name' }, token ),
+								el( 'span', { className: 'rk-token-desc', 'aria-hidden': 'true' }, readable )
 							);
 						} )
 					);
@@ -1145,27 +1171,105 @@
 	// the sidebar preview immediately.
 	function PreviewModal( props ) {
 		var Modal = components.Modal;
+		var modalTabState = useState( props.initialTab || 'general' );
+		var activeModalTab = modalTabState[ 0 ];
+		var setActiveModalTab = modalTabState[ 1 ];
 		var titleText = __( 'Edit Snippet', 'rankkernel' );
+		var previewUrl = props.url || shortUrl( cfg.permalink || cfg.homeUrl || '' );
+
+		var modalTabs = [
+			{ id: 'general', label: __( 'General', 'rankkernel' ), icon: 'search' },
+			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'share' }
+		];
+
+		function onModalTabKey( event, index ) {
+			if ( 'ArrowRight' === event.key || 'ArrowDown' === event.key ) {
+				event.preventDefault();
+				setActiveModalTab( modalTabs[ ( index + 1 ) % modalTabs.length ].id );
+			} else if ( 'ArrowLeft' === event.key || 'ArrowUp' === event.key ) {
+				event.preventDefault();
+				setActiveModalTab( modalTabs[ ( index - 1 + modalTabs.length ) % modalTabs.length ].id );
+			} else if ( 'Home' === event.key ) {
+				event.preventDefault();
+				setActiveModalTab( modalTabs[ 0 ].id );
+			} else if ( 'End' === event.key ) {
+				event.preventDefault();
+				setActiveModalTab( modalTabs[ modalTabs.length - 1 ].id );
+			}
+		}
+
+		var modalTabNav = el(
+			'div',
+			{ className: 'rk-modal-tabs', role: 'tablist', 'aria-label': __( 'Snippet Editor Sections', 'rankkernel' ) },
+			modalTabs.map( function ( tab, index ) {
+				var selected = activeModalTab === tab.id;
+				return el(
+					'button',
+					{
+						key: tab.id,
+						type: 'button',
+						role: 'tab',
+						id: 'rk-modal-tab-' + tab.id,
+						'aria-selected': selected ? 'true' : 'false',
+						'aria-controls': 'rk-modal-panel-' + tab.id,
+						'aria-label': tab.label,
+						title: selected ? undefined : tab.label,
+						tabIndex: selected ? 0 : -1,
+						className: 'rk-modal-tab' + ( selected ? ' is-active' : '' ),
+						onClick: function () { setActiveModalTab( tab.id ); },
+						onKeyDown: function ( event ) { onModalTabKey( event, index ); }
+					},
+					el( 'span', { className: 'dashicons dashicons-' + tab.icon, 'aria-hidden': 'true' } ),
+					selected ? el( 'span', { className: 'rk-modal-tab-label', 'aria-hidden': 'true' }, tab.label ) : null
+				);
+			} )
+		);
+
+		var modalContent = null;
+		if ( 'general' === activeModalTab ) {
+			modalContent = el(
+				'div',
+				{ className: 'rk-modal-tab-panel', role: 'tabpanel', id: 'rk-modal-panel-general', 'aria-labelledby': 'rk-modal-tab-general', tabIndex: 0 },
+				el( SerpPreview, {
+					headingId: 'rk-modal-serp-heading',
+					title: props.titleValue,
+					description: props.descValue,
+					device: props.device,
+					onDevice: props.onDevice,
+					url: props.url
+				} ),
+				el(
+					'div',
+					{ className: 'rk-modal-permalink rk-field' },
+					el( 'label', { className: 'rk-field-label', htmlFor: 'rk-modal-permalink' }, __( 'Permalink', 'rankkernel' ) ),
+					el( 'input', {
+						type: 'text',
+						id: 'rk-modal-permalink',
+						className: 'rk-modal-permalink-input',
+						value: previewUrl,
+						readOnly: true,
+						'aria-readonly': 'true'
+					} ),
+					el( 'p', { className: 'description' }, __( 'The address shown in the preview. Editing is not supported here.', 'rankkernel' ) )
+				),
+				props.titleField,
+				props.descField
+			);
+		} else {
+			modalContent = el(
+				'div',
+				{ className: 'rk-modal-tab-panel', role: 'tabpanel', id: 'rk-modal-panel-social', 'aria-labelledby': 'rk-modal-tab-social', tabIndex: 0 },
+				props.socialContent
+			);
+		}
+
 		var body = el(
 			'div',
 			{ className: 'rk-modal-body rk-meta' },
-			el( SerpPreview, {
-				headingId: 'rk-modal-serp-heading',
-				title: props.titleValue,
-				description: props.descValue,
-				device: props.device,
-				onDevice: props.onDevice,
-				url: props.url
-			} ),
-			el(
-				'p',
-				{ className: 'rk-modal-url' },
-				el( 'span', { className: 'rk-modal-url-label' }, __( 'URL', 'rankkernel' ) + ': ' ),
-				el( 'span', { className: 'rk-modal-url-value' }, props.url || shortUrl( cfg.permalink || cfg.homeUrl || '' ) )
-			),
-			props.titleField,
-			props.descField
+			modalTabNav,
+			modalContent
 		);
+
 		if ( Modal ) {
 			return el(
 				Modal,
@@ -1220,9 +1324,9 @@
 		var deviceState = useState( 'desktop' );
 		var device = deviceState[ 0 ];
 		var setDevice = deviceState[ 1 ];
-		var modalState = useState( false );
-		var modalOpen = modalState[ 0 ];
-		var setModalOpen = modalState[ 1 ];
+		var modalTabState = useState( null );
+		var modalTab = modalTabState[ 0 ];
+		var setModalTab = modalTabState[ 1 ];
 		var socialState = useState( 'facebook' );
 		var socialNetwork = socialState[ 0 ];
 		var setSocialNetwork = socialState[ 1 ];
@@ -1271,6 +1375,8 @@
 			var next = withMeta( meta );
 			if ( 'title' === path || 'description' === path ) {
 				next[ path ] = value;
+			} else if ( 'focus_keywords' === path ) {
+				next.focus_keywords = Array.isArray( value ) ? value : ( typeof value === 'string' ? value.split( ',' ).map( function ( s ) { return s.trim(); } ).filter( Boolean ) : [] );
 			} else if ( 'canonical' === path ) {
 				// Invalid input is never written; the error notice stays
 				// until the value validates or is cleared.
@@ -1394,7 +1500,7 @@
 	}
 
 		function pathValue( path ) {
-			if ( 'title' === path || 'description' === path || 'canonical' === path ) {
+			if ( 'title' === path || 'description' === path || 'canonical' === path || 'focus_keywords' === path ) {
 				return meta[ path ];
 			}
 			if ( 0 === path.indexOf( 'robots.' ) ) {
@@ -1473,9 +1579,14 @@
 				return null;
 			}
 			var limit = opts.limit || 0;
+			var pixelLimit = opts.pixelLimit || 0;
 			var counterText = eff ? eff.text : value;
 			var chars = String( counterText || '' ).length;
+			var px = estimatePixels( counterText );
 			var status = limit > 0 ? counterStatus( chars, limit ) : 'ok';
+			if ( pixelLimit > 0 && px > pixelLimit && 'over' !== status ) {
+				status = 'over';
+			}
 			var invalid = '' !== error;
 			var controlProps = {
 				id: inputId,
@@ -1527,7 +1638,9 @@
 						limit > 0 ? el(
 							'p',
 							{ className: 'rk-meta-count rk-count-text', role: 'status' },
-							chars + ' / ' + limit + ' ' + __( 'chars', 'rankkernel' )
+							pixelLimit > 0
+								? chars + ' / ' + limit + ' (' + px + 'px / ' + pixelLimit + 'px)'
+								: chars + ' / ' + limit + ' ' + __( 'chars', 'rankkernel' )
 						) : null,
 						limit > 0 ? el(
 							'span',
@@ -1632,6 +1745,236 @@
 			} );
 		}
 
+		function FocusKeywordsInput( props ) {
+			var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
+			var inputState = useState( '' );
+			var inputValue = inputState[ 0 ];
+			var setInputValue = inputState[ 1 ];
+
+			function addKeyword( kw ) {
+				var clean = String( kw || '' ).trim();
+				if ( ! clean ) {
+					return;
+				}
+				if ( keywords.indexOf( clean ) >= 0 ) {
+					setInputValue( '' );
+					return;
+				}
+				var next = keywords.concat( [ clean ] );
+				props.onChange( next );
+				setInputValue( '' );
+			}
+
+			function removeKeyword( index ) {
+				var next = keywords.filter( function ( _, i ) { return i !== index; } );
+				props.onChange( next );
+			}
+
+			function handleKeyDown( event ) {
+				if ( 'Enter' === event.key || ',' === event.key ) {
+					event.preventDefault();
+					addKeyword( inputValue );
+				} else if ( 'Backspace' === event.key && ! inputValue && keywords.length > 0 ) {
+					removeKeyword( keywords.length - 1 );
+				}
+			}
+
+			return el(
+				'div',
+				{ className: 'rk-meta-field rk-field rk-focus-keywords-field' },
+				el(
+					'div',
+					{ className: 'rk-meta-field-head rk-field-head' },
+					el( 'label', { className: 'rk-meta-field-label rk-field-label', htmlFor: 'rk-focus-kw-input' }, __( 'Focus Keyword', 'rankkernel' ) ),
+					el( 'span', { className: 'dashicons dashicons-editor-help rk-help-icon', title: __( 'Insert keywords you want to rank for.', 'rankkernel' ) } )
+				),
+				el(
+					'div',
+					{ className: 'rk-keywords-tagify' },
+					keywords.map( function ( kw, idx ) {
+						return el(
+							'span',
+							{ key: idx, className: 'rk-keyword-tag' },
+							el( 'span', { className: 'rk-keyword-tag-text' }, kw ),
+							el(
+								'button',
+								{
+									type: 'button',
+									className: 'rk-keyword-tag-remove',
+									'aria-label': __( 'Remove keyword', 'rankkernel' ) + ': ' + kw,
+									onClick: function () { removeKeyword( idx ); }
+								},
+								'×'
+							)
+						);
+					} ),
+					el( 'input', {
+						id: 'rk-focus-kw-input',
+						type: 'text',
+						className: 'rk-keywords-input',
+						placeholder: keywords.length === 0 ? __( 'e.g. SEO plugin, WordPress', 'rankkernel' ) : '',
+						value: inputValue,
+						onChange: function ( e ) { setInputValue( e.target.value ); },
+						onKeyDown: handleKeyDown,
+						onBlur: function () { addKeyword( inputValue ); }
+					} )
+				),
+				el( 'p', { className: 'description' }, __( 'Press Enter or comma to add focus keywords.', 'rankkernel' ) )
+			);
+		}
+
+		function ContentAnalysisChecklist( props ) {
+			var title = String( props.title || '' );
+			var description = String( props.description || '' );
+			var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
+			var primaryKw = keywords.length > 0 ? String( keywords[ 0 ] ).toLowerCase() : '';
+
+			var checks = [];
+			if ( primaryKw ) {
+				var inTitle = title.toLowerCase().indexOf( primaryKw ) >= 0;
+				checks.push( {
+					id: 'kwInTitle',
+					ok: inTitle,
+					label: inTitle
+						? __( 'Focus Keyword found in SEO Title.', 'rankkernel' )
+						: __( 'Focus Keyword missing from SEO Title.', 'rankkernel' )
+				} );
+				var inDesc = description.toLowerCase().indexOf( primaryKw ) >= 0;
+				checks.push( {
+					id: 'kwInDesc',
+					ok: inDesc,
+					label: inDesc
+						? __( 'Focus Keyword used inside SEO Meta Description.', 'rankkernel' )
+						: __( 'Focus Keyword missing from Meta Description.', 'rankkernel' )
+				} );
+			}
+
+			var titleLen = title.length;
+			checks.push( {
+				id: 'titleLength',
+				ok: titleLen >= 30 && titleLen <= 60,
+				label: titleLen === 0
+					? __( 'SEO title is empty.', 'rankkernel' )
+					: ( titleLen <= 60 ? __( 'SEO Title length is optimal.', 'rankkernel' ) : __( 'SEO Title is too long.', 'rankkernel' ) )
+			} );
+
+			var descLen = description.length;
+			checks.push( {
+				id: 'descLength',
+				ok: descLen >= 100 && descLen <= 160,
+				label: descLen === 0
+					? __( 'Meta description is empty.', 'rankkernel' )
+					: ( descLen <= 160 ? __( 'Meta Description length is good.', 'rankkernel' ) : __( 'Meta Description is too long.', 'rankkernel' ) )
+			} );
+
+			var passCount = checks.filter( function ( c ) { return c.ok; } ).length;
+			var failCount = checks.length - passCount;
+
+			return el(
+				Collapsible,
+				{
+					title: el(
+						'span',
+						{ className: 'rk-checklist-head-inner' },
+						__( 'SEO Analysis', 'rankkernel' ),
+						el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, failCount === 0 ? __( 'All Passed', 'rankkernel' ) : failCount + ' ' + __( 'Warnings', 'rankkernel' ) )
+					),
+					bodyId: 'rk-seo-checklist-body'
+				},
+				el(
+					'ul',
+					{ className: 'rk-checklist-items' },
+					checks.map( function ( check ) {
+						return el(
+							'li',
+							{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
+							el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
+							el( 'span', { className: 'rk-checklist-label' }, check.label )
+						);
+					} )
+				)
+			);
+		}
+
+		function renderSocialContent() {
+			var titleValue = display( 'title', meta.title );
+			var descValue = display( 'description', meta.description );
+			var isTwitter = 'twitter' === socialNetwork;
+			var group = isTwitter ? 'twitter' : 'og';
+			var groupLabel = isTwitter ? __( 'Twitter', 'rankkernel' ) : __( 'Facebook', 'rankkernel' );
+			return el(
+				'div',
+				{ className: 'rk-social-modal-inner' },
+				el(
+					'div',
+					{ className: 'rk-social-switch', role: 'group', 'aria-label': __( 'Social network', 'rankkernel' ) },
+					el( 'button', {
+						type: 'button',
+						className: 'button button-small' + ( ! isTwitter ? ' is-active' : '' ),
+						'aria-pressed': ! isTwitter ? 'true' : 'false',
+						onClick: function () { setSocialNetwork( 'facebook' ); }
+					}, __( 'Facebook', 'rankkernel' ) ),
+					el( 'button', {
+						type: 'button',
+						className: 'button button-small' + ( isTwitter ? ' is-active' : '' ),
+						'aria-pressed': isTwitter ? 'true' : 'false',
+						onClick: function () { setSocialNetwork( 'twitter' ); }
+					}, __( 'Twitter', 'rankkernel' ) )
+				),
+				el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } ),
+				socialImageRow( group, groupLabel + ' ' + __( 'image', 'rankkernel' ) ),
+				metaField( {
+					id: 'rk-social-title',
+					path: group + '.title',
+					label: groupLabel + ' ' + __( 'title', 'rankkernel' ),
+					template: 'title',
+					tokenizable: true,
+					resettable: true
+				} ),
+				metaField( {
+					id: 'rk-social-description',
+					path: group + '.description',
+					label: groupLabel + ' ' + __( 'description', 'rankkernel' ),
+					template: 'description',
+					tokenizable: true,
+					resettable: true,
+					textarea: true,
+					rows: 2
+				} ),
+				el( Collapsible, { title: __( 'Network settings', 'rankkernel' ), bodyId: 'rk-social-settings' },
+					el(
+						'div',
+						null,
+						metaField( {
+							id: 'rk-og-type',
+							path: 'og.type',
+							label: __( 'Open Graph type', 'rankkernel' ),
+							help: __( 'Leave blank to inherit (article for posts, website for pages).', 'rankkernel' )
+						} ),
+						SelectControl ? el( SelectControl, {
+							id: 'rk-twitter-card',
+							label: __( 'Twitter card', 'rankkernel' ),
+							value: meta.twitter.card,
+							options: [
+								{ label: __( 'Summary with large image', 'rankkernel' ), value: 'summary_large_image' },
+								{ label: __( 'Summary', 'rankkernel' ), value: 'summary' }
+							],
+							onChange: function ( next ) {
+								if ( ! editPost ) {
+									return;
+								}
+								var updated = withMeta( meta );
+								updated.twitter.card = next;
+								var payload = {};
+								payload[ META_KEY ] = updated;
+								editPost( { meta: payload } );
+							}
+						} ) : null
+					)
+				)
+			);
+		}
+
 		function generalPanel() {
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
@@ -1646,24 +1989,20 @@
 					device: device,
 					onDevice: setDevice,
 					url: permalink,
-					onEdit: function () { setModalOpen( true ); }
+					onEdit: function () { setModalTab( 'general' ); }
 				} ),
-				metaField( { id: 'rk-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
-				metaField( { id: 'rk-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 3 } ),
-				// Extension seam: future focus keyword and content analysis
-				// modules mount here. This container is intentionally empty;
-				// it reserves the slot at the end of General without building
-				// those modules now.
-				el( 'div', { className: 'rk-ext-seam', id: 'rk-ext-analysis' } ),
-				modalOpen ? el( PreviewModal, {
+				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview shows the published values.', 'rankkernel' ) ),
+				modalTab ? el( PreviewModal, {
+					initialTab: modalTab,
 					titleValue: titleValue,
 					descValue: descValue,
 					device: device,
 					onDevice: setDevice,
 					url: permalink,
-					onClose: function () { setModalOpen( false ); },
-					titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, tokenizable: true, resettable: true } ),
-					descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, tokenizable: true, resettable: true, textarea: true, rows: 4 } )
+					onClose: function () { setModalTab( null ); },
+					titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, pixelLimit: TITLE_PX, tokenizable: true, resettable: true, help: __( 'Shown as the first line of the search result. Blank uses the template.', 'rankkernel' ) } ),
+					descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, pixelLimit: DESC_PX, tokenizable: true, resettable: true, textarea: true, rows: 4, help: __( 'Shown under the title in the search result. Blank uses the template.', 'rankkernel' ) } ),
+					socialContent: renderSocialContent()
 				} ) : null
 			);
 		}
@@ -1953,11 +2292,26 @@
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
 			var isTwitter = 'twitter' === socialNetwork;
-			var group = isTwitter ? 'twitter' : 'og';
-			var groupLabel = isTwitter ? __( 'Twitter', 'rankkernel' ) : __( 'Facebook', 'rankkernel' );
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-social', 'aria-labelledby': 'rk-tab-social', tabIndex: 0 },
+				el(
+					'div',
+					{ className: 'rk-social-notice-card rk-field' },
+					el( 'h4', { className: 'rk-social-notice-title' }, __( 'Social Media Preview', 'rankkernel' ) ),
+					el( 'p', { className: 'description rk-social-notice-desc' }, __( 'Here you can view and edit the thumbnail, title and description that will be displayed when your site is shared on social media.', 'rankkernel' ) ),
+					el( 'p', { className: 'description rk-social-notice-sub' }, __( 'Click on the button below to view and edit the preview.', 'rankkernel' ) ),
+					el(
+						'button',
+						{
+							type: 'button',
+							className: 'button button-primary rk-edit-snippet-btn',
+							onClick: function () { setModalTab( 'social' ); }
+						},
+						el( 'span', { className: 'dashicons dashicons-edit', 'aria-hidden': 'true' } ),
+						el( 'span', null, __( 'Edit Snippet', 'rankkernel' ) )
+					)
+				),
 				el(
 					'div',
 					{ className: 'rk-social-switch', role: 'group', 'aria-label': __( 'Social network', 'rankkernel' ) },
@@ -1974,57 +2328,7 @@
 						onClick: function () { setSocialNetwork( 'twitter' ); }
 					}, __( 'Twitter', 'rankkernel' ) )
 				),
-				el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } ),
-				socialImageRow( group, groupLabel + ' ' + __( 'image', 'rankkernel' ) ),
-				metaField( {
-					id: 'rk-social-title',
-					path: group + '.title',
-					label: groupLabel + ' ' + __( 'title', 'rankkernel' ),
-					template: 'title',
-					tokenizable: true,
-					resettable: true
-				} ),
-				metaField( {
-					id: 'rk-social-description',
-					path: group + '.description',
-					label: groupLabel + ' ' + __( 'description', 'rankkernel' ),
-					template: 'description',
-					tokenizable: true,
-					resettable: true,
-					textarea: true,
-					rows: 2
-				} ),
-				el( Collapsible, { title: __( 'Network settings', 'rankkernel' ), bodyId: 'rk-social-settings' },
-					el(
-						'div',
-						null,
-						metaField( {
-							id: 'rk-og-type',
-							path: 'og.type',
-							label: __( 'Open Graph type', 'rankkernel' ),
-							help: __( 'Leave blank to inherit (article for posts, website for pages).', 'rankkernel' )
-						} ),
-						SelectControl ? el( SelectControl, {
-							id: 'rk-twitter-card',
-							label: __( 'Twitter card', 'rankkernel' ),
-							value: meta.twitter.card,
-							options: [
-								{ label: __( 'Summary with large image', 'rankkernel' ), value: 'summary_large_image' },
-								{ label: __( 'Summary', 'rankkernel' ), value: 'summary' }
-							],
-							onChange: function ( next ) {
-								if ( ! editPost ) {
-									return;
-								}
-								var updated = withMeta( meta );
-								updated.twitter.card = next;
-								var payload = {};
-								payload[ META_KEY ] = updated;
-								editPost( { meta: payload } );
-							}
-						} ) : null
-					)
-				)
+				el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } )
 			);
 		}
 

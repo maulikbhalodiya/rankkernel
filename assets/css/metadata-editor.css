@@ -308,18 +308,35 @@ visibly disabled until the field becomes custom. */
 	gap: var(--rk-space-2);
 	inset-inline: 0;
 	margin-top: var(--rk-space-2);
-	max-height: 180px;
-	max-width: 100%;
-	min-width: 0;
-	overflow: auto;
+	max-height: 240px;
+	max-width: min(320px, calc(100vw - 48px));
+	min-width: min(260px, calc(100vw - 48px));
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: var(--rk-space-2);
 	position: absolute;
+	width: max-content;
 	z-index: 5;
 }
 
 .rk-meta .rk-token-pop .button {
 	max-width: 100%;
 	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-token-pop .button.rk-token-row {
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 100%;
+	flex-direction: column;
+	gap: 0;
+	height: auto;
+	min-height: 0;
+	padding: var(--rk-space-1) var(--rk-space-2);
+	text-align: start;
+	white-space: normal;
+	width: 100%;
 }
 
 .rk-meta .rk-meta-row-actions {
@@ -348,14 +365,29 @@ visibly disabled until the field becomes custom. */
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-lg);
 	box-shadow: var(--rk-shadow-sm);
-	margin: 0 0 var(--rk-space-3);
+	margin: 0 auto var(--rk-space-3);
 	max-width: 100%;
 	min-width: 0;
 	padding: var(--rk-space-3) var(--rk-space-4);
 }
 
-.rk-meta .rk-meta-serp.rk-is-mobile {
-	max-width: 100%;
+.rk-meta .rk-meta-serp.rk-is-mobile,
+.rk-meta .rk-serp.rk-is-mobile {
+	margin-inline: auto;
+	max-width: 240px;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile .rk-meta-serp-title,
+.rk-meta .rk-serp.rk-is-mobile .rk-meta-serp-title {
+	font-size: var(--rk-font-size-md);
+	-webkit-line-clamp: 3;
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile .rk-meta-serp-desc,
+.rk-meta .rk-serp.rk-is-mobile .rk-meta-serp-desc {
+	font-size: var(--rk-font-size-xs);
+	-webkit-line-clamp: 2;
 }
 
 /* Segmented device control: visible active state, no layout jump. */
@@ -746,19 +778,31 @@ accessible name and tooltip. */
 	margin-bottom: var(--rk-space-2);
 }
 
-.rk-preview-modal .rk-modal-url {
-	font-size: var(--rk-font-size-sm);
+.rk-preview-modal .rk-modal-permalink {
 	margin: 0 0 var(--rk-space-3);
-	overflow-wrap: anywhere;
+	max-width: 100%;
+	min-width: 0;
 }
 
-.rk-preview-modal .rk-modal-url-label {
-	color: var(--rk-color-text-muted);
+.rk-preview-modal .rk-modal-permalink .rk-field-label {
+	display: block;
 	font-weight: 600;
+	margin-bottom: var(--rk-space-1);
 }
 
-.rk-preview-modal .rk-modal-url-value {
-	color: var(--rk-color-secondary-1);
+.rk-preview-modal .rk-modal-permalink-input {
+	box-sizing: border-box;
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-preview-modal .rk-modal-permalink .description {
+	color: var(--rk-color-text-muted);
+	margin: var(--rk-space-1) 0 0;
+}
+
+.rk-meta .rk-serp-edit-note {
+	margin: 0 0 var(--rk-space-1);
 }
 
 /* Fallback dialog when wp.components.Modal is unavailable. */
@@ -980,12 +1024,17 @@ the Edit Snippet action. */
 }
 
 .rk-meta .rk-token-pop .button .rk-token-name {
-	font-weight: 600;
+	font-weight: 700;
 }
 
-.rk-meta .rk-token-pop .button .rk-token-value {
+.rk-meta .rk-token-pop .button .rk-token-desc {
 	color: var(--rk-color-text-muted);
+	display: block;
 	font-weight: 400;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .rk-meta .rk-token-close {
@@ -1090,7 +1139,9 @@ the Edit Snippet action. */
 }
 
 .rk-preview-modal .rk-token-pop {
-	max-height: 220px;
+	max-height: 240px;
+	max-width: min(360px, calc(100vw - 64px));
+	min-width: min(300px, calc(100vw - 64px));
 }
 
 @media screen and (max-width: 782px) {
@@ -1099,3 +1150,208 @@ the Edit Snippet action. */
 		width: calc(100% - 24px);
 	}
 }
+
+/* Focus Keyword & Tagify style chips */
+
+.rk-meta .rk-focus-keywords-field {
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-meta .rk-keywords-tagify {
+	align-items: center;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 6px 8px;
+	transition: border-color 0.15s ease-in-out;
+}
+
+.rk-meta .rk-keywords-tagify:focus-within {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-meta .rk-keyword-tag {
+	align-items: center;
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-color-primary);
+	border-radius: 4px;
+	color: var(--rk-color-primary-active);
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 500;
+	gap: 4px;
+	line-height: 1.4;
+	padding: 2px 6px;
+}
+
+.rk-meta .rk-keyword-tag-remove {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	color: var(--rk-color-primary-active);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: bold;
+	line-height: 1;
+	padding: 0 2px;
+}
+
+.rk-meta .rk-keyword-tag-remove:hover {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-keywords-input {
+	background: transparent;
+	border: 0 !important;
+	box-shadow: none !important;
+	flex: 1 1 100px;
+	font-size: 13px;
+	min-width: 80px;
+	outline: none !important;
+	padding: 2px 4px !important;
+}
+
+/* SEO Analysis Checklist */
+
+.rk-meta .rk-checklist-head-inner {
+	align-items: center;
+	display: inline-flex;
+	justify-content: space-between;
+	width: 100%;
+}
+
+.rk-meta .rk-checklist-badge {
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-ok {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-warn {
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-meta .rk-checklist-items {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+}
+
+.rk-meta .rk-checklist-item {
+	align-items: flex-start;
+	display: flex;
+	font-size: 12px;
+	gap: 8px;
+	line-height: 1.4;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-checklist-item .dashicons {
+	flex: 0 0 auto;
+	font-size: 16px;
+	height: 16px;
+	margin-top: 1px;
+	width: 16px;
+}
+
+.rk-meta .rk-checklist-item.is-ok .dashicons {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-checklist-item.is-fail .dashicons {
+	color: var(--rk-color-secondary-4);
+}
+
+/* Edit Snippet modal tabs: icon plus label while active, icon only while inactive. */
+
+.rk-meta .rk-modal-tabs {
+	border-bottom: 2px solid var(--rk-color-border);
+	display: flex;
+	gap: 4px;
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-meta .rk-modal-tab {
+	align-items: center;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	color: var(--rk-color-text-muted);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 13px;
+	font-weight: 600;
+	gap: 6px;
+	justify-content: center;
+	margin-bottom: -2px;
+	min-height: 40px;
+	min-width: 48px;
+	padding: 8px 16px;
+	transition: all 0.15s ease-in-out;
+}
+
+.rk-meta .rk-modal-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-modal-tab.is-active {
+	border-bottom-color: var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+.rk-meta .rk-modal-tab .dashicons {
+	flex: 0 0 auto;
+	font-size: 16px;
+	height: 16px;
+	width: 16px;
+}
+
+.rk-meta .rk-modal-tab .rk-modal-tab-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Social Tab Callout Card */
+
+.rk-meta .rk-social-notice-card {
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	padding: var(--rk-space-4);
+}
+
+.rk-meta .rk-social-notice-title {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 8px;
+}
+
+.rk-meta .rk-social-notice-desc,
+.rk-meta .rk-social-notice-sub {
+	color: var(--rk-color-text-muted);
+	font-size: 12px;
+	line-height: 1.5;
+	margin: 0 0 10px;
+}
+
+.rk-meta .rk-social-notice-card .rk-edit-snippet-btn {
+	align-items: center;
+	display: inline-flex;
+	font-weight: 600;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+
