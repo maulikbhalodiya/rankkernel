@@ -1,0 +1,78 @@
+/**
+ * RankKernel admin design tokens.
+ *
+ * The authoritative global token layer for every RankKernel admin surface.
+ * Loaded (via @import from each feature stylesheet) only on RankKernel
+ * screens. Every rule below is scoped to a RankKernel root class so these
+ * custom properties can never leak onto unrelated admin screens.
+ *
+ * Feature stylesheets (metadata, redirects, monitor, future modules) must
+ * consume these tokens via var(--rk-*) and must not define their own
+ * palette. Raw hex belongs here alone.
+ */
+
+.rk-meta,
+.rk-side,
+.rankkernel-meta-editor,
+.rk-redirects,
+.rk-monitor {
+	/* Brand and action. Primary marks primary actions, the active tab,
+	selected states and focus. Used sparingly elsewhere. */
+	--rk-color-primary: #2563EB;
+	--rk-color-primary-hover: #1D4ED8;
+	--rk-color-primary-active: #1E40AF;
+	--rk-color-primary-soft: #EFF6FF;
+
+	/* Secondary 1: positive and healthy SEO states. */
+	--rk-color-secondary-1: #0F766E;
+	--rk-color-secondary-1-soft: #F0FDFA;
+
+	/* Secondary 2: Schema and structured data accents only. */
+	--rk-color-secondary-2: #7C3AED;
+	--rk-color-secondary-2-soft: #F5F3FF;
+
+	/* Secondary 3: warnings and needs review. */
+	--rk-color-secondary-3: #EA580C;
+	--rk-color-secondary-3-soft: #FFF7ED;
+
+	/* Secondary 4: errors, invalid values and destructive actions ONLY.
+	Never used merely because a value is not optimal. */
+	--rk-color-secondary-4: #DC2626;
+	--rk-color-secondary-4-soft: #FEF2F2;
+
+	/* Text and chrome. */
+	--rk-color-text: #1E293B;
+	--rk-color-text-secondary: #475569;
+	--rk-color-text-muted: #64748B;
+	--rk-color-border: #E2E8F0;
+	--rk-color-border-strong: #CBD5E1;
+	--rk-color-surface: #FFFFFF;
+	--rk-color-surface-subtle: #F8FAFC;
+	--rk-color-surface-muted: #F1F5F9;
+	--rk-color-focus: #2563EB;
+
+	/* Shape and depth. */
+	--rk-radius-sm: 4px;
+	--rk-radius-md: 6px;
+	--rk-radius-lg: 8px;
+	--rk-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+	--rk-shadow-md: 0 4px 12px rgba(15, 23, 42, .08);
+
+	/* Spacing scale, 4px base. Components use these steps only. */
+	--rk-space-1: 4px;
+	--rk-space-2: 8px;
+	--rk-space-3: 12px;
+	--rk-space-4: 16px;
+	--rk-space-5: 20px;
+	--rk-space-6: 24px;
+
+	/* Type scale. */
+	--rk-font-size-xs: 12px;
+	--rk-font-size-sm: 13px;
+	--rk-font-size-md: 14px;
+	--rk-font-size-lg: 17px;
+	--rk-font-size-xl: 18px;
+	--rk-line-height-tight: 1.3;
+	--rk-line-height-normal: 1.5;
+	--rk-line-height-loose: 1.6;
+}

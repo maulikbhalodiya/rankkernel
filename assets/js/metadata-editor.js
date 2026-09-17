@@ -214,6 +214,7 @@
 			tabs.forEach( function ( other ) {
 				var selected = other === tab;
 				other.setAttribute( 'aria-selected', selected ? 'true' : 'false' );
+				other.classList.toggle( 'is-active', selected );
 				other.tabIndex = selected ? 0 : -1;
 			} );
 			panels().forEach( function ( panel ) {
@@ -324,19 +325,40 @@
 			var barStatus = counterStatus( String( text || '' ).length, limit );
 			bar.setAttribute( 'data-rk-state', barStatus );
 		}
+		var statusNode = $( root, '[data-rk-status-for="' + key + '"]' );
+		if ( statusNode ) {
+			var pillStatus = counterStatus( String( text || '' ).length, limit );
+			statusNode.textContent = statusWord( pillStatus );
+			statusNode.setAttribute( 'data-rk-state', pillStatus );
+		}
 	}
 
 	function updateInheritedBadge( root, key, inherited ) {
 		var badge = $( root, '[data-rankkernel-inherited-' + key + ']' );
-		if ( ! badge ) {
-			return;
+		if ( badge ) {
+			badge.textContent = inherited
+				? str( 'inherited', 'Inherited from the template' )
+				: str( 'customOverride', 'Custom override active' );
+			badge.setAttribute( 'data-rk-state', inherited ? 'inherited' : 'custom' );
+			badge.classList.toggle( 'rk-is-inherited', inherited );
+			badge.classList.toggle( 'rk-is-custom', ! inherited );
 		}
-		badge.textContent = inherited
-			? str( 'inherited', 'Inherited from the template' )
-			: str( 'customOverride', 'Custom override active' );
-		badge.setAttribute( 'data-rk-state', inherited ? 'inherited' : 'custom' );
-		badge.classList.toggle( 'rk-is-inherited', inherited );
-		badge.classList.toggle( 'rk-is-custom', ! inherited );
+		// Disabled checkboxes are not submitted, which matches the inherited
+		// state, so disabling the reset here never loses a stored override.
+		var reset = $( root, '[data-rk-reset="' + key + '"]' );
+		if ( reset ) {
+			if ( 'INPUT' === reset.tagName && 'checkbox' === reset.type ) {
+				reset.checked = false;
+				reset.disabled = inherited;
+			} else {
+				reset.disabled = inherited;
+			}
+			reset.classList.toggle( 'is-disabled', inherited );
+			var resetRow = reset.closest ? reset.closest( '.rk-classic-reset' ) : null;
+			if ( resetRow ) {
+				resetRow.classList.toggle( 'is-disabled', inherited );
+			}
+		}
 	}
 
 	function updateSerp( root, values ) {
@@ -573,11 +595,32 @@
 		updateCounter( root, 'description', desc.text, DESC_LIMIT );
 		updateInheritedBadge( root, 'title', title.inherited );
 		updateInheritedBadge( root, 'description', desc.inherited );
+		updateFieldResets( root, values );
 		updateSerp( root, values );
 		updateSocial( root, values );
 		updateThumbs( root, values );
 		updateCanonical( root, values );
 		updateSchemaStatus( root );
+	}
+
+	function updateFieldResets( root, values ) {
+		var states = {
+			ogTitle: values.ogTitle,
+			ogDescription: values.ogDescription,
+			twTitle: values.twTitle,
+			twDescription: values.twDescription,
+			ogImage: values.ogImage,
+			twImage: values.twImage
+		};
+		Object.keys( states ).forEach( function ( key ) {
+			var reset = $( root, '[data-rk-reset="' + key + '"]' );
+			if ( ! reset ) {
+				return;
+			}
+			var empty = '' === String( states[ key ] == null ? '' : states[ key ] ).trim();
+			reset.disabled = empty;
+			reset.classList.toggle( 'is-disabled', empty );
+		} );
 	}
 
 	function initResets( root, schedule ) {

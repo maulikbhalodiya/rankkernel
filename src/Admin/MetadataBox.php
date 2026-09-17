@@ -312,6 +312,12 @@ final class MetadataBox {
 	 * @param mixed  $post     Current post object.
 	 */
 	public function addBoxes( string $postType, mixed $post = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
+		// The block editor already renders the same controls through the
+		// sidebar, so registering the box there would duplicate every field.
+		if ( $this->isBlockEditorScreen() ) {
+			return;
+		}
+
 		if ( ! $this->isSupportedType( $postType ) ) {
 			return;
 		}
@@ -690,6 +696,29 @@ final class MetadataBox {
 		$types = function_exists( 'get_post_types' ) ? get_post_types( [ 'public' => true ] ) : [];
 
 		return is_array( $types ) && in_array( $postType, array_values( $types ), true );
+	}
+
+	/**
+	 * Whether the current admin screen is the block editor.
+	 *
+	 * Guarded so unit tests that stub or omit get_current_screen keep
+	 * working, and so a screen without is_block_editor() fails safe to the
+	 * Classic Editor behavior instead of fataling.
+	 *
+	 * @return bool The result.
+	 */
+	private function isBlockEditorScreen(): bool {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		if ( ! is_object( $screen ) || ! method_exists( $screen, 'is_block_editor' ) ) {
+			return false;
+		}
+
+		return (bool) $screen->is_block_editor();
 	}
 
 	/**

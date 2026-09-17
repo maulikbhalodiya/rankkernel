@@ -484,36 +484,51 @@
 		var chars = String( props.text || '' ).length;
 		var status = counterStatus( chars, props.limit );
 		var pct = Math.min( 100, Math.round( ( chars / props.limit ) * 100 ) );
+		var tone = 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' );
 		return el(
 			'div',
-			{ className: 'rk-count' },
+			{ className: 'rk-count rk-field-meter' },
 			el(
 				'div',
 				{ className: 'rk-count-bar', role: 'presentation' },
 				el( 'div', {
-					className: 'rk-count-fill ' + ( 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' ) ),
+					className: 'rk-count-fill ' + tone,
 					style: { width: pct + '%' }
 				} )
 			),
 			el(
-				'p',
-				{
-					className: 'rk-meta-count ' + ( 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' ) ),
-					role: 'status'
-				},
-				chars + ' / ' + props.limit + ' ' + __( 'chars', 'rankkernel' ) + ', ' + statusWord( status )
+				'div',
+				{ className: 'rk-field-foot' },
+				el(
+					'p',
+					{
+						className: 'rk-meta-count ' + tone,
+						role: 'status'
+					},
+					chars + ' / ' + props.limit + ' ' + __( 'chars', 'rankkernel' ) + ', ' + statusWord( status )
+				),
+				el(
+					'span',
+					{ className: 'rk-field-status', 'data-rk-state': status, 'aria-hidden': 'true' },
+					statusWord( status )
+				)
 			)
 		);
 	}
 
 	function FieldReset( props ) {
+		var disabled = true === props.disabled;
 		return el(
 			'button',
 			{
 				type: 'button',
-				className: 'button button-small rk-reset',
-				onClick: props.onReset,
-				'aria-label': __( 'Reset to template', 'rankkernel' ) + ': ' + props.label
+				className: 'button button-small rk-reset rk-field-reset' + ( disabled ? ' is-disabled' : '' ),
+				disabled: disabled,
+				'aria-disabled': disabled ? 'true' : 'false',
+				'aria-label': ( disabled
+					? __( 'Using template value', 'rankkernel' )
+					: __( 'Remove post-level override', 'rankkernel' ) ) + ': ' + props.label,
+				onClick: props.onReset
 			},
 			__( 'Reset to template', 'rankkernel' )
 		);
@@ -544,12 +559,12 @@
 		}
 		return el(
 			'div',
-			{ className: 'rk-meta-tokens' },
+			{ className: 'rk-meta-tokens rk-field-tokens' },
 			el(
 				'button',
 				{
 					type: 'button',
-					className: 'button button-small',
+					className: 'button button-small rk-token-toggle',
 					'aria-expanded': open ? 'true' : 'false',
 					'aria-controls': props.listId,
 					onClick: function () { setOpen( ! open ); }
@@ -558,7 +573,7 @@
 			),
 			open ? el(
 				'div',
-				{ className: 'rk-meta-token-list', role: 'group', id: props.listId, 'aria-label': __( 'Insert token', 'rankkernel' ) },
+				{ className: 'rk-token-pop', role: 'group', id: props.listId, 'aria-label': __( 'Insert token', 'rankkernel' ) },
 				tokens.map( function ( token ) {
 					return el(
 						'button',
@@ -655,7 +670,7 @@
 	function RadioPair( props ) {
 		return el(
 			'fieldset',
-			{ className: 'rk-meta-field rk-radio-pair' },
+			{ className: 'rk-meta-field rk-field rk-radio-pair' },
 			el( 'legend', null, props.legend ),
 			props.options.map( function ( option ) {
 				var id = props.name + '-' + option.value;
@@ -938,24 +953,29 @@
 			if ( opts.rows ) {
 				controlProps.rows = opts.rows;
 			}
-			return el(
+		return el(
+			'div',
+			{ className: 'rk-meta-field rk-field' + ( error ? ' is-invalid' : '' ) },
+			eff ? el(
 				'div',
-				{ className: 'rk-meta-field' },
-				eff ? el(
-					'div',
-					{ className: 'rk-meta-field-head' },
-					el( StateBadge, { inherited: inherited } )
-				) : null,
-				el( Control, controlProps ),
-				error ? el( 'p', { className: 'rk-error', role: 'alert' }, error ) : null,
-				opts.limit ? el( Counter, { text: eff ? eff.text : value, limit: opts.limit } ) : null,
+				{ className: 'rk-meta-field-head rk-field-head' },
+				el( StateBadge, { inherited: inherited } )
+			) : null,
+			el( Control, controlProps ),
+			error ? el( 'p', { className: 'rk-error', role: 'alert' }, error ) : null,
+			opts.limit ? el( Counter, { text: eff ? eff.text : value, limit: opts.limit } ) : null,
+			opts.tokenizable || opts.resettable ? el(
+				'div',
+				{ className: 'rk-field-foot rk-field-actions' },
 				opts.tokenizable ? tokenGroup( path, opts.id + '-tokens' ) : null,
 				opts.resettable ? el( FieldReset, {
 					label: opts.label,
+					disabled: inherited,
 					onReset: function () { resetField( path ); }
 				} ) : null
-			);
-		}
+			) : null
+		);
+	}
 
 		// Canonical flushes through URL validation: invalid input shows an
 		// error and is never written to the store.
@@ -987,14 +1007,14 @@
 			if ( ! TextControl ) {
 				return null;
 			}
-			return el(
+		return el(
+			'div',
+			{ className: 'rk-meta-field rk-field' + ( error ? ' is-invalid' : '' ) },
+			el(
 				'div',
-				{ className: 'rk-meta-field' },
-				el(
-					'div',
-					{ className: 'rk-meta-field-head' },
-					el( StateBadge, { inherited: inherited } )
-				),
+				{ className: 'rk-meta-field-head rk-field-head' },
+				el( StateBadge, { inherited: inherited } )
+			),
 				el( TextControl, {
 					id: 'rk-canonical',
 					label: __( 'Canonical URL', 'rankkernel' ),
@@ -1013,10 +1033,10 @@
 		function imageRow( group, label, selectLabel ) {
 			var current = meta[ group ];
 			var prefix = 'rk-' + group + '-image';
-			return el(
-				'div',
-				{ className: 'rk-meta-field' },
-				el( 'span', { className: 'rk-meta-field-label', id: prefix + '-label' }, label ),
+		return el(
+			'div',
+			{ className: 'rk-meta-field rk-field' },
+			el( 'span', { className: 'rk-meta-field-label rk-field-label', id: prefix + '-label' }, label ),
 				current.image ? el( 'img', { className: 'rk-meta-thumb', src: current.image, alt: '' } ) : null,
 				el(
 					'div',
@@ -1187,12 +1207,12 @@
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-schema', 'aria-labelledby': 'rk-tab-schema', tabIndex: 0 },
+			el(
+				'div',
+				{ className: 'rk-meta-field rk-field' },
 				el(
-					'div',
-					{ className: 'rk-meta-field' },
-					el(
-						'p',
-						{ className: 'rk-status', role: 'status' },
+					'p',
+					{ className: 'rk-status rk-schema-accent', role: 'status' },
 						disabled ? __( 'Schema output is disabled for this post.', 'rankkernel' ) : __( 'Schema output is enabled for this post.', 'rankkernel' )
 					),
 					CheckboxControl ? el( CheckboxControl, {
@@ -1201,9 +1221,9 @@
 						onChange: function ( next ) { setSchemaKey( 'disabled', true === next ); }
 					} ) : null
 				),
-				SelectControl ? el(
-					'div',
-					{ className: 'rk-meta-field' },
+			SelectControl ? el(
+				'div',
+				{ className: 'rk-meta-field rk-field' },
 					el( SelectControl, {
 						id: 'rk-schema-type',
 						label: __( 'Schema type', 'rankkernel' ),

@@ -112,7 +112,7 @@ if ( $schemaDisabled ) {
 	</div>
 
 	<div class="rk-classic-panel" id="rankkernel-meta-panel-general" data-rk-panel="general" role="tabpanel" aria-labelledby="rankkernel-meta-tab-general" tabindex="0">
-		<section class="rk-classic-card" aria-labelledby="rankkernel-meta-serp-heading">
+		<section class="rk-classic-card rk-field" aria-labelledby="rankkernel-meta-serp-heading">
 			<div class="rk-classic-serp" data-rankkernel-preview="1" data-rankkernel-preview-url="<?php echo esc_attr( $previewUrl ); ?>" data-rankkernel-preview-sitename="<?php echo esc_attr( $previewSiteName ); ?>">
 				<div class="rk-classic-serp-top">
 					<h3 id="rankkernel-meta-serp-heading"><?php echo esc_html__( 'Search preview', 'rankkernel' ); ?></h3>
@@ -121,15 +121,20 @@ if ( $schemaDisabled ) {
 						<button type="button" class="button button-small" data-rk-preview="mobile" aria-pressed="false"><?php echo esc_html__( 'Mobile', 'rankkernel' ); ?></button>
 					</div>
 				</div>
-				<p class="rk-classic-serp-site" id="rankkernel-meta-preview-site"><?php echo esc_html( $previewSiteName ); ?></p>
-				<p class="rk-classic-serp-url" id="rankkernel-meta-preview-url"><?php echo esc_html( $previewUrl ); ?></p>
+				<div class="rk-serp-row">
+					<span class="rk-serp-mark" aria-hidden="true"><?php echo esc_html( '' !== $previewSiteName ? mb_strtoupper( mb_substr( $previewSiteName, 0, 1 ) ) : 'R' ); ?></span>
+					<div class="rk-serp-id">
+						<p class="rk-classic-serp-site" id="rankkernel-meta-preview-site"><?php echo esc_html( $previewSiteName ); ?></p>
+						<p class="rk-classic-serp-url" id="rankkernel-meta-preview-url"><?php echo esc_html( $previewUrl ); ?></p>
+					</div>
+				</div>
 				<p class="rk-classic-serp-title" id="rankkernel-meta-preview-title"><?php echo esc_html( $effectiveTitle ); ?></p>
 				<p class="rk-classic-serp-desc" id="rankkernel-meta-preview-description"><?php echo esc_html( $effectiveDescription ); ?></p>
 				<p class="description"><?php echo esc_html__( 'Preview is approximate, not exact search rendering.', 'rankkernel' ); ?></p>
 			</div>
 		</section>
 
-		<section class="rk-classic-card" aria-labelledby="rankkernel-meta-title-label">
+		<section class="rk-classic-card rk-field" aria-labelledby="rankkernel-meta-title-label">
 			<div class="rk-classic-field-head">
 				<label id="rankkernel-meta-title-label" for="rankkernel-meta-title"><?php echo esc_html__( 'SEO title', 'rankkernel' ); ?></label>
 				<span class="rk-classic-badge" data-rankkernel-inherited-title="1" data-rk-state="<?php echo $titleInherited ? 'inherited' : 'custom'; ?>"><?php echo esc_html( $titleInherited ? __( 'Inherited', 'rankkernel' ) : __( 'Custom', 'rankkernel' ) ); ?></span>
@@ -140,6 +145,7 @@ if ( $schemaDisabled ) {
 				<span class="rk-classic-bar" aria-hidden="true" data-rk-bar-for="title" data-rk-state="ok"><span></span></span>
 			</div>
 			<div class="rk-classic-field-foot">
+				<span class="rk-classic-status" data-rk-status-for="title" data-rk-state="ok" aria-hidden="true"></span>
 				<label class="rk-classic-reset" for="rankkernel-meta-reset-title"><input type="checkbox" id="rankkernel-meta-reset-title" name="rankkernel_meta_reset[title]" value="1" data-rk-reset="title" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
 			</div>
 			<details class="rk-classic-tokens">
@@ -153,7 +159,7 @@ if ( $schemaDisabled ) {
 			<p class="description" id="rankkernel-meta-title-help"><?php echo esc_html__( 'Blank uses the template. Typing makes it custom.', 'rankkernel' ); ?></p>
 		</section>
 
-		<section class="rk-classic-card" aria-labelledby="rankkernel-meta-description-label">
+		<section class="rk-classic-card rk-field" aria-labelledby="rankkernel-meta-description-label">
 			<div class="rk-classic-field-head">
 				<label id="rankkernel-meta-description-label" for="rankkernel-meta-description"><?php echo esc_html__( 'Meta description', 'rankkernel' ); ?></label>
 				<span class="rk-classic-badge" data-rankkernel-inherited-description="1" data-rk-state="<?php echo $descriptionInherited ? 'inherited' : 'custom'; ?>"><?php echo esc_html( $descriptionInherited ? __( 'Inherited', 'rankkernel' ) : __( 'Custom', 'rankkernel' ) ); ?></span>
@@ -164,6 +170,7 @@ if ( $schemaDisabled ) {
 				<span class="rk-classic-bar" aria-hidden="true" data-rk-bar-for="description" data-rk-state="ok"><span></span></span>
 			</div>
 			<div class="rk-classic-field-foot">
+				<span class="rk-classic-status" data-rk-status-for="description" data-rk-state="ok" aria-hidden="true"></span>
 				<label class="rk-classic-reset" for="rankkernel-meta-reset-description"><input type="checkbox" id="rankkernel-meta-reset-description" name="rankkernel_meta_reset[description]" value="1" data-rk-reset="description" /> <?php echo esc_html__( 'Reset to template', 'rankkernel' ); ?></label>
 			</div>
 			<details class="rk-classic-tokens">
@@ -224,7 +231,7 @@ if ( $schemaDisabled ) {
 			</p>
 		</details>
 
-		<section class="rk-classic-card" aria-labelledby="rankkernel-meta-canonical-label">
+		<section class="rk-classic-card rk-field" aria-labelledby="rankkernel-meta-canonical-label">
 			<div class="rk-classic-field-head">
 				<label id="rankkernel-meta-canonical-label" for="rankkernel-meta-canonical"><?php echo esc_html__( 'Canonical URL', 'rankkernel' ); ?></label>
 				<span class="rk-classic-badge" data-rk-canonical-state="1" data-rk-state="<?php echo $canonicalCustom ? 'custom' : 'default'; ?>"><?php echo esc_html( $canonicalCustom ? __( 'Custom', 'rankkernel' ) : __( 'Default', 'rankkernel' ) ); ?></span>
