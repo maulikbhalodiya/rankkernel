@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\TagsReplacer;
+use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Plugin;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
@@ -62,6 +63,7 @@ final class MetadataBox {
 	 */
 	private const EDITOR_SCRIPT  = 'rankkernel-metadata-editor';
 	private const EDITOR_STYLE   = 'rankkernel-metadata-editor';
+	private const CLASSIC_STYLE  = 'rankkernel-metadata-classic';
 	private const SIDEBAR_SCRIPT = 'rankkernel-metadata-sidebar';
 	private const LOCALIZE_NAME  = 'rankkernelMetaEditor';
 
@@ -84,6 +86,157 @@ final class MetadataBox {
 	 * @var string[]
 	 */
 	private const PREVIEW_VALUES = [ 'none', 'standard', 'large' ];
+
+	/**
+	 * Manual schema field keys with labels for the Schema tab.
+	 *
+	 * Mirrored from SchemaMetabox, which owns the schema save path. The
+	 * Classic SEO box renders the same rows so both surfaces post the
+	 * same names; keep this map in sync with that class.
+	 *
+	 * @var array<string, string>
+	 */
+	private const SCHEMA_FIELD_LABELS = [
+		'headline'           => 'Headline',
+		'description'        => 'Description',
+		'author'             => 'Author',
+		'price'              => 'Price',
+		'priceCurrency'      => 'Price currency',
+		'sku'                => 'SKU',
+		'availability'       => 'Availability',
+		'ratingValue'        => 'Rating value',
+		'reviewCount'        => 'Review count',
+		'bestRating'         => 'Best rating',
+		'worstRating'        => 'Worst rating',
+		'isbn'               => 'ISBN',
+		'startDate'          => 'Start date',
+		'endDate'            => 'End date',
+		'locationName'       => 'Location name',
+		'streetAddress'      => 'Street address',
+		'addressLocality'    => 'City',
+		'addressRegion'      => 'Region',
+		'postalCode'         => 'Postal code',
+		'addressCountry'     => 'Country',
+		'performer'          => 'Performer',
+		'eventStatus'        => 'Event status',
+		'ingredients'        => 'Ingredients',
+		'instructions'       => 'Instructions',
+		'prepTime'           => 'Prep time',
+		'cookTime'           => 'Cook time',
+		'totalTime'          => 'Total time',
+		'yield'              => 'Yield',
+		'areaServed'         => 'Area served',
+		'thumbnailUrl'       => 'Thumbnail URL',
+		'uploadDate'         => 'Upload date',
+		'duration'           => 'Duration',
+		'contentUrl'         => 'Content URL',
+		'appCategory'        => 'App category',
+		'operatingSystem'    => 'Operating system',
+		'artist'             => 'Artist',
+		'album'              => 'Album',
+		'dateCreated'        => 'Date created',
+		'director'           => 'Director',
+		'company'            => 'Company',
+		'jobLocation'        => 'Job location',
+		'salary'             => 'Salary',
+		'datePosted'         => 'Date posted',
+		'validThrough'       => 'Valid through',
+		'claimReviewed'      => 'Claim reviewed',
+		'datePublished'      => 'Date published',
+		'license'            => 'License URL',
+		'distributionUrl'    => 'File URL',
+		'distributionFormat' => 'File format',
+		'seriesName'         => 'Series name',
+		'question'           => 'Question',
+		'answer'             => 'Answer',
+		'answerAuthor'       => 'Answer author',
+		'itemName'           => 'Reviewed item',
+		'reviewBody'         => 'Review text',
+		'telephone'          => 'Phone',
+		'priceRange'         => 'Price range',
+		'openingHours'       => 'Opening hours',
+		'caption'            => 'Caption',
+		'width'              => 'Width',
+		'height'             => 'Height',
+		'speakable'          => 'Speakable selectors',
+		'about'              => 'About',
+		'mentions'           => 'Mentions',
+	];
+
+	/**
+	 * Manual schema field visibility per type, mirrored from SchemaMetabox.
+	 *
+	 * Every key a schema piece reads lives here, so the Schema tab can
+	 * set each one. Rows unrelated to the chosen type stay hidden.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private const SCHEMA_FIELD_TYPES = [
+		'headline'           => [ '*' ],
+		'description'        => [ '*' ],
+		'author'             => [ '*' ],
+		'price'              => [ 'Product', 'Event', 'Service', 'SoftwareApplication' ],
+		'priceCurrency'      => [ 'Product', 'Event', 'Service', 'JobPosting', 'SoftwareApplication' ],
+		'sku'                => [ 'Product' ],
+		'availability'       => [ 'Product' ],
+		'ratingValue'        => [ 'Product', 'SoftwareApplication', 'Movie', 'ClaimReview', 'Review' ],
+		'reviewCount'        => [ 'Product', 'SoftwareApplication', 'Movie' ],
+		'bestRating'         => [ 'ClaimReview', 'Review' ],
+		'worstRating'        => [ 'ClaimReview', 'Review' ],
+		'isbn'               => [ 'Book' ],
+		'startDate'          => [ 'Event' ],
+		'endDate'            => [ 'Event' ],
+		'locationName'       => [ 'Event', 'JobPosting' ],
+		'streetAddress'      => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+		'addressLocality'    => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+		'addressRegion'      => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+		'postalCode'         => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+		'addressCountry'     => [ 'Event', 'LocalBusiness', 'JobPosting' ],
+		'performer'          => [ 'Event' ],
+		'eventStatus'        => [ 'Event' ],
+		'ingredients'        => [ 'Recipe' ],
+		'instructions'       => [ 'Recipe' ],
+		'prepTime'           => [ 'Recipe' ],
+		'cookTime'           => [ 'Recipe' ],
+		'totalTime'          => [ 'Recipe' ],
+		'yield'              => [ 'Recipe' ],
+		'areaServed'         => [ 'Service' ],
+		'thumbnailUrl'       => [ 'VideoObject' ],
+		'uploadDate'         => [ 'VideoObject' ],
+		'duration'           => [ 'VideoObject', 'PodcastEpisode' ],
+		'contentUrl'         => [ 'VideoObject', 'PodcastEpisode', 'ImageObject' ],
+		'appCategory'        => [ 'SoftwareApplication' ],
+		'operatingSystem'    => [ 'SoftwareApplication' ],
+		'artist'             => [ 'MusicRecording' ],
+		'album'              => [ 'MusicRecording' ],
+		'dateCreated'        => [ 'Movie' ],
+		'director'           => [ 'Movie' ],
+		'company'            => [ 'JobPosting' ],
+		'jobLocation'        => [ 'JobPosting' ],
+		'salary'             => [ 'JobPosting' ],
+		'datePosted'         => [ 'JobPosting' ],
+		'validThrough'       => [ 'JobPosting' ],
+		'claimReviewed'      => [ 'ClaimReview' ],
+		'datePublished'      => [ 'ClaimReview', 'PodcastEpisode', 'Review' ],
+		'license'            => [ 'Dataset' ],
+		'distributionUrl'    => [ 'Dataset' ],
+		'distributionFormat' => [ 'Dataset' ],
+		'seriesName'         => [ 'PodcastEpisode' ],
+		'question'           => [ 'QAPage' ],
+		'answer'             => [ 'QAPage' ],
+		'answerAuthor'       => [ 'QAPage' ],
+		'itemName'           => [ 'Review' ],
+		'reviewBody'         => [ 'Review' ],
+		'telephone'          => [ 'LocalBusiness' ],
+		'priceRange'         => [ 'LocalBusiness' ],
+		'openingHours'       => [ 'LocalBusiness' ],
+		'caption'            => [ 'ImageObject' ],
+		'width'              => [ 'ImageObject' ],
+		'height'             => [ 'ImageObject' ],
+		'speakable'          => [ 'WebPage' ],
+		'about'              => [ 'WebPage' ],
+		'mentions'           => [ 'WebPage' ],
+	];
 
 	/**
 	 * Tokens the backend can resolve through TagsReplacer, with labels.
@@ -198,10 +351,14 @@ final class MetadataBox {
 		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
 		$scriptSrc  = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/metadata-editor.js', $pluginFile ) : '';
 		$styleSrc   = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-editor.css', $pluginFile ) : '';
+		$classicSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-classic.css', $pluginFile ) : '';
 		$version    = Plugin::version();
 
 		wp_register_style( self::EDITOR_STYLE, $styleSrc, [], $version );
 		wp_enqueue_style( self::EDITOR_STYLE );
+
+		wp_register_style( self::CLASSIC_STYLE, $classicSrc, [], $version );
+		wp_enqueue_style( self::CLASSIC_STYLE );
 
 		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [], $version, true );
 
@@ -326,6 +483,58 @@ final class MetadataBox {
 
 		$previewUrl      = function_exists( 'get_permalink' ) ? (string) get_permalink( $postId ) : '';
 		$previewSiteName = $context->siteName();
+
+		$robotsIndex     = ! empty( $robots['index'] );
+		$robotsFollow    = ! empty( $robots['follow'] );
+		$canonicalCustom = '' !== trim( $canonical );
+
+		$schemaPostType = function_exists( 'get_post_type' ) ? (string) get_post_type( $postId ) : '';
+		$schema         = $this->readSchemaSubtree( $meta );
+		$schemaDisabled = ! empty( $schema['disabled'] );
+
+		$rawSchemaType  = $schema['type'] ?? '';
+		$schemaSelected = ( is_string( $rawSchemaType ) && in_array( $rawSchemaType, SchemaTypes::SUPPORTED, true ) )
+			? $rawSchemaType
+			: '';
+
+		$schemaResolved = $this->resolvedSchemaDefault( $schemaPostType );
+
+		$schemaAutoLabel = '' !== $schemaResolved
+			// translators: %s: schema type name, e.g. Blog Posting.
+			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $schemaResolved ) )
+			: __( 'Automatic', 'rankkernel' );
+
+		$schemaTypeOptions = [];
+
+		foreach ( SchemaTypes::SUPPORTED as $supportedType ) {
+			$schemaTypeOptions[] = [
+				'value' => $supportedType,
+				'label' => SchemaTypes::label( $supportedType ),
+			];
+		}
+
+		$schemaFieldRows = $this->schemaFieldRows( $schema, $schemaSelected );
+		$schemaCustom    = ( isset( $schema['custom'] ) && is_array( $schema['custom'] ) ) ? $schema['custom'] : [];
+
+		if ( function_exists( 'wp_json_encode' ) ) {
+			$schemaCustomJson = (string) wp_json_encode( $schemaCustom, JSON_PRETTY_PRINT );
+		} else {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
+			$schemaCustomJson = (string) json_encode( $schemaCustom, JSON_PRETTY_PRINT );
+		}
+
+		$schemaValidationMessages = $this->schemaValidationMessages( $schemaSelected, $schema );
+		$schemaValidationLabel    = '' === $schemaSelected ? 'Automatic' : $schemaSelected;
+
+		$schemaRichResultsUrl = 'https://search.google.com/test/rich-results?url=' . rawurlencode( $previewUrl );
+		$schemaValidatorUrl   = 'https://validator.schema.org/';
+
+		$schemaExportUrl = ( function_exists( 'wp_nonce_url' ) && function_exists( 'admin_url' ) )
+			? wp_nonce_url(
+				admin_url( 'admin-post.php?action=rankkernel_schema_export&post=' . $postId ),
+				'rankkernel_schema_export_' . $postId
+			)
+			: '#';
 
 		require __DIR__ . '/Views/metadata-box.php';
 	}
@@ -992,6 +1201,191 @@ final class MetadataBox {
 		$value = $meta[ $key ] ?? [];
 
 		return is_array( $value ) ? $value : [];
+	}
+
+	/**
+	 * Read the schema subtree, legacy lists become empty.
+	 *
+	 * Mirrors SchemaMetabox so the Schema tab renders the same state the
+	 * schema save path persists.
+	 *
+	 * @param array<string, mixed> $meta Sanitized payload.
+	 * @return array<string, mixed> The result.
+	 */
+	private function readSchemaSubtree( array $meta ): array {
+		$schema = $meta['schema'] ?? [];
+
+		if ( ! is_array( $schema ) ) {
+			return [];
+		}
+
+		if ( [] !== $schema && array_is_list( $schema ) ) {
+			return [];
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Resolved default schema type for a post type.
+	 *
+	 * Setting first, post type mapping fallback, mirroring SchemaMetabox.
+	 *
+	 * @param string $postType Post type slug.
+	 * @return string The result.
+	 */
+	private function resolvedSchemaDefault( string $postType ): string {
+		if ( '' !== $postType ) {
+			$setting = trim( (string) $this->store->get( 'schema_default_' . $postType, '' ) );
+
+			if ( in_array( $setting, SchemaTypes::SUPPORTED, true ) ) {
+				return $setting;
+			}
+		}
+
+		return SchemaTypes::defaultForPostType( $postType );
+	}
+
+	/**
+	 * Manual field override rows for the Schema tab.
+	 *
+	 * Names match the schema save path exactly so persistence is
+	 * untouched; ids are prefixed for this box so the standalone schema
+	 * box never shares an id with these rows.
+	 *
+	 * @param array<string, mixed> $schema   Stored schema subtree.
+	 * @param string               $selected Selected type, empty for automatic.
+	 * @return array<int, array{id: string, name: string, label: string, value: string, types: string, hidden: bool}> The result.
+	 */
+	private function schemaFieldRows( array $schema, string $selected ): array {
+		$fields = ( isset( $schema['fields'] ) && is_array( $schema['fields'] ) ) ? $schema['fields'] : [];
+		$rows   = [];
+
+		foreach ( self::SCHEMA_FIELD_LABELS as $fieldKey => $fieldLabel ) {
+			$rows[] = [
+				'id'     => 'rankkernel-meta-schema-field-' . $fieldKey,
+				'name'   => 'rankkernel_schema_fields[' . $fieldKey . ']',
+				'label'  => $fieldLabel,
+				'value'  => isset( $fields[ $fieldKey ] ) && is_scalar( $fields[ $fieldKey ] ) ? (string) $fields[ $fieldKey ] : '',
+				'types'  => implode( ',', self::SCHEMA_FIELD_TYPES[ $fieldKey ] ),
+				'hidden' => ! $this->schemaFieldVisible( $fieldKey, $selected ),
+			];
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Whether a manual schema field row shows for the selected type.
+	 *
+	 * @param string $fieldKey Key.
+	 * @param string $selected Selected type, empty for automatic.
+	 * @return bool The result.
+	 */
+	private function schemaFieldVisible( string $fieldKey, string $selected ): bool {
+		$allowed = self::SCHEMA_FIELD_TYPES[ $fieldKey ];
+
+		if ( in_array( '*', $allowed, true ) ) {
+			return true;
+		}
+
+		return '' !== $selected && in_array( $selected, $allowed, true );
+	}
+
+	/**
+	 * Missing required schema fields for the selected type.
+	 *
+	 * Mirrors SchemaMetabox::validationMessages through the central
+	 * SchemaTypes registry, so the tab warning and the piece gating
+	 * logic can never drift apart.
+	 *
+	 * @param string               $selected Selected type, empty for automatic.
+	 * @param array<string, mixed> $schema   Stored schema subtree.
+	 * @return string[] The result.
+	 */
+	private function schemaValidationMessages( string $selected, array $schema ): array {
+		if ( '' === $selected ) {
+			return [];
+		}
+
+		if ( 'FAQPage' === $selected ) {
+			return 0 === $this->countSchemaQuestions( $schema )
+				? [ 'At least one question is required for FAQPage.' ]
+				: [];
+		}
+
+		if ( 'HowTo' === $selected ) {
+			return 0 === $this->countSchemaSteps( $schema )
+				? [ 'At least one step is required for HowTo.' ]
+				: [];
+		}
+
+		$fields = ( isset( $schema['fields'] ) && is_array( $schema['fields'] ) ) ? $schema['fields'] : [];
+
+		$messages = [];
+
+		foreach ( SchemaTypes::requiredFields( $selected ) as $requiredField ) {
+			$value = isset( $fields[ $requiredField ] ) ? trim( (string) $fields[ $requiredField ] ) : '';
+
+			if ( '' === $value ) {
+				$messages[] = SchemaTypes::requiredMessage( $selected, $requiredField );
+			}
+		}
+
+		return $messages;
+	}
+
+	/**
+	 * Count valid FAQ questions, rows with a non empty question.
+	 *
+	 * @param array<string, mixed> $schema Stored schema subtree.
+	 * @return int The result.
+	 */
+	private function countSchemaQuestions( array $schema ): int {
+		$faq  = ( isset( $schema['faq'] ) && is_array( $schema['faq'] ) ) ? $schema['faq'] : [];
+		$rows = ( isset( $faq['questions'] ) && is_array( $faq['questions'] ) ) ? $faq['questions'] : [];
+
+		$count = 0;
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			if ( '' !== trim( (string) ( $row['question'] ?? '' ) ) ) {
+				++$count;
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Count valid HowTo steps, rows with a title or text.
+	 *
+	 * @param array<string, mixed> $schema Stored schema subtree.
+	 * @return int The result.
+	 */
+	private function countSchemaSteps( array $schema ): int {
+		$howto = ( isset( $schema['howto'] ) && is_array( $schema['howto'] ) ) ? $schema['howto'] : [];
+		$rows  = ( isset( $howto['steps'] ) && is_array( $howto['steps'] ) ) ? $howto['steps'] : [];
+
+		$count = 0;
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$rowTitle = trim( (string) ( $row['title'] ?? '' ) );
+			$rowText  = trim( (string) ( $row['text'] ?? '' ) );
+
+			if ( '' !== $rowTitle || '' !== $rowText ) {
+				++$count;
+			}
+		}
+
+		return $count;
 	}
 
 	/**

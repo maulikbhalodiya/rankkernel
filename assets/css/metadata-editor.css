@@ -400,3 +400,188 @@
 		max-width: 100%;
 	}
 }
+
+/*
+ * Gutenberg sidebar surface. Every rule below is scoped under
+ * .rk-meta.rk-side so the shared Classic panel above is untouched.
+ * Compact, single column, built for narrow sidebar width.
+ */
+.rk-meta.rk-side {
+	max-width: none;
+}
+
+.rk-meta.rk-side .rk-meta-tabs {
+	flex-wrap: wrap;
+}
+
+.rk-meta.rk-side .rk-meta-tab {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+	padding: 6px 10px;
+}
+
+.rk-meta.rk-side .rk-meta-tab .dashicons {
+	font-size: 16px;
+	height: 16px;
+	width: 16px;
+}
+
+.rk-meta.rk-side .rk-meta-field {
+	padding: 10px 12px;
+}
+
+.rk-meta.rk-side .rk-meta-serp {
+	margin: 0 0 12px;
+	padding: 12px;
+}
+
+.rk-meta.rk-side .rk-serp-row {
+	align-items: flex-start;
+	display: flex;
+	gap: 10px;
+	margin-bottom: 4px;
+}
+
+.rk-meta.rk-side .rk-serp-mark {
+	border-radius: 50%;
+	flex: 0 0 auto;
+	height: 28px;
+	width: 28px;
+}
+
+.rk-meta.rk-side .rk-serp-letter {
+	align-items: center;
+	background: #f0f0f1;
+	color: #1d2327;
+	display: inline-flex;
+	font-size: 16px;
+	font-weight: 600;
+	justify-content: center;
+}
+
+.rk-meta.rk-side .rk-serp-id {
+	min-width: 0;
+}
+
+.rk-meta.rk-side .rk-meta-serp-title {
+	font-size: 17px;
+}
+
+.rk-meta.rk-side .rk-count-bar {
+	background: #f0f0f1;
+	border-radius: 999px;
+	height: 4px;
+	margin-top: 8px;
+	overflow: hidden;
+}
+
+.rk-meta.rk-side .rk-count-fill {
+	height: 100%;
+}
+
+.rk-meta.rk-side .rk-count-fill.rk-is-ok {
+	background: #1a7f37;
+}
+
+.rk-meta.rk-side .rk-count-fill.rk-is-warn {
+	background: #dba617;
+}
+
+.rk-meta.rk-side .rk-count-fill.rk-is-over {
+	background: #b32d2e;
+}
+
+.rk-meta.rk-side .rk-radio-pair {
+	border: 1px solid #c3c4c7;
+}
+
+.rk-meta.rk-side .rk-radio-pair legend {
+	font-weight: 600;
+}
+
+.rk-meta.rk-side .rk-radio {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+	margin-right: 16px;
+}
+
+.rk-meta.rk-side .rk-error {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.rk-meta.rk-side .rk-status {
+	font-weight: 600;
+	margin: 0 0 8px;
+}
+
+.rk-meta.rk-side .rk-notice {
+	border-left: 4px solid #c3c4c7;
+	margin: 8px 0;
+	padding: 8px 10px;
+}
+
+.rk-meta.rk-side .rk-notice.rk-is-ok {
+	border-left-color: #1a7f37;
+}
+
+.rk-meta.rk-side .rk-notice.rk-is-warn {
+	border-left-color: #dba617;
+}
+
+.rk-meta.rk-side .rk-notice ul {
+	margin: 0;
+	padding-left: 18px;
+}
+
+.rk-meta.rk-side .rk-collapsible {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 0 0 12px;
+	padding: 10px 12px;
+}
+
+.rk-meta.rk-side .rk-collapsible-summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.rk-meta.rk-side .rk-meta-social.rk-is-compact {
+	display: flex;
+	gap: 12px;
+}
+
+.rk-meta.rk-side .rk-meta-social.rk-is-compact .rk-meta-social-image {
+	max-width: 120px;
+}
+
+.rk-meta.rk-side .rk-meta-thumb {
+	max-width: 100%;
+}
+
+.rk-meta.rk-side .rk-import-label {
+	align-self: center;
+	font-weight: 600;
+}
+
+.rk-meta.rk-side .rk-ext-seam:empty {
+	display: none;
+}
+
+.rk-meta.rk-side .components-panel__body {
+	margin: 0 0 12px;
+}
+
+.rk-meta.rk-side .screen-reader-text {
+	border: 0;
+	clip: rect(1px, 1px, 1px, 1px);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+}

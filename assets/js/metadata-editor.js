@@ -44,14 +44,6 @@
 	};
 
 	var TOKEN_TARGETS = [ 'title', 'description', 'ogTitle', 'ogDescription', 'twTitle', 'twDescription' ];
-	var INHERITED_FIELDS = {
-		title: 'title',
-		description: 'description',
-		ogTitle: 'title',
-		ogDescription: 'description',
-		twTitle: 'title',
-		twDescription: 'description'
-	};
 
 	function $( root, selector ) {
 		return root.querySelector( selector );
@@ -105,12 +97,9 @@
 	 * one and it will be preferred.
 	 */
 	function field( root, name, id ) {
-		var byId = id ? document.getElementById( id ) : null;
-		if ( byId && root.contains( byId ) ) {
-			return byId;
-		}
-		if ( byId && ! root.contains( byId ) && ! root.querySelector ) {
-			return byId;
+		var found = id ? document.getElementById( id ) : null;
+		if ( found && root.contains( found ) ) {
+			return found;
 		}
 		return $( root, '[name="' + name + '"]' );
 	}
@@ -200,7 +189,7 @@
 		var event;
 		try {
 			event = new Event( 'input', { bubbles: true } );
-		} catch ( e ) {
+		} catch ( err ) {
 			event = document.createEvent( 'Event' );
 			event.initEvent( 'input', true, true );
 		}
@@ -312,17 +301,29 @@
 
 	function updateCounter( root, key, text, limit ) {
 		var node = $( root, '[data-rk-count-for="' + key + '"]' );
-		if ( ! node ) {
-			return;
+		if ( node ) {
+			var chars = String( text || '' ).length;
+			var px = measureWidth( text );
+			var status = counterStatus( chars, limit );
+			var pxLabel = px >= 0 ? String( px ) + 'px' : str( 'charsOnly', 'chars only' );
+			node.textContent = chars + ' / ' + limit + ' ' + str( 'charsLabel', 'chars' ) + ', ' + pxLabel + ', ' + statusWord( status );
+			node.setAttribute( 'data-rk-state', status );
+			node.classList.remove( 'rk-is-ok', 'rk-is-warn', 'rk-is-over' );
+			node.classList.add( 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' ) );
 		}
-		var chars = String( text || '' ).length;
-		var px = measureWidth( text );
-		var status = counterStatus( chars, limit );
-		var pxLabel = px >= 0 ? String( px ) + 'px' : str( 'charsOnly', 'chars only' );
-		node.textContent = chars + ' / ' + limit + ' ' + str( 'charsLabel', 'chars' ) + ', ' + pxLabel + ', ' + statusWord( status );
-		node.setAttribute( 'data-rk-state', status );
-		node.classList.remove( 'rk-is-ok', 'rk-is-warn', 'rk-is-over' );
-		node.classList.add( 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' ) );
+		var bar = $( root, '[data-rk-bar-for="' + key + '"]' );
+		if ( bar ) {
+			var width = 0;
+			if ( limit > 0 ) {
+				width = Math.min( 100, Math.round( String( text || '' ).length / limit * 100 ) );
+			}
+			var fill = bar.querySelector( 'span' );
+			if ( fill ) {
+				fill.style.width = String( width ) + '%';
+			}
+			var barStatus = counterStatus( String( text || '' ).length, limit );
+			bar.setAttribute( 'data-rk-state', barStatus );
+		}
 	}
 
 	function updateInheritedBadge( root, key, inherited ) {
@@ -363,14 +364,44 @@
 		}
 	}
 
+	function socialTitle( values ) {
+		if ( String( values.ogTitle ).trim() !== '' ) {
+			return String( values.ogTitle );
+		}
+		if ( String( values.twTitle ).trim() !== '' ) {
+			return String( values.twTitle );
+		}
+		return effectiveValue( values.title, 'title' ).text;
+	}
+
+	function socialDescription( values ) {
+		if ( String( values.ogDescription ).trim() !== '' ) {
+			return String( values.ogDescription );
+		}
+		if ( String( values.twDescription ).trim() !== '' ) {
+			return String( values.twDescription );
+		}
+		return effectiveValue( values.description, 'description' ).text;
+	}
+
+	function socialImage( values ) {
+		if ( String( values.ogImage ).trim() !== '' ) {
+			return String( values.ogImage ).trim();
+		}
+		if ( String( values.twImage ).trim() !== '' ) {
+			return String( values.twImage ).trim();
+		}
+		return String( defaults.ogImage || '' );
+	}
+
 	function updateSocial( root, values ) {
 		var box = $( root, '[data-rk-social]' );
 		if ( ! box ) {
 			return;
 		}
-		var title = String( values.ogTitle ).trim() !== '' ? String( values.ogTitle ) : effectiveValue( values.title, 'title' ).text;
-		var desc = String( values.ogDescription ).trim() !== '' ? String( values.ogDescription ) : effectiveValue( values.description, 'description' ).text;
-		var image = String( values.ogImage ).trim() !== '' ? String( values.ogImage ).trim() : String( defaults.ogImage || '' );
+		var title = socialTitle( values );
+		var desc = socialDescription( values );
+		var image = socialImage( values );
 		var titleNode = $( box, '[data-rk-social-title]' );
 		var descNode = $( box, '[data-rk-social-desc]' );
 		var siteNode = $( box, '[data-rk-social-site]' );
@@ -404,15 +435,132 @@
 		box.setAttribute( 'data-rk-card', 'summary' === card ? 'summary' : 'summary_large_image' );
 	}
 
+	function updateThumbs( root, values ) {
+		var rows = $all( root, '[data-rk-image-row]' );
+		rows.forEach( function ( row ) {
+			var kind = row.getAttribute( 'data-rk-image-row' );
+			var isOg = 'twitter' !== kind;
+			var url = isOg ? values.ogImage : values.twImage;
+			var thumb = $( row, 'img' );
+			var remove = $( row, '[data-rankkernel-remove-image]' );
+			var select = $( row, '[data-rankkernel-select-image]' );
+			var hasImage = String( url ).trim() !== '';
+			if ( thumb ) {
+				if ( hasImage ) {
+					thumb.setAttribute( 'src', String( url ).trim() );
+					thumb.removeAttribute( 'hidden' );
+				} else {
+					thumb.setAttribute( 'src', '' );
+					thumb.setAttribute( 'hidden', '' );
+				}
+				thumb.setAttribute( 'alt', '' );
+			}
+			if ( remove ) {
+				if ( hasImage ) {
+					remove.removeAttribute( 'hidden' );
+				} else {
+					remove.setAttribute( 'hidden', '' );
+				}
+			}
+			if ( select ) {
+				select.textContent = hasImage
+					? str( 'changeImage', 'Change image' )
+					: str( 'selectImage', 'Select image' );
+			}
+		} );
+	}
+
+	function isCanonicalValid( raw ) {
+		var value = String( raw == null ? '' : raw ).trim();
+		if ( '' === value ) {
+			return true;
+		}
+		try {
+			var parsed = new URL( value );
+			return 'http:' === parsed.protocol || 'https:' === parsed.protocol;
+		} catch ( e ) {
+			return false;
+		}
+	}
+
+	function updateCanonical( root, values ) {
+		var input = field( root, FIELD_NAMES.canonical, 'rankkernel-meta-canonical' );
+		var badge = $( root, '[data-rk-canonical-state]' );
+		var error = $( root, '[data-rk-canonical-error]' );
+		var valid = isCanonicalValid( values.canonical );
+		var custom = String( values.canonical ).trim() !== '';
+		if ( badge ) {
+			badge.textContent = custom
+				? str( 'customLabel', 'Custom' )
+				: str( 'defaultLabel', 'Default' );
+			badge.setAttribute( 'data-rk-state', valid ? ( custom ? 'custom' : 'default' ) : 'invalid' );
+		}
+		if ( error ) {
+			if ( valid ) {
+				error.setAttribute( 'hidden', '' );
+				error.textContent = '';
+			} else {
+				error.textContent = str( 'canonicalError', 'Enter a full URL starting with http:// or https://. Invalid input is ignored on save.' );
+				error.removeAttribute( 'hidden' );
+			}
+		}
+		if ( input ) {
+			if ( valid ) {
+				input.removeAttribute( 'aria-invalid' );
+			} else {
+				input.setAttribute( 'aria-invalid', 'true' );
+			}
+		}
+	}
+
+	function updateSchemaStatus( root ) {
+		var node = $( root, '[data-rk-schema-status]' );
+		if ( ! node ) {
+			return;
+		}
+		var select = byId( root, 'rankkernel-meta-schema-type' );
+		var disabled = byId( root, 'rankkernel-meta-schema-disabled' );
+		if ( disabled && disabled.checked ) {
+			node.textContent = str( 'schemaDisabled', 'Disabled for this post. No structured data prints.' );
+			return;
+		}
+		var current = select ? String( select.value || '' ) : '';
+		if ( '' !== current ) {
+			var label = current;
+			if ( select && select.selectedIndex >= 0 && select.options[ select.selectedIndex ] ) {
+				label = select.options[ select.selectedIndex ].text || current;
+			}
+			node.textContent = str( 'schemaCustomPrefix', 'Custom type: ' ) + label + '.';
+			return;
+		}
+		node.textContent = str( 'schemaStatusPrefix', 'Status: ' ) + String( node.getAttribute( 'data-rk-schema-auto' ) || '' ) + '.';
+	}
+
+	function filterSchemaRows( root ) {
+		var select = byId( root, 'rankkernel-meta-schema-type' );
+		var current = select ? String( select.value || '' ) : '';
+		$all( root, '[data-rankkernel-field-types]' ).forEach( function ( row ) {
+			var allowed = String( row.getAttribute( 'data-rankkernel-field-types' ) || '' ).split( ',' );
+			var show = allowed.indexOf( '*' ) !== -1 || ( '' !== current && allowed.indexOf( current ) !== -1 );
+			if ( show ) {
+				row.removeAttribute( 'hidden' );
+			} else {
+				row.setAttribute( 'hidden', '' );
+			}
+		} );
+	}
+
 	function readValues( root ) {
 		return {
 			title: fieldValue( root, FIELD_NAMES.title, 'rankkernel-meta-title' ),
 			description: fieldValue( root, FIELD_NAMES.description, 'rankkernel-meta-description' ),
+			canonical: fieldValue( root, FIELD_NAMES.canonical, 'rankkernel-meta-canonical' ),
 			ogTitle: fieldValue( root, FIELD_NAMES.ogTitle, 'rankkernel-meta-og-title' ),
 			ogDescription: fieldValue( root, FIELD_NAMES.ogDescription, 'rankkernel-meta-og-description' ),
 			ogImage: fieldValue( root, FIELD_NAMES.ogImage, 'rankkernel-meta-og-image' ),
 			twTitle: fieldValue( root, FIELD_NAMES.twTitle, 'rankkernel-meta-twitter-title' ),
 			twDescription: fieldValue( root, FIELD_NAMES.twDescription, 'rankkernel-meta-twitter-description' ),
+			twImage: fieldValue( root, FIELD_NAMES.twImage, 'rankkernel-meta-twitter-image' ),
 			twCard: fieldValue( root, FIELD_NAMES.twCard, 'rankkernel-meta-twitter-card' )
 		};
 	}
@@ -425,20 +573,11 @@
 		updateCounter( root, 'description', desc.text, DESC_LIMIT );
 		updateInheritedBadge( root, 'title', title.inherited );
 		updateInheritedBadge( root, 'description', desc.inherited );
-		Object.keys( INHERITED_FIELDS ).forEach( function ( key ) {
-			var map = {
-				title: 'title',
-				description: 'description',
-				ogTitle: 'ogTitle',
-				ogDescription: 'ogDescription',
-				twTitle: 'twTitle',
-				twDescription: 'twDescription'
-			};
-			var raw = values[ map[ key ] ];
-			updateInheritedBadge( root, key, String( raw == null ? '' : raw ).trim() === '' );
-		} );
 		updateSerp( root, values );
 		updateSocial( root, values );
+		updateThumbs( root, values );
+		updateCanonical( root, values );
+		updateSchemaStatus( root );
 	}
 
 	function initResets( root, schedule ) {
@@ -463,7 +602,11 @@
 				if ( ! input ) {
 					return;
 				}
-				input.value = '';
+				if ( 'checkbox' === input.type ) {
+					input.checked = false;
+				} else {
+					input.value = '';
+				}
 				var idField = null;
 				if ( 'ogImage' === key ) {
 					idField = field( root, FIELD_NAMES.ogImageId, 'rankkernel-meta-og-image-id' );
@@ -474,7 +617,9 @@
 					idField.value = '';
 				}
 				schedule();
-				input.focus();
+				if ( input.focus ) {
+					input.focus();
+				}
 			} );
 		} );
 	}
@@ -497,7 +642,7 @@
 	}
 
 	function openMedia( root, kind, schedule ) {
-		var isOg = 'og' !== kind ? false : true;
+		var isOg = 'og' === kind;
 		var urlField = field( root, isOg ? FIELD_NAMES.ogImage : FIELD_NAMES.twImage, isOg ? 'rankkernel-meta-og-image' : 'rankkernel-meta-twitter-image' );
 		var idField = field( root, isOg ? FIELD_NAMES.ogImageId : FIELD_NAMES.twImageId, isOg ? 'rankkernel-meta-og-image-id' : 'rankkernel-meta-twitter-image-id' );
 		if ( ! urlField ) {
@@ -551,6 +696,23 @@
 		} );
 	}
 
+	function initSchema( root ) {
+		var select = byId( root, 'rankkernel-meta-schema-type' );
+		var disabled = byId( root, 'rankkernel-meta-schema-disabled' );
+		if ( select ) {
+			select.addEventListener( 'change', function () {
+				filterSchemaRows( root );
+				updateSchemaStatus( root );
+			} );
+			filterSchemaRows( root );
+		}
+		if ( disabled ) {
+			disabled.addEventListener( 'change', function () {
+				updateSchemaStatus( root );
+			} );
+		}
+	}
+
 	function initRoot( root ) {
 		var schedule = debounce( function () {
 			refresh( root );
@@ -588,11 +750,24 @@
 		initResets( root, schedule );
 		initDeviceToggle( root );
 		initMedia( root, schedule );
+		initSchema( root );
 
 		root.addEventListener( 'input', function ( event ) {
 			var target = event.target;
-			if ( target && 'INPUT' !== target.tagName && 'TEXTAREA' !== target.tagName && 'SELECT' !== target.tagName ) {
+			if ( ! target || ( 'INPUT' !== target.tagName && 'TEXTAREA' !== target.tagName && 'SELECT' !== target.tagName ) ) {
 				return;
+			}
+			if ( target === field( root, FIELD_NAMES.title, 'rankkernel-meta-title' ) ) {
+				var titleReset = byId( root, 'rankkernel-meta-reset-title' );
+				if ( titleReset && titleReset.checked ) {
+					titleReset.checked = false;
+				}
+			}
+			if ( target === field( root, FIELD_NAMES.description, 'rankkernel-meta-description' ) ) {
+				var descReset = byId( root, 'rankkernel-meta-reset-description' );
+				if ( descReset && descReset.checked ) {
+					descReset.checked = false;
+				}
 			}
 			schedule();
 		} );

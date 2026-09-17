@@ -1,0 +1,430 @@
+/**
+ * RankKernel Classic metadata box styles.
+ *
+ * Loaded only on post edit screens alongside the editor script. Every rule
+ * is scoped under .rankkernel-meta-editor so nothing leaks onto other admin
+ * screens or the frontend.
+ */
+
+.rankkernel-meta-editor {
+	--rk-classic-gap: 12px;
+	--rk-classic-card: #fff;
+	--rk-classic-border: #c3c4c7;
+	--rk-classic-text: #1d2327;
+	--rk-classic-muted: #50575e;
+	--rk-classic-accent: #2271b1;
+	--rk-classic-ok: #1a7f37;
+	--rk-classic-ok-bg: #edfaef;
+	--rk-classic-warn: #946200;
+	--rk-classic-over: #b32d2e;
+	--rk-classic-soft: #f0f0f1;
+	max-width: 760px;
+}
+
+/* Tabs */
+
+.rankkernel-meta-editor .rk-classic-tabs {
+	border-bottom: 1px solid var(--rk-classic-border);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 0 0 16px;
+}
+
+.rankkernel-meta-editor .rk-classic-tab {
+	background: var(--rk-classic-soft);
+	border: 1px solid var(--rk-classic-border);
+	border-bottom: none;
+	border-radius: 4px 4px 0 0;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 8px 14px;
+}
+
+.rankkernel-meta-editor .rk-classic-tab[aria-selected="true"] {
+	background: var(--rk-classic-card);
+	color: var(--rk-classic-text);
+}
+
+.rankkernel-meta-editor .rk-classic-panel[hidden] {
+	display: none;
+}
+
+/* Compact cards: one component per field or group */
+
+.rankkernel-meta-editor .rk-classic-card {
+	background: var(--rk-classic-card);
+	border: 1px solid var(--rk-classic-border);
+	border-radius: 4px;
+	margin: 0 0 var(--rk-classic-gap);
+	padding: 12px 14px;
+}
+
+.rankkernel-meta-editor .rk-classic-card > h3:first-child,
+.rankkernel-meta-editor .rk-classic-card > h4:first-child {
+	margin-top: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-card label {
+	font-weight: 600;
+}
+
+.rankkernel-meta-editor .rk-classic-card input[type="text"],
+.rankkernel-meta-editor .rk-classic-card input[type="url"],
+.rankkernel-meta-editor .rk-classic-card textarea,
+.rankkernel-meta-editor .rk-classic-card select {
+	width: 100%;
+}
+
+.rankkernel-meta-editor .rk-classic-card .description {
+	color: var(--rk-classic-muted);
+	margin: 6px 0 0;
+}
+
+.rankkernel-meta-editor .rk-classic-field-head {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+
+.rankkernel-meta-editor .rk-classic-field-head label {
+	margin: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-field-foot {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: space-between;
+	margin-top: 6px;
+}
+
+.rankkernel-meta-editor .rk-classic-reset {
+	align-items: center;
+	display: inline-flex;
+	font-weight: 400;
+	gap: 6px;
+}
+
+/* Status badges: text plus shape, never colour alone */
+
+.rankkernel-meta-editor .rk-classic-badge {
+	border-radius: 999px;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 2;
+	padding: 0 10px;
+	white-space: nowrap;
+}
+
+.rankkernel-meta-editor .rk-classic-badge[data-rk-state="inherited"],
+.rankkernel-meta-editor .rk-classic-badge[data-rk-state="default"] {
+	background: var(--rk-classic-soft);
+	color: var(--rk-classic-muted);
+}
+
+.rankkernel-meta-editor .rk-classic-badge[data-rk-state="custom"] {
+	background: var(--rk-classic-ok-bg);
+	color: var(--rk-classic-ok);
+}
+
+.rankkernel-meta-editor .rk-classic-badge[data-rk-state="invalid"] {
+	background: #fcf0f1;
+	color: var(--rk-classic-over);
+}
+
+/* Counters with a thin progress bar */
+
+.rankkernel-meta-editor .rk-classic-meter {
+	margin-top: 6px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count {
+	font-weight: 600;
+	margin: 0 0 4px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count[data-rk-state="ok"],
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-ok {
+	color: var(--rk-classic-ok);
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count[data-rk-state="warn"],
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-warn {
+	color: var(--rk-classic-warn);
+}
+
+.rankkernel-meta-editor .rankkernel-meta-count[data-rk-state="over"],
+.rankkernel-meta-editor .rankkernel-meta-count.rk-is-over {
+	color: var(--rk-classic-over);
+}
+
+.rankkernel-meta-editor .rk-classic-bar {
+	background: var(--rk-classic-soft);
+	border-radius: 999px;
+	display: block;
+	height: 4px;
+	overflow: hidden;
+}
+
+.rankkernel-meta-editor .rk-classic-bar > span {
+	border-radius: 999px;
+	display: block;
+	height: 100%;
+	width: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-bar[data-rk-state="ok"] > span {
+	background: var(--rk-classic-ok);
+}
+
+.rankkernel-meta-editor .rk-classic-bar[data-rk-state="warn"] > span {
+	background: var(--rk-classic-warn);
+}
+
+.rankkernel-meta-editor .rk-classic-bar[data-rk-state="over"] > span {
+	background: var(--rk-classic-over);
+}
+
+/* Token pickers and image rows */
+
+.rankkernel-meta-editor .rk-classic-tokens {
+	margin-top: 8px;
+}
+
+.rankkernel-meta-editor .rk-classic-tokens > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.rankkernel-meta-editor .rk-classic-token-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.rankkernel-meta-editor .rk-classic-thumb {
+	border: 1px solid var(--rk-classic-border);
+	border-radius: 4px;
+	display: block;
+	height: auto;
+	margin: 8px 0;
+	max-width: 280px;
+}
+
+.rankkernel-meta-editor .rk-classic-thumb[hidden] {
+	display: none;
+}
+
+.rankkernel-meta-editor .rk-classic-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.rankkernel-meta-editor .rk-classic-field-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.rankkernel-meta-editor .rk-classic-error {
+	color: var(--rk-classic-over);
+	font-weight: 600;
+	margin: 6px 0 0;
+}
+
+/* Radio pairs and robots extras */
+
+.rankkernel-meta-editor .rk-classic-radio-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin: 8px 0;
+}
+
+.rankkernel-meta-editor .rk-classic-radio-group label {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+}
+
+.rankkernel-meta-editor .rk-classic-robots-extra {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 8px 0;
+	border: none;
+	padding: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-robots-extra label {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+}
+
+/* Collapsible cards */
+
+.rankkernel-meta-editor details.rk-classic-card > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.rankkernel-meta-editor .rk-classic-schema-row {
+	margin: 8px 0 0;
+}
+
+.rankkernel-meta-editor .rk-classic-schema-row[hidden] {
+	display: none;
+}
+
+.rankkernel-meta-editor .rk-classic-schema-status {
+	font-weight: 600;
+}
+
+/* Search preview: compact result look */
+
+.rankkernel-meta-editor .rk-classic-serp-top {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp-top h3 {
+	margin: 0;
+}
+
+.rankkernel-meta-editor .rk-classic-toggle {
+	display: flex;
+	gap: 6px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp {
+	max-width: 600px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp.rk-is-mobile {
+	max-width: 360px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp-site {
+	color: var(--rk-classic-muted);
+	font-size: 12px;
+	margin: 0 0 2px;
+}
+
+.rankkernel-meta-editor .rk-classic-serp-url {
+	color: var(--rk-classic-ok);
+	font-size: 13px;
+	margin: 0 0 4px;
+	overflow-wrap: anywhere;
+}
+
+.rankkernel-meta-editor .rk-classic-serp-title {
+	color: #1a0dab;
+	font-size: 18px;
+	line-height: 1.3;
+	margin: 0 0 2px;
+	overflow-wrap: anywhere;
+}
+
+.rankkernel-meta-editor .rk-classic-serp-desc {
+	color: #3c434a;
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Social preview card */
+
+.rankkernel-meta-editor .rankkernel-meta-social {
+	border: 1px solid var(--rk-classic-border);
+	border-radius: 4px;
+	margin: 12px 0;
+	max-width: 520px;
+	overflow: hidden;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-image {
+	display: block;
+	height: auto;
+	width: 100%;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-image[hidden] {
+	display: none;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social[data-rk-card="summary"] {
+	display: flex;
+	gap: 12px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social[data-rk-card="summary"] .rankkernel-meta-social-image {
+	max-width: 140px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-body {
+	padding: 12px 14px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-title {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 4px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-desc {
+	color: var(--rk-classic-muted);
+	display: block;
+	font-size: 13px;
+	margin: 0 0 4px;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-site {
+	color: var(--rk-classic-muted);
+	display: block;
+	font-size: 12px;
+	margin: 0 0 4px;
+	text-transform: uppercase;
+}
+
+.rankkernel-meta-editor .rankkernel-meta-social-card {
+	color: var(--rk-classic-muted);
+	display: block;
+	font-size: 12px;
+	margin: 0;
+}
+
+/* Extension slot for future analysis */
+
+.rankkernel-meta-editor .rk-classic-extension h3 {
+	margin-top: 0;
+}
+
+/* Visible keyboard focus everywhere */
+
+.rankkernel-meta-editor :focus-visible {
+	outline: 2px solid var(--rk-classic-accent);
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 782px) {
+	.rankkernel-meta-editor .rk-classic-serp,
+	.rankkernel-meta-editor .rankkernel-meta-social {
+		max-width: 100%;
+	}
+}
