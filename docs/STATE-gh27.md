@@ -77,24 +77,21 @@ GPL-reusable but must NOT be reused). Keep it that way.
 - `src/Settings/SettingsStore.php` — default templates `%%title%% %%sep%% %%sitename%%` and `%%excerpt%%`
 - `tests/Unit/MetadataBoxTest.php` — includes the JS to view hook contract test
 
-## How to verify in a browser (reversible, no credential changes kept)
+## How to verify in a browser
 
-The site is LocalWP at `http://localhost:10043`. RankKernel is active; Rank Math and Yoast are
-installed but inactive. There is no CLI PHP with mysqli, so wp-cli cannot be used.
+Local environment details, including the site URL, database socket, database credentials and any
+temporary verification credentials, live in the IGNORED local file `.local-env/README.md`. They must
+never be copied into a tracked file, a commit message, a PR description, a test fixture or a comment.
 
-1. DB access: use the `mysql` client bundled with Local. Both the client binary and its socket live
-   under the Local run directory for this site; resolve them there rather than recording them here.
-   This step applies only to the host-local LocalWP environment, never a shared or production database.
-2. You need an administrator account you control. Do not record the login names in this file.
-3. To authenticate in a browser without learning a password: read the account's `user_pass` meta,
-   save it verbatim, set `user_pass` to a temporary MD5 hash, log in at `/wp-login.php`, verify, then
-   restore the exact original hash and confirm it matches byte for byte. Always restore. Confirm the
-   temporary password no longer authenticates.
-4. Open a post: `http://localhost:10043/wp-admin/post.php?post=53671&action=edit`.
-   Open our sidebar programmatically with
-   `wp.data.dispatch('core/edit-post').openGeneralSidebar('rankkernel-seo/rankkernel-seo')`.
-5. When probing for a modal, filter to the VISIBLE frame: several
-   `.components-modal__frame` elements exist and the first one is WordPress's hidden link dialog.
+Reversible technique for an authenticated browser session, with no secrets recorded here: read the
+account's stored password hash, set a temporary known hash, sign in, perform the verification, then
+restore the exact original hash and confirm it matches. Always restore.
+
+Notes that are safe to record: RankKernel is active on the local site while Rank Math and Yoast are
+installed but inactive. There is no CLI PHP with mysqli on this machine, so wp-cli cannot be used.
+Open a post at the local admin post editor URL and open the RankKernel sidebar through the editor
+store. When probing for a modal, filter to the VISIBLE frame, because several modal frames exist and
+the first is WordPress's hidden link dialog.
 
 ## Gates (all currently green at 0c97f3c)
 
