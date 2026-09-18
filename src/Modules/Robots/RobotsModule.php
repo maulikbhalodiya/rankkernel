@@ -52,6 +52,27 @@ class RobotsModule implements ModuleInterface {
 	private ?RobotsBuilder $builder = null;
 
 	/**
+	 * Llms.txt settings, built on boot only.
+	 *
+	 * @var LlmsSettings|null
+	 */
+	private ?LlmsSettings $llmsSettings = null;
+
+	/**
+	 * Llms.txt router, built on boot only when llms.txt is enabled.
+	 *
+	 * @var LlmsRouter|null
+	 */
+	private ?LlmsRouter $llmsRouter = null;
+
+	/**
+	 * Llms.txt file writer, built on boot only when llms.txt is enabled.
+	 *
+	 * @var LlmsFileWriter|null
+	 */
+	private ?LlmsFileWriter $llmsWriter = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ModuleEnableMap|null $enableMap Optional shared enable map.
@@ -147,7 +168,65 @@ class RobotsModule implements ModuleInterface {
 		add_filter( 'robots_txt', [ $this, 'filterRobots' ], 5, 2 );
 		add_action( 'admin_notices', [ $this, 'renderPhysicalFileNotice' ] );
 
+		$this->llmsSettings = new LlmsSettings();
+
+		if ( (bool) $this->llmsSettings->get( 'enabled', false ) ) {
+			$this->llmsWriter = new LlmsFileWriter();
+			$this->llmsRouter = new LlmsRouter( new LlmsGenerator(), new LlmsCollector(), $this->llmsSettings );
+			$this->llmsRouter->register();
+
+			add_action( 'save_post', [ $this, 'invalidateLlms' ] );
+			add_action( 'edited_terms', [ $this, 'invalidateLlms' ] );
+			add_action( 'admin_notices', [ $this, 'renderLlmsPhysicalNotice' ] );
+		}
+
 		$this->maybeFlushRules();
+	}
+
+	/**
+	 * Invalidate the cached llms.txt document.
+	 */
+	public function invalidateLlms(): void {
+		LlmsRouter::invalidate();
+	}
+
+	/**
+	 * Warn that a physical llms.txt shadows the virtual route.
+	 *
+	 * The file is never overwritten.
+	 */
+	public function renderLlmsPhysicalNotice(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$writer = $this->llmsWriter;
+
+		if ( null === $writer || ! $writer->exists() ) {
+			return;
+		}
+
+		echo '<div class="notice notice-warning"><p>';
+		echo esc_html__( 'A physical llms.txt file exists in the site root, so the virtual llms.txt route is not used. RankKernel will not overwrite it.', 'rankkernel' );
+		echo '</p></div>';
+	}
+
+	/**
+	 * Get the llms.txt router, for testing.
+	 *
+	 * @return LlmsRouter|null The result.
+	 */
+	public function getLlmsRouter(): ?LlmsRouter {
+		return $this->llmsRouter;
+	}
+
+	/**
+	 * Get the llms.txt file writer, for testing.
+	 *
+	 * @return LlmsFileWriter|null The result.
+	 */
+	public function getLlmsWriter(): ?LlmsFileWriter {
+		return $this->llmsWriter;
 	}
 
 	/**
