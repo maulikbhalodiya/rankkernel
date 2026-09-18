@@ -848,39 +848,55 @@ final class RedirectsAdminTest extends TestCase {
 	public function test_enqueue_gates_assets_to_screen_hook(): void {
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/p/' . $path );
 
-		$registered = [];
-		$enqueued   = [];
+		$registeredStyles  = [];
+		$registeredScripts = [];
+		$enqueuedStyles    = [];
+		$enqueuedScripts   = [];
 
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registered ): void {
-				$registered[ $handle ] = $ver . '|' . $src;
+			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles ): void {
+				$registeredStyles[ $handle ] = $ver . '|' . $src;
 			}
 		);
 		Functions\when( 'wp_enqueue_style' )->alias(
-			static function ( string $handle ) use ( &$enqueued ): void {
-				$enqueued[] = $handle;
+			static function ( string $handle ) use ( &$enqueuedStyles ): void {
+				$enqueuedStyles[] = $handle;
 			}
 		);
 		Functions\when( 'wp_register_script' )->alias(
-			static function (): void {
+			static function ( string $handle, string $src, array $deps = [], string $ver = '', bool $inFooter = false ) use ( &$registeredScripts ): void {
+				$registeredScripts[ $handle ] = [
+					'src'       => $src,
+					'deps'      => $deps,
+					'ver'       => $ver,
+					'in_footer' => $inFooter,
+				];
 			}
 		);
 		Functions\when( 'wp_enqueue_script' )->alias(
-			static function (): void {
+			static function ( string $handle ) use ( &$enqueuedScripts ): void {
+				$enqueuedScripts[] = $handle;
 			}
 		);
 
 		$page = $this->makePage();
 		$page->enqueueAssets( 'toplevel_page_rankkernel' );
 
-		$this->assertSame( [], $registered );
-		$this->assertSame( [], $enqueued );
+		$this->assertSame( [], $registeredStyles );
+		$this->assertSame( [], $enqueuedStyles );
+		$this->assertSame( [], $registeredScripts );
+		$this->assertSame( [], $enqueuedScripts );
 
 		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
 
-		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registered );
-		$this->assertContains( 'rankkernel-redirects-admin', $enqueued );
-		$this->assertStringContainsString( 'redirects-admin.css', (string) $registered['rankkernel-redirects-admin'] );
+		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredStyles );
+		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedStyles );
+		$this->assertStringContainsString( 'redirects-admin.css', (string) $registeredStyles['rankkernel-redirects-admin'] );
+
+		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredScripts );
+		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedScripts );
+		$this->assertSame( [ 'wp-a11y', 'wp-i18n' ], $registeredScripts['rankkernel-redirects-admin']['deps'] );
+		$this->assertStringContainsString( 'redirects-admin.js', (string) $registeredScripts['rankkernel-redirects-admin']['src'] );
 	}
 
 	/**
