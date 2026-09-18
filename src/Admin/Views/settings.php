@@ -37,6 +37,11 @@
  * @var array{errors: string[], warnings: string[]} $llmsValidation llms validation result.
  * @var string $llmsPreview          llms.txt preview.
  * @var string $llmsNotice           llms physical write notice key.
+ * @var bool   $htaccessSupported    Whether .htaccess editing is available.
+ * @var bool   $htaccessWritable     Whether the file is writable.
+ * @var string $htaccessContent      Current .htaccess content.
+ * @var string $htaccessPath         Absolute .htaccess path.
+ * @var string $htaccessNotice       .htaccess save notice key.
  */
 
 declare(strict_types=1);
@@ -57,6 +62,7 @@ endif;
 
 		<div class="rk-settings">
 			<nav class="rk-settings-nav" aria-label="<?php echo esc_attr( __( 'Settings sections', 'rankkernel' ) ); ?>">
+				<p class="rk-settings-nav-title"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></p>
 				<ul>
 					<?php foreach ( $settingsSections as $section ) : ?>
 						<li>
@@ -237,7 +243,7 @@ endif;
 
 						<?php if ( 'edit' === $robotTab ) : ?>
 							<p class="description"><?php echo esc_html__( 'Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>
-							<textarea id="rk-robots-override" name="rk_robots_override" rows="16" cols="70" class="large-text code"><?php echo esc_textarea( $robotEditValue ); ?></textarea>
+							<textarea id="rk-robots-override" name="rk_robots_override" rows="16" cols="70" class="large-text code rk-code-editor"><?php echo esc_textarea( $robotEditValue ); ?></textarea>
 
 							<?php if ( [] !== $robotValidation['errors'] ) : ?>
 								<div class="notice notice-error inline">
@@ -261,7 +267,7 @@ endif;
 								<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
 							</p>
 						<?php else : ?>
-							<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;overflow:auto;"><?php echo esc_html( $robotEffective ); ?></pre>
+							<pre class="rk-preview"><?php echo esc_html( $robotEffective ); ?></pre>
 							<p class="rk-robots-actions">
 								<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=edit' ) ); ?>"><?php echo esc_html__( 'Edit robots.txt', 'rankkernel' ); ?></a>
 								<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
@@ -273,7 +279,13 @@ endif;
 				<?php if ( $robotsEnabled && 'llms' === $currentSection ) : ?>
 					<section id="rk-section-llms" class="rk-settings-section" aria-labelledby="rk-section-llms-title">
 						<h2 id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h2>
-						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional. Write your own sections as Markdown link lists.', 'rankkernel' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional.', 'rankkernel' ); ?></p>
+
+						<div class="rk-banner rk-banner-info">
+							<p class="rk-banner-title"><?php echo esc_html__( 'How to make llms.txt', 'rankkernel' ); ?></p>
+							<p><?php echo esc_html__( 'Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post.', 'rankkernel' ); ?></p>
+							<p><?php echo esc_html__( 'llms.txt is a community proposal, not a standard. See', 'rankkernel' ); ?> <a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'the official llms.txt site', 'rankkernel' ); ?></a>.</p>
+						</div>
 
 						<?php if ( 'written' === $llmsNotice ) : ?>
 							<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'A physical llms.txt was written.', 'rankkernel' ); ?></p></div>
@@ -338,8 +350,37 @@ endif;
 				<?php if ( 'htaccess' === $currentSection ) : ?>
 				<section id="rk-section-htaccess" class="rk-settings-section" aria-labelledby="rk-section-htaccess-title">
 					<h2 id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h2>
-					<p class="description"><?php echo esc_html__( 'Editing .htaccess from the admin is not available yet. A mistake there can take the whole site down with no way back in, and Apache rules cannot be validated from PHP. RankKernel keeps redirects at the PHP layer for that reason.', 'rankkernel' ); ?></p>
-					<p class="description"><?php echo esc_html__( 'If this is added later it will be opt in, Apache and LiteSpeed only, hidden when file editing is disabled, backed up before every save, and it will never touch the WordPress marker block.', 'rankkernel' ); ?></p>
+
+					<?php if ( 'saved' === $htaccessNotice ) : ?>
+						<div class="rk-banner rk-banner-info"><p class="rk-banner-title"><?php echo esc_html__( 'Saved. A backup was written next to the file.', 'rankkernel' ); ?></p></div>
+					<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
+						<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
+					<?php elseif ( 'failed' === $htaccessNotice ) : ?>
+						<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'The file could not be written.', 'rankkernel' ); ?></p></div>
+					<?php endif; ?>
+
+					<div class="rk-banner rk-banner-danger">
+						<p class="rk-banner-title"><?php echo esc_html__( 'Danger', 'rankkernel' ); ?></p>
+						<p><?php echo esc_html__( 'A mistake here can take the whole site down, including wp-admin, with no way back into the dashboard. Have file or server access ready before you save. RankKernel writes a timestamped backup next to the file first.', 'rankkernel' ); ?></p>
+					</div>
+
+					<?php if ( ! $htaccessSupported ) : ?>
+						<div class="rk-banner rk-banner-warning">
+							<p class="rk-banner-title"><?php echo esc_html__( 'Not available on this server', 'rankkernel' ); ?></p>
+							<p><?php echo esc_html__( 'Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the editor is disabled here.', 'rankkernel' ); ?></p>
+						</div>
+					<?php elseif ( ! $htaccessWritable ) : ?>
+						<div class="rk-banner rk-banner-warning">
+							<p class="rk-banner-title"><?php echo esc_html__( 'File not writable', 'rankkernel' ); ?></p>
+							<p><?php echo esc_html__( 'WordPress cannot write the .htaccess file. Ask your host, or edit it over SFTP.', 'rankkernel' ); ?></p>
+						</div>
+					<?php else : ?>
+						<p class="description"><?php echo esc_html( $htaccessPath ); ?></p>
+						<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="large-text code rk-code-editor"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
+						<p class="rk-robots-actions">
+							<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>
+						</p>
+					<?php endif; ?>
 				</section>
 				<?php endif; ?>
 

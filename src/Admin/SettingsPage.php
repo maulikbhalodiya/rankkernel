@@ -62,7 +62,7 @@ final class SettingsPage {
 	 */
 	public function maybeHandleSave(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) ) ) {
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {
 			$this->handleSave();
 		}
 	}
@@ -278,6 +278,15 @@ final class SettingsPage {
 			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
 		}
 
+		$htaccessFile      = new HtaccessFile();
+		$htaccessSupported = $htaccessFile->isSupported();
+		$htaccessWritable  = $htaccessFile->isWritable();
+		$htaccessContent   = $htaccessSupported ? $htaccessFile->read() : '';
+		$htaccessPath      = $htaccessFile->path();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
+		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+
 		$settingsSections[] = [
 			'id'    => 'htaccess',
 			'label' => __( '.htaccess', 'rankkernel' ),
@@ -327,6 +336,32 @@ final class SettingsPage {
 		}
 
 		$settings->set( $partial );
+	}
+
+	/**
+	 * Back up and save the site .htaccess, then redirect with a notice.
+	 */
+	private function saveHtaccess(): void {
+		$file = new HtaccessFile();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and written as plain text.
+		$raw = isset( $_POST['rk_htaccess_content'] ) ? wp_unslash( $_POST['rk_htaccess_content'] ) : '';
+
+		$result = $file->save( is_string( $raw ) ? $raw : '' );
+
+		if ( $result['saved'] ) {
+			$notice = 'saved';
+		} elseif ( 'unsupported' === $result['reason'] ) {
+			$notice = 'unsupported';
+		} else {
+			$notice = 'failed';
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel-general&section=htaccess&rk_notice=' . $notice ) );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
 	}
 
 	/**
@@ -418,6 +453,13 @@ final class SettingsPage {
 				'',
 				[ 'response' => 403 ]
 			);
+		}
+
+		// The .htaccess save is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( isset( $_POST['rk_htaccess_save'] ) ) {
+			$this->saveHtaccess();
+			return;
 		}
 
 		// The robots reset is a distinct action on the same form.

@@ -45,6 +45,11 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v );
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
+		Functions\when( 'sanitize_key' )->alias(
+			static function ( string $key ): string {
+				return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $key ) );
+			}
+		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -636,13 +641,15 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the htaccess section is a deferred placeholder.
+	 * Test the htaccess section renders its warnings.
 	 */
-	public function test_htaccess_section_is_a_placeholder(): void {
+	public function test_htaccess_section_renders_with_warnings(): void {
 		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
 		Functions\when( 'get_taxonomies' )->justReturn( [] );
 		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
 		Functions\when( 'get_taxonomy' )->justReturn( false );
+		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $value ): string => trim( $value ) );
+		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
 
 		$this->stubCrawlPage( [] );
 
@@ -655,6 +662,7 @@ final class SettingsPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
-		$this->assertStringContainsString( 'not available yet', $output );
+		$this->assertStringContainsString( 'rk-banner-danger', $output );
+		$this->assertStringNotContainsString( 'notice notice-warning', $output );
 	}
 }
