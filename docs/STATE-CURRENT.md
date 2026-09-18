@@ -187,6 +187,35 @@ unique `Normalizer` work, the intended path is:
 3. #29 and #30 map onto #34 and #35 the same way. Re-check each diff against `main` after every merge,
    and close whichever member becomes redundant.
 
+### PR #28 rebase — exact findings (already attempted once)
+
+Rebasing `origin/bolt/memoize-validator-options-8283178016137129664` onto `main`:
+- **Only ONE conflict:** `tests/Unit/RedirectsCacheTest.php`. `src/Modules/Redirects/RedirectCache.php`
+  and `src/Modules/Sitemaps/SitemapCache.php` **auto-merge cleanly**. So this is a small job.
+- The conflict shape: `main` has two tests there
+  (`test_stored_rule_served_from_cache_without_new_database_read`,
+  `test_saving_updating_and_deleting_a_rule_invalidates_the_cache`) and the PR adds
+  `test_validator_is_cached_in_memory_per_request`. **Keep all three.** The `/**` opener before the
+  first marker belongs to `main`'s first test, so the PR's test needs its own `/**` opener and its own
+  closing brace. The shared trailing `}` and `}` close the two functions and the class.
+- **The PR's added test is BROKEN and must be rewritten, not just merged.** It does
+  `$this->options[ RedirectCache::VALIDATOR_OPTION ] = 'mutated_validator_in_db';` but that class has
+  **no `$options` property and no `get_option` stub**. It would create a dynamic property and the test
+  would pass trivially without proving anything. This is the same weakness CodeRabbit flagged on #33.
+- **The real test idiom in this repo is Brain\Monkey.** `setUp()` calls `parent::setUp()` then
+  `\Brain\Monkey\setUp()`, and each test stubs WordPress functions itself, e.g.
+  `Functions\when( 'get_option' )->justReturn( '' );` or
+  `Functions\when( 'get_option' )->alias( static function ( string $key, mixed $value ) use ( &$options ): bool { ... } );`.
+  `tests/Unit/SitemapCacheTest.php` lines ~26, ~56, ~127, ~210, ~252 and ~256-294 show the patterns.
+- **Correct test for this change:** stub `get_option` with a closure that increments a counter for
+  `RedirectCache::VALIDATOR_OPTION`, then assert that several `get()`, `set()` and `getPatterns()`
+  calls read it only **once** per instance, and that `invalidate()` clears the memo so the next call
+  reads again. That genuinely fails if `getValidator()` is removed. Do the same for `SitemapCache`.
+- **Trap to avoid:** if you resolve the conflict with a script, include the lines **before** the first
+  `<<<<<<<` marker. Dropping them deletes the `<?php`, the namespace, the class declaration and every
+  earlier test. If a resolution goes wrong, `git checkout -m <path>` recreates the conflict markers
+  during a rebase; `git rebase --abort` returns to a clean branch.
+
 **PR #28 CodeRabbit status:** no reviews and no inline comments exist on it, so there are no findings to
 action. Only treat the review requirement as met once a review actually runs, otherwise say plainly in
 the merge decision that none was posted.
