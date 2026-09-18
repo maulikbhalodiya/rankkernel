@@ -1,0 +1,74 @@
+name: Daily Codebase Audit
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      audit_category:
+        description: 'Optional single audit category'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ai-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Codebase Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --ignore-platform-reqs
+
+      - name: AI Codebase Audit
+        uses: nilesh32236/opencode-ai-reviewer@79800cb75d3f15173bb8bea9ed9cbe39dd997118 # v1.16.1
+        with:
+          mode: audit
+          github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          audit_model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          audit_create_issues: true
+          audit_auto_fix: false
+          audit_labels: 'audit'
+          audit_target_dirs: 'src,assets'
+          enable_mcp: false
+          project_context: >
+            RankKernel is a 100% free, zero-bloat WordPress SEO plugin. Audit src/ and
+            assets/ for security, data integrity, performance, standards and WordPress
+            API misuse.
+            Security: missing capability or nonce checks, missing sanitization or
+            escaping, unsafe SQL, unsafe deserialization, SSRF, and secrets in tracked
+            files.
+            Data integrity: one metadata source of truth through MetaPayload, no second
+            store, and correct handling of legacy JSON and serialized rows.
+            Performance: unbounded queries, missing pagination or indexes, repeated
+            option reads, and missing caching.
+            Standards: WPCS, PSR-12, strict_types, the rankkernel or RankKernel prefix,
+            the exact rankkernel text domain, and an ABSPATH guard in every PHP file.
+            Features and parity: features that are only a visual shell, or claims of
+            parity with no implementation or tests.
+            Tests: behaviour without coverage, and tests that do not actually prove the
+            behaviour they name.
+            Report only issues you can point at in the current code, with a file and line,
+            and rank them by severity. The docs/ directory is internal and out of scope.

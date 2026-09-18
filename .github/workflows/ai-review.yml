@@ -1,0 +1,205 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened, labeled]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number || github.event.issue.number || github.sha }}-${{ github.actor }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    name: AI Code Review
+    if: |
+      github.actor != 'github-actions[bot]' &&
+      !endsWith(github.actor, '[bot]') &&
+      (
+        (github.event_name == 'pull_request' && github.event.action != 'labeled' && !github.event.pull_request.draft) ||
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+          (startsWith(github.event.comment.body || '', '/review') || startsWith(github.event.comment.body || '', '/oc'))
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Resolve PR ref
+        id: resolve-ref
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            REF=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefName --jq .headRefName)
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            REF="${{ github.ref_name }}"
+          else
+            REF="${{ github.event.pull_request.head.ref }}"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.resolve-ref.outputs.ref }}
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
+
+      - name: AI Code Review
+        uses: nilesh32236/opencode-ai-reviewer@79800cb75d3f15173bb8bea9ed9cbe39dd997118 # v1.16.1
+        with:
+          mode: review
+          github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          review_model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          max_files_per_batch: 3
+          enable_mcp: false
+          include_strengths: true
+          review_inline: true
+          review_comment_summary: true
+          fail_on_severity: 'off'
+          enable_fix: false
+          enable_audit: false
+          project_context: >
+            RankKernel is a 100% free, zero-bloat WordPress SEO plugin, built to beat
+            Yoast and Rank Math architecturally. No PRO edition, feature gates, upsells,
+            license checks, telemetry or artificial limits. PHP 8.1+, WordPress 6.5+.
+            src/ is PSR-12, declare(strict_types=1), namespace RankKernel, one class per
+            file; rankkernel.php and uninstall.php follow WordPress Coding Standards.
+            Review every change against the following and report concrete file and line
+            findings only.
+            Security: capability and nonce checks on every write, sanitization on input,
+            escaping on output (esc_html, esc_attr, esc_url, wp_kses_post),
+            $wpdb->prepare() for all SQL, a REST permission_callback, no
+            unserialize/eval/shell execution, no SSRF in remote requests, no secrets in
+            tracked files.
+            Standards: WPCS, PSR-12, strict_types, an ABSPATH guard in every PHP file,
+            the rankkernel or RankKernel prefix on every symbol, hook, option and table,
+            and the exact rankkernel text domain.
+            Best practices: prefer WordPress APIs over raw PHP, cache expensive work with
+            transients or the object cache keyed by a validator, internationalise every
+            user-facing string, keep admin UI accessible, and never suppress errors.
+            Features and parity: flag any feature that is a visual shell with no
+            behaviour, or that claims parity without real implementation or tests. A
+            visual shell is not done.
+            Tests: new behaviour needs tests; never delete or weaken a test to make a
+            check pass.
+            Verification commands, which CI also runs: composer lint (WPCS),
+            composer stan (PHPStan level 6), composer test (PHPUnit),
+            vendor/bin/phpcs --standard=phpcs.xml, and node --check once per file in
+            assets/js.
+            Never copy competitor code, CSS, markup, icons, class names or wording. The
+            docs/ directory is internal working material and is out of review scope.
+
+  fix:
+    name: AI Fix (opt-in)
+    if: |
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        startsWith(github.event.comment.body || '', '/fix') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
+      ) ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'ai-fix' &&
+        github.event.sender.login == github.repository_owner &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Resolve PR ref
+        id: resolve-ref
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            REF=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefName --jq .headRefName)
+          else
+            REF="${{ github.event.pull_request.head.ref }}"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse fork pull requests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            PR="${{ github.event.issue.number }}"
+          else
+            PR="${{ github.event.pull_request.number }}"
+          fi
+          HEAD=$(gh pr view "$PR" --repo "${{ github.repository }}" --json headRepositoryOwner,headRepository --jq '.headRepositoryOwner.login + "/" + .headRepository.name')
+          if [ "$HEAD" != "${{ github.repository }}" ]; then
+            echo "::error::Refusing to run the fix job on a fork pull request ($HEAD)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.resolve-ref.outputs.ref }}
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
+
+      - name: AI Fix
+        uses: nilesh32236/opencode-ai-reviewer@79800cb75d3f15173bb8bea9ed9cbe39dd997118 # v1.16.1
+        with:
+          mode: fix
+          github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          fix_model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
+          enable_fix: true
+          max_fix_iterations: 1
+          enable_mcp: false
+          project_context: >
+            RankKernel is a 100% free, zero-bloat WordPress SEO plugin. Fix only the
+            findings you were asked to fix and keep the change minimal. Never delete
+            files, tests or documentation. Run composer lint, composer stan and composer
+            test after a fix; all three must pass. src/ is PSR-12, WordPress Coding
+            Standards for rankkernel.php and uninstall.php. The text domain is exactly
+            rankkernel. docs/ is out of scope.
