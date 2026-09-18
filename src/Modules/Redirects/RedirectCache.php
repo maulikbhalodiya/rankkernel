@@ -51,6 +51,13 @@ final class RedirectCache {
 	private const PATTERNS_KEY = 'patterns_v1';
 
 	/**
+	 * In-memory static cache for validator string within request execution.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $cachedValidator = null;
+
+	/**
 	 * In memory map for the current request.
 	 *
 	 * @var array<string, array<string, mixed>>
@@ -93,7 +100,7 @@ final class RedirectCache {
 			return null;
 		}
 
-		$current = (string) get_option( self::VALIDATOR_OPTION, '' );
+		$current = self::getValidator();
 		$stored  = isset( $payload['validator'] ) ? (string) $payload['validator'] : '';
 
 		if ( $stored !== $current ) {
@@ -118,7 +125,7 @@ final class RedirectCache {
 
 		$payload = [
 			'rule'      => $rule,
-			'validator' => (string) get_option( self::VALIDATOR_OPTION, '' ),
+			'validator' => self::getValidator(),
 		];
 
 		$this->writeStore( $key, $payload );
@@ -144,7 +151,24 @@ final class RedirectCache {
 	 * toggle without a repository instance still retires both.
 	 */
 	public static function invalidateAll(): void {
+		self::$cachedValidator = null;
 		update_option( self::VALIDATOR_OPTION, (string) time() . '_' . uniqid( '', true ), false );
+	}
+
+	/**
+	 * Get current validator string with in-memory request-level memoization.
+	 *
+	 * Memoizing within the request avoids repeated WP option array lookups when
+	 * validating or writing multiple redirect rules/patterns in a single request.
+	 *
+	 * @return string Current validator string.
+	 */
+	private static function getValidator(): string {
+		if ( null === self::$cachedValidator ) {
+			self::$cachedValidator = (string) get_option( self::VALIDATOR_OPTION, '' );
+		}
+
+		return self::$cachedValidator;
 	}
 
 	/**
@@ -166,7 +190,7 @@ final class RedirectCache {
 			return null;
 		}
 
-		$current = (string) get_option( self::VALIDATOR_OPTION, '' );
+		$current = self::getValidator();
 		$stored  = isset( $payload['validator'] ) ? (string) $payload['validator'] : '';
 
 		if ( $stored !== $current ) {
@@ -204,7 +228,7 @@ final class RedirectCache {
 
 		$payload = [
 			'rules'     => $clean,
-			'validator' => (string) get_option( self::VALIDATOR_OPTION, '' ),
+			'validator' => self::getValidator(),
 		];
 
 		$this->writeStore( self::PATTERNS_KEY, $payload );
