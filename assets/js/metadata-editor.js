@@ -313,8 +313,8 @@
 				button.type = 'button';
 				button.className = 'button button-small';
 				button.setAttribute( 'data-rk-token', token );
-				button.textContent = token;
-				button.title = tokenLabels[ token ] || token;
+				button.textContent = tokenLabels[ token ] || token;
+				button.title = token;
 				button.setAttribute( 'aria-label', str( 'insertToken', 'Insert token' ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
 				button.addEventListener( 'click', function () {
 					var target = getTarget();

@@ -121,8 +121,19 @@ if ( $schemaDisabled ) {
 						<button type="button" class="button button-small" data-rk-preview="mobile" aria-pressed="false"><?php echo esc_html__( 'Mobile', 'rankkernel' ); ?></button>
 					</div>
 				</div>
+				<?php
+				$serpMark = 'R';
+
+				if ( '' !== $previewSiteName ) {
+					// mbstring is optional in WordPress, so fall back to the
+					// byte based functions when it is unavailable.
+					$serpMark = function_exists( 'mb_substr' ) && function_exists( 'mb_strtoupper' )
+						? mb_strtoupper( mb_substr( $previewSiteName, 0, 1 ) )
+						: strtoupper( substr( $previewSiteName, 0, 1 ) );
+				}
+				?>
 				<div class="rk-serp-row">
-					<span class="rk-serp-mark" aria-hidden="true"><?php echo esc_html( '' !== $previewSiteName ? mb_strtoupper( mb_substr( $previewSiteName, 0, 1 ) ) : 'R' ); ?></span>
+					<span class="rk-serp-mark" aria-hidden="true"><?php echo esc_html( $serpMark ); ?></span>
 					<div class="rk-serp-id">
 						<p class="rk-classic-serp-site" id="rankkernel-meta-preview-site"><?php echo esc_html( $previewSiteName ); ?></p>
 						<p class="rk-classic-serp-url" id="rankkernel-meta-preview-url"><?php echo esc_html( $previewUrl ); ?></p>

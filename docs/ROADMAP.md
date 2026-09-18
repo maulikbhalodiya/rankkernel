@@ -134,7 +134,7 @@
 - Redirect cache: invalidate only on writes, so the cache first lookup actually happens and no option write occurs per page view
 - Metadata editor: Classic Editor meta box plus the PHP side of a Gutenberg sidebar, three tabs, token quick insert limited to backend resolvable tokens, template versus override signalling, per field reset, media library image pick and remove, live SERP preview with desktop and mobile frames and pixel budgets, and a live social unfurl card
 - Tests: a regression test per engine fix, plus a contract test that asserts every hook the editor JavaScript queries is actually rendered by the view
-**Status:** code complete, 1035 tests and 3628 assertions green, phpcs and phpstan clean. Branch GH-27 is NOT merged and the editor has NOT been verified in a live browser session, so nothing here is marked done yet.
+**Status:** code complete, 1055 tests and 3726 assertions green, phpcs and phpstan clean. Branch GH-27 is NOT merged and the editor has NOT been fully verified in a live browser session, so nothing here is marked done yet.
 
 ---
 

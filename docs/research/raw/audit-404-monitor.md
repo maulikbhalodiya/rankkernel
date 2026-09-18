@@ -24,13 +24,15 @@ storage of any kind** (`Logger.php:411-430`; proven by
 redirect path is a *link* into the Redirects add screen (`NotFoundPage.php:468-478`)
 whose save is handled by the exact same `RedirectsPage::handleFormSave()` /
 `validateFields()` pipeline as the Redirects admin screen
-(`RedirectsPage.php:903-1162`), so it does **not** bypass validation (no P0). Two
-adversarial findings remain, both non-critical: the hit counter is a non-atomic
+(`RedirectsPage.php:903-1162`), so it does **not** bypass validation (no P0). One
+confirmed adversarial defect remains, non-critical: the hit counter is a non-atomic
 read-modify-write so concurrent duplicate hits can undercount (`MonitorRepository.php:82`,
-`133`), and two roadmap-deferred features (404-log CSV export, bulk 410 from
+`133`). Two roadmap-deferred features (404-log CSV export, bulk 410 from
 selected rows) are genuinely absent, correctly labelled in the matrix as
-`PLANNED`/`MISSING` rather than `DONE`. The matrix's 404 rows are otherwise
-accurate.
+`PLANNED`/`MISSING` rather than `DONE`, and the gap classification additionally
+records two minor P3 issues (the admin submenu registers outside the module
+enable gate, and the security doc carries a stale test citation). The matrix's
+404 rows are otherwise accurate.
 
 ## Functionality table
 

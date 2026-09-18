@@ -1,6 +1,6 @@
 # Rank Math — Per-Post SEO Editing Experience (UX Study)
 
-Research-only study of the observable, user-facing per-post/page SEO editing workflow in Rank Math SEO (free + Pro), written so RankKernel can reproduce the **workflow** with its own code, UI and branding. Behaviour is described; no competitor code, class names, CSS, HTML or exact UI copy is reproduced.
+Research-only study of the observable, user-facing per-post/page SEO editing workflow in Rank Math SEO (free + Pro), written so RankKernel can reproduce the **workflow** with its own code, UI and branding. Behaviour is described; competitor source was inspected read only to confirm it, and no competitor code, class names, CSS, HTML or UI wording is reused.
 
 - **Date compiled:** 2026-09-16
 - **Method:** Official Rank Math Knowledge Base / docs pages + public blog posts, cross-checked against the installed plugin source (read only to confirm behaviour, not copied). Where source and docs disagree or something could not be confirmed, it is flagged in **Unconfirmed**.
@@ -17,8 +17,8 @@ Rank Math injects a **Gutenberg Plugin Sidebar** (the right-hand editor sidebar)
 
 | Editor | Surface | How the user opens it | Notes |
 |---|---|---|---|
-| Block editor (Gutenberg) | Right-hand editor sidebar panel named "Rank Math" / "Rank Math SEO" | Click the Rank Math icon in the top toolbar, **or** the three-dot (⋮) options menu → the Plugins list → Rank Math | Default location. A filter can move it to the bottom of the editor, but the default is the sidebar. |
-| Classic editor | A draggable meta box titled "Rank Math SEO" in the normal (below-content) column, with the same tabbed UI | Scroll below the content area | See §12. |
+| Block editor (Gutenberg) | Right-hand editor sidebar panel named Rank Math / Rank Math SEO | Click the Rank Math icon in the top toolbar, **or** the three-dot (⋮) options menu → the Plugins list → Rank Math | Default location. A filter can move it to the bottom of the editor, but the default is the sidebar. |
+| Classic editor | A draggable meta box titled Rank Math SEO in the normal (below-content) column, with the same tabbed UI | Scroll below the content area | See §12. |
 | Elementor | A panel inside Elementor's own SEO/General settings area | Elementor panel | Out of scope here but same tab semantics. |
 | Divi | Divi page-settings area | Divi settings | Out of scope here. |
 
@@ -40,12 +40,12 @@ The General tab is the default and contains, top to bottom:
 
 | Order | Group | What the user sees | Where the editable inputs actually are |
 |---|---|---|---|
-| 1 | **Search/Social preview card** | A Google-style SERP mock plus an "Edit Snippet" button | Read-only preview. The button opens a **"Preview Snippet Editor" modal** containing the real fields. |
-| 2 | **Focus Keyword** | A tag-style multi-keyword input (first tag = Primary), optional keyword-intent button, optional keyword autosuggest, a content-AI slot, then a "This post is Pillar Content" checkbox | Inline, always open |
+| 1 | **Search/Social preview card** | A Google-style SERP mock plus a snippet editor button | Read-only preview. The button opens a **snippet editor modal** containing the real fields. |
+| 2 | **Focus Keyword** | A tag-style multi-keyword input (first tag = Primary), optional keyword-intent button, optional keyword autosuggest, a content-AI slot, then a pillar content checkbox | Inline, always open |
 | 3 | **Content analysis** | Score + accordion of SEO tests grouped by category | Inline (see §11) |
 | 4 | Extensibility slots | Third-party/AI add-ons can inject rows | — |
 
-**Important nuance:** in the **block editor sidebar**, the raw Title / Permalink / Description text inputs are **not inline**. The user only sees the preview; editing happens inside the modal opened by **Edit Snippet**. The modal ("Preview Snippet Editor") is itself a tab panel whose **General** tab holds, in this order:
+**Important nuance:** in the **block editor sidebar**, the raw Title / Permalink / Description text inputs are **not inline**. The user only sees the preview; editing happens inside the modal opened by the snippet editor. The modal (the snippet editor) is itself a tab panel whose **General** tab holds, in this order:
 
 | Order | Field | Notes |
 |---|---|---|
@@ -64,10 +64,10 @@ Each of Title / Permalink / Description has its own **length/pixel counter** and
 - **Preview:** the SERP mock shows the effective title, truncated to ~60 characters and with the focus keyword highlighted.
 - **Inheritance signalling (key behaviour):**
   - The input is **empty** when the post has no manual title. Its **placeholder shows the resolved template** for that post type (e.g. a pattern like `%title% %sep% %sitename%`).
-  - Therefore "empty field + greyed placeholder" = *inherited from the template*; a typed value = *manually overridden for this post*.
-  - There is **no explicit badge/indicator** such as "inherited" vs "custom"; the user infers it from the empty field and placeholder.
+  - Therefore an empty field with a greyed placeholder means *inherited from the template*; a typed value means *manually overridden for this post*.
+  - There is **no explicit badge/indicator** such as inherited versus custom; the user infers it from the empty field and placeholder.
   - The live preview always shows the resolved value (template when empty, custom when typed), so the user always sees the effective output.
-- **Length guidance:** a counter shows character count and an approximate pixel width, with a valid range of roughly **15–60 characters / ~580px**; the indicator turns "invalid" when outside the range. Guidance text explains this is what appears in the first line of the search result.
+- **Length guidance:** a counter shows character count and an approximate pixel width, with a valid range of roughly **15–60 characters / ~580px**; the indicator turns invalid when outside the range. Guidance text explains this is what appears in the first line of the search result.
 
 ---
 
@@ -86,17 +86,17 @@ The preview is a mocked Google results page shown at the top of the General tab 
 
 | Element | Present? | Detail |
 |---|---|---|
-| Mock search bar | Yes | A disabled search input that displays the current **focus keyword** (or the site name if none), plus a search/mic icon and Google-style menu tabs and a fake "results" count. |
+| Mock search bar | Yes | A disabled search input that displays the current **focus keyword** (or the site name if none), plus a search/mic icon and Google-style menu tabs and a fake result count. |
 | Favicon / site icon | Yes | Uses the WordPress site icon, with a fallback placeholder. |
 | URL / path | Yes | Displays the permalink (domain + path), truncated (~75 chars). |
 | Title | Yes | Truncated ~60 chars, focus keyword highlighted. |
 | Description | Yes | Truncated ~160 chars, focus keyword highlighted. |
 | Breadcrumb row | No separate row | Breadcrumb path appears only insofar as the permalink shown includes it; there is no dedicated breadcrumb line in the snippet. |
 | Rich-result extras | Yes, when applicable | If the page has structured data (e.g. rating), a star-rating row is rendered above the description. |
-| Noindex state | Yes | When the page is set to noindex, the preview is visually marked "noindex" and shows an explanatory overlay pointing the user to the Advanced tab. |
+| Noindex state | Yes | When the page is set to noindex, the preview is visually marked noindex and shows an explanatory overlay pointing the user to the Advanced tab. |
 | Live updating | Yes | The preview is driven by the editor data store; typing in the fields updates it immediately. |
 | Desktop / mobile variants | Yes | A **Desktop / Mobile** toggle (desktop and mobile icons) lives in the **modal's** preview header and restyles the preview width. The inline sidebar preview does not expose this toggle. |
-| Score badge | Partial | The sidebar's preview header shows a numeric SEO score (e.g. "N / 100"); the modal preview header swaps score for the device toggle. |
+| Score badge | Partial | The sidebar's preview header shows a numeric SEO score (e.g. a score out of 100); the modal preview header swaps score for the device toggle. |
 
 ---
 
@@ -105,18 +105,18 @@ The preview is a mocked Google results page shown at the top of the General tab 
 The **Social tab** exists as its own meta-box tab, but its content is largely launched through the same snippet-editor modal opened on the **Social** sub-tab.
 
 - **Networks:** Facebook and Twitter/X only (no LinkedIn, WhatsApp, etc. in the editor preview).
-- **Top-level Social tab content:** a short explanation plus a button such as "Preview & Edit Social Media" that opens the modal directly on the Social view. (The modal's own tab bar also has a Social entry.)
+- **Top-level Social tab content:** a short explanation plus a button that opens the modal directly on the Social view. (The modal's own tab bar also has a Social entry.)
 - **Inside the Social view:** a two-tab panel — **Facebook** (default) and **Twitter**.
 
 | Field | Facebook | Twitter | Notes |
 |---|---|---|---|
-| Share image | Yes | Yes (unless "use Facebook data" is on) | Upload / replace / remove; recommended size ~1200×630; warns if the image is smaller than the ~600×315 minimum. Falls back to featured image, then first image, then global default OG image. |
+| Share image | Yes | Yes (unless the reuse Facebook data toggle is on) | Upload / replace / remove; recommended size ~1200×630; warns if the image is smaller than the ~600×315 minimum. Falls back to featured image, then first image, then global default OG image. |
 | Title | Yes | Yes | Placeholder is the SEO title from the General tab; typing overrides it for social only. |
 | Description | Yes | Yes | Placeholder is the SEO description; Twitter clips long descriptions in its preview. |
 | Author / handle | Yes (author name shown) | Yes (Twitter handle) | Preview decoration. |
-| "Use data from Facebook" | — | Yes | When on (default), Twitter reuses Facebook's title/description/image; turning it off exposes independent Twitter fields. |
+| Reuse Facebook data | — | Yes | When on (default), Twitter reuses Facebook's title/description/image; turning it off exposes independent Twitter fields. |
 | Card Type | — | Yes | Summary, Summary with Large Image, App, Player — selecting App/Player reveals additional app- and player-specific fields. |
-| Icon overlay / watermark | Yes | Yes | Default icon overlays available; custom watermark selection is a Pro feature; can be disabled per post. The KB notes the option appears under an "Add icon overlay to thumbnail" control. |
+| Icon overlay / watermark | Yes | Yes | Default icon overlays available; custom watermark selection is a Pro feature; can be disabled per post. The KB notes the option appears under an icon overlay control. |
 | Live preview | Yes | Yes | Renders a realistic Facebook/Twitter post card using the current values, with `swap-preview` behaviour. |
 
 ---
@@ -147,13 +147,13 @@ All of this lives in the **Advanced tab**, which is a *separate tab*, not mixed 
 | 6 | **Redirect** | Toggle, then Redirection Type (301/302/307/410/451) and Destination URL (destination hidden for 410/451). Only when the user has the redirection capability and the module is active. |
 | 7 | **Show SEO Score on Front-end** | Toggle, only when the score-enabled setting is on. |
 
-The **Advanced tab itself is hidden entirely** for users without the advanced capability and for sites in **Easy Mode** — beginners never see robots/canonical controls. A "noindex is on" notice in the General preview tells them where it can be changed.
+The **Advanced tab itself is hidden entirely** for users without the advanced capability and for sites in **Easy Mode** — beginners never see robots/canonical controls. A noindex notice in the General preview tells them where it can be changed.
 
 ---
 
 ## 9. Reset / restore default behaviour
 
-- There is **no dedicated per-field "Reset to default" / "Restore template" button** on the snippet fields. The observable mechanism is:
+- There is **no dedicated per-field reset or restore template button** on the snippet fields. The observable mechanism is:
   - **Clear the field** → the value reverts to the inherited template/default, the placeholder (the template) becomes visible again, and the live preview immediately shows the template output.
   - For social fields, the placeholder is the General SEO title/description and behaves the same way (empty = inherit).
 - **Remove-image buttons** exist for social share images (remove returns to the featured-image / default OG fallback).
@@ -182,14 +182,14 @@ For RankKernel planning, the analysis lives **inside the General tab**, directly
 Observable shape (enough to know where a RankKernel analysis section would sit):
 
 - A **score** value (X / 100) and a colour band (red / yellow / green) — the score is also surfaced in the preview header when the sidebar preview is shown.
-- A set of **collapsible groups**, each rendered as an accordion row with a title and a status badge that reads either "All Good" or "&lt;n&gt; Errors":
+- A set of **collapsible groups**, each rendered as an accordion row with a title and a status badge that reads either all good or a count of errors:
   - **Basic SEO**
   - **Additional**
   - **Title Readability**
   - **Content Readability**
-- Inside each group, individual **tests** appear as list rows with a pass/warn/fail icon, an explanation sentence, and a "read more" link to the relevant KB. Some tests show a partial score.
+- Inside each group, individual **tests** appear as list rows with a pass/warn/fail icon, an explanation sentence, and a read more link to the relevant KB. Some tests show a partial score.
 - Tests are **keyword-aware**: selecting a different focus-keyword tag filters the tests/results to that keyword; the primary keyword drives certain tests (title/description/URL placement).
-- There is a "highlight in editor" affordance for some content tests.
+- There is a highlight in editor affordance for some content tests.
 - In RankKernel terms: this is a **self-contained section rendered as the sibling/child of the Focus Keyword group inside the primary tab**, not a separate tab.
 
 ---
@@ -198,11 +198,11 @@ Observable shape (enough to know where a RankKernel analysis section would sit):
 
 | Aspect | Block editor | Classic editor |
 |---|---|---|
-| Surface | Right-hand sidebar (`PluginSidebar`), hidden behind the toolbar icon / options menu | Native **draggable meta box** titled "Rank Math SEO" in the normal column, **below the content editor** |
+| Surface | Right-hand sidebar (`PluginSidebar`), hidden behind the toolbar icon / options menu | Native **draggable meta box** titled Rank Math SEO in the normal column, **below the content editor** |
 | Default visibility | Collapsed until the user opens the Rank Math panel | Always rendered as a boxed panel on the edit screen |
 | Tab set | General, Advanced, Schema, Social | Same tabs |
-| Primary fields | Inside the "Edit Snippet" modal | Inside the "Edit Snippet" modal (same app) |
-| Link Suggestions | In-sidebar panel | A **separate side meta box** ("Link Suggestions") in the Classic editor |
+| Primary fields | Inside the snippet editor modal | Inside the snippet editor modal (same app) |
+| Link Suggestions | In-sidebar panel | A **separate side meta box** with link suggestions in the Classic editor |
 | Extra | — | When the Gutenberg sidebar integration is disabled by filter, the same meta box is rendered at the bottom of the block editor too |
 | Content AI | Always in the right sidebar of the block editor | Inline in the classic meta box |
 
@@ -217,23 +217,23 @@ Implementation note (behaviour): when the block editor is active, the plugin reg
 - **A per-post SEO surface in the block editor sidebar** registered as a plugin sidebar reachable from the top toolbar **and** the three-dot Plugins menu, plus a **native meta box fallback for the Classic editor** below the content.
 - **Tabbed structure**: a primary General tab, a separate Advanced tab, a Social tab, and a Schema entry — each independently capability-gated, with the Advanced tab hidden entirely in Easy Mode.
 - **A visual SERP snippet preview at the top of the primary tab**, showing favicon, URL/path, title, description, with focus-keyword highlighting, truncation at the documented limits, a keyword in a mock search bar, and a clear noindex state overlay.
-- **A single "Edit Snippet" entry point** that opens a modal containing Title, Permalink and Description inputs in that order, each with a **live character/pixel counter** and an invalid state, plus a **Desktop/Mobile preview toggle** in the modal.
+- **A single snippet editor entry point** that opens a modal containing Title, Permalink and Description inputs in that order, each with a **live character/pixel counter** and an invalid state, plus a **Desktop/Mobile preview toggle** in the modal.
 - **Template inheritance signalling**: fields empty by default, placeholder = resolved template, and a live preview that switches between template and custom output as the user types/clears.
 - **A focus-keyword input** supporting a primary (first, marked) keyword and secondary keywords, plus a Pillar Content checkbox and a per-keyword analysis filter.
-- **A social sub-tab pair (Facebook and Twitter)** with image upload/replace/remove, title, description, an optional "reuse Facebook data" toggle for Twitter, a card-type selector, and realistic live share-card previews.
+- **A social sub-tab pair (Facebook and Twitter)** with image upload/replace/remove, title, description, an optional reuse Facebook data toggle for Twitter, a card-type selector, and realistic live share-card previews.
 - **A token-insertion control on every variable-capable field**: a chevron button opening a searchable dropdown listing token name + description, appending `%token%` on click.
-- **Content-analysis section inside the primary tab beneath the focus keyword**: score + colour band + collapsible groups with "all good / N issues" badges and per-test rows.
+- **Content-analysis section inside the primary tab beneath the focus keyword**: score + colour band + collapsible groups with all good or issue count badges and per-test rows.
 - **Capability + Easy/Advanced-mode gating** so the primary flow stays visual and short by default.
 - **Clear-field-to-restore-inheritance** semantics (no dedicated reset button needed) and disabled states with explanatory notes where editing is not allowed.
 
 ### Things to deliberately do differently / more simply
 
-- **Keep the primary fields always editable inline** — Rank Math hides Title/Permalink/Description behind an "Edit Snippet" modal. We can show them directly in the panel (fields + counters) with the preview above, removing a click and a modal. This is the single biggest workflow simplification we can make without losing parity.
-- **Show a small "Inherited / Custom" chip** next to Title and Description instead of relying on the user noticing an empty field with a placeholder. This makes override state explicit and is more discoverable than Rank Math's convention.
+- **Keep the primary fields always editable inline** — Rank Math hides Title/Permalink/Description behind a snippet editor modal. We can show them directly in the panel (fields + counters) with the preview above, removing a click and a modal. This is the single biggest workflow simplification we can make without losing parity.
+- **Show a small inherited or custom chip** next to Title and Description instead of relying on the user noticing an empty field with a placeholder. This makes override state explicit and is more discoverable than Rank Math's convention.
 - **Reduce the mock-search-bar chrome** (Google menu tabs, fake result counts, mic icon) to a clean, brand-neutral preview: favicon, URL, title, description + desktop/mobile toggle. Parity of information, much less imitation.
 - **One social preview pane with a platform switch** rather than nested Facebook/Twitter sub-tabs inside a modal inside a tab; keep image/title/description visible and swap the card frame per network.
-- **Collapse robots/canonical into a single "Advanced" section with plain-language presets** (e.g. a primary index/noindex switch plus an expandable "more directives" area) instead of six flat checkboxes plus three more number/select controls.
-- **Prefer human-readable token labels** (e.g. "Post title") with the raw token on hover, and keep the token list grouped by category in the dropdown — same capability, clearer scanning than a single flat list.
+- **Collapse robots/canonical into a single "Advanced" section with plain-language presets** (e.g. a primary index/noindex switch plus an expandable extra directives area) instead of six flat checkboxes plus three more number/select controls.
+- **Prefer human-readable token labels** (e.g. post title) with the raw token on hover, and keep the token list grouped by category in the dropdown — same capability, clearer scanning than a single flat list.
 - **Design the analysis section as an independently replaceable module** so RankKernel can evolve its own scoring without coupling it to the field UI (Rank Math's analysis is entangled with the same store/preview).
 - **Skip Pro-targeted upsell clutter** (rating requests, upgrade modals, keyword-count CTAs) in the default editing surface; expose extensions in a single place.
 

@@ -93,7 +93,7 @@ The coloured bar communicates **length quality**, not template status. The templ
 
 | Property | Behaviour |
 |---|---|
-| Where it appears | Inside the Search appearance section of the sidebar/meta box, above the editable snippet fields; also openable as a focus modal via a "Google/search appearance preview" entry point. |
+| Where it appears | Inside the Search appearance section of the sidebar/meta box, above the editable snippet fields; also openable as a focus modal via a Google search appearance preview entry point. |
 | What it shows | The SEO title, the URL/slug (desktop), and the meta description. The mobile variant additionally shows a favicon and the preview image (featured/fallback). |
 | Live update | Yes — title, slug and description changes are reflected as the user types. |
 | Device variants | Yes: a desktop/mobile switch (segmented control / radio buttons) with accessible labels describing the current mode. |
@@ -113,24 +113,24 @@ The coloured bar communicates **length quality**, not template status. The templ
 
 **Image override.** Image selection opens the WordPress media library; the chosen image is used for that network. Size/shape warnings are surfaced when the image does not match the recommended aspect/size. Selecting a Facebook/Open-Graph image also feeds X and other networks unless the X-specific image is set — the UI explains this inheritance.
 
-**Differences between Premium and Free (confirmed from packaging and docs).**
+**Differences between Premium and Free (inferred from packaging and docs; the social-preview boundary is not fully verified, see Unconfirmed).**
 
 | Aspect | Free | Premium |
 |---|---|---|
 | Social title/description/image fields | Yes (when Open Graph / X sharing is enabled) | Yes |
 | Image select/replace/remove + size warnings | Yes | Yes |
-| Rendered share **preview card** for Facebook | The dedicated live share-preview surface is provided by the premium bundle | Yes — dedicated Facebook/Open-Graph share preview |
+| Rendered share **preview card** for Facebook | Likely fields only, a basic preview may ship in free (not fully verified) | Yes — dedicated Facebook/Open-Graph share preview |
 | Rendered share preview for X | Same as above | Yes — dedicated X share preview |
 | X inheritance messaging | Present | Present |
 
-In short: the *data fields* for social sharing are shared; Premium adds the polished, network-accurate **preview surfaces** ("Social share preview" / "X share preview") that render the card, and premium's editor bundle is what loads the richer preview components in the editor.
+In short, the *data fields* for social sharing are shared. The free/premium split for the rendered preview card is not fully verified for this version pair; treat the premium-only preview surfaces as likely but unconfirmed (see Unconfirmed).
 
 ---
 
 ## 7. Inserting replace variables / snippets
 
 **Insertion control.**
-- Each title/description field has an **"insert variable"** affordance (a button adjacent to the field).
+- Each title/description field has an **insert variable** affordance (a button adjacent to the field).
 - Typing the `%` character in the field also triggers an inline **suggestion dropdown** (searchable list of variables).
 - Recommended variables for the current field/context are highlighted; a search box filters the list.
 - Inserted variables appear as inline tokens/pills in the field and are resolved in the preview.
@@ -155,8 +155,8 @@ Advanced metadata lives in a **collapsed "Advanced" disclosure**, rendered insid
 
 | Control | Type | Options / behaviour |
 |---|---|---|
-| Index directive ("Allow search engines to show this content?") | Select | Default for the post type (shows the current site-wide default), Yes (index), No (noindex) |
-| Follow directive ("Should search engines follow links on this content?") | Select | Default/follow, No (nofollow) |
+| Index directive (shown as a question about allowing search engines to show this content) | Select | Default for the post type (shows the current site-wide default), Yes (index), No (noindex) |
+| Follow directive (shown as a question about following links on this content) | Select | Default/follow, No (nofollow) |
 | Meta robots advanced | Multi-select | No Image Index, No Archive, No Snippet |
 | Canonical URL | URL text field | Overrides the canonical for this URL |
 | Breadcrumbs title | Text field | Title used for this page in breadcrumb trails |
@@ -164,7 +164,7 @@ Advanced metadata lives in a **collapsed "Advanced" disclosure**, rendered insid
 
 A sitewide noindex warning is shown inline when the whole site is set to noindex.
 
-**Schema** is a *separate* collapsed section (not the Advanced disclosure): it exposes a page-type selector and, for article-like content, an article-type selector, each with a "default for this post type" option. It is where structured-data type is chosen; nothing else is hidden there.
+**Schema** is a *separate* collapsed section (not the Advanced disclosure): it exposes a page-type selector and, for article-like content, an article-type selector, each with a default for post type option. It is where structured-data type is chosen; nothing else is hidden there.
 
 ---
 
@@ -173,11 +173,11 @@ A sitewide noindex warning is shown inline when the whole site is set to noindex
 What the user can actually do to "get back to defaults":
 
 - **Clear the field** — emptying the SEO title / meta description / social fields reverts that item to the site-wide template (or to the inherited social/meta fallback). This is the primary per-post reset mechanism.
-- **Default options in Advanced/Schema** — the index-directive selector offers a "Default for [post type] (currently: …)" choice, and the schema page-type selector offers a "default for this post type" choice. Choosing these restores the site-wide default.
+- **Default options in Advanced/Schema** — the index-directive selector offers a default for the current post type choice, and the schema page-type selector offers the same default choice. Choosing these restores the site-wide default.
 - **Editor default-state signal** — when no custom value is stored, the editor flags that default SEO data is in use and offers to write custom data; this is the visible counterpart of "this is currently a template value".
 - **Site-wide template reset** — the template fields in the settings can be manually reset by entering the documented default variable strings for each context (posts, archives, taxonomies, search, 404, author, date, homepage).
 
-**No dedicated per-field "Reset" button** was found in the installed per-post editor (search and JS inspection) — reset is achieved by clearing the input or choosing a "default" option.
+**No dedicated per-field reset button** was found in the installed per-post editor (search and JS inspection) — reset is achieved by clearing the input or choosing a "default" option.
 
 **Free vs Premium difference:** no confirmed behavioural difference in reset/restore was found in the installed versions. (Premium adds the social override fields, which can likewise be cleared to fall back.) See **Unconfirmed**.
 
@@ -227,11 +227,11 @@ Each is a self-contained, collapsible block with its own score bullet; the overa
 - **Layout:**
   - Left-hand navigation for **content type** (posts, pages, custom post types such as products).
   - Top-level tabs for **Search appearance** and **Social appearance**.
-  - A data table with selectable rows, search box and status filters (including "needs improvement" filters keyed to missing/over-long metadata).
+  - A data table with selectable rows, search box and status filters (including needs-improvement filters keyed to missing/over-long metadata).
 - **Editable columns:**
   - Search appearance tab: **focus keyphrase**, **SEO title**, **meta description**.
   - Social appearance tab: **social title**, **social description**.
-- **Editing model:** inline per-row edit, multi-select for batch edits, explicit save ("save edits"), warnings for unsaved changes, per-row/batch apply-discard, and per-row save confirmation.
+- **Editing model:** inline per-row edit, multi-select for batch edits, explicit save, warnings for unsaved changes, per-row/batch apply-discard, and per-row save confirmation.
 - **Assists:** focus-keyphrase visibility, status filters, and (paid plans) AI generation of titles/descriptions with a character-limit warning for over-long titles.
 - **Purpose:** quick site-wide metadata cleanup; the product docs explicitly steer deep per-page optimisation back to the individual editor with full feedback.
 
@@ -251,8 +251,8 @@ Each is a self-contained, collapsible block with its own score bullet; the overa
 - A clear **template-vs-override signal**: resolved template value shown in the preview and an editor notice/state when default SEO data is in use, with an action to write custom data.
 - **Social surfaces** for Facebook/Open Graph and X/Twitter with title, description and image per network, image select/replace/remove, size warnings, X inheritance messaging, and a **rendered share-preview card**.
 - An **Advanced disclosure** containing index directive, follow directive, advanced robots directives (noimageindex/noarchive/nosnippet), canonical URL, breadcrumbs title, and redirect; capability/setting-gated.
-- A separate **Schema disclosure** with page-type (and article-type) selectors including a "default for this post type" option.
-- **Default/restore affordances**: "default for this post type" options, field-clearing to revert to template, and documented default template strings.
+- A separate **Schema disclosure** with page-type (and article-type) selectors including a default for post type option.
+- **Default/restore affordances**: default for post type options, field-clearing to revert to template, and documented default template strings.
 - **Analysis sections** as collapsible blocks with per-check red/orange/green bullets and an overall score, positioned below the snippet editor — giving RankKernel's future analysis a natural home.
 - A separate **bulk editor** admin page with content-type navigation, search/social tabs, keyphrase+title+description (and social) columns, inline + batch editing, search/status filters, and save-with-unsaved-change warnings.
 

@@ -82,13 +82,14 @@ GPL-reusable but must NOT be reused). Keep it that way.
 The site is LocalWP at `http://localhost:10043`. RankKernel is active; Rank Math and Yoast are
 installed but inactive. There is no CLI PHP with mysqli, so wp-cli cannot be used.
 
-1. DB access: `mysql` client from Local, socket `/home/web-dev-3/.config/Local/run/5hHG2Dk6l/mysql/mysqld.sock`,
-   user `root`, password `root`, database `local`. Or `/home/web-dev-3/.config/Local/lightning-services/mysql-8.0.35+4/bin/linux/bin/mysql`.
-2. Admin logins: `dev-team`, `qrolic`, `seo-team`.
-3. To authenticate in a browser without learning a password: read `user_pass` for `seo-team`,
-   save it, set `user_pass` to `md5('rk-verify-2026')` (WordPress accepts legacy MD5 and rehashes on
-   login), log in via Playwright at `/wp-login.php`, verify, then RESTORE the exact original hash and
-   confirm it matches. Always restore. Confirm the temp password no longer authenticates.
+1. DB access: use the `mysql` client bundled with Local. Both the client binary and its socket live
+   under the Local run directory for this site; resolve them there rather than recording them here.
+   This step applies only to the host-local LocalWP environment, never a shared or production database.
+2. You need an administrator account you control. Do not record the login names in this file.
+3. To authenticate in a browser without learning a password: read the account's `user_pass` meta,
+   save it verbatim, set `user_pass` to a temporary MD5 hash, log in at `/wp-login.php`, verify, then
+   restore the exact original hash and confirm it matches byte for byte. Always restore. Confirm the
+   temporary password no longer authenticates.
 4. Open a post: `http://localhost:10043/wp-admin/post.php?post=53671&action=edit`.
    Open our sidebar programmatically with
    `wp.data.dispatch('core/edit-post').openGeneralSidebar('rankkernel-seo/rankkernel-seo')`.

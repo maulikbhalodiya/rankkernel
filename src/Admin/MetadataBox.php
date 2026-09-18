@@ -559,9 +559,11 @@ final class MetadataBox {
 	/**
 	 * Save handler on save_post.
 	 *
-	 * Skips autosaves and revisions, checks capability and nonce, then merges
-	 * the submitted fields over the existing payload. A save without the
-	 * metabox fields present is the Gutenberg REST path and returns early.
+	 * Skips autosaves and revisions, returns early when the metabox fields
+	 * are absent, then checks capability and nonce before merging the
+	 * submitted fields over the existing payload. save_post fires for REST
+	 * writes, cron, WP-CLI and importers, so the fields guard runs first to
+	 * keep an unrelated save from reaching wp_die().
 	 *
 	 * @param int   $postId Current post id.
 	 * @param mixed $post   Current post object.
@@ -572,6 +574,14 @@ final class MetadataBox {
 		}
 
 		if ( function_exists( 'wp_is_post_revision' ) && wp_is_post_revision( $postId ) ) {
+			return;
+		}
+
+		// Gutenberg saves through the REST meta field, so its request has no
+		// metabox fields. Returning here keeps the Classic path from wiping
+		// the REST write with a defaults shaped payload, and keeps a save
+		// without edit_post capability from reaching wp_die().
+		if ( ! $this->hasPostedFields() ) {
 			return;
 		}
 
@@ -594,13 +604,6 @@ final class MetadataBox {
 				'',
 				[ 'response' => 403 ]
 			);
-		}
-
-		// Gutenberg saves through the REST meta field, so its request has no
-		// metabox fields. Returning here keeps the Classic path from wiping
-		// the REST write with a defaults shaped payload.
-		if ( ! $this->hasPostedFields() ) {
-			return;
 		}
 
 		$existing = $this->readPayload( $postId );
@@ -1002,12 +1005,12 @@ final class MetadataBox {
 	 * @return bool The result.
 	 */
 	private function hasPostedFields(): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence-only guard that runs before nonce verification, reads no posted value.
 		if ( isset( $_POST[ self::FIELDS_FIELD ] ) ) {
 			return true;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence-only guard that runs before nonce verification, reads no posted value.
 		return isset( $_POST['rankkernel_meta_title'] ) || isset( $_POST['rankkernel_meta_description'] );
 	}
 

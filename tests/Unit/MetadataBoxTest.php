@@ -368,9 +368,12 @@ final class MetadataBoxTest extends TestCase {
 	 * Save is skipped when the metabox fields are absent from POST.
 	 *
 	 * That is the Gutenberg path, where the REST meta field is the writer and
-	 * the classic save must not run.
+	 * the classic save must not run. The capability is set false to prove the
+	 * fields guard returns before the capability check instead of calling
+	 * wp_die() on a request that never carried the metabox.
 	 */
 	public function test_save_skipped_when_metabox_fields_absent(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\expect( 'update_post_meta' )->never();
 
 		$_POST = [ 'rankkernel_meta_nonce' => 'valid' ];
