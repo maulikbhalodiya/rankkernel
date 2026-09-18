@@ -1,0 +1,86 @@
+/**
+ * General Settings shell layout.
+ *
+ * Loaded only on the RankKernel General Settings screen. Every rule is
+ * scoped under .rk-settings. All colour, spacing, type, radius and shadow
+ * values come from the --rk-* tokens in rankkernel-admin.css.
+ */
+
+@import url("rankkernel-admin.css");
+
+.rk-settings {
+	display: grid;
+	grid-template-columns: 210px minmax(0, 1fr);
+	align-items: start;
+	gap: var(--rk-space-6);
+	margin-block-start: var(--rk-space-5);
+}
+
+.rk-settings-nav {
+	position: sticky;
+	inset-block-start: 48px;
+	padding: var(--rk-space-2);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-settings-nav ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rk-settings-nav li + li {
+	margin-block-start: 2px;
+}
+
+.rk-settings-nav a {
+	display: block;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-md);
+	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+}
+
+.rk-settings-nav a:hover {
+	color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+}
+
+.rk-settings-nav a:focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+.rk-settings-body {
+	min-width: 0;
+}
+
+.rk-settings-section {
+	margin-block-end: var(--rk-space-6);
+	padding-block-end: var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-border);
+	scroll-margin-top: 48px;
+}
+
+.rk-settings-section:last-of-type {
+	border-block-end: 0;
+}
+
+.rk-settings-section > h2:first-child {
+	margin-block-start: 0;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-settings {
+		grid-template-columns: 1fr;
+	}
+
+	.rk-settings-nav {
+		position: static;
+	}
+}

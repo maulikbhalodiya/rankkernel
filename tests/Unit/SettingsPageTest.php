@@ -293,4 +293,66 @@ final class SettingsPageTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * Test the General Settings shell renders the persistent left nav and sections.
+	 */
+	public function test_general_settings_shell_renders_nav_and_sections(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'class="rk-settings"', $output );
+		$this->assertStringContainsString( 'class="rk-settings-nav"', $output );
+		$this->assertStringContainsString( 'href="#rk-section-general"', $output );
+		$this->assertStringContainsString( 'href="#rk-section-breadcrumbs"', $output );
+		$this->assertStringContainsString( 'href="#rk-section-webmaster"', $output );
+		$this->assertStringContainsString( 'href="#rk-section-modules"', $output );
+		$this->assertStringContainsString( 'href="#rk-section-advanced"', $output );
+		$this->assertStringContainsString( 'id="rk-section-general"', $output );
+		$this->assertStringContainsString( 'id="rk-section-advanced"', $output );
+	}
+
+	/**
+	 * Test the settings stylesheet is enqueued only on the settings screen.
+	 */
+	public function test_enqueue_assets_adds_settings_stylesheet(): void {
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', __FILE__ );
+		}
+
+		$registered = [];
+
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->alias(
+			static function ( string $handle, string $src = '', array $deps = [], mixed $ver = false ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$registered[] = $handle;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( string $handle ) use ( &$registered ): void {
+				$registered[] = $handle;
+			}
+		);
+		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
+
+		$page = $this->makePage();
+
+		$page->enqueueAssets( 'some_other_page' );
+		$this->assertNotContains( 'rankkernel-settings-admin', $registered );
+
+		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+		$this->assertContains( 'rankkernel-settings-admin', $registered );
+	}
 }

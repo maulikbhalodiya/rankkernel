@@ -196,6 +196,29 @@ final class SettingsPage {
 			];
 		}
 
+		$settingsSections = [
+			[
+				'id'    => 'general',
+				'label' => __( 'General', 'rankkernel' ),
+			],
+			[
+				'id'    => 'breadcrumbs',
+				'label' => __( 'Breadcrumbs', 'rankkernel' ),
+			],
+			[
+				'id'    => 'webmaster',
+				'label' => __( 'Webmaster Tools', 'rankkernel' ),
+			],
+			[
+				'id'    => 'modules',
+				'label' => __( 'Modules', 'rankkernel' ),
+			],
+			[
+				'id'    => 'advanced',
+				'label' => __( 'Advanced', 'rankkernel' ),
+			],
+		];
+
 		require __DIR__ . '/Views/settings.php';
 	}
 
@@ -310,6 +333,14 @@ final class SettingsPage {
 
 		wp_register_script( 'rankkernel-breadcrumbs-admin', $src, [], $version, true );
 		wp_enqueue_script( 'rankkernel-breadcrumbs-admin' );
+
+		wp_register_style(
+			'rankkernel-settings-admin',
+			plugins_url( 'assets/css/settings-admin.css', (string) RANKKERNEL_FILE ),
+			[],
+			$version
+		);
+		wp_enqueue_style( 'rankkernel-settings-admin' );
 	}
 
 	/**

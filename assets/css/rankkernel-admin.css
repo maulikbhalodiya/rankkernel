@@ -15,7 +15,8 @@
 .rk-side,
 .rankkernel-meta-editor,
 .rk-redirects,
-.rk-monitor {
+.rk-monitor,
+.rk-settings {
 	/* Brand and action. Primary marks primary actions, the active tab,
 	selected states and focus. Used sparingly elsewhere. */
 	--rk-color-primary: #2563EB;
