@@ -107,9 +107,16 @@ final class RedirectsMonitorUninstallStubDb {
 		$this->queries[] = $query;
 
 		if ( str_contains( $query, 'DELETE FROM' ) && str_contains( $query, 'option_name LIKE' ) ) {
-			foreach ( array_keys( $this->optionRows ) as $name ) {
-				if ( str_starts_with( $name, 'rankkernel_' ) ) {
-					unset( $this->optionRows[ $name ] );
+			preg_match_all( "/option_name LIKE '([^']+)'/", $query, $matches );
+			if ( ! empty( $matches[1] ) ) {
+				foreach ( array_keys( $this->optionRows ) as $name ) {
+					foreach ( $matches[1] as $pattern ) {
+						$prefix = str_replace( [ '\_', '\%' ], [ '_', '%' ], rtrim( $pattern, '%' ) );
+						if ( str_starts_with( $name, $prefix ) ) {
+							unset( $this->optionRows[ $name ] );
+							break;
+						}
+					}
 				}
 			}
 
