@@ -361,6 +361,103 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Non-uploaded file path is rejected by the upload probe.
+	 */
+	public function test_import_non_uploaded_file_rejected(): void {
+		$tmp = (string) tempnam( sys_get_temp_dir(), 'rkcsv' );
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/from,/to,301,exact,yes,0,\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		try {
+			$page = new RedirectsPage(
+				new RedirectRepository( $this->db ),
+				new RedirectsSettings(),
+				new Validator(),
+				new DestinationValidator(),
+				static fn ( string $p ): bool => false // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			);
+
+			$this->allowAccess();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_redirect_import' => '1',
+				'_wpnonce'                   => 'valid',
+			];
+			$_FILES                    = [
+				'rk_csv_file' => [
+					'name'     => 'test.csv',
+					'type'     => 'text/csv',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 100,
+				],
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+
+			$result = $page->import_result();
+			$this->assertIsArray( $result );
+			$this->assertSame( 'The uploaded file could not be read.', $result['errors'][0]['reason'] );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
+	 * Invalid file extension fails wp_check_filetype.
+	 */
+	public function test_import_invalid_filetype_rejected(): void {
+		$tmp = (string) tempnam( sys_get_temp_dir(), 'rkcsv' );
+		file_put_contents( $tmp, 'some content' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn (): array => [
+				'ext'  => false,
+				'type' => false,
+			]
+		);
+
+		try {
+			$page = new RedirectsPage(
+				new RedirectRepository( $this->db ),
+				new RedirectsSettings(),
+				new Validator(),
+				new DestinationValidator(),
+				static fn ( string $p ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			);
+
+			$this->allowAccess();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_redirect_import' => '1',
+				'_wpnonce'                   => 'valid',
+			];
+			$_FILES                    = [
+				'rk_csv_file' => [
+					'name'     => 'malicious.php',
+					'type'     => 'text/plain',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 50,
+				],
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+
+			$result = $page->import_result();
+			$this->assertIsArray( $result );
+			$this->assertSame( 'Invalid file type. Please upload a valid CSV file.', $result['errors'][0]['reason'] );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
 	 * Failed nonce stops the save.
 	 */
 	public function test_form_save_with_bad_nonce_dies(): void {
