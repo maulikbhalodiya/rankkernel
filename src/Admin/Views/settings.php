@@ -11,7 +11,6 @@
  *
  * @var bool   $settingsUpdated      Whether the settings saved notice renders.
  * @var array<int, array{id: string, label: string}> $settingsSections Settings left-nav sections.
- * @var array<int, array{id: string, label: string, enabled: bool}> $modules Module toggle rows.
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
@@ -322,23 +321,6 @@ endif;
 						<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;max-height:360px;overflow:auto;"><?php echo esc_html( $llmsPreview ); ?></pre>
 					</section>
 				<?php endif; ?>
-
-				<section id="rk-section-modules" class="rk-settings-section" aria-labelledby="rk-section-modules-title">
-					<h2 id="rk-section-modules-title"><?php echo esc_html__( 'Modules', 'rankkernel' ); ?></h2>
-					<p class="description"><?php echo esc_html__( 'Turn optional features on or off. A disabled module adds no hooks and no runtime cost.', 'rankkernel' ); ?></p>
-					<table class="form-table" role="presentation"><tbody>
-						<?php foreach ( $modules as $module ) : ?>
-							<tr>
-								<th scope="row"><?php echo esc_html( $module['label'] ); ?></th>
-								<td>
-									<label>
-										<input type="checkbox" name="rankkernel_modules[]" value="<?php echo esc_attr( $module['id'] ); ?>" <?php echo checked( $module['enabled'], true, false ); ?> /> <?php echo esc_html( $module['label'] ); ?>
-									</label>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					</tbody></table>
-				</section>
 
 				<section id="rk-section-advanced" class="rk-settings-section" aria-labelledby="rk-section-advanced-title">
 					<h2 id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h2>

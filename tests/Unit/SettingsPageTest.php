@@ -100,7 +100,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\expect( 'update_option' )->atLeast()->once()->andReturn( true );
 		Functions\expect( 'wp_safe_redirect' )
 			->once()
-			->with( 'https://example.com/wp-admin/admin.php?page=rankkernel&settings-updated=1' )
+			->with( 'https://example.com/wp-admin/admin.php?page=rankkernel-general&settings-updated=1' )
 			->andReturn( true );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
@@ -157,43 +157,6 @@ final class SettingsPageTest extends TestCase {
 		$this->assertIsArray( $capturedSettings );
 		$this->assertArrayHasKey( 'purge_on_uninstall', $capturedSettings );
 		$this->assertFalse( $capturedSettings['purge_on_uninstall'] );
-	}
-
-	/**
-	 * Test unknown module id silently dropped.
-	 */
-	public function test_unknown_module_id_silently_dropped(): void {
-		$page = $this->makePage();
-
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-
-		$capturedModules = null;
-		Functions\when( 'update_option' )->alias(
-			static function ( string $key, mixed $value ) use ( &$capturedModules ): bool {
-				if ( 'rankkernel_modules' === $key ) {
-					$capturedModules = $value;
-				}
-				return true;
-			}
-		);
-		Functions\when( 'wp_safe_redirect' )->justReturn( true );
-
-		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST                     = [
-			'rankkernel_save'    => '1',
-			'_wpnonce'           => 'valid',
-			'rankkernel_modules' => [ 'metadata', 'evil-id', 'sitemaps' ],
-		];
-
-		ob_start();
-		$page->maybeHandleSave();
-		ob_end_clean();
-
-		$this->assertIsArray( $capturedModules );
-		$this->assertContains( 'metadata', $capturedModules );
-		$this->assertContains( 'sitemaps', $capturedModules );
-		$this->assertNotContains( 'evil-id', $capturedModules );
 	}
 
 	/**
@@ -315,7 +278,6 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'href="#rk-section-general"', $output );
 		$this->assertStringContainsString( 'href="#rk-section-breadcrumbs"', $output );
 		$this->assertStringContainsString( 'href="#rk-section-webmaster"', $output );
-		$this->assertStringContainsString( 'href="#rk-section-modules"', $output );
 		$this->assertStringContainsString( 'href="#rk-section-advanced"', $output );
 		$this->assertStringContainsString( 'id="rk-section-general"', $output );
 		$this->assertStringContainsString( 'id="rk-section-advanced"', $output );
@@ -352,7 +314,7 @@ final class SettingsPageTest extends TestCase {
 		$page->enqueueAssets( 'some_other_page' );
 		$this->assertNotContains( 'rankkernel-settings-admin', $registered );
 
-		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 		$this->assertContains( 'rankkernel-settings-admin', $registered );
 	}
 

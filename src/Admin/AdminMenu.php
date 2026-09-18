@@ -58,6 +58,13 @@ final class AdminMenu {
 	private readonly NotFoundPage $monitorPage;
 
 	/**
+	 * Dashboard page instance.
+	 *
+	 * @var DashboardPage
+	 */
+	private readonly DashboardPage $dashboardPage;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore        $store     Settings store.
@@ -74,6 +81,7 @@ final class AdminMenu {
 		$this->schemaPage    = new SchemaSettingsPage( $this->store );
 		$this->redirectsPage = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
 		$this->monitorPage   = new NotFoundPage();
+		$this->dashboardPage = new DashboardPage();
 	}
 
 	/**
@@ -154,18 +162,18 @@ final class AdminMenu {
 	public function addMenuPage(): void {
 		$hook = add_menu_page(
 			'RankKernel',
-			'RankKernel',
+			'Dashboard',
 			'manage_options',
-			'rankkernel',
-			[ $this->page, 'render' ],
+			DashboardPage::SLUG,
+			[ $this->dashboardPage, 'render' ],
 			'dashicons-search',
 			80
 		);
 
 		// Save handling runs on the load hook, before ANY output, so the
 		// post-redirect-get pattern can send its Location header.
-		add_action( 'load-' . $hook, [ $this->page, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->page, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this->dashboardPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->dashboardPage, 'enqueueAssets' ] );
 
 		$sitemapHook = add_submenu_page(
 			'rankkernel',
@@ -178,6 +186,35 @@ final class AdminMenu {
 
 		// Same load hook save pattern, so the tab redirect stays header safe.
 		add_action( 'load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ] );
+	}
+
+	/**
+	 * Register the RankKernel General settings submenu page.
+	 *
+	 * Uses the same load hook save pattern as the other pages, so the
+	 * redirect stays header safe.
+	 */
+	public function addGeneralPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'General Settings',
+			'General Settings',
+			'manage_options',
+			'rankkernel-general',
+			[ $this->page, 'render' ]
+		);
+
+		add_action( 'load-' . $hook, [ $this->page, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->page, 'enqueueAssets' ] );
+	}
+
+	/**
+	 * Get the dashboard page (for testing).
+	 *
+	 * @return DashboardPage The result.
+	 */
+	public function getDashboardPage(): DashboardPage {
+		return $this->dashboardPage;
 	}
 
 	/**

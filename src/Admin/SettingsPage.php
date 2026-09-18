@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
-use RankKernel\Modules\ModuleRegistry;
 use RankKernel\Modules\Robots\CrawlerPolicy;
 use RankKernel\Modules\Robots\LlmsFileWriter;
 use RankKernel\Modules\Robots\LlmsGenerator;
@@ -76,17 +75,6 @@ final class SettingsPage {
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
 		$allSettings = $this->store->all();
-
-		$modules = [];
-
-		foreach ( ModuleRegistry::all() as $moduleId => $moduleLabel ) {
-			$moduleIdStr = (string) $moduleId;
-			$modules[]   = [
-				'id'      => $moduleIdStr,
-				'label'   => (string) $moduleLabel,
-				'enabled' => $this->enableMap->isEnabled( $moduleIdStr ),
-			];
-		}
 
 		$titleTemplate       = (string) ( $allSettings['title_template'] ?? '' );
 		$descriptionTemplate = (string) ( $allSettings['description_template'] ?? '' );
@@ -287,10 +275,6 @@ final class SettingsPage {
 		}
 
 		$settingsSections[] = [
-			'id'    => 'modules',
-			'label' => __( 'Modules', 'rankkernel' ),
-		];
-		$settingsSections[] = [
 			'id'    => 'advanced',
 			'label' => __( 'Advanced', 'rankkernel' ),
 		];
@@ -372,7 +356,7 @@ final class SettingsPage {
 			$notice = 'failed';
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel&rk_notice=' . $notice ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel-general&section=llms&rk_notice=' . $notice ) );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;
@@ -443,31 +427,7 @@ final class SettingsPage {
 			$this->saveLlms();
 		}
 
-		// Modules: validate ids against registry; save enabled-id list.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified, unslashed here, sanitized or validated on the following statements.
-		$rawModules = isset( $_POST['rankkernel_modules'] ) ? wp_unslash( $_POST['rankkernel_modules'] ) : [];
-		if ( ! is_array( $rawModules ) ) {
-			$rawModules = [];
-		}
-
-		$enabled = [];
-		foreach ( $rawModules as $rawId ) {
-			$id = sanitize_text_field( (string) $rawId );
-			if ( '' !== $id && ModuleRegistry::has( $id ) ) {
-				$enabled[] = $id;
-			}
-		}
-
-		// De-duplicate, preserve registry order? Keep as filtered list.
-		$enabled = array_values( array_unique( $enabled ) );
-
-		update_option( 'rankkernel_modules', $enabled );
-
-		// Rules of rewrite-based modules (sitemaps) must reach the cached
-		// rules array when the enable list changes.
-		flush_rewrite_rules( false );
-
-		$redirect = admin_url( 'admin.php?page=rankkernel&settings-updated=1' );
+		$redirect = admin_url( 'admin.php?page=rankkernel-general&settings-updated=1' );
 		wp_safe_redirect( $redirect );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
@@ -490,7 +450,7 @@ final class SettingsPage {
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
 	public function enqueueAssets( string $hookSuffix ): void {
-		if ( 'toplevel_page_rankkernel' !== $hookSuffix ) {
+		if ( 'rankkernel_page_rankkernel-general' !== $hookSuffix ) {
 			return;
 		}
 

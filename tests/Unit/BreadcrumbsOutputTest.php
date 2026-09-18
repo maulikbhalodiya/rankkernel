@@ -1140,7 +1140,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 	public function test_enqueue_assets_only_on_settings_screen(): void {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
-		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 
 		$this->assertContains( 'rankkernel-breadcrumbs-admin', $this->enqueuedScripts );
 

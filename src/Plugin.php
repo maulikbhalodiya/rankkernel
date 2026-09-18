@@ -139,6 +139,7 @@ final class Plugin {
 			$adminMenu->register();
 			$this->services['admin_menu'] = $adminMenu;
 
+			add_action( 'admin_menu', [ $adminMenu, 'addGeneralPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addSchemaPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
