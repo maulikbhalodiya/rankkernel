@@ -58,6 +58,13 @@ final class AdminMenu {
 	private readonly NotFoundPage $monitorPage;
 
 	/**
+	 * Crawl Signals page instance.
+	 *
+	 * @var CrawlSettingsPage
+	 */
+	private readonly CrawlSettingsPage $crawlPage;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore        $store     Settings store.
@@ -74,6 +81,7 @@ final class AdminMenu {
 		$this->schemaPage    = new SchemaSettingsPage( $this->store );
 		$this->redirectsPage = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
 		$this->monitorPage   = new NotFoundPage();
+		$this->crawlPage     = new CrawlSettingsPage();
 	}
 
 	/**
@@ -119,6 +127,15 @@ final class AdminMenu {
 	 */
 	public function getMonitorPage(): NotFoundPage {
 		return $this->monitorPage;
+	}
+
+	/**
+	 * Get the Crawl Signals page (for testing).
+	 *
+	 * @return CrawlSettingsPage The result.
+	 */
+	public function getCrawlPage(): CrawlSettingsPage {
+		return $this->crawlPage;
 	}
 
 	/**
@@ -241,5 +258,26 @@ final class AdminMenu {
 
 		add_action( 'load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ] );
 		add_action( 'admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ] );
+	}
+
+	/**
+	 * Register the RankKernel Crawl Signals submenu page.
+	 *
+	 * Hooked separately so callers control ordering. Uses the same load
+	 * hook save pattern as the other pages, so the redirect stays header
+	 * safe.
+	 */
+	public function addCrawlPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'Crawl Signals',
+			'Crawl Signals',
+			'manage_options',
+			CrawlSettingsPage::SLUG,
+			[ $this->crawlPage, 'render' ]
+		);
+
+		add_action( 'load-' . $hook, [ $this->crawlPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->crawlPage, 'enqueueAssets' ] );
 	}
 }
