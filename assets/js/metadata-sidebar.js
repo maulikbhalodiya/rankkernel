@@ -2082,7 +2082,7 @@
 				url: permalink,
 				onEdit: function () { setModalTab( 'general' ); }
 			} ),
-				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview shows the published values.', 'rankkernel' ) )
+				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) )
 			);
 		}
 
