@@ -13,6 +13,7 @@ namespace RankKernel;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Admin\AdminMenu;
+use RankKernel\Admin\MetadataBox;
 use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
@@ -144,6 +145,14 @@ final class Plugin {
 			$schemaMetabox = new SchemaMetabox();
 			$schemaMetabox->register();
 			$this->services['schema_metabox'] = $schemaMetabox;
+
+			// Metadata editor metabox and Gutenberg sidebar, hard gated on the
+			// metadata module so a disabled module stays silent.
+			if ( $enableMap->isEnabled( 'metadata' ) ) {
+				$metadataBox = new MetadataBox( $settingsStore );
+				$metadataBox->register();
+				$this->services['metadata_box'] = $metadataBox;
+			}
 		}
 
 		// Metadata module (optional, default-ON per activation seed).

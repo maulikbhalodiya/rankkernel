@@ -58,7 +58,7 @@ FAQ answers and HowTo step text previously ran through `wp_kses_post`, so JSON-L
 - Gates: `composer lint && composer stan && composer test` (currently 454 tests, 1856 assertions, all green).
 - Test files mirror `src/` one to one under `tests/Unit/`, plus `tests/Unit/Support/` doubles.
 - Live JSON-LD: fetch any page, extract `<script type="application/ld+json">`, parse it, assert one block, unique `@id`s, no empty values, and no `<` in any `text`, `name`, or `acceptedAnswer` value.
-- DB (Local socket): user `root`, password `root`, database `local`. Options of interest: `rankkernel_modules`, `rankkernel_settings`, `rankkernel_db_version`. Post meta key `_rankkernel_meta_data`.
+- DB: use the Local database for this site. Resolve its socket, user and password through the Local app or its run directory rather than recording them here. Options of interest: `rankkernel_modules`, `rankkernel_settings`, `rankkernel_db_version`. Post meta key `_rankkernel_meta_data`.
 - NEVER start or stop Local services from tooling (datadir conflict risk). The owner manages the app.
 
 ## 6. Known limitations (genuine, not roadmap filler)

@@ -138,7 +138,7 @@ final class HeadRendererTest extends TestCase {
 	}
 
 	/**
-	 * Test render emits robots with noindex.
+	 * Test render never emits its own robots tag and the directive rides wp_robots.
 	 */
 	public function test_render_emits_robots_with_noindex(): void {
 		[ $ctx, $settings ] = $this->makeSingularContext(
@@ -155,12 +155,16 @@ final class HeadRendererTest extends TestCase {
 		$renderer->render();
 		$out = ob_get_clean();
 
-		$this->assertStringContainsString( 'name="robots"', $out );
-		$this->assertStringContainsString( 'noindex', $out );
+		// Exactly one robots concept: none printed by render, core owns the tag.
+		$this->assertStringNotContainsString( 'name="robots"', $out );
+
+		$robots = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $robots['noindex'] );
 	}
 
 	/**
-	 * Test render robots max snippet.
+	 * Test filter robots keeps the tighter max snippet budget.
 	 */
 	public function test_render_robots_max_snippet(): void {
 		[ $ctx, $settings ] = $this->makeSingularContext(
@@ -178,7 +182,69 @@ final class HeadRendererTest extends TestCase {
 		$renderer->render();
 		$out = ob_get_clean();
 
-		$this->assertStringContainsString( 'max-snippet:120', $out );
+		$this->assertStringNotContainsString( 'name="robots"', $out );
+
+		$robots = $renderer->filterRobots( [] );
+
+		$this->assertSame( 120, $robots['max-snippet'] );
+	}
+
+	/**
+	 * Test filter robots keeps a core noindex when RankKernel says nothing.
+	 */
+	public function test_filter_robots_keeps_core_noindex_when_rankerkernel_says_nothing(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+		$renderer           = new HeadRenderer( $settings, null, $ctx );
+
+		$robots = $renderer->filterRobots( [ 'noindex' => true ] );
+
+		$this->assertTrue( $robots['noindex'] );
+	}
+
+	/**
+	 * Test filter robots adds a noindex when core says nothing.
+	 */
+	public function test_filter_robots_adds_noindex_when_core_says_nothing(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[ 'robots' => [ 'index' => false ] ]
+		);
+		$renderer           = new HeadRenderer( $settings, null, $ctx );
+
+		$robots = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $robots['noindex'] );
+	}
+
+	/**
+	 * Test filter robots keeps the tighter of a no limit and a numeric snippet budget.
+	 */
+	public function test_filter_robots_keeps_tighter_max_snippet(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[ 'robots' => [ 'max_snippet' => 120 ] ]
+		);
+		$renderer           = new HeadRenderer( $settings, null, $ctx );
+
+		$this->assertSame( 120, $renderer->filterRobots( [ 'max-snippet' => -1 ] )['max-snippet'] );
+		$this->assertSame( 80, $renderer->filterRobots( [ 'max-snippet' => 80 ] )['max-snippet'] );
+	}
+
+	/**
+	 * Test filter robots keeps the tighter of large and standard image preview.
+	 */
+	public function test_filter_robots_keeps_tighter_image_preview(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[ 'robots' => [ 'max_image_preview' => 'standard' ] ]
+		);
+		$renderer           = new HeadRenderer( $settings, null, $ctx );
+
+		$this->assertSame( 'standard', $renderer->filterRobots( [ 'max-image-preview' => 'large' ] )['max-image-preview'] );
+
+		[ $ctx2, $settings2 ] = $this->makeSingularContext(
+			[ 'robots' => [ 'max_image_preview' => 'large' ] ]
+		);
+		$renderer2            = new HeadRenderer( $settings2, null, $ctx2 );
+
+		$this->assertSame( 'standard', $renderer2->filterRobots( [ 'max-image-preview' => 'standard' ] )['max-image-preview'] );
 	}
 
 	/**
@@ -456,7 +522,12 @@ final class HeadRendererTest extends TestCase {
 		$out = ob_get_clean();
 
 		$this->assertStringNotContainsString( 'rel="canonical"', $out );
-		$this->assertStringContainsString( 'noindex', $out );
+		$this->assertStringNotContainsString( 'name="robots"', $out );
+
+		$robots = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $robots['noindex'] );
+		$this->assertArrayNotHasKey( 'nofollow', $robots );
 	}
 
 	/**
@@ -726,5 +797,109 @@ final class HeadRendererTest extends TestCase {
 		$this->assertFalse( $doActionFired, 'preview must not fire R2 action' );
 		$this->assertSame( 'WP Default Preview', $renderer->title( 'WP Default Preview' ) );
 		$this->assertSame( 'preview', $ctx->queriedType() );
+	}
+
+	/**
+	 * Test filter robots leaves core untouched on feeds.
+	 */
+	public function test_filter_robots_leaves_feed_untouched(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_feed' )->andReturn( true )->byDefault();
+		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->andReturn( 0 )->byDefault();
+		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		Functions\when( 'is_feed' )->justReturn( true );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$base = [ 'noindex' => true ];
+
+		$this->assertSame( $base, $renderer->filterRobots( $base ) );
+	}
+
+	/**
+	 * Test filter robots leaves core untouched on previews.
+	 */
+	public function test_filter_robots_leaves_preview_untouched(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_preview' )->andReturn( true )->byDefault();
+		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		Functions\when( 'is_preview' )->justReturn( true );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$base = [
+			'index'  => false,
+			'follow' => true,
+		];
+
+		$this->assertSame( $base, $renderer->filterRobots( $base ) );
+	}
+
+	/**
+	 * Test a decoded JSON meta row reaches the head output.
+	 */
+	public function test_render_surfaces_decoded_json_meta_row(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		Functions\when( 'get_post_meta' )->justReturn( (string) json_encode( [ 'title' => 'Decoded JSON Headline' ] ) );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'Decoded JSON Headline', $out );
+	}
+
+	/**
+	 * Test a decoded serialized meta row reaches the head output.
+	 */
+	public function test_render_surfaces_decoded_serialized_meta_row(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_meta' )->justReturn( serialize( [ 'description' => 'Serialized Description' ] ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- test fixture uses the existing stored serialization format.
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'Serialized Description', $out );
+	}
+
+	/**
+	 * Test boot removes core rel canonical so only one canonical is emitted.
+	 */
+	public function test_boot_removes_core_rel_canonical(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\expect( 'remove_action' )->once()->with( 'wp_head', 'rel_canonical' )->andReturn( true );
+		Functions\expect( 'add_action' )->andReturn( true );
+		Functions\expect( 'add_filter' )->andReturn( true );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+		$renderer->boot();
+
+		$this->assertTrue( true );
 	}
 }

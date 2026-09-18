@@ -1,0 +1,1385 @@
+@import url("rankkernel-admin.css");
+
+/**
+ * RankKernel metadata editor styles (block editor sidebar and shared panels).
+ *
+ * Loaded only on editor screens for the metadata feature. Every rule is
+ * scoped under .rk-meta so nothing leaks onto other admin screens. All
+ * colour, spacing, type, radius and shadow values come from var(--rk-*)
+ * tokens defined in rankkernel-admin.css.
+ */
+
+.rk-meta {
+	box-sizing: border-box;
+	color: var(--rk-color-text);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-meta *,
+.rk-meta *::before,
+.rk-meta *::after {
+	box-sizing: inherit;
+}
+
+/* Tabs: one coherent navigation component. Primary marks active. */
+
+.rk-meta .rk-meta-tabs {
+	border-bottom: 1px solid var(--rk-color-border);
+	display: flex;
+	flex-wrap: nowrap;
+	gap: var(--rk-space-1);
+	margin: 0 0 var(--rk-space-4);
+}
+
+.rk-meta .rk-meta-tab {
+	align-items: center;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: var(--rk-radius-sm) var(--rk-radius-sm) 0 0;
+	color: var(--rk-color-text-secondary);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	gap: var(--rk-space-2);
+	line-height: var(--rk-line-height-normal);
+	margin: 0 0 -1px;
+	max-width: 100%;
+	min-height: 36px;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-tab:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-meta-tab.is-active,
+.rk-meta [role="tab"][aria-selected="true"] {
+	background: var(--rk-color-primary-soft);
+	border-bottom-color: var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+.rk-meta .rk-meta-tab .dashicons {
+	flex: 0 0 auto;
+	font-size: var(--rk-font-size-md);
+	height: var(--rk-font-size-md);
+	width: var(--rk-font-size-md);
+}
+
+.rk-meta .rk-meta-tab-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta [role="tabpanel"][hidden] {
+	display: none;
+}
+
+/* Field component: header row, control, meter, supporting row. */
+
+.rk-meta .rk-meta-field,
+.rk-meta .rk-field {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+	padding: var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-field-head,
+.rk-meta .rk-field-head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-meta-field label,
+.rk-meta .rk-meta-field-label,
+.rk-meta .rk-field-head .rk-field-label {
+	display: block;
+	font-weight: 600;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-field input[type="text"],
+.rk-meta .rk-meta-field input[type="url"],
+.rk-meta .rk-meta-field input[type="number"],
+.rk-meta .rk-meta-field textarea,
+.rk-meta .rk-meta-field select,
+.rk-meta .rk-field input[type="text"],
+.rk-meta .rk-field input[type="url"],
+.rk-meta .rk-field input[type="number"],
+.rk-meta .rk-field textarea,
+.rk-meta .rk-field select {
+	box-sizing: border-box;
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-meta-field .description,
+.rk-meta .rk-field .description {
+	color: var(--rk-color-text-muted);
+	margin: var(--rk-space-2) 0 0;
+	overflow-wrap: anywhere;
+}
+
+/* State badges: text plus a shape marker, never colour alone. */
+
+.rk-meta .rk-meta-badge {
+	align-items: center;
+	border-radius: 999px;
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	gap: var(--rk-space-1);
+	line-height: 2;
+	max-width: 100%;
+	padding: 0 var(--rk-space-3);
+	white-space: nowrap;
+}
+
+.rk-meta .rk-meta-badge::before {
+	font-weight: 700;
+}
+
+.rk-meta .rk-meta-badge.rk-is-inherited,
+.rk-meta .rk-meta-badge[data-rk-state="inherited"] {
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-meta .rk-meta-badge.rk-is-inherited::before,
+.rk-meta .rk-meta-badge[data-rk-state="inherited"]::before {
+	content: "○";
+}
+
+.rk-meta .rk-meta-badge.rk-is-custom,
+.rk-meta .rk-meta-badge[data-rk-state="custom"] {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-meta-badge.rk-is-custom::before,
+.rk-meta .rk-meta-badge[data-rk-state="custom"]::before {
+	content: "●";
+}
+
+.rk-meta .rk-meta-badge[data-rk-state="invalid"] {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-meta-badge[data-rk-state="invalid"]::before {
+	content: "!";
+}
+
+/* Counter meter: thin progress bar under the control. */
+
+.rk-meta .rk-count-bar {
+	background: var(--rk-color-surface-muted);
+	border-radius: 999px;
+	height: var(--rk-space-1);
+	margin-top: var(--rk-space-2);
+	overflow: hidden;
+}
+
+.rk-meta .rk-count-fill {
+	display: block;
+	height: 100%;
+	max-width: 100%;
+}
+
+.rk-meta .rk-count-fill.rk-is-ok {
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-count-fill.rk-is-warn {
+	background: var(--rk-color-secondary-3);
+}
+
+.rk-meta .rk-count-fill.rk-is-over {
+	background: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-meta-count {
+	font-weight: 400;
+	margin: var(--rk-space-2) 0 0;
+	overflow-wrap: anywhere;
+}
+
+/* Supporting row: counter and status on the left, actions on the right. */
+
+.rk-meta .rk-field-foot {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-field-status {
+	align-items: center;
+	border-radius: 999px;
+	display: inline-flex;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	gap: var(--rk-space-1);
+	margin: 0;
+	max-width: 100%;
+	padding: 0 var(--rk-space-2);
+}
+
+.rk-meta .rk-field-status[data-rk-state="ok"] {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-field-status[data-rk-state="ok"]::before {
+	content: "✓";
+	font-weight: 700;
+}
+
+.rk-meta .rk-field-status[data-rk-state="warn"] {
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-meta .rk-field-status[data-rk-state="warn"]::before {
+	content: "!";
+	font-weight: 700;
+}
+
+.rk-meta .rk-field-status[data-rk-state="over"] {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-field-status[data-rk-state="over"]::before {
+	content: "✕";
+	font-weight: 700;
+}
+
+/* A reset for a field that already inherits is a pointless action:
+visibly disabled until the field becomes custom. */
+
+.rk-meta .rk-reset.is-disabled,
+.rk-meta .rk-field-reset.is-disabled {
+	cursor: not-allowed;
+	opacity: .55;
+}
+
+.rk-meta .rk-meta-field.is-invalid,
+.rk-meta .rk-field.is-invalid {
+	border-color: var(--rk-color-secondary-4);
+}
+
+/* Token picker: the popup stays inside the sidebar at any width. */
+
+.rk-meta .rk-meta-tokens,
+.rk-meta .rk-field-tokens {
+	margin-top: var(--rk-space-2);
+	max-width: 100%;
+	min-width: 0;
+	position: relative;
+}
+
+.rk-meta .rk-token-pop {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	box-shadow: var(--rk-shadow-md);
+	box-sizing: border-box;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	inset-inline: 0;
+	margin-top: var(--rk-space-2);
+	max-height: 240px;
+	max-width: min(320px, calc(100vw - 48px));
+	min-width: min(260px, calc(100vw - 48px));
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: var(--rk-space-2);
+	position: absolute;
+	width: max-content;
+	z-index: 5;
+}
+
+.rk-meta .rk-token-pop .button {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-token-pop .button.rk-token-row {
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 100%;
+	flex-direction: column;
+	gap: 0;
+	height: auto;
+	min-height: 0;
+	padding: var(--rk-space-1) var(--rk-space-2);
+	text-align: start;
+	white-space: normal;
+	width: 100%;
+}
+
+.rk-meta .rk-meta-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	margin-top: var(--rk-space-2);
+	max-width: 100%;
+}
+
+.rk-meta .rk-meta-thumb {
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	display: block;
+	height: auto;
+	margin-top: var(--rk-space-2);
+	max-width: 100%;
+	width: auto;
+}
+
+/* Search preview: connected to the fields that drive it. */
+
+.rk-meta .rk-meta-serp,
+.rk-meta .rk-serp {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	margin: 0 auto var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+	padding: var(--rk-space-3) var(--rk-space-4);
+}
+
+.rk-meta .rk-meta-serp.rk-is-desktop,
+.rk-meta .rk-serp.rk-is-desktop {
+	margin-inline: 0;
+	max-width: 100%;
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile,
+.rk-meta .rk-serp.rk-is-mobile {
+	margin-inline: auto;
+	max-width: 240px;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile .rk-meta-serp-title,
+.rk-meta .rk-serp.rk-is-mobile .rk-meta-serp-title {
+	font-size: var(--rk-font-size-md);
+	-webkit-line-clamp: 3;
+}
+
+.rk-meta .rk-meta-serp.rk-is-mobile .rk-meta-serp-desc,
+.rk-meta .rk-serp.rk-is-mobile .rk-meta-serp-desc {
+	font-size: var(--rk-font-size-xs);
+	-webkit-line-clamp: 2;
+}
+
+/* Segmented device control: visible active state, no layout jump. */
+
+.rk-meta .rk-meta-serp-tools {
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 999px;
+	display: flex;
+	flex: 1 1 auto;
+	gap: 0;
+	margin: 0;
+	max-width: 100%;
+	min-width: 0;
+	padding: var(--rk-space-1);
+}
+
+.rk-meta .rk-meta-serp-tools .button {
+	border: 0;
+	border-radius: 999px;
+	box-shadow: none;
+	flex: 1 1 0;
+	margin: 0;
+	min-height: 30px;
+	white-space: nowrap;
+}
+
+.rk-meta .rk-meta-serp-tools .is-active,
+.rk-meta .rk-meta-serp-tools .button[aria-pressed="true"] {
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+	color: var(--rk-color-primary-active);
+	font-weight: 600;
+}
+
+.rk-meta .rk-serp-row {
+	align-items: flex-start;
+	display: flex;
+	gap: var(--rk-space-3);
+	margin-bottom: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-meta .rk-serp-mark {
+	align-items: center;
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 50%;
+	color: var(--rk-color-text-secondary);
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	height: 28px;
+	justify-content: center;
+	width: 28px;
+}
+
+.rk-meta .rk-serp-id {
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-serp-site {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	margin: 0 0 2px;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-serp-title {
+	color: var(--rk-color-primary-active);
+	display: -webkit-box;
+	font-size: var(--rk-font-size-lg);
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 2px;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.rk-meta .rk-meta-serp-url {
+	color: var(--rk-color-secondary-1);
+	font-size: var(--rk-font-size-sm);
+	margin: 0 0 var(--rk-space-1);
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-serp-desc {
+	color: var(--rk-color-text-secondary);
+	display: -webkit-box;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	margin: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+}
+
+.rk-meta .rk-serp-noindex {
+	background: var(--rk-color-secondary-3-soft);
+	border-left: 4px solid var(--rk-color-secondary-3);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: var(--rk-space-2) 0 0;
+	overflow-wrap: anywhere;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-serp-noindex::before {
+	color: var(--rk-color-secondary-3);
+	content: "! ";
+	font-weight: 700;
+}
+
+/* Social preview card speaks the same card language. */
+
+.rk-meta .rk-meta-social,
+.rk-meta .rk-social {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	margin: var(--rk-space-3) 0;
+	max-width: 100%;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.rk-meta .rk-meta-social-image {
+	display: block;
+	height: auto;
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-meta-social.rk-is-compact {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-social.rk-is-compact .rk-meta-social-image {
+	flex: 0 1 120px;
+	max-width: 120px;
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-social-body {
+	min-width: 0;
+	padding: var(--rk-space-3);
+}
+
+.rk-meta .rk-meta-social-title {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	margin: 0 0 var(--rk-space-1);
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-social-desc {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	margin: 0 0 var(--rk-space-1);
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-social-site {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	margin: 0;
+	overflow-wrap: anywhere;
+	text-transform: uppercase;
+}
+
+.rk-meta.rk-side div[role="tabpanel"] {
+	padding: 0px 10px;
+}
+
+/* Advanced: positive radio controls and collapsed extras. */
+
+.rk-meta fieldset.rk-meta-field legend,
+.rk-meta fieldset.rk-field legend {
+	font-weight: 600;
+	padding: 0;
+}
+
+.rk-meta .rk-radio-pair {
+	border: 1px solid var(--rk-color-border);
+}
+
+.rk-meta .rk-radio-pair legend {
+	font-weight: 600;
+}
+
+.rk-meta .rk-radio {
+	align-items: center;
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	display: inline-flex;
+	gap: var(--rk-space-2);
+	margin: 0 var(--rk-space-2) var(--rk-space-2) 0;
+	max-width: 100%;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-radio:has(input:checked) {
+	background: var(--rk-color-primary-soft);
+	border-color: var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+.rk-meta .rk-radio:has(input:focus-visible) {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+.rk-meta .rk-error {
+	color: var(--rk-color-secondary-4);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-status {
+	font-weight: 600;
+	margin: 0 0 var(--rk-space-2);
+	overflow-wrap: anywhere;
+}
+
+/* Schema keeps a restrained accent only: a small marker, never a purple tab. */
+
+.rk-meta .rk-schema-accent::before {
+	color: var(--rk-color-secondary-2);
+	content: "◆ ";
+}
+
+.rk-meta .rk-notice {
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-left: 4px solid var(--rk-color-border-strong);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	margin: var(--rk-space-2) 0;
+	max-width: 100%;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-notice.rk-is-ok {
+	border-left-color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-notice.rk-is-warn {
+	border-left-color: var(--rk-color-secondary-3);
+}
+
+.rk-meta .rk-notice ul {
+	margin: 0;
+	max-width: 100%;
+	padding-left: var(--rk-space-4);
+}
+
+.rk-meta .rk-collapsible {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+	padding: var(--rk-space-3);
+}
+
+.rk-meta .rk-collapsible-summary {
+	cursor: pointer;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-import-label {
+	align-self: center;
+	font-weight: 600;
+}
+
+.rk-meta .rk-ext-seam:empty {
+	display: none;
+}
+
+.rk-meta .components-panel__body {
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+}
+
+.rk-meta .screen-reader-text {
+	border: 0;
+	clip: rect(1px, 1px, 1px, 1px);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+}
+
+.rk-meta :focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+/* Narrow sidebar, small laptops, zoom: fluid by default, tighter at 782px. */
+
+@media screen and (max-width: 782px) {
+	.rk-meta .rk-meta-serp,
+	.rk-meta .rk-serp,
+	.rk-meta .rk-meta-social,
+	.rk-meta .rk-social {
+		max-width: 100%;
+	}
+
+	.rk-meta .rk-meta-field,
+	.rk-meta .rk-field {
+		padding: var(--rk-space-2) var(--rk-space-3);
+	}
+
+	.rk-meta .rk-field-foot {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+
+/* Icon-only tab bar: four equal tabs, fixed height, no layout jump. Only
+the active tab shows its text label; inactive tabs keep icon plus
+accessible name and tooltip. */
+
+.rk-meta .rk-meta-tab-wrap {
+	display: flex;
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-tab-wrap:has(.rk-meta-tab.is-active) {
+	flex-grow: 2;
+}
+
+.rk-meta .rk-meta-tab {
+	flex: 1 1 0;
+	justify-content: center;
+	min-height: 40px;
+	min-width: 0;
+	padding: var(--rk-space-2);
+}
+
+.rk-meta .rk-meta-tab .rk-meta-tab-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Search preview block: heading, switch, card and fields with no gaps. */
+
+.rk-meta .rk-serp-block {
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-meta .rk-serp-heading {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 var(--rk-space-2);
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-serp-block .rk-meta-serp-tools {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-block .rk-meta-serp,
+.rk-meta .rk-serp-block .rk-serp {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-note {
+	margin: 0 0 var(--rk-space-1);
+}
+
+/* Preview modal entry point and dialog room. */
+
+.rk-meta .rk-preview-open {
+	/* align-items: center; */
+	display: inline-flex;
+	gap: var(--rk-space-2);
+	justify-content: center;
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-preview-open .dashicons {
+	flex: 0 0 auto;
+}
+
+.rk-preview-modal .rk-modal-body {
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-preview-modal .rk-serp-block {
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-preview-modal .rk-modal-permalink {
+	margin: 0 0 var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-preview-modal .rk-modal-permalink .rk-field-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: var(--rk-space-1);
+}
+
+.rk-preview-modal .rk-modal-permalink-input {
+	box-sizing: border-box;
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-preview-modal .rk-modal-permalink .description {
+	color: var(--rk-color-text-muted);
+	margin: var(--rk-space-1) 0 0;
+}
+
+.rk-meta .rk-serp-edit-note {
+	margin: 0 0 var(--rk-space-1);
+}
+
+/* Fallback dialog when wp.components.Modal is unavailable. */
+
+.rk-modal-fallback-veil {
+	align-items: flex-start;
+	background: color-mix(in srgb, var(--rk-color-text) 45%, transparent);
+	bottom: 0;
+	display: flex;
+	justify-content: center;
+	left: 0;
+	overflow: auto;
+	padding: var(--rk-space-6) var(--rk-space-4);
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 100000;
+}
+
+.rk-modal-fallback {
+	background: var(--rk-color-surface);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-md);
+	box-sizing: border-box;
+	max-width: 640px;
+	min-width: 0;
+	padding: var(--rk-space-4);
+	width: 100%;
+}
+
+.rk-modal-fallback-head {
+	align-items: center;
+	display: flex;
+	gap: var(--rk-space-3);
+	justify-content: space-between;
+	margin-bottom: var(--rk-space-3);
+}
+
+.rk-modal-fallback-head h2 {
+	font-size: var(--rk-font-size-lg);
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Shared field: single supporting row, grouped counter and actions. */
+
+.rk-meta .rk-field-support {
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-field-count-group {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-meta .rk-meta-count.rk-count-text {
+	margin: 0;
+}
+
+.rk-meta .rk-field-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-meta .rk-token-toggle {
+	align-items: center;
+	display: inline-flex;
+	gap: var(--rk-space-1);
+}
+
+.rk-meta .rk-token-toggle .dashicons {
+	flex: 0 0 auto;
+	font-size: var(--rk-font-size-md);
+	height: var(--rk-font-size-md);
+	width: var(--rk-font-size-md);
+}
+
+.rk-meta .rk-meta-field.is-disabled,
+.rk-meta .rk-field.is-disabled {
+	opacity: .75;
+}
+
+.rk-meta .rk-meta-field.is-loading .components-base-control,
+.rk-meta .rk-field.is-loading .components-base-control {
+	opacity: .6;
+}
+
+.rk-meta .rk-warn {
+	color: var(--rk-color-secondary-3);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-badge.rk-is-invalid {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-meta-badge.rk-is-invalid::before {
+	content: "!";
+}
+
+/* Token picker: search, groups, keyboard-active item. */
+
+.rk-meta .rk-token-search {
+	box-sizing: border-box;
+	margin-bottom: var(--rk-space-2);
+	max-width: 100%;
+	width: 100%;
+}
+
+.rk-meta .rk-token-group {
+	display: contents;
+}
+
+.rk-meta .rk-token-group-label {
+	color: var(--rk-color-text-muted);
+	flex: 1 1 100%;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	margin: var(--rk-space-1) 0 0;
+	text-transform: uppercase;
+}
+
+.rk-meta .rk-token-pop .button.rk-token-active {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+/* Social tab: network switch, image states, responsive thumbnail. */
+
+.rk-meta .rk-social-switch {
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 999px;
+	display: flex;
+	gap: 0;
+	margin-bottom: var(--rk-space-3);
+	max-width: 100%;
+	padding: var(--rk-space-1);
+}
+
+.rk-meta .rk-social-switch .button {
+	border: 0;
+	border-radius: 999px;
+	box-shadow: none;
+	flex: 1 1 0;
+	margin: 0;
+	min-height: 30px;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.rk-meta .rk-social-switch .is-active,
+.rk-meta .rk-social-switch .button[aria-pressed="true"] {
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+	color: var(--rk-color-primary-active);
+	font-weight: 600;
+}
+
+.rk-meta .rk-thumb-wrap {
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-meta .rk-thumb-wrap.rk-is-checking {
+	opacity: .6;
+}
+
+.rk-meta .rk-thumb {
+	height: auto;
+	max-height: 220px;
+	max-width: 100%;
+	object-fit: cover;
+	width: 100%;
+}
+
+/* Search preview header and footer rows: title plus device switch, then
+the Edit Snippet action. */
+
+.rk-meta .rk-serp-head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	margin-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-head .rk-serp-heading {
+	margin: 0;
+}
+
+.rk-meta .rk-serp-head .rk-meta-serp-tools {
+	margin-bottom: 0;
+}
+
+.rk-meta .rk-serp-foot {
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-serp-foot .rk-preview-open {
+	margin-bottom: 0;
+}
+
+/* Token picker readable names, help text and close control. */
+
+.rk-meta .rk-token-help {
+	flex: 1 1 100%;
+}
+
+.rk-meta .rk-token-pop .button .rk-token-name {
+	font-weight: 700;
+}
+
+.rk-meta .rk-token-pop .button .rk-token-desc {
+	color: var(--rk-color-text-muted);
+	display: block;
+	font-weight: 400;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rk-meta .rk-token-close {
+	flex: 1 1 100%;
+	margin-top: var(--rk-space-1);
+}
+
+/* Social image states: bordered empty placeholder, loading row. */
+
+.rk-meta .rk-thumb-empty {
+	align-items: center;
+	border: 1px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-muted);
+	display: flex;
+	gap: var(--rk-space-2);
+	justify-content: center;
+	margin-top: var(--rk-space-2);
+	max-width: 100%;
+	min-height: 96px;
+	padding: var(--rk-space-3);
+}
+
+.rk-meta .rk-thumb-loading {
+	align-items: center;
+	display: flex;
+	gap: var(--rk-space-2);
+}
+
+.rk-meta .rk-image-notice {
+	margin: var(--rk-space-2) 0 0;
+	max-width: 100%;
+}
+
+/* Social platform chrome: each network reads as its own card. */
+
+.rk-meta .rk-social-source {
+	border-bottom: 1px solid var(--rk-color-border);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: 0;
+	overflow-wrap: anywhere;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-social-profile {
+	align-items: center;
+	border-bottom: 1px solid var(--rk-color-border);
+	display: flex;
+	gap: var(--rk-space-2);
+	min-width: 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-meta .rk-social-profile .rk-serp-mark {
+	height: 24px;
+	width: 24px;
+}
+
+.rk-meta .rk-social-id {
+	min-width: 0;
+}
+
+.rk-meta .rk-social-name {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-social-card {
+	margin: 0;
+}
+
+.rk-meta .rk-social-noimage {
+	margin: 0;
+	padding: var(--rk-space-3);
+	text-align: center;
+}
+
+/* Edit Snippet modal: roomy on desktop, usable small, scrolls inside. */
+
+.rk-preview-modal {
+	box-sizing: border-box;
+	max-height: calc(100vh - 60px);
+	max-width: 640px;
+	/* overflow: auto; */
+	width: calc(100% - 32px);
+}
+
+.rk-preview-modal .rk-modal-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	max-width: 100%;
+	min-width: 0;
+}
+
+.rk-preview-modal .rk-serp-block {
+	margin-bottom: 0;
+}
+
+.rk-preview-modal .rk-token-pop {
+	max-height: 240px;
+	max-width: min(360px, calc(100vw - 64px));
+	min-width: min(300px, calc(100vw - 64px));
+}
+
+@media screen and (max-width: 782px) {
+	.rk-preview-modal {
+		max-width: 100%;
+		width: calc(100% - 24px);
+	}
+}
+
+/* Focus Keyword & Tagify style chips */
+
+.rk-meta .rk-focus-keywords-field {
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-meta .rk-keywords-tagify {
+	align-items: center;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 6px 8px;
+	transition: border-color 0.15s ease-in-out;
+}
+
+.rk-meta .rk-keywords-tagify:focus-within {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-meta .rk-keyword-tag {
+	align-items: center;
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-color-primary);
+	border-radius: 4px;
+	color: var(--rk-color-primary-active);
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 500;
+	gap: 4px;
+	line-height: 1.4;
+	padding: 2px 6px;
+}
+
+.rk-meta .rk-keyword-tag-remove {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	color: var(--rk-color-primary-active);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: bold;
+	line-height: 1;
+	padding: 0 2px;
+}
+
+.rk-meta .rk-keyword-tag-remove:hover {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-keywords-input {
+	background: transparent;
+	border: 0 !important;
+	box-shadow: none !important;
+	flex: 1 1 100px;
+	font-size: 13px;
+	min-width: 80px;
+	outline: none !important;
+	padding: 2px 4px !important;
+}
+
+/* SEO Analysis Checklist */
+
+.rk-meta .rk-checklist-head-inner {
+	align-items: center;
+	display: inline-flex;
+	justify-content: space-between;
+	width: 100%;
+}
+
+.rk-meta .rk-checklist-badge {
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-ok {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-warn {
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-meta .rk-checklist-items {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+}
+
+.rk-meta .rk-checklist-item {
+	align-items: flex-start;
+	display: flex;
+	font-size: 12px;
+	gap: 8px;
+	line-height: 1.4;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-checklist-item .dashicons {
+	flex: 0 0 auto;
+	font-size: 16px;
+	height: 16px;
+	margin-top: 1px;
+	width: 16px;
+}
+
+.rk-meta .rk-checklist-item.is-ok .dashicons {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-meta .rk-checklist-item.is-fail .dashicons {
+	color: var(--rk-color-secondary-4);
+}
+
+/* Edit Snippet modal tabs: icon plus label while active, icon only while inactive. */
+
+.rk-meta .rk-modal-tabs {
+	border-bottom: 2px solid var(--rk-color-border);
+	display: flex;
+	gap: 4px;
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-meta .rk-modal-tab {
+	align-items: center;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	color: var(--rk-color-text-muted);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 13px;
+	font-weight: 600;
+	gap: 6px;
+	justify-content: center;
+	margin-bottom: -2px;
+	min-height: 40px;
+	min-width: 48px;
+	padding: 8px 16px;
+	transition: all 0.15s ease-in-out;
+}
+
+.rk-meta .rk-modal-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-modal-tab.is-active {
+	border-bottom-color: var(--rk-color-primary);
+	color: var(--rk-color-primary-active);
+}
+
+.rk-meta .rk-modal-tab .dashicons {
+	flex: 0 0 auto;
+	font-size: 16px;
+	height: 16px;
+	width: 16px;
+}
+
+.rk-meta .rk-modal-tab .rk-modal-tab-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Social Tab Callout Card */
+
+.rk-meta .rk-social-notice-card {
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	padding: var(--rk-space-4);
+}
+
+.rk-meta .rk-social-notice-title {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 8px;
+}
+
+.rk-meta .rk-social-notice-desc,
+.rk-meta .rk-social-notice-sub {
+	color: var(--rk-color-text-muted);
+	font-size: 12px;
+	line-height: 1.5;
+	margin: 0 0 10px;
+}
+
+.rk-meta .rk-social-notice-card .rk-edit-snippet-btn {
+	/* align-items: center; */
+	display: inline-flex;
+	font-weight: 600;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+

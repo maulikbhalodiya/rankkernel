@@ -257,6 +257,12 @@ final class SchemaMetabox {
 	 * @param mixed  $post     Current post object.
 	 */
 	public function addBoxes( string $postType, mixed $post = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- callback signature required by the stubbed WordPress function under test.
+		// The block editor renders the schema controls through the RankKernel
+		// SEO sidebar, so registering the box there would duplicate them.
+		if ( ScreenGuard::isBlockEditorScreen() ) {
+			return;
+		}
+
 		if ( 'attachment' === $postType ) {
 			return;
 		}
@@ -712,6 +718,12 @@ final class SchemaMetabox {
 
 		if ( ! $howtoPosted && isset( $existingSchema['howto'] ) ) {
 			$newSchema['howto'] = $existingSchema['howto'];
+		}
+
+		// An invalid JSON submission is a typo, not a delete. Keep the
+		// previously stored custom schema untouched instead of wiping it.
+		if ( 'invalid-json' === $status && isset( $existingSchema['custom'] ) && is_array( $existingSchema['custom'] ) ) {
+			$newSchema['custom'] = $existingSchema['custom'];
 		}
 
 		$existing['schema'] = $newSchema;

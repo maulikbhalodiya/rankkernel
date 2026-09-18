@@ -68,7 +68,7 @@ final class SettingsStore {
 	public static function defaults(): array {
 		return [
 			'title_template'        => '%%title%% %%sep%% %%sitename%%',
-			'description_template'  => '',
+			'description_template'  => '%%excerpt%%',
 			'separator'             => '–',
 			'social_facebook'       => '',
 			'social_twitter'        => '',

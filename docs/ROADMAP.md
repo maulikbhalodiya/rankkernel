@@ -122,17 +122,36 @@
 
 ---
 
+### 2.7 Head engine hardening and the metadata editor ⬜ (issue #27, branch GH-27, awaiting manual verification)
+**Get:** fix the defects the six module audit found, then ship the final per-post metadata editing surface.
+**Do:**
+- Canonical: unhook core `rel_canonical` so exactly one canonical is emitted, including when an override is set
+- Robots: contribute directives through the single core `wp_robots` tag with most restrictive wins, so no duplicate tag and core plus third party directives survive
+- Archive tokens: resolve `%%title%%`, `%%author%%` and `%%category%%` against the queried term or user on term and author archives
+- Legacy payloads: route `Context::meta()` through `MetaPayload::decodeMetaValue()`
+- Custom schema: never wipe stored custom schema on invalid JSON
+- Sitemaps: escape XML text exactly once so an ampersand is not double encoded
+- Redirect cache: invalidate only on writes, so the cache first lookup actually happens and no option write occurs per page view
+- Metadata editor: Classic Editor meta box plus the PHP side of a Gutenberg sidebar, three tabs, token quick insert limited to backend resolvable tokens, template versus override signalling, per field reset, media library image pick and remove, live SERP preview with desktop and mobile frames and pixel budgets, and a live social unfurl card
+- Tests: a regression test per engine fix, plus a contract test that asserts every hook the editor JavaScript queries is actually rendered by the view
+**Status:** code complete, 1055 tests and 3726 assertions green, phpcs and phpstan clean. Branch GH-27 is NOT merged and the editor has NOT been fully verified in a live browser session, so nothing here is marked done yet.
+
+---
+
 ## Module micro-gap audit
 
 For each of the six shipping modules: what is DONE, then the outstanding micro-gaps as build items. Every micro-gap below is also carried into STEP 1 so nothing lives only here.
 
 ### Metadata Engine (metadata)
 DONE: single-pass head renderer on wp_head priority 1, meta description hierarchy, robots directives, canonicals, Open Graph, Twitter cards, basic flat lowercase tokens, webmaster verification.
-MICRO-GAPS TO BUILD:
-- Block and Classic Editor meta box UI for per-post Title, Description, Robots, Canonical and Social overrides (today only the Schema metabox exists).
+DELIVERED, AWAITING MANUAL BROWSER VERIFICATION (issue #27, branch GH-27, unit tested and contract tested, not yet verified in a live editor session):
+- Classic Editor meta box and the PHP side of a Gutenberg sidebar for per-post Title, Description, Canonical, Robots and Social overrides. Three tabs (General, Social, Advanced), token quick insert restricted to backend resolvable tokens, template versus override signalling with a per field reset, and media library pick and remove for the Open Graph and Twitter images.
+- Live Google SERP preview with desktop and mobile frames and pixel and character budgets, and a live social unfurl card that falls back to the General values and the default Open Graph image.
+ENGINE FIXES DELIVERED (issue #27, all with regression tests): core rel_canonical unhooked so exactly one canonical is emitted, robots merged into the single core wp_robots tag with most restrictive wins, archive contexts resolve %%title%%, %%author%% and %%category%% against the queried term or user, Context::meta routes legacy rows through decodeMetaValue, invalid custom schema JSON no longer wipes stored custom schema, sitemap loc URLs escape exactly once, and the redirect cache is invalidated only on writes so cache first lookups actually happen.
+MICRO-GAPS REMAINING:
 - Per-context metadata templates for post types, taxonomies, homepage, author, date, search and 404.
-- Client-side SERP snippet preview with pixel guidance, plus visual social card previews.
 - Parameterised token syntax such as token with arguments, and extended built-in variables: custom fields, parent title, term name, page numbers, product fields.
+- Global default Open Graph image and a Twitter site and creator handle, since the stored social profile settings are not yet consumed by the head renderer.
 
 ### Schema Engine (schema)
 DONE: single @graph JSON-LD output, 26 types across 29 pieces, post metabox, custom JSON support.

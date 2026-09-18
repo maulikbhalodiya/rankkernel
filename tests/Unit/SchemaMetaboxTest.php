@@ -48,6 +48,10 @@ final class SchemaMetaboxTest extends TestCase {
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'get_option' )->alias( static fn ( string $k, mixed $d = false ): mixed => $d );
 		Functions\when( 'get_post_type' )->alias( static fn ( mixed $p = null ): string => 'post' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_type signature.
+		// The metabox gate calls get_current_screen. Stub it here so the
+		// default is the Classic Editor path and the suite stays independent
+		// of any get_current_screen patch left by a previously run test.
+		Functions\when( 'get_current_screen' )->justReturn( null );
 		Functions\when( 'checked' )->alias(
 			static fn ( mixed $a, mixed $b, bool $display = true ): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : '' // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress checked signature.
 		);
@@ -556,8 +560,9 @@ final class SchemaMetaboxTest extends TestCase {
 	 * Test save invalid custom json error path.
 	 */
 	public function test_save_invalid_custom_json_error_path(): void {
-		$stored = $this->storedPayload();
-		$saved  = null;
+		$stored                     = $this->storedPayload();
+		$stored['schema']['custom'] = [ 'kept' => [ 'deep' => true ] ];
+		$saved                      = null;
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -584,9 +589,61 @@ final class SchemaMetaboxTest extends TestCase {
 		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
 		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
 		$this->assertIsArray( $saved );
-		$this->assertSame( [], $saved['schema']['custom'] );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $saved['schema']['custom'], 'Invalid JSON must keep the stored custom schema, never wipe it' );
 		$this->assertSame( 'Widget', $saved['schema']['fields']['headline'] );
 		$this->assertSame( 'Keep me', $saved['title'] );
+	}
+
+	/**
+	 * Test an invalid custom JSON save preserves the previous custom and renders it.
+	 */
+	public function test_save_invalid_custom_json_preserves_previous_custom_and_renders(): void {
+		$stored = $this->storedPayload();
+		$saved  = null;
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( &$stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$stored, &$saved ): bool {
+				$stored = $value;
+				$saved  = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'get_permalink' )->alias( static fn ( int $id ): string => 'https://example.com/hello/' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_permalink signature.
+
+		// First save: valid custom JSON is stored.
+		$_POST                             = $this->validPost();
+		$_POST['rankkernel_schema_custom'] = '{"kept":{"deep":true}}';
+
+		$first = new SchemaMetabox();
+		$first->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $saved['schema']['custom'] );
+
+		// Second save: invalid JSON must not destroy the stored custom schema.
+		$_POST['rankkernel_schema_custom'] = '{broken';
+
+		$second = new SchemaMetabox();
+		$second->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $second->filterRedirect( 'https://example.com/wp-admin/post.php' );
+		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
+		$this->assertSame( [ 'kept' => [ 'deep' => true ] ], $stored['schema']['custom'] );
+
+		// The preserved custom schema still renders in the metabox.
+		$out = $this->renderBox( 11 );
+
+		$this->assertStringContainsString( 'kept', $out );
+		$this->assertStringContainsString( 'deep', $out );
 	}
 
 	/**
@@ -800,6 +857,97 @@ final class SchemaMetaboxTest extends TestCase {
 				\PHPUnit\Framework\Assert::assertSame( 'post', $type );
 			}
 		);
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Build a screen double carrying only the block editor flag.
+	 *
+	 * Mirrors the slice of WP_Screen the metabox gate reads, and exposes
+	 * is_block_editor() as a real method so the method_exists guard
+	 * exercised by the shared ScreenGuard sees it.
+	 *
+	 * @param bool $isBlockEditor Whether the screen reports the block editor.
+	 * @return object The result.
+	 */
+	private function screenDouble( bool $isBlockEditor ): object {
+		return new class( $isBlockEditor ) {
+			/**
+			 * Block editor flag.
+			 *
+			 * @var bool
+			 */
+			private bool $blockEditor;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param bool $blockEditor Block editor flag.
+			 */
+			public function __construct( bool $blockEditor ) {
+				$this->blockEditor = $blockEditor;
+			}
+
+			/**
+			 * Whether the screen is the block editor.
+			 *
+			 * @return bool The result.
+			 */
+			public function is_block_editor(): bool {
+				return $this->blockEditor;
+			}
+		};
+	}
+
+	/**
+	 * The schema metabox is not registered on the block editor screen.
+	 *
+	 * Gutenberg renders the schema controls through the RankKernel SEO
+	 * sidebar, so registering the box there duplicates every field.
+	 */
+	public function test_add_boxes_skipped_on_block_editor_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( true ) );
+		Functions\expect( 'add_meta_box' )->never();
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * The schema metabox is registered when the screen is not the block editor.
+	 */
+	public function test_add_boxes_registered_on_classic_screen(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->alias( fn (): object => $this->screenDouble( false ) );
+		Functions\expect( 'add_meta_box' )->once()->andReturnUsing(
+			static function ( string $id, string $title, callable $cb, string $type ): void {
+				\PHPUnit\Framework\Assert::assertSame( 'rankkernel-schema', $id );
+				\PHPUnit\Framework\Assert::assertSame( 'post', $type );
+			}
+		);
+
+		$box = new SchemaMetabox();
+		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * The schema metabox is registered when no screen is available.
+	 *
+	 * A null screen must fail safe to Classic Editor behavior.
+	 */
+	public function test_add_boxes_registered_when_no_screen_available(): void {
+		Functions\when( 'get_post_types' )->alias( static fn ( array $a ): array => [ 'post', 'page' ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_types signature.
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		Functions\expect( 'add_meta_box' )->once();
 
 		$box = new SchemaMetabox();
 		$box->addBoxes( 'post', (object) [ 'ID' => 1 ] );

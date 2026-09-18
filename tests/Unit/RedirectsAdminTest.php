@@ -16,6 +16,7 @@ use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\RedirectsPage;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\Redirects\DestinationValidator;
+use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 use RankKernel\Modules\Redirects\Validator;
@@ -834,6 +835,11 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertFalse( $stored['auto_slug_redirect'] );
 		$this->assertSame( 100, $stored['rules_per_page'] );
 		$this->assertStringContainsString( 'rk_notice=settings', $this->lastRedirect );
+		$this->assertArrayHasKey(
+			RedirectCache::VALIDATOR_OPTION,
+			$this->options,
+			'A settings save must invalidate the redirect match cache'
+		);
 	}
 
 	/**

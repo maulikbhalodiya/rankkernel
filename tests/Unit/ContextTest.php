@@ -412,4 +412,146 @@ final class ContextTest extends TestCase {
 		$this->assertSame( $a, $b );
 		$this->assertSame( 1, $callCount );
 	}
+
+	/**
+	 * Make a term archive query.
+	 *
+	 * @param int    $id   Term id.
+	 * @param string $name Term name.
+	 * @return WP_Query The result.
+	 */
+	private function makeQueryTerm( int $id = 9, string $name = 'News' ): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_author' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
+		$q->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'name' => $name ] )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		return $q;
+	}
+
+	/**
+	 * Make an author archive query.
+	 *
+	 * @param int $id Author id.
+	 * @return WP_Query The result.
+	 */
+	private function makeQueryAuthor( int $id = 5 ): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_author' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
+		$q->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $id ] )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		return $q;
+	}
+
+	/**
+	 * Test title on a term archive returns the term name, never a colliding post title.
+	 */
+	public function test_title_on_term_archive_returns_term_name(): void {
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		// A post with this id exists and would win the old buggy path.
+		Functions\when( 'get_the_title' )->justReturn( 'Colliding Post Title' );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $this->makeQueryTerm( 9, 'News' ), $settings );
+
+		$this->assertSame( 'term', $ctx->queriedType() );
+		$this->assertSame( 'News', $ctx->title() );
+	}
+
+	/**
+	 * Test title on an author archive returns the author display name.
+	 */
+	public function test_title_on_author_archive_returns_display_name(): void {
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'get_the_title' )->justReturn( 'Colliding Post Title' );
+		Functions\when( 'get_the_author_meta' )->alias(
+			static fn ( string $field, int $id ): string => 'display_name' === $field && 5 === $id ? 'Jane Doe' : ''
+		);
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $this->makeQueryAuthor( 5 ), $settings );
+
+		$this->assertSame( 'Jane Doe', $ctx->authorDisplayName() );
+		$this->assertSame( 'Jane Doe', $ctx->title() );
+	}
+
+	/**
+	 * Test title on a singular post still resolves the post title.
+	 */
+	public function test_title_on_singular_post_unchanged(): void {
+		$query = $this->makeQuerySingular( 42 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'get_the_title' )->justReturn( 'Post Title' );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'Post Title', $ctx->title() );
+	}
+
+	/**
+	 * Test a JSON string meta row decodes through meta() with one read.
+	 */
+	public function test_meta_decodes_json_string_row(): void {
+		$query = $this->makeQuerySingular( 7 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		$raw = (string) json_encode( [ 'title' => 'From JSON' ] );
+
+		Functions\expect( 'get_post_meta' )->once()->with( 7, '_rankkernel_meta_data', true )->andReturn( $raw );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'From JSON', $ctx->meta()['title'] );
+		$this->assertSame( 'From JSON', $ctx->meta()['title'] );
+	}
+
+	/**
+	 * Test a serialized string meta row decodes through meta().
+	 */
+	public function test_meta_decodes_serialized_string_row(): void {
+		$query = $this->makeQuerySingular( 8 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$raw = serialize( [ 'title' => 'From Serialized' ] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- test fixture uses the existing stored serialization format.
+
+		Functions\when( 'get_post_meta' )->justReturn( $raw );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'From Serialized', $ctx->meta()['title'] );
+	}
 }

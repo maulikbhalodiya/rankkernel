@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\Normalizer;
+use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 use RankKernel\Modules\Redirects\Validator;
@@ -1339,6 +1340,11 @@ final class RedirectsPage {
 		$partial['rules_per_page'] = max( 1, min( 100, (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 20 ) ) );
 
 		$this->redirectSettings->set( $partial );
+
+		// Preserve query and slug watcher settings change frontend dispatch,
+		// so a settings save retires the cached matches exactly like a rule
+		// write. This runs on the admin write path only, never per request.
+		RedirectCache::invalidateAll();
 
 		$this->redirect( '&rk_notice=settings' );
 	}

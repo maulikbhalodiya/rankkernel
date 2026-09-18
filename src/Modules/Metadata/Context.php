@@ -109,12 +109,10 @@ final class Context {
 			$raw = get_term_meta( $id, '_rankkernel_term_data', true );
 		}
 
-		if ( ! is_array( $raw ) ) {
-			$raw = [];
-		}
-
 		// Merge over defaults via sanitize (fills missing keys, sanitizes).
-		$this->metaCache = MetaPayload::sanitize( $raw );
+		// Legacy JSON or serialized rows are string shaped, decode them
+		// before sanitize so a stored row is never silently dropped.
+		$this->metaCache = MetaPayload::sanitize( MetaPayload::decodeMetaValue( $raw ) );
 
 		return $this->metaCache;
 	}
@@ -354,11 +352,196 @@ final class Context {
 	}
 
 	/**
+	 * Queried object for the current request, term or author on archives.
+	 *
+	 * Uses the query object first and the global accessor as a fallback,
+	 * both guarded exactly like the rest of this class so mocks without
+	 * the method never fatal.
+	 *
+	 * @return object|null The result.
+	 */
+	public function queriedObject(): ?object {
+		if ( is_callable( [ $this->query, 'get_queried_object' ] ) ) {
+			try {
+				$obj = $this->query->get_queried_object();
+
+				if ( is_object( $obj ) ) {
+					return $obj;
+				}
+			} catch ( \Throwable $e ) {
+				// Mock without expectation, fall through to the global.
+				unset( $e );
+			}
+		}
+
+		if ( function_exists( 'get_queried_object' ) ) {
+			try {
+				$obj = get_queried_object();
+
+				if ( is_object( $obj ) ) {
+					return $obj;
+				}
+			} catch ( \Throwable $e ) {
+				// Global accessor unavailable in this test context.
+				unset( $e );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Whether the current query is an author archive.
+	 *
+	 * Author archives are typed 'archive' by queriedType(), so they are
+	 * detected explicitly here through is_author() on the query or global.
+	 * Non archive requests return early so they never touch the author
+	 * conditional.
+	 *
+	 * @return bool The result.
+	 */
+	public function isAuthorArchive(): bool {
+		if ( 'archive' !== $this->queriedType() ) {
+			return false;
+		}
+
+		if ( is_callable( [ $this->query, 'is_author' ] ) ) {
+			try {
+				if ( $this->query->is_author() ) {
+					return true;
+				}
+			} catch ( \Throwable $e ) {
+				// Mock without expectation, fall through to the global.
+				unset( $e );
+			}
+		}
+
+		if ( function_exists( 'is_author' ) ) {
+			return (bool) is_author();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Name of the queried term on a term archive.
+	 *
+	 * Reads the queried object's name first, then falls back to the term id.
+	 *
+	 * @return string The result.
+	 */
+	public function termName(): string {
+		$obj = $this->queriedObject();
+
+		if ( is_object( $obj ) && isset( $obj->name ) && is_string( $obj->name ) && '' !== $obj->name ) {
+			return $obj->name;
+		}
+
+		if ( function_exists( 'single_term_title' ) ) {
+			try {
+				$title = single_term_title( '', false );
+
+				if ( is_string( $title ) && '' !== $title ) {
+					return $title;
+				}
+			} catch ( \Throwable $e ) {
+				// Term title helper unavailable in this test context.
+				unset( $e );
+			}
+		}
+
+		$id = $this->queriedId();
+
+		if ( $id > 0 && function_exists( 'get_term_field' ) ) {
+			try {
+				$name = get_term_field( 'name', $id );
+
+				if ( is_string( $name ) && '' !== $name ) {
+					return $name;
+				}
+			} catch ( \Throwable $e ) {
+				// Term field helper unavailable in this test context.
+				unset( $e );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Display name of the queried author on an author archive.
+	 *
+	 * Reads the author id from the queried object, falls back to the
+	 * queried id, then resolves the display name, then get_the_author.
+	 *
+	 * @return string The result.
+	 */
+	public function authorDisplayName(): string {
+		$authorId = 0;
+		$obj      = $this->queriedObject();
+
+		if ( is_object( $obj ) ) {
+			if ( isset( $obj->ID ) && is_numeric( $obj->ID ) ) {
+				$authorId = (int) $obj->ID;
+			} elseif (
+				isset( $obj->data )
+				&& is_object( $obj->data )
+				&& isset( $obj->data->ID )
+				&& is_numeric( $obj->data->ID )
+			) {
+				$authorId = (int) $obj->data->ID;
+			}
+		}
+
+		if ( $authorId <= 0 ) {
+			$authorId = $this->queriedId();
+		}
+
+		if ( $authorId > 0 && function_exists( 'get_the_author_meta' ) ) {
+			$name = get_the_author_meta( 'display_name', $authorId );
+
+			if ( is_string( $name ) && '' !== $name ) {
+				return $name;
+			}
+		}
+
+		if ( function_exists( 'get_the_author' ) ) {
+			$author = get_the_author();
+
+			if ( is_string( $author ) ) {
+				return $author;
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Title for the queried object.
+	 *
+	 * Term archives resolve to the term name and author archives to the
+	 * author display name before the post fallback, so %%title%% never
+	 * resolves a colliding post against a term or user id.
 	 *
 	 * @return string The result.
 	 */
 	public function title(): string {
+		if ( 'term' === $this->queriedType() ) {
+			$term = $this->termName();
+
+			if ( '' !== $term ) {
+				return $term;
+			}
+		}
+
+		if ( $this->isAuthorArchive() ) {
+			$author = $this->authorDisplayName();
+
+			if ( '' !== $author ) {
+				return $author;
+			}
+		}
+
 		$id = $this->queriedId();
 
 		if ( $id > 0 && function_exists( 'get_the_title' ) ) {

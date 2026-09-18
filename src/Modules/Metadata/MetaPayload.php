@@ -166,26 +166,19 @@ final class MetaPayload {
 				$out['robots']['nosnippet'] = (bool) $robots['nosnippet'];
 			}
 
+			// A non numeric string normalizes to null, never 0: 0 is the
+			// explicit "no snippet" budget, so coercing malformed input to
+			// it would silently change meaning.
 			if ( array_key_exists( 'max_snippet', $robots ) ) {
-				$val                          = $robots['max_snippet'];
-				$out['robots']['max_snippet'] = ( null === $val || '' === $val ) ? null : (int) $val;
+				$out['robots']['max_snippet'] = self::nullableInt( $robots['max_snippet'] );
 			}
 
 			if ( array_key_exists( 'max_image_preview', $robots ) ) {
-				$val = $robots['max_image_preview'];
-				// max_image_preview may be string like "large", keep as string or null.
-				if ( null === $val || '' === $val ) {
-					$out['robots']['max_image_preview'] = null;
-				} elseif ( is_numeric( $val ) ) {
-					$out['robots']['max_image_preview'] = (int) $val;
-				} else {
-					$out['robots']['max_image_preview'] = sanitize_text_field( (string) $val );
-				}
+				$out['robots']['max_image_preview'] = self::previewValue( $robots['max_image_preview'] );
 			}
 
 			if ( array_key_exists( 'max_video_preview', $robots ) ) {
-				$val                                = $robots['max_video_preview'];
-				$out['robots']['max_video_preview'] = ( null === $val || '' === $val ) ? null : (int) $val;
+				$out['robots']['max_video_preview'] = self::nullableInt( $robots['max_video_preview'] );
 			}
 		}
 
@@ -271,6 +264,62 @@ final class MetaPayload {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Normalize a robots budget to a nullable integer.
+	 *
+	 * Null, an empty string, and any non numeric string become null so a
+	 * malformed client value never silently becomes 0. Integers and numeric
+	 * strings keep their value.
+	 *
+	 * @param mixed $value Raw budget value.
+	 * @return int|null The result.
+	 */
+	private static function nullableInt( mixed $value ): ?int {
+		if ( is_int( $value ) ) {
+			return $value;
+		}
+
+		if ( is_float( $value ) ) {
+			return (int) $value;
+		}
+
+		if ( is_string( $value ) && is_numeric( $value ) ) {
+			return (int) $value;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Normalize a max-image-preview value to a nullable string.
+	 *
+	 * Null and blank input become null. Numeric input keeps an integer
+	 * shape, any other scalar keeps its sanitized string so "large" and
+	 * "standard" survive untouched.
+	 *
+	 * @param mixed $value Raw preview value.
+	 * @return string|int|null The result.
+	 */
+	private static function previewValue( mixed $value ): string|int|null {
+		if ( null === $value || ( is_string( $value ) && '' === trim( $value ) ) ) {
+			return null;
+		}
+
+		if ( is_int( $value ) ) {
+			return $value;
+		}
+
+		if ( is_numeric( $value ) ) {
+			return (int) $value;
+		}
+
+		if ( is_scalar( $value ) ) {
+			return sanitize_text_field( (string) $value );
+		}
+
+		return null;
 	}
 
 	/**
@@ -706,9 +755,13 @@ final class MetaPayload {
 						'noarchive'         => [ 'type' => 'boolean' ],
 						'noimageindex'      => [ 'type' => 'boolean' ],
 						'nosnippet'         => [ 'type' => 'boolean' ],
-						'max_snippet'       => [ 'type' => [ 'integer', 'null' ] ],
+						// max_snippet and max_video_preview accept a string
+						// so an over loose client can never hard block a save
+						// with an empty or malformed value; sanitize() is the
+						// authority that turns those into null.
+						'max_snippet'       => [ 'type' => [ 'integer', 'string', 'null' ] ],
 						'max_image_preview' => [ 'type' => [ 'string', 'integer', 'null' ] ],
-						'max_video_preview' => [ 'type' => [ 'integer', 'null' ] ],
+						'max_video_preview' => [ 'type' => [ 'integer', 'string', 'null' ] ],
 					],
 				],
 				'og'             => [

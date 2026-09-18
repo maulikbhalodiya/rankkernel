@@ -112,6 +112,7 @@ final class SchemaPiecesTest extends TestCase {
 			'is_date'               => false,
 			'is_post_type_archive'  => false,
 			'get_queried_object_id' => $id,
+			'get_queried_object'    => (object) [ 'name' => 'News' ],
 			'get'                   => 0,
 		];
 
