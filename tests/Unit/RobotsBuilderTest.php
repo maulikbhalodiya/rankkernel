@@ -47,7 +47,7 @@ final class RobotsBuilderTest extends TestCase {
 	 * Test a blocked crawler renders Disallow above the wildcard group.
 	 */
 	public function test_block_renders_above_wildcard(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'block' ], '', 'default' );
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'block' ], '' );
 
 		$this->assertStringContainsString( "User-agent: GPTBot\nDisallow: /", $out );
 		$this->assertLessThan( strpos( $out, 'User-agent: *' ), strpos( $out, 'User-agent: GPTBot' ) );
@@ -57,7 +57,7 @@ final class RobotsBuilderTest extends TestCase {
 	 * Test an allowed crawler renders an explicit Allow.
 	 */
 	public function test_allow_renders_allow(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'oai-searchbot' => 'allow' ], '', 'default' );
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'oai-searchbot' => 'allow' ], '' );
 
 		$this->assertStringContainsString( "User-agent: OAI-SearchBot\nAllow: /", $out );
 	}
@@ -66,30 +66,28 @@ final class RobotsBuilderTest extends TestCase {
 	 * Test a custom policy emits no group for that crawler.
 	 */
 	public function test_custom_policy_emits_nothing(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'custom' ], '', 'default' );
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'custom' ], '' );
 
 		$this->assertStringNotContainsString( 'User-agent: GPTBot', $out );
 	}
 
 	/**
-	 * Test the Sitemap line survives custom mode unchanged.
+	 * Test an override replaces the whole document.
 	 */
-	public function test_custom_mode_preserves_sitemap_line(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, true, [], "User-agent: *\nDisallow: /private/\n", 'custom' );
+	public function test_override_replaces_the_document(): void {
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'block' ], "User-agent: *\nDisallow: /private/\n" );
 
-		$this->assertStringContainsString( 'Disallow: /private/', $out );
-		$this->assertStringContainsString( 'Sitemap: https://example.com/sitemap_index.xml', $out );
-		$this->assertSame( 1, substr_count( $out, 'Sitemap:' ) );
+		$this->assertSame( "User-agent: *\nDisallow: /private/\n", $out );
 	}
 
 	/**
-	 * Test default mode appends the custom block to core output.
+	 * Test the generated document keeps the Sitemap line.
 	 */
-	public function test_default_mode_appends_custom_block(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, true, [], "Disallow: /tmp/\n", 'default' );
+	public function test_generated_keeps_sitemap_line(): void {
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'gptbot' => 'block' ], '' );
 
-		$this->assertStringContainsString( 'Disallow: /tmp/', $out );
 		$this->assertStringContainsString( 'Disallow: /wp-admin/', $out );
+		$this->assertStringContainsString( 'Sitemap: https://example.com/sitemap_index.xml', $out );
 		$this->assertSame( 1, substr_count( $out, 'Sitemap:' ) );
 	}
 
@@ -97,7 +95,7 @@ final class RobotsBuilderTest extends TestCase {
 	 * Test a private site is returned untouched.
 	 */
 	public function test_private_site_untouched(): void {
-		$out = ( new RobotsBuilder() )->build( $this->core, false, [ 'gptbot' => 'block' ], '', 'custom' );
+		$out = ( new RobotsBuilder() )->build( $this->core, false, [ 'gptbot' => 'block' ], "User-agent: *\nDisallow: /\n" );
 
 		$this->assertSame( $this->core, $out );
 	}

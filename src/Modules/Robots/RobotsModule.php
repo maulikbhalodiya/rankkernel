@@ -241,11 +241,10 @@ class RobotsModule implements ModuleInterface {
 		$settings = ( null !== $this->settings ) ? $this->settings : new RobotsSettings();
 		$builder  = ( null !== $this->builder ) ? $this->builder : new RobotsBuilder();
 
-		$mode     = (string) $settings->get( 'mode', 'default' );
-		$custom   = (string) $settings->get( 'custom', '' );
 		$policies = CrawlerPolicy::sanitizeMap( $settings->get( 'crawlers', [] ) );
+		$override = (string) $settings->get( 'override', '' );
 
-		return $builder->build( $output, true, $policies, $custom, $mode );
+		return $builder->build( $output, true, $policies, $override );
 	}
 
 	/**

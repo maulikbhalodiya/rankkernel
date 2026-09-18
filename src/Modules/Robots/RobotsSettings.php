@@ -26,13 +26,6 @@ final class RobotsSettings {
 	public const OPTION = 'rankkernel_robots_settings';
 
 	/**
-	 * Accepted modes.
-	 *
-	 * @var string[]
-	 */
-	private const MODES = [ 'default', 'custom' ];
-
-	/**
 	 * Cached merged settings.
 	 *
 	 * @var array<string, mixed>|null
@@ -46,9 +39,8 @@ final class RobotsSettings {
 	 */
 	public static function defaults(): array {
 		return [
-			'mode'     => 'default',
-			'custom'   => '',
 			'crawlers' => CrawlerPolicy::defaults(),
+			'override' => '',
 		];
 	}
 
@@ -134,12 +126,7 @@ final class RobotsSettings {
 	 */
 	private function sanitize( string $key, mixed $value ): mixed {
 		switch ( $key ) {
-			case 'mode':
-				$mode = is_string( $value ) ? strtolower( $value ) : '';
-
-				return in_array( $mode, self::MODES, true ) ? $mode : 'default';
-
-			case 'custom':
+			case 'override':
 				return RobotsDirectives::normalize( is_string( $value ) ? $value : '' );
 
 			case 'crawlers':

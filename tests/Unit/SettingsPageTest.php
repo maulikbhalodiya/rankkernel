@@ -379,11 +379,10 @@ final class SettingsPageTest extends TestCase {
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_POST                     = [
-			'rankkernel_save'  => '1',
-			'_wpnonce'         => 'valid',
-			'rk_robots_mode'   => 'custom',
-			'rk_robots_custom' => "Disallow: /tmp/\n",
-			'rk_robots_policy' => [ 'gptbot' => 'allow' ],
+			'rankkernel_save'    => '1',
+			'_wpnonce'           => 'valid',
+			'rk_robots_override' => "User-agent: *\nDisallow: /tmp/\n",
+			'rk_robots_policy'   => [ 'gptbot' => 'allow' ],
 		];
 
 		ob_start();
@@ -391,8 +390,58 @@ final class SettingsPageTest extends TestCase {
 		ob_end_clean();
 
 		$this->assertIsArray( $captured );
-		$this->assertSame( 'custom', $captured['mode'] );
+		$this->assertStringContainsString( 'Disallow: /tmp/', $captured['override'] );
 		$this->assertSame( 'allow', $captured['crawlers']['gptbot'] );
+	}
+
+	/**
+	 * Test the robots reset clears the override.
+	 */
+	public function test_robots_reset_clears_override(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+
+		$captured = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_robots_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+				if ( 'rankkernel_robots_settings' === $key ) {
+					return [ 'override' => "User-agent: *\nDisallow: /x/\n" ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rk_robots_reset' => '1',
+			'_wpnonce'        => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( '', $captured['override'] );
 	}
 
 	/**

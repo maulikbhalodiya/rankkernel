@@ -23,40 +23,30 @@ final class RobotsBuilder {
 	/**
 	 * Build the robots.txt output.
 	 *
-	 * @param string                $base        Core robots.txt output.
-	 * @param bool                  $isPublic    Whether the site is public.
-	 * @param array<string, string> $policies    Crawler slug to policy map.
-	 * @param string                $customBlock Custom directives block.
-	 * @param string                $mode        Either default or custom.
+	 * When an override is set it becomes the whole document unchanged.
+	 * Otherwise the crawler policy is inserted above the wildcard group of
+	 * the core output, which keeps the Sitemaps module Sitemap line.
+	 *
+	 * @param string                $base     Core robots.txt output.
+	 * @param bool                  $isPublic Whether the site is public.
+	 * @param array<string, string> $policies Crawler slug to policy map.
+	 * @param string                $override Custom override, the whole document.
 	 * @return string The result.
 	 */
-	public function build( string $base, bool $isPublic, array $policies, string $customBlock, string $mode ): string {
+	public function build( string $base, bool $isPublic, array $policies, string $override ): string {
 		if ( ! $isPublic ) {
 			return $base;
 		}
 
-		$sitemapLines = $this->sitemapLines( $base );
-
-		if ( 'custom' === $mode && '' !== trim( $customBlock ) ) {
-			$text = trim( $customBlock );
-		} else {
-			$text = rtrim( $base );
-
-			if ( '' !== trim( $customBlock ) ) {
-				$text = ( '' === $text ) ? trim( $customBlock ) : $text . "\n\n" . trim( $customBlock );
-			}
-
-			$sitemapLines = [];
+		if ( '' !== trim( $override ) ) {
+			return rtrim( trim( $override ) ) . "\n";
 		}
 
+		$text  = rtrim( $base );
 		$block = $this->crawlerBlock( $policies );
 
 		if ( '' !== $block ) {
 			$text = $this->insertAboveWildcard( $text, $block );
-		}
-
-		if ( [] !== $sitemapLines ) {
-			$text = ( '' === $text ) ? implode( "\n", $sitemapLines ) : $text . "\n\n" . implode( "\n", $sitemapLines );
 		}
 
 		$text = trim( $text );
@@ -86,18 +76,6 @@ final class RobotsBuilder {
 		}
 
 		return implode( "\n\n", $groups );
-	}
-
-	/**
-	 * Existing Sitemap lines from the core output.
-	 *
-	 * @param string $base Core output.
-	 * @return string[] The result.
-	 */
-	private function sitemapLines( string $base ): array {
-		$matched = preg_match_all( '/^Sitemap:.*$/mi', $base, $matches );
-
-		return ( 1 === $matched ) ? array_values( array_unique( $matches[0] ) ) : [];
 	}
 
 	/**

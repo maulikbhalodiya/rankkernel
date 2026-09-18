@@ -60,12 +60,12 @@ final class RobotsSettingsTest extends TestCase {
 	}
 
 	/**
-	 * Test defaults seed the crawler policy map.
+	 * Test defaults seed the crawler policy map and an empty override.
 	 */
 	public function test_defaults_seed_crawler_map(): void {
 		$settings = new RobotsSettings();
 
-		$this->assertSame( 'default', $settings->get( 'mode' ) );
+		$this->assertSame( '', $settings->get( 'override' ) );
 		$this->assertSame( CrawlerPolicy::BLOCK, $settings->get( 'crawlers' )['gptbot'] );
 		$this->assertSame( CrawlerPolicy::ALLOW, $settings->get( 'crawlers' )['oai-searchbot'] );
 	}
@@ -79,8 +79,7 @@ final class RobotsSettingsTest extends TestCase {
 		$this->assertTrue(
 			$settings->set(
 				[
-					'mode'     => 'custom',
-					'custom'   => "Disallow: /tmp/\n",
+					'override' => "Disallow: /tmp/\r\n",
 					'crawlers' => [ 'gptbot' => 'allow' ],
 					'evil'     => 'x',
 				]
@@ -88,18 +87,17 @@ final class RobotsSettingsTest extends TestCase {
 		);
 
 		$stored = $this->options[ RobotsSettings::OPTION ];
-		$this->assertSame( 'custom', $stored['mode'] );
+		$this->assertStringNotContainsString( "\r", $stored['override'] );
 		$this->assertSame( 'allow', $stored['crawlers']['gptbot'] );
 		$this->assertArrayNotHasKey( 'evil', $stored );
 	}
 
 	/**
-	 * Test an invalid mode falls back to default.
+	 * Test an unknown key alone saves nothing.
 	 */
-	public function test_invalid_mode_falls_back(): void {
+	public function test_unknown_key_saves_nothing(): void {
 		$settings = new RobotsSettings();
-		$settings->set( [ 'mode' => 'nonsense' ] );
 
-		$this->assertSame( 'default', $this->options[ RobotsSettings::OPTION ]['mode'] );
+		$this->assertFalse( $settings->set( [ 'evil' => 'x' ] ) );
 	}
 }

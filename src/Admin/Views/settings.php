@@ -26,10 +26,10 @@
  * @var array<int, array{rowType: string, title: string, hint?: string, fieldId?: string, field?: string, current?: string, options?: array<int, array{slug: string, label: string}>}> $taxonomyRows Taxonomy preference rows.
  * @var bool   $robotsEnabled        Whether the robots section renders.
  * @var array<int, array{label: string, crawlers: array<int, array{slug: string, label: string, note: string, policy: string}>}> $robotGroups Crawler policy groups.
- * @var string $robotMode            Robots base mode.
- * @var string $robotCustom          Robots custom rules block.
+ * @var string $robotTab             Active robots tab, preview or edit.
+ * @var string $robotEffective       Effective robots.txt output.
+ * @var string $robotEditValue       Value for the robots editor.
  * @var array{errors: string[], warnings: string[]} $robotValidation Robots validation result.
- * @var string $robotPreview         Robots preview output.
  * @var bool   $llmsEnabled          Whether llms.txt is on.
  * @var string $llmsSummary          llms.txt summary.
  * @var string $llmsContent          Curated llms.txt content.
@@ -208,61 +208,65 @@ endif;
 						<h3><?php echo esc_html__( 'AI crawler policy', 'rankkernel' ); ?></h3>
 						<p class="description"><?php echo esc_html__( 'Training crawlers, AI search crawlers and user triggered fetchers are separate. Blocking a training crawler does not remove you from search. Blocking an AI search crawler removes you from that assistant results.', 'rankkernel' ); ?></p>
 
-						<?php foreach ( $robotGroups as $robotGroup ) : ?>
-							<h4><?php echo esc_html( $robotGroup['label'] ); ?></h4>
-							<table class="form-table" role="presentation"><tbody>
-								<?php foreach ( $robotGroup['crawlers'] as $robotCrawler ) : ?>
-									<tr>
-										<th scope="row"><label for="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>"><?php echo esc_html( $robotCrawler['label'] ); ?></label></th>
-										<td>
-											<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]">
-												<option value="allow"<?php echo 'allow' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Allow', 'rankkernel' ); ?></option>
-												<option value="block"<?php echo 'block' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Block', 'rankkernel' ); ?></option>
-												<option value="custom"<?php echo 'custom' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></option>
-											</select>
-											<p class="description"><?php echo esc_html( $robotCrawler['note'] ); ?></p>
-										</td>
-									</tr>
-								<?php endforeach; ?>
-							</tbody></table>
-						<?php endforeach; ?>
+						<div class="rk-crawlers">
+							<?php foreach ( $robotGroups as $robotGroup ) : ?>
+								<div class="rk-crawler-group">
+									<h4 class="rk-crawler-group-title"><?php echo esc_html( $robotGroup['label'] ); ?></h4>
+									<div class="rk-crawler-cards">
+										<?php foreach ( $robotGroup['crawlers'] as $robotCrawler ) : ?>
+											<div class="rk-crawler-card">
+												<label for="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>"><?php echo esc_html( $robotCrawler['label'] ); ?></label>
+												<p class="description"><?php echo esc_html( $robotCrawler['note'] ); ?></p>
+												<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]">
+													<option value="allow"<?php echo 'allow' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Allow', 'rankkernel' ); ?></option>
+													<option value="block"<?php echo 'block' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Block', 'rankkernel' ); ?></option>
+													<option value="custom"<?php echo 'custom' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></option>
+												</select>
+											</div>
+										<?php endforeach; ?>
+									</div>
+								</div>
+							<?php endforeach; ?>
+						</div>
 
-						<h3><?php echo esc_html__( 'Base output and custom rules', 'rankkernel' ); ?></h3>
-						<table class="form-table" role="presentation"><tbody>
-							<tr>
-								<th scope="row"><?php echo esc_html__( 'Base output', 'rankkernel' ); ?></th>
-								<td>
-									<label><input type="radio" name="rk_robots_mode" value="default" <?php echo checked( 'default', $robotMode, false ); ?> /> <?php echo esc_html__( 'Keep the WordPress output and add the rules below', 'rankkernel' ); ?></label><br />
-									<label><input type="radio" name="rk_robots_mode" value="custom" <?php echo checked( 'custom', $robotMode, false ); ?> /> <?php echo esc_html__( 'Replace the WordPress output with the custom rules', 'rankkernel' ); ?></label>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="rk-robots-custom"><?php echo esc_html__( 'Custom rules', 'rankkernel' ); ?></label></th>
-								<td>
-									<textarea id="rk-robots-custom" name="rk_robots_custom" rows="6" cols="60" class="large-text code"><?php echo esc_textarea( $robotCustom ); ?></textarea>
-									<p class="description"><?php echo esc_html__( 'One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>
-								</td>
-							</tr>
-						</tbody></table>
+						<h3><?php echo esc_html__( 'robots.txt', 'rankkernel' ); ?></h3>
+						<div class="rk-robots-tabs">
+							<a class="rk-tab<?php echo 'preview' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></a>
+							<a class="rk-tab<?php echo 'edit' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=edit' ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a>
+						</div>
 
-						<?php if ( [] !== $robotValidation['errors'] ) : ?>
-							<div class="notice notice-error inline">
-								<?php foreach ( $robotValidation['errors'] as $robotError ) : ?>
-									<p><?php echo esc_html( $robotError ); ?></p>
-								<?php endforeach; ?>
-							</div>
+						<?php if ( 'edit' === $robotTab ) : ?>
+							<p class="description"><?php echo esc_html__( 'Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>
+							<textarea id="rk-robots-override" name="rk_robots_override" rows="16" cols="70" class="large-text code"><?php echo esc_textarea( $robotEditValue ); ?></textarea>
+
+							<?php if ( [] !== $robotValidation['errors'] ) : ?>
+								<div class="notice notice-error inline">
+									<?php foreach ( $robotValidation['errors'] as $robotError ) : ?>
+										<p><?php echo esc_html( $robotError ); ?></p>
+									<?php endforeach; ?>
+								</div>
+							<?php endif; ?>
+
+							<?php if ( [] !== $robotValidation['warnings'] ) : ?>
+								<div class="notice notice-warning inline">
+									<?php foreach ( $robotValidation['warnings'] as $robotWarning ) : ?>
+										<p><?php echo esc_html( $robotWarning ); ?></p>
+									<?php endforeach; ?>
+								</div>
+							<?php endif; ?>
+
+							<p class="rk-robots-actions">
+								<button type="submit" class="button button-primary" name="rk_robots_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
+								<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
+								<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+							</p>
+						<?php else : ?>
+							<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;overflow:auto;"><?php echo esc_html( $robotEffective ); ?></pre>
+							<p class="rk-robots-actions">
+								<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=edit' ) ); ?>"><?php echo esc_html__( 'Edit robots.txt', 'rankkernel' ); ?></a>
+								<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+							</p>
 						<?php endif; ?>
-
-						<?php if ( [] !== $robotValidation['warnings'] ) : ?>
-							<div class="notice notice-warning inline">
-								<?php foreach ( $robotValidation['warnings'] as $robotWarning ) : ?>
-									<p><?php echo esc_html( $robotWarning ); ?></p>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
-
-						<h3><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h3>
-						<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;overflow:auto;"><?php echo esc_html( $robotPreview ); ?></pre>
 					</section>
 				<?php endif; ?>
 
