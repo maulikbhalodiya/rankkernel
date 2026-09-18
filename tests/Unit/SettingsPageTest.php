@@ -665,4 +665,32 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'rk-banner-danger', $output );
 		$this->assertStringNotContainsString( 'notice notice-warning', $output );
 	}
+
+	/**
+	 * Test a partial request renders only the section, without the shell.
+	 */
+	public function test_partial_request_renders_only_the_section(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section']    = 'breadcrumbs';
+		$_GET['rk_partial'] = 'breadcrumbs';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		// The load hook sets the partial before the page callback renders.
+		$page->maybeHandleSave();
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-breadcrumbs"', $output );
+		$this->assertStringNotContainsString( 'rk-settings-nav', $output );
+		$this->assertStringNotContainsString( '<form', $output );
+	}
 }

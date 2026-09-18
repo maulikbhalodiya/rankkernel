@@ -1,10 +1,8 @@
 <?php
 /**
- * General Settings view.
+ * Advanced settings section.
  *
- * Presentation only. SettingsPage prepares every variable used below, and owns
- * capability checks, nonce verification, request handling, validation and
- * redirects.
+ * Presentation only. SettingsPage prepares every variable used below.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -44,40 +42,17 @@
  * @var string $htaccessNotice       .htaccess save notice key.
  */
 
-declare(strict_types=1);
-
 defined( 'ABSPATH' ) || exit;
-
-if ( $settingsUpdated ) :
-	?>
-	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
-	<?php
-endif;
 ?>
-<div class="wrap rk-settings-wrap">
-	<h1><?php echo esc_html__( 'RankKernel General Settings', 'rankkernel' ); ?></h1>
-
-	<form method="post" action="">
-		<?php wp_nonce_field( 'rankkernel_settings' ); ?>
-
-		<div class="rk-settings">
-			<nav class="rk-settings-nav" aria-label="<?php echo esc_attr( __( 'Settings sections', 'rankkernel' ) ); ?>">
-				<p class="rk-settings-nav-title"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></p>
-				<ul>
-					<?php foreach ( $settingsSections as $section ) : ?>
-						<li>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=' . $section['id'] ) ); ?>"<?php echo $section['id'] === $currentSection ? ' class="is-active" aria-current="page"' : ''; ?>><?php echo esc_html( $section['label'] ); ?></a>
-						</li>
-					<?php endforeach; ?>
-				</ul>
-			</nav>
-
-			<div class="rk-settings-body">
-
-				<?php require __DIR__ . '/sections/' . $currentSection . '.php'; ?>
-
-				<?php submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' ); ?>
-			</div>
-		</div>
-	</form>
-</div>
+<section id="rk-section-advanced" class="rk-settings-section" aria-labelledby="rk-section-advanced-title">
+					<h2 id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h2>
+					<h3><?php echo esc_html__( 'Uninstall', 'rankkernel' ); ?></h3>
+					<table class="form-table" role="presentation"><tbody>
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'Data removal', 'rankkernel' ); ?></th>
+							<td>
+								<label><input type="checkbox" name="purge_on_uninstall" value="1" <?php echo checked( $purgeChecked, true, false ); ?> /> <?php echo esc_html__( 'Delete all RankKernel data (options, metadata) when the plugin is deleted.', 'rankkernel' ); ?></label>
+							</td>
+						</tr>
+					</tbody></table>
+				</section>

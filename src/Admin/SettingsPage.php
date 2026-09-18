@@ -38,6 +38,13 @@ final class SettingsPage {
 	private const ROBOTS_PREVIEW_CORE = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: https://example.com/sitemap_index.xml\n";
 
 	/**
+	 * Section requested as a partial, for the AJAX section loader.
+	 *
+	 * @var string|null
+	 */
+	private ?string $partial = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore            $store       Settings store.
@@ -61,8 +68,10 @@ final class SettingsPage {
 	 * Runs on load-{page}, so wp_safe_redirect can still send headers.
 	 */
 	public function maybeHandleSave(): void {
+		$this->partial = $this->partialRequest();
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {
 			$this->handleSave();
 		}
 	}
@@ -308,7 +317,57 @@ final class SettingsPage {
 
 		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
 
+		$partial = ( null !== $this->partial && in_array( $this->partial, $sectionIds, true ) ) ? $this->partial : null;
+
+		if ( null !== $partial ) {
+			require __DIR__ . '/Views/sections/' . $partial . '.php';
+
+			submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' );
+
+			return;
+		}
+
 		require __DIR__ . '/Views/settings.php';
+	}
+
+	/**
+	 * Redirect after a save, unless the request renders a partial.
+	 *
+	 * @param string $url Target URL.
+	 */
+	private function redirectTo( string $url ): void {
+		if ( null !== $this->partial ) {
+			return;
+		}
+
+		wp_safe_redirect( $url );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Section requested as a partial, or null.
+	 *
+	 * @return string|null The result.
+	 */
+	private function partialRequest(): ?string {
+		$raw = '';
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
+		if ( isset( $_POST['rk_partial'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
+			$raw = wp_unslash( (string) $_POST['rk_partial'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
+		} elseif ( isset( $_GET['rk_partial'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
+			$raw = wp_unslash( (string) $_GET['rk_partial'] );
+		}
+
+		$key = sanitize_key( $raw );
+
+		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
 	}
 
 	/**
@@ -357,11 +416,7 @@ final class SettingsPage {
 			$notice = 'failed';
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel-general&section=htaccess&rk_notice=' . $notice ) );
-
-		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
-			exit;
-		}
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=htaccess&rk_notice=' . $notice ) );
 	}
 
 	/**
@@ -371,11 +426,7 @@ final class SettingsPage {
 		$settings = $this->robots ?? new RobotsSettings();
 		$settings->set( [ 'override' => '' ] );
 
-		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview&settings-updated=1' ) );
-
-		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
-			exit;
-		}
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview&settings-updated=1' ) );
 	}
 
 	/**
@@ -427,11 +478,19 @@ final class SettingsPage {
 			$notice = 'failed';
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel-general&section=llms&rk_notice=' . $notice ) );
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=llms&rk_notice=' . $notice ) );
+	}
 
-		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
-			exit;
-		}
+	/**
+	 * Reset the llms.txt settings to their defaults.
+	 */
+	private function resetLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+		$settings->set( LlmsSettings::defaults() );
+
+		LlmsRouter::invalidate();
+
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=llms&settings-updated=1' ) );
 	}
 
 	/**
@@ -466,6 +525,13 @@ final class SettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
 		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_robots_reset'] ) ) {
 			$this->resetRobots();
+			return;
+		}
+
+		// The llms.txt reset is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_reset'] ) ) {
+			$this->resetLlms();
 			return;
 		}
 
@@ -516,11 +582,7 @@ final class SettingsPage {
 		$section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
 		$redirect = admin_url( 'admin.php?page=rankkernel-general' . ( '' !== $section ? '&section=' . $section : '' ) . '&settings-updated=1' );
-		wp_safe_redirect( $redirect );
-
-		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
-			exit;
-		}
+		$this->redirectTo( $redirect );
 	}
 
 	/**
