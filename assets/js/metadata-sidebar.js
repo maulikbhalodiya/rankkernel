@@ -2082,21 +2082,30 @@
 				url: permalink,
 				onEdit: function () { setModalTab( 'general' ); }
 			} ),
-				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview shows the published values.', 'rankkernel' ) ),
-			modalTab ? el( PreviewModal, {
+				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview shows the published values.', 'rankkernel' ) )
+			);
+		}
+
+		// Rendered here, not inside generalPanel(), so the modal host stays
+		// mounted while another tab panel is displayed.
+		function previewModal() {
+			if ( ! modalTab ) {
+				return null;
+			}
+
+			return el( PreviewModal, {
 				initialTab: modalTab,
-				titleValue: titleValue,
-				descValue: descValue,
+				titleValue: display( 'title', meta.title ),
+				descValue: display( 'description', meta.description ),
 				device: device,
 				onDevice: setDevice,
 				noindex: ! meta.robots.index,
-				url: permalink,
-					onClose: function () { setModalTab( null ); },
-					titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, pixelLimit: TITLE_PX, tokenizable: true, resettable: true, help: __( 'Shown as the first line of the search result. Blank uses the template.', 'rankkernel' ) } ),
-					descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, pixelLimit: DESC_PX, tokenizable: true, resettable: true, textarea: true, rows: 4, help: __( 'Shown under the title in the search result. Blank uses the template.', 'rankkernel' ) } ),
-					socialContent: renderSocialContent()
-				} ) : null
-			);
+				url: cfg.permalink || cfg.homeUrl || '',
+				onClose: function () { setModalTab( null ); },
+				titleField: metaField( { id: 'rk-modal-title', path: 'title', label: __( 'SEO title', 'rankkernel' ), template: 'title', limit: TITLE_LIMIT, pixelLimit: TITLE_PX, tokenizable: true, resettable: true, help: __( 'Shown as the first line of the search result. Blank uses the template.', 'rankkernel' ) } ),
+				descField: metaField( { id: 'rk-modal-description', path: 'description', label: __( 'Meta description', 'rankkernel' ), template: 'description', limit: DESC_LIMIT, pixelLimit: DESC_PX, tokenizable: true, resettable: true, textarea: true, rows: 4, help: __( 'Shown under the title in the search result. Blank uses the template.', 'rankkernel' ) } ),
+				socialContent: renderSocialContent()
+			} );
 		}
 
 		function advancedPanel() {
@@ -2467,7 +2476,8 @@
 					);
 				} )
 			),
-			panel
+			panel,
+			previewModal()
 		);
 	}
 
