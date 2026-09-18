@@ -11,6 +11,96 @@ Last updated: 2026-09-17, at the end of a long GH-27 session.
 
 ---
 
+# SESSION UPDATE — browser verification attempt (read this first)
+
+The next session DID attempt the required browser verification. Results below. **It is still NOT complete,
+and a NEW reproducible blocker was found. Do not merge PR #32 on the strength of this section.**
+
+## Environment correction (important)
+
+- The Local site was **DOWN** at first (`net::ERR_CONNECTION_REFUSED`, no `100xx` ports listening). This is
+  very likely the true cause of the earlier "Playwright repeatedly timed out" reports. **Check the site is
+  up (`curl -s -o /dev/null -w '%{http_code}' http://localhost:10043/`) BEFORE blaming Playwright.**
+- The owner started the site. Playwright then worked normally. Playwright itself was never the problem.
+- Both `10043` (RankKernel) and `10033` (Rank Math reference) returned HTTP 200 once started.
+
+## Login method for browser verification (REVISED — the old MD5 method no longer works)
+
+- This site runs **WordPress 7.1**. WordPress no longer accepts legacy 32-char MD5 password hashes
+  (`wp_check_password()` rejected one outright: "The password you entered ... is incorrect"). The old
+  "temporarily set an MD5 hash" recipe in `docs/STATE-gh27.md` is **obsolete**.
+- Working method: generate a portable phpass hash using WordPress's own class, then write it to the DB:
+  `php -r 'require "<site>/wp-includes/class-phpass.php"; $h = new PasswordHash(8, true); echo $h->HashPassword($pw);'`
+  producing a `$P$` hash (34 chars), then `UPDATE wp_users SET user_pass=... WHERE ID=1`.
+- **Changing `user_pass` immediately invalidates the existing session** — the next admin request redirects to
+  `wp-login.php?...&reauth=1`. That is expected, not a bug. Log in AFTER the swap.
+- Generate the hash with **system PHP 8.3** (works). Local's bundled PHP CLI is broken in this environment
+  (`error while loading shared libraries: libtidy.so.5deb1`).
+- System PHP has **no `mysqli`/`pdo_mysql`** — DB access must use Local's bundled client:
+  `~/.config/Local/lightning-services/mysql-8.0.35+4/bin/linux/bin/mysql`, with `MYSQL_PWD` in the env
+  (not `-p` on the command line), via `--protocol=SOCKET`.
+- **Credentials were fully restored afterwards and all temp files deleted.** Verified: the stored hash
+  matches the original again, the temporary same-origin auth file was removed from the site webroot, and
+  the `/tmp` copies are gone. Nothing credential-bearing was committed.
+
+## What WAS verified (one successful run, before the flakiness appeared)
+
+- Sidebar renders: `.rk-meta.rk-side`, 1 complementary area, **4 tabs** — `#rk-tab-general` (General),
+  `#rk-tab-advanced` (Advanced), `#rk-tab-schema` (Schema), `#rk-tab-social` (Social). Only the ACTIVE
+  panel exists in the DOM at a time (panels are swapped, not all rendered).
+- General panel: heading "Search Preview", Desktop/Mobile `aria-pressed` toggle, and an **Edit Snippet**
+  button with class `button button-secondary rk-preview-open`.
+- Social panel: heading "Social Media Preview", explanatory card, Facebook/Twitter switch, and an
+  **Edit Snippet** button with a **different** class `button button-primary rk-edit-snippet-btn`.
+- **Clicking the Social tab's Edit Snippet opened `components-modal__frame rk-preview-modal`**, titled
+  "Edit Snippet", containing tabs `rk-modal-tab-general` and `rk-modal-tab-social` with **`Social`
+  selected (`aria-selected="true"`, class `is-active`)** and showing `#rk-social-title`,
+  `#rk-social-description`, a "Select image" control ("Facebook image / No image / Recommended 1200x630,
+  minimum 600x315"), and per-field **Token** buttons (`aria-label="Insert token: Facebook title"`,
+  `"Insert token: Facebook description"`), plus a collapsible "Network settings".
+- **So the single successful observation says the Social Edit Snippet opens the CORRECT social snippet
+  modal — not the wrong/General one.** That is evidence in favour of PR #32, but it was observed **once**
+  and is not yet reproducible.
+
+## NEW BLOCKER — the sidebar renders NON-DETERMINISTICALLY
+
+- After that success, the sidebar **failed to render on four consecutive fresh loads** of
+  `post.php?post=53671&action=edit`, even after polling **30 seconds**.
+- In the failing state the core complementary area contains only `PageBlock` (core Page/Block tabs), there
+  is **no `.rk-meta`**, and no RankKernel panel anywhere in the DOM.
+- The plugin is definitely **active** and its assets definitely load: `assets/js/metadata-sidebar.js`,
+  `metadata-editor.js`, `schema-metabox.js` and both metadata stylesheets are enqueued, and
+  `window.rankkernelSeoSidebar` / `rankkernelMetaEditor` / `rankkernelMetaEditorPreview` are all defined.
+  So the script runs but the sidebar does not register/mount.
+- **Leading hypothesis (untested):** in WP 7.1, which plugin sidebar appears in the complementary area is
+  driven by a PERSISTED USER PREFERENCE (WP 6.5+ persists editor preferences via the user's
+  `wp_persisted_preferences` / `/wp/v2/users/me`). If that preference is absent, stale, or its REST
+  request failed (we saw `403` on `context=edit` REST calls while the session was mid-change), the
+  RankKernel sidebar silently falls back to not rendering. Test by explicitly selecting the RankKernel
+  sidebar via the editor's sidebar selector and/or clearing the persisted preference.
+- This is exactly the class of failure the earlier handoff warned about: **a static gate cannot see it, and
+  it survives review rounds.** It must be understood and made deterministic before PR #32 merges.
+- A second, unverified lead: the two Edit Snippet buttons use **different classes**
+  (`rk-preview-open` vs `rk-edit-snippet-btn`). Confirm both are wired to the same opener, because the
+  modal-opening handler appears associated with the `rk-preview-open` path.
+
+## What was NOT verified
+
+- **Token insertion end-to-end** — never executed. The Token buttons and their `aria-label`s were observed,
+  but no token was inserted, no counter/preview update was confirmed, and no save/reload persistence test
+  was run.
+- Reproducible confirmation of the Edit Snippet modal (observed once, then the sidebar stopped rendering).
+- Save/reload persistence, Classic Editor, social image select/replace/remove.
+
+## Honest status
+
+**PR #32 does NOT pass browser verification.** One observation supports the Social Edit Snippet behaviour,
+but the sidebar's non-deterministic rendering is an unresolved blocker that prevents the required checks
+from being executed reliably. **Do NOT merge PR #32 yet.** The next session must first make sidebar
+rendering deterministic, then re-run both checks.
+
+---
+
 ## 1. Current branch and HEAD
 
 - Branch: **GH-27**
