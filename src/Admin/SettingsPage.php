@@ -600,7 +600,12 @@ final class SettingsPage {
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
 	public function enqueueAssets( string $hookSuffix ): void {
-		if ( 'rankkernel_page_rankkernel-general' !== $hookSuffix ) {
+		// The admin hook suffix for this submenu differs from the documented
+		// form, so the page slug is matched as well.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
+		$page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( 'rankkernel-general' !== $page && 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
 		}
 
