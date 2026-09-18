@@ -275,12 +275,12 @@ final class SettingsPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'class="rk-settings"', $output );
 		$this->assertStringContainsString( 'class="rk-settings-nav"', $output );
-		$this->assertStringContainsString( 'href="#rk-section-general"', $output );
-		$this->assertStringContainsString( 'href="#rk-section-breadcrumbs"', $output );
-		$this->assertStringContainsString( 'href="#rk-section-webmaster"', $output );
-		$this->assertStringContainsString( 'href="#rk-section-advanced"', $output );
+		$this->assertStringContainsString( 'section=general', $output );
+		$this->assertStringContainsString( 'section=breadcrumbs', $output );
+		$this->assertStringContainsString( 'section=webmaster', $output );
+		$this->assertStringContainsString( 'section=advanced', $output );
 		$this->assertStringContainsString( 'id="rk-section-general"', $output );
-		$this->assertStringContainsString( 'id="rk-section-advanced"', $output );
+		$this->assertStringNotContainsString( 'id="rk-section-breadcrumbs"', $output );
 	}
 
 	/**
@@ -329,13 +329,15 @@ final class SettingsPageTest extends TestCase {
 
 		$this->stubCrawlPage( [ 'robots' ] );
 
+		$_GET['section'] = 'robots';
+
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		ob_start();
 		$page->render();
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'href="#rk-section-robots"', $output );
+		$this->assertStringContainsString( 'section=robots', $output );
 		$this->assertStringContainsString( 'id="rk-section-robots"', $output );
 		$this->assertStringContainsString( 'rk_robots_policy[gptbot]', $output );
 	}
@@ -437,13 +439,15 @@ final class SettingsPageTest extends TestCase {
 
 		$this->stubCrawlPage( [ 'robots' ] );
 
+		$_GET['section'] = 'llms';
+
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		ob_start();
 		$page->render();
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'href="#rk-section-llms"', $output );
+		$this->assertStringContainsString( 'section=llms', $output );
 		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
 		$this->assertStringContainsString( 'rk_llms_content', $output );
 		$this->assertStringContainsString( 'name="rk_llms_write"', $output );
@@ -556,5 +560,52 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'rk_notice=written', $redirect );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test only the active settings section renders.
+	 */
+	public function test_only_active_section_renders(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'webmaster';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-webmaster"', $output );
+		$this->assertStringNotContainsString( 'id="rk-section-general"', $output );
+		$this->assertStringContainsString( 'section=htaccess', $output );
+	}
+
+	/**
+	 * Test the htaccess section is a deferred placeholder.
+	 */
+	public function test_htaccess_section_is_a_placeholder(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'htaccess';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
+		$this->assertStringContainsString( 'not available yet', $output );
 	}
 }

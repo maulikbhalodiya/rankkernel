@@ -275,9 +275,25 @@ final class SettingsPage {
 		}
 
 		$settingsSections[] = [
+			'id'    => 'htaccess',
+			'label' => __( '.htaccess', 'rankkernel' ),
+		];
+		$settingsSections[] = [
 			'id'    => 'advanced',
 			'label' => __( 'Advanced', 'rankkernel' ),
 		];
+
+		$sectionIds = array_map(
+			static function ( array $section ): string {
+				return (string) $section['id'];
+			},
+			$settingsSections
+		);
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
+		$rawSection = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+
+		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
 
 		require __DIR__ . '/Views/settings.php';
 	}

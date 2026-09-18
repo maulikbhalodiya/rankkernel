@@ -46,9 +46,14 @@
 	text-decoration: none;
 }
 
-.rk-settings-nav a:hover {
+.rk-settings-nav a:hover,
+.rk-settings-nav a.is-active {
 	color: var(--rk-color-primary);
 	background: var(--rk-color-primary-soft);
+}
+
+.rk-settings-nav a.is-active {
+	font-weight: 600;
 }
 
 .rk-settings-nav a:focus-visible {

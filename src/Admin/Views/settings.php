@@ -11,6 +11,7 @@
  *
  * @var bool   $settingsUpdated      Whether the settings saved notice renders.
  * @var array<int, array{id: string, label: string}> $settingsSections Settings left-nav sections.
+ * @var string $currentSection       Active settings section id.
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
@@ -58,12 +59,15 @@ endif;
 			<nav class="rk-settings-nav" aria-label="<?php echo esc_attr( __( 'Settings sections', 'rankkernel' ) ); ?>">
 				<ul>
 					<?php foreach ( $settingsSections as $section ) : ?>
-						<li><a href="#rk-section-<?php echo esc_attr( $section['id'] ); ?>"><?php echo esc_html( $section['label'] ); ?></a></li>
+						<li>
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=' . $section['id'] ) ); ?>"<?php echo $section['id'] === $currentSection ? ' class="is-active" aria-current="page"' : ''; ?>><?php echo esc_html( $section['label'] ); ?></a>
+						</li>
 					<?php endforeach; ?>
 				</ul>
 			</nav>
 
 			<div class="rk-settings-body">
+				<?php if ( 'general' === $currentSection ) : ?>
 				<section id="rk-section-general" class="rk-settings-section" aria-labelledby="rk-section-general-title">
 					<h2 id="rk-section-general-title"><?php echo esc_html__( 'General', 'rankkernel' ); ?></h2>
 					<h3><?php echo esc_html__( 'Title and description templates', 'rankkernel' ); ?></h3>
@@ -90,7 +94,9 @@ endif;
 						</tr>
 					</tbody></table>
 				</section>
+				<?php endif; ?>
 
+				<?php if ( 'breadcrumbs' === $currentSection ) : ?>
 				<section id="rk-section-breadcrumbs" class="rk-settings-section" aria-labelledby="rk-section-breadcrumbs-title">
 					<h2 id="rk-section-breadcrumbs-title"><?php echo esc_html__( 'Breadcrumbs', 'rankkernel' ); ?></h2>
 					<p class="description"><?php echo esc_html__( 'Visible trail and breadcrumb schema share one trail. Place it with the block, shortcode, or template tag. Disabling the module in the module list disables breadcrumb integration.', 'rankkernel' ); ?></p>
@@ -175,7 +181,9 @@ endif;
 
 					<p class="description"><?php echo esc_html__( 'Archive, search, and 404 labels follow the trail builder defaults. Custom formats are not configurable in this version.', 'rankkernel' ); ?></p>
 				</section>
+				<?php endif; ?>
 
+				<?php if ( 'webmaster' === $currentSection ) : ?>
 				<section id="rk-section-webmaster" class="rk-settings-section" aria-labelledby="rk-section-webmaster-title">
 					<h2 id="rk-section-webmaster-title"><?php echo esc_html__( 'Webmaster Tools', 'rankkernel' ); ?></h2>
 					<p class="description"><?php echo esc_html__( 'Paste the verification codes from each search engine.', 'rankkernel' ); ?></p>
@@ -190,8 +198,9 @@ endif;
 						<?php endforeach; ?>
 					</tbody></table>
 				</section>
+				<?php endif; ?>
 
-				<?php if ( $robotsEnabled ) : ?>
+				<?php if ( $robotsEnabled && 'robots' === $currentSection ) : ?>
 					<section id="rk-section-robots" class="rk-settings-section" aria-labelledby="rk-section-robots-title">
 						<h2 id="rk-section-robots-title"><?php echo esc_html__( 'Robots.txt', 'rankkernel' ); ?></h2>
 						<p class="description"><?php echo esc_html__( 'robots.txt is served virtually from the WordPress filter. No file is ever written. The Sitemap line is managed by the Sitemaps module.', 'rankkernel' ); ?></p>
@@ -257,7 +266,7 @@ endif;
 					</section>
 				<?php endif; ?>
 
-				<?php if ( $robotsEnabled ) : ?>
+				<?php if ( $robotsEnabled && 'llms' === $currentSection ) : ?>
 					<section id="rk-section-llms" class="rk-settings-section" aria-labelledby="rk-section-llms-title">
 						<h2 id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h2>
 						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional. Write your own sections as Markdown link lists.', 'rankkernel' ); ?></p>
@@ -322,6 +331,15 @@ endif;
 					</section>
 				<?php endif; ?>
 
+				<?php if ( 'htaccess' === $currentSection ) : ?>
+				<section id="rk-section-htaccess" class="rk-settings-section" aria-labelledby="rk-section-htaccess-title">
+					<h2 id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Editing .htaccess from the admin is not available yet. A mistake there can take the whole site down with no way back in, and Apache rules cannot be validated from PHP. RankKernel keeps redirects at the PHP layer for that reason.', 'rankkernel' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'If this is added later it will be opt in, Apache and LiteSpeed only, hidden when file editing is disabled, backed up before every save, and it will never touch the WordPress marker block.', 'rankkernel' ); ?></p>
+				</section>
+				<?php endif; ?>
+
+				<?php if ( 'advanced' === $currentSection ) : ?>
 				<section id="rk-section-advanced" class="rk-settings-section" aria-labelledby="rk-section-advanced-title">
 					<h2 id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h2>
 					<h3><?php echo esc_html__( 'Uninstall', 'rankkernel' ); ?></h3>
@@ -334,6 +352,7 @@ endif;
 						</tr>
 					</tbody></table>
 				</section>
+				<?php endif; ?>
 
 				<?php submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' ); ?>
 			</div>
