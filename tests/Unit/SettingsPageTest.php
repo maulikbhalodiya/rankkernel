@@ -355,4 +355,95 @@ final class SettingsPageTest extends TestCase {
 		$page->enqueueAssets( 'toplevel_page_rankkernel' );
 		$this->assertContains( 'rankkernel-settings-admin', $registered );
 	}
+
+	/**
+	 * Test the robots section renders when the module is enabled.
+	 */
+	public function test_robots_section_renders_when_enabled(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+		Functions\when( 'esc_textarea' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ): mixed {
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'href="#rk-section-robots"', $output );
+		$this->assertStringContainsString( 'id="rk-section-robots"', $output );
+		$this->assertStringContainsString( 'rk_robots_policy[gptbot]', $output );
+	}
+
+	/**
+	 * Test the robots settings save with the settings form.
+	 */
+	public function test_robots_settings_saved(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+
+		$captured = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_robots_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'  => '1',
+			'_wpnonce'         => 'valid',
+			'rk_robots_mode'   => 'custom',
+			'rk_robots_custom' => "Disallow: /tmp/\n",
+			'rk_robots_policy' => [ 'gptbot' => 'allow' ],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( 'custom', $captured['mode'] );
+		$this->assertSame( 'allow', $captured['crawlers']['gptbot'] );
+	}
 }

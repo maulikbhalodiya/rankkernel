@@ -15,6 +15,10 @@ defined( 'ABSPATH' ) || exit;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
+use RankKernel\Modules\Robots\CrawlerPolicy;
+use RankKernel\Modules\Robots\RobotsBuilder;
+use RankKernel\Modules\Robots\RobotsDirectives;
+use RankKernel\Modules\Robots\RobotsSettings;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -26,16 +30,23 @@ use RankKernel\Settings\SettingsStore;
  */
 final class SettingsPage {
 	/**
+	 * Representative core block used for the robots.txt preview.
+	 */
+	private const ROBOTS_PREVIEW_CORE = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: https://example.com/sitemap_index.xml\n";
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore            $store       Settings store.
 	 * @param ModuleEnableMap          $enableMap   Module enable map (single get_option).
 	 * @param BreadcrumbsSettings|null $breadcrumbs Optional breadcrumbs settings (tests).
+	 * @param RobotsSettings|null      $robots      Optional robots settings (tests).
 	 */
 	public function __construct(
 		private readonly SettingsStore $store,
 		private readonly ModuleEnableMap $enableMap,
-		private readonly ?BreadcrumbsSettings $breadcrumbs = null
+		private readonly ?BreadcrumbsSettings $breadcrumbs = null,
+		private readonly ?RobotsSettings $robots = null
 	) {
 	}
 
@@ -196,6 +207,8 @@ final class SettingsPage {
 			];
 		}
 
+		$robotsEnabled = $this->enableMap->isEnabled( 'robots' );
+
 		$settingsSections = [
 			[
 				'id'    => 'general',
@@ -209,17 +222,83 @@ final class SettingsPage {
 				'id'    => 'webmaster',
 				'label' => __( 'Webmaster Tools', 'rankkernel' ),
 			],
-			[
-				'id'    => 'modules',
-				'label' => __( 'Modules', 'rankkernel' ),
-			],
-			[
-				'id'    => 'advanced',
-				'label' => __( 'Advanced', 'rankkernel' ),
-			],
+		];
+
+		if ( $robotsEnabled ) {
+			$settingsSections[] = [
+				'id'    => 'robots',
+				'label' => __( 'Robots.txt', 'rankkernel' ),
+			];
+
+			$robotSettings   = $this->robots ?? new RobotsSettings();
+			$robotMode       = (string) $robotSettings->get( 'mode', 'default' );
+			$robotCustom     = (string) $robotSettings->get( 'custom', '' );
+			$robotPolicies   = CrawlerPolicy::sanitizeMap( $robotSettings->get( 'crawlers', [] ) );
+			$robotValidation = RobotsDirectives::validate( $robotCustom );
+			$robotGroups     = [];
+
+			foreach ( CrawlerPolicy::PURPOSES as $purposeKey => $purposeLabel ) {
+				$crawlers = [];
+
+				foreach ( CrawlerPolicy::all() as $crawlerSlug => $crawler ) {
+					if ( (string) $crawler['purpose'] !== (string) $purposeKey ) {
+						continue;
+					}
+
+					$crawlers[] = [
+						'slug'   => (string) $crawlerSlug,
+						'label'  => (string) $crawler['label'],
+						'note'   => (string) $crawler['note'],
+						'policy' => $robotPolicies[ (string) $crawlerSlug ] ?? CrawlerPolicy::CUSTOM,
+					];
+				}
+
+				if ( [] !== $crawlers ) {
+					$robotGroups[] = [
+						'label'    => (string) $purposeLabel,
+						'crawlers' => $crawlers,
+					];
+				}
+			}
+
+			$robotPreview = ( new RobotsBuilder() )->build( self::ROBOTS_PREVIEW_CORE, true, $robotPolicies, $robotCustom, $robotMode );
+		}
+
+		$settingsSections[] = [
+			'id'    => 'modules',
+			'label' => __( 'Modules', 'rankkernel' ),
+		];
+		$settingsSections[] = [
+			'id'    => 'advanced',
+			'label' => __( 'Advanced', 'rankkernel' ),
 		];
 
 		require __DIR__ . '/Views/settings.php';
+	}
+
+	/**
+	 * Save the robots.txt section through the module settings class.
+	 *
+	 * Field names carry an rk_robots_ prefix so they never collide with the
+	 * other sections. Values sanitize through the Robots settings store.
+	 */
+	private function saveRobots(): void {
+		$settings = $this->robots ?? new RobotsSettings();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawMode = isset( $_POST['rk_robots_mode'] ) ? wp_unslash( $_POST['rk_robots_mode'] ) : 'default';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawCustom = isset( $_POST['rk_robots_custom'] ) ? wp_unslash( $_POST['rk_robots_custom'] ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawPolicies = isset( $_POST['rk_robots_policy'] ) ? wp_unslash( $_POST['rk_robots_policy'] ) : [];
+
+		$settings->set(
+			[
+				'mode'     => is_string( $rawMode ) ? $rawMode : 'default',
+				'custom'   => is_string( $rawCustom ) ? $rawCustom : '',
+				'crawlers' => is_array( $rawPolicies ) ? $rawPolicies : [],
+			]
+		);
 	}
 
 	/**
@@ -272,6 +351,10 @@ final class SettingsPage {
 		$this->store->set( $partial );
 
 		$this->saveBreadcrumbs();
+
+		if ( $this->enableMap->isEnabled( 'robots' ) ) {
+			$this->saveRobots();
+		}
 
 		// Modules: validate ids against registry; save enabled-id list.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified, unslashed here, sanitized or validated on the following statements.
