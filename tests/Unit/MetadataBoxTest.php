@@ -801,6 +801,24 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * Assert the sidebar payload always carries flags.
+	 *
+	 * MetaPayload::sanitize() reseeds omitted keys from its defaults, and
+	 * WordPress applies it to the submitted value only. A payload without flags
+	 * therefore silently resets the stored pillar, cornerstone and breadcrumb
+	 * title on every save, so the producer must send all three.
+	 */
+	public function test_block_editor_payload_sends_flags(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local plugin asset, not a remote URL.
+		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/metadata-sidebar.js' );
+
+		$this->assertMatchesRegularExpression(
+			'/flags:\s*\{\s*pillar:.*cornerstone:.*breadcrumb_title:/s',
+			$script
+		);
+	}
+
+	/**
 	 * Extract the data attributes a script queries from the DOM.
 	 *
 	 * Only reads are part of the contract: attribute selectors ([data-...])

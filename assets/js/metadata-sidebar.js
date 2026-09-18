@@ -448,6 +448,9 @@
 		// empty list, later saves normalize it to the object shape. Readers
 		// stay defensive and never reshape it here.
 		var schema = input.schema && 'object' === typeof input.schema ? input.schema : base.schema;
+		// sanitize() reseeds omitted keys from defaults and runs on the
+		// submitted value only, so flags must be sent or it resets them.
+		var flags = input.flags && 'object' === typeof input.flags ? input.flags : {};
 		return {
 			title: strOrEmpty( input.title ),
 			description: strOrEmpty( input.description ),
@@ -477,7 +480,12 @@
 				image_id: parseInt( twitter.image_id, 10 ) || 0
 			},
 			focus_keywords: focus_keywords,
-			schema: schema
+			schema: schema,
+			flags: {
+				pillar: true === flags.pillar,
+				cornerstone: true === flags.cornerstone,
+				breadcrumb_title: flags.breadcrumb_title == null ? '' : String( flags.breadcrumb_title )
+			}
 		};
 	}
 
