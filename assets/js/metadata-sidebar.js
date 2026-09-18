@@ -524,6 +524,7 @@
 		next.robots.max_snippet = robotsIntOrNull( next.robots.max_snippet );
 		next.robots.max_video_preview = robotsIntOrNull( next.robots.max_video_preview );
 		next.robots.max_image_preview = robotsPreviewOrNull( next.robots.max_image_preview );
+		next.schema = schemaObject( next.schema );
 		return next;
 	}
 

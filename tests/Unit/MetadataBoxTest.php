@@ -819,6 +819,20 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * Assert the REST payload normalizes the schema shape.
+	 *
+	 * The schema subtree is declared as an object and schemaObject() rejects an
+	 * array, so the boundary normalizer must convert the empty-list default
+	 * before the payload reaches editPost().
+	 */
+	public function test_block_editor_payload_normalizes_schema_shape(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local plugin asset, not a remote URL.
+		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/metadata-sidebar.js' );
+
+		$this->assertMatchesRegularExpression( '/next\.schema = schemaObject\( next\.schema \);/', $script );
+	}
+
+	/**
 	 * Extract the data attributes a script queries from the DOM.
 	 *
 	 * Only reads are part of the contract: attribute selectors ([data-...])
