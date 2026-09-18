@@ -103,6 +103,25 @@ final class RobotsModuleTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'add_rewrite_rule' )->justReturn( true );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+	}
+
+	/**
+	 * Test the llms route registers when the module and llms are enabled.
+	 */
+	public function test_llms_route_registers_when_enabled(): void {
+		$this->options['rankkernel_modules']       = [ 'robots' ];
+		$this->options['rankkernel_llms_settings'] = [ 'enabled' => true ];
+
+		$module = new RobotsModule();
+		$module->boot();
+
+		$this->assertNotNull( $module->getLlmsRouter() );
+		$this->assertNotNull( $module->getLlmsWriter() );
+		$this->assertContains( [ 'pre_get_posts', 1 ], $this->hooks );
 	}
 
 	/**
