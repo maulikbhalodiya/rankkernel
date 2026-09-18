@@ -1,0 +1,70 @@
+project:
+  name: RankKernel
+  description: A 100% free, zero-bloat WordPress SEO plugin, built to beat Yoast and Rank Math architecturally.
+  conventions:
+    - "PHP 8.1+, WordPress 6.5+."
+    - "PSR-12 inside src/, declare(strict_types=1), namespace RankKernel, one class per file."
+    - "rankkernel.php and uninstall.php follow WordPress Coding Standards."
+    - "Text domain is exactly rankkernel."
+    - "Escape all output, sanitize all input, verify nonces and capabilities on every write."
+    - "All SQL uses $wpdb->prepare(); never concatenate variables into a query."
+    - "Prefix functions, hooks, options, transients and tables with rankkernel or RankKernel."
+    - "One metadata source of truth through the MetaPayload class."
+    - "Module gating: metadata off means no metabox and no editor assets."
+    - "No build toolchain: hand-written JavaScript against wp.* globals, no npm, JSX, Tailwind or CSS-in-JS."
+    - "docs/ is internal working material and out of review scope."
+  commandReference:
+    lint: "composer lint"
+    stan: "composer stan"
+    test: "composer test"
+    phpcs: "vendor/bin/phpcs --standard=phpcs.xml"
+    js: "for f in assets/js/*.js; do node --check \"$f\"; done"
+
+review:
+  inline: true
+  effort: balanced
+  includePreExisting: false
+  failOnSeverity: off
+  customRules:
+    - "Security: every write path verifies current_user_can() and a nonce, or a REST permission_callback."
+    - "Security: never trust superglobals; sanitize on input and escape on output (esc_html, esc_attr, esc_url, wp_kses_post)."
+    - "Security: never concatenate variables into SQL; use $wpdb->prepare()."
+    - "Security: no eval, no unserialize on user input, no shell execution, no remote file inclusion."
+    - "Security: no secrets, credentials, tokens or local socket paths in tracked files."
+    - "Security: avoid SSRF; validate and allowlist remote URLs before wp_remote_*."
+    - "Standards: WordPress Coding Standards and PSR-12; declare(strict_types=1); an ABSPATH guard in every PHP file."
+    - "Standards: prefix every function, hook, option, transient and table with rankkernel or RankKernel; text domain exactly rankkernel."
+    - "Best practice: prefer WordPress APIs over raw PHP (wp_remote_* over curl, wp_parse_url over parse_url)."
+    - "Best practice: cache expensive reads with transients or the object cache, keyed by a validator."
+    - "Best practice: internationalise every user-facing string; no hardcoded English in rendered output."
+    - "Best practice: admin UI is accessible; labels, aria attributes and keyboard support."
+    - "Best practice: no type or error suppression, no empty catch blocks."
+    - "Features and parity: flag any feature that is a visual shell with no behaviour, or that claims parity without real implementation or tests."
+    - "Tests: new behaviour needs tests; never delete or weaken a test to make a check pass."
+    - "Never copy competitor code, CSS, markup, icons, class names or wording (rank_math, rank-math-, rm-icon, edfa-d-f)."
+
+audit:
+  createIssues: true
+  autoFix: false
+  targetDirs:
+    - src
+    - assets
+  categories:
+    - security
+    - performance
+    - code-quality
+    - maintainability
+    - javascript
+
+fix:
+  maxIterations: 1
+  runChecks:
+    - "composer lint && composer stan && composer test"
+  checkAllowlist:
+    - composer
+    - node
+    - php
+
+secrets:
+  enabled: true
+  failCI: false

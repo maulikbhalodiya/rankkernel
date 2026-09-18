@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: WPCS, PHPStan & PHPUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2, cs2pr
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Dependency audit
+        run: composer audit --locked
+
+      - name: PHP syntax
+        run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: WordPress Coding Standards
+        run: vendor/bin/phpcs --standard=phpcs.xml --report=checkstyle | cs2pr
+
+      - name: PHPStan (level 6)
+        run: composer stan
+
+      - name: PHPUnit
+        run: composer test
+
+      - name: JavaScript syntax
+        run: |
+          for f in assets/js/*.js; do
+            node --check "$f"
+          done
+
+  security:
+    name: Psalm Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Psalm security scan
+        uses: docker://ghcr.io/psalm/psalm-security-scan
+        continue-on-error: true
+        with:
+          report_file: psalm.sarif
+
+      - name: Check report
+        id: report
+        if: always()
+        run: echo "exists=$(test -f psalm.sarif && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF
+        if: always() && steps.report.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@fddeee1a7ece751b577e409a89057319e3172939 # v4
+        with:
+          sarif_file: psalm.sarif
