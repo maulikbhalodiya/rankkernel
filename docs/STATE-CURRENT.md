@@ -29,8 +29,9 @@ and a NEW reproducible blocker was found. Do not merge PR #32 on the strength of
 - This site runs **WordPress 7.1**. WordPress no longer accepts legacy 32-char MD5 password hashes
   (`wp_check_password()` rejected one outright: "The password you entered ... is incorrect"). The old
   "temporarily set an MD5 hash" recipe in `docs/STATE-gh27.md` is **obsolete**.
-- Working method: generate a portable phpass hash using WordPress's own class, then write it to the DB:
-  `php -r 'require "<site>/wp-includes/class-phpass.php"; $h = new PasswordHash(8, true); echo $h->HashPassword($pw);'`
+- Working method: generate a portable phpass hash using WordPress's own class, then write it to the DB.
+  `$pw` is not defined anywhere, so read it from controlled input and clear it afterwards:
+  `read -r -s -p 'WordPress password: ' pw; printf '\n'; printf '%s' "$pw" | php -r 'require "<site>/wp-includes/class-phpass.php"; $h = new PasswordHash(8, true); echo $h->HashPassword(stream_get_contents(STDIN));'; unset pw`
   producing a `$P$` hash (34 chars), then `UPDATE wp_users SET user_pass=... WHERE ID=1`.
 - **Changing `user_pass` immediately invalidates the existing session** — the next admin request redirects to
   `wp-login.php?...&reauth=1`. That is expected, not a bug. Log in AFTER the swap.
@@ -201,7 +202,8 @@ composer lint                        PASS  (exit 0)
 composer stan                        PASS  (level 6, no errors)
 composer test                        PASS  (1055 tests, 3726 assertions)
 vendor/bin/phpcs --standard=phpcs.xml PASS  (exit 0)
-node --check assets/js/*.js          PASS  (all editor scripts parse)
+for f in assets/js/*.js; do node --check "$f"; done
+                                      PASS  (each script separately; node --check takes one file per run)
 git status                           clean
 ```
 
