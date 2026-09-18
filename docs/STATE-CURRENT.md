@@ -160,6 +160,37 @@ Because the OLDER members now come first, after each of #28, #29 and #30 lands, 
 counterpart (#33, #34, #35 respectively) is now **already in `main` / redundant**, and if so close it as
 superseded instead of merging duplicate functionality twice.
 
+### CONFLICT + OVERLAP MATRIX (verified 2026-09-18 against `main` = `a90fae1`)
+
+**Read this before starting. Both #28 and #33 are `CONFLICTING` / `DIRTY` and cannot be merged as-is.**
+They branched before `RedirectCache.php` changed on `main`, so each needs a rebase with conflict
+resolution first. Do not attempt to merge either directly.
+
+`main` does **not** contain the memoization work: `src/Modules/Redirects/RedirectCache.php` still calls
+`get_option( self::VALIDATOR_OPTION, '' )` inline at lines 96, 121, 169 and 207, and `SitemapCache.php`
+has no validator memory. So #28 and #33 are genuine improvements, not redundant.
+
+| PR | Status | Files | Unique value | Overlap |
+|---|---|---|---|---|
+| **#28** | `CONFLICTING` / `DIRTY`; **no reviews and no inline comments exist** | `src/Modules/Redirects/RedirectCache.php`, `src/Modules/Sitemaps/SitemapCache.php`, `tests/Unit/RedirectsCacheTest.php`, `tests/Unit/SitemapCacheTest.php` | **`SitemapCache` validator memoization (only here)** | `RedirectCache` validator memo (also in #33) |
+| **#33** | `CONFLICTING` / `DIRTY` | `src/Modules/Redirects/Normalizer.php`, `src/Modules/Redirects/RedirectCache.php`, `tests/Unit/RedirectsCacheTest.php`, `tests/Unit/RedirectsNormalizerTest.php` | **`Normalizer` homePath memoization (only here)** | `RedirectCache` validator memo (also in #28) |
+| #29 / #30 / #31 | `UNKNOWN` when last checked (GitHub still recomputing); re-check with `gh pr view <n> --json mergeable,mergeStateStatus` | | | |
+
+**Never merge duplicate functionality twice.** Because #28 has unique `SitemapCache` work and #33 has
+unique `Normalizer` work, the intended path is:
+
+1. Rebase **#28** onto `main`, resolve the `RedirectCache.php` conflicts, run gates, review, merge. That
+   lands both `RedirectCache` and `SitemapCache` memoization.
+2. **#33** then collapses to `Normalizer` homePath memoization only. Either reduce it to that, or close
+   it and open a clean `GH-<n>` branch with just the `Normalizer` change and its test. Carry over the
+   `@return void` DocBlock fix for `resetHomePath()` from the finding listed above.
+3. #29 and #30 map onto #34 and #35 the same way. Re-check each diff against `main` after every merge,
+   and close whichever member becomes redundant.
+
+**PR #28 CodeRabbit status:** no reviews and no inline comments exist on it, so there are no findings to
+action. Only treat the review requirement as met once a review actually runs, otherwise say plainly in
+the merge decision that none was posted.
+
 Process one PR at a time. **Never work on a later PR while an earlier one is waiting for its required
 verification.** After every merge: `git fetch origin`, `git checkout main`, `git pull origin/main`,
 verify the tree is clean.
