@@ -16,6 +16,10 @@ use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
 use RankKernel\Modules\Robots\CrawlerPolicy;
+use RankKernel\Modules\Robots\LlmsFileWriter;
+use RankKernel\Modules\Robots\LlmsGenerator;
+use RankKernel\Modules\Robots\LlmsRouter;
+use RankKernel\Modules\Robots\LlmsSettings;
 use RankKernel\Modules\Robots\RobotsBuilder;
 use RankKernel\Modules\Robots\RobotsDirectives;
 use RankKernel\Modules\Robots\RobotsSettings;
@@ -41,12 +45,14 @@ final class SettingsPage {
 	 * @param ModuleEnableMap          $enableMap   Module enable map (single get_option).
 	 * @param BreadcrumbsSettings|null $breadcrumbs Optional breadcrumbs settings (tests).
 	 * @param RobotsSettings|null      $robots      Optional robots settings (tests).
+	 * @param LlmsSettings|null        $llms        Optional llms settings (tests).
 	 */
 	public function __construct(
 		private readonly SettingsStore $store,
 		private readonly ModuleEnableMap $enableMap,
 		private readonly ?BreadcrumbsSettings $breadcrumbs = null,
-		private readonly ?RobotsSettings $robots = null
+		private readonly ?RobotsSettings $robots = null,
+		private readonly ?LlmsSettings $llms = null
 	) {
 	}
 
@@ -57,7 +63,7 @@ final class SettingsPage {
 	 */
 	public function maybeHandleSave(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_save'] ) ) {
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_write'] ) ) ) {
 			$this->handleSave();
 		}
 	}
@@ -262,6 +268,22 @@ final class SettingsPage {
 			}
 
 			$robotPreview = ( new RobotsBuilder() )->build( self::ROBOTS_PREVIEW_CORE, true, $robotPolicies, $robotCustom, $robotMode );
+
+			$settingsSections[] = [
+				'id'    => 'llms',
+				'label' => __( 'llms.txt', 'rankkernel' ),
+			];
+
+			$llmsSettings   = $this->llms ?? new LlmsSettings();
+			$llmsEnabled    = (bool) $llmsSettings->get( 'enabled', false );
+			$llmsSummary    = (string) $llmsSettings->get( 'summary', '' );
+			$llmsContent    = (string) $llmsSettings->get( 'content', '' );
+			$llmsPhysical   = (bool) $llmsSettings->get( 'physical', false );
+			$llmsValidation = ( new LlmsGenerator() )->validate( $llmsContent );
+			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
+			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
 		}
 
 		$settingsSections[] = [
@@ -302,6 +324,62 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Save the llms.txt section through the module settings class.
+	 *
+	 * Field names carry an rk_llms_ prefix. Values sanitize through the
+	 * llms settings store, then the cached document is invalidated.
+	 */
+	private function saveLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawSummary = isset( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawContent = isset( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';
+
+		$settings->set(
+			[
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
+				'enabled'  => isset( $_POST['rk_llms_enabled'] ),
+				'summary'  => is_string( $rawSummary ) ? $rawSummary : '',
+				'content'  => is_string( $rawContent ) ? $rawContent : '',
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
+				'physical' => isset( $_POST['rk_llms_physical'] ),
+			]
+		);
+
+		LlmsRouter::invalidate();
+	}
+
+	/**
+	 * Write the physical llms.txt, then redirect with a status notice.
+	 */
+	private function writePhysicalLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+		$content  = ( new LlmsGenerator() )->render(
+			(string) get_bloginfo( 'name' ),
+			(string) $settings->get( 'summary', '' ),
+			(string) $settings->get( 'content', '' )
+		);
+
+		$result = ( new LlmsFileWriter() )->write( $content );
+
+		if ( $result['written'] ) {
+			$notice = 'written';
+		} elseif ( 'exists' === $result['reason'] ) {
+			$notice = 'exists';
+		} else {
+			$notice = 'failed';
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=rankkernel&rk_notice=' . $notice ) );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+	}
+
+	/**
 	 * Handle save, capability + nonce, then persist settings + modules.
 	 */
 	private function handleSave(): void {
@@ -320,6 +398,14 @@ final class SettingsPage {
 				'',
 				[ 'response' => 403 ]
 			);
+		}
+
+		// The physical llms.txt write is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_write'] ) ) {
+			$this->saveLlms();
+			$this->writePhysicalLlms();
+			return;
 		}
 
 		// Collect settings partial from POST, sanitize each value.
@@ -354,6 +440,7 @@ final class SettingsPage {
 
 		if ( $this->enableMap->isEnabled( 'robots' ) ) {
 			$this->saveRobots();
+			$this->saveLlms();
 		}
 
 		// Modules: validate ids against registry; save enabled-id list.

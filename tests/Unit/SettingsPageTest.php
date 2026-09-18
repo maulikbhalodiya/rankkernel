@@ -364,25 +364,8 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'get_taxonomies' )->justReturn( [] );
 		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
 		Functions\when( 'get_taxonomy' )->justReturn( false );
-		Functions\when( 'esc_textarea' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
-		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
-		Functions\when( 'wp_parse_url' )->alias(
-			static function ( string $url, int $component = -1 ): mixed {
-				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
-			}
-		);
-		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
-		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
 
-		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ): mixed {
-				if ( 'rankkernel_modules' === $key ) {
-					return [ 'robots' ];
-				}
-
-				return $fallback;
-			}
-		);
+		$this->stubCrawlPage( [ 'robots' ] );
 
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
@@ -402,6 +385,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
 		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
 		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
 
@@ -445,5 +429,170 @@ final class SettingsPageTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertSame( 'custom', $captured['mode'] );
 		$this->assertSame( 'allow', $captured['crawlers']['gptbot'] );
+	}
+
+	/**
+	 * Stub the WordPress functions the robots and llms sections need.
+	 *
+	 * @param array<string, mixed> $modules Module enable map value.
+	 */
+	private function stubCrawlPage( array $modules ): void {
+		Functions\when( 'esc_textarea' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'sanitize_key' )->alias(
+			static function ( string $key ): string {
+				return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $key ) );
+			}
+		);
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ): mixed {
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( $modules ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return $modules;
+				}
+
+				return $fallback;
+			}
+		);
+	}
+
+	/**
+	 * Test the llms section renders when the module is enabled.
+	 */
+	public function test_llms_section_renders_when_enabled(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'href="#rk-section-llms"', $output );
+		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
+		$this->assertStringContainsString( 'rk_llms_content', $output );
+		$this->assertStringContainsString( 'name="rk_llms_write"', $output );
+	}
+
+	/**
+	 * Test the llms settings save with the settings form.
+	 */
+	public function test_llms_settings_saved(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$captured  = null;
+		$validator = false;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured, &$validator ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_llms_settings' === $key ) {
+					$captured = $value;
+				}
+				if ( 'rankkernel_llms_validator' === $key ) {
+					$validator = true;
+				}
+
+				return true;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save' => '1',
+			'_wpnonce'        => 'valid',
+			'rk_llms_enabled' => '1',
+			'rk_llms_summary' => 'A summary.',
+			'rk_llms_content' => "## Company\n\n- [About](https://example.com/about)\n",
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertTrue( $captured['enabled'] );
+		$this->assertStringContainsString( '## Company', $captured['content'] );
+		$this->assertTrue( $validator );
+	}
+
+	/**
+	 * Test the physical llms.txt write action.
+	 */
+	public function test_llms_write_action_writes_file(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllmswrite' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): void {
+				$redirect = $url;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $temp ): mixed {
+				if ( 'rankkernel/llms/physical_file' === $hook ) {
+					return $temp;
+				}
+
+				return $value;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rk_llms_write'   => '1',
+			'_wpnonce'        => 'valid',
+			'rk_llms_summary' => 'A summary.',
+			'rk_llms_content' => "## Company\n\n- [About](https://example.com/about)\n",
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertFileExists( $temp );
+		$this->assertStringContainsString( 'rk_notice=written', $redirect );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 }

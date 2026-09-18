@@ -30,6 +30,13 @@
  * @var string $robotCustom          Robots custom rules block.
  * @var array{errors: string[], warnings: string[]} $robotValidation Robots validation result.
  * @var string $robotPreview         Robots preview output.
+ * @var bool   $llmsEnabled          Whether llms.txt is on.
+ * @var string $llmsSummary          llms.txt summary.
+ * @var string $llmsContent          Curated llms.txt content.
+ * @var bool   $llmsPhysical         Physical write toggle.
+ * @var array{errors: string[], warnings: string[]} $llmsValidation llms validation result.
+ * @var string $llmsPreview          llms.txt preview.
+ * @var string $llmsNotice           llms physical write notice key.
  */
 
 declare(strict_types=1);
@@ -248,6 +255,71 @@ endif;
 
 						<h3><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h3>
 						<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;overflow:auto;"><?php echo esc_html( $robotPreview ); ?></pre>
+					</section>
+				<?php endif; ?>
+
+				<?php if ( $robotsEnabled ) : ?>
+					<section id="rk-section-llms" class="rk-settings-section" aria-labelledby="rk-section-llms-title">
+						<h2 id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h2>
+						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional. Write your own sections as Markdown link lists.', 'rankkernel' ); ?></p>
+
+						<?php if ( 'written' === $llmsNotice ) : ?>
+							<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'A physical llms.txt was written.', 'rankkernel' ); ?></p></div>
+						<?php elseif ( 'exists' === $llmsNotice ) : ?>
+							<div class="notice notice-warning is-dismissible"><p><?php echo esc_html__( 'A physical llms.txt already exists, so RankKernel did not overwrite it.', 'rankkernel' ); ?></p></div>
+						<?php elseif ( 'failed' === $llmsNotice ) : ?>
+							<div class="notice notice-error"><p><?php echo esc_html__( 'The physical llms.txt could not be written.', 'rankkernel' ); ?></p></div>
+						<?php endif; ?>
+
+						<table class="form-table" role="presentation"><tbody>
+							<tr>
+								<th scope="row"><?php echo esc_html__( 'Enable', 'rankkernel' ); ?></th>
+								<td>
+									<label><input type="checkbox" name="rk_llms_enabled" value="1" <?php echo checked( true, $llmsEnabled, false ); ?> /> <?php echo esc_html__( 'Serve the virtual llms.txt route', 'rankkernel' ); ?></label>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label></th>
+								<td>
+									<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
+									<p class="description"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="rk-llms-content"><?php echo esc_html__( 'Sections', 'rankkernel' ); ?></label></th>
+								<td>
+									<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="large-text code"><?php echo esc_textarea( $llmsContent ); ?></textarea>
+									<p class="description"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></th>
+								<td>
+									<label><input type="checkbox" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> /> <?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></label>
+									<p class="description"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>
+									<p><button type="submit" class="button" name="rk_llms_write" value="1"><?php echo esc_html__( 'Write physical llms.txt', 'rankkernel' ); ?></button></p>
+								</td>
+							</tr>
+						</tbody></table>
+
+						<?php if ( [] !== $llmsValidation['errors'] ) : ?>
+							<div class="notice notice-error inline">
+								<?php foreach ( $llmsValidation['errors'] as $llmsError ) : ?>
+									<p><?php echo esc_html( $llmsError ); ?></p>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
+
+						<?php if ( [] !== $llmsValidation['warnings'] ) : ?>
+							<div class="notice notice-warning inline">
+								<?php foreach ( $llmsValidation['warnings'] as $llmsWarning ) : ?>
+									<p><?php echo esc_html( $llmsWarning ); ?></p>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
+
+						<h3><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h3>
+						<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;max-height:360px;overflow:auto;"><?php echo esc_html( $llmsPreview ); ?></pre>
 					</section>
 				<?php endif; ?>
 
