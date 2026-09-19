@@ -1051,6 +1051,10 @@ final class SchemaMetabox {
 			$json = (string) json_encode( $schema );
 		}
 
+		if ( function_exists( 'nocache_headers' ) ) {
+			nocache_headers();
+		}
+
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $slug ) . '-schema.json"' );
 
