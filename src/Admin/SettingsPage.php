@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\Robots\CrawlConsistency;
 use RankKernel\Modules\Robots\CrawlerPolicy;
 use RankKernel\Modules\Robots\LlmsFileWriter;
 use RankKernel\Modules\Robots\LlmsGenerator;
@@ -285,6 +286,9 @@ final class SettingsPage {
 
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
 			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+
+			// Derived from the settings already loaded above: no extra query and no write.
+			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
 		}
 
 		$htaccessFile      = new HtaccessFile();

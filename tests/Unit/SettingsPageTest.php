@@ -508,6 +508,85 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the llms section renders the consistency warning when llms.txt is
+	 * on while an AI search crawler is blocked in robots.txt.
+	 */
+	public function test_llms_section_shows_consistency_warning_for_blocked_consumer(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				if ( 'rankkernel_llms_settings' === $key ) {
+					return [ 'enabled' => true ];
+				}
+
+				if ( 'rankkernel_robots_settings' === $key ) {
+					return [ 'crawlers' => [ 'perplexitybot' => 'block' ] ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Consistency check', $output );
+		$this->assertStringContainsString( 'PerplexityBot', $output );
+	}
+
+	/**
+	 * Test a consistent setup renders no consistency warning at all.
+	 */
+	public function test_llms_section_shows_no_warning_for_a_consistent_setup(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				if ( 'rankkernel_llms_settings' === $key ) {
+					return [ 'enabled' => true ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
+		$this->assertStringNotContainsString( 'Consistency check', $output );
+	}
+
+	/**
 	 * Test the llms settings save with the settings form.
 	 */
 	public function test_llms_settings_saved(): void {

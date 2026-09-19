@@ -40,6 +40,7 @@
  * @var string $htaccessContent      Current .htaccess content.
  * @var string $htaccessPath         Absolute .htaccess path.
  * @var string $htaccessNotice       .htaccess save notice key.
+ * @var array<int, string> $consistencyWarnings Robots and llms conflict warnings.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -47,6 +48,15 @@ defined( 'ABSPATH' ) || exit;
 <section id="rk-section-robots" class="rk-settings-section" aria-labelledby="rk-section-robots-title">
 						<h2 id="rk-section-robots-title"><?php echo esc_html__( 'Robots.txt', 'rankkernel' ); ?></h2>
 						<p class="description"><?php echo esc_html__( 'robots.txt is served virtually from the WordPress filter. No file is ever written. The Sitemap line is managed by the Sitemaps module.', 'rankkernel' ); ?></p>
+
+						<?php if ( [] !== $consistencyWarnings ) : ?>
+							<div class="rk-banner rk-banner-warning">
+								<p class="rk-banner-title"><?php echo esc_html__( 'Consistency check', 'rankkernel' ); ?></p>
+								<?php foreach ( $consistencyWarnings as $consistencyWarning ) : ?>
+									<p><?php echo esc_html( $consistencyWarning ); ?></p>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
 
 						<h3><?php echo esc_html__( 'AI crawler policy', 'rankkernel' ); ?></h3>
 						<p class="description"><?php echo esc_html__( 'Training crawlers, AI search crawlers and user triggered fetchers are separate. Blocking a training crawler does not remove you from search. Blocking an AI search crawler removes you from that assistant results.', 'rankkernel' ); ?></p>

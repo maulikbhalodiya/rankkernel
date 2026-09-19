@@ -30,6 +30,12 @@ leave the file alone. The owner updates `docs/`.
 Follow `CONTRIBUTING.md`. One issue equals one branch (`GH-<n>`) equals one pull request. Branch
 from the latest `main`. Never push to `main`. The owner merges.
 
+While a feature is active in an open pull request, keep every remaining piece of that feature in
+the same pull request until it is complete and verified: implementation, tests, review fixes,
+security fixes, UX fixes and missing behaviour. Do not open another pull request for a fragment of
+the same active functionality. A new pull request is for work that is genuinely separate and can
+ship on its own, or for a split the owner explicitly asks for.
+
 ## Gates
 
 All three must pass before a pull request is reviewable:

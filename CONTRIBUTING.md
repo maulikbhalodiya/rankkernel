@@ -27,8 +27,23 @@ Thank you for contributing! This project follows a strict issue-driven workflow 
 ## Branch rules
 
 - `main` is always releasable. Direct pushes to `main` are not allowed.
-- Branch names follow `GH-*` only (e.g. `GH-1`, `GH-42`).
+- Branch names follow `GH-*` only (e.g., `GH-1`, `GH-42`).
 - Keep one issue = one branch = one PR. No mixed-concern branches.
+
+## One active feature, one active PR
+
+While a feature is under way in an open pull request, every remaining piece of that feature stays
+in that same pull request until the feature is complete and verified. That includes implementation,
+tests, review fixes, security fixes, UX fixes, architecture corrections, validation fixes, parity
+fixes and any behaviour that belongs to the same feature.
+
+Do not open a second pull request for a fragment of the same active functionality, and do not split
+one feature across several pull requests merely because two earlier attempts overlap.
+
+Open a new pull request only when the work is genuinely separate, can ship on its own, and is
+intentionally split by the owner. The rule exists because splitting one feature fragments review,
+produces duplicate implementations, leaves the branch state hard to read, and hides which pull
+request holds the real functionality.
 
 ## Writing style
 

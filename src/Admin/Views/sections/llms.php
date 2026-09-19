@@ -35,6 +35,7 @@
  * @var array{errors: string[], warnings: string[]} $llmsValidation llms validation result.
  * @var string $llmsPreview          llms.txt preview.
  * @var string $llmsNotice           llms physical write notice key.
+ * @var array<int, string> $consistencyWarnings Robots and llms conflict warnings.
  * @var bool   $htaccessSupported    Whether .htaccess editing is available.
  * @var bool   $htaccessWritable     Whether the file is writable.
  * @var string $htaccessContent      Current .htaccess content.
@@ -47,6 +48,15 @@ defined( 'ABSPATH' ) || exit;
 <section id="rk-section-llms" class="rk-settings-section" aria-labelledby="rk-section-llms-title">
 						<h2 id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h2>
 						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional.', 'rankkernel' ); ?></p>
+
+						<?php if ( [] !== $consistencyWarnings ) : ?>
+							<div class="rk-banner rk-banner-warning">
+								<p class="rk-banner-title"><?php echo esc_html__( 'Consistency check', 'rankkernel' ); ?></p>
+								<?php foreach ( $consistencyWarnings as $consistencyWarning ) : ?>
+									<p><?php echo esc_html( $consistencyWarning ); ?></p>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
 
 						<div class="rk-banner rk-banner-info">
 							<p class="rk-banner-title"><?php echo esc_html__( 'How to make llms.txt', 'rankkernel' ); ?></p>
