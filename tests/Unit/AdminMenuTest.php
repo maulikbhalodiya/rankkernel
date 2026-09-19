@@ -104,7 +104,7 @@ final class AdminMenuTest extends TestCase {
 			->once()
 			->with(
 				'RankKernel',
-				'Dashboard',
+				'RankKernel',
 				'manage_options',
 				'rankkernel',
 				\Mockery::type( 'callable' ),
@@ -117,6 +117,18 @@ final class AdminMenuTest extends TestCase {
 			->once()
 			->with( 'load-toplevel_page_rankkernel', \Mockery::type( 'callable' ) )
 			->andReturn( true );
+
+		Functions\expect( 'add_submenu_page' )
+			->once()
+			->with(
+				'rankkernel',
+				'Dashboard',
+				'Dashboard',
+				'manage_options',
+				'rankkernel',
+				\Mockery::type( 'callable' )
+			)
+			->andReturn( 'toplevel_page_rankkernel' );
 
 		Functions\expect( 'add_submenu_page' )
 			->once()

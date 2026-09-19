@@ -162,12 +162,24 @@ final class AdminMenu {
 	public function addMenuPage(): void {
 		$hook = add_menu_page(
 			'RankKernel',
-			'Dashboard',
+			'RankKernel',
 			'manage_options',
 			DashboardPage::SLUG,
 			[ $this->dashboardPage, 'render' ],
 			'dashicons-search',
 			80
+		);
+
+		// Registered explicitly, because WordPress fills the first submenu slot
+		// from the parent menu title when nothing claims the parent slug. Without
+		// this the submenu would read RankKernel and repeat the top level label.
+		add_submenu_page(
+			'rankkernel',
+			'Dashboard',
+			'Dashboard',
+			'manage_options',
+			DashboardPage::SLUG,
+			[ $this->dashboardPage, 'render' ]
 		);
 
 		// Save handling runs on the load hook, before ANY output, so the
