@@ -36,7 +36,11 @@ final class TextStats {
 		$text = (string) preg_replace( '/<(script|style)\b[^>]*>.*?<\/\1>/is', ' ', $html );
 		$text = (string) preg_replace( '/<br\s*\/?>/i', "\n", $text );
 		$text = (string) preg_replace( '/<\/(p|div|h[1-6]|li|blockquote|tr)>/i', "\n", $text );
-		$text = wp_strip_all_tags( $text );
+		// Any tag still standing after the pass above is removed here. Doing this
+		// with a pattern rather than wp_strip_all_tags keeps the class free of a
+		// function that callers guard with function_exists, which would otherwise
+		// make the analyser depend on the harness rather than the other way round.
+		$text = (string) preg_replace( '/<[^>]*>/', ' ', $text );
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$text = (string) preg_replace( '/[ \t\x0B\f\r]+/', ' ', $text );
 		$text = (string) preg_replace( '/\n\s*\n+/', "\n", $text );

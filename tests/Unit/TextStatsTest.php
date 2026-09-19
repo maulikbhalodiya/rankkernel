@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace RankKernel\Tests\Unit;
 
-use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Analysis\TextStats;
 
@@ -28,11 +27,6 @@ final class TextStatsTest extends TestCase {
 		if ( ! defined( 'ABSPATH' ) ) {
 			define( 'ABSPATH', '/tmp/' );
 		}
-
-		// Tag stripping stub, sufficient for the simple fixtures below.
-		Functions\when( 'wp_strip_all_tags' )->alias(
-			static fn ( string $text ): string => trim( (string) preg_replace( '/<[^>]*>/', '', $text ) )
-		);
 	}
 
 	/**
