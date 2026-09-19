@@ -94,6 +94,19 @@ jobs:
             Standards: WPCS, PSR-12, strict_types, an ABSPATH guard in every PHP file,
             the rankkernel or RankKernel prefix on every symbol, hook, option and table,
             and the exact rankkernel text domain.
+            WPCS is enforced with zero tolerance: one real tab per indent level and never
+            spaces, WordPress spacing inside control structures and function calls, Yoda
+            conditions, elseif not else if, single quotes for strings without
+            interpolation, no trailing whitespace, array arrows aligned in multi line
+            arrays, and a WordPress docblock with a short description plus @param,
+            @return and @var on every class, method, property and constant.
+            The reviewer's own output obeys the same rules it enforces. Any code you
+            propose in a finding, a suggestion block or a fix must itself pass
+            vendor/bin/phpcs --standard=phpcs.xml with zero errors and zero warnings.
+            Cite the exact sniff name, for example WordPress.PHP.YodaConditions, with the
+            file and the line. Never propose adding a phpcs:ignore, never propose
+            changing phpcs.xml, never propose lowering PHPStan below level 6, and never
+            propose weakening or deleting a test.
             Best practices: prefer WordPress APIs over raw PHP, cache expensive work with
             transients or the object cache keyed by a validator, internationalise every
             user-facing string, keep admin UI accessible, and never suppress errors.
@@ -190,12 +203,35 @@ jobs:
           model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
           fix_model: ${{ vars.OPENCODE_MODEL || 'opencode/muse-spark-1.3-contributor-free' }}
           enable_fix: true
-          max_fix_iterations: 1
+          max_fix_iterations: 3
           enable_mcp: false
           project_context: >
             RankKernel is a 100% free, zero-bloat WordPress SEO plugin. Fix only the
             findings you were asked to fix and keep the change minimal. Never delete
-            files, tests or documentation. Run composer lint, composer stan and composer
-            test after a fix; all three must pass. src/ is PSR-12, WordPress Coding
-            Standards for rankkernel.php and uninstall.php. The text domain is exactly
-            rankkernel. docs/ is out of scope.
+            files, tests or documentation. src/ is PSR-12, WordPress Coding Standards for
+            rankkernel.php and uninstall.php, declare(strict_types=1) and namespace
+            RankKernel in src/. The text domain is exactly rankkernel. docs/ is out of
+            scope.
+            The code you write must pass the project gates with zero errors and zero
+            warnings. After every edit run composer lint, composer stan, composer test
+            and node --check on each JavaScript file under assets/js. If a gate is red,
+            fix the cause and run the gates again. Never finish with a red gate.
+            WPCS is enforced with zero tolerance: one real tab per indent level and never
+            spaces, WordPress spacing inside control structures and function calls, Yoda
+            conditions, elseif not else if, strict comparison when the types are known,
+            single quotes for strings without interpolation, no trailing whitespace,
+            array arrows aligned in multi line arrays, a blank line after the opening PHP
+            tag, and a WordPress docblock with a short description plus @param, @return
+            and @var on every class, method, property and constant.
+            Never add a phpcs:ignore, never edit phpcs.xml, never lower PHPStan below
+            level 6, never weaken or delete a test, never run a repo wide phpcbf, and
+            never reformat a file you did not otherwise change. If you use phpcbf, scope
+            it to files this change already touches and run it after the semantic fix
+            lands.
+
+      - name: Verify the fix against every gate
+        run: |
+          composer lint
+          composer stan
+          composer test
+          for f in assets/js/*.js; do node --check "$f"; done

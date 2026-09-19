@@ -66,6 +66,14 @@ jobs:
             option reads, and missing caching.
             Standards: WPCS, PSR-12, strict_types, the rankkernel or RankKernel prefix,
             the exact rankkernel text domain, and an ABSPATH guard in every PHP file.
+            WPCS is enforced with zero tolerance: one real tab per indent level and never
+            spaces, WordPress spacing inside control structures and function calls, Yoda
+            conditions, elseif not else if, single quotes for strings without
+            interpolation, no trailing whitespace, array arrows aligned in multi line
+            arrays, and a WordPress docblock with a short description plus @param,
+            @return and @var on every class, method, property and constant. Report a
+            violation with the exact sniff name, for example
+            WordPress.PHP.YodaConditions, plus the file and the line.
             Features and parity: features that are only a visual shell, or claims of
             parity with no implementation or tests.
             Tests: behaviour without coverage, and tests that do not actually prove the
