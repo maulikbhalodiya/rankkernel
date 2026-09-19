@@ -480,11 +480,15 @@ final class MetadataBoxTest extends TestCase {
 
 		$state = $this->newBox()->localizedState( 7 );
 
-		$expectedKeys = [ 'postId', 'permalink', 'siteUrl', 'siteName', 'homeUrl', 'templates', 'tokens', 'tokenLabels', 'limits', 'defaults', 'strings', 'restPath' ];
+		$expectedKeys = [ 'postId', 'permalink', 'siteUrl', 'siteName', 'homeUrl', 'templates', 'tokens', 'tokenLabels', 'limits', 'defaults', 'strings', 'restPath', 'analysis' ];
 
 		foreach ( $expectedKeys as $key ) {
 			$this->assertArrayHasKey( $key, $state );
 		}
+
+		// The editor posts the current draft here, so both keys must be present.
+		$this->assertArrayHasKey( 'path', $state['analysis'] );
+		$this->assertArrayHasKey( 'nonce', $state['analysis'] );
 
 		$this->assertSame( 7, $state['postId'] );
 		$this->assertSame( 60, $state['limits']['title'] );

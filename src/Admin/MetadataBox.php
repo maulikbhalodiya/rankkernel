@@ -652,6 +652,10 @@ final class MetadataBox {
 		$siteUrl   = function_exists( 'site_url' ) ? (string) site_url() : '';
 		$homeUrl   = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
+		// The editor posts its current draft to this route and renders the reply.
+		$analysisPath  = function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/analysis' ) : '';
+		$analysisNonce = function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '';
+
 		return [
 			'postId'      => $postId,
 			'permalink'   => $permalink,
@@ -673,6 +677,10 @@ final class MetadataBox {
 			],
 			'strings'     => $this->strings(),
 			'restPath'    => $this->restPath( $postId ),
+			'analysis'    => [
+				'path'  => $analysisPath,
+				'nonce' => $analysisNonce,
+			],
 		];
 	}
 
