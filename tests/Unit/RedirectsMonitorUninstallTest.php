@@ -82,6 +82,7 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 		$this->assertStringContainsString( "esc_like( 'rankkernel_' )", $code );
 		$this->assertStringContainsString( 'SHOW TABLES LIKE', $code );
 		$this->assertStringContainsString( "\$wpdb->prefix . 'rankkernel_'", $code );
+		$this->assertStringContainsString( "array( 'rankkernel_', 'rkredir_', 'rk404_flood_' )", $code );
 	}
 
 	/**
