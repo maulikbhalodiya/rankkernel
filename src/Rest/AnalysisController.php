@@ -13,6 +13,7 @@ namespace RankKernel\Rest;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Analysis\Analyzer;
+use RankKernel\Modules\Analysis\KeywordIndex;
 use WP_Error;
 use WP_Post;
 use WP_REST_Request;
@@ -35,9 +36,13 @@ final class AnalysisController {
 	/**
 	 * Constructor.
 	 *
-	 * @param Analyzer|null $analyzer Optional analyser, for tests.
+	 * @param Analyzer|null     $analyzer Optional analyser, for tests.
+	 * @param KeywordIndex|null $index    Optional keyword index, for tests.
 	 */
-	public function __construct( private readonly ?Analyzer $analyzer = null ) {
+	public function __construct(
+		private readonly ?Analyzer $analyzer = null,
+		private readonly ?KeywordIndex $index = null
+	) {
 	}
 
 	/**
@@ -135,7 +140,7 @@ final class AnalysisController {
 				'keywords'      => $keywords,
 				'site_url'      => home_url( '/' ),
 				'featured_alt'  => $this->featuredAlt( $postId ),
-				'used_keywords' => null,
+				'used_keywords' => $this->usedKeywords( $keywords, $postId ),
 			]
 		);
 
@@ -156,5 +161,26 @@ final class AnalysisController {
 		}
 
 		return (string) get_post_meta( $thumbnail, '_wp_attachment_image_alt', true );
+	}
+
+	/**
+	 * Titles of other posts that already target the primary keyword.
+	 *
+	 * Null means the check does not apply and an empty list means the keyword is
+	 * free. Only the primary keyword is looked up, because the warning is about
+	 * the term the page is built around.
+	 *
+	 * @param string[] $keywords Keywords.
+	 * @param int      $postId   Post being edited.
+	 * @return string[]|null The result.
+	 */
+	private function usedKeywords( array $keywords, int $postId ): ?array {
+		if ( [] === $keywords ) {
+			return null;
+		}
+
+		$index = $this->index ?? new KeywordIndex();
+
+		return $index->usedElsewhere( $keywords[0], $postId );
 	}
 }
