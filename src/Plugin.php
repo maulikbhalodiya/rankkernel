@@ -22,6 +22,7 @@ use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
 use RankKernel\Modules\Monitor\MonitorModule;
 use RankKernel\Modules\Redirects\RedirectsModule;
+use RankKernel\Modules\Robots\RobotsModule;
 use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
 use RankKernel\Rest\ModulesController;
@@ -138,6 +139,7 @@ final class Plugin {
 			$adminMenu->register();
 			$this->services['admin_menu'] = $adminMenu;
 
+			add_action( 'admin_menu', [ $adminMenu, 'addGeneralPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addSchemaPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
@@ -178,6 +180,10 @@ final class Plugin {
 		// 404 Monitor module (optional, default off).
 		$monitorModule = new MonitorModule( $enableMap );
 		$moduleManager->register( $monitorModule );
+
+		// Crawl Signals module (optional, default off).
+		$robotsModule = new RobotsModule( $enableMap );
+		$moduleManager->register( $robotsModule );
 
 		add_action( 'init', [ $migrationRunner, 'maybeRun' ], 10 );
 

@@ -14,7 +14,15 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\ModuleEnableMap;
-use RankKernel\Modules\ModuleRegistry;
+use RankKernel\Modules\Robots\CrawlConsistency;
+use RankKernel\Modules\Robots\CrawlerPolicy;
+use RankKernel\Modules\Robots\LlmsFileWriter;
+use RankKernel\Modules\Robots\LlmsGenerator;
+use RankKernel\Modules\Robots\LlmsRouter;
+use RankKernel\Modules\Robots\LlmsSettings;
+use RankKernel\Modules\Robots\RobotsBuilder;
+use RankKernel\Modules\Robots\RobotsDirectives;
+use RankKernel\Modules\Robots\RobotsSettings;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -26,16 +34,32 @@ use RankKernel\Settings\SettingsStore;
  */
 final class SettingsPage {
 	/**
+	 * Representative core block used for the robots.txt preview.
+	 */
+	private const ROBOTS_PREVIEW_CORE = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: https://example.com/sitemap_index.xml\n";
+
+	/**
+	 * Section requested as a partial, for the AJAX section loader.
+	 *
+	 * @var string|null
+	 */
+	private ?string $partial = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore            $store       Settings store.
 	 * @param ModuleEnableMap          $enableMap   Module enable map (single get_option).
 	 * @param BreadcrumbsSettings|null $breadcrumbs Optional breadcrumbs settings (tests).
+	 * @param RobotsSettings|null      $robots      Optional robots settings (tests).
+	 * @param LlmsSettings|null        $llms        Optional llms settings (tests).
 	 */
 	public function __construct(
 		private readonly SettingsStore $store,
 		private readonly ModuleEnableMap $enableMap,
-		private readonly ?BreadcrumbsSettings $breadcrumbs = null
+		private readonly ?BreadcrumbsSettings $breadcrumbs = null,
+		private readonly ?RobotsSettings $robots = null,
+		private readonly ?LlmsSettings $llms = null
 	) {
 	}
 
@@ -45,8 +69,10 @@ final class SettingsPage {
 	 * Runs on load-{page}, so wp_safe_redirect can still send headers.
 	 */
 	public function maybeHandleSave(): void {
+		$this->partial = $this->partialRequest();
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_save'] ) ) {
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {
 			$this->handleSave();
 		}
 	}
@@ -59,17 +85,6 @@ final class SettingsPage {
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
 		$allSettings = $this->store->all();
-
-		$modules = [];
-
-		foreach ( ModuleRegistry::all() as $moduleId => $moduleLabel ) {
-			$moduleIdStr = (string) $moduleId;
-			$modules[]   = [
-				'id'      => $moduleIdStr,
-				'label'   => (string) $moduleLabel,
-				'enabled' => $this->enableMap->isEnabled( $moduleIdStr ),
-			];
-		}
 
 		$titleTemplate       = (string) ( $allSettings['title_template'] ?? '' );
 		$descriptionTemplate = (string) ( $allSettings['description_template'] ?? '' );
@@ -196,7 +211,290 @@ final class SettingsPage {
 			];
 		}
 
+		$robotsEnabled = $this->enableMap->isEnabled( 'robots' );
+
+		$settingsSections = [
+			[
+				'id'    => 'general',
+				'label' => __( 'General', 'rankkernel' ),
+			],
+			[
+				'id'    => 'breadcrumbs',
+				'label' => __( 'Breadcrumbs', 'rankkernel' ),
+			],
+			[
+				'id'    => 'webmaster',
+				'label' => __( 'Webmaster Tools', 'rankkernel' ),
+			],
+		];
+
+		if ( $robotsEnabled ) {
+			$settingsSections[] = [
+				'id'    => 'robots',
+				'label' => __( 'Robots.txt', 'rankkernel' ),
+			];
+
+			$robotSettings = $this->robots ?? new RobotsSettings();
+			$robotPolicies = CrawlerPolicy::sanitizeMap( $robotSettings->get( 'crawlers', [] ) );
+			$robotOverride = (string) $robotSettings->get( 'override', '' );
+			$robotGroups   = [];
+
+			foreach ( CrawlerPolicy::PURPOSES as $purposeKey => $purposeLabel ) {
+				$crawlers = [];
+
+				foreach ( CrawlerPolicy::all() as $crawlerSlug => $crawler ) {
+					if ( (string) $crawler['purpose'] !== (string) $purposeKey ) {
+						continue;
+					}
+
+					$crawlers[] = [
+						'slug'   => (string) $crawlerSlug,
+						'label'  => (string) $crawler['label'],
+						'note'   => (string) $crawler['note'],
+						'policy' => $robotPolicies[ (string) $crawlerSlug ] ?? CrawlerPolicy::CUSTOM,
+					];
+				}
+
+				if ( [] !== $crawlers ) {
+					$robotGroups[] = [
+						'label'    => (string) $purposeLabel,
+						'crawlers' => $crawlers,
+					];
+				}
+			}
+
+			$robotGenerated = ( new RobotsBuilder() )->build( self::ROBOTS_PREVIEW_CORE, true, $robotPolicies, '' );
+			$robotEffective = ( '' !== trim( $robotOverride ) ) ? ( rtrim( trim( $robotOverride ) ) . "\n" ) : $robotGenerated;
+			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only tab flag, compared strictly against a literal, never stored or output.
+			$robotTab        = 'edit' === ( $_GET['robots_tab'] ?? '' ) ? 'edit' : 'preview';
+			$robotValidation = RobotsDirectives::validate( $robotOverride );
+
+			$settingsSections[] = [
+				'id'    => 'llms',
+				'label' => __( 'llms.txt', 'rankkernel' ),
+			];
+
+			$llmsSettings   = $this->llms ?? new LlmsSettings();
+			$llmsEnabled    = (bool) $llmsSettings->get( 'enabled', false );
+			$llmsSummary    = (string) $llmsSettings->get( 'summary', '' );
+			$llmsContent    = (string) $llmsSettings->get( 'content', '' );
+			$llmsPhysical   = (bool) $llmsSettings->get( 'physical', false );
+			$llmsValidation = ( new LlmsGenerator() )->validate( $llmsContent );
+			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
+			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+
+			// Derived from the settings already loaded above: no extra query and no write.
+			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
+		}
+
+		$htaccessFile      = new HtaccessFile();
+		$htaccessSupported = $htaccessFile->isSupported();
+		$htaccessWritable  = $htaccessFile->isWritable();
+		$htaccessContent   = $htaccessSupported ? $htaccessFile->read() : '';
+		$htaccessPath      = $htaccessFile->path();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
+		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+
+		$settingsSections[] = [
+			'id'    => 'htaccess',
+			'label' => __( '.htaccess', 'rankkernel' ),
+		];
+		$settingsSections[] = [
+			'id'    => 'advanced',
+			'label' => __( 'Advanced', 'rankkernel' ),
+		];
+
+		$sectionIds = array_map(
+			static function ( array $section ): string {
+				return (string) $section['id'];
+			},
+			$settingsSections
+		);
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
+		$rawSection = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+
+		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
+
+		$partial = ( null !== $this->partial && in_array( $this->partial, $sectionIds, true ) ) ? $this->partial : null;
+
+		if ( null !== $partial ) {
+			require __DIR__ . '/Views/sections/' . $partial . '.php';
+
+			submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' );
+
+			return;
+		}
+
 		require __DIR__ . '/Views/settings.php';
+	}
+
+	/**
+	 * Redirect after a save, unless the request renders a partial.
+	 *
+	 * @param string $url Target URL.
+	 */
+	private function redirectTo( string $url ): void {
+		if ( null !== $this->partial ) {
+			return;
+		}
+
+		wp_safe_redirect( $url );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Section requested as a partial, or null.
+	 *
+	 * @return string|null The result.
+	 */
+	private function partialRequest(): ?string {
+		$raw = '';
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
+		if ( isset( $_POST['rk_partial'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
+			$raw = wp_unslash( (string) $_POST['rk_partial'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
+		} elseif ( isset( $_GET['rk_partial'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
+			$raw = wp_unslash( (string) $_GET['rk_partial'] );
+		}
+
+		$key = sanitize_key( $raw );
+
+		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
+	}
+
+	/**
+	 * Save the robots.txt section through the module settings class.
+	 *
+	 * Field names carry an rk_robots_ prefix so they never collide with the
+	 * other sections. The override is only written when the editor posted
+	 * it, so saving from the preview tab keeps the stored override.
+	 */
+	private function saveRobots(): void {
+		$settings = $this->robots ?? new RobotsSettings();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawPolicies = isset( $_POST['rk_robots_policy'] ) ? wp_unslash( $_POST['rk_robots_policy'] ) : [];
+
+		$partial = [
+			'crawlers' => is_array( $rawPolicies ) ? $rawPolicies : [],
+		];
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
+		if ( isset( $_POST['rk_robots_override'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+			$rawOverride         = wp_unslash( $_POST['rk_robots_override'] );
+			$partial['override'] = is_string( $rawOverride ) ? $rawOverride : '';
+		}
+
+		$settings->set( $partial );
+	}
+
+	/**
+	 * Back up and save the site .htaccess, then redirect with a notice.
+	 */
+	private function saveHtaccess(): void {
+		$file = new HtaccessFile();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and written as plain text.
+		$raw = isset( $_POST['rk_htaccess_content'] ) ? wp_unslash( $_POST['rk_htaccess_content'] ) : '';
+
+		$result = $file->save( is_string( $raw ) ? $raw : '' );
+
+		if ( $result['saved'] ) {
+			$notice = 'saved';
+		} elseif ( 'unsupported' === $result['reason'] ) {
+			$notice = 'unsupported';
+		} else {
+			$notice = 'failed';
+		}
+
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=htaccess&rk_notice=' . $notice ) );
+	}
+
+	/**
+	 * Clear the robots.txt override, back to the generated document.
+	 */
+	private function resetRobots(): void {
+		$settings = $this->robots ?? new RobotsSettings();
+		$settings->set( [ 'override' => '' ] );
+
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview&settings-updated=1' ) );
+	}
+
+	/**
+	 * Save the llms.txt section through the module settings class.
+	 *
+	 * Field names carry an rk_llms_ prefix. Values sanitize through the
+	 * llms settings store, then the cached document is invalidated.
+	 */
+	private function saveLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawSummary = isset( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
+		$rawContent = isset( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';
+
+		$settings->set(
+			[
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
+				'enabled'  => isset( $_POST['rk_llms_enabled'] ),
+				'summary'  => is_string( $rawSummary ) ? $rawSummary : '',
+				'content'  => is_string( $rawContent ) ? $rawContent : '',
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
+				'physical' => isset( $_POST['rk_llms_physical'] ),
+			]
+		);
+
+		LlmsRouter::invalidate();
+	}
+
+	/**
+	 * Write the physical llms.txt, then redirect with a status notice.
+	 */
+	private function writePhysicalLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+		$content  = ( new LlmsGenerator() )->render(
+			(string) get_bloginfo( 'name' ),
+			(string) $settings->get( 'summary', '' ),
+			(string) $settings->get( 'content', '' )
+		);
+
+		$result = ( new LlmsFileWriter() )->write( $content );
+
+		if ( $result['written'] ) {
+			$notice = 'written';
+		} elseif ( 'exists' === $result['reason'] ) {
+			$notice = 'exists';
+		} else {
+			$notice = 'failed';
+		}
+
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=llms&rk_notice=' . $notice ) );
+	}
+
+	/**
+	 * Reset the llms.txt settings to their defaults.
+	 */
+	private function resetLlms(): void {
+		$settings = $this->llms ?? new LlmsSettings();
+		$settings->set( LlmsSettings::defaults() );
+
+		LlmsRouter::invalidate();
+
+		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=llms&settings-updated=1' ) );
 	}
 
 	/**
@@ -218,6 +516,35 @@ final class SettingsPage {
 				'',
 				[ 'response' => 403 ]
 			);
+		}
+
+		// The .htaccess save is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( isset( $_POST['rk_htaccess_save'] ) ) {
+			$this->saveHtaccess();
+			return;
+		}
+
+		// The robots reset is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_robots_reset'] ) ) {
+			$this->resetRobots();
+			return;
+		}
+
+		// The llms.txt reset is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_reset'] ) ) {
+			$this->resetLlms();
+			return;
+		}
+
+		// The physical llms.txt write is a distinct action on the same form.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_write'] ) ) {
+			$this->saveLlms();
+			$this->writePhysicalLlms();
+			return;
 		}
 
 		// Collect settings partial from POST, sanitize each value.
@@ -250,36 +577,16 @@ final class SettingsPage {
 
 		$this->saveBreadcrumbs();
 
-		// Modules: validate ids against registry; save enabled-id list.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified, unslashed here, sanitized or validated on the following statements.
-		$rawModules = isset( $_POST['rankkernel_modules'] ) ? wp_unslash( $_POST['rankkernel_modules'] ) : [];
-		if ( ! is_array( $rawModules ) ) {
-			$rawModules = [];
+		if ( $this->enableMap->isEnabled( 'robots' ) ) {
+			$this->saveRobots();
+			$this->saveLlms();
 		}
 
-		$enabled = [];
-		foreach ( $rawModules as $rawId ) {
-			$id = sanitize_text_field( (string) $rawId );
-			if ( '' !== $id && ModuleRegistry::has( $id ) ) {
-				$enabled[] = $id;
-			}
-		}
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
+		$section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
-		// De-duplicate, preserve registry order? Keep as filtered list.
-		$enabled = array_values( array_unique( $enabled ) );
-
-		update_option( 'rankkernel_modules', $enabled );
-
-		// Rules of rewrite-based modules (sitemaps) must reach the cached
-		// rules array when the enable list changes.
-		flush_rewrite_rules( false );
-
-		$redirect = admin_url( 'admin.php?page=rankkernel&settings-updated=1' );
-		wp_safe_redirect( $redirect );
-
-		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
-			exit;
-		}
+		$redirect = admin_url( 'admin.php?page=rankkernel-general' . ( '' !== $section ? '&section=' . $section : '' ) . '&settings-updated=1' );
+		$this->redirectTo( $redirect );
 	}
 
 	/**
@@ -297,7 +604,12 @@ final class SettingsPage {
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
 	public function enqueueAssets( string $hookSuffix ): void {
-		if ( 'toplevel_page_rankkernel' !== $hookSuffix ) {
+		// The admin hook suffix for this submenu differs from the documented
+		// form, so the page slug is matched as well.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
+		$page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( 'rankkernel-general' !== $page && 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
 		}
 
@@ -310,6 +622,23 @@ final class SettingsPage {
 
 		wp_register_script( 'rankkernel-breadcrumbs-admin', $src, [], $version, true );
 		wp_enqueue_script( 'rankkernel-breadcrumbs-admin' );
+
+		wp_register_script(
+			'rankkernel-settings-admin',
+			plugins_url( 'assets/js/settings-admin.js', (string) RANKKERNEL_FILE ),
+			[],
+			$version,
+			true
+		);
+		wp_enqueue_script( 'rankkernel-settings-admin' );
+
+		wp_register_style(
+			'rankkernel-settings-admin',
+			plugins_url( 'assets/css/settings-admin.css', (string) RANKKERNEL_FILE ),
+			[],
+			$version
+		);
+		wp_enqueue_style( 'rankkernel-settings-admin' );
 	}
 
 	/**

@@ -1,0 +1,77 @@
+/**
+ * Dashboard card layout.
+ *
+ * Loaded only on the RankKernel dashboard. Every rule is scoped under
+ * .rk-dashboard. All colour, spacing, type, radius and shadow values come
+ * from the --rk-* tokens in rankkernel-admin.css.
+ */
+
+@import url("rankkernel-admin.css");
+
+.rk-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: var(--rk-space-4);
+	margin-block-start: var(--rk-space-5);
+}
+
+.rk-card {
+	display: flex;
+	flex-direction: column;
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-card.is-enabled {
+	border-block-start: 3px solid var(--rk-color-primary);
+}
+
+.rk-card-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+}
+
+.rk-card-title {
+	margin: 0;
+	font-size: var(--rk-font-size-lg);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-card-state {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.rk-card.is-enabled .rk-card-state {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-card-desc {
+	flex: 1 1 auto;
+	margin: var(--rk-space-2) 0 var(--rk-space-4);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-card-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-card-toggle {
+	margin: 0;
+}
+
+.rk-dashboard :focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}

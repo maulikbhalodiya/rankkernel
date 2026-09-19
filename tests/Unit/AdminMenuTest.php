@@ -104,7 +104,7 @@ final class AdminMenuTest extends TestCase {
 			->once()
 			->with(
 				'RankKernel',
-				'RankKernel',
+				'Dashboard',
 				'manage_options',
 				'rankkernel',
 				\Mockery::type( 'callable' ),

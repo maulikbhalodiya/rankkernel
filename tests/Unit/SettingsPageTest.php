@@ -45,6 +45,11 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v );
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
+		Functions\when( 'sanitize_key' )->alias(
+			static function ( string $key ): string {
+				return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $key ) );
+			}
+		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -100,7 +105,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\expect( 'update_option' )->atLeast()->once()->andReturn( true );
 		Functions\expect( 'wp_safe_redirect' )
 			->once()
-			->with( 'https://example.com/wp-admin/admin.php?page=rankkernel&settings-updated=1' )
+			->with( 'https://example.com/wp-admin/admin.php?page=rankkernel-general&settings-updated=1' )
 			->andReturn( true );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
@@ -157,43 +162,6 @@ final class SettingsPageTest extends TestCase {
 		$this->assertIsArray( $capturedSettings );
 		$this->assertArrayHasKey( 'purge_on_uninstall', $capturedSettings );
 		$this->assertFalse( $capturedSettings['purge_on_uninstall'] );
-	}
-
-	/**
-	 * Test unknown module id silently dropped.
-	 */
-	public function test_unknown_module_id_silently_dropped(): void {
-		$page = $this->makePage();
-
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-
-		$capturedModules = null;
-		Functions\when( 'update_option' )->alias(
-			static function ( string $key, mixed $value ) use ( &$capturedModules ): bool {
-				if ( 'rankkernel_modules' === $key ) {
-					$capturedModules = $value;
-				}
-				return true;
-			}
-		);
-		Functions\when( 'wp_safe_redirect' )->justReturn( true );
-
-		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST                     = [
-			'rankkernel_save'    => '1',
-			'_wpnonce'           => 'valid',
-			'rankkernel_modules' => [ 'metadata', 'evil-id', 'sitemaps' ],
-		];
-
-		ob_start();
-		$page->maybeHandleSave();
-		ob_end_clean();
-
-		$this->assertIsArray( $capturedModules );
-		$this->assertContains( 'metadata', $capturedModules );
-		$this->assertContains( 'sitemaps', $capturedModules );
-		$this->assertNotContains( 'evil-id', $capturedModules );
 	}
 
 	/**
@@ -292,5 +260,516 @@ final class SettingsPageTest extends TestCase {
 		ob_end_clean();
 
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test the General Settings shell renders the persistent left nav and sections.
+	 */
+	public function test_general_settings_shell_renders_nav_and_sections(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'class="rk-settings"', $output );
+		$this->assertStringContainsString( 'class="rk-settings-nav"', $output );
+		$this->assertStringContainsString( 'section=general', $output );
+		$this->assertStringContainsString( 'section=breadcrumbs', $output );
+		$this->assertStringContainsString( 'section=webmaster', $output );
+		$this->assertStringContainsString( 'section=advanced', $output );
+		$this->assertStringContainsString( 'id="rk-section-general"', $output );
+		$this->assertStringNotContainsString( 'id="rk-section-breadcrumbs"', $output );
+	}
+
+	/**
+	 * Test the settings stylesheet is enqueued only on the settings screen.
+	 */
+	public function test_enqueue_assets_adds_settings_stylesheet(): void {
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', __FILE__ );
+		}
+
+		$registered = [];
+
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->alias(
+			static function ( string $handle, string $src = '', array $deps = [], mixed $ver = false ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$registered[] = $handle;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( string $handle ) use ( &$registered ): void {
+				$registered[] = $handle;
+			}
+		);
+		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
+
+		$page = $this->makePage();
+
+		$page->enqueueAssets( 'some_other_page' );
+		$this->assertNotContains( 'rankkernel-settings-admin', $registered );
+
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
+		$this->assertContains( 'rankkernel-settings-admin', $registered );
+	}
+
+	/**
+	 * Test the robots section renders when the module is enabled.
+	 */
+	public function test_robots_section_renders_when_enabled(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section'] = 'robots';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'section=robots', $output );
+		$this->assertStringContainsString( 'id="rk-section-robots"', $output );
+		$this->assertStringContainsString( 'rk_robots_policy[gptbot]', $output );
+	}
+
+	/**
+	 * Test the robots settings save with the settings form.
+	 */
+	public function test_robots_settings_saved(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+
+		$captured = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_robots_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'    => '1',
+			'_wpnonce'           => 'valid',
+			'rk_robots_override' => "User-agent: *\nDisallow: /tmp/\n",
+			'rk_robots_policy'   => [ 'gptbot' => 'allow' ],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertStringContainsString( 'Disallow: /tmp/', $captured['override'] );
+		$this->assertSame( 'allow', $captured['crawlers']['gptbot'] );
+	}
+
+	/**
+	 * Test the robots reset clears the override.
+	 */
+	public function test_robots_reset_clears_override(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+
+		$captured = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_robots_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+				if ( 'rankkernel_robots_settings' === $key ) {
+					return [ 'override' => "User-agent: *\nDisallow: /x/\n" ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rk_robots_reset' => '1',
+			'_wpnonce'        => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( '', $captured['override'] );
+	}
+
+	/**
+	 * Stub the WordPress functions the robots and llms sections need.
+	 *
+	 * @param array<string, mixed> $modules Module enable map value.
+	 */
+	private function stubCrawlPage( array $modules ): void {
+		Functions\when( 'esc_textarea' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'sanitize_key' )->alias(
+			static function ( string $key ): string {
+				return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $key ) );
+			}
+		);
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ): mixed {
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( $modules ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return $modules;
+				}
+
+				return $fallback;
+			}
+		);
+	}
+
+	/**
+	 * Test the llms section renders when the module is enabled.
+	 */
+	public function test_llms_section_renders_when_enabled(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'section=llms', $output );
+		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
+		$this->assertStringContainsString( 'rk_llms_content', $output );
+		$this->assertStringContainsString( 'name="rk_llms_write"', $output );
+	}
+
+	/**
+	 * Test the llms section renders the consistency warning when llms.txt is
+	 * on while an AI search crawler is blocked in robots.txt.
+	 */
+	public function test_llms_section_shows_consistency_warning_for_blocked_consumer(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				if ( 'rankkernel_llms_settings' === $key ) {
+					return [ 'enabled' => true ];
+				}
+
+				if ( 'rankkernel_robots_settings' === $key ) {
+					return [ 'crawlers' => [ 'perplexitybot' => 'block' ] ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Consistency check', $output );
+		$this->assertStringContainsString( 'PerplexityBot', $output );
+	}
+
+	/**
+	 * Test a consistent setup renders no consistency warning at all.
+	 */
+	public function test_llms_section_shows_no_warning_for_a_consistent_setup(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				if ( 'rankkernel_llms_settings' === $key ) {
+					return [ 'enabled' => true ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
+		$this->assertStringNotContainsString( 'Consistency check', $output );
+	}
+
+	/**
+	 * Test the llms settings save with the settings form.
+	 */
+	public function test_llms_settings_saved(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$captured  = null;
+		$validator = false;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured, &$validator ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_llms_settings' === $key ) {
+					$captured = $value;
+				}
+				if ( 'rankkernel_llms_validator' === $key ) {
+					$validator = true;
+				}
+
+				return true;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save' => '1',
+			'_wpnonce'        => 'valid',
+			'rk_llms_enabled' => '1',
+			'rk_llms_summary' => 'A summary.',
+			'rk_llms_content' => "## Company\n\n- [About](https://example.com/about)\n",
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertTrue( $captured['enabled'] );
+		$this->assertStringContainsString( '## Company', $captured['content'] );
+		$this->assertTrue( $validator );
+	}
+
+	/**
+	 * Test the physical llms.txt write action.
+	 */
+	public function test_llms_write_action_writes_file(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllmswrite' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): void {
+				$redirect = $url;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $temp ): mixed {
+				if ( 'rankkernel/llms/physical_file' === $hook ) {
+					return $temp;
+				}
+
+				return $value;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rk_llms_write'   => '1',
+			'_wpnonce'        => 'valid',
+			'rk_llms_summary' => 'A summary.',
+			'rk_llms_content' => "## Company\n\n- [About](https://example.com/about)\n",
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertFileExists( $temp );
+		$this->assertStringContainsString( 'rk_notice=written', $redirect );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test only the active settings section renders.
+	 */
+	public function test_only_active_section_renders(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'webmaster';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-webmaster"', $output );
+		$this->assertStringNotContainsString( 'id="rk-section-general"', $output );
+		$this->assertStringContainsString( 'section=htaccess', $output );
+	}
+
+	/**
+	 * Test the htaccess section renders its warnings.
+	 */
+	public function test_htaccess_section_renders_with_warnings(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $value ): string => trim( $value ) );
+		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'htaccess';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
+		$this->assertStringContainsString( 'rk-banner-danger', $output );
+		$this->assertStringNotContainsString( 'notice notice-warning', $output );
+	}
+
+	/**
+	 * Test a partial request renders only the section, without the shell.
+	 */
+	public function test_partial_request_renders_only_the_section(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section']    = 'breadcrumbs';
+		$_GET['rk_partial'] = 'breadcrumbs';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		// The load hook sets the partial before the page callback renders.
+		$page->maybeHandleSave();
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-breadcrumbs"', $output );
+		$this->assertStringNotContainsString( 'rk-settings-nav', $output );
+		$this->assertStringNotContainsString( '<form', $output );
 	}
 }

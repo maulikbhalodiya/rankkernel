@@ -915,6 +915,8 @@ final class BreadcrumbsOutputTest extends TestCase {
 	public function test_settings_section_renders_fields(): void {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
+		$_GET['section'] = 'breadcrumbs';
+
 		ob_start();
 		$page->render();
 		$output = (string) ob_get_clean();
@@ -939,6 +941,8 @@ final class BreadcrumbsOutputTest extends TestCase {
 	public function test_settings_section_renders_separator_preset_radios(): void {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
+		$_GET['section'] = 'breadcrumbs';
+
 		ob_start();
 		$page->render();
 		$output = (string) ob_get_clean();
@@ -957,6 +961,8 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$this->options[ BreadcrumbsSettings::OPTION ] = [ 'separator' => '→' ];
 
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_GET['section'] = 'breadcrumbs';
 
 		ob_start();
 		$page->render();
@@ -985,6 +991,8 @@ final class BreadcrumbsOutputTest extends TestCase {
 		];
 
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_GET['section'] = 'breadcrumbs';
 
 		ob_start();
 		$page->render();
@@ -1140,7 +1148,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 	public function test_enqueue_assets_only_on_settings_screen(): void {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
-		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 
 		$this->assertContains( 'rankkernel-breadcrumbs-admin', $this->enqueuedScripts );
 

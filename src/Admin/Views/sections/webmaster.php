@@ -1,10 +1,8 @@
 <?php
 /**
- * General Settings view.
+ * Webmaster settings section.
  *
- * Presentation only. SettingsPage prepares every variable used below, and owns
- * capability checks, nonce verification, request handling, validation and
- * redirects.
+ * Presentation only. SettingsPage prepares every variable used below.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -44,40 +42,19 @@
  * @var string $htaccessNotice       .htaccess save notice key.
  */
 
-declare(strict_types=1);
-
 defined( 'ABSPATH' ) || exit;
-
-if ( $settingsUpdated ) :
-	?>
-	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
-	<?php
-endif;
 ?>
-<div class="wrap rk-settings-wrap">
-	<h1><?php echo esc_html__( 'RankKernel General Settings', 'rankkernel' ); ?></h1>
-
-	<form method="post" action="">
-		<?php wp_nonce_field( 'rankkernel_settings' ); ?>
-
-		<div class="rk-settings">
-			<nav class="rk-settings-nav" aria-label="<?php echo esc_attr( __( 'Settings sections', 'rankkernel' ) ); ?>">
-				<p class="rk-settings-nav-title"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></p>
-				<ul>
-					<?php foreach ( $settingsSections as $section ) : ?>
-						<li>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=' . $section['id'] ) ); ?>"<?php echo $section['id'] === $currentSection ? ' class="is-active" aria-current="page"' : ''; ?>><?php echo esc_html( $section['label'] ); ?></a>
-						</li>
-					<?php endforeach; ?>
-				</ul>
-			</nav>
-
-			<div class="rk-settings-body">
-
-				<?php require __DIR__ . '/sections/' . $currentSection . '.php'; ?>
-
-				<?php submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' ); ?>
-			</div>
-		</div>
-	</form>
-</div>
+<section id="rk-section-webmaster" class="rk-settings-section" aria-labelledby="rk-section-webmaster-title">
+					<h2 id="rk-section-webmaster-title"><?php echo esc_html__( 'Webmaster Tools', 'rankkernel' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Paste the verification codes from each search engine.', 'rankkernel' ); ?></p>
+					<table class="form-table" role="presentation"><tbody>
+						<?php foreach ( $webmasters as $webmaster ) : ?>
+							<tr>
+								<th scope="row"><label for="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"><?php echo esc_html( $webmaster['label'] ); ?></label></th>
+								<td>
+									<input type="text" id="<?php echo esc_attr( $webmaster['fieldId'] ); ?>" name="<?php echo esc_attr( $webmaster['key'] ); ?>" value="<?php echo esc_attr( $webmaster['value'] ); ?>" class="regular-text" />
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody></table>
+				</section>

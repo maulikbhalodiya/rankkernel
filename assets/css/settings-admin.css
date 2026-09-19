@@ -1,0 +1,270 @@
+/**
+ * General Settings shell layout.
+ *
+ * Loaded only on the RankKernel General Settings screen. Every rule is
+ * scoped under .rk-settings. All colour, spacing, type, radius and shadow
+ * values come from the --rk-* tokens in rankkernel-admin.css.
+ */
+
+@import url("rankkernel-admin.css");
+
+.rk-settings {
+	display: grid;
+	grid-template-columns: 240px minmax(0, 1fr);
+	align-items: start;
+	gap: var(--rk-space-5);
+	margin-block-start: var(--rk-space-5);
+}
+
+.rk-settings-nav {
+	position: sticky;
+	inset-block-start: 48px;
+	overflow: hidden;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-settings-nav-title {
+	margin: 0;
+	padding: var(--rk-space-3) var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-border);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.rk-settings-nav ul {
+	margin: 0;
+	padding: var(--rk-space-2);
+	list-style: none;
+}
+
+.rk-settings-nav li + li {
+	margin-block-start: 2px;
+}
+
+.rk-settings-nav a {
+	position: relative;
+	display: block;
+	padding: var(--rk-space-2) var(--rk-space-3) var(--rk-space-2) var(--rk-space-4);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-md);
+	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+}
+
+.rk-settings-nav a::before {
+	position: absolute;
+	inset-block: 6px;
+	inset-inline-start: 0;
+	width: 3px;
+	border-radius: 2px;
+	background: transparent;
+	content: "";
+}
+
+.rk-settings-nav a:hover {
+	color: var(--rk-color-text);
+	background: var(--rk-color-surface-muted);
+}
+
+.rk-settings-nav a.is-active {
+	color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+	font-weight: 600;
+}
+
+.rk-settings-nav a.is-active::before {
+	background: var(--rk-color-primary);
+}
+
+.rk-settings-nav a:focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+.rk-settings-body {
+	min-width: 0;
+}
+
+.rk-settings-section > h2 {
+	margin-block-start: 0;
+	padding-block-end: var(--rk-space-2);
+	border-block-end: 1px solid var(--rk-color-border);
+	font-size: var(--rk-font-size-xl);
+}
+
+.rk-settings-section > h3 {
+	margin-block: var(--rk-space-5) var(--rk-space-2);
+	font-size: var(--rk-font-size-lg);
+}
+
+.rk-settings-section > h4 {
+	margin-block: var(--rk-space-4) var(--rk-space-2);
+	font-size: var(--rk-font-size-md);
+}
+
+.rk-banner {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	margin-block: var(--rk-space-3);
+	padding: var(--rk-space-3) var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-inline-start-width: 4px;
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-subtle);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-banner-title {
+	margin: 0;
+	font-weight: 600;
+}
+
+.rk-banner p {
+	margin: 0;
+}
+
+.rk-banner-warning {
+	border-inline-start-color: var(--rk-color-secondary-3);
+	background: var(--rk-color-secondary-3-soft);
+}
+
+.rk-banner-warning .rk-banner-title {
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-banner-danger {
+	border-inline-start-color: var(--rk-color-secondary-4);
+	background: var(--rk-color-secondary-4-soft);
+}
+
+.rk-banner-danger .rk-banner-title {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-banner-info {
+	border-inline-start-color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+}
+
+.rk-banner-info .rk-banner-title {
+	color: var(--rk-color-primary);
+}
+
+.rk-crawlers {
+	display: grid;
+	gap: var(--rk-space-4);
+	margin-block: var(--rk-space-4);
+}
+
+.rk-crawler-group-title {
+	margin: 0 0 var(--rk-space-2);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.rk-crawler-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: var(--rk-space-3);
+}
+
+.rk-crawler-card {
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-crawler-card label {
+	display: block;
+	font-weight: 600;
+}
+
+.rk-crawler-card .description {
+	margin: var(--rk-space-1) 0 var(--rk-space-2);
+}
+
+.rk-crawler-card select {
+	width: 100%;
+}
+
+.rk-robots-tabs {
+	display: flex;
+	gap: var(--rk-space-1);
+	margin-block: var(--rk-space-3);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-robots-tabs .rk-tab {
+	padding: var(--rk-space-2) var(--rk-space-4);
+	border: 1px solid transparent;
+	border-block-end: 0;
+	border-start-start-radius: var(--rk-radius-md);
+	border-start-end-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-md);
+	text-decoration: none;
+}
+
+.rk-robots-tabs .rk-tab:hover {
+	color: var(--rk-color-text);
+	background: var(--rk-color-surface-muted);
+}
+
+.rk-robots-tabs .rk-tab.is-active {
+	border-color: var(--rk-color-border);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+.rk-code-editor {
+	width: 100%;
+	font-family: Menlo, Consolas, monaco, monospace;
+}
+
+.rk-preview {
+	max-height: 420px;
+	overflow: auto;
+	margin: 0;
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-subtle);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-robots-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin-block-start: var(--rk-space-3);
+}
+
+.rk-settings-is-busy {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+@media screen and (max-width: 782px) {
+	.rk-settings {
+		grid-template-columns: 1fr;
+	}
+
+	.rk-settings-nav {
+		position: static;
+	}
+}
