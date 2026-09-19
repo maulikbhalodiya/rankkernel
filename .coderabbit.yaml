@@ -29,6 +29,10 @@ reviews:
         4. Architecture & Cleanliness:
            - Ensure direct execution guards (`defined('ABSPATH') || exit;`) exist at the top of PHP files.
            - Ensure PHP documentation blocks follow WordPress PHP DocBlock standards.
+        5. Formatting, enforced with zero tolerance:
+           - Any fix or suggestion you propose MUST itself pass `phpcs.xml`. One real tab per indentation level and never spaces, WordPress spacing inside control structures and function calls, Yoda conditions, `elseif` and never `else if`, single quotes for strings without interpolation, array arrows aligned in multi-line arrays, and no trailing whitespace.
+           - Every class, method, property and constant needs a docblock with a short description plus `@param`, `@return` and `@var` tags.
+           - Do not propose adding `phpcs:ignore`, do not propose changing `phpcs.xml`, do not propose lowering PHPStan below level 6, and do not propose weakening or deleting a test.
 
     - path: "uninstall.php"
       instructions: |
