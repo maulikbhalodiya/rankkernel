@@ -1924,52 +1924,96 @@
 			);
 		}
 
-		function ContentAnalysisChecklist( props ) {
-			var title = String( props.title || '' );
-			var description = String( props.description || '' );
-			var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
-			var primaryKw = keywords.length > 0 ? String( keywords[ 0 ] ).toLowerCase() : '';
+		function ContentAnalysisChecklist() {
+			var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
+			var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
+			var keywords = Array.isArray( meta.focus_keywords ) ? meta.focus_keywords : [];
+			var keywordKey = keywords.join( '|' );
 
-			var checks = [];
-			if ( primaryKw ) {
-				var inTitle = title.toLowerCase().indexOf( primaryKw ) >= 0;
-				checks.push( {
-					id: 'kwInTitle',
-					ok: inTitle,
-					label: inTitle
-						? __( 'Focus Keyword found in SEO Title.', 'rankkernel' )
-						: __( 'Focus Keyword missing from SEO Title.', 'rankkernel' )
-				} );
-				var inDesc = description.toLowerCase().indexOf( primaryKw ) >= 0;
-				checks.push( {
-					id: 'kwInDesc',
-					ok: inDesc,
-					label: inDesc
-						? __( 'Focus Keyword used inside SEO Meta Description.', 'rankkernel' )
-						: __( 'Focus Keyword missing from Meta Description.', 'rankkernel' )
-				} );
+			// Subscribed, not read once, so editing the content re-runs the analysis.
+			var draft = useSelect( function ( select ) {
+				try {
+					var editor = select( 'core/editor' );
+					if ( ! editor || ! editor.getEditedPostAttribute ) {
+						return null;
+					}
+					return {
+						title: editor.getEditedPostAttribute( 'title' ) || '',
+						slug: editor.getEditedPostAttribute( 'slug' ) || '',
+						content: editor.getEditedPostAttribute( 'content' ) || ''
+					};
+				} catch ( e ) {
+					return null;
+				}
+			}, [] );
+
+			var resultState = useState( null );
+			var result = resultState[ 0 ];
+			var setResult = resultState[ 1 ];
+
+			var title = draft ? draft.title : '';
+			var content = draft ? draft.content : '';
+			var slug = draft ? draft.slug : '';
+			var description = meta.description || '';
+
+			useEffect( function () {
+				if ( ! path || '' === keywordKey ) {
+					setResult( null );
+					return undefined;
+				}
+
+				var timer = window.setTimeout( function () {
+					window.fetch( path, {
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-WP-Nonce': nonce
+						},
+						body: JSON.stringify( {
+							post_id: cfg.postId,
+							title: title,
+							description: description,
+							slug: slug,
+							content: content,
+							keywords: keywords
+						} )
+					} ).then( function ( response ) {
+						return response.ok ? response.json() : null;
+					} ).then( function ( data ) {
+						setResult( data );
+					} ).catch( function () {
+						setResult( null );
+					} );
+				}, 700 );
+
+				return function () {
+					window.clearTimeout( timer );
+				};
+			}, [ path, nonce, keywordKey, title, content, slug, description ] );
+
+			if ( '' === keywordKey ) {
+				return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
 			}
 
-			var titleLen = title.length;
-			checks.push( {
-				id: 'titleLength',
-				ok: titleLen >= 30 && titleLen <= 60,
-				label: titleLen === 0
-					? __( 'SEO title is empty.', 'rankkernel' )
-					: ( titleLen <= 60 ? __( 'SEO Title length is optimal.', 'rankkernel' ) : __( 'SEO Title is too long.', 'rankkernel' ) )
+			if ( ! result ) {
+				return el( 'p', { className: 'description' }, __( 'Analysing the current draft…', 'rankkernel' ) );
+			}
+
+			var checks = [];
+			( result.checks || [] ).forEach( function ( check ) {
+				if ( 'na' === check.status ) {
+					return;
+				}
+				checks.push( {
+					id: check.id,
+					ok: 'pass' === check.status,
+					label: check.message
+				} );
 			} );
 
-			var descLen = description.length;
-			checks.push( {
-				id: 'descLength',
-				ok: descLen >= 100 && descLen <= 160,
-				label: descLen === 0
-					? __( 'Meta description is empty.', 'rankkernel' )
-					: ( descLen <= 160 ? __( 'Meta Description length is good.', 'rankkernel' ) : __( 'Meta Description is too long.', 'rankkernel' ) )
-			} );
-
-			var passCount = checks.filter( function ( c ) { return c.ok; } ).length;
-			var failCount = checks.length - passCount;
+			var failCount = checks.filter( function ( c ) { return ! c.ok; } ).length;
+			var score = typeof result.score === 'number' ? result.score : 0;
 
 			return el(
 				Collapsible,
@@ -1977,8 +2021,8 @@
 					title: el(
 						'span',
 						{ className: 'rk-checklist-head-inner' },
-						__( 'SEO Analysis', 'rankkernel' ),
-						el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, failCount === 0 ? __( 'All Passed', 'rankkernel' ) : failCount + ' ' + __( 'Warnings', 'rankkernel' ) )
+					__( 'Content analysis', 'rankkernel' ),
+					el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, score + ' / 100' )
 					),
 					bodyId: 'rk-seo-checklist-body'
 				},
@@ -2091,7 +2135,12 @@
 				url: permalink,
 				onEdit: function () { setModalTab( 'general' ); }
 			} ),
-				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) )
+				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) ),
+				el( FocusKeywordsInput, {
+					keywords: meta.focus_keywords,
+					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
+				} ),
+				el( ContentAnalysisChecklist, {} )
 			);
 		}
 

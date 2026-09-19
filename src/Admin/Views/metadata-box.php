@@ -197,7 +197,7 @@ if ( $schemaDisabled ) {
 
 		<section class="rk-classic-card rk-classic-extension" aria-labelledby="rankkernel-meta-analysis-heading">
 			<h3 id="rankkernel-meta-analysis-heading"><?php echo esc_html__( 'Content analysis', 'rankkernel' ); ?></h3>
-			<p class="description"><?php echo esc_html__( 'Focus keyword and content analysis will appear here in a future release.', 'rankkernel' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Content analysis runs in the block editor sidebar. Add a focus keyword there to score the content.', 'rankkernel' ); ?></p>
 		</section>
 	</div>
 
