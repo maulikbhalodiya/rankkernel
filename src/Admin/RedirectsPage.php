@@ -114,6 +114,13 @@ final class RedirectsPage {
 	private DestinationValidator $destinationValidator;
 
 	/**
+	 * Upload probe, true for genuine HTTP uploads.
+	 *
+	 * @var callable(string): bool
+	 */
+	private $isUploadedFile;
+
+	/**
 	 * Field errors from a save that stayed on the page, keyed by field.
 	 *
 	 * @var array<string, string>
@@ -144,21 +151,24 @@ final class RedirectsPage {
 	/**
 	 * Constructor.
 	 *
-	 * @param RedirectRepository|null   $repository           Rule repository, fresh one when null.
-	 * @param RedirectsSettings|null    $redirectSettings     Settings store, fresh one when null.
-	 * @param Validator|null            $validator            Safety analyzer, fresh one when null.
-	 * @param DestinationValidator|null $destinationValidator Destination checker, fresh one when null.
+	 * @param RedirectRepository|null     $repository           Rule repository, fresh one when null.
+	 * @param RedirectsSettings|null      $redirectSettings     Settings store, fresh one when null.
+	 * @param Validator|null              $validator            Safety analyzer, fresh one when null.
+	 * @param DestinationValidator|null   $destinationValidator Destination checker, fresh one when null.
+	 * @param callable(string): bool|null $isUploadedFile      Upload probe override, test double seam.
 	 */
 	public function __construct(
 		?RedirectRepository $repository = null,
 		?RedirectsSettings $redirectSettings = null,
 		?Validator $validator = null,
-		?DestinationValidator $destinationValidator = null
+		?DestinationValidator $destinationValidator = null,
+		?callable $isUploadedFile = null
 	) {
 		$this->repository           = $repository ?? new RedirectRepository();
 		$this->redirectSettings     = $redirectSettings ?? new RedirectsSettings();
 		$this->validator            = $validator ?? new Validator();
 		$this->destinationValidator = $destinationValidator ?? new DestinationValidator();
+		$this->isUploadedFile       = $isUploadedFile ?? 'is_uploaded_file';
 	}
 
 	/**
@@ -242,7 +252,7 @@ final class RedirectsPage {
 		wp_enqueue_style( 'rankkernel-redirects-admin' );
 
 		$js = plugins_url( 'assets/js/redirects-admin.js', (string) RANKKERNEL_FILE );
-		wp_register_script( 'rankkernel-redirects-admin', $js, [], $version, true );
+		wp_register_script( 'rankkernel-redirects-admin', $js, [ 'wp-a11y', 'wp-i18n' ], $version, true );
 		wp_enqueue_script( 'rankkernel-redirects-admin' );
 	}
 
@@ -1401,10 +1411,23 @@ final class RedirectsPage {
 			return;
 		}
 
-		$tmp = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+		$tmp   = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+		$probe = $this->isUploadedFile;
 
-		if ( '' === $tmp || ! is_readable( $tmp ) ) {
+		if ( '' === $tmp || ! $probe( $tmp ) || ! is_readable( $tmp ) ) {
 			$this->importResult = $this->importFileError( __( 'The uploaded file could not be read.', 'rankkernel' ) );
+
+			return;
+		}
+
+		// Fail closed: when the name is unusable or the checker is unavailable, reject rather than pass.
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+		$type = '' !== $name && function_exists( 'wp_check_filetype' )
+			? wp_check_filetype( $name, [ 'csv' => 'text/csv' ] )
+			: false;
+
+		if ( ! is_array( $type ) || empty( $type['ext'] ) ) {
+			$this->importResult = $this->importFileError( __( 'Invalid file type. Please upload a valid CSV file.', 'rankkernel' ) );
 
 			return;
 		}

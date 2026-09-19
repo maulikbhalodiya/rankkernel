@@ -12,6 +12,14 @@ project:
     - "One metadata source of truth through the MetaPayload class."
     - "Module gating: metadata off means no metabox and no editor assets."
     - "No build toolchain: hand-written JavaScript against wp.* globals, no npm, JSX, Tailwind or CSS-in-JS."
+    - "Hard rule: every line the reviewer writes or proposes must pass vendor/bin/phpcs --standard=phpcs.xml with zero errors and zero warnings. The reviewer's own output obeys the same standard it enforces on the pull request."
+    - "Hard rule: never add a phpcs:ignore, never edit phpcs.xml, never lower PHPStan below level 6, never weaken or delete a test, and never run a repo wide phpcbf."
+    - "Hard rule: run composer lint, composer stan, composer test and node --check per JavaScript file after every fix, and keep iterating until all four are clean. A fix that leaves a gate red is not done."
+    - "Whitespace: one real tab per indentation level, never spaces. WordPress spacing inside control structures, if ( $x ) {, and function calls, foo( $bar )."
+    - "WPCS sniffs: Yoda conditions such as true === $flag, elseif not else if, strict comparison when the types are known, single quotes for strings without interpolation, no trailing whitespace, and array arrows aligned in multi line arrays."
+    - "Docblocks: every class, method, property and constant carries a WordPress docblock with a short description plus @param, @return and @var tags that match the real types."
+    - "Guards: defined( 'ABSPATH' ) || exit; immediately after the namespace declaration in every PHP file under src/. rankkernel.php keeps if ( ! defined( 'ABSPATH' ) ) { exit; } and uninstall.php keeps defined( 'WP_UNINSTALL_PLUGIN' ) || exit;."
+    - "src/ and tests/ keep the four documented phpcs.xml exceptions only: PSR-4 file names, camelCase variables, camelCase methods, and short array syntax. Every other WordPress sniff applies. Never widen an exception and never reformat a file the change did not already touch."
     - "docs/ is internal working material and out of review scope."
   commandReference:
     lint: "composer lint"
@@ -34,6 +42,9 @@ review:
     - "Security: avoid SSRF; validate and allowlist remote URLs before wp_remote_*."
     - "Standards: WordPress Coding Standards and PSR-12; declare(strict_types=1); an ABSPATH guard in every PHP file."
     - "Standards: prefix every function, hook, option, transient and table with rankkernel or RankKernel; text domain exactly rankkernel."
+    - "Standards: any code you propose in a finding, a suggestion block or a fix must itself be WPCS clean and pass phpcs.xml. Real tabs, Yoda conditions, WordPress spacing, complete docblocks. Never propose a snippet that would fail the gate."
+    - "Standards: report a WPCS violation with the exact sniff name, for example WordPress.PHP.YodaConditions or WordPress.WhiteSpace.ControlStructureSpacing, plus the file and the line."
+    - "Standards: never propose adding a phpcs:ignore, never propose changing phpcs.xml, never propose lowering PHPStan below level 6, and never propose weakening or deleting a test."
     - "Best practice: prefer WordPress APIs over raw PHP (wp_remote_* over curl, wp_parse_url over parse_url)."
     - "Best practice: cache expensive reads with transients or the object cache, keyed by a validator."
     - "Best practice: internationalise every user-facing string; no hardcoded English in rendered output."
@@ -57,7 +68,7 @@ audit:
     - javascript
 
 fix:
-  maxIterations: 1
+  maxIterations: 3
   runChecks:
     - "composer lint && composer stan && composer test"
   checkAllowlist:
