@@ -777,6 +777,7 @@ final class SchemaMetaboxTest extends TestCase {
 		);
 		Functions\when( 'get_post_field' )->alias( static fn ( string $f, int $id ): string => 'hello-world' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_field signature.
 		Functions\when( 'sanitize_file_name' )->alias( static fn ( string $v ): string => $v );
+		Functions\expect( 'nocache_headers' )->once();
 
 		$_GET = [ 'post' => '5' ];
 
