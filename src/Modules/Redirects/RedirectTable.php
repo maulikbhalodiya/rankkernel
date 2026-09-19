@@ -41,6 +41,12 @@ final class RedirectTable {
 	 * Reset the static existence cache (primarily for unit tests).
 	 */
 	public static function resetCache(): void {
+		$table = self::name();
+
+		if ( function_exists( 'wp_cache_delete' ) ) {
+			wp_cache_delete( 'table_exists_' . $table, 'rankkernel_tables' );
+		}
+
 		self::$existsCache = array();
 	}
 
@@ -77,12 +83,29 @@ final class RedirectTable {
 			return self::$existsCache[ $table ];
 		}
 
+		// Check WP Object Cache first to prevent database queries on every request when persistent object cache is enabled.
+		if ( function_exists( 'wp_cache_get' ) ) {
+			$foundInCache = false;
+			$cached       = wp_cache_get( 'table_exists_' . $table, 'rankkernel_tables', false, $foundInCache );
+
+			if ( $foundInCache && is_bool( $cached ) ) {
+				self::$existsCache[ $table ] = $cached;
+
+				return $cached;
+			}
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
-		self::$existsCache[ $table ] = is_string( $found ) && $found === $table;
+		$exists                      = is_string( $found ) && $found === $table;
+		self::$existsCache[ $table ] = $exists;
 
-		return self::$existsCache[ $table ];
+		if ( function_exists( 'wp_cache_set' ) ) {
+			wp_cache_set( 'table_exists_' . $table, $exists, 'rankkernel_tables', DAY_IN_SECONDS );
+		}
+
+		return $exists;
 	}
 
 	/**
