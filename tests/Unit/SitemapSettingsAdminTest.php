@@ -70,6 +70,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v, string $d = '' ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_attr__' )->alias( static fn ( string $v, string $d = '' ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_attr__ signature.
 		Functions\when( 'esc_textarea' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
 		Functions\when( '__' )->alias( static fn ( string $v, string $d = '' ): string => $v ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
@@ -161,7 +162,8 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Sitemap Settings', $html );
-		$this->assertStringContainsString( 'nav-tab-wrapper', $html );
+		$this->assertStringContainsString( '<nav class="nav-tab-wrapper"', $html );
+		$this->assertStringContainsString( 'aria-current="page"', $html );
 	}
 
 	/**
@@ -372,7 +374,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'General', $html );
-		$this->assertStringContainsString( 'tab=general" class="nav-tab nav-tab-active', $html );
+		$this->assertStringContainsString( 'tab=general" class="nav-tab nav-tab-active" aria-current="page"', $html );
 	}
 
 	/**
@@ -387,7 +389,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'tab=authors" class="nav-tab nav-tab-active', $html );
+		$this->assertStringContainsString( 'tab=authors" class="nav-tab nav-tab-active" aria-current="page"', $html );
 		$this->assertStringContainsString( 'Administrator', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_roles[]"', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_users"', $html );
