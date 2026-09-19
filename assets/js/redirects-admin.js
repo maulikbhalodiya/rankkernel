@@ -236,6 +236,19 @@ document.addEventListener( 'DOMContentLoaded', function () {
  * remains visible.
  */
 document.addEventListener( 'DOMContentLoaded', function () {
+	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+	function rkAnnounce( message ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+			? window.wp.i18n.__( message, 'rankkernel' )
+			: message;
+
+		window.wp.a11y.speak( text );
+	}
+
 	var buttons = document.querySelectorAll( '[data-rk-use-destination]' );
 
 	buttons.forEach( function ( button ) {
@@ -265,6 +278,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			target.value = destination;
 			target.focus();
+			rkAnnounce( 'Recommended destination applied to Destination URL field.' );
 		} );
 	} );
 } );
