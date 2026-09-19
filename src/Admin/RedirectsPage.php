@@ -1420,14 +1420,16 @@ final class RedirectsPage {
 			return;
 		}
 
-		if ( function_exists( 'wp_check_filetype' ) && isset( $file['name'] ) && is_string( $file['name'] ) ) {
-			$check = wp_check_filetype( $file['name'], [ 'csv' => 'text/csv' ] );
+		// Fail closed: when the name is unusable or the checker is unavailable, reject rather than pass.
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+		$type = '' !== $name && function_exists( 'wp_check_filetype' )
+			? wp_check_filetype( $name, [ 'csv' => 'text/csv' ] )
+			: false;
 
-			if ( ! is_array( $check ) || empty( $check['ext'] ) ) {
-				$this->importResult = $this->importFileError( __( 'Invalid file type. Please upload a valid CSV file.', 'rankkernel' ) );
+		if ( ! is_array( $type ) || empty( $type['ext'] ) ) {
+			$this->importResult = $this->importFileError( __( 'Invalid file type. Please upload a valid CSV file.', 'rankkernel' ) );
 
-				return;
-			}
+			return;
 		}
 
 		$handler = new CsvHandler( $this->repository, $this->validator, $this->destinationValidator );

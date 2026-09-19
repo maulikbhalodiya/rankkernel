@@ -202,6 +202,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$_POST                     = [];
 		$_GET                      = [];
+		$_FILES                    = [];
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 	}
 
@@ -452,6 +453,67 @@ final class RedirectsAdminTest extends TestCase {
 			$result = $page->import_result();
 			$this->assertIsArray( $result );
 			$this->assertSame( 'Invalid file type. Please upload a valid CSV file.', $result['errors'][0]['reason'] );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
+	 * A valid CSV passes the upload probe and the type gate, reaches CsvHandler
+	 * and imports its rows.
+	 */
+	public function test_import_valid_csv_reaches_handler_and_imports_rows(): void {
+		$tmp = (string) tempnam( sys_get_temp_dir(), 'rkcsv' );
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/old-one,/new-one,,,,\n/old-two,/new-two,302,prefix,no,,\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn (): array => [
+				'ext'  => 'csv',
+				'type' => 'text/csv',
+			]
+		);
+
+		try {
+			$page = new RedirectsPage(
+				new RedirectRepository( $this->db ),
+				new RedirectsSettings(),
+				new Validator(),
+				new DestinationValidator(),
+				static fn ( string $p ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			);
+
+			$this->allowAccess();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_redirect_import' => '1',
+				'_wpnonce'                   => 'valid',
+			];
+			$_FILES                    = [
+				'rk_csv_file' => [
+					'name'     => 'rules.csv',
+					'type'     => 'text/csv',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 100,
+				],
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+
+			$result = $page->import_result();
+			$this->assertIsArray( $result );
+			$this->assertSame( 2, $result['created'] );
+			$this->assertSame( [], $result['errors'] );
+
+			$rows = array_values( $this->db->rows );
+
+			$this->assertCount( 2, $rows );
+			$this->assertSame( '/old-one', $rows[0]['source'] );
+			$this->assertSame( '/new-one', $rows[0]['target'] );
+			$this->assertSame( '/old-two', $rows[1]['source'] );
 		} finally {
 			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 		}
