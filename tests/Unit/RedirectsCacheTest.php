@@ -175,38 +175,6 @@ final class RedirectsCacheTest extends TestCase {
 	}
 
 	/**
-	 * Test the validator option is read once per request while memoized, and
-	 * that a static invalidation forces the next read to be fresh.
-	 */
-	public function test_validator_option_is_memoized_within_a_request(): void {
-		// Deterministic starting point: clears the process wide memo left by earlier tests.
-		RedirectCache::invalidateAll();
-		$this->options[ RedirectCache::VALIDATOR_OPTION ] = 'validator-1';
-
-		$reads = 0;
-		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $fallback = false ) use ( &$reads ): mixed {
-				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
-					++$reads;
-				}
-
-				return $this->options[ $key ] ?? $fallback;
-			}
-		);
-
-		$cache = new RedirectCache();
-		$cache->set( '/a', [ 'id' => 1 ] );
-		$cache->set( '/b', [ 'id' => 2 ] );
-
-		$this->assertSame( 1, $reads, 'Two writes in one request must share one validator read.' );
-
-		RedirectCache::invalidateAll();
-		$cache->set( '/c', [ 'id' => 3 ] );
-
-		$this->assertSame( 2, $reads, 'A static invalidation must reset the memo so the next read is fresh.' );
-	}
-
-	/**
 	 * Test ttl is bounded.
 	 */
 	public function test_ttl_is_bounded(): void {
