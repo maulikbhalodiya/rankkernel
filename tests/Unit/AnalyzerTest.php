@@ -29,9 +29,9 @@ final class AnalyzerTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		Functions\when( '__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress signature.
-		Functions\when( 'esc_html__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress signature.
-		Functions\when( 'number_format_i18n' )->alias( static fn ( float $number, int $decimals = 0 ): string => number_format( $number, $decimals ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress signature.
+		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
+		Functions\when( 'esc_html__' )->alias( static fn ( string $text ): string => $text );
+		Functions\when( 'number_format_i18n' )->alias( static fn ( float $number, int $decimals = 0 ): string => number_format( $number, $decimals ) );
 		// Host extraction stub, sufficient for the fixtures and free of the native parser.
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {

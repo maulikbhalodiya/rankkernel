@@ -23,6 +23,7 @@ final class ModuleRegistry {
 	 */
 	public const MODULES = [
 		'metadata'         => 'Metadata Engine',
+		'analysis'         => 'Content Analysis',
 		'sitemaps'         => 'XML Sitemaps',
 		'schema'           => 'Schema (JSON-LD)',
 		'breadcrumbs'      => 'Breadcrumbs',

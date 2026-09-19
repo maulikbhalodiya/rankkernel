@@ -45,9 +45,11 @@ final class ModuleRegistryTest extends TestCase {
 		$all = ModuleRegistry::all();
 
 		$this->assertSame( ModuleRegistry::MODULES, $all );
-		$this->assertCount( 13, $all );
+		$this->assertCount( 14, $all );
 		$this->assertArrayHasKey( 'metadata', $all );
 		$this->assertSame( 'Metadata Engine', $all['metadata'] );
+		$this->assertArrayHasKey( 'analysis', $all );
+		$this->assertSame( 'Content Analysis', $all['analysis'] );
 	}
 
 	/**

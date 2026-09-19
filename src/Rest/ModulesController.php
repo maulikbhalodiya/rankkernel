@@ -40,6 +40,7 @@ final class ModulesController {
 	 */
 	public const KNOWN_MODULES = [
 		'metadata',
+		'analysis',
 		'sitemaps',
 		'schema',
 		'breadcrumbs',
