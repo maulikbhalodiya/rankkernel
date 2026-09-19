@@ -82,6 +82,7 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 		$this->assertStringContainsString( "esc_like( 'rankkernel_' )", $code );
 		$this->assertStringContainsString( 'SHOW TABLES LIKE', $code );
 		$this->assertStringContainsString( "\$wpdb->prefix . 'rankkernel_'", $code );
+		$this->assertStringContainsString( "array( 'rankkernel_', 'rkredir_', 'rk404_flood_' )", $code );
 	}
 
 	/**
@@ -94,12 +95,19 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 
 		$db             = new RedirectsMonitorUninstallStubDb();
 		$db->optionRows = [
-			'rankkernel_modules'             => [ 'redirects' ],
-			'rankkernel_redirects_settings'  => [ 'preserve_query' => true ],
-			'rankkernel_404_settings'        => [ 'max_rows' => 1000 ],
-			'rankkernel_redirects_validator' => 'stale',
-			'rankkernel_404_suppressed'      => 123,
-			'other_plugin_option'            => 'keep',
+			'rankkernel_modules'                    => [ 'redirects' ],
+			'rankkernel_redirects_settings'         => [ 'preserve_query' => true ],
+			'rankkernel_404_settings'               => [ 'max_rows' => 1000 ],
+			'rankkernel_redirects_validator'        => 'stale',
+			'rankkernel_404_suppressed'             => 123,
+			'_transient_rankkernel_sitemap'         => 'xml',
+			'_transient_timeout_rankkernel_sitemap' => 123456,
+			'_transient_rkredir_match'              => 'data',
+			'_transient_timeout_rkredir_match'      => 123456,
+			'_transient_rk404_flood_site'           => 'data',
+			'_transient_timeout_rk404_flood_site'   => 123456,
+			'other_plugin_option'                   => 'keep',
+			'_transient_other_plugin'               => 'keep',
 		];
 		$db->tables     = [
 			'wp_rankkernel_redirects',
@@ -123,7 +131,13 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 
 		require dirname( __DIR__, 2 ) . '/uninstall.php';
 
-		$this->assertSame( [ 'other_plugin_option' => 'keep' ], $db->optionRows );
+		$this->assertSame(
+			[
+				'other_plugin_option'     => 'keep',
+				'_transient_other_plugin' => 'keep',
+			],
+			$db->optionRows
+		);
 		$this->assertSame( [ 'wp_posts' ], array_values( $db->tables ) );
 
 		$drops = array_values(

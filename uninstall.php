@@ -32,6 +32,19 @@ $wpdb->query(
 	)
 );
 
+// Purge all transients and transient timeouts owned by RankKernel modules.
+$transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
+foreach ( $transient_prefixes as $transient_prefix ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_' . $transient_prefix ) . '%',
+			$wpdb->esc_like( '_transient_timeout_' . $transient_prefix ) . '%'
+		)
+	);
+}
+
 // Purge all _rankkernel_* post meta (direct $wpdb for scale, meta API would be slow).
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 $wpdb->query(
