@@ -746,9 +746,14 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
-	 * Test a partial request renders only the section, without the shell.
+	 * Test a partial request renders only the section, on the load hook.
+	 *
+	 * The load hook is where the fix lives: the page callback runs after the
+	 * admin header, so a partial rendered there would ship the whole admin
+	 * page and the section loader would swap that in. Rendering on the load
+	 * hook keeps the reply to the section and its save button.
 	 */
-	public function test_partial_request_renders_only_the_section(): void {
+	public function test_partial_request_renders_only_the_section_on_the_load_hook(): void {
 		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
 		Functions\when( 'get_taxonomies' )->justReturn( [] );
 		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
@@ -761,15 +766,39 @@ final class SettingsPageTest extends TestCase {
 
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
-		// The load hook sets the partial before the page callback renders.
-		$page->maybeHandleSave();
-
 		ob_start();
-		$page->render();
+		$page->maybeHandleSave();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'id="rk-section-breadcrumbs"', $output );
 		$this->assertStringNotContainsString( 'rk-settings-nav', $output );
 		$this->assertStringNotContainsString( '<form', $output );
+		$this->assertStringNotContainsString( 'wpwrap', $output );
+		$this->assertStringNotContainsString( '<html', $output );
+	}
+
+	/**
+	 * Test a normal page load renders nothing on the load hook.
+	 *
+	 * Without a partial the hook must stay silent, so the page callback still
+	 * renders the full settings screen.
+	 */
+	public function test_load_hook_renders_nothing_without_a_partial(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'breadcrumbs';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->maybeHandleSave();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( '', $output );
 	}
 }

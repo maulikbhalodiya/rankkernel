@@ -75,6 +75,28 @@ final class SettingsPage {
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {
 			$this->handleSave();
 		}
+
+		// A partial must be rendered and finished here, on the load hook. The page
+		// callback runs after admin-header.php, so returning from it early would
+		// still ship the whole admin page, which is exactly what the section
+		// loader swaps into the panel. Rendering here keeps the reply to the one
+		// section plus its save button.
+		if ( null !== $this->partial ) {
+			$this->render();
+			$this->finishPartialRequest();
+		}
+	}
+
+	/**
+	 * End the request after a partial render, before the admin chrome.
+	 *
+	 * Skipped under the test harness, which needs the call to return so it can
+	 * assert on the captured output.
+	 */
+	private function finishPartialRequest(): void {
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
 	}
 
 	/**
