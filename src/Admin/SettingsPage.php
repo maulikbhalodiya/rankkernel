@@ -199,9 +199,9 @@ final class SettingsPage {
 
 				$taxonomyRows[] = [
 					'rowType' => 'info',
-					// translators: %s: post type label.
+					/* translators: %s: post type label. */
 					'title'   => sprintf( __( 'Primary taxonomy (%s)', 'rankkernel' ), $label ),
-					// translators: %s: taxonomy label.
+					/* translators: %s: taxonomy label. */
 					'hint'    => sprintf( __( 'Uses %s, the only public taxonomy available.', 'rankkernel' ), $onlyLabel ),
 				];
 
@@ -224,7 +224,7 @@ final class SettingsPage {
 
 			$taxonomyRows[] = [
 				'rowType' => 'select',
-				// translators: %s: post type label.
+				/* translators: %s: post type label. */
 				'title'   => sprintf( __( 'Primary taxonomy (%s)', 'rankkernel' ), $label ),
 				'fieldId' => $fieldId,
 				'field'   => $field,
