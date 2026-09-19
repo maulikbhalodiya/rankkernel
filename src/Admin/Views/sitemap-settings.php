@@ -10,7 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
- * @var array<int, array{url: string, class: string, label: string}> $tabItems Tab links.
+ * @var array<int, array{url: string, class: string, current: bool, label: string}> $tabItems Tab links.
  * @var bool   $showGeneral           Whether the General tab section renders.
  * @var bool   $showPostTypes         Whether the Post Types tab section renders.
  * @var bool   $showTaxonomies        Whether the Taxonomies tab section renders.
