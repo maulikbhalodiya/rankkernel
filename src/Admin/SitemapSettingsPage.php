@@ -96,10 +96,12 @@ final class SitemapSettingsPage {
 		$tabItems = [];
 
 		foreach ( $tabLabels as $tabId => $tabLabel ) {
+			$isCurrent  = $tabId === $tab;
 			$tabItems[] = [
-				'url'   => admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $tabId ),
-				'class' => 'nav-tab' . ( $tabId === $tab ? ' nav-tab-active' : '' ),
-				'label' => $tabLabel,
+				'url'    => admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $tabId ),
+				'class'  => 'nav-tab' . ( $isCurrent ? ' nav-tab-active' : '' ),
+				'active' => $isCurrent,
+				'label'  => $tabLabel,
 			];
 		}
 

@@ -39,11 +39,11 @@ endif;
 <div class="wrap">
 	<h1><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h1>
 
-	<h2 class="nav-tab-wrapper">
+	<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">
 		<?php foreach ( $tabItems as $tabItem ) : ?>
-			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="<?php echo esc_attr( $tabItem['class'] ); ?>"><?php echo esc_html( $tabItem['label'] ); ?></a>
+			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="<?php echo esc_attr( $tabItem['class'] ); ?>"<?php echo ! empty( $tabItem['active'] ) ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tabItem['label'] ); ?></a>
 		<?php endforeach; ?>
-	</h2>
+	</nav>
 
 	<form method="post" action="">
 		<?php wp_nonce_field( 'rankkernel_sitemap_settings' ); ?>
