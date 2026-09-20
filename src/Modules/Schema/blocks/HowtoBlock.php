@@ -269,7 +269,7 @@ final class HowtoBlock {
 		$totalTime = isset( $attributes['totalTime'] ) ? trim( (string) $attributes['totalTime'] ) : '';
 
 		if ( '' !== $totalTime && self::validDuration( $totalTime ) ) {
-			// translators: %s is the total time value.
+			/* translators: %s is the total time value. */
 			$timeLine = sprintf( esc_html__( 'Total time: %s', 'rankkernel' ), esc_html( $totalTime ) );
 			$out     .= '<p class="rankkernel-howto-total-time">' . $timeLine . '</p>';
 		}
@@ -277,7 +277,7 @@ final class HowtoBlock {
 		$cost = isset( $attributes['estimatedCost'] ) ? trim( (string) $attributes['estimatedCost'] ) : '';
 
 		if ( '' !== $cost ) {
-			// translators: %s is the estimated cost value.
+			/* translators: %s is the estimated cost value. */
 			$costLine = sprintf( esc_html__( 'Estimated cost: %s', 'rankkernel' ), esc_html( $cost ) );
 			$out     .= '<p class="rankkernel-howto-estimated-cost">' . $costLine . '</p>';
 		}
