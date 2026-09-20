@@ -10,7 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
- * @var array<int, array{url: string, class: string, label: string}> $tabItems Tab links.
+ * @var array<int, array{url: string, class: string, label: string, active: bool}> $tabItems Tab links.
  * @var bool   $showGeneral           Whether the General tab section renders.
  * @var bool   $showPostTypes         Whether the Post Types tab section renders.
  * @var bool   $showTaxonomies        Whether the Taxonomies tab section renders.
@@ -41,7 +41,7 @@ endif;
 
 	<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">
 		<?php foreach ( $tabItems as $tabItem ) : ?>
-			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="<?php echo esc_attr( $tabItem['class'] ); ?>"<?php echo ! empty( $tabItem['active'] ) ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tabItem['label'] ); ?></a>
+			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="<?php echo esc_attr( $tabItem['class'] ); ?>"<?php echo $tabItem['active'] ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tabItem['label'] ); ?></a>
 		<?php endforeach; ?>
 	</nav>
 
