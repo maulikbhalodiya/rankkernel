@@ -26,6 +26,7 @@ final class SitemapCacheTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		SitemapCache::resetValidatorCache();
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			define( 'RANKKERNEL_TESTING', true );
@@ -177,6 +178,7 @@ final class SitemapCacheTest extends TestCase {
 
 		// Change global validator, now mismatch should rebuild.
 		$store[ SitemapCache::VALIDATOR_GLOBAL ] = 'new_global';
+		SitemapCache::resetValidatorCache();
 
 		$calls      = 0;
 		$xmlRebuilt = $cache->get(
@@ -365,5 +367,37 @@ final class SitemapCacheTest extends TestCase {
 			}
 		);
 		$this->assertSame( 2, $builds );
+	}
+
+	/**
+	 * Test reset validator cache clears static memoization.
+	 */
+	public function test_reset_validator_cache_clears_memoization(): void {
+		$getOptionCalls = 0;
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$getOptionCalls ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				++$getOptionCalls;
+
+				return 'val1';
+			}
+		);
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$cache = new SitemapCache();
+		$cache->store( 'post', 1, '<xml>1</xml>' );
+
+		$initialCalls = $getOptionCalls;
+		$this->assertGreaterThan( 0, $initialCalls );
+
+		// Repeat store within same request should reuse memoized validator without new get_option calls.
+		$cache->store( 'post', 2, '<xml>2</xml>' );
+		$this->assertSame( $initialCalls, $getOptionCalls, 'Repeated validator lookup should use request memoization' );
+
+		// Resetting validator cache forces get_option call again.
+		SitemapCache::resetValidatorCache();
+		$cache->store( 'post', 3, '<xml>3</xml>' );
+		$this->assertGreaterThan( $initialCalls, $getOptionCalls, 'Resetting validator cache should force fresh option lookup' );
 	}
 }

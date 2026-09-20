@@ -40,6 +40,17 @@ class SitemapCache {
 	private const TRANSIENT_PREFIX = 'rankkernel_sitemap_';
 
 	/**
+	 * In-memory static cache for sitemap validator option values.
+	 *
+	 * Performance optimization: memoizes validator options within the request
+	 * execution to avoid repeated get_option() lookups when checking or storing
+	 * sitemap XML caches across multiple sets or pages.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $cachedValidators = [];
+
+	/**
 	 * Queued invalidations.
 	 *
 	 * @var array<string, bool>
@@ -92,8 +103,8 @@ class SitemapCache {
 		$cached = $this->getFromStore( $this->cacheKey( $set, $page ) );
 
 		if ( is_array( $cached ) && isset( $cached['xml'] ) && is_string( $cached['xml'] ) ) {
-			$currentGlobal = (string) get_option( self::VALIDATOR_GLOBAL, '' );
-			$currentSet    = (string) get_option( self::VALIDATOR_PREFIX . $set, '' );
+			$currentGlobal = self::getValidator( self::VALIDATOR_GLOBAL );
+			$currentSet    = self::getValidator( self::VALIDATOR_PREFIX . $set );
 
 			$cachedGlobal = isset( $cached['validator_global'] ) ? (string) $cached['validator_global'] : '';
 			$cachedSet    = isset( $cached['validator_set'] ) ? (string) $cached['validator_set'] : '';
@@ -127,7 +138,7 @@ class SitemapCache {
 		$cached = $this->getFromStore( $this->mapKey( $key ) );
 
 		if ( is_array( $cached ) && isset( $cached['map'] ) && is_array( $cached['map'] ) ) {
-			$currentGlobal = (string) get_option( self::VALIDATOR_GLOBAL, '' );
+			$currentGlobal = self::getValidator( self::VALIDATOR_GLOBAL );
 			$cachedGlobal  = isset( $cached['validator_global'] ) ? (string) $cached['validator_global'] : '';
 
 			if ( $cachedGlobal === $currentGlobal ) {
@@ -141,7 +152,7 @@ class SitemapCache {
 			$this->mapKey( $key ),
 			[
 				'map'              => $map,
-				'validator_global' => (string) get_option( self::VALIDATOR_GLOBAL, '' ),
+				'validator_global' => self::getValidator( self::VALIDATOR_GLOBAL ),
 			]
 		);
 
@@ -158,8 +169,8 @@ class SitemapCache {
 	public function store( string $set, int $page, string $xml ): void {
 		$payload = [
 			'xml'              => $xml,
-			'validator_global' => (string) get_option( self::VALIDATOR_GLOBAL, '' ),
-			'validator_set'    => (string) get_option( self::VALIDATOR_PREFIX . $set, '' ),
+			'validator_global' => self::getValidator( self::VALIDATOR_GLOBAL ),
+			'validator_set'    => self::getValidator( self::VALIDATOR_PREFIX . $set ),
 		];
 
 		$this->setToStore( $this->cacheKey( $set, $page ), $payload );
@@ -193,6 +204,8 @@ class SitemapCache {
 			return;
 		}
 
+		self::$cachedValidators = [];
+
 		foreach ( $this->queue as $set => $flag ) {
 			if ( 'global' === $set ) {
 				$new = $this->generateValidator();
@@ -214,7 +227,33 @@ class SitemapCache {
 	 * before redirecting. Existing queued paths are untouched.
 	 */
 	public static function invalidateAll(): void {
+		self::$cachedValidators = [];
 		update_option( self::VALIDATOR_GLOBAL, (string) time() . '_' . uniqid( '', true ), false );
+	}
+
+	/**
+	 * Reset in-memory static validator cache (primarily for tests).
+	 */
+	public static function resetValidatorCache(): void {
+		self::$cachedValidators = [];
+	}
+
+	/**
+	 * Get current validator option string with in-memory request-level memoization.
+	 *
+	 * Performance optimization: memoizes validator options within the request
+	 * execution to avoid repeated get_option() lookups when checking or storing
+	 * sitemap XML caches across multiple sets or pages.
+	 *
+	 * @param string $optionName Option name.
+	 * @return string Current validator string.
+	 */
+	private static function getValidator( string $optionName ): string {
+		if ( ! array_key_exists( $optionName, self::$cachedValidators ) ) {
+			self::$cachedValidators[ $optionName ] = (string) get_option( $optionName, '' );
+		}
+
+		return self::$cachedValidators[ $optionName ];
 	}
 
 	/**
