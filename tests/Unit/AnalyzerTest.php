@@ -482,7 +482,7 @@ final class AnalyzerTest extends TestCase {
 	 * Test a low density passes, because there is no minimum.
 	 */
 	public function test_low_density_passes_under_the_ceiling(): void {
-		$filler = implode( ' ', array_fill( 0, 100, 'word' ) );
+		$filler = implode( ' ', array_fill( 0, 250, 'word' ) );
 
 		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>' . $filler . ' red apples</p>' ] ) );
 
