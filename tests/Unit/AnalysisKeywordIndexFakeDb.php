@@ -23,11 +23,26 @@ final class AnalysisKeywordIndexFakeDb {
 	public string $postmeta = 'wp_postmeta';
 
 	/**
-	 * Ids the fake reports, in order.
+	 * Posts table name.
+	 *
+	 * @var string
+	 */
+	public string $posts = 'wp_posts';
+
+	/**
+	 * Ids the fake reports, in order, when no candidate rows are set.
 	 *
 	 * @var int[]
 	 */
 	public array $ids = [];
+
+	/**
+	 * Candidate rows, meta value keyed by post id. When set, the fake applies
+	 * the LIKE filter instead of returning ids as is.
+	 *
+	 * @var array<int, string>
+	 */
+	public array $rows = [];
 
 	/**
 	 * Queries the fake was asked to run.
@@ -63,7 +78,8 @@ final class AnalysisKeywordIndexFakeDb {
 	}
 
 	/**
-	 * Return the configured ids.
+	 * Return the configured ids, filtering candidate rows by the query LIKE
+	 * pattern when rows are set.
 	 *
 	 * @param string $query Prepared query.
 	 * @return int[] The result.
@@ -71,6 +87,31 @@ final class AnalysisKeywordIndexFakeDb {
 	public function get_col( string $query ): array {
 		$this->queries[] = $query;
 
-		return $this->ids;
+		if ( [] === $this->rows ) {
+			return $this->ids;
+		}
+
+		if ( 1 !== preg_match( "/meta_value LIKE '([^']*)'/", $query, $matches ) ) {
+			return [];
+		}
+
+		$needle = strtr(
+			trim( $matches[1], '%' ),
+			[
+				'\\_'  => '_',
+				'\\%'  => '%',
+				'\\\\' => '\\',
+			]
+		);
+
+		$ids = [];
+
+		foreach ( $this->rows as $id => $meta_value ) {
+			if ( false !== stripos( $meta_value, $needle ) ) {
+				$ids[] = (int) $id;
+			}
+		}
+
+		return $ids;
 	}
 }

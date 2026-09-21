@@ -99,12 +99,60 @@ final class AnalysisControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test permission is refused when the post id is absent or zero.
+	 *
+	 * The capability grant is deliberately in place, so only the post id guard
+	 * can produce the refusal.
+	 */
+	public function test_permission_refused_without_a_post_id(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$controller = new AnalysisController();
+
+		$missing = $controller->checkPermission( $this->request( [] ) );
+		$zero    = $controller->checkPermission( $this->request( [ 'post_id' => 0 ] ) );
+
+		$this->assertInstanceOf( WP_Error::class, $missing );
+		$this->assertSame( 'rest_forbidden', $missing->get_error_code() );
+		$this->assertInstanceOf( WP_Error::class, $zero );
+		$this->assertSame( 'rest_forbidden', $zero->get_error_code() );
+	}
+
+	/**
+	 * Test permission checks the edit capability for the requested post.
+	 */
+	public function test_permission_checks_the_capability_for_the_post(): void {
+		Functions\expect( 'current_user_can' )->once()->with( 'edit_post', 5 )->andReturn( true );
+
+		$this->assertTrue( ( new AnalysisController() )->checkPermission( $this->request( [ 'post_id' => 5 ] ) ) );
+	}
+
+	/**
 	 * Test a missing post returns a not found error.
 	 */
 	public function test_unknown_post_returns_not_found(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
 		$result = ( new AnalysisController() )->analyze( $this->request( [ 'post_id' => 5 ] ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'rankkernel_unknown_post', $result->get_error_code() );
+	}
+
+	/**
+	 * Test a missing post id returns a not found error rather than a report.
+	 */
+	public function test_missing_post_id_returns_not_found(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$result = ( new AnalysisController() )->analyze(
+			$this->request(
+				[
+					'content'  => '<p>Red apples are best in autumn.</p>',
+					'keywords' => [ 'red apples' ],
+				]
+			)
+		);
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'rankkernel_unknown_post', $result->get_error_code() );
@@ -166,9 +214,9 @@ final class AnalysisControllerTest extends TestCase {
 	}
 
 	/**
-	 * Test the route registers with a permission callback and required post id.
+	 * Test the route wires the post method, its handlers and the post id args.
 	 */
-	public function test_route_registers_with_a_permission_callback(): void {
+	public function test_route_wires_the_method_handlers_and_post_id_args(): void {
 		$captured = [];
 
 		Functions\when( 'register_rest_route' )->alias(
@@ -183,11 +231,14 @@ final class AnalysisControllerTest extends TestCase {
 			}
 		);
 
-		( new AnalysisController() )->registerRoutes();
+		$controller = new AnalysisController();
+		$controller->registerRoutes();
 
 		$this->assertSame( 'rankkernel/v1', $captured['namespace'] );
 		$this->assertSame( '/analysis', $captured['route'] );
-		$this->assertArrayHasKey( 'permission_callback', $captured['args'] );
+		$this->assertSame( 'POST', $captured['args']['methods'] );
+		$this->assertSame( [ $controller, 'checkPermission' ], $captured['args']['permission_callback'] );
 		$this->assertTrue( $captured['args']['args']['post_id']['required'] );
+		$this->assertSame( 'absint', $captured['args']['args']['post_id']['sanitize_callback'] );
 	}
 }

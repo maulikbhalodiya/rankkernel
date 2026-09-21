@@ -62,8 +62,20 @@ final class KeywordIndex {
 			return [];
 		}
 
-		$table = (string) $db->postmeta;
-		$sql   = 'SELECT post_id FROM ' . $table . ' WHERE meta_key = %s AND meta_value LIKE %s AND post_id != %d LIMIT %d';
+		$meta_table  = (string) $db->postmeta;
+		$posts_table = (string) $db->posts;
+		$user_id     = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+
+		// Only published posts or the current user's own posts can own a keyword.
+		// Trashed, auto-draft and inherit rows never warn, and never leak a title.
+		$sql = 'SELECT pm.post_id FROM ' . $meta_table . ' pm'
+			. ' INNER JOIN ' . $posts_table . ' p ON p.ID = pm.post_id'
+			. ' WHERE pm.meta_key = %s'
+			. ' AND pm.meta_value LIKE %s'
+			. ' AND pm.post_id != %d'
+			. " AND p.post_status NOT IN ('trash', 'auto-draft', 'inherit')"
+			. ' AND ( p.post_status = %s OR p.post_author = %d )'
+			. ' LIMIT %d';
 
 		$ids = $db->get_col(
 			$db->prepare(
@@ -71,6 +83,8 @@ final class KeywordIndex {
 				self::META_KEY,
 				'%' . $db->esc_like( $keyword ) . '%',
 				$excludePostId,
+				'publish',
+				$user_id,
 				self::LIMIT
 			)
 		);
