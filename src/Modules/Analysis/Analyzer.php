@@ -1271,7 +1271,7 @@ final class Analyzer {
 			$max    += (int) $check['weight'];
 		}
 
-		$score = ( $max > 0 ) ? (int) round( ( $earned / $max ) * 100 ) : 0;
+		$score = ( $max > 0 ) ? (int) round( $earned * 100 / $max ) : 0;
 
 		return [
 			'score'  => $score,

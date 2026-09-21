@@ -479,6 +479,57 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
+	 * Test the score rounds up at the half point boundary on every PHP version.
+	 *
+	 * This fixture earns 69 of 120 applicable points, a percentage of 57.5 that
+	 * must round to 58. PHP 8.4 removed the pre-rounding that made the old
+	 * expression return 58 as a side effect, so the expression multiplies before
+	 * it divides to stay stable across PHP 8.1 to 8.5 and equal the editor score.
+	 */
+	public function test_score_rounds_up_at_the_half_point_boundary(): void {
+		$result = ( new Analyzer() )->analyze(
+			[
+				'html'        => '<p>Red apples are a favourite fruit for many careful readers today.</p>'
+					. '<p>The growing season shapes the flavour of every single harvest here.</p>'
+					. '<h2>More about red apples</h2>'
+					. '<p>Garden tools help the grower through the long and busy spring days.</p>'
+					. '<p>A wooden crate keeps the fruit safe and cool inside the shed.</p>'
+					. '<img src="a.jpg" alt="red apples photo one">'
+					. '<p>The market stall opens early on a bright and busy morning.</p>'
+					. '<img src="b.jpg" alt="red apples photo two">'
+					. '<p>A basket of red apples sells well at the local fair.</p>'
+					. '<img src="c.jpg" alt="red apples photo three">'
+					. '<p>The kitchen table holds the recipe cards for the baker today.</p>'
+					. '<img src="d.jpg" alt="red apples photo four">'
+					. '<p>A sharp knife makes the daily work quick and easy always.</p>'
+					. '<p>The orchard sleeps under a thick layer of soft winter snow.</p>'
+					. '<p>See <a href="/orchard-guide">the orchard guide</a></p>'
+					. '<p>A new season of fruit starts again in the coming year.</p>',
+				'title'       => '10 best garden tools for spring',
+				'description' => 'A guide to red apples and how to pick the best ones.',
+				'slug'        => 'red-apples-guide',
+				'keywords'    => [ 'red apples' ],
+				'site_url'    => 'https://example.com',
+			]
+		);
+
+		$earned     = 0;
+		$applicable = 0;
+
+		foreach ( $result['checks'] as $check ) {
+			if ( Analyzer::NA === $check['status'] ) {
+				continue;
+			}
+
+			$earned     += (int) $check['earned'];
+			$applicable += (int) $check['weight'];
+		}
+
+		$this->assertSame( '69/120', $earned . '/' . $applicable );
+		$this->assertSame( 58, $result['score'] );
+	}
+
+	/**
 	 * Test a low density passes, because there is no minimum.
 	 */
 	public function test_low_density_passes_under_the_ceiling(): void {
