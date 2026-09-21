@@ -136,5 +136,7 @@ final class AnalysisModule implements ModuleInterface {
 		$score = new AnalysisScore();
 
 		( new AnalysisSaveHandler( $score ) )->register();
+
+		( new AnalysisColumn( $score ) )->register();
 	}
 }

@@ -208,4 +208,19 @@ final class AnalysisModuleTest extends TestCase {
 
 		$this->assertTrue( $module->isEnabled() );
 	}
+
+	/**
+	 * An enabled module wires the score column.
+	 */
+	public function test_enabled_module_wires_the_score_column(): void {
+		$this->options['rankkernel_modules'] = [ 'analysis' ];
+
+		$module = new AnalysisModule( new ModuleEnableMap() );
+		$module->boot();
+
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'manage_post_posts_columns', $hooks );
+		$this->assertContains( 'pre_get_posts', $hooks );
+	}
 }

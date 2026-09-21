@@ -1,0 +1,341 @@
+<?php
+/**
+ * Analysis list table column tests.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace RankKernel\Tests\Unit;
+
+use Brain\Monkey\Functions;
+use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Analysis\AnalysisColumn;
+use RankKernel\Modules\Analysis\AnalysisScore;
+use RankKernel\Modules\Analysis\Analyzer;
+use WP_Post;
+use WP_Query;
+
+/**
+ * Analysis Column Test.
+ */
+final class AnalysisColumnTest extends TestCase {
+	use MockeryPHPUnitIntegration;
+
+	/**
+	 * Meta store.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $meta = [];
+
+	/**
+	 * Captured hooks.
+	 *
+	 * @var array<int, array{hook: string, priority: int, accepted: int}>
+	 */
+	private array $hooks = [];
+
+	/**
+	 * Captured meta cache primes, each a meta type and a post id list.
+	 *
+	 * @var array<int, array{0: string, 1: array<int, int>}>
+	 */
+	private array $metaCaches = [];
+
+	/**
+	 * Captured style handles passed to wp_enqueue_style.
+	 *
+	 * @var string[]
+	 */
+	private array $enqueuedStyles = [];
+
+	/**
+	 * Set up the test fixture.
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+		\Brain\Monkey\setUp();
+
+		if ( ! defined( 'ABSPATH' ) ) {
+			define( 'ABSPATH', '/tmp/' );
+		}
+
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
+		}
+
+		$this->meta           = [];
+		$this->hooks          = [];
+		$this->metaCaches     = [];
+		$this->enqueuedStyles = [];
+
+		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
+		Functions\when( 'esc_html' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_html__' )->alias( static fn ( string $text ): string => htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_attr' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'get_post_types' )->alias(
+			static fn (): array => [
+				'post'       => 'post',
+				'page'       => 'page',
+				'attachment' => 'attachment',
+			]
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			function ( int $id, string $key, bool $single ): mixed {
+				unset( $id, $single );
+
+				return $this->meta[ $key ] ?? '';
+			}
+		);
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'number_format_i18n' )->alias( static fn ( float $number, int $decimals = 0 ): string => number_format( $number, $decimals ) );
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ): mixed {
+				unset( $url, $component );
+
+				return '';
+			}
+		);
+		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		Functions\when( 'plugins_url' )->justReturn( 'https://example.com/wp-content/plugins/rankkernel/assets/css/analysis-column.css' );
+		Functions\when( 'add_action' )->alias(
+			function ( string $hook, mixed $callback, int $priority = 10, int $accepted = 1 ): bool {
+				unset( $callback );
+
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'priority' => $priority,
+					'accepted' => $accepted,
+				];
+
+				return true;
+			}
+		);
+		Functions\when( 'add_filter' )->alias(
+			function ( string $hook, mixed $callback, int $priority = 10, int $accepted = 1 ): bool {
+				unset( $callback );
+
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'priority' => $priority,
+					'accepted' => $accepted,
+				];
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->alias(
+			function ( string $handle ): void {
+				$this->enqueuedStyles[] = $handle;
+			}
+		);
+		Functions\when( 'update_meta_cache' )->alias(
+			function ( string $type, array $ids ): bool {
+				$this->metaCaches[] = [ $type, array_values( $ids ) ];
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Tear down the test fixture.
+	 */
+	protected function tearDown(): void {
+		\Brain\Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	/**
+	 * Render the column for a post id.
+	 *
+	 * @param int $postId Post id.
+	 * @return string The markup.
+	 */
+	private function render( int $postId = 7 ): string {
+		ob_start();
+		( new AnalysisColumn() )->renderColumn( 'rankkernel_analysis', $postId );
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Register wires a column, a sortable header, a sort and an enqueue per type.
+	 */
+	public function test_register_wires_the_column(): void {
+		( new AnalysisColumn() )->register();
+
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'manage_post_posts_columns', $hooks );
+		$this->assertContains( 'manage_post_posts_custom_column', $hooks );
+		$this->assertContains( 'manage_edit-post_sortable_columns', $hooks );
+		$this->assertContains( 'manage_page_posts_columns', $hooks );
+		$this->assertContains( 'pre_get_posts', $hooks );
+		$this->assertContains( 'the_posts', $hooks );
+		$this->assertContains( 'admin_enqueue_scripts', $hooks );
+	}
+
+	/**
+	 * The supported type rule drives registration, so attachments get nothing.
+	 */
+	public function test_register_skips_attachments(): void {
+		( new AnalysisColumn() )->register();
+
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertNotContains( 'manage_attachment_posts_columns', $hooks );
+		$this->assertNotContains( 'manage_edit-attachment_sortable_columns', $hooks );
+	}
+
+	/**
+	 * The column is inserted directly after the title column.
+	 */
+	public function test_column_is_inserted_after_title(): void {
+		$columns = [
+			'cb'    => 'Checkbox',
+			'title' => 'Title',
+			'date'  => 'Date',
+		];
+
+		$out = ( new AnalysisColumn() )->addColumn( $columns );
+
+		$this->assertSame( [ 'cb', 'title', 'rankkernel_analysis', 'date' ], array_keys( $out ) );
+		$this->assertSame( 'Score', $out['rankkernel_analysis'] );
+	}
+
+	/**
+	 * An analysed score renders the number, the band class and a spoken label.
+	 */
+	public function test_render_analysed_state(): void {
+		$this->meta[ AnalysisScore::META_KEY ] = [
+			'score'         => 87,
+			'band'          => Analyzer::BAND_GOOD,
+			'keywords'      => 1,
+			'rules_version' => Analyzer::RULES_VERSION,
+			'analysed_at'   => 123,
+		];
+
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'rk-badge-ok', $out );
+		$this->assertStringContainsString( '87', $out );
+		$this->assertStringContainsString( 'Good', $out );
+	}
+
+	/**
+	 * A post with no record renders the neutral not analysed state.
+	 */
+	public function test_render_not_analysed_state(): void {
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'rk-badge-none', $out );
+		$this->assertStringContainsString( 'Not analysed', $out );
+	}
+
+	/**
+	 * A record with an older rules version renders needs recheck with the reason.
+	 */
+	public function test_render_needs_recheck_state(): void {
+		$this->meta[ AnalysisScore::META_KEY ] = [
+			'score'         => 87,
+			'band'          => Analyzer::BAND_GOOD,
+			'keywords'      => 1,
+			'rules_version' => Analyzer::RULES_VERSION - 1,
+			'analysed_at'   => 123,
+		];
+
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'rk-badge-none', $out );
+		$this->assertStringContainsString( 'Needs recheck', $out );
+		$this->assertStringContainsString( 'rules version', $out );
+	}
+
+	/**
+	 * The sortable filter registers our own column only.
+	 */
+	public function test_sortable_column_registration(): void {
+		$out = ( new AnalysisColumn() )->addSortableColumn( [ 'title' => 'title' ] );
+
+		$this->assertSame( 'rankkernel_analysis', $out['rankkernel_analysis'] );
+	}
+
+	/**
+	 * The orderby guard ignores another column.
+	 */
+	public function test_orderby_ignores_another_column(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+		$query->shouldReceive( 'get' )->with( 'orderby' )->andReturn( 'date' );
+		$query->shouldReceive( 'set' )->never();
+
+		( new AnalysisColumn() )->orderBy( $query );
+	}
+
+	/**
+	 * The orderby guard ignores a query that is not the main query.
+	 */
+	public function test_orderby_ignores_a_non_main_query(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( false );
+		$query->shouldReceive( 'get' )->never();
+		$query->shouldReceive( 'set' )->never();
+
+		( new AnalysisColumn() )->orderBy( $query );
+	}
+
+	/**
+	 * The orderby guard applies a numeric meta sort for our own column.
+	 */
+	public function test_orderby_applies_a_numeric_meta_sort(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+		$query->shouldReceive( 'get' )->with( 'orderby' )->andReturn( 'rankkernel_analysis' );
+		$query->shouldReceive( 'set' )->with( 'meta_key', AnalysisScore::META_KEY )->once();
+		$query->shouldReceive( 'set' )->with( 'orderby', 'meta_value_num' )->once();
+
+		( new AnalysisColumn() )->orderBy( $query );
+	}
+
+	/**
+	 * The meta cache is primed once for the queried posts.
+	 */
+	public function test_meta_cache_is_primed_for_the_queried_posts(): void {
+		$postOne     = new WP_Post();
+		$postOne->ID = 4;
+		$postTwo     = new WP_Post();
+		$postTwo->ID = 9;
+
+		$out = ( new AnalysisColumn() )->primeMetaCache( [ $postOne, $postTwo ] );
+
+		$this->assertSame( [ $postOne, $postTwo ], $out );
+		$this->assertSame( [ [ 'post', [ 4, 9 ] ] ], $this->metaCaches );
+	}
+
+	/**
+	 * Assets are enqueued on the list screen only.
+	 */
+	public function test_assets_are_enqueued_on_the_list_screen(): void {
+		( new AnalysisColumn() )->enqueueAssets( 'edit.php' );
+
+		$this->assertSame( [ 'rankkernel-analysis-column' ], $this->enqueuedStyles );
+	}
+
+	/**
+	 * Assets are not enqueued on another screen.
+	 */
+	public function test_assets_are_not_enqueued_elsewhere(): void {
+		( new AnalysisColumn() )->enqueueAssets( 'options-general.php' );
+
+		$this->assertSame( [], $this->enqueuedStyles );
+	}
+}

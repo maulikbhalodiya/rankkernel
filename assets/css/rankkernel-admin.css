@@ -17,6 +17,7 @@
 .rk-redirects,
 .rk-monitor,
 .rk-settings,
+.rk-analysis-col,
 .rk-dashboard {
 	/* Brand and action. Primary marks primary actions, the active tab,
 	selected states and focus. Used sparingly elsewhere. */
@@ -77,4 +78,14 @@
 	--rk-line-height-tight: 1.3;
 	--rk-line-height-normal: 1.5;
 	--rk-line-height-loose: 1.6;
+
+	/* Content analysis score bands, WordPress admin palette. */
+	--rk-score-good: #008a20;
+	--rk-score-good-soft: #edfaef;
+	--rk-score-improve: #996800;
+	--rk-score-improve-soft: #fcf9e8;
+	--rk-score-problem: #d63638;
+	--rk-score-problem-soft: #fcf0f1;
+	--rk-score-neutral: #646970;
+	--rk-score-neutral-soft: #f0f0f1;
 }

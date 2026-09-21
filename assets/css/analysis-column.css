@@ -1,0 +1,38 @@
+@import url("rankkernel-admin.css");
+
+/**
+ * RankKernel analysis score column.
+ *
+ * Loaded only on the list screens that render the column. Every value comes
+ * from the shared tokens, which carry the WordPress admin palette.
+ */
+
+.rk-analysis-col {
+	border-radius: 4px;
+	display: inline-block;
+	font-weight: 600;
+	min-width: 28px;
+	padding: 2px 8px;
+	text-align: center;
+}
+
+.rk-analysis-col.rk-badge-ok {
+	background: var(--rk-score-good-soft);
+	color: var(--rk-score-good);
+}
+
+.rk-analysis-col.rk-badge-warn {
+	background: var(--rk-score-improve-soft);
+	color: var(--rk-score-improve);
+}
+
+.rk-analysis-col.rk-badge-bad {
+	background: var(--rk-score-problem-soft);
+	color: var(--rk-score-problem);
+}
+
+.rk-analysis-col.rk-badge-none {
+	background: var(--rk-score-neutral-soft);
+	color: var(--rk-score-neutral);
+	font-weight: 400;
+}
