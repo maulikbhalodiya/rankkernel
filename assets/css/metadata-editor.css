@@ -1281,15 +1281,40 @@ the Edit Snippet action. */
 
 .rk-toolbar-score {
 	align-items: center;
+	box-sizing: border-box;
+	/* The toolbar button owns the colour, near white on a dark toolbar and
+	dark on a light one. Inheriting it keeps the mark visible in both, and
+	overrides the .rk-meta text colour this chip also carries for the band
+	tokens. The value chip sets its own band colour below. */
+	color: inherit;
 	display: inline-flex;
-	font-size: 12px;
-	gap: 2px;
+	font-size: 11px;
+	gap: 3px;
+	line-height: 1;
+	vertical-align: middle;
+}
+
+.rk-toolbar-score .dashicons {
+	align-items: center;
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-size: 18px;
+	height: 18px;
+	justify-content: center;
+	line-height: 1;
+	width: 18px;
 }
 
 .rk-toolbar-score .rk-toolbar-score-value {
-	border-radius: 8px;
+	align-items: center;
+	border-radius: 999px;
+	display: inline-flex;
+	font-size: 11px;
 	font-weight: 700;
-	padding: 0 5px;
+	justify-content: center;
+	line-height: 1.5;
+	min-width: 18px;
+	padding: 0 6px;
 }
 
 .rk-toolbar-score .rk-toolbar-score-value.rk-badge-ok {
