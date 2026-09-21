@@ -2027,6 +2027,23 @@
 			var errorState = useState( '' );
 			var error = errorState[ 0 ];
 			var setError = errorState[ 1 ];
+			var selectedState = useState( 0 );
+			var selected = selectedState[ 0 ];
+			var setSelected = selectedState[ 1 ];
+
+			var liveScore = result && 'number' === typeof result.score ? result.score : null;
+			var liveBand = result ? result.band : null;
+
+			// The upward report runs in an effect, never during render. A fresh
+			// object each render would keep the parent update from bailing out,
+			// so the child would report again on every parent render in a loop.
+			useEffect( function () {
+				if ( typeof props.onScore !== 'function' || null === liveScore ) {
+					return undefined;
+				}
+				props.onScore( { score: liveScore, band: liveBand } );
+				return undefined;
+			}, [ liveScore, liveBand ] );
 
 			var title = draft ? draft.title : '';
 			var content = draft ? draft.content : '';
@@ -2121,14 +2138,11 @@
 				return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
 			}
 
-			var keywordList = Array.isArray( result.keywords ) ? result.keywords : [];
-			var selectedState = useState( 0 );
-			var selected = selectedState[ 0 ];
-			var setSelected = selectedState[ 1 ];
+		var keywordList = Array.isArray( result.keywords ) ? result.keywords : [];
 
-			if ( selected >= keywordList.length ) {
-				selected = 0;
-			}
+		if ( selected >= keywordList.length ) {
+			selected = 0;
+		}
 
 			var activeChecks = result.checks || [];
 			if ( selected > 0 && keywordList[ selected ] ) {
@@ -2148,15 +2162,10 @@
 				} );
 			} );
 
-			var score = typeof result.score === 'number' ? result.score : 0;
-			var tone = bandClass( result.band );
+		var score = typeof result.score === 'number' ? result.score : 0;
+		var tone = bandClass( result.band );
 
-			// Report the live draft score upward so the toolbar icon stays in step.
-			if ( typeof props.onScore === 'function' ) {
-				props.onScore( { score: score, band: result.band } );
-			}
-
-			var selector = keywordList.length > 1 ? el(
+		var selector = keywordList.length > 1 ? el(
 				'div',
 				{ className: 'rk-checklist-filter', role: 'group', 'aria-label': __( 'Filter checks by keyword', 'rankkernel' ) },
 				keywordList.map( function ( kw, index ) {

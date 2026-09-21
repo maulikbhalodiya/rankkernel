@@ -208,15 +208,15 @@
 			var pill = document.createElement( 'span' );
 			pill.className = 'rk-checklist-badge ' + bandClass( data.band );
 
-			var spoken = document.createElement( 'span' );
-			spoken.className = 'screen-reader-text';
-			spoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
+		var scoreSpoken = document.createElement( 'span' );
+		scoreSpoken.className = 'screen-reader-text';
+		scoreSpoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
 
 			var value = document.createElement( 'span' );
 			value.setAttribute( 'aria-hidden', 'true' );
 			value.textContent = score + ' / 100';
 
-			pill.appendChild( spoken );
+			pill.appendChild( scoreSpoken );
 			pill.appendChild( value );
 			slot.appendChild( pill );
 		}
