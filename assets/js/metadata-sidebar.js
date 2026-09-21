@@ -39,6 +39,10 @@
 	var components = window.wp.components || {};
 	var __ = window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
 
+	function analyseText( text ) {
+		return __( text, 'rankkernel' );
+	}
+
 	var SIDEBAR_NAME = 'rankkernel-seo';
 
 	var cfg = window.rankkernelMetaEditor || {};
@@ -52,6 +56,7 @@
 	var TITLE_PX = 580;
 	var DESC_PX = 920;
 	var DEBOUNCE_MS = 150;
+	var ANALYSIS_DEBOUNCE_MS = 200;
 	var SOCIAL_MIN_W = 600;
 	var SOCIAL_MIN_H = 315;
 
@@ -1531,33 +1536,48 @@
 		);
 	}
 
-	// Live draft checklist and score. This component owns the analysis fetch,
+	// Live draft checklist and score. This component owns the local scoring,
 	// so it must keep one identity across parent renders. Defined inside
 	// SidebarBody it would be a new function on every parent render, React
-	// would remount it, the fetch effect would run again, and the score it
-	// reports would re-render the parent into the same loop.
+	// would remount it, the run would repeat, and the score it reports would
+	// re-render the parent into the same loop.
 	function ContentAnalysisChecklist( props ) {
 		var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
-		var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
+		var engine = window.RankKernelAnalysis || {};
+		var analyzer = engine.Analyzer || null;
+		var bridge = engine.EditorBridge || null;
 		var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
 		var keywordKey = keywords.join( '|' );
 
-		// Subscribed, not read once, so editing the content re-runs the analysis.
-		var draft = useSelect( function ( select ) {
+		// One primitive per subscription, so a change to an unrelated slice
+		// returns the same string and React bails out of the re-render.
+		var title = useSelect( function ( select ) {
 			try {
 				var editor = select( 'core/editor' );
-				if ( ! editor || ! editor.getEditedPostAttribute ) {
-					return null;
-				}
-				return {
-					title: editor.getEditedPostAttribute( 'title' ) || '',
-					slug: editor.getEditedPostAttribute( 'slug' ) || '',
-					content: editor.getEditedPostAttribute( 'content' ) || ''
-				};
+				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'title' ) || '' ) : '';
 			} catch ( e ) {
-				return null;
+				return '';
 			}
 		}, [] );
+		var slug = useSelect( function ( select ) {
+			try {
+				var editor = select( 'core/editor' );
+				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'slug' ) || '' ) : '';
+			} catch ( e ) {
+				return '';
+			}
+		}, [] );
+		var content = useSelect( function ( select ) {
+			try {
+				var editor = select( 'core/editor' );
+				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'content' ) || '' ) : '';
+			} catch ( e ) {
+				return '';
+			}
+		}, [] );
+
+		var description = 'string' === typeof props.description ? props.description : '';
+		var signature = bridge ? bridge.signature( bridge.buildInput( { title: title, description: description, slug: slug, content: content, keywords: keywords }, cfg ) ) : '';
 
 		var resultState = useState( null );
 		var result = resultState[ 0 ];
@@ -1568,6 +1588,7 @@
 		var selectedState = useState( 0 );
 		var selected = selectedState[ 0 ];
 		var setSelected = selectedState[ 1 ];
+		var lastSignature = useRef( null );
 
 		var liveScore = result && 'number' === typeof result.score ? result.score : null;
 		var liveBand = result ? result.band : null;
@@ -1583,85 +1604,47 @@
 			return undefined;
 		}, [ liveScore, liveBand ] );
 
-		var title = draft ? draft.title : '';
-		var content = draft ? draft.content : '';
-		var slug = draft ? draft.slug : '';
-		var description = 'string' === typeof props.description ? props.description : '';
-
 		useEffect( function () {
-			if ( ! path || '' === keywordKey ) {
+			if ( ! path || ! analyzer || ! bridge || '' === keywordKey ) {
+				lastSignature.current = null;
 				setResult( null );
 				setError( '' );
 				if ( typeof props.onScore === 'function' ) { props.onScore( null ); }
 				return undefined;
 			}
 
-			// A request is issued only after the writer stops changing the
-			// analysed inputs, because every input change clears the timer and
-			// aborts an in flight request before scheduling the next one. A
-			// slower earlier reply must never overwrite a newer one, and an
-			// unmount must not set state, so every run cancels on cleanup.
+			// Identical inputs never re-score.
+			if ( ! bridge.shouldRun( lastSignature.current, signature ) ) {
+				return undefined;
+			}
+
+			// The run is debounced. The cleanup clears the pending timer and
+			// flags the run cancelled, so a stale run never sets state. A
+			// synchronous local run cannot be aborted halfway, so the timer
+			// and the flag are the whole cancellation story.
 			var cancelled = false;
-			var controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
-
 			var timer = window.setTimeout( function () {
-				window.fetch( path, {
-					method: 'POST',
-					credentials: 'same-origin',
-					signal: controller ? controller.signal : undefined,
-					headers: {
-						'Content-Type': 'application/json',
-						'X-WP-Nonce': nonce
-					},
-					body: JSON.stringify( {
-						post_id: cfg.postId,
-						title: title,
-						description: description,
-						slug: slug,
-						content: content,
-						keywords: keywords
-					} )
-				} ).then( function ( response ) {
-					var status = response.status;
-					return response.json().then(
-						function ( data ) {
-							return { ok: response.ok, status: status, data: data };
-						},
-						function () {
-							return { ok: false, status: status, data: null };
-						}
-					);
-				} ).then( function ( reply ) {
-					if ( cancelled ) {
-						return;
-					}
+				if ( cancelled ) {
+					return;
+				}
 
-					if ( ! reply.ok || ! reply.data ) {
-						setResult( null );
-						setError( 403 === reply.status ? __( 'Save the post once, then run the analysis.', 'rankkernel' ) : __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
-						return;
-					}
+				var input = bridge.buildInput( { title: title, description: description, slug: slug, content: content, keywords: keywords }, cfg );
+				lastSignature.current = bridge.signature( input );
 
+				try {
 					setError( '' );
-					setResult( reply.data );
-				} ).catch( function () {
-					if ( cancelled ) {
-						return;
-					}
-
+					setResult( analyzer.analyze( input, { translate: analyseText, stripAccents: true } ) );
+				} catch ( e ) {
 					setResult( null );
 					setError( __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
-				} );
-			}, 700 );
+				}
+			}, ANALYSIS_DEBOUNCE_MS );
 
 			return function () {
 				cancelled = true;
-				if ( controller ) {
-					controller.abort();
-				}
 				window.clearTimeout( timer );
 			};
-		}, [ path, nonce, keywordKey, title, content, slug, description ] );
+		}, [ path, signature, keywordKey, title, content, slug, description ] );
 
 		if ( ! path ) {
 			return null;
