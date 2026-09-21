@@ -477,4 +477,30 @@ final class AnalyzerTest extends TestCase {
 		$this->assertLessThan( 81, $result['score'] );
 		$this->assertSame( Analyzer::BAND_IMPROVE, $result['band'] );
 	}
+
+	/**
+	 * Test a low density passes, because there is no minimum.
+	 */
+	public function test_low_density_passes_under_the_ceiling(): void {
+		$filler = implode( ' ', array_fill( 0, 100, 'word' ) );
+
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>' . $filler . ' red apples</p>' ] ) );
+
+		$check = $this->check( $result, 'keyword_density' );
+
+		$this->assertSame( Analyzer::PASS, $check['status'] );
+		$this->assertStringContainsString( 'no ideal keyword density', $check['message'] );
+	}
+
+	/**
+	 * Test a density above the ceiling is flagged as unnatural.
+	 */
+	public function test_density_above_the_ceiling_is_flagged(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>red apples red apples red apples and nothing else at all here</p>' ] ) );
+
+		$check = $this->check( $result, 'keyword_density' );
+
+		$this->assertSame( Analyzer::IMPROVE, $check['status'] );
+		$this->assertStringContainsString( 'unnatural', $check['message'] );
+	}
 }

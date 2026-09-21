@@ -547,11 +547,26 @@ final class Analyzer {
 		$template = __( 'Your keyword appears %1$d time(s), a density of %2$s percent.', 'rankkernel' );
 		$message  = sprintf( $template, $count, number_format_i18n( $density, 2 ) );
 
-		if ( $density >= 0.5 && $density <= 2.5 ) {
-			return $this->result( 'keyword_density', 'seo', self::PASS, self::WEIGHTS['keyword_density'], $message );
+		// A ceiling only. Google states there is no optimal density and defines
+		// stuffing as repetition that reads unnaturally, so a minimum would only
+		// pressure a writer into repeating the phrase.
+		if ( $density <= 2.5 ) {
+			return $this->result(
+				'keyword_density',
+				'seo',
+				self::PASS,
+				self::WEIGHTS['keyword_density'],
+				$message . ' ' . __( 'Google states there is no ideal keyword density, so a lower figure is fine.', 'rankkernel' )
+			);
 		}
 
-		return $this->result( 'keyword_density', 'seo', self::IMPROVE, 2, $message );
+		return $this->result(
+			'keyword_density',
+			'seo',
+			self::IMPROVE,
+			2,
+			$message . ' ' . __( 'Above 2.5 percent the repetition can read as unnatural, which Google defines as keyword stuffing.', 'rankkernel' )
+		);
 	}
 
 	/**
