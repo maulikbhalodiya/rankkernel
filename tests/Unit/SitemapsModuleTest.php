@@ -67,6 +67,8 @@ final class SitemapsModuleTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		// The memo is a process-wide static, so it outlives this test unless cleared.
+		SitemapCache::resetValidatorCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -260,6 +262,58 @@ final class SitemapsModuleTest extends TestCase {
 		$second->boot();
 
 		$this->assertSame( $storedBefore, $stored );
+	}
+
+	/**
+	 * Test the version bump retires a validator the request already memoized.
+	 *
+	 * The bump writes the validator option directly, bypassing SitemapCache, so
+	 * without a reset the memo keeps answering with the pre-bump value for the
+	 * rest of the request and cached XML from the old code survives the upgrade.
+	 */
+	public function test_boot_version_bump_retires_the_memoized_validator(): void {
+		SitemapCache::resetValidatorCache();
+
+		$stored      = [];
+		$globalReads = 0;
+
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'wp_rand' )->justReturn( 12345 );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$stored, &$globalReads ): mixed {
+				if ( SitemapCache::VALIDATOR_GLOBAL === $key ) {
+					++$globalReads;
+				}
+
+				return $stored[ $key ] ?? $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$stored ): bool {
+				$stored[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		$cache = new SitemapCache();
+
+		$cache->store( 'post', 1, '<xml>1</xml>' );
+		$afterFirstRead = $globalReads;
+		$this->assertGreaterThan( 0, $afterFirstRead, 'The first read must reach storage' );
+
+		$cache->store( 'post', 2, '<xml>2</xml>' );
+		$this->assertSame( $afterFirstRead, $globalReads, 'A repeated read must be served by the memo' );
+
+		$module = new SitemapsModule();
+		$module->register();
+		$module->boot();
+
+		$this->assertArrayHasKey( SitemapCache::VALIDATOR_GLOBAL, $stored, 'The upgrade must bump the validator' );
+
+		$cache->store( 'post', 3, '<xml>3</xml>' );
+		$this->assertGreaterThan( $afterFirstRead, $globalReads, 'The bump must retire the memo so the next read is fresh' );
 	}
 
 	/**
