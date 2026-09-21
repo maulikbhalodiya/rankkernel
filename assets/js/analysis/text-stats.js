@@ -68,9 +68,161 @@
 		return phpTrim( text );
 	}
 
+	var WORD_SPLIT = /[^\p{L}\p{N}'\u2019-]+/u;
+	var WORD_EDGE = /^['\u2019-]+|['\u2019-]+$/g;
+
+	function words( text ) {
+		var parts = String( text == null ? '' : text ).split( WORD_SPLIT );
+		var out = [];
+		for ( var i = 0; i < parts.length; i++ ) {
+			var part = parts[ i ].replace( WORD_EDGE, '' );
+			if ( '' !== part ) {
+				out.push( part );
+			}
+		}
+		return out;
+	}
+
+	function sentences( text ) {
+		var out = [];
+		var lines = String( text == null ? '' : text ).split( '\n' );
+		for ( var i = 0; i < lines.length; i++ ) {
+			var line = phpTrim( lines[ i ] );
+			if ( '' === line ) {
+				continue;
+			}
+			var parts = line.split( /(?<=[.!?])\s+/u );
+			for ( var j = 0; j < parts.length; j++ ) {
+				var part = phpTrim( parts[ j ] );
+				if ( '' !== part ) {
+					out.push( part );
+				}
+			}
+		}
+		return out;
+	}
+
+	function paragraphs( text ) {
+		var parts = String( text == null ? '' : text ).split( /\n+/ );
+		var out = [];
+		for ( var i = 0; i < parts.length; i++ ) {
+			var part = phpTrim( parts[ i ] );
+			if ( '' !== part ) {
+				out.push( part );
+			}
+		}
+		return out;
+	}
+
+	function headings( html ) {
+		var out = [];
+		var pattern = /<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi;
+		var match;
+		while ( ( match = pattern.exec( String( html == null ? '' : html ) ) ) !== null ) {
+			out.push( { level: parseInt( match[ 1 ], 10 ), text: plainText( match[ 2 ] ) } );
+		}
+		return out;
+	}
+
+	function imageAlts( html ) {
+		var out = [];
+		var tags = String( html == null ? '' : html ).match( /<img\b[^>]*>/gi ) || [];
+		for ( var i = 0; i < tags.length; i++ ) {
+			var alt = tags[ i ].match( /\balt\s*=\s*("([^"]*)"|'([^']*)')/i );
+			out.push( alt ? ( alt[ 2 ] !== undefined ? alt[ 2 ] : alt[ 3 ] ) : '' );
+		}
+		return out;
+	}
+
+	function links( html ) {
+		var out = [];
+		var pattern = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+		var match;
+		while ( ( match = pattern.exec( String( html == null ? '' : html ) ) ) !== null ) {
+			var attrs = match[ 1 ];
+			var hrefMatch = attrs.match( /\bhref\s*=\s*("([^"]*)"|'([^']*)')/i );
+			var relMatch = attrs.match( /\brel\s*=\s*("([^"]*)"|'([^']*)')/i );
+			var rawHref = hrefMatch ? ( hrefMatch[ 2 ] !== undefined ? hrefMatch[ 2 ] : hrefMatch[ 3 ] ) : '';
+			var rawRel = relMatch ? ( relMatch[ 2 ] !== undefined ? relMatch[ 2 ] : relMatch[ 3 ] ) : '';
+			out.push( { href: decodeEntities( rawHref ), rel: rawRel.toLowerCase(), text: plainText( match[ 2 ] ) } );
+		}
+		return out;
+	}
+
+	function media( html ) {
+		var text = String( html == null ? '' : html );
+		var images = ( text.match( /<img\b[^>]*>/gi ) || [] ).length + ( text.match( /\[gallery\b[^\]]*\]/gi ) || [] ).length;
+		var videos = ( text.match( /<video\b[^>]*>|<iframe\b[^>]*(youtube|vimeo)[^>]*>|\[video\b[^\]]*\]/gi ) || [] ).length;
+		return { images: images, videos: videos };
+	}
+
+	function hasToc( html ) {
+		return /wp:rankkernel\/toc|\[rankkernel_toc|wp-block-rank-math-toc-block|\[toc\b/i.test( String( html == null ? '' : html ) );
+	}
+
+	function longSentenceRatio( list, limit ) {
+		if ( ! list || 0 === list.length ) {
+			return 0;
+		}
+		var long = 0;
+		for ( var i = 0; i < list.length; i++ ) {
+			if ( words( list[ i ] ).length > limit ) {
+				long++;
+			}
+		}
+		return long / list.length;
+	}
+
+	function longestParagraph( list ) {
+		var max = 0;
+		for ( var i = 0; i < list.length; i++ ) {
+			var count = words( list[ i ] ).length;
+			if ( count > max ) {
+				max = count;
+			}
+		}
+		return max;
+	}
+
+	function longestRepeatedOpening( list ) {
+		var previous = null;
+		var run = 0;
+		var max = 0;
+		for ( var i = 0; i < list.length; i++ ) {
+			var first = words( list[ i ] );
+			var head = first.length > 0 ? first[ 0 ].toLowerCase() : '';
+			if ( null !== previous && '' !== previous && previous === head ) {
+				run++;
+			} else {
+				run = 1;
+			}
+			previous = head;
+			if ( run > max ) {
+				max = run;
+			}
+		}
+		return max;
+	}
+
+	function readingTime( wordCount ) {
+		return Math.max( 1, Math.ceil( wordCount / 200 ) );
+	}
+
 	return {
 		decodeEntities: decodeEntities,
 		phpTrim: phpTrim,
-		plainText: plainText
+		plainText: plainText,
+		words: words,
+		sentences: sentences,
+		paragraphs: paragraphs,
+		headings: headings,
+		imageAlts: imageAlts,
+		links: links,
+		media: media,
+		hasToc: hasToc,
+		longSentenceRatio: longSentenceRatio,
+		longestParagraph: longestParagraph,
+		longestRepeatedOpening: longestRepeatedOpening,
+		readingTime: readingTime
 	};
 } ) );
