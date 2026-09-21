@@ -50,18 +50,33 @@ final class AnalysisColumn {
 	}
 
 	/**
-	 * Register the column, its sort, the cache priming and the asset gate.
+	 * Register the generic hooks and defer the per type column hooks.
 	 */
 	public function register(): void {
+		// The column filter names are built from the post type, so the type
+		// list has to be resolved after every init registration has run. A
+		// public CPT registered after this module boots would otherwise be
+		// scorable through the runtime guard but have no column. admin_init
+		// runs after init and before the list table is built.
+		add_action( 'admin_init', [ $this, 'registerColumns' ] );
+
+		add_action( 'pre_get_posts', [ $this, 'orderBy' ] );
+		add_filter( 'the_posts', [ $this, 'primeMetaCache' ], 10, 2 );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
+	}
+
+	/**
+	 * Register the per type column, render and sort hooks.
+	 *
+	 * The supported type list is read here, not at boot, so a public post type
+	 * registered later on init still gets a column.
+	 */
+	public function registerColumns(): void {
 		foreach ( AnalysisScore::supportedPostTypes() as $postType ) {
 			add_filter( 'manage_' . $postType . '_posts_columns', [ $this, 'addColumn' ] );
 			add_action( 'manage_' . $postType . '_posts_custom_column', [ $this, 'renderColumn' ], 10, 2 );
 			add_filter( 'manage_edit-' . $postType . '_sortable_columns', [ $this, 'addSortableColumn' ] );
 		}
-
-		add_action( 'pre_get_posts', [ $this, 'orderBy' ] );
-		add_filter( 'the_posts', [ $this, 'primeMetaCache' ], 10, 2 );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
 	}
 
 	/**

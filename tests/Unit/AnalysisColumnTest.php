@@ -178,10 +178,24 @@ final class AnalysisColumnTest extends TestCase {
 	}
 
 	/**
-	 * Register wires a column, a sortable header, a sort and an enqueue per type.
+	 * Register wires the deferred type pass and the generic hooks.
 	 */
-	public function test_register_wires_the_column(): void {
+	public function test_register_wires_the_generic_hooks(): void {
 		( new AnalysisColumn() )->register();
+
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'admin_init', $hooks );
+		$this->assertContains( 'pre_get_posts', $hooks );
+		$this->assertContains( 'the_posts', $hooks );
+		$this->assertContains( 'admin_enqueue_scripts', $hooks );
+	}
+
+	/**
+	 * The deferred pass wires a column, a sortable header and a sort per type.
+	 */
+	public function test_register_columns_wires_the_column(): void {
+		( new AnalysisColumn() )->registerColumns();
 
 		$hooks = array_column( $this->hooks, 'hook' );
 
@@ -189,21 +203,50 @@ final class AnalysisColumnTest extends TestCase {
 		$this->assertContains( 'manage_post_posts_custom_column', $hooks );
 		$this->assertContains( 'manage_edit-post_sortable_columns', $hooks );
 		$this->assertContains( 'manage_page_posts_columns', $hooks );
-		$this->assertContains( 'pre_get_posts', $hooks );
-		$this->assertContains( 'the_posts', $hooks );
-		$this->assertContains( 'admin_enqueue_scripts', $hooks );
 	}
 
 	/**
 	 * The supported type rule drives registration, so attachments get nothing.
 	 */
 	public function test_register_skips_attachments(): void {
-		( new AnalysisColumn() )->register();
+		( new AnalysisColumn() )->registerColumns();
 
 		$hooks = array_column( $this->hooks, 'hook' );
 
 		$this->assertNotContains( 'manage_attachment_posts_columns', $hooks );
 		$this->assertNotContains( 'manage_edit-attachment_sortable_columns', $hooks );
+	}
+
+	/**
+	 * A public CPT registered after the module boots still gets a column,
+	 * because the supported type list is resolved when admin_init fires.
+	 */
+	public function test_late_registered_post_type_gets_a_column(): void {
+		Functions\when( 'get_post_types' )->alias(
+			static fn (): array => [
+				'post'       => 'post',
+				'attachment' => 'attachment',
+			]
+		);
+
+		$column = new AnalysisColumn();
+		$column->register();
+
+		// The CPT registers after the analysis module booted.
+		Functions\when( 'get_post_types' )->alias(
+			static fn (): array => [
+				'post'       => 'post',
+				'product'    => 'product',
+				'attachment' => 'attachment',
+			]
+		);
+
+		$column->registerColumns();
+
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'manage_product_posts_columns', $hooks );
+		$this->assertContains( 'manage_edit-product_sortable_columns', $hooks );
 	}
 
 	/**

@@ -243,7 +243,7 @@ final class AnalysisModuleTest extends TestCase {
 	}
 
 	/**
-	 * An enabled module wires the score column.
+	 * An enabled module wires the score column through the deferred pass.
 	 */
 	public function test_enabled_module_wires_the_score_column(): void {
 		$this->options['rankkernel_modules'] = [ 'analysis' ];
@@ -253,7 +253,21 @@ final class AnalysisModuleTest extends TestCase {
 
 		$hooks = array_column( $this->hooks, 'hook' );
 
-		$this->assertContains( 'manage_post_posts_columns', $hooks );
+		$this->assertContains( 'admin_init', $hooks );
 		$this->assertContains( 'pre_get_posts', $hooks );
+
+		$adminInit = array_values(
+			array_filter( $this->hooks, static fn ( array $hook ): bool => 'admin_init' === $hook['hook'] )
+		);
+
+		$this->assertNotEmpty( $adminInit );
+
+		$registerColumns = $adminInit[0]['callback'];
+		$registerColumns();
+
+		$after = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'manage_post_posts_columns', $after );
+		$this->assertContains( 'manage_edit-post_sortable_columns', $after );
 	}
 }
