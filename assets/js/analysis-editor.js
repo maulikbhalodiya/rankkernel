@@ -327,18 +327,88 @@
 		contentField.addEventListener( 'input', schedule );
 	}
 
-	if ( window.tinymce ) {
-		var bindEditor = function () {
-			var editor = window.tinymce.get( 'content' ) || window.tinymce.activeEditor;
+	// WordPress prints tinymce.js and creates the editor after the footer
+	// scripts have run, so this file normally starts before window.tinymce
+	// exists. The body editor is therefore bound on three paths: right away
+	// when it already exists, from AddEditor when tinymce loads first and the
+	// editor is created later, and from a bounded retry when this file runs
+	// before tinymce itself. Every path only attaches a listener, and the
+	// retry stops as soon as one content editor is bound.
+	var BIND_RETRY_MS = 250;
+	var BIND_RETRY_LIMIT = 40;
+	var bindAttempts = 0;
+	var bindTimer = null;
+	var addEditorHooked = false;
 
-			if ( editor && ! editor.rankkernelAnalysisBound ) {
-				editor.rankkernelAnalysisBound = true;
-				editor.on( 'input change keyup', schedule );
+	function stopBindRetry() {
+		if ( null !== bindTimer ) {
+			clearInterval( bindTimer );
+			bindTimer = null;
+		}
+	}
+
+	function bindEditor( editor ) {
+		if ( ! editor ) {
+			if ( ! window.tinymce || 'function' !== typeof window.tinymce.get ) {
+				return false;
 			}
-		};
 
-		bindEditor();
-		window.tinymce.on( 'AddEditor', bindEditor );
+			try {
+				editor = window.tinymce.get( 'content' ) || window.tinymce.activeEditor;
+			} catch ( e ) {
+				return false;
+			}
+		}
+
+		if ( ! editor || editor.rankernelAnalysisBound || 'function' !== typeof editor.on ) {
+			return false;
+		}
+
+		editor.rankernelAnalysisBound = true;
+		editor.on( 'input change keyup', schedule );
+		stopBindRetry();
+
+		return true;
+	}
+
+	function hookAddEditor() {
+		if ( addEditorHooked || ! window.tinymce || 'function' !== typeof window.tinymce.on ) {
+			return;
+		}
+
+		addEditorHooked = true;
+
+		window.tinymce.on( 'AddEditor', function ( event ) {
+			var added = event && event.editor;
+
+			// A different wp_editor field is not the post body.
+			if ( added && 'content' !== added.id ) {
+				return;
+			}
+
+			bindEditor( added );
+		} );
+	}
+
+	function attemptBind() {
+		if ( bindEditor() ) {
+			return;
+		}
+
+		hookAddEditor();
+
+		bindAttempts++;
+
+		if ( bindAttempts >= BIND_RETRY_LIMIT ) {
+			stopBindRetry();
+		}
+	}
+
+	// tinymce may already be on the page. The editor may not.
+	hookAddEditor();
+
+	if ( ! bindEditor() ) {
+		bindTimer = setInterval( attemptBind, BIND_RETRY_MS );
 	}
 
 	schedule();
