@@ -2,35 +2,45 @@
  * RankKernel content analysis panel (Classic Editor).
  *
  * Plain script, no build step, no dependencies. Reads the Classic fields
- * directly, posts the current draft to the analysis route and renders the
- * returned checklist. The transport comes from window.rankkernelMetaEditor,
- * so when the analysis module is off there is no path and this file does
- * nothing at all.
+ * directly, scores the draft locally through window.RankKernelAnalysis and
+ * renders the checklist. It issues no network request. The transport comes
+ * from window.rankkernelMetaEditor, so when the analysis module is off there
+ * is no path and this file does nothing at all.
  *
- * Every request is debounced and the newest reply wins: a slower earlier
- * response can never overwrite a newer one. Pass and needs work rows carry
- * a screen reader label, so the state is never colour alone.
+ * Every run is debounced, a newer input cancels a pending run, and identical
+ * inputs are skipped by signature, so a slow run can never overwrite a newer
+ * one. Pass and needs work rows carry a screen reader label, so the state is
+ * never colour alone.
  */
 ( function () {
 	'use strict';
 
 	var cfg = window.rankkernelMetaEditor || {};
 	var analysis = cfg.analysis || null;
+	var engine = window.RankKernelAnalysis || {};
+	var analyzer = engine.Analyzer || null;
+	var bridge = engine.EditorBridge || null;
 
-	// A disabled module registers no route, so there is nothing to run.
-	if ( ! analysis || ! analysis.path ) {
+	// A disabled module registers no route, so there is nothing to run. The
+	// panel is only enqueued beside the engine, so both are present together.
+	if ( ! analysis || ! analysis.path || ! analyzer || ! bridge ) {
 		return;
 	}
 
-	var __ = window.wp && window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
-
-	var DEBOUNCE_MS = 700;
+	var DEBOUNCE_MS = 200;
 	var FAIL_MESSAGE = 'The analysis could not be run. Try again.';
-	var PERMISSION_MESSAGE = 'Save the post once, then run the analysis.';
 	var EMPTY_MESSAGE = 'Add a focus keyword to run the content analysis.';
 	var LOADING_MESSAGE = 'Analysing the current draft…';
 
-	var ANALYSIS_HONESTY = __( 'This score measures your content against a checklist. It does not predict rankings.', 'rankkernel' );
+	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+
+	function translate( text ) {
+		if ( window.wp && window.wp.i18n && 'function' === typeof window.wp.i18n.__ ) {
+			return window.wp.i18n.__( text, 'rankkernel' );
+		}
+
+		return text;
+	}
 
 	function bandClass( band ) {
 		if ( 'good' === band ) {
@@ -47,15 +57,15 @@
 
 	function bandLabel( band ) {
 		if ( 'good' === band ) {
-			return __( 'Good', 'rankkernel' );
+			return 'Good';
 		}
 		if ( 'improve' === band ) {
-			return __( 'Needs improvement', 'rankkernel' );
+			return 'Needs improvement';
 		}
 		if ( 'problem' === band ) {
-			return __( 'Poor', 'rankkernel' );
+			return 'Poor';
 		}
-		return __( 'Not analysed', 'rankkernel' );
+		return 'Not analysed';
 	}
 
 	function scoreSlot() {
@@ -77,9 +87,9 @@
 		return;
 	}
 
-	var latest = 0;
+	var lastSignature = null;
+	var generation = 0;
 	var timer = null;
-	var controller = null;
 	var hasResult = false;
 
 	function valueOf( id ) {
@@ -168,17 +178,12 @@
 			}
 		}
 
-		var failCount = 0;
 		var list = document.createElement( 'ul' );
 		list.className = 'rk-checklist-items';
 
 		for ( i = 0; i < checks.length; i++ ) {
 			var check = checks[ i ];
 			var ok = 'pass' === check.status;
-
-			if ( ! ok ) {
-				failCount++;
-			}
 
 			var item = document.createElement( 'li' );
 			item.className = 'rk-checklist-item ' + ( ok ? 'is-ok' : 'is-fail' );
@@ -210,9 +215,9 @@
 			var pill = document.createElement( 'span' );
 			pill.className = 'rk-checklist-badge ' + bandClass( data.band );
 
-		var scoreSpoken = document.createElement( 'span' );
-		scoreSpoken.className = 'screen-reader-text';
-		scoreSpoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
+			var scoreSpoken = document.createElement( 'span' );
+			scoreSpoken.className = 'screen-reader-text';
+			scoreSpoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
 
 			var value = document.createElement( 'span' );
 			value.setAttribute( 'aria-hidden', 'true' );
@@ -235,75 +240,50 @@
 		hasResult = true;
 	}
 
-	function request() {
-		var list = keywords();
+	function run( token ) {
+		// A newer schedule has already replaced this one.
+		if ( token !== generation ) {
+			return;
+		}
 
-		if ( ! list.length ) {
+		var fields = {
+			title: postTitle(),
+			description: valueOf( 'rankkernel-meta-description' ),
+			slug: postSlug(),
+			content: editorContent(),
+			keywords: keywords()
+		};
+		var input = bridge.buildInput( fields, cfg );
+		var nextSignature = bridge.signature( input );
+
+		// Identical inputs never re-score, which is the cheap change check.
+		if ( ! bridge.shouldRun( lastSignature, nextSignature ) ) {
+			return;
+		}
+
+		lastSignature = nextSignature;
+
+		if ( ! input.keywords.length ) {
 			hasResult = false;
 			setMessage( EMPTY_MESSAGE, false );
 			return;
 		}
 
-		latest++;
-		var id = latest;
-
-		if ( controller ) {
-			controller.abort();
-		}
-
-		controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
-
 		if ( ! hasResult ) {
 			setMessage( LOADING_MESSAGE, false );
 		}
 
-		window.fetch( analysis.path, {
-			method: 'POST',
-			credentials: 'same-origin',
-			signal: controller ? controller.signal : undefined,
-			headers: {
-				'Content-Type': 'application/json',
-				'X-WP-Nonce': analysis.nonce
-			},
-			body: JSON.stringify( {
-				post_id: cfg.postId,
-				title: postTitle(),
-				description: valueOf( 'rankkernel-meta-description' ),
-				slug: postSlug(),
-				content: editorContent(),
-				keywords: list
-			} )
-		} ).then( function ( response ) {
-			var status = response.status;
+		var result = null;
 
-			return response.json().then(
-				function ( data ) {
-					return { ok: response.ok, status: status, data: data };
-				},
-				function () {
-					return { ok: false, status: status, data: null };
-				}
-			);
-		} ).then( function ( reply ) {
-			if ( id !== latest ) {
-				return;
-			}
-
-			if ( ! reply.ok || ! reply.data ) {
-				hasResult = false;
-				setMessage( 403 === reply.status ? PERMISSION_MESSAGE : FAIL_MESSAGE, true );
-				return;
-			}
-
-			render( reply.data );
-		} ).catch( function () {
-			if ( id !== latest ) {
-				return;
-			}
-
+		try {
+			result = analyzer.analyze( input, { translate: translate, stripAccents: true } );
+		} catch ( e ) {
 			hasResult = false;
 			setMessage( FAIL_MESSAGE, true );
-		} );
+			return;
+		}
+
+		render( result );
 	}
 
 	function schedule() {
@@ -311,7 +291,14 @@
 			clearTimeout( timer );
 		}
 
-		timer = setTimeout( request, DEBOUNCE_MS );
+		// A run that a newer input replaced must not write its result.
+		generation++;
+		var token = generation;
+
+		timer = setTimeout( function () {
+			timer = null;
+			run( token );
+		}, DEBOUNCE_MS );
 	}
 
 	var watchedIds = [
