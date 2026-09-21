@@ -17,6 +17,7 @@ use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\Redirector;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Redirects\RedirectsSettings;
+use RankKernel\Modules\Redirects\RedirectTable;
 
 /**
  * Redirects Redirector Test.
@@ -483,5 +484,33 @@ final class RedirectsRedirectorTest extends TestCase {
 		);
 
 		$this->assertCount( 1, $found );
+	}
+
+	/**
+	 * Test the blocked homepage returns before the table probe a normal source pays.
+	 */
+	public function test_blocked_source_returns_before_the_table_probe(): void {
+		$this->seedExact();
+
+		$_SERVER['REQUEST_URI'] = '/';
+
+		Redirector::resetSent();
+		RedirectTable::resetCache();
+		$this->db->schemaProbes = 0;
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertSame( [], $this->redirects, 'The homepage must not redirect' );
+		$this->assertSame( 0, $this->db->schemaProbes, 'A blocked source must not probe the redirect table' );
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		Redirector::resetSent();
+		RedirectTable::resetCache();
+		$this->db->schemaProbes = 0;
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertSame( 1, $this->db->schemaProbes, 'A normal source still probes the table exactly once' );
 	}
 }

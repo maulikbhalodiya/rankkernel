@@ -141,15 +141,16 @@ final class Redirector {
 			}
 		}
 
-		if ( ! RedirectTable::exists() ) {
-			return;
-		}
-
+		// Normalize request URI early to return immediately for blocked sources without probing table existence.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- frontend dispatch runs outside any form context, the raw URI is parsed and normalized before use and never echoed.
 		$rawUri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
 		$path   = Normalizer::normalize( $rawUri );
 
 		if ( Normalizer::isBlockedSource( $path ) ) {
+			return;
+		}
+
+		if ( ! RedirectTable::exists() ) {
 			return;
 		}
 
