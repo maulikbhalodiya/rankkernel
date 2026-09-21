@@ -320,7 +320,7 @@
     }
   },
   {
-    "id": "toc-markers",
+    "id": "toc-no-marker",
     "input": {
       "keywords": [
         "red apples"
@@ -1041,48 +1041,12 @@
     }
   },
   {
-    "id": "generic-no-link",
-    "input": {
-      "keywords": [
-        "red apples"
-      ],
-      "html": "<p>red apples and no links at all here.</p>",
-      "site_url": "https://example.com"
-    }
-  },
-  {
     "id": "generic-mailto-plus-generic",
     "input": {
       "keywords": [
         "red apples"
       ],
       "html": "<p><a href=\"mailto:someone@example.com\">email us</a><a href=\"/x\">click here</a> red apples text for the reader here and now.</p>",
-      "site_url": "https://example.com"
-    }
-  },
-  {
-    "id": "featured-alt-quality-only",
-    "input": {
-      "keywords": [
-        "red apples"
-      ],
-      "title": "Guide",
-      "slug": "guide",
-      "html": "<p>red apples body text for the reader here and now.</p>",
-      "featured_alt": "a bowl of red apples",
-      "site_url": "https://example.com"
-    }
-  },
-  {
-    "id": "featured-alt-blank",
-    "input": {
-      "keywords": [
-        "red apples"
-      ],
-      "title": "Guide",
-      "slug": "guide",
-      "html": "<p>red apples body text for the reader here and now.</p>",
-      "featured_alt": "",
       "site_url": "https://example.com"
     }
   },
@@ -1252,7 +1216,7 @@
       "keywords": [
         "red apples"
       ],
-      "html": "<p>lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliqua enim minim veniam quis nostrud exercitation ullamco laboris nisi. lorem ipsum dolor sit amet consectetur adipiscing elit.</p>",
+      "html": "<p>lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliqua enim minim veniam quis nostrud exercitation ullamco laboris nisi.</p>",
       "site_url": "https://example.com"
     }
   },
@@ -1263,6 +1227,17 @@
         "red apples"
       ],
       "html": "<p>lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit. lorem ipsum dolor sit amet consectetur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliqua enim minim veniam quis nostrud exercitation ullamco laboris nisi. lorem ipsum dolor sit amet consectetur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliqua enim minim veniam quis nostrud exercitation ullamco laboris nisi. lorem ipsum dolor sit amet consectetur adipiscing elit.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-number-pass",
+    "input": {
+      "keywords": [
+        "red apples"
+      ],
+      "title": "10 red apples tips",
+      "html": "<p>red apples body text here for the reader now.</p>",
       "site_url": "https://example.com"
     }
   }

@@ -25,11 +25,76 @@ const PHP_SOURCE = require( './parity/php-runner.js' );
 
 // tests/js/parity.test.js, so the plugin root is two levels up.
 const root = path.resolve( __dirname, '..', '..' );
-const fixtures = JSON.parse( readFileSync( path.join( __dirname, 'parity', 'fixtures.json' ), 'utf8' ) );
+const fixtureFile = JSON.parse( readFileSync( path.join( __dirname, 'parity', 'fixtures.json' ), 'utf8' ) );
 
-const KNOWN_DIVERGENCES = {};
+// Size driven bodies live here rather than in fixtures.json, which task 8 kept
+// free of blobs, but they travel through the same comparison as every fixture
+// in the file.
+const generatedFixtures = [ longBodyFixture() ];
+const fixtures = fixtureFile.concat( generatedFixtures );
+
+// Pinned so that deleting a fixture nobody names in an assertion fails loudly
+// instead of silently shrinking parity coverage.
+const FIXTURE_FILE_INVENTORY = 119;
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
+
+// The table of contents check only improves past 1500 words with no TOC marker.
+// The body is generated instead of stored so fixtures.json stays free of large
+// blobs, and it is compared between both engines like every other fixture.
+function longBodyFixture() {
+	const sentence = 'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu. ';
+	let body = '';
+
+	while ( TextStats.words( body ).length < 1560 ) {
+		body += sentence;
+	}
+
+	return {
+		id: 'toc-improve-long-body',
+		input: {
+			keywords: [ 'red apples' ],
+			html: '<p>' + body.trim() + '</p>',
+			site_url: 'https://example.com'
+		}
+	};
+}
+
+// A message template becomes a pattern because rendered messages carry values
+// and some concatenate templates, for example the density count plus its
+// suffix. `%s` and `%d` become wildcards, everything else is escaped, and the
+// template is matched as a substring of the rendered message.
+function templatePattern( name ) {
+	const stringSlot = '\u0001';
+	const digitSlot = '\u0002';
+
+	const escaped = AnalysisFormat.MESSAGES[ name ]
+		.replace( /%(?:\d+\$)?([sd])/g, ( match, type ) => ( 'd' === type ? digitSlot : stringSlot ) )
+		.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+
+	return new RegExp( escaped.split( stringSlot ).join( '.+?' ).split( digitSlot ).join( '\\d+' ) );
+}
+
+// Every message the compared payload produced, from the main checks and from
+// the supporting keyword checks, in both engines.
+function everyMessage() {
+	const messages = [];
+
+	for ( const engine of [ php, js ] ) {
+		for ( const id of Object.keys( engine ) ) {
+			for ( const check of engine[ id ].checks ) {
+				messages.push( check.message );
+			}
+			for ( const keyword of engine[ id ].keywords ) {
+				for ( const check of keyword.checks ) {
+					messages.push( check.message );
+				}
+			}
+		}
+	}
+
+	return messages;
+}
 
 function phpPayload() {
 	const output = execFileSync( 'php', [ '-r', PHP_SOURCE ], {
@@ -65,7 +130,6 @@ function jsPayload() {
 const payload = phpPayload();
 const php = payload.fixtures;
 const js = jsPayload();
-const compared = fixtures.filter( ( fixture ) => ! Object.prototype.hasOwnProperty.call( KNOWN_DIVERGENCES, fixture.id ) );
 
 function checkById( engine, id, checkId ) {
 	const found = engine[ id ].checks.filter( ( check ) => check.id === checkId )[ 0 ];
@@ -95,9 +159,39 @@ test( 'the fixture file carries unique ids', () => {
 	}
 } );
 
+test( 'the fixture file holds the pinned inventory', () => {
+	assert.equal(
+		fixtureFile.length,
+		FIXTURE_FILE_INVENTORY,
+		'fixtures.json changed size, which silently shrinks parity coverage. Update the pinned inventory deliberately.'
+	);
+} );
+
+test( 'the template matcher resolves placeholders and concatenated messages', () => {
+	const density = AnalysisFormat.format( AnalysisFormat.MESSAGES.density_count, [ 2, '11.11' ] )
+		+ ' '
+		+ AnalysisFormat.format( AnalysisFormat.MESSAGES.density_improve_suffix, [] );
+
+	assert.ok( templatePattern( 'density_count' ).test( density ), 'density count inside a concatenated message' );
+	assert.ok( templatePattern( 'density_improve_suffix' ).test( density ), 'suffix inside a concatenated message' );
+	assert.ok( templatePattern( 'generic_improve' ).test( AnalysisFormat.format( AnalysisFormat.MESSAGES.generic_improve, [ 3 ] ) ), 'a single %d placeholder' );
+	assert.ok( templatePattern( 'image_alt_quality_improve' ).test( AnalysisFormat.format( AnalysisFormat.MESSAGES.image_alt_quality_improve, [ 1, 0 ] ) ), 'two positional %d placeholders' );
+	assert.ok( templatePattern( 'keyword_in_title_pass' ).test( AnalysisFormat.format( AnalysisFormat.MESSAGES.keyword_in_title_pass, [ 'red apples' ] ) ), 'a single %s placeholder' );
+	assert.ok( ! templatePattern( 'title_number_pass' ).test( AnalysisFormat.MESSAGES.title_number_improve ), 'a distinct template must not match' );
+} );
+
+test( 'every message template in the table is reached by at least one compared message', () => {
+	const messages = everyMessage();
+	const unreached = Object.keys( AnalysisFormat.MESSAGES ).filter(
+		( name ) => ! messages.some( ( message ) => templatePattern( name ).test( message ) )
+	);
+
+	assert.deepEqual( unreached, [], 'unreached message templates: ' + unreached.join( ', ' ) );
+} );
+
 test( 'the PHP runner answers with a result for every fixture', () => {
 	assert.equal( Object.keys( php ).length, fixtures.length );
-	for ( const fixture of compared ) {
+	for ( const fixture of fixtures ) {
 		assert.ok( php[ fixture.id ], 'php missing ' + fixture.id );
 		assert.ok( js[ fixture.id ], 'js missing ' + fixture.id );
 		assert.equal( js[ fixture.id ].checks.length, php[ fixture.id ].checks.length, 'check count in ' + fixture.id );
@@ -105,7 +199,7 @@ test( 'the PHP runner answers with a result for every fixture', () => {
 } );
 
 test( 'score and band match for every fixture', () => {
-	for ( const fixture of compared ) {
+	for ( const fixture of fixtures ) {
 		const id = fixture.id;
 		assert.equal( js[ id ].score, php[ id ].score, 'score in ' + id );
 		assert.equal( js[ id ].band, php[ id ].band, 'band in ' + id );
@@ -113,7 +207,7 @@ test( 'score and band match for every fixture', () => {
 } );
 
 test( 'the check ids and their order match for every fixture', () => {
-	for ( const fixture of compared ) {
+	for ( const fixture of fixtures ) {
 		const id = fixture.id;
 		assert.deepEqual(
 			js[ id ].checks.map( ( check ) => check.id ),
@@ -124,7 +218,7 @@ test( 'the check ids and their order match for every fixture', () => {
 } );
 
 test( 'every field of every check matches for every fixture, na included', () => {
-	for ( const fixture of compared ) {
+	for ( const fixture of fixtures ) {
 		const id = fixture.id;
 
 		for ( let index = 0; index < php[ id ].checks.length; index++ ) {
@@ -139,7 +233,7 @@ test( 'every field of every check matches for every fixture, na included', () =>
 } );
 
 test( 'every supporting keyword entry matches for every fixture', () => {
-	for ( const fixture of compared ) {
+	for ( const fixture of fixtures ) {
 		const id = fixture.id;
 		const phpKeywords = php[ id ].keywords;
 		const jsKeywords = js[ id ].keywords;
@@ -288,6 +382,33 @@ test( 'slug_length passes at exactly 75 characters and improves at 76', () => {
 test( 'sentence_length passes at a ratio of exactly 0.25 and improves above it', () => {
 	assertAgree( 'sentence-length-ratio-25', 'sentence_length', 'pass', 3 );
 	assertAgree( 'sentence-length-ratio-above', 'sentence_length', 'improve', 0 );
+
+	for ( const engine of [ php, js ] ) {
+		assert.equal( checkById( engine, 'sentence-length-ratio-25', 'sentence_length' ).message, '25 percent of the sentences are longer than 20 words.' );
+		assert.equal( checkById( engine, 'sentence-length-ratio-above', 'sentence_length' ).message, '33 percent of the sentences are longer than 20 words.' );
+	}
+} );
+
+test( 'title_has_number passes when the title carries a number', () => {
+	assertAgree( 'title-number-pass', 'title_has_number', 'pass', 1 );
+
+	for ( const engine of [ php, js ] ) {
+		assert.equal( checkById( engine, 'title-number-pass', 'title_has_number' ).message, 'The title contains a number.' );
+	}
+} );
+
+test( 'a long body with no table of contents marker reaches the improve message', () => {
+	const generated = generatedFixtures[ 0 ];
+	const body = TextStats.plainText( generated.input.html );
+
+	assert.ok( TextStats.words( body ).length >= 1500, 'the generated body must pass the 1500 word threshold' );
+
+	for ( const engine of [ php, js ] ) {
+		const check = checkById( engine, generated.id, 'table_of_contents' );
+		assert.equal( check.status, 'improve' );
+		assert.equal( check.earned, 0 );
+		assert.equal( check.message, 'Long content reads better with a table of contents.' );
+	}
 } );
 
 test( 'mailto and tel anchors stay out of the generic anchor check', () => {
@@ -303,8 +424,8 @@ test( 'mailto and tel anchors stay out of the generic anchor check', () => {
 test( 'the featured alt feeds the keyword alt check and the alt quality check', () => {
 	assertStatusOnly( 'featured-alt-pass', 'keyword_in_image_alt', 'pass' );
 	assertStatusOnly( 'featured-alt-absent', 'keyword_in_image_alt', 'na' );
-	assertAgree( 'featured-alt-quality-only', 'image_alt_quality', 'pass', 3 );
-	assertStatusOnly( 'featured-alt-blank', 'image_alt_quality', 'na' );
+	assertAgree( 'featured-alt-pass', 'image_alt_quality', 'pass', 3 );
+	assertStatusOnly( 'featured-alt-absent', 'image_alt_quality', 'na' );
 	assertAgree( 'featured-alt-with-images', 'image_alt_quality', 'improve', 0 );
 
 	for ( const engine of [ php, js ] ) {
