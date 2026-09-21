@@ -70,6 +70,20 @@ final class MetadataBox {
 	private const LOCALIZE_NAME   = 'rankkernelMetaEditor';
 
 	/**
+	 * Pure analysis engine parts, registered in load order.
+	 *
+	 * @var array<string, array{0: string, 1: string[]}>
+	 */
+	private const ENGINE_SCRIPTS = [
+		'rankkernel-analysis-text-stats'      => [ 'assets/js/analysis/text-stats.js', [] ],
+		'rankkernel-analysis-accents'         => [ 'assets/js/analysis/accents.js', [] ],
+		'rankkernel-analysis-format'          => [ 'assets/js/analysis/analysis-format.js', [] ],
+		'rankkernel-analysis-keyword-matcher' => [ 'assets/js/analysis/keyword-matcher.js', [ 'rankkernel-analysis-text-stats', 'rankkernel-analysis-accents' ] ],
+		'rankkernel-analysis-analyzer'        => [ 'assets/js/analysis/analyzer.js', [ 'rankkernel-analysis-keyword-matcher', 'rankkernel-analysis-format' ] ],
+		'rankkernel-analysis-editor-bridge'   => [ 'assets/js/analysis/editor-bridge.js', [] ],
+	];
+
+	/**
 	 * Field length budgets shown in the editor.
 	 */
 	private const TITLE_LIMIT       = 60;
@@ -399,9 +413,10 @@ final class MetadataBox {
 		wp_enqueue_script( self::EDITOR_SCRIPT );
 
 		if ( $this->analysisEnabled() ) {
+			$engine      = $this->enqueueAnalysisEngine();
 			$analysisSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/analysis-editor.js', $pluginFile ) : '';
 
-			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, [ self::EDITOR_SCRIPT, 'wp-i18n' ], $version, true );
+			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, array_merge( [ self::EDITOR_SCRIPT ], $engine ), $version, true );
 			wp_enqueue_script( self::ANALYSIS_SCRIPT );
 		}
 	}
@@ -420,7 +435,8 @@ final class MetadataBox {
 		$scriptSrc  = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/metadata-sidebar.js', $pluginFile ) : '';
 		$version    = Plugin::version();
 
-		$deps = [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n' ];
+		$engine = $this->analysisEnabled() ? $this->enqueueAnalysisEngine() : [];
+		$deps   = array_merge( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n' ], $engine );
 
 		wp_register_script( self::SIDEBAR_SCRIPT, $scriptSrc, $deps, $version, true );
 
@@ -681,12 +697,15 @@ final class MetadataBox {
 		$siteUrl   = function_exists( 'site_url' ) ? (string) site_url() : '';
 		$homeUrl   = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
+		$featuredAlt = $this->featuredAlt( $postId );
+
 		$state = [
 			'postId'      => $postId,
 			'permalink'   => $permalink,
 			'siteUrl'     => $siteUrl,
 			'siteName'    => $siteName,
 			'homeUrl'     => $homeUrl,
+			'featuredAlt' => $featuredAlt,
 			'templates'   => [
 				'title'       => $titleEffective,
 				'description' => $descriptionEffective,
@@ -730,6 +749,26 @@ final class MetadataBox {
 	 */
 	private function analysisEnabled(): bool {
 		return null === $this->enableMap || $this->enableMap->isEnabled( 'analysis' );
+	}
+
+	/**
+	 * Register and enqueue the pure engine scripts, in load order.
+	 *
+	 * @return string[] The registered handles, in load order.
+	 */
+	private function enqueueAnalysisEngine(): array {
+		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
+		$version    = Plugin::version();
+		$handles    = [];
+
+		foreach ( self::ENGINE_SCRIPTS as $handle => $parts ) {
+			$source = function_exists( 'plugins_url' ) ? plugins_url( $parts[0], $pluginFile ) : '';
+			wp_register_script( $handle, $source, $parts[1], $version, true );
+			wp_enqueue_script( $handle );
+			$handles[] = $handle;
+		}
+
+		return $handles;
 	}
 
 	/**
@@ -1000,6 +1039,29 @@ final class MetadataBox {
 		$url = wp_get_attachment_image_url( $thumbId, 'large' );
 
 		return is_string( $url ) ? $url : '';
+	}
+
+	/**
+	 * Alt text of the featured image, when one is set.
+	 *
+	 * Mirrors AnalysisController::featuredAlt so the browser and the REST
+	 * route see the same value for keyword_in_image_alt and image_alt_quality.
+	 *
+	 * @param int $postId Post id.
+	 * @return string The result.
+	 */
+	private function featuredAlt( int $postId ): string {
+		if ( $postId <= 0 || ! function_exists( 'get_post_thumbnail_id' ) || ! function_exists( 'get_post_meta' ) ) {
+			return '';
+		}
+
+		$thumbnail = (int) get_post_thumbnail_id( $postId );
+
+		if ( $thumbnail <= 0 ) {
+			return '';
+		}
+
+		return (string) get_post_meta( $thumbnail, '_wp_attachment_image_alt', true );
 	}
 
 	/**

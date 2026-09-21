@@ -169,6 +169,10 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'get_the_author' )->justReturn( '' );
 		Functions\when( 'date_i18n' )->alias( static fn ( string $f, mixed $t = null ): string => gmdate( $f ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress date_i18n signature.
 		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		// defaultOgImage reads the featured image URL once a thumbnail id is
+		// set. Other classes in the suite leave this function defined process
+		// wide, so it is stubbed here rather than inside a single test.
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
 	}
 
 	/**
@@ -481,7 +485,7 @@ final class MetadataBoxTest extends TestCase {
 
 		$state = $this->newBox()->localizedState( 7 );
 
-		$expectedKeys = [ 'postId', 'permalink', 'siteUrl', 'siteName', 'homeUrl', 'templates', 'tokens', 'tokenLabels', 'limits', 'defaults', 'strings', 'restPath', 'analysis' ];
+		$expectedKeys = [ 'postId', 'permalink', 'siteUrl', 'siteName', 'homeUrl', 'featuredAlt', 'templates', 'tokens', 'tokenLabels', 'limits', 'defaults', 'strings', 'restPath', 'analysis' ];
 
 		foreach ( $expectedKeys as $key ) {
 			$this->assertArrayHasKey( $key, $state );
@@ -497,6 +501,29 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( 'Hello post', $state['tokens']['title'] );
 		$this->assertSame( 'Example Site', $state['tokens']['sitename'] );
 		$this->assertSame( '-', $state['tokens']['sep'] );
+		$this->assertSame( '', $state['featuredAlt'] );
+	}
+
+	/**
+	 * The localized contract carries the featured image alt for the browser engine.
+	 */
+	public function test_localized_state_exposes_the_featured_image_alt(): void {
+		$this->storedMeta = [];
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 42 );
+		Functions\when( 'get_post_meta' )->alias(
+			function ( int $id, string $key, bool $single ): mixed {
+				if ( '_wp_attachment_image_alt' === $key ) {
+					return 'A photo of red apples';
+				}
+
+				return $id > 0 && $single ? $this->storedMeta : [];
+			}
+		);
+
+		$state = $this->newBox()->localizedState( 7 );
+
+		$this->assertSame( 'A photo of red apples', $state['featuredAlt'] );
 	}
 
 	/**
@@ -1063,6 +1090,9 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernel-metadata-editor', $styles );
 		$this->assertStringContainsString( 'metadata-editor.css', $styles['rankkernel-metadata-editor'] );
 		$this->assertContains( 'script:rankkernel-metadata-editor', $enqueued );
+		$this->assertArrayHasKey( 'rankkernel-analysis-text-stats', $scripts );
+		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );
+		$this->assertContains( 'script:rankkernel-analysis-editor', $enqueued );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
 	}
 
@@ -1115,7 +1145,7 @@ final class MetadataBoxTest extends TestCase {
 
 		$this->assertArrayHasKey( 'rankkernel-metadata-sidebar', $deps );
 		$this->assertStringContainsString( 'metadata-sidebar.js', $deps['rankkernel-metadata-sidebar']['src'] );
-		$this->assertSame( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n' ], $deps['rankkernel-metadata-sidebar']['tax'] );
+		$this->assertSame( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n', 'rankkernel-analysis-text-stats', 'rankkernel-analysis-accents', 'rankkernel-analysis-format', 'rankkernel-analysis-keyword-matcher', 'rankkernel-analysis-analyzer', 'rankkernel-analysis-editor-bridge' ], $deps['rankkernel-metadata-sidebar']['tax'] );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
 	}
 
