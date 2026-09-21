@@ -199,9 +199,10 @@ final class AnalysisSaveHandlerTest extends TestCase {
 	}
 
 	/**
-	 * Register adds the save post hook at priority 20.
+	 * Register adds the after insert hook, which core runs after the REST meta
+	 * write, and the run then sees the payload from this save, not the last one.
 	 */
-	public function test_register_adds_the_save_post_hook(): void {
+	public function test_register_hooks_after_the_rest_meta_write(): void {
 		$captured = [];
 
 		Functions\when( 'add_action' )->alias(
@@ -214,6 +215,18 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->register();
 
-		$this->assertSame( [ [ 'save_post', 20, 2 ] ], $captured );
+		// save_post runs before core writes the REST meta field, which is the
+		// defect this test pins, so the handler must bind the after insert hook.
+		$this->assertSame( [ [ 'wp_after_insert_post', 20, 2 ] ], $captured );
+
+		// Model the state at that hook: the REST meta write has already landed,
+		// so the store holds the keywords from this save, not the last one.
+		$this->meta['_rankkernel_meta_data'] = [ 'focus_keywords' => [ 'green apples', 'red apples' ] ];
+
+		( new AnalysisSaveHandler() )->handle( 11, $this->post );
+
+		$this->assertIsArray( $this->saved );
+		$this->assertSame( 2, $this->saved['keywords'] );
+		$this->assertSame( [], $this->deleted );
 	}
 }

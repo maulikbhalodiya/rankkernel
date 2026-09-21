@@ -20,6 +20,15 @@ defined( 'ABSPATH' ) || exit;
  * for a block editor save, so its order can never be reused here. There is no
  * user facing error for a missing capability, because this is derived data on
  * a save that another handler already authorised or refused.
+ *
+ * The hook is wp_after_insert_post, not save_post. WordPress writes the REST
+ * meta field after save_post has already fired, so a save_post handler read
+ * the payload from before the save: adding a keyword deleted the score and
+ * changing keywords left the stored score one edit behind. wp_after_insert_post
+ * runs after both writes, because the Classic metabox writes the payload at
+ * save_post priority 10 and the REST controller writes the meta field before
+ * it calls wp_after_insert_post. A single hook therefore covers both editors
+ * with one run each.
  */
 final class AnalysisSaveHandler {
 	/**
@@ -40,9 +49,13 @@ final class AnalysisSaveHandler {
 
 	/**
 	 * Register the save hook.
+	 *
+	 * The wp_after_insert_post hook fires once per save for the Classic editor
+	 * and once per REST create or update, in both cases after the payload is
+	 * written, so the stored score always describes the keywords just saved.
 	 */
 	public function register(): void {
-		add_action( 'save_post', [ $this, 'handle' ], 20, 2 );
+		add_action( 'wp_after_insert_post', [ $this, 'handle' ], 20, 2 );
 	}
 
 	/**

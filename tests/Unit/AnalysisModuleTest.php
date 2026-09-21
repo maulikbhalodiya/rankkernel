@@ -165,13 +165,13 @@ final class AnalysisModuleTest extends TestCase {
 		$hooks = array_column( $this->hooks, 'hook' );
 
 		$this->assertContains( 'rest_api_init', $hooks );
-		$this->assertContains( 'save_post', $hooks );
+		$this->assertContains( 'wp_after_insert_post', $hooks );
 
-		$savePost = array_values(
-			array_filter( $this->hooks, static fn ( array $hook ): bool => 'save_post' === $hook['hook'] )
+		$afterInsert = array_values(
+			array_filter( $this->hooks, static fn ( array $hook ): bool => 'wp_after_insert_post' === $hook['hook'] )
 		);
 
-		$this->assertSame( 20, $savePost[0]['priority'] );
+		$this->assertSame( 20, $afterInsert[0]['priority'] );
 	}
 
 	/**
