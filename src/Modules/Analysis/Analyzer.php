@@ -26,6 +26,15 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Analyzer {
 	/**
+	 * Check set version.
+	 *
+	 * Bumped whenever a check is added, removed, reweighted or given a new
+	 * threshold, so a stored score with an older version can be reported as
+	 * needing a recheck instead of being presented as current.
+	 */
+	public const RULES_VERSION = 1;
+
+	/**
 	 * Score bands.
 	 */
 	public const BAND_GOOD    = 'good';
