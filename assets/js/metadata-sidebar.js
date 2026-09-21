@@ -1950,6 +1950,9 @@
 			var resultState = useState( null );
 			var result = resultState[ 0 ];
 			var setResult = resultState[ 1 ];
+			var errorState = useState( '' );
+			var error = errorState[ 0 ];
+			var setError = errorState[ 1 ];
 
 			var title = draft ? draft.title : '';
 			var content = draft ? draft.content : '';
@@ -1959,13 +1962,20 @@
 			useEffect( function () {
 				if ( ! path || '' === keywordKey ) {
 					setResult( null );
+					setError( '' );
 					return undefined;
 				}
+
+				// A slower earlier reply must never overwrite a newer one, and an
+				// unmount must not set state, so every run cancels on cleanup.
+				var cancelled = false;
+				var controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
 
 				var timer = window.setTimeout( function () {
 					window.fetch( path, {
 						method: 'POST',
 						credentials: 'same-origin',
+						signal: controller ? controller.signal : undefined,
 						headers: {
 							'Content-Type': 'application/json',
 							'X-WP-Nonce': nonce
@@ -1979,25 +1989,61 @@
 							keywords: keywords
 						} )
 					} ).then( function ( response ) {
-						return response.ok ? response.json() : null;
-					} ).then( function ( data ) {
-						setResult( data );
+						var status = response.status;
+						return response.json().then(
+							function ( data ) {
+								return { ok: response.ok, status: status, data: data };
+							},
+							function () {
+								return { ok: false, status: status, data: null };
+							}
+						);
+					} ).then( function ( reply ) {
+						if ( cancelled ) {
+							return;
+						}
+
+						if ( ! reply.ok || ! reply.data ) {
+							setResult( null );
+							setError( 403 === reply.status ? __( 'Save the post once, then run the analysis.', 'rankkernel' ) : __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
+							return;
+						}
+
+						setError( '' );
+						setResult( reply.data );
 					} ).catch( function () {
+						if ( cancelled ) {
+							return;
+						}
+
 						setResult( null );
+						setError( __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
 					} );
 				}, 700 );
 
 				return function () {
+					cancelled = true;
+					if ( controller ) {
+						controller.abort();
+					}
 					window.clearTimeout( timer );
 				};
 			}, [ path, nonce, keywordKey, title, content, slug, description ] );
+
+			if ( ! path ) {
+				return null;
+			}
 
 			if ( '' === keywordKey ) {
 				return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
 			}
 
+			if ( '' !== error ) {
+				return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, error );
+			}
+
 			if ( ! result ) {
-				return el( 'p', { className: 'description' }, __( 'Analysing the current draft…', 'rankkernel' ) );
+				return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
 			}
 
 			var checks = [];
@@ -2008,6 +2054,7 @@
 				checks.push( {
 					id: check.id,
 					ok: 'pass' === check.status,
+					status: check.status,
 					label: check.message
 				} );
 			} );
@@ -2034,6 +2081,7 @@
 							'li',
 							{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
 							el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
+							el( 'span', { className: 'screen-reader-text' }, 'pass' === check.status ? __( 'Pass:', 'rankkernel' ) : __( 'Needs work:', 'rankkernel' ) ),
 							el( 'span', { className: 'rk-checklist-label' }, check.label )
 						);
 					} )
@@ -2122,6 +2170,11 @@
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
 			var permalink = cfg.permalink || cfg.homeUrl || '';
+
+			// A disabled analysis module registers no route, so the contract
+			// carries no path and both controls stay out of the panel.
+			var analysisReady = !!( cfg.analysis && cfg.analysis.path );
+
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-general', 'aria-labelledby': 'rk-tab-general', tabIndex: 0 },
@@ -2136,11 +2189,11 @@
 				onEdit: function () { setModalTab( 'general' ); }
 			} ),
 				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) ),
-				el( FocusKeywordsInput, {
+				analysisReady ? el( FocusKeywordsInput, {
 					keywords: meta.focus_keywords,
 					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
-				} ),
-				el( ContentAnalysisChecklist, {} )
+				} ) : null,
+				analysisReady ? el( ContentAnalysisChecklist, {} ) : null
 			);
 		}
 

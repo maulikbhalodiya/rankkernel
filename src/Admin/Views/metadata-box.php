@@ -58,6 +58,8 @@
  * @var string $schemaRichResultsUrl     Rich Results Test URL.
  * @var string $schemaValidatorUrl       Schema Validator URL.
  * @var string $schemaExportUrl          Schema export URL.
+ * @var bool   $analysisEnabled          Whether the analysis module is enabled.
+ * @var string[] $focusKeywords          Stored focus keywords, primary first.
  */
 
 declare(strict_types=1);
@@ -195,10 +197,17 @@ if ( $schemaDisabled ) {
 			<p class="description" id="rankkernel-meta-description-help"><?php echo esc_html__( 'Blank uses the template, then the excerpt.', 'rankkernel' ); ?></p>
 		</section>
 
-		<section class="rk-classic-card rk-classic-extension" aria-labelledby="rankkernel-meta-analysis-heading">
-			<h3 id="rankkernel-meta-analysis-heading"><?php echo esc_html__( 'Content analysis', 'rankkernel' ); ?></h3>
-			<p class="description"><?php echo esc_html__( 'Content analysis runs in the block editor sidebar. Add a focus keyword there to score the content.', 'rankkernel' ); ?></p>
-		</section>
+		<?php if ( $analysisEnabled ) : ?>
+			<section class="rk-classic-card rk-classic-extension rk-meta" aria-labelledby="rankkernel-meta-analysis-heading" data-rankkernel-analysis="1">
+				<h3 id="rankkernel-meta-analysis-heading"><?php echo esc_html__( 'Content analysis', 'rankkernel' ); ?></h3>
+				<p>
+					<label for="rankkernel-meta-focus-keywords"><?php echo esc_html__( 'Focus keywords', 'rankkernel' ); ?></label>
+					<input type="text" id="rankkernel-meta-focus-keywords" class="large-text" name="rankkernel_meta_focus_keywords" value="<?php echo esc_attr( implode( ', ', $focusKeywords ) ); ?>" aria-describedby="rankkernel-meta-focus-keywords-help" />
+				</p>
+				<p class="description" id="rankkernel-meta-focus-keywords-help"><?php echo esc_html__( 'Separate keywords with commas. The first keyword is the primary one.', 'rankkernel' ); ?></p>
+				<div class="rk-analysis-results" data-rk-analysis-results="1" aria-live="polite"></div>
+			</section>
+		<?php endif; ?>
 	</div>
 
 	<div class="rk-classic-panel" id="rankkernel-meta-panel-advanced" data-rk-panel="advanced" role="tabpanel" aria-labelledby="rankkernel-meta-tab-advanced" tabindex="0" hidden>

@@ -152,7 +152,7 @@ final class Plugin {
 			// Metadata editor metabox and Gutenberg sidebar, hard gated on the
 			// metadata module so a disabled module stays silent.
 			if ( $enableMap->isEnabled( 'metadata' ) ) {
-				$metadataBox = new MetadataBox( $settingsStore );
+				$metadataBox = new MetadataBox( $settingsStore, null, null, null, $enableMap );
 				$metadataBox->register();
 				$this->services['metadata_box'] = $metadataBox;
 			}

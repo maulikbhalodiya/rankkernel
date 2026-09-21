@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\MetadataBox;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\TagsReplacer;
+use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
@@ -496,6 +497,116 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( 'Hello post', $state['tokens']['title'] );
 		$this->assertSame( 'Example Site', $state['tokens']['sitename'] );
 		$this->assertSame( '-', $state['tokens']['sep'] );
+	}
+
+	/**
+	 * A disabled analysis module keeps its transport out of the contract, so the
+	 * editor never mounts a panel that would post into a route that is not there.
+	 */
+	public function test_analysis_transport_is_omitted_when_the_module_is_off(): void {
+		$this->storedMeta = [];
+
+		$box = new MetadataBox(
+			$this->settings,
+			new TagsReplacer(),
+			fn ( int $id ): Context => $this->makeContext( $id ),
+			null,
+			new ModuleEnableMap()
+		);
+
+		$state = $box->localizedState( 7 );
+
+		$this->assertArrayNotHasKey( 'analysis', $state );
+	}
+
+	/**
+	 * An enabled analysis module hands the editor a real route and a real nonce,
+	 * which is what the panel needs to run at all.
+	 */
+	public function test_analysis_transport_is_populated_when_the_module_is_on(): void {
+		$this->storedMeta                    = [];
+		$this->options['rankkernel_modules'] = [ 'metadata', 'analysis' ];
+
+		$box = new MetadataBox(
+			$this->settings,
+			new TagsReplacer(),
+			fn ( int $id ): Context => $this->makeContext( $id ),
+			null,
+			new ModuleEnableMap()
+		);
+
+		$state = $box->localizedState( 7 );
+
+		$this->assertArrayHasKey( 'analysis', $state );
+
+		// The route is the wiring that matters, and rest_url is stubbed in setUp,
+		// so a hardcoded or empty path fails here. The nonce is not value asserted
+		// because wp_create_nonce is absent from the unit environment on purpose:
+		// stubbing it in one test leaks the definition process wide.
+		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/analysis', $state['analysis']['path'] );
+		$this->assertIsString( $state['analysis']['nonce'] );
+	}
+
+	/**
+	 * A disabled analysis module renders no panel and no keyword field.
+	 */
+	public function test_analysis_panel_is_absent_when_the_module_is_off(): void {
+		$this->storedMeta                    = [];
+		$this->options['rankkernel_modules'] = [ 'metadata' ];
+
+		$box = new MetadataBox(
+			$this->settings,
+			new TagsReplacer(),
+			fn ( int $id ): Context => $this->makeContext( $id ),
+			null,
+			new ModuleEnableMap()
+		);
+
+		ob_start();
+		$box->renderBox( (object) [ 'ID' => 7 ] );
+		$out = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'rankkernel_meta_focus_keywords', $out );
+		$this->assertStringNotContainsString( 'Content analysis runs in the block editor sidebar', $out );
+	}
+
+	/**
+	 * An enabled analysis module renders the panel and the stored keywords.
+	 */
+	public function test_analysis_panel_renders_keywords_when_the_module_is_on(): void {
+		$this->storedMeta                    = [ 'focus_keywords' => [ 'alpha', 'beta' ] ];
+		$this->options['rankkernel_modules'] = [ 'metadata', 'analysis' ];
+
+		$box = new MetadataBox(
+			$this->settings,
+			new TagsReplacer(),
+			fn ( int $id ): Context => $this->makeContext( $id ),
+			null,
+			new ModuleEnableMap()
+		);
+
+		ob_start();
+		$box->renderBox( (object) [ 'ID' => 7 ] );
+		$out = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="rankkernel_meta_focus_keywords"', $out );
+		$this->assertStringContainsString( 'value="alpha, beta"', $out );
+	}
+
+	/**
+	 * A posted comma separated keyword list persists as a trimmed array.
+	 */
+	public function test_save_persists_posted_focus_keywords_array(): void {
+		$_POST = [
+			'rankkernel_meta_nonce'          => 'valid',
+			'rankkernel_meta_fields'         => '1',
+			'rankkernel_meta_focus_keywords' => ' alpha , , beta ',
+		];
+
+		$this->newBox()->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertIsArray( $this->savedMeta );
+		$this->assertSame( [ 'alpha', 'beta' ], $this->savedMeta['focus_keywords'] );
 	}
 
 	/**
