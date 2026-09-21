@@ -503,4 +503,43 @@ final class AnalyzerTest extends TestCase {
 		$this->assertSame( Analyzer::IMPROVE, $check['status'] );
 		$this->assertStringContainsString( 'unnatural', $check['message'] );
 	}
+
+	/**
+	 * Test generic anchor text is flagged.
+	 */
+	public function test_generic_anchor_text_is_flagged(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><a href="/guide">click here</a>' ] ) );
+
+		$check = $this->check( $result, 'generic_anchor_text' );
+
+		$this->assertSame( Analyzer::IMPROVE, $check['status'] );
+		$this->assertStringContainsString( 'describe the destination', $check['message'] );
+	}
+
+	/**
+	 * Test a bare URL anchor is flagged.
+	 */
+	public function test_bare_url_anchor_is_flagged(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><a href="https://example.org">https://example.org</a>' ] ) );
+
+		$this->assertSame( Analyzer::IMPROVE, $this->check( $result, 'generic_anchor_text' )['status'] );
+	}
+
+	/**
+	 * Test a descriptive anchor passes.
+	 */
+	public function test_descriptive_anchor_passes(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><a href="/guide">our red apples guide</a>' ] ) );
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'generic_anchor_text' )['status'] );
+	}
+
+	/**
+	 * Test the check does not apply without a link.
+	 */
+	public function test_generic_anchor_text_is_not_applicable_without_links(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples and how to store them.</p>' ] ) );
+
+		$this->assertSame( Analyzer::NA, $this->check( $result, 'generic_anchor_text' )['status'] );
+	}
 }

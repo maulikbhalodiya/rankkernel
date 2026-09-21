@@ -74,6 +74,8 @@ final class Analyzer {
 		'internal_links'            => 5,
 		'external_links'            => 4,
 		'followed_external'         => 2,
+		'generic_anchor_text'       => 3,
+		'image_alt_quality'         => 3,
 		'short_paragraphs'          => 3,
 		'sentence_length'           => 3,
 		'subheading_distribution'   => 3,
@@ -221,10 +223,11 @@ final class Analyzer {
 	 * @return array<string, mixed> Context.
 	 */
 	private function context( array $input ): array {
-		$html  = (string) ( $input['html'] ?? '' );
-		$text  = TextStats::plainText( $html );
-		$links = $this->classifyLinks( TextStats::links( $html ), (string) ( $input['site_url'] ?? '' ) );
-		$media = TextStats::media( $html );
+		$html    = (string) ( $input['html'] ?? '' );
+		$text    = TextStats::plainText( $html );
+		$anchors = TextStats::links( $html );
+		$links   = $this->classifyLinks( $anchors, (string) ( $input['site_url'] ?? '' ) );
+		$media   = TextStats::media( $html );
 
 		return [
 			'html'         => $html,
@@ -239,6 +242,7 @@ final class Analyzer {
 			'headings'     => TextStats::headings( $html ),
 			'alts'         => TextStats::imageAlts( $html ),
 			'links'        => $links,
+			'anchors'      => $anchors,
 			'media'        => $media,
 			'usedKeywords' => is_array( $input['used_keywords'] ?? null ) ? $input['used_keywords'] : null,
 		];
@@ -338,6 +342,7 @@ final class Analyzer {
 				$this->slugLengthCheck( $context ),
 			],
 			$this->linkChecks( $context ),
+			[ $this->genericAnchorCheck( $context ) ],
 			$this->titleReadability( $context ),
 			[
 				$this->paragraphCheck( $context ),
@@ -699,6 +704,59 @@ final class Analyzer {
 	}
 
 	/**
+	 * In content links whose anchor text is generic or a bare URL.
+	 *
+	 * Google documents that anchor text must be descriptive and concise, and
+	 * names click here and bare URLs as the exact failure to avoid.
+	 *
+	 * @param array<string, mixed> $context Context.
+	 * @return array<string, mixed> Result.
+	 */
+	private function genericAnchorCheck( array $context ): array {
+		$anchors = $context['anchors'];
+		$generic = [ 'click here', 'read more', 'this', 'here', 'link', 'website' ];
+		$total   = 0;
+		$flagged = 0;
+
+		foreach ( $anchors as $anchor ) {
+			$href = trim( (string) $anchor['href'] );
+
+			if ( '' === $href || str_starts_with( $href, '#' ) ) {
+				continue;
+			}
+
+			++$total;
+
+			$raw  = trim( (string) $anchor['text'] );
+			$text = KeywordMatcher::normalize( $raw );
+
+			if ( '' !== $text && in_array( $text, $generic, true ) ) {
+				++$flagged;
+				continue;
+			}
+
+			if ( 1 === preg_match( '~^https?://[^ ]+$~i', $raw ) ) {
+				++$flagged;
+			}
+		}
+
+		if ( 0 === $total ) {
+			return $this->result( 'generic_anchor_text', 'seo', self::NA, 0, __( 'Add a link to check this.', 'rankkernel' ) );
+		}
+
+		$weight = self::WEIGHTS['generic_anchor_text'];
+
+		if ( 0 === $flagged ) {
+			return $this->result( 'generic_anchor_text', 'seo', self::PASS, $weight, __( 'Every link explains where it goes. Anchor text should describe the destination, which is Google guidance.', 'rankkernel' ) );
+		}
+
+		/* translators: %d: number of links with generic anchor text. */
+		$message = sprintf( __( '%d link(s) use generic anchor text such as click here or a bare URL. Anchor text should describe the destination, which is Google guidance.', 'rankkernel' ), $flagged );
+
+		return $this->result( 'generic_anchor_text', 'seo', self::IMPROVE, 0, $message );
+	}
+
+	/**
 	 * Title readability, three checks.
 	 *
 	 * @param array<string, mixed> $context Context.
@@ -1035,6 +1093,9 @@ final class Analyzer {
 
 			case 'keyword_in_subheading':
 				return __( 'Add a subheading to check this.', 'rankkernel' );
+
+			case 'generic_anchor_text':
+				return __( 'Add a link to check this.', 'rankkernel' );
 		}
 
 		return __( 'Not applicable yet.', 'rankkernel' );
