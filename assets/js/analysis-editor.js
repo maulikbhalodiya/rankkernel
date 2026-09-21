@@ -28,6 +28,46 @@
 	var EMPTY_MESSAGE = 'Add a focus keyword to run the content analysis.';
 	var LOADING_MESSAGE = 'Analysing the current draft…';
 
+	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+
+	function bandClass( band ) {
+		if ( 'good' === band ) {
+			return 'rk-badge-ok';
+		}
+		if ( 'improve' === band ) {
+			return 'rk-badge-warn';
+		}
+		if ( 'problem' === band ) {
+			return 'rk-badge-bad';
+		}
+		return 'rk-badge-none';
+	}
+
+	function bandLabel( band ) {
+		if ( 'good' === band ) {
+			return 'Good';
+		}
+		if ( 'improve' === band ) {
+			return 'Needs improvement';
+		}
+		if ( 'problem' === band ) {
+			return 'Poor';
+		}
+		return 'Not analysed';
+	}
+
+	function scoreSlot() {
+		return document.querySelector( '[data-rk-analysis-score="1"]' );
+	}
+
+	function clearScore() {
+		var slot = scoreSlot();
+
+		if ( slot ) {
+			slot.innerHTML = '';
+		}
+	}
+
 	var results = document.querySelector( '[data-rk-analysis-results="1"]' );
 	var keywordInput = document.getElementById( 'rankkernel-meta-focus-keywords' );
 
@@ -103,6 +143,7 @@
 	}
 
 	function setMessage( text, isError ) {
+		clearScore();
 		results.innerHTML = '';
 
 		var node = document.createElement( 'p' );
@@ -159,19 +200,35 @@
 		}
 
 		var score = 'number' === typeof data.score ? data.score : 0;
-		var badge = document.createElement( 'p' );
-		badge.className = 'rk-analysis-score';
+		var slot = scoreSlot();
 
-		var pill = document.createElement( 'span' );
-		pill.className = 'rk-checklist-badge ' + ( 0 === failCount ? 'rk-badge-ok' : 'rk-badge-warn' );
-		pill.textContent = score + ' / 100';
+		if ( slot ) {
+			slot.innerHTML = '';
 
-		badge.appendChild( pill );
-		results.appendChild( badge );
+			var pill = document.createElement( 'span' );
+			pill.className = 'rk-checklist-badge ' + bandClass( data.band );
+
+			var spoken = document.createElement( 'span' );
+			spoken.className = 'screen-reader-text';
+			spoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
+
+			var value = document.createElement( 'span' );
+			value.setAttribute( 'aria-hidden', 'true' );
+			value.textContent = score + ' / 100';
+
+			pill.appendChild( spoken );
+			pill.appendChild( value );
+			slot.appendChild( pill );
+		}
 
 		if ( checks.length > 0 ) {
 			results.appendChild( list );
 		}
+
+		var note = document.createElement( 'p' );
+		note.className = 'description rk-analysis-note';
+		note.textContent = ANALYSIS_HONESTY;
+		results.appendChild( note );
 
 		hasResult = true;
 	}

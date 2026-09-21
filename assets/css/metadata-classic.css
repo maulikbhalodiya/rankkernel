@@ -193,6 +193,45 @@
 	content: "!";
 }
 
+.rankkernel-meta-editor .rk-classic-analysis-head {
+	align-items: center;
+	display: flex;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+}
+
+.rankkernel-meta-editor .rk-classic-analysis-head h3 {
+	margin: 0;
+}
+
+.rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge {
+	border-radius: 999px;
+	display: inline-block;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	padding: 2px var(--rk-space-3);
+}
+
+.rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge.rk-badge-ok {
+	background: var(--rk-score-good-soft);
+	color: var(--rk-score-good);
+}
+
+.rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge.rk-badge-warn {
+	background: var(--rk-score-improve-soft);
+	color: var(--rk-score-improve);
+}
+
+.rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge.rk-badge-bad {
+	background: var(--rk-score-problem-soft);
+	color: var(--rk-score-problem);
+}
+
+.rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge.rk-badge-none {
+	background: var(--rk-score-neutral-soft);
+	color: var(--rk-score-neutral);
+}
+
 /* Counter meter: thin progress bar under the control. */
 
 .rankkernel-meta-editor .rk-classic-meter {

@@ -199,7 +199,10 @@ if ( $schemaDisabled ) {
 
 		<?php if ( $analysisEnabled ) : ?>
 			<section class="rk-classic-card rk-classic-extension rk-meta" aria-labelledby="rankkernel-meta-analysis-heading" data-rankkernel-analysis="1">
-				<h3 id="rankkernel-meta-analysis-heading"><?php echo esc_html__( 'Content analysis', 'rankkernel' ); ?></h3>
+				<div class="rk-classic-analysis-head">
+					<h3 id="rankkernel-meta-analysis-heading"><?php echo esc_html__( 'Content analysis', 'rankkernel' ); ?></h3>
+					<span class="rk-analysis-score-slot" data-rk-analysis-score="1" aria-live="polite"></span>
+				</div>
 				<p>
 					<label for="rankkernel-meta-focus-keywords"><?php echo esc_html__( 'Focus keywords', 'rankkernel' ); ?></label>
 					<input type="text" id="rankkernel-meta-focus-keywords" class="large-text" name="rankkernel_meta_focus_keywords" value="<?php echo esc_attr( implode( ', ', $focusKeywords ) ); ?>" aria-describedby="rankkernel-meta-focus-keywords-help" />
