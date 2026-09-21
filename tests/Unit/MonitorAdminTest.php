@@ -1089,5 +1089,8 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select 404 entry for /missing-page"', $html );
 		$this->assertStringContainsString( 'aria-label="Select 404 entry for /other-page"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select 404 entry for' ) );
+
+		$this->assertStringContainsString( 'aria-label="404 Log Storage Usage"', $html );
+		$this->assertStringContainsString( 'aria-valuetext="2 of 1,000 entries used"', $html );
 	}
 }

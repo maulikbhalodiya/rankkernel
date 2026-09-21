@@ -4,20 +4,20 @@
  * Small progressive enhancement only. Every destructive link works without
  * JavaScript, this file only asks for confirmation first.
  */
-document.addEventListener( 'DOMContentLoaded', function () {
-	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
-	function rkAnnounce( message ) {
-		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
-			return;
-		}
-
-		var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
-			? window.wp.i18n.__( message, 'rankkernel' )
-			: message;
-
-		window.wp.a11y.speak( text );
+// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+function rkAnnounce( message ) {
+	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+		return;
 	}
 
+	var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__( message, 'rankkernel' )
+		: message;
+
+	window.wp.a11y.speak( text );
+}
+
+document.addEventListener( 'DOMContentLoaded', function () {
 	var confirmLinks = document.querySelectorAll( '.rk-monitor .rk-confirm' );
 
 	confirmLinks.forEach( function ( link ) {
@@ -67,6 +67,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			boxes.forEach( function ( box ) {
 				box.checked = selectAll.checked;
 			} );
+
+			rkAnnounce( selectAll.checked ? 'All 404 entries selected.' : 'All 404 entries deselected.' );
 		} );
 	}
 
