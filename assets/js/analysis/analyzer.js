@@ -61,6 +61,12 @@
 		};
 	}
 
+	function roundScore( value ) {
+		// PHP's round() pre-rounds to about 15 significant digits before the
+		// half away from zero step, so the browser score equals the stored one.
+		return Math.round( Number( value.toPrecision( 15 ) ) );
+	}
+
 	function scoreOf( checks ) {
 		var earned = 0;
 		var max = 0;
@@ -71,7 +77,7 @@
 			earned += checks[ i ].earned;
 			max += checks[ i ].weight;
 		}
-		return max > 0 ? Math.round( ( earned / max ) * 100 ) : 0;
+		return max > 0 ? roundScore( ( earned / max ) * 100 ) : 0;
 	}
 
 	function bandOf( score ) {

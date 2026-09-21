@@ -185,3 +185,20 @@ test( 'the final primary checklist is 31 checks in the spec order', () => {
 		'table_of_contents', 'text_present'
 	] );
 } );
+
+test( 'the score rounds like PHP where the percentage lands just under a half point', () => {
+	const result = Analyzer.analyze( {
+		keywords: [ 'red apples' ],
+		html: '<p>Red apples are a favourite fruit for many careful readers today.</p><p>The growing season shapes the flavour of every single harvest here.</p><h2>More about red apples</h2><p>Garden tools help the grower through the long and busy spring days.</p><p>A wooden crate keeps the fruit safe and cool inside the shed.</p><img src="a.jpg" alt="red apples photo one"><p>The market stall opens early on a bright and busy morning.</p><img src="b.jpg" alt="red apples photo two"><p>A basket of red apples sells well at the local fair.</p><img src="c.jpg" alt="red apples photo three"><p>The kitchen table holds the recipe cards for the baker today.</p><img src="d.jpg" alt="red apples photo four"><p>A sharp knife makes the daily work quick and easy always.</p><p>The orchard sleeps under a thick layer of soft winter snow.</p><p>See <a href="/orchard-guide">the orchard guide</a></p><p>A new season of fruit starts again in the coming year.</p>',
+		title: '10 best garden tools for spring',
+		description: 'A guide to red apples and how to pick the best ones.',
+		slug: 'red-apples-guide',
+		site_url: 'https://example.com'
+	} );
+	const scored = result.checks.filter( ( check ) => check.status !== 'na' );
+	const earned = scored.reduce( ( sum, check ) => sum + check.earned, 0 );
+	const applicable = scored.reduce( ( sum, check ) => sum + check.weight, 0 );
+	assert.equal( earned + '/' + applicable, '69/120' );
+	assert.equal( result.score, 58 );
+	assert.equal( result.band, 'improve' );
+} );
