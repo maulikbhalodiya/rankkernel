@@ -583,4 +583,28 @@ final class AnalyzerTest extends TestCase {
 
 		$this->assertSame( Analyzer::NA, $this->check( $result, 'image_alt_quality' )['status'] );
 	}
+
+	/**
+	 * Test the content length copy reads as a completeness signal.
+	 */
+	public function test_content_length_copy_reads_as_a_completeness_signal(): void {
+		$result = ( new Analyzer() )->analyze( $this->input() );
+
+		$check = $this->check( $result, 'content_length' );
+
+		$this->assertStringContainsString( 'completeness signal', $check['message'] );
+		$this->assertStringContainsString( 'no ideal word count', $check['message'] );
+	}
+
+	/**
+	 * Test the meta description copy names it a display signal.
+	 */
+	public function test_meta_description_copy_names_a_display_signal(): void {
+		$result = ( new Analyzer() )->analyze( $this->input() );
+
+		$check = $this->check( $result, 'keyword_in_description' );
+
+		$this->assertSame( Analyzer::PASS, $check['status'] );
+		$this->assertStringContainsString( 'not a ranking factor', $check['message'] );
+	}
 }

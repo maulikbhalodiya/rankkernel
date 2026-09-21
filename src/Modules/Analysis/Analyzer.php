@@ -643,7 +643,10 @@ final class Analyzer {
 		}
 
 		/* translators: %d: word count. */
-		$message = sprintf( __( 'The content is %d words long.', 'rankkernel' ), $words );
+		$message = sprintf(
+			__( 'The content is %d words long. Google states there is no ideal word count, so treat this as a completeness signal rather than a length requirement.', 'rankkernel' ),
+			$words
+		);
 
 		if ( $earned >= self::WEIGHTS['content_length'] ) {
 			return $this->result( 'content_length', 'seo', self::PASS, $earned, $message );
@@ -1170,7 +1173,7 @@ final class Analyzer {
 
 			case 'keyword_in_description':
 				/* translators: %s: keyword. */
-				return sprintf( __( 'Your keyword "%s" appears in the meta description.', 'rankkernel' ), $keyword );
+				return sprintf( __( 'Your keyword "%s" appears in the meta description. The description is a display and click through signal, not a ranking factor, which is Google guidance.', 'rankkernel' ), $keyword );
 
 			case 'keyword_in_slug':
 				/* translators: %s: keyword. */
@@ -1216,7 +1219,7 @@ final class Analyzer {
 
 			case 'keyword_in_description':
 				/* translators: %s: keyword. */
-				return sprintf( __( 'Your keyword "%s" does not appear in the meta description.', 'rankkernel' ), $keyword );
+				return sprintf( __( 'Your keyword "%s" does not appear in the meta description. The description is a display and click through signal, not a ranking factor.', 'rankkernel' ), $keyword );
 
 			case 'keyword_in_slug':
 				/* translators: %s: keyword. */
