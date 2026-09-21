@@ -1260,13 +1260,65 @@ the Edit Snippet action. */
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-ok {
-	background: var(--rk-color-secondary-1-soft);
-	color: var(--rk-color-secondary-1);
+	background: var(--rk-score-good-soft);
+	color: var(--rk-score-good);
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-warn {
-	background: var(--rk-color-secondary-3-soft);
+	background: var(--rk-score-improve-soft);
+	color: var(--rk-score-improve);
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-bad {
+	background: var(--rk-score-problem-soft);
+	color: var(--rk-score-problem);
+}
+
+.rk-meta .rk-checklist-badge.rk-badge-none {
+	background: var(--rk-score-neutral-soft);
+	color: var(--rk-score-neutral);
+}
+
+.rk-toolbar-score {
+	align-items: center;
+	display: inline-flex;
+	font-size: 12px;
+	gap: 2px;
+}
+
+.rk-toolbar-score .rk-toolbar-score-value {
+	border-radius: 8px;
+	font-weight: 700;
+	padding: 0 5px;
+}
+
+.rk-toolbar-score .rk-toolbar-score-value.rk-badge-ok {
+	background: var(--rk-score-good-soft);
+	color: var(--rk-score-good);
+}
+
+.rk-toolbar-score .rk-toolbar-score-value.rk-badge-warn {
+	background: var(--rk-score-improve-soft);
+	color: var(--rk-score-improve);
+}
+
+.rk-toolbar-score .rk-toolbar-score-value.rk-badge-bad {
+	background: var(--rk-score-problem-soft);
+	color: var(--rk-score-problem);
+}
+
+.rk-meta .rk-checklist-filter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-1);
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-keyword-primary .rk-keyword-star {
 	color: var(--rk-color-secondary-3);
+	font-size: 14px;
+	height: 14px;
+	width: 14px;
 }
 
 .rk-meta .rk-checklist-items {

@@ -196,6 +196,53 @@
 		return '' === String( value == null ? '' : value ).trim();
 	}
 
+	// One badge vocabulary for the editor and the list table. The band is
+	// always named in words next to the number, so state is never colour alone.
+	function bandClass( band ) {
+		if ( 'good' === band ) {
+			return 'rk-badge-ok';
+		}
+		if ( 'improve' === band ) {
+			return 'rk-badge-warn';
+		}
+		if ( 'problem' === band ) {
+			return 'rk-badge-bad';
+		}
+		return 'rk-badge-none';
+	}
+
+	function bandLabel( band ) {
+		if ( 'good' === band ) {
+			return __( 'Good', 'rankkernel' );
+		}
+		if ( 'improve' === band ) {
+			return __( 'Needs improvement', 'rankkernel' );
+		}
+		if ( 'problem' === band ) {
+			return __( 'Poor', 'rankkernel' );
+		}
+		return __( 'Not analysed', 'rankkernel' );
+	}
+
+	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+
+	// The toolbar element beside the plugin mark. No score means the mark alone,
+	// so it never implies a number it does not have.
+	function ToolbarScore( props ) {
+		var children = [
+			el( 'span', { key: 'mark', className: 'dashicons dashicons-chart-bar', 'aria-hidden': 'true' } )
+		];
+
+		if ( null !== props.score && undefined !== props.score ) {
+			children.push( el( 'span', { key: 'value', className: 'rk-toolbar-score-value ' + props.tone, 'aria-hidden': 'true' }, String( props.score ) ) );
+			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis score', 'rankkernel' ) + ': ' + props.score + ' / 100, ' + props.bandLabel ) );
+		} else {
+			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis: no score yet', 'rankkernel' ) ) );
+		}
+
+		return el( 'span', { className: 'rk-toolbar-score rk-meta' }, children );
+	}
+
 	// Supported schema types, mirroring SchemaTypes::SUPPORTED and
 	// SchemaTypes::LABELS. The payload schema subtree is the only storage;
 	// this list selects into it and is never written itself.
@@ -1398,7 +1445,7 @@
 		);
 	}
 
-	function RankKernelSidebar() {
+	function RankKernelSidebar( props ) {
 		var postId = useSelect( function ( select ) {
 			try {
 				var editor = select( 'core/editor' );
@@ -1412,10 +1459,31 @@
 		}, [] ) || cfg.postId || 0;
 
 		// Remount per post so local drafts never leak across posts.
-		return el( SidebarBody, { key: String( postId ) } );
+		return el( SidebarBody, { key: String( postId ), onScore: props.onScore } );
 	}
 
-	function SidebarBody() {
+	// Holds the live score so the sidebar icon can render it beside the mark.
+	function SidebarRoot() {
+		var scoreState = useState( null );
+		var result = scoreState[ 0 ];
+		var setResult = scoreState[ 1 ];
+
+		return el(
+			PluginSidebar,
+			{
+				name: SIDEBAR_NAME,
+				title: __( 'RankKernel SEO', 'rankkernel' ),
+				icon: el( ToolbarScore, {
+					score: result ? result.score : null,
+					tone: result ? bandClass( result.band ) : '',
+					bandLabel: result ? bandLabel( result.band ) : ''
+				} )
+			},
+			el( RankKernelSidebar, { onScore: setResult } )
+		);
+	}
+
+	function SidebarBody( props ) {
 		var tabState = useState( 'general' );
 		var activeTab = tabState[ 0 ];
 		var setActiveTab = tabState[ 1 ];
@@ -1866,6 +1934,9 @@
 				setInputValue( '' );
 			}
 
+			// Removing index 0 drops the primary, so the first secondary is
+			// promoted by the list shifting down. A post never keeps secondary
+			// keywords without a primary.
 			function removeKeyword( index ) {
 				var next = keywords.filter( function ( _, i ) { return i !== index; } );
 				props.onChange( next );
@@ -1893,9 +1964,12 @@
 					'div',
 					{ className: 'rk-keywords-tagify' },
 					keywords.map( function ( kw, idx ) {
+						var isPrimary = 0 === idx;
 						return el(
 							'span',
-							{ key: idx, className: 'rk-keyword-tag' },
+							{ key: idx, className: 'rk-keyword-tag ' + ( isPrimary ? 'rk-keyword-primary' : 'rk-keyword-secondary' ) },
+							isPrimary ? el( 'span', { className: 'dashicons dashicons-star-filled rk-keyword-star', 'aria-hidden': 'true' } ) : null,
+							el( 'span', { className: 'screen-reader-text' }, isPrimary ? __( 'Primary keyword: ', 'rankkernel' ) : __( 'Secondary keyword: ', 'rankkernel' ) ),
 							el( 'span', { className: 'rk-keyword-tag-text' }, kw ),
 							el(
 								'button',
@@ -1920,11 +1994,11 @@
 						onBlur: function () { addKeyword( inputValue ); }
 					} )
 				),
-				el( 'p', { className: 'description' }, __( 'Press Enter or comma to add focus keywords.', 'rankkernel' ) )
+				el( 'p', { className: 'description' }, __( 'The first keyword is the primary one. Every later keyword is a secondary keyword.', 'rankkernel' ) )
 			);
 		}
 
-		function ContentAnalysisChecklist() {
+		function ContentAnalysisChecklist( props ) {
 			var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
 			var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
 			var keywords = Array.isArray( meta.focus_keywords ) ? meta.focus_keywords : [];
@@ -1963,6 +2037,7 @@
 				if ( ! path || '' === keywordKey ) {
 					setResult( null );
 					setError( '' );
+					if ( typeof props.onScore === 'function' ) { props.onScore( null ); }
 					return undefined;
 				}
 
@@ -2046,8 +2121,22 @@
 				return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
 			}
 
+			var keywordList = Array.isArray( result.keywords ) ? result.keywords : [];
+			var selectedState = useState( 0 );
+			var selected = selectedState[ 0 ];
+			var setSelected = selectedState[ 1 ];
+
+			if ( selected >= keywordList.length ) {
+				selected = 0;
+			}
+
+			var activeChecks = result.checks || [];
+			if ( selected > 0 && keywordList[ selected ] ) {
+				activeChecks = keywordList[ selected ].checks || [];
+			}
+
 			var checks = [];
-			( result.checks || [] ).forEach( function ( check ) {
+			activeChecks.forEach( function ( check ) {
 				if ( 'na' === check.status ) {
 					return;
 				}
@@ -2059,8 +2148,32 @@
 				} );
 			} );
 
-			var failCount = checks.filter( function ( c ) { return ! c.ok; } ).length;
 			var score = typeof result.score === 'number' ? result.score : 0;
+			var tone = bandClass( result.band );
+
+			// Report the live draft score upward so the toolbar icon stays in step.
+			if ( typeof props.onScore === 'function' ) {
+				props.onScore( { score: score, band: result.band } );
+			}
+
+			var selector = keywordList.length > 1 ? el(
+				'div',
+				{ className: 'rk-checklist-filter', role: 'group', 'aria-label': __( 'Filter checks by keyword', 'rankkernel' ) },
+				keywordList.map( function ( kw, index ) {
+					var isSelected = index === selected;
+					return el(
+						'button',
+						{
+							key: kw.keyword,
+							type: 'button',
+							className: 'button button-small' + ( isSelected ? ' is-active' : '' ),
+							'aria-pressed': isSelected ? 'true' : 'false',
+							onClick: function () { setSelected( index ); }
+						},
+						( kw.primary ? '★ ' : '' ) + kw.keyword
+					);
+				} )
+			) : null;
 
 			return el(
 				Collapsible,
@@ -2068,11 +2181,12 @@
 					title: el(
 						'span',
 						{ className: 'rk-checklist-head-inner' },
-					__( 'Content analysis', 'rankkernel' ),
-					el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, score + ' / 100' )
+						__( 'Content analysis', 'rankkernel' ),
+						el( 'span', { className: 'rk-checklist-badge ' + tone }, score + ' / 100' )
 					),
 					bodyId: 'rk-seo-checklist-body'
 				},
+				selector,
 				el(
 					'ul',
 					{ className: 'rk-checklist-items' },
@@ -2085,7 +2199,8 @@
 							el( 'span', { className: 'rk-checklist-label' }, check.label )
 						);
 					} )
-				)
+				),
+				el( 'p', { className: 'description rk-analysis-note' }, ANALYSIS_HONESTY )
 			);
 		}
 
@@ -2193,7 +2308,7 @@
 					keywords: meta.focus_keywords,
 					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
 				} ) : null,
-				analysisReady ? el( ContentAnalysisChecklist, {} ) : null
+				analysisReady ? el( ContentAnalysisChecklist, { onScore: props.onScore } ) : null
 			);
 		}
 
@@ -2602,11 +2717,7 @@
 
 	registerPlugin( 'rankkernel-seo', {
 		render: function () {
-			return el(
-				PluginSidebar,
-				{ name: SIDEBAR_NAME, title: __( 'RankKernel SEO', 'rankkernel' ) },
-				el( RankKernelSidebar, null )
-			);
+			return el( SidebarRoot, null );
 		}
 	} );
 } )();
