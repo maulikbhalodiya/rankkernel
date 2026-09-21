@@ -149,4 +149,52 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 
 		$this->assertCount( 2, $drops );
 	}
+
+	/**
+	 * Test the uninstall retires the cached existence flag for every dropped table.
+	 *
+	 * Without this a stale true would survive in a persistent object cache and
+	 * ensureTables would skip recreating the table the uninstall just dropped.
+	 */
+	public function test_uninstall_retires_the_table_existence_cache(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', true );
+		}
+
+		$db         = new RedirectsMonitorUninstallStubDb();
+		$db->tables = [
+			'wp_rankkernel_redirects',
+			'wp_rankkernel_404_log',
+			'wp_posts',
+		];
+
+		// Test installs the stub wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $db;
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_settings' === $key ) {
+					return [ 'purge_on_uninstall' => true ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$deleted = array();
+
+		Functions\when( 'wp_cache_delete' )->alias(
+			function ( string $key, string $group ) use ( &$deleted ): bool {
+				$deleted[] = [ $key, $group ];
+
+				return true;
+			}
+		);
+
+		require dirname( __DIR__, 2 ) . '/uninstall.php';
+
+		$this->assertContains( [ 'table_exists_wp_rankkernel_redirects', 'rankkernel_tables' ], $deleted );
+		$this->assertContains( [ 'table_exists_wp_rankkernel_404_log', 'rankkernel_tables' ], $deleted );
+	}
 }
