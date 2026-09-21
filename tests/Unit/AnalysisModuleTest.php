@@ -141,19 +141,24 @@ final class AnalysisModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test an enabled module registers the REST route on the right hook.
+	 * An enabled module wires the REST route and the save handler.
 	 */
-	public function test_enabled_module_registers_the_rest_route(): void {
+	public function test_enabled_module_wires_its_hooks(): void {
 		$this->options['rankkernel_modules'] = [ 'analysis' ];
 
 		$module = new AnalysisModule( new ModuleEnableMap() );
-
-		$this->assertTrue( $module->isEnabled() );
-
 		$module->boot();
 
-		$this->assertCount( 1, $this->hooks );
-		$this->assertSame( 'rest_api_init', $this->hooks[0]['hook'] );
+		$hooks = array_column( $this->hooks, 'hook' );
+
+		$this->assertContains( 'rest_api_init', $hooks );
+		$this->assertContains( 'save_post', $hooks );
+
+		$savePost = array_values(
+			array_filter( $this->hooks, static fn ( array $hook ): bool => 'save_post' === $hook['hook'] )
+		);
+
+		$this->assertSame( 20, $savePost[0]['priority'] );
 	}
 
 	/**

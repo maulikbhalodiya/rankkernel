@@ -132,5 +132,9 @@ final class AnalysisModule implements ModuleInterface {
 		$controller = $this->controller ?? new AnalysisController();
 
 		add_action( 'rest_api_init', [ $controller, 'registerRoutes' ] );
+
+		$score = new AnalysisScore();
+
+		( new AnalysisSaveHandler( $score ) )->register();
 	}
 }
