@@ -241,4 +241,26 @@ final class AnalysisControllerTest extends TestCase {
 		$this->assertTrue( $captured['args']['args']['post_id']['required'] );
 		$this->assertSame( 'absint', $captured['args']['args']['post_id']['sanitize_callback'] );
 	}
+
+	/**
+	 * Test the report carries per keyword checks for supporting keywords.
+	 */
+	public function test_report_carries_per_keyword_checks(): void {
+		Functions\when( 'get_post' )->justReturn( new WP_Post() );
+
+		$result = ( new AnalysisController() )->analyze(
+			$this->request(
+				[
+					'post_id'  => 5,
+					'content'  => '<p>Red apples are best in autumn. Autumn harvest ideas help.</p>',
+					'keywords' => [ 'red apples', 'autumn harvest' ],
+				]
+			)
+		);
+
+		$data = $result->get_data();
+
+		$this->assertArrayHasKey( 'checks', $data['keywords'][1] );
+		$this->assertNotEmpty( $data['keywords'][1]['checks'] );
+	}
 }

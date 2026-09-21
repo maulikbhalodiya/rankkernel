@@ -607,4 +607,29 @@ final class AnalyzerTest extends TestCase {
 		$this->assertSame( Analyzer::PASS, $check['status'] );
 		$this->assertStringContainsString( 'not a ranking factor', $check['message'] );
 	}
+
+	/**
+	 * Test the primary keyword carries the full checklist.
+	 */
+	public function test_primary_keyword_carries_the_full_checklist(): void {
+		$result = ( new Analyzer() )->analyze( $this->input() );
+
+		$this->assertSame( $result['checks'], $result['keywords'][0]['checks'] );
+	}
+
+	/**
+	 * Test supporting keywords carry their four shared checks.
+	 */
+	public function test_supporting_keywords_carry_their_shared_checks(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'keywords' => [ 'red apples', 'autumn harvest' ] ] ) );
+
+		$supporting = $result['keywords'][1];
+
+		$this->assertArrayHasKey( 'checks', $supporting );
+
+		$ids = array_column( $supporting['checks'], 'id' );
+		sort( $ids );
+
+		$this->assertSame( [ 'keyword_density', 'keyword_distribution', 'keyword_in_content', 'keyword_in_subheading' ], $ids );
+	}
 }

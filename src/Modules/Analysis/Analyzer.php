@@ -162,6 +162,7 @@ final class Analyzer {
 					'primary' => true,
 					'score'   => $scored['score'],
 					'band'    => $scored['band'],
+					'checks'  => $scored['checks'],
 				];
 
 				continue;
@@ -175,6 +176,7 @@ final class Analyzer {
 				'primary' => false,
 				'score'   => $result['score'],
 				'band'    => $result['band'],
+				'checks'  => $shared,
 			];
 		}
 
