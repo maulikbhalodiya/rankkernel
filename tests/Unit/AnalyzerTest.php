@@ -32,16 +32,20 @@ final class AnalyzerTest extends TestCase {
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( float $number, int $decimals = 0 ): string => number_format( $number, $decimals ) );
-		// Host extraction stub, sufficient for the fixtures and free of the native parser.
+		// Host extraction stub, sufficient for the fixtures and free of the native
+		// parser. The port is stripped from the authority the way the real
+		// function does, so a host comparison is not fooled by a port.
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
 				if ( PHP_URL_HOST !== $component ) {
 					return false;
 				}
 
-				return preg_match( '~^[a-z][a-z0-9+.-]*://([^/?#]+)~i', $url, $matches )
-					? strtolower( $matches[1] )
-					: '';
+				if ( 1 !== preg_match( '~^[a-z][a-z0-9+.-]*://([^/?#]+)~i', $url, $matches ) ) {
+					return '';
+				}
+
+				return strtolower( (string) preg_replace( '/:\d+$/', '', $matches[1] ) );
 			}
 		);
 	}
@@ -154,6 +158,36 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
+	 * Test the featured image alt contributes to the image alt check.
+	 *
+	 * The content has no image at all, so the check can only pass through the
+	 * featured alt, and can only fail when neither alt holds the keyword.
+	 */
+	public function test_keyword_in_image_alt_uses_the_featured_image_alt(): void {
+		$withFeatured = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html'         => '<p>Some text about red apples and other fruit.</p>',
+					'featured_alt' => 'red apples on a wooden table',
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $withFeatured, 'keyword_in_image_alt' )['status'] );
+
+		$withoutKeyword = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html'         => '<p>Some text about red apples and other fruit.</p><img src="a.jpg" alt="a basket of fruit">',
+					'featured_alt' => 'fruit basket',
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $withoutKeyword, 'keyword_in_image_alt' )['status'] );
+	}
+
+	/**
 	 * Test a missing slug keyword is reported as a problem.
 	 */
 	public function test_missing_keyword_in_slug_is_a_problem(): void {
@@ -214,14 +248,19 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
-	 * Test the density message reports the real count and never asks for more.
+	 * Test the density message reports the real count and percentage.
+	 *
+	 * The fixture holds exactly two occurrences in eight words, so the message
+	 * has to carry those numbers rather than a fixed string.
 	 */
 	public function test_density_message_reports_the_count(): void {
-		$result = ( new Analyzer() )->analyze( $this->input() );
+		$result = ( new Analyzer() )->analyze(
+			$this->input( [ 'html' => '<p>red apples and green pears and red apples</p>' ] )
+		);
 
 		$check = $this->check( $result, 'keyword_density' );
 
-		$this->assertStringContainsString( 'time(s)', $check['message'] );
+		$this->assertStringContainsString( 'appears 2 time(s), a density of 25.00 percent', $check['message'] );
 		$this->assertStringNotContainsString( 'add', strtolower( $check['message'] ) );
 	}
 
@@ -292,6 +331,100 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
+	 * Test a link is classified by its host, not by the raw href string.
+	 *
+	 * One link per run, so the internal and external statuses show which bucket
+	 * the link landed in. A relative href and a same host href differing in
+	 * letter case and port are internal, a different host is external.
+	 */
+	public function test_links_are_classified_by_host_not_raw_string(): void {
+		$analyzer = new Analyzer();
+
+		$relative = $analyzer->analyze( $this->input( [ 'html' => '<p>Text here.</p><a href="/inner-page">In</a>' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $relative, 'internal_links' )['status'] );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $relative, 'external_links' )['status'] );
+
+		$sameHost = $analyzer->analyze( $this->input( [ 'html' => '<p>Text here.</p><a href="https://EXAMPLE.COM:8443/inside">In</a>' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $sameHost, 'internal_links' )['status'] );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $sameHost, 'external_links' )['status'] );
+
+		$otherHost = $analyzer->analyze( $this->input( [ 'html' => '<p>Text here.</p><a href="https://other.test/out">Out</a>' ] ) );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $otherHost, 'internal_links' )['status'] );
+		$this->assertSame( Analyzer::PASS, $this->check( $otherHost, 'external_links' )['status'] );
+	}
+
+	/**
+	 * Test followed external is not applicable when there are no outbound links.
+	 *
+	 * With no outbound links at all, the check must leave the denominator
+	 * rather than claim every link is nofollow.
+	 */
+	public function test_followed_external_is_not_applicable_without_outbound_links(): void {
+		$html = '<p>We talk about red apples and how to store them through the winter months ahead.</p>';
+
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => $html ] ) );
+
+		$check = $this->check( $result, 'followed_external' );
+
+		$this->assertSame( Analyzer::NA, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'outbound links', $check['message'] );
+		$this->assertStringNotContainsString( 'nofollow', $check['message'] );
+	}
+
+	/**
+	 * Test the text present check measures characters, not bytes.
+	 *
+	 * Twenty CJK characters are sixty bytes. The gate asks for at least fifty
+	 * characters, so this content is too short and must not pass on byte count.
+	 */
+	public function test_text_present_counts_characters_not_bytes(): void {
+		$html = '<p>' . str_repeat( '测', 20 ) . '</p>';
+
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => $html ] ) );
+
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'text_present' )['status'] );
+	}
+
+	/**
+	 * Test the slug length check measures characters, not bytes.
+	 *
+	 * Thirty CJK characters are ninety bytes. The gate allows seventy five
+	 * characters, so this slug is within the limit.
+	 */
+	public function test_slug_length_counts_characters_not_bytes(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'slug' => str_repeat( '测', 30 ) ] ) );
+
+		$check = $this->check( $result, 'slug_length' );
+
+		$this->assertSame( Analyzer::PASS, $check['status'] );
+		$this->assertStringContainsString( '30 characters', $check['message'] );
+	}
+
+	/**
+	 * Test the title position check measures characters, not bytes.
+	 *
+	 * The keyword sits at character ten of a thirty two character title, so it
+	 * is inside the first half. Those same characters occupy byte thirty of a
+	 * fifty six byte title, which is past the byte midpoint, so a byte
+	 * implementation reports a false negative.
+	 */
+	public function test_title_position_counts_characters_not_bytes(): void {
+		$title = str_repeat( '中', 10 ) . '咖啡' . str_repeat( 'x', 20 );
+
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'title'    => $title,
+					'keywords' => [ '咖啡' ],
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'title_starts_with_keyword' )['status'] );
+	}
+
+	/**
 	 * Test keyword uniqueness stays advisory and not applicable without data.
 	 */
 	public function test_uniqueness_is_not_applicable_without_data(): void {
@@ -329,5 +462,19 @@ final class AnalyzerTest extends TestCase {
 
 		$this->assertLessThanOrEqual( 50, $weak['score'] );
 		$this->assertSame( Analyzer::BAND_PROBLEM, $weak['band'] );
+	}
+
+	/**
+	 * Test a mid range score lands in the improve band.
+	 *
+	 * The keyword is missing from the title, which costs the largest weight and
+	 * drops the otherwise well optimised fixture into the middle band.
+	 */
+	public function test_mid_range_score_lands_in_the_improve_band(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'title' => 'A complete guide to apples' ] ) );
+
+		$this->assertGreaterThanOrEqual( 51, $result['score'] );
+		$this->assertLessThan( 81, $result['score'] );
+		$this->assertSame( Analyzer::BAND_IMPROVE, $result['band'] );
 	}
 }

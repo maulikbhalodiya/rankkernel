@@ -439,7 +439,7 @@ final class Analyzer {
 	}
 
 	/**
-	 * Keyword in any image alt, singular or plural tolerated by the matcher.
+	 * Keyword in any image alt.
 	 *
 	 * @param string               $keyword Keyword.
 	 * @param array<string, mixed> $context Context.
@@ -476,9 +476,9 @@ final class Analyzer {
 		$weight = self::WEIGHTS['title_starts_with_keyword'];
 		$needle = KeywordMatcher::normalize( $keyword );
 		$hay    = KeywordMatcher::normalize( $title );
-		$at     = ( '' === $needle ) ? false : strpos( $hay, $needle );
+		$at     = ( '' === $needle ) ? false : mb_strpos( $hay, $needle, 0, 'UTF-8' );
 
-		if ( false !== $at && $at < (int) floor( strlen( $hay ) / 2 ) ) {
+		if ( false !== $at && $at < (int) floor( mb_strlen( $hay, 'UTF-8' ) / 2 ) ) {
 			return $this->result( 'title_starts_with_keyword', 'title', self::PASS, $weight, $this->passMessage( 'title_starts_with_keyword', $keyword ) );
 		}
 
@@ -633,7 +633,7 @@ final class Analyzer {
 			return $this->result( 'slug_length', 'seo', self::NA, 0, $this->missingMessage( 'slug_length' ) );
 		}
 
-		$length = strlen( $context['slug'] );
+		$length = mb_strlen( $context['slug'], 'UTF-8' );
 		$weight = self::WEIGHTS['slug_length'];
 
 		/* translators: %d: character count. */
@@ -663,9 +663,13 @@ final class Analyzer {
 			? $this->result( 'external_links', 'seo', self::PASS, self::WEIGHTS['external_links'], __( 'The content links out to an external source.', 'rankkernel' ) )
 			: $this->result( 'external_links', 'seo', self::PROBLEM, 0, __( 'No outbound links found. Cite a source or reference.', 'rankkernel' ) );
 
-		$followed = ( $links['followed'] > 0 )
-			? $this->result( 'followed_external', 'seo', self::PASS, self::WEIGHTS['followed_external'], __( 'At least one outbound link is followed.', 'rankkernel' ) )
-			: $this->result( 'followed_external', 'seo', self::IMPROVE, 0, __( 'Every outbound link is nofollow.', 'rankkernel' ) );
+		if ( 0 === $links['external'] ) {
+			$followed = $this->result( 'followed_external', 'seo', self::NA, 0, __( 'There are no outbound links to check.', 'rankkernel' ) );
+		} elseif ( $links['followed'] > 0 ) {
+			$followed = $this->result( 'followed_external', 'seo', self::PASS, self::WEIGHTS['followed_external'], __( 'At least one outbound link is followed.', 'rankkernel' ) );
+		} else {
+			$followed = $this->result( 'followed_external', 'seo', self::IMPROVE, 0, __( 'Every outbound link is nofollow.', 'rankkernel' ) );
+		}
 
 		return [ $internal, $external, $followed ];
 	}
@@ -977,7 +981,7 @@ final class Analyzer {
 	 * @return array<string, mixed> Result.
 	 */
 	private function textPresenceCheck( array $context ): array {
-		$length = strlen( $context['text'] );
+		$length = mb_strlen( $context['text'], 'UTF-8' );
 		$weight = self::WEIGHTS['text_present'];
 
 		if ( $length >= 50 ) {

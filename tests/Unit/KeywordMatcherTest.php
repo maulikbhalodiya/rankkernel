@@ -79,6 +79,36 @@ final class KeywordMatcherTest extends TestCase {
 	}
 
 	/**
+	 * Test shared content words split across sentences do not count as one hit.
+	 *
+	 * Every content word of the keyword appears, but in two different
+	 * sentences. The variation test is scoped to one sentence, so this must
+	 * not match. Computing sentence boundaries before normalisation is what
+	 * keeps the scope, because normalisation destroys the punctuation.
+	 */
+	public function test_shared_content_words_split_across_sentences_do_not_count(): void {
+		$this->assertFalse( KeywordMatcher::contains( 'The weather is cold today. I brew coffee at home.', 'cold brew coffee' ) );
+	}
+
+	/**
+	 * Test shared content words inside one sentence still count in any order.
+	 */
+	public function test_shared_content_words_in_one_sentence_still_count(): void {
+		$this->assertTrue( KeywordMatcher::contains( 'They brew coffee cold in summer.', 'cold brew coffee' ) );
+	}
+
+	/**
+	 * Test a plural is not tolerated, which is the real behaviour of the matcher.
+	 *
+	 * The image alt check used to claim the matcher accepted singular or
+	 * plural. It does not, so this pins the actual contract.
+	 */
+	public function test_plural_is_not_tolerated(): void {
+		$this->assertTrue( KeywordMatcher::contains( 'We sell red apple here.', 'red apple' ) );
+		$this->assertFalse( KeywordMatcher::contains( 'We sell red apples here.', 'red apple' ) );
+	}
+
+	/**
 	 * Test a function word difference still counts, both directions.
 	 */
 	public function test_function_word_difference_still_counts(): void {

@@ -232,9 +232,14 @@ final class KeywordMatcher {
 	 */
 	public static function contains( string $haystack, string $keyword ): bool {
 		$needle = self::normalize( $keyword );
-		$hay    = self::normalize( $haystack );
 
-		if ( '' === $needle || '' === $hay ) {
+		if ( '' === $needle ) {
+			return false;
+		}
+
+		$hay = self::normalize( $haystack );
+
+		if ( '' === $hay ) {
 			return false;
 		}
 
@@ -245,8 +250,11 @@ final class KeywordMatcher {
 		$content = self::contentWords( $keyword );
 
 		if ( count( $content ) > 1 ) {
-			foreach ( TextStats::sentences( $hay ) as $sentence ) {
-				if ( self::sentenceHasAll( $sentence, $content ) ) {
+			// Sentence boundaries come from the raw haystack, because
+			// normalisation collapses punctuation and newlines and would
+			// otherwise leave a single sentence for the whole field.
+			foreach ( TextStats::sentences( $haystack ) as $sentence ) {
+				if ( self::sentenceHasAll( self::normalize( $sentence ), $content ) ) {
 					return true;
 				}
 			}
