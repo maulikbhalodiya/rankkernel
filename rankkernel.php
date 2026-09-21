@@ -74,7 +74,7 @@ function rankkernel_activate(): void {
 	}
 
 	// Seed rankkernel_modules, default ON modules.
-	$default_modules = array( 'metadata', 'sitemaps', 'schema', 'breadcrumbs', 'importer' );
+	$default_modules = array( 'metadata', 'analysis', 'sitemaps', 'schema', 'breadcrumbs', 'importer' );
 	if ( false === get_option( 'rankkernel_modules' ) ) {
 		add_option( 'rankkernel_modules', $default_modules );
 	}

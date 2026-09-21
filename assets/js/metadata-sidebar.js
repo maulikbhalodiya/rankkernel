@@ -1924,52 +1924,143 @@
 			);
 		}
 
-		function ContentAnalysisChecklist( props ) {
-			var title = String( props.title || '' );
-			var description = String( props.description || '' );
-			var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
-			var primaryKw = keywords.length > 0 ? String( keywords[ 0 ] ).toLowerCase() : '';
+		function ContentAnalysisChecklist() {
+			var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
+			var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
+			var keywords = Array.isArray( meta.focus_keywords ) ? meta.focus_keywords : [];
+			var keywordKey = keywords.join( '|' );
 
-			var checks = [];
-			if ( primaryKw ) {
-				var inTitle = title.toLowerCase().indexOf( primaryKw ) >= 0;
-				checks.push( {
-					id: 'kwInTitle',
-					ok: inTitle,
-					label: inTitle
-						? __( 'Focus Keyword found in SEO Title.', 'rankkernel' )
-						: __( 'Focus Keyword missing from SEO Title.', 'rankkernel' )
-				} );
-				var inDesc = description.toLowerCase().indexOf( primaryKw ) >= 0;
-				checks.push( {
-					id: 'kwInDesc',
-					ok: inDesc,
-					label: inDesc
-						? __( 'Focus Keyword used inside SEO Meta Description.', 'rankkernel' )
-						: __( 'Focus Keyword missing from Meta Description.', 'rankkernel' )
-				} );
+			// Subscribed, not read once, so editing the content re-runs the analysis.
+			var draft = useSelect( function ( select ) {
+				try {
+					var editor = select( 'core/editor' );
+					if ( ! editor || ! editor.getEditedPostAttribute ) {
+						return null;
+					}
+					return {
+						title: editor.getEditedPostAttribute( 'title' ) || '',
+						slug: editor.getEditedPostAttribute( 'slug' ) || '',
+						content: editor.getEditedPostAttribute( 'content' ) || ''
+					};
+				} catch ( e ) {
+					return null;
+				}
+			}, [] );
+
+			var resultState = useState( null );
+			var result = resultState[ 0 ];
+			var setResult = resultState[ 1 ];
+			var errorState = useState( '' );
+			var error = errorState[ 0 ];
+			var setError = errorState[ 1 ];
+
+			var title = draft ? draft.title : '';
+			var content = draft ? draft.content : '';
+			var slug = draft ? draft.slug : '';
+			var description = meta.description || '';
+
+			useEffect( function () {
+				if ( ! path || '' === keywordKey ) {
+					setResult( null );
+					setError( '' );
+					return undefined;
+				}
+
+				// A slower earlier reply must never overwrite a newer one, and an
+				// unmount must not set state, so every run cancels on cleanup.
+				var cancelled = false;
+				var controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
+
+				var timer = window.setTimeout( function () {
+					window.fetch( path, {
+						method: 'POST',
+						credentials: 'same-origin',
+						signal: controller ? controller.signal : undefined,
+						headers: {
+							'Content-Type': 'application/json',
+							'X-WP-Nonce': nonce
+						},
+						body: JSON.stringify( {
+							post_id: cfg.postId,
+							title: title,
+							description: description,
+							slug: slug,
+							content: content,
+							keywords: keywords
+						} )
+					} ).then( function ( response ) {
+						var status = response.status;
+						return response.json().then(
+							function ( data ) {
+								return { ok: response.ok, status: status, data: data };
+							},
+							function () {
+								return { ok: false, status: status, data: null };
+							}
+						);
+					} ).then( function ( reply ) {
+						if ( cancelled ) {
+							return;
+						}
+
+						if ( ! reply.ok || ! reply.data ) {
+							setResult( null );
+							setError( 403 === reply.status ? __( 'Save the post once, then run the analysis.', 'rankkernel' ) : __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
+							return;
+						}
+
+						setError( '' );
+						setResult( reply.data );
+					} ).catch( function () {
+						if ( cancelled ) {
+							return;
+						}
+
+						setResult( null );
+						setError( __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
+					} );
+				}, 700 );
+
+				return function () {
+					cancelled = true;
+					if ( controller ) {
+						controller.abort();
+					}
+					window.clearTimeout( timer );
+				};
+			}, [ path, nonce, keywordKey, title, content, slug, description ] );
+
+			if ( ! path ) {
+				return null;
 			}
 
-			var titleLen = title.length;
-			checks.push( {
-				id: 'titleLength',
-				ok: titleLen >= 30 && titleLen <= 60,
-				label: titleLen === 0
-					? __( 'SEO title is empty.', 'rankkernel' )
-					: ( titleLen <= 60 ? __( 'SEO Title length is optimal.', 'rankkernel' ) : __( 'SEO Title is too long.', 'rankkernel' ) )
+			if ( '' === keywordKey ) {
+				return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
+			}
+
+			if ( '' !== error ) {
+				return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, error );
+			}
+
+			if ( ! result ) {
+				return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
+			}
+
+			var checks = [];
+			( result.checks || [] ).forEach( function ( check ) {
+				if ( 'na' === check.status ) {
+					return;
+				}
+				checks.push( {
+					id: check.id,
+					ok: 'pass' === check.status,
+					status: check.status,
+					label: check.message
+				} );
 			} );
 
-			var descLen = description.length;
-			checks.push( {
-				id: 'descLength',
-				ok: descLen >= 100 && descLen <= 160,
-				label: descLen === 0
-					? __( 'Meta description is empty.', 'rankkernel' )
-					: ( descLen <= 160 ? __( 'Meta Description length is good.', 'rankkernel' ) : __( 'Meta Description is too long.', 'rankkernel' ) )
-			} );
-
-			var passCount = checks.filter( function ( c ) { return c.ok; } ).length;
-			var failCount = checks.length - passCount;
+			var failCount = checks.filter( function ( c ) { return ! c.ok; } ).length;
+			var score = typeof result.score === 'number' ? result.score : 0;
 
 			return el(
 				Collapsible,
@@ -1977,8 +2068,8 @@
 					title: el(
 						'span',
 						{ className: 'rk-checklist-head-inner' },
-						__( 'SEO Analysis', 'rankkernel' ),
-						el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, failCount === 0 ? __( 'All Passed', 'rankkernel' ) : failCount + ' ' + __( 'Warnings', 'rankkernel' ) )
+					__( 'Content analysis', 'rankkernel' ),
+					el( 'span', { className: 'rk-checklist-badge ' + ( failCount === 0 ? 'rk-badge-ok' : 'rk-badge-warn' ) }, score + ' / 100' )
 					),
 					bodyId: 'rk-seo-checklist-body'
 				},
@@ -1990,6 +2081,7 @@
 							'li',
 							{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
 							el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
+							el( 'span', { className: 'screen-reader-text' }, 'pass' === check.status ? __( 'Pass:', 'rankkernel' ) : __( 'Needs work:', 'rankkernel' ) ),
 							el( 'span', { className: 'rk-checklist-label' }, check.label )
 						);
 					} )
@@ -2078,6 +2170,11 @@
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
 			var permalink = cfg.permalink || cfg.homeUrl || '';
+
+			// A disabled analysis module registers no route, so the contract
+			// carries no path and both controls stay out of the panel.
+			var analysisReady = !!( cfg.analysis && cfg.analysis.path );
+
 			return el(
 				'div',
 				{ role: 'tabpanel', id: 'rk-panel-general', 'aria-labelledby': 'rk-tab-general', tabIndex: 0 },
@@ -2091,7 +2188,12 @@
 				url: permalink,
 				onEdit: function () { setModalTab( 'general' ); }
 			} ),
-				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) )
+				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) ),
+				analysisReady ? el( FocusKeywordsInput, {
+					keywords: meta.focus_keywords,
+					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
+				} ) : null,
+				analysisReady ? el( ContentAnalysisChecklist, {} ) : null
 			);
 		}
 

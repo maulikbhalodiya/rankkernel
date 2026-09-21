@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\TagsReplacer;
+use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Plugin;
 use RankKernel\Settings\SettingsStore;
@@ -61,11 +62,12 @@ final class MetadataBox {
 	/**
 	 * Asset handles and the single localized object name.
 	 */
-	private const EDITOR_SCRIPT  = 'rankkernel-metadata-editor';
-	private const EDITOR_STYLE   = 'rankkernel-metadata-editor';
-	private const CLASSIC_STYLE  = 'rankkernel-metadata-classic';
-	private const SIDEBAR_SCRIPT = 'rankkernel-metadata-sidebar';
-	private const LOCALIZE_NAME  = 'rankkernelMetaEditor';
+	private const EDITOR_SCRIPT   = 'rankkernel-metadata-editor';
+	private const EDITOR_STYLE    = 'rankkernel-metadata-editor';
+	private const CLASSIC_STYLE   = 'rankkernel-metadata-classic';
+	private const SIDEBAR_SCRIPT  = 'rankkernel-metadata-sidebar';
+	private const ANALYSIS_SCRIPT = 'rankkernel-analysis-editor';
+	private const LOCALIZE_NAME   = 'rankkernelMetaEditor';
 
 	/**
 	 * Field length budgets shown in the editor.
@@ -290,18 +292,29 @@ final class MetadataBox {
 	private $queryFactory;
 
 	/**
+	 * Module enable map, used to keep a disabled module's transport out of the
+	 * localized contract. Null means the caller supplied none, and the contract
+	 * is built as it was before the map existed.
+	 *
+	 * @var ModuleEnableMap|null
+	 */
+	private ?ModuleEnableMap $enableMap;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore|null          $store          Settings store override, test double seam.
 	 * @param TagsReplacer|null           $replacer       Replacer override, test double seam.
 	 * @param callable(int): Context|null $contextFactory Context factory override, test double seam.
 	 * @param callable(): WP_Query|null   $queryFactory   Query factory override, test double seam.
+	 * @param ModuleEnableMap|null        $enableMap      Enable map, gates module owned transport.
 	 */
-	public function __construct( ?SettingsStore $store = null, ?TagsReplacer $replacer = null, ?callable $contextFactory = null, ?callable $queryFactory = null ) {
+	public function __construct( ?SettingsStore $store = null, ?TagsReplacer $replacer = null, ?callable $contextFactory = null, ?callable $queryFactory = null, ?ModuleEnableMap $enableMap = null ) {
 		$this->store          = $store ?? new SettingsStore();
 		$this->replacer       = $replacer ?? new TagsReplacer();
 		$this->contextFactory = $contextFactory;
 		$this->queryFactory   = $queryFactory;
+		$this->enableMap      = $enableMap;
 	}
 
 	/**
@@ -384,6 +397,13 @@ final class MetadataBox {
 		}
 
 		wp_enqueue_script( self::EDITOR_SCRIPT );
+
+		if ( $this->analysisEnabled() ) {
+			$analysisSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/analysis-editor.js', $pluginFile ) : '';
+
+			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, [ self::EDITOR_SCRIPT ], $version, true );
+			wp_enqueue_script( self::ANALYSIS_SCRIPT );
+		}
 	}
 
 	/**
@@ -553,6 +573,15 @@ final class MetadataBox {
 			)
 			: '#';
 
+		$analysisEnabled = $this->analysisEnabled();
+		$focusKeywords   = [];
+
+		if ( isset( $meta['focus_keywords'] ) && is_array( $meta['focus_keywords'] ) ) {
+			foreach ( $meta['focus_keywords'] as $focusKeyword ) {
+				$focusKeywords[] = (string) $focusKeyword;
+			}
+		}
+
 		require __DIR__ . '/Views/metadata-box.php';
 	}
 
@@ -652,7 +681,7 @@ final class MetadataBox {
 		$siteUrl   = function_exists( 'site_url' ) ? (string) site_url() : '';
 		$homeUrl   = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
-		return [
+		$state = [
 			'postId'      => $postId,
 			'permalink'   => $permalink,
 			'siteUrl'     => $siteUrl,
@@ -674,6 +703,33 @@ final class MetadataBox {
 			'strings'     => $this->strings(),
 			'restPath'    => $this->restPath( $postId ),
 		];
+
+		// The editor posts its current draft to this route and renders the reply.
+		// The transport is only handed over when the module that owns the route is
+		// on, because a disabled module registers no route, so a panel shipped
+		// anyway would post into a 404 on every debounced keystroke.
+		if ( $this->analysisEnabled() ) {
+			$state['analysis'] = [
+				'path'  => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/analysis' ) : '',
+				'nonce' => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '',
+			];
+		}
+
+		return $state;
+	}
+
+	/**
+	 * Whether the analysis module is enabled for this request.
+	 *
+	 * Mirrors the gate localizedState() uses for the analysis transport, so
+	 * the panel, its transport and its asset can only ever appear together.
+	 * A null enable map means the caller supplied none, which keeps the
+	 * contract built as it was before the map existed.
+	 *
+	 * @return bool The result.
+	 */
+	private function analysisEnabled(): bool {
+		return null === $this->enableMap || $this->enableMap->isEnabled( 'analysis' );
 	}
 
 	/**
@@ -1038,6 +1094,23 @@ final class MetadataBox {
 
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, sanitized by MetaPayload::sanitize below.
 			$merged[ $name ] = (string) wp_unslash( $_POST[ $key ] );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+		if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, split and sanitized by MetaPayload::sanitize below.
+			$postedKeywords = (string) wp_unslash( $_POST['rankkernel_meta_focus_keywords'] );
+
+			$keywords = [];
+			foreach ( explode( ',', $postedKeywords ) as $keyword ) {
+				$keyword = trim( $keyword );
+
+				if ( '' !== $keyword ) {
+					$keywords[] = $keyword;
+				}
+			}
+
+			$merged['focus_keywords'] = $keywords;
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.

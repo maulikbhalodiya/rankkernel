@@ -16,6 +16,7 @@ use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\MetadataBox;
 use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
+use RankKernel\Modules\Analysis\AnalysisModule;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
@@ -151,7 +152,7 @@ final class Plugin {
 			// Metadata editor metabox and Gutenberg sidebar, hard gated on the
 			// metadata module so a disabled module stays silent.
 			if ( $enableMap->isEnabled( 'metadata' ) ) {
-				$metadataBox = new MetadataBox( $settingsStore );
+				$metadataBox = new MetadataBox( $settingsStore, null, null, null, $enableMap );
 				$metadataBox->register();
 				$this->services['metadata_box'] = $metadataBox;
 			}
@@ -160,6 +161,10 @@ final class Plugin {
 		// Metadata module (optional, default-ON per activation seed).
 		$metadataModule = new MetadataModule( $settingsStore, $enableMap );
 		$moduleManager->register( $metadataModule );
+
+		// Content Analysis module (optional, default-ON per activation seed).
+		$analysisModule = new AnalysisModule( $enableMap );
+		$moduleManager->register( $analysisModule );
 
 		// Schema module (optional, default-ON per activation seed).
 		$schemaModule = new SchemaModule( $settingsStore, $enableMap );
