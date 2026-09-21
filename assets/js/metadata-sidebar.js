@@ -1445,6 +1445,315 @@
 		);
 	}
 
+	// Keyword chips. Defined at module scope so a SidebarBody re-render
+	// cannot hand React a new component type and remount the subtree.
+	function FocusKeywordsInput( props ) {
+		var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
+		var inputState = useState( '' );
+		var inputValue = inputState[ 0 ];
+		var setInputValue = inputState[ 1 ];
+
+		function addKeyword( kw ) {
+			var clean = String( kw || '' ).trim();
+			if ( ! clean ) {
+				return;
+			}
+			if ( keywords.indexOf( clean ) >= 0 ) {
+				setInputValue( '' );
+				return;
+			}
+			var next = keywords.concat( [ clean ] );
+			props.onChange( next );
+			setInputValue( '' );
+		}
+
+		// Removing index 0 drops the primary, so the first secondary is
+		// promoted by the list shifting down. A post never keeps secondary
+		// keywords without a primary.
+		function removeKeyword( index ) {
+			var next = keywords.filter( function ( _, i ) { return i !== index; } );
+			props.onChange( next );
+		}
+
+		function handleKeyDown( event ) {
+			if ( 'Enter' === event.key || ',' === event.key ) {
+				event.preventDefault();
+				addKeyword( inputValue );
+			} else if ( 'Backspace' === event.key && ! inputValue && keywords.length > 0 ) {
+				removeKeyword( keywords.length - 1 );
+			}
+		}
+
+		return el(
+			'div',
+			{ className: 'rk-meta-field rk-field rk-focus-keywords-field' },
+			el(
+				'div',
+				{ className: 'rk-meta-field-head rk-field-head' },
+				el( 'label', { className: 'rk-meta-field-label rk-field-label', htmlFor: 'rk-focus-kw-input' }, __( 'Focus Keyword', 'rankkernel' ) ),
+				el( 'span', { className: 'dashicons dashicons-editor-help rk-help-icon', title: __( 'Insert keywords you want to rank for.', 'rankkernel' ) } )
+			),
+			el(
+				'div',
+				{ className: 'rk-keywords-tagify' },
+				keywords.map( function ( kw, idx ) {
+					var isPrimary = 0 === idx;
+					return el(
+						'span',
+						{ key: idx, className: 'rk-keyword-tag ' + ( isPrimary ? 'rk-keyword-primary' : 'rk-keyword-secondary' ) },
+						isPrimary ? el( 'span', { className: 'dashicons dashicons-star-filled rk-keyword-star', 'aria-hidden': 'true' } ) : null,
+						el( 'span', { className: 'screen-reader-text' }, isPrimary ? __( 'Primary keyword: ', 'rankkernel' ) : __( 'Secondary keyword: ', 'rankkernel' ) ),
+						el( 'span', { className: 'rk-keyword-tag-text' }, kw ),
+						el(
+							'button',
+							{
+								type: 'button',
+								className: 'rk-keyword-tag-remove',
+								'aria-label': __( 'Remove keyword', 'rankkernel' ) + ': ' + kw,
+								onClick: function () { removeKeyword( idx ); }
+							},
+							'×'
+						)
+					);
+				} ),
+				el( 'input', {
+					id: 'rk-focus-kw-input',
+					type: 'text',
+					className: 'rk-keywords-input',
+					placeholder: keywords.length === 0 ? __( 'e.g. SEO plugin, WordPress', 'rankkernel' ) : '',
+					value: inputValue,
+					onChange: function ( e ) { setInputValue( e.target.value ); },
+					onKeyDown: handleKeyDown,
+					onBlur: function () { addKeyword( inputValue ); }
+				} )
+			),
+			el( 'p', { className: 'description' }, __( 'The first keyword is the primary one. Every later keyword is a secondary keyword.', 'rankkernel' ) )
+		);
+	}
+
+	// Live draft checklist and score. This component owns the analysis fetch,
+	// so it must keep one identity across parent renders. Defined inside
+	// SidebarBody it would be a new function on every parent render, React
+	// would remount it, the fetch effect would run again, and the score it
+	// reports would re-render the parent into the same loop.
+	function ContentAnalysisChecklist( props ) {
+		var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
+		var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
+		var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
+		var keywordKey = keywords.join( '|' );
+
+		// Subscribed, not read once, so editing the content re-runs the analysis.
+		var draft = useSelect( function ( select ) {
+			try {
+				var editor = select( 'core/editor' );
+				if ( ! editor || ! editor.getEditedPostAttribute ) {
+					return null;
+				}
+				return {
+					title: editor.getEditedPostAttribute( 'title' ) || '',
+					slug: editor.getEditedPostAttribute( 'slug' ) || '',
+					content: editor.getEditedPostAttribute( 'content' ) || ''
+				};
+			} catch ( e ) {
+				return null;
+			}
+		}, [] );
+
+		var resultState = useState( null );
+		var result = resultState[ 0 ];
+		var setResult = resultState[ 1 ];
+		var errorState = useState( '' );
+		var error = errorState[ 0 ];
+		var setError = errorState[ 1 ];
+		var selectedState = useState( 0 );
+		var selected = selectedState[ 0 ];
+		var setSelected = selectedState[ 1 ];
+
+		var liveScore = result && 'number' === typeof result.score ? result.score : null;
+		var liveBand = result ? result.band : null;
+
+		// The upward report runs in an effect, never during render. A fresh
+		// object each render would keep the parent update from bailing out,
+		// so the child would report again on every parent render in a loop.
+		useEffect( function () {
+			if ( typeof props.onScore !== 'function' || null === liveScore ) {
+				return undefined;
+			}
+			props.onScore( { score: liveScore, band: liveBand } );
+			return undefined;
+		}, [ liveScore, liveBand ] );
+
+		var title = draft ? draft.title : '';
+		var content = draft ? draft.content : '';
+		var slug = draft ? draft.slug : '';
+		var description = 'string' === typeof props.description ? props.description : '';
+
+		useEffect( function () {
+			if ( ! path || '' === keywordKey ) {
+				setResult( null );
+				setError( '' );
+				if ( typeof props.onScore === 'function' ) { props.onScore( null ); }
+				return undefined;
+			}
+
+			// A request is issued only after the writer stops changing the
+			// analysed inputs, because every input change clears the timer and
+			// aborts an in flight request before scheduling the next one. A
+			// slower earlier reply must never overwrite a newer one, and an
+			// unmount must not set state, so every run cancels on cleanup.
+			var cancelled = false;
+			var controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
+
+			var timer = window.setTimeout( function () {
+				window.fetch( path, {
+					method: 'POST',
+					credentials: 'same-origin',
+					signal: controller ? controller.signal : undefined,
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': nonce
+					},
+					body: JSON.stringify( {
+						post_id: cfg.postId,
+						title: title,
+						description: description,
+						slug: slug,
+						content: content,
+						keywords: keywords
+					} )
+				} ).then( function ( response ) {
+					var status = response.status;
+					return response.json().then(
+						function ( data ) {
+							return { ok: response.ok, status: status, data: data };
+						},
+						function () {
+							return { ok: false, status: status, data: null };
+						}
+					);
+				} ).then( function ( reply ) {
+					if ( cancelled ) {
+						return;
+					}
+
+					if ( ! reply.ok || ! reply.data ) {
+						setResult( null );
+						setError( 403 === reply.status ? __( 'Save the post once, then run the analysis.', 'rankkernel' ) : __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
+						return;
+					}
+
+					setError( '' );
+					setResult( reply.data );
+				} ).catch( function () {
+					if ( cancelled ) {
+						return;
+					}
+
+					setResult( null );
+					setError( __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
+				} );
+			}, 700 );
+
+			return function () {
+				cancelled = true;
+				if ( controller ) {
+					controller.abort();
+				}
+				window.clearTimeout( timer );
+			};
+		}, [ path, nonce, keywordKey, title, content, slug, description ] );
+
+		if ( ! path ) {
+			return null;
+		}
+
+		if ( '' === keywordKey ) {
+			return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
+		}
+
+		if ( '' !== error ) {
+			return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, error );
+		}
+
+		if ( ! result ) {
+			return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
+		}
+
+		var keywordList = Array.isArray( result.keywords ) ? result.keywords : [];
+
+		if ( selected >= keywordList.length ) {
+			selected = 0;
+		}
+
+		var activeChecks = result.checks || [];
+		if ( selected > 0 && keywordList[ selected ] ) {
+			activeChecks = keywordList[ selected ].checks || [];
+		}
+
+		var checks = [];
+		activeChecks.forEach( function ( check ) {
+			if ( 'na' === check.status ) {
+				return;
+			}
+			checks.push( {
+				id: check.id,
+				ok: 'pass' === check.status,
+				status: check.status,
+				label: check.message
+			} );
+		} );
+
+		var score = typeof result.score === 'number' ? result.score : 0;
+		var tone = bandClass( result.band );
+
+		var selector = keywordList.length > 1 ? el(
+			'div',
+			{ className: 'rk-checklist-filter', role: 'group', 'aria-label': __( 'Filter checks by keyword', 'rankkernel' ) },
+			keywordList.map( function ( kw, index ) {
+				var isSelected = index === selected;
+				return el(
+					'button',
+					{
+						key: kw.keyword,
+						type: 'button',
+						className: 'button button-small' + ( isSelected ? ' is-active' : '' ),
+						'aria-pressed': isSelected ? 'true' : 'false',
+						onClick: function () { setSelected( index ); }
+					},
+					( kw.primary ? '★ ' : '' ) + kw.keyword
+				);
+			} )
+		) : null;
+
+		return el(
+			Collapsible,
+			{
+				title: el(
+					'span',
+					{ className: 'rk-checklist-head-inner' },
+					__( 'Content analysis', 'rankkernel' ),
+					el( 'span', { className: 'rk-checklist-badge ' + tone }, score + ' / 100' )
+				),
+				bodyId: 'rk-seo-checklist-body'
+			},
+			selector,
+			el(
+				'ul',
+				{ className: 'rk-checklist-items' },
+				checks.map( function ( check ) {
+					return el(
+						'li',
+						{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
+						el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
+						el( 'span', { className: 'screen-reader-text' }, 'pass' === check.status ? __( 'Pass:', 'rankkernel' ) : __( 'Needs work:', 'rankkernel' ) ),
+						el( 'span', { className: 'rk-checklist-label' }, check.label )
+					);
+				} )
+			),
+			el( 'p', { className: 'description rk-analysis-note' }, ANALYSIS_HONESTY )
+		);
+	}
+
 	function RankKernelSidebar( props ) {
 		var postId = useSelect( function ( select ) {
 			try {
@@ -1914,305 +2223,6 @@
 			} );
 		}
 
-		function FocusKeywordsInput( props ) {
-			var keywords = Array.isArray( props.keywords ) ? props.keywords : [];
-			var inputState = useState( '' );
-			var inputValue = inputState[ 0 ];
-			var setInputValue = inputState[ 1 ];
-
-			function addKeyword( kw ) {
-				var clean = String( kw || '' ).trim();
-				if ( ! clean ) {
-					return;
-				}
-				if ( keywords.indexOf( clean ) >= 0 ) {
-					setInputValue( '' );
-					return;
-				}
-				var next = keywords.concat( [ clean ] );
-				props.onChange( next );
-				setInputValue( '' );
-			}
-
-			// Removing index 0 drops the primary, so the first secondary is
-			// promoted by the list shifting down. A post never keeps secondary
-			// keywords without a primary.
-			function removeKeyword( index ) {
-				var next = keywords.filter( function ( _, i ) { return i !== index; } );
-				props.onChange( next );
-			}
-
-			function handleKeyDown( event ) {
-				if ( 'Enter' === event.key || ',' === event.key ) {
-					event.preventDefault();
-					addKeyword( inputValue );
-				} else if ( 'Backspace' === event.key && ! inputValue && keywords.length > 0 ) {
-					removeKeyword( keywords.length - 1 );
-				}
-			}
-
-			return el(
-				'div',
-				{ className: 'rk-meta-field rk-field rk-focus-keywords-field' },
-				el(
-					'div',
-					{ className: 'rk-meta-field-head rk-field-head' },
-					el( 'label', { className: 'rk-meta-field-label rk-field-label', htmlFor: 'rk-focus-kw-input' }, __( 'Focus Keyword', 'rankkernel' ) ),
-					el( 'span', { className: 'dashicons dashicons-editor-help rk-help-icon', title: __( 'Insert keywords you want to rank for.', 'rankkernel' ) } )
-				),
-				el(
-					'div',
-					{ className: 'rk-keywords-tagify' },
-					keywords.map( function ( kw, idx ) {
-						var isPrimary = 0 === idx;
-						return el(
-							'span',
-							{ key: idx, className: 'rk-keyword-tag ' + ( isPrimary ? 'rk-keyword-primary' : 'rk-keyword-secondary' ) },
-							isPrimary ? el( 'span', { className: 'dashicons dashicons-star-filled rk-keyword-star', 'aria-hidden': 'true' } ) : null,
-							el( 'span', { className: 'screen-reader-text' }, isPrimary ? __( 'Primary keyword: ', 'rankkernel' ) : __( 'Secondary keyword: ', 'rankkernel' ) ),
-							el( 'span', { className: 'rk-keyword-tag-text' }, kw ),
-							el(
-								'button',
-								{
-									type: 'button',
-									className: 'rk-keyword-tag-remove',
-									'aria-label': __( 'Remove keyword', 'rankkernel' ) + ': ' + kw,
-									onClick: function () { removeKeyword( idx ); }
-								},
-								'×'
-							)
-						);
-					} ),
-					el( 'input', {
-						id: 'rk-focus-kw-input',
-						type: 'text',
-						className: 'rk-keywords-input',
-						placeholder: keywords.length === 0 ? __( 'e.g. SEO plugin, WordPress', 'rankkernel' ) : '',
-						value: inputValue,
-						onChange: function ( e ) { setInputValue( e.target.value ); },
-						onKeyDown: handleKeyDown,
-						onBlur: function () { addKeyword( inputValue ); }
-					} )
-				),
-				el( 'p', { className: 'description' }, __( 'The first keyword is the primary one. Every later keyword is a secondary keyword.', 'rankkernel' ) )
-			);
-		}
-
-		function ContentAnalysisChecklist( props ) {
-			var path = cfg.analysis && cfg.analysis.path ? cfg.analysis.path : '';
-			var nonce = cfg.analysis && cfg.analysis.nonce ? cfg.analysis.nonce : '';
-			var keywords = Array.isArray( meta.focus_keywords ) ? meta.focus_keywords : [];
-			var keywordKey = keywords.join( '|' );
-
-			// Subscribed, not read once, so editing the content re-runs the analysis.
-			var draft = useSelect( function ( select ) {
-				try {
-					var editor = select( 'core/editor' );
-					if ( ! editor || ! editor.getEditedPostAttribute ) {
-						return null;
-					}
-					return {
-						title: editor.getEditedPostAttribute( 'title' ) || '',
-						slug: editor.getEditedPostAttribute( 'slug' ) || '',
-						content: editor.getEditedPostAttribute( 'content' ) || ''
-					};
-				} catch ( e ) {
-					return null;
-				}
-			}, [] );
-
-			var resultState = useState( null );
-			var result = resultState[ 0 ];
-			var setResult = resultState[ 1 ];
-			var errorState = useState( '' );
-			var error = errorState[ 0 ];
-			var setError = errorState[ 1 ];
-			var selectedState = useState( 0 );
-			var selected = selectedState[ 0 ];
-			var setSelected = selectedState[ 1 ];
-
-			var liveScore = result && 'number' === typeof result.score ? result.score : null;
-			var liveBand = result ? result.band : null;
-
-			// The upward report runs in an effect, never during render. A fresh
-			// object each render would keep the parent update from bailing out,
-			// so the child would report again on every parent render in a loop.
-			useEffect( function () {
-				if ( typeof props.onScore !== 'function' || null === liveScore ) {
-					return undefined;
-				}
-				props.onScore( { score: liveScore, band: liveBand } );
-				return undefined;
-			}, [ liveScore, liveBand ] );
-
-			var title = draft ? draft.title : '';
-			var content = draft ? draft.content : '';
-			var slug = draft ? draft.slug : '';
-			var description = meta.description || '';
-
-			useEffect( function () {
-				if ( ! path || '' === keywordKey ) {
-					setResult( null );
-					setError( '' );
-					if ( typeof props.onScore === 'function' ) { props.onScore( null ); }
-					return undefined;
-				}
-
-				// A slower earlier reply must never overwrite a newer one, and an
-				// unmount must not set state, so every run cancels on cleanup.
-				var cancelled = false;
-				var controller = 'function' === typeof window.AbortController ? new window.AbortController() : null;
-
-				var timer = window.setTimeout( function () {
-					window.fetch( path, {
-						method: 'POST',
-						credentials: 'same-origin',
-						signal: controller ? controller.signal : undefined,
-						headers: {
-							'Content-Type': 'application/json',
-							'X-WP-Nonce': nonce
-						},
-						body: JSON.stringify( {
-							post_id: cfg.postId,
-							title: title,
-							description: description,
-							slug: slug,
-							content: content,
-							keywords: keywords
-						} )
-					} ).then( function ( response ) {
-						var status = response.status;
-						return response.json().then(
-							function ( data ) {
-								return { ok: response.ok, status: status, data: data };
-							},
-							function () {
-								return { ok: false, status: status, data: null };
-							}
-						);
-					} ).then( function ( reply ) {
-						if ( cancelled ) {
-							return;
-						}
-
-						if ( ! reply.ok || ! reply.data ) {
-							setResult( null );
-							setError( 403 === reply.status ? __( 'Save the post once, then run the analysis.', 'rankkernel' ) : __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
-							return;
-						}
-
-						setError( '' );
-						setResult( reply.data );
-					} ).catch( function () {
-						if ( cancelled ) {
-							return;
-						}
-
-						setResult( null );
-						setError( __( 'The analysis could not be run. Try again.', 'rankkernel' ) );
-					} );
-				}, 700 );
-
-				return function () {
-					cancelled = true;
-					if ( controller ) {
-						controller.abort();
-					}
-					window.clearTimeout( timer );
-				};
-			}, [ path, nonce, keywordKey, title, content, slug, description ] );
-
-			if ( ! path ) {
-				return null;
-			}
-
-			if ( '' === keywordKey ) {
-				return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
-			}
-
-			if ( '' !== error ) {
-				return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, error );
-			}
-
-			if ( ! result ) {
-				return el( 'p', { className: 'description', role: 'status' }, __( 'Analysing the current draft…', 'rankkernel' ) );
-			}
-
-		var keywordList = Array.isArray( result.keywords ) ? result.keywords : [];
-
-		if ( selected >= keywordList.length ) {
-			selected = 0;
-		}
-
-			var activeChecks = result.checks || [];
-			if ( selected > 0 && keywordList[ selected ] ) {
-				activeChecks = keywordList[ selected ].checks || [];
-			}
-
-			var checks = [];
-			activeChecks.forEach( function ( check ) {
-				if ( 'na' === check.status ) {
-					return;
-				}
-				checks.push( {
-					id: check.id,
-					ok: 'pass' === check.status,
-					status: check.status,
-					label: check.message
-				} );
-			} );
-
-		var score = typeof result.score === 'number' ? result.score : 0;
-		var tone = bandClass( result.band );
-
-		var selector = keywordList.length > 1 ? el(
-				'div',
-				{ className: 'rk-checklist-filter', role: 'group', 'aria-label': __( 'Filter checks by keyword', 'rankkernel' ) },
-				keywordList.map( function ( kw, index ) {
-					var isSelected = index === selected;
-					return el(
-						'button',
-						{
-							key: kw.keyword,
-							type: 'button',
-							className: 'button button-small' + ( isSelected ? ' is-active' : '' ),
-							'aria-pressed': isSelected ? 'true' : 'false',
-							onClick: function () { setSelected( index ); }
-						},
-						( kw.primary ? '★ ' : '' ) + kw.keyword
-					);
-				} )
-			) : null;
-
-			return el(
-				Collapsible,
-				{
-					title: el(
-						'span',
-						{ className: 'rk-checklist-head-inner' },
-						__( 'Content analysis', 'rankkernel' ),
-						el( 'span', { className: 'rk-checklist-badge ' + tone }, score + ' / 100' )
-					),
-					bodyId: 'rk-seo-checklist-body'
-				},
-				selector,
-				el(
-					'ul',
-					{ className: 'rk-checklist-items' },
-					checks.map( function ( check ) {
-						return el(
-							'li',
-							{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
-							el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
-							el( 'span', { className: 'screen-reader-text' }, 'pass' === check.status ? __( 'Pass:', 'rankkernel' ) : __( 'Needs work:', 'rankkernel' ) ),
-							el( 'span', { className: 'rk-checklist-label' }, check.label )
-						);
-					} )
-				),
-				el( 'p', { className: 'description rk-analysis-note' }, ANALYSIS_HONESTY )
-			);
-		}
-
 		function renderSocialContent() {
 			var titleValue = display( 'title', meta.title );
 			var descValue = display( 'description', meta.description );
@@ -2317,7 +2327,11 @@
 					keywords: meta.focus_keywords,
 					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
 				} ) : null,
-				analysisReady ? el( ContentAnalysisChecklist, { onScore: props.onScore } ) : null
+				analysisReady ? el( ContentAnalysisChecklist, {
+					keywords: meta.focus_keywords,
+					description: meta.description || '',
+					onScore: props.onScore
+				} ) : null
 			);
 		}
 
