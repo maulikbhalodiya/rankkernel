@@ -643,10 +643,8 @@ final class Analyzer {
 		}
 
 		/* translators: %d: word count. */
-		$message = sprintf(
-			__( 'The content is %d words long. Google states there is no ideal word count, so treat this as a completeness signal rather than a length requirement.', 'rankkernel' ),
-			$words
-		);
+		$template = __( 'The content is %d words long. Google states there is no ideal word count, so treat this as a completeness signal rather than a length requirement.', 'rankkernel' );
+		$message  = sprintf( $template, $words );
 
 		if ( $earned >= self::WEIGHTS['content_length'] ) {
 			return $this->result( 'content_length', 'seo', self::PASS, $earned, $message );
