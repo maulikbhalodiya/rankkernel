@@ -116,7 +116,6 @@ final class AnalysisColumnTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_current_screen' )->justReturn( null );
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.com/wp-content/plugins/rankkernel/assets/css/analysis-column.css' );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook, mixed $callback, int $priority = 10, int $accepted = 1 ): bool {
 				unset( $callback );
@@ -143,7 +142,6 @@ final class AnalysisColumnTest extends TestCase {
 				return true;
 			}
 		);
-		Functions\when( 'wp_register_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->alias(
 			function ( string $handle ): void {
 				$this->enqueuedStyles[] = $handle;

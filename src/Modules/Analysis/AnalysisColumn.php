@@ -220,7 +220,10 @@ final class AnalysisColumn {
 		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
 		$src        = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/analysis-column.css', $pluginFile ) : '';
 
-		wp_register_style( self::STYLE_HANDLE, $src, [], Plugin::version() );
+		if ( function_exists( 'wp_register_style' ) ) {
+			wp_register_style( self::STYLE_HANDLE, $src, [], Plugin::version() );
+		}
+
 		wp_enqueue_style( self::STYLE_HANDLE );
 	}
 

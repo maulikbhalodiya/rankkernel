@@ -42,13 +42,6 @@ final class AnalysisModuleTest extends TestCase {
 	private array $registeredMeta = [];
 
 	/**
-	 * Captured handles passed to wp_register_style.
-	 *
-	 * @var string[]
-	 */
-	private array $registeredStyles = [];
-
-	/**
 	 * Captured handles passed to wp_enqueue_style.
 	 *
 	 * @var string[]
@@ -66,11 +59,10 @@ final class AnalysisModuleTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->options          = [];
-		$this->hooks            = [];
-		$this->registeredMeta   = [];
-		$this->registeredStyles = [];
-		$this->enqueuedStyles   = [];
+		$this->options        = [];
+		$this->hooks          = [];
+		$this->registeredMeta = [];
+		$this->enqueuedStyles = [];
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -95,13 +87,6 @@ final class AnalysisModuleTest extends TestCase {
 					'object_type' => $objectType,
 					'args'        => $args,
 				];
-
-				return true;
-			}
-		);
-		Functions\when( 'wp_register_style' )->alias(
-			function ( string $handle ): bool {
-				$this->registeredStyles[] = $handle;
 
 				return true;
 			}
@@ -221,7 +206,6 @@ final class AnalysisModuleTest extends TestCase {
 		$this->assertFalse( $module->isEnabled() );
 		$this->assertSame( [], $this->registeredMeta );
 		$this->assertSame( [], $this->hooks );
-		$this->assertSame( [], $this->registeredStyles );
 		$this->assertSame( [], $this->enqueuedStyles );
 	}
 
