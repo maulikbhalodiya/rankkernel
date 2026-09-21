@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Analysis;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Analysis\AnalysisScore;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
 use RankKernel\Rest\AnalysisController;
@@ -96,9 +97,28 @@ final class AnalysisModule implements ModuleInterface {
 	}
 
 	/**
-	 * Wire services. Nothing heavy is built here.
+	 * Register the score meta key, only when the module is on.
+	 *
+	 * The key is not exposed in the REST schema, so the editor cannot write
+	 * it, and the auth callback ties a write to the edit capability for the
+	 * post. The sanitize callback accepts mixed and validates defensively.
 	 */
 	public function register(): void {
+		if ( ! $this->isEnabled() ) {
+			return;
+		}
+
+		register_meta(
+			'post',
+			AnalysisScore::META_KEY,
+			[
+				'type'              => 'object',
+				'single'            => true,
+				'sanitize_callback' => [ AnalysisScore::class, 'sanitize' ],
+				'auth_callback'     => static fn ( mixed $value, string $meta_key, int $object_id ): bool
+					=> current_user_can( 'edit_post', $object_id ),
+			]
+		);
 	}
 
 	/**

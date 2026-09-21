@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Analysis\AnalysisModule;
+use RankKernel\Modules\Analysis\AnalysisScore;
 use RankKernel\Modules\ModuleEnableMap;
 
 /**
@@ -34,6 +35,13 @@ final class AnalysisModuleTest extends TestCase {
 	private array $hooks = [];
 
 	/**
+	 * Captured register_meta calls keyed by meta key.
+	 *
+	 * @var array<string, array{object_type: string, args: array<string, mixed>}>
+	 */
+	private array $registeredMeta = [];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -44,8 +52,9 @@ final class AnalysisModuleTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->options = [];
-		$this->hooks   = [];
+		$this->options        = [];
+		$this->hooks          = [];
+		$this->registeredMeta = [];
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -63,6 +72,35 @@ final class AnalysisModuleTest extends TestCase {
 
 				return true;
 			}
+		);
+		Functions\when( 'register_meta' )->alias(
+			function ( string $objectType, string $metaKey, array $args ): bool {
+				$this->registeredMeta[ $metaKey ] = [
+					'object_type' => $objectType,
+					'args'        => $args,
+				];
+
+				return true;
+			}
+		);
+		Functions\when( 'add_filter' )->alias(
+			function ( string $hook, mixed $callback, int $priority = 10, int $accepted = 1 ): bool {
+				$this->hooks[] = [
+					'hook'     => $hook,
+					'priority' => $priority,
+					'callback' => $callback,
+					'accepted' => $accepted,
+				];
+
+				return true;
+			}
+		);
+		Functions\when( 'get_post_types' )->alias(
+			static fn (): array => [
+				'post'       => 'post',
+				'page'       => 'page',
+				'attachment' => 'attachment',
+			]
 		);
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 	}
@@ -119,14 +157,36 @@ final class AnalysisModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test register builds nothing, so a disabled module stays free.
+	 * A disabled module registers no meta and no hooks, so it costs nothing.
 	 */
-	public function test_register_wires_nothing(): void {
+	public function test_disabled_module_registers_nothing(): void {
+		$this->options['rankkernel_modules'] = [];
+
 		$module = new AnalysisModule( new ModuleEnableMap() );
 
 		$module->register();
+		$module->boot();
 
+		$this->assertSame( [], $this->registeredMeta );
 		$this->assertSame( [], $this->hooks );
+	}
+
+	/**
+	 * An enabled module registers the score meta key, not exposed to REST.
+	 */
+	public function test_register_registers_the_score_meta_key(): void {
+		$this->options['rankkernel_modules'] = [ 'analysis' ];
+
+		$module = new AnalysisModule( new ModuleEnableMap() );
+		$module->register();
+
+		$this->assertArrayHasKey( AnalysisScore::META_KEY, $this->registeredMeta );
+
+		$registered = $this->registeredMeta[ AnalysisScore::META_KEY ];
+
+		$this->assertSame( 'post', $registered['object_type'] );
+		$this->assertArrayNotHasKey( 'show_in_rest', $registered['args'] );
+		$this->assertSame( [ AnalysisScore::class, 'sanitize' ], $registered['args']['sanitize_callback'] );
 	}
 
 	/**
