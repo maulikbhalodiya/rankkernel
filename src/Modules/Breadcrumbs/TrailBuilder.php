@@ -198,7 +198,7 @@ final class TrailBuilder {
 		$query = trim( $query );
 
 		if ( '' !== $query ) {
-			// translators: %s: search query.
+			/* translators: %s: search query. */
 			$label = sprintf( __( 'Search results for "%s"', 'rankkernel' ), $query );
 		} else {
 			$label = __( 'Search results', 'rankkernel' );
@@ -1193,7 +1193,7 @@ final class TrailBuilder {
 	private function pageItem( int $pageNumber ): Item {
 		$number = function_exists( 'number_format_i18n' ) ? (string) number_format_i18n( $pageNumber ) : (string) $pageNumber;
 
-		// translators: %s: page number.
+		/* translators: %s: page number. */
 		return new Item( sprintf( __( 'Page %s', 'rankkernel' ), $number ), '', false, true );
 	}
 
@@ -1206,7 +1206,7 @@ final class TrailBuilder {
 	private function commentsPageItem( int $pageNumber ): Item {
 		$number = function_exists( 'number_format_i18n' ) ? (string) number_format_i18n( $pageNumber ) : (string) $pageNumber;
 
-		// translators: %s: comments page number.
+		/* translators: %s: comments page number. */
 		return new Item( sprintf( __( 'Comments Page %s', 'rankkernel' ), $number ), '', false, true );
 	}
 

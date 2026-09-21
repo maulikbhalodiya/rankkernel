@@ -517,7 +517,7 @@ final class MetadataBox {
 		$schemaResolved = $this->resolvedSchemaDefault( $schemaPostType );
 
 		$schemaAutoLabel = '' !== $schemaResolved
-			// translators: %s: schema type name, e.g. Blog Posting.
+			/* translators: %s: schema type name, e.g. Blog Posting. */
 			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $schemaResolved ) )
 			: __( 'Automatic', 'rankkernel' );
 
