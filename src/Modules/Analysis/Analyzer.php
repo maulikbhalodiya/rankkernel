@@ -351,6 +351,7 @@ final class Analyzer {
 				$this->consecutiveCheck( $context ),
 				$this->passiveCheck( $context ),
 				$this->transitionCheck( $context ),
+				$this->imageAltQualityCheck( $context ),
 				$this->mediaCheck( $context ),
 				$this->h1Check( $context ),
 				$this->tocCheck( $context ),
@@ -982,6 +983,56 @@ final class Analyzer {
 	}
 
 	/**
+	 * Alt coverage across content images, and stuffed alt text.
+	 *
+	 * Google documents alt as required for accessibility and understanding,
+	 * and names stuffed alt as its own negative example. Requiring the
+	 * keyword in every alt would contradict that, so this reports coverage
+	 * and stuffing instead of keyword presence.
+	 *
+	 * @param array<string, mixed> $context Context.
+	 * @return array<string, mixed> Result.
+	 */
+	private function imageAltQualityCheck( array $context ): array {
+		$alts = $context['alts'];
+
+		if ( '' !== $context['featuredAlt'] ) {
+			$alts[] = $context['featuredAlt'];
+		}
+
+		if ( [] === $alts ) {
+			return $this->result( 'image_alt_quality', 'seo', self::NA, 0, __( 'Add an image to check this.', 'rankkernel' ) );
+		}
+
+		$missing = 0;
+		$stuffed = 0;
+
+		foreach ( $alts as $alt ) {
+			$alt = trim( (string) $alt );
+
+			if ( '' === $alt ) {
+				++$missing;
+				continue;
+			}
+
+			if ( count( KeywordMatcher::words( $alt ) ) > 20 ) {
+				++$stuffed;
+			}
+		}
+
+		$weight = self::WEIGHTS['image_alt_quality'];
+
+		if ( 0 === $missing && 0 === $stuffed ) {
+			return $this->result( 'image_alt_quality', 'seo', self::PASS, $weight, __( 'Every image has descriptive alt text. Alt text is for accessibility and understanding, not a keyword slot, which is Google guidance.', 'rankkernel' ) );
+		}
+
+		/* translators: 1: images with no alt text, 2: images with stuffed alt text. */
+		$message = sprintf( __( '%1$d image(s) have no alt text and %2$d look stuffed. Alt text is for accessibility and understanding, not a keyword slot, which is Google guidance.', 'rankkernel' ), $missing, $stuffed );
+
+		return $this->result( 'image_alt_quality', 'seo', self::IMPROVE, 0, $message );
+	}
+
+	/**
 	 * Images and video, with partial credit.
 	 *
 	 * @param array<string, mixed> $context Context.
@@ -1096,6 +1147,9 @@ final class Analyzer {
 
 			case 'generic_anchor_text':
 				return __( 'Add a link to check this.', 'rankkernel' );
+
+			case 'image_alt_quality':
+				return __( 'Add an image to check this.', 'rankkernel' );
 		}
 
 		return __( 'Not applicable yet.', 'rankkernel' );

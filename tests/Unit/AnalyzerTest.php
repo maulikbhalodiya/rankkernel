@@ -82,7 +82,7 @@ final class AnalyzerTest extends TestCase {
 			$count = str_word_count( trim( (string) preg_replace( '/<[^>]*>/', ' ', $html ) ) );
 		}
 
-		return $html . '<!-- wp:rankkernel/toc /--><img src="b.jpg" alt=""><img src="c.jpg" alt="">';
+		return $html . '<!-- wp:rankkernel/toc /--><img src="b.jpg" alt="red apples in a bowl"><img src="c.jpg" alt="red apples on a shelf">';
 	}
 
 	/**
@@ -541,5 +541,46 @@ final class AnalyzerTest extends TestCase {
 		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples and how to store them.</p>' ] ) );
 
 		$this->assertSame( Analyzer::NA, $this->check( $result, 'generic_anchor_text' )['status'] );
+	}
+
+	/**
+	 * Test missing alt text is flagged.
+	 */
+	public function test_image_alt_quality_flags_missing_alt(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><img src="a.jpg" alt=""><img src="b.jpg" alt="red apples">' ] ) );
+
+		$check = $this->check( $result, 'image_alt_quality' );
+
+		$this->assertSame( Analyzer::IMPROVE, $check['status'] );
+		$this->assertStringContainsString( 'no alt text', $check['message'] );
+	}
+
+	/**
+	 * Test a stuffed alt is flagged.
+	 */
+	public function test_image_alt_quality_flags_stuffed_alt(): void {
+		$stuffed = implode( ' ', array_fill( 0, 25, 'red' ) );
+
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><img src="a.jpg" alt="' . $stuffed . '">' ] ) );
+
+		$this->assertSame( Analyzer::IMPROVE, $this->check( $result, 'image_alt_quality' )['status'] );
+	}
+
+	/**
+	 * Test descriptive alts pass.
+	 */
+	public function test_image_alt_quality_passes_with_descriptive_alts(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples.</p><img src="a.jpg" alt="red apples in a bowl">' ] ) );
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'image_alt_quality' )['status'] );
+	}
+
+	/**
+	 * Test the check does not apply without an image.
+	 */
+	public function test_image_alt_quality_is_not_applicable_without_images(): void {
+		$result = ( new Analyzer() )->analyze( $this->input( [ 'html' => '<p>Text about red apples and how to store them.</p>' ] ) );
+
+		$this->assertSame( Analyzer::NA, $this->check( $result, 'image_alt_quality' )['status'] );
 	}
 }
