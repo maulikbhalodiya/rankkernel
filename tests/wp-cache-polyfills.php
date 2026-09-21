@@ -62,11 +62,17 @@ if ( ! function_exists( 'wp_cache_delete' ) ) {
 	/**
 	 * Remove a value from the in-memory test store.
 	 *
+	 * Mirrors core, which returns false when the group holds no such key.
+	 *
 	 * @param string $key   Cache key.
 	 * @param string $group Cache group.
-	 * @return bool True.
+	 * @return bool True when a value was removed, false when there was nothing to remove.
 	 */
 	function wp_cache_delete( $key, $group = '' ) {
+		if ( ! isset( $GLOBALS['rankkernel_test_object_cache'][ $group ] ) || ! array_key_exists( $key, $GLOBALS['rankkernel_test_object_cache'][ $group ] ) ) {
+			return false;
+		}
+
 		unset( $GLOBALS['rankkernel_test_object_cache'][ $group ][ $key ] );
 
 		return true;

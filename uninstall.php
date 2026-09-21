@@ -77,16 +77,18 @@ $wpdb->query(
 $tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );
 if ( is_array( $tables ) ) {
 	foreach ( $tables as $table ) {
-		// Retire the cached existence flag with the table it describes. That flag
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
+
+		// Retire the cached existence flag after the drop, never before it. That flag
 		// is held for a day when a persistent object cache is present, and a stale
 		// true would make ensureTables() believe the table still exists after a
-		// reinstall, so it would never recreate the one dropped here.
+		// reinstall, so it would never recreate the one dropped here. Dropping first
+		// also clears any value a concurrent request cached while the table was
+		// still present.
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( 'table_exists_' . $table, 'rankkernel_tables' );
 		}
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
 	}
 }
 
