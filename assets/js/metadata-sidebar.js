@@ -224,7 +224,7 @@
 		return __( 'Not analysed', 'rankkernel' );
 	}
 
-	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+	var ANALYSIS_HONESTY = __( 'This score measures your content against a checklist. It does not predict rankings.', 'rankkernel' );
 
 	// The toolbar element beside the plugin mark. No score means the mark alone,
 	// so it never implies a number it does not have.

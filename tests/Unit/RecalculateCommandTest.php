@@ -173,6 +173,15 @@ final class RecalculateCommandTest extends TestCase {
 	}
 
 	/**
+	 * The negated WP-CLI flag is not a dry run.
+	 */
+	public function test_negated_dry_run_flag_is_not_a_dry_run(): void {
+		$options = ( new RecalculateCommand() )->options( [ 'dry-run' => false ] );
+
+		$this->assertFalse( $options['dry_run'] );
+	}
+
+	/**
 	 * A batch stores a record for every post with keywords.
 	 */
 	public function test_batch_stores_scores(): void {

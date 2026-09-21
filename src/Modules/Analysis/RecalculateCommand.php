@@ -67,8 +67,9 @@ final class RecalculateCommand {
 		return [
 			'post_type'   => '' !== $postType ? [ $postType ] : [],
 			'post_status' => isset( $assoc['post-status'] ) ? sanitize_key( (string) $assoc['post-status'] ) : 'any',
-			// A bare flag can arrive as null, so the key is the signal, not the value.
-			'dry_run'     => array_key_exists( 'dry-run', $assoc ),
+			// A bare flag can arrive as null and --no-dry-run arrives as false,
+			// so the value decides, not the key.
+			'dry_run'     => array_key_exists( 'dry-run', $assoc ) && false !== $assoc['dry-run'],
 			'batch'       => isset( $assoc['batch'] ) ? (int) $assoc['batch'] : 100,
 		];
 	}

@@ -22,13 +22,15 @@
 		return;
 	}
 
+	var __ = window.wp && window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
+
 	var DEBOUNCE_MS = 700;
 	var FAIL_MESSAGE = 'The analysis could not be run. Try again.';
 	var PERMISSION_MESSAGE = 'Save the post once, then run the analysis.';
 	var EMPTY_MESSAGE = 'Add a focus keyword to run the content analysis.';
 	var LOADING_MESSAGE = 'Analysing the current draft…';
 
-	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+	var ANALYSIS_HONESTY = __( 'This score measures your content against a checklist. It does not predict rankings.', 'rankkernel' );
 
 	function bandClass( band ) {
 		if ( 'good' === band ) {
@@ -45,15 +47,15 @@
 
 	function bandLabel( band ) {
 		if ( 'good' === band ) {
-			return 'Good';
+			return __( 'Good', 'rankkernel' );
 		}
 		if ( 'improve' === band ) {
-			return 'Needs improvement';
+			return __( 'Needs improvement', 'rankkernel' );
 		}
 		if ( 'problem' === band ) {
-			return 'Poor';
+			return __( 'Poor', 'rankkernel' );
 		}
-		return 'Not analysed';
+		return __( 'Not analysed', 'rankkernel' );
 	}
 
 	function scoreSlot() {

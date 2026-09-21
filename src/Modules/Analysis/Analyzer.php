@@ -725,7 +725,9 @@ final class Analyzer {
 		foreach ( $anchors as $anchor ) {
 			$href = trim( (string) $anchor['href'] );
 
-			if ( '' === $href || str_starts_with( $href, '#' ) ) {
+			// The same hrefs classifyLinks skips, so the two checks never
+			// disagree about which links exist.
+			if ( '' === $href || str_starts_with( $href, '#' ) || str_starts_with( $href, 'mailto:' ) || str_starts_with( $href, 'tel:' ) ) {
 				continue;
 			}
 

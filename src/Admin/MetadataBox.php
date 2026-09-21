@@ -401,7 +401,7 @@ final class MetadataBox {
 		if ( $this->analysisEnabled() ) {
 			$analysisSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/analysis-editor.js', $pluginFile ) : '';
 
-			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, [ self::EDITOR_SCRIPT ], $version, true );
+			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, [ self::EDITOR_SCRIPT, 'wp-i18n' ], $version, true );
 			wp_enqueue_script( self::ANALYSIS_SCRIPT );
 		}
 	}

@@ -544,6 +544,17 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
+	 * Test mailto and tel links are skipped, matching link classification.
+	 */
+	public function test_generic_anchor_text_skips_mailto_and_tel(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input( [ 'html' => '<p>Text about red apples.</p><a href="mailto:hello@example.com">click here</a><a href="tel:+1234567890">here</a>' ] )
+		);
+
+		$this->assertSame( Analyzer::NA, $this->check( $result, 'generic_anchor_text' )['status'] );
+	}
+
+	/**
 	 * Test missing alt text is flagged.
 	 */
 	public function test_image_alt_quality_flags_missing_alt(): void {
