@@ -163,7 +163,9 @@ final class SitemapSettingsAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'Sitemap Settings', $html );
 		$this->assertStringContainsString( '<nav class="nav-tab-wrapper"', $html );
+		$this->assertStringContainsString( 'aria-label="Sitemap settings tabs"', $html );
 		$this->assertStringContainsString( 'aria-current="page"', $html );
+		$this->assertSame( 1, substr_count( $html, 'aria-current="page"' ), 'Exactly one tab may be marked as current' );
 	}
 
 	/**
