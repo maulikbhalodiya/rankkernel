@@ -41,6 +41,9 @@ final class SitemapCacheTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		// This class is the only one that populates the request memo, so it is the only
+		// one that can leak it into the next test class in the same PHPUnit process.
+		SitemapCache::resetValidatorCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
