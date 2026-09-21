@@ -37,7 +37,8 @@
         "phpcs": "phpcs --standard=phpcs.xml",
         "phpcbf": "phpcbf --standard=phpcs.xml",
         "stan": "phpstan analyse --level=6 src/",
-        "test": "phpunit"
+        "test": "phpunit",
+        "test:js": "node --test tests/js/*.test.js"
     },
     "config": {
         "allow-plugins": {
