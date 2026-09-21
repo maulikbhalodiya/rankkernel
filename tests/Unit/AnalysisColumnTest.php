@@ -55,6 +55,13 @@ final class AnalysisColumnTest extends TestCase {
 	private array $enqueuedStyles = [];
 
 	/**
+	 * Whether the request under test runs in the admin.
+	 *
+	 * @var bool
+	 */
+	private bool $isAdmin = true;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -73,6 +80,7 @@ final class AnalysisColumnTest extends TestCase {
 		$this->hooks          = [];
 		$this->metaCaches     = [];
 		$this->enqueuedStyles = [];
+		$this->isAdmin        = true;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'esc_html' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
@@ -102,7 +110,11 @@ final class AnalysisColumnTest extends TestCase {
 				return '';
 			}
 		);
-		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'is_admin' )->alias(
+			function (): bool {
+				return $this->isAdmin;
+			}
+		);
 		Functions\when( 'get_current_screen' )->justReturn( null );
 		Functions\when( 'plugins_url' )->justReturn( 'https://example.com/wp-content/plugins/rankkernel/assets/css/analysis-column.css' );
 		Functions\when( 'add_action' )->alias(
@@ -319,6 +331,28 @@ final class AnalysisColumnTest extends TestCase {
 
 		$this->assertSame( [ $postOne, $postTwo ], $out );
 		$this->assertSame( [ [ 'post', [ 4, 9 ] ] ], $this->metaCaches );
+	}
+
+	/**
+	 * The meta cache prime is admin only, because the frontend query primes it.
+	 */
+	public function test_meta_cache_is_primed_in_admin_only(): void {
+		$post     = new WP_Post();
+		$post->ID = 4;
+
+		$this->isAdmin = false;
+
+		$out = ( new AnalysisColumn() )->primeMetaCache( [ $post ] );
+
+		$this->assertSame( [ $post ], $out );
+		$this->assertSame( [], $this->metaCaches );
+
+		$this->isAdmin = true;
+
+		$out = ( new AnalysisColumn() )->primeMetaCache( [ $post ] );
+
+		$this->assertSame( [ $post ], $out );
+		$this->assertSame( [ [ 'post', [ 4 ] ] ], $this->metaCaches );
 	}
 
 	/**

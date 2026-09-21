@@ -160,7 +160,11 @@ final class AnalysisColumn {
 	}
 
 	/**
-	 * Prime the meta cache for the queried posts.
+	 * Prime the meta cache for the queried posts on the admin list screens.
+	 *
+	 * WordPress already primes the cache for the queried posts on the frontend,
+	 * so running there as well would only duplicate a query the query itself
+	 * makes. The handler returns the posts untouched outside the admin.
 	 *
 	 * @param array<int, mixed> $posts Posts.
 	 * @param mixed             $query Query.
@@ -169,6 +173,10 @@ final class AnalysisColumn {
 	public function primeMetaCache( array $posts, mixed $query = null ): array {
 		// The hook supplies the query object, but only the posts matter here.
 		unset( $query );
+
+		if ( function_exists( 'is_admin' ) && ! is_admin() ) {
+			return $posts;
+		}
 
 		$ids = [];
 

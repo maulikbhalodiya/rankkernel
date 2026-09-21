@@ -42,6 +42,20 @@ final class AnalysisModuleTest extends TestCase {
 	private array $registeredMeta = [];
 
 	/**
+	 * Captured handles passed to wp_register_style.
+	 *
+	 * @var string[]
+	 */
+	private array $registeredStyles = [];
+
+	/**
+	 * Captured handles passed to wp_enqueue_style.
+	 *
+	 * @var string[]
+	 */
+	private array $enqueuedStyles = [];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -52,9 +66,11 @@ final class AnalysisModuleTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->options        = [];
-		$this->hooks          = [];
-		$this->registeredMeta = [];
+		$this->options          = [];
+		$this->hooks            = [];
+		$this->registeredMeta   = [];
+		$this->registeredStyles = [];
+		$this->enqueuedStyles   = [];
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -81,6 +97,18 @@ final class AnalysisModuleTest extends TestCase {
 				];
 
 				return true;
+			}
+		);
+		Functions\when( 'wp_register_style' )->alias(
+			function ( string $handle ): bool {
+				$this->registeredStyles[] = $handle;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			function ( string $handle ): void {
+				$this->enqueuedStyles[] = $handle;
 			}
 		);
 		Functions\when( 'add_filter' )->alias(
@@ -174,6 +202,27 @@ final class AnalysisModuleTest extends TestCase {
 
 		$this->assertSame( [], $this->registeredMeta );
 		$this->assertSame( [], $this->hooks );
+	}
+
+	/**
+	 * A disabled module costs nothing: no meta, no hook and no asset.
+	 *
+	 * The assertions read the recorded calls, not expectations, because a
+	 * Functions\expect() on a function already stubbed in setUp is vacuous.
+	 */
+	public function test_disabled_module_has_zero_cost(): void {
+		$this->options['rankkernel_modules'] = [];
+
+		$module = new AnalysisModule( new ModuleEnableMap() );
+
+		$module->register();
+		$module->boot();
+
+		$this->assertFalse( $module->isEnabled() );
+		$this->assertSame( [], $this->registeredMeta );
+		$this->assertSame( [], $this->hooks );
+		$this->assertSame( [], $this->registeredStyles );
+		$this->assertSame( [], $this->enqueuedStyles );
 	}
 
 	/**
