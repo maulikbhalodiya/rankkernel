@@ -27,12 +27,7 @@ const PHP_SOURCE = require( './parity/php-runner.js' );
 const root = path.resolve( __dirname, '..', '..' );
 const fixtures = JSON.parse( readFileSync( path.join( __dirname, 'parity', 'fixtures.json' ), 'utf8' ) );
 
-// Fixtures where the two engines are known to disagree today. Equality loops
-// skip them, and each one is pinned field by field further down, so a change
-// on either side still fails the suite.
-const KNOWN_DIVERGENCES = {
-	'accented-anchor-off': 'the JavaScript generic anchor path does not thread the accent flag'
-};
+const KNOWN_DIVERGENCES = {};
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
 
@@ -396,26 +391,14 @@ test( 'a supporting keyword carries exactly its four shared checks in both engin
 	}
 } );
 
-// Known divergence, pinned so that any change on either side fails the suite.
-// The JavaScript generic anchor path calls KeywordMatcher.normalize without the
-// accent flag, unlike every other call site. In production remove_accents is
-// always loaded, so both engines strip and the score matches; with the flag off
-// PHP leaves the accent and the anchor stays descriptive while the browser
-// folds it to "here" and flags generic. When the JavaScript is fixed to thread
-// the flag, remove this fixture from KNOWN_DIVERGENCES and replace this test.
-test( 'known divergence: the accented anchor does not thread the accent flag', () => {
+test( 'the accented anchor threads the accent flag and agrees', () => {
 	const id = 'accented-anchor-off';
-	const phpCheck = checkById( php, id, 'generic_anchor_text' );
-	const jsCheck = checkById( js, id, 'generic_anchor_text' );
+	assertAgree( id, 'generic_anchor_text', 'pass', 3 );
 
-	assert.equal( phpCheck.status, 'pass' );
-	assert.equal( phpCheck.earned, 3 );
-	assert.equal( phpCheck.message, 'Every link explains where it goes. Anchor text should describe the destination, which is Google guidance.' );
-	assert.equal( jsCheck.status, 'improve' );
-	assert.equal( jsCheck.earned, 0 );
-	assert.equal( jsCheck.message, '1 link(s) use generic anchor text such as click here or a bare URL. Anchor text should describe the destination, which is Google guidance.' );
-	assert.equal( php[ id ].score, 58 );
-	assert.equal( js[ id ].score, 53 );
+	for ( const engine of [ php, js ] ) {
+		assert.equal( checkById( engine, id, 'generic_anchor_text' ).message, 'Every link explains where it goes. Anchor text should describe the destination, which is Google guidance.' );
+		assert.equal( engine[ id ].score, 58 );
+	}
 } );
 
 // Reserved divergence: the PHP word edge trim is byte based and the JavaScript

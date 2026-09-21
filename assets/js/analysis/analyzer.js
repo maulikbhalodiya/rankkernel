@@ -355,7 +355,7 @@
 		return out;
 	}
 
-	function genericAnchorCount( links ) {
+	function genericAnchorCount( links, stripAccents ) {
 		var total = 0;
 		var flagged = 0;
 		for ( var i = 0; i < links.length; i++ ) {
@@ -365,7 +365,7 @@
 			}
 			total++;
 			var text = TextStats.phpTrim( links[ i ].text );
-			var normalized = KeywordMatcher.normalize( text );
+			var normalized = KeywordMatcher.normalize( text, stripAccents );
 			if ( GENERIC_ANCHORS.indexOf( normalized ) !== -1 || /^https?:\/\/[^ ]+$/i.test( text ) ) {
 				flagged++;
 			}
@@ -688,7 +688,7 @@
 			featuredAlt: input.featured_alt == null ? '' : String( input.featured_alt ),
 			usedKeywords: Array.isArray( input.used_keywords ) ? input.used_keywords : null,
 			linkStats: classifyLinks( extracted.links, input.site_url == null ? '' : String( input.site_url ) ),
-			anchorStats: genericAnchorCount( extracted.links ),
+			anchorStats: genericAnchorCount( extracted.links, false !== options.stripAccents ),
 			keyword: keyword,
 			translate: 'function' === typeof options.translate ? options.translate : identity,
 			stripAccents: false !== options.stripAccents
