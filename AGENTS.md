@@ -38,15 +38,18 @@ ship on its own, or for a split the owner explicitly asks for.
 
 ## Gates
 
-All three must pass before a pull request is reviewable:
+All four must pass before a pull request is reviewable:
 
-    composer lint   # phpcs, WordPress ruleset
-    composer stan   # PHPStan level 6
-    composer test   # PHPUnit
+    composer lint     # phpcs, WordPress ruleset
+    composer stan     # PHPStan level 6
+    composer test     # PHPUnit
+    composer test:js  # node --test, the pure engine and the parity suite
 
-Check every JavaScript file individually, because `node --check` accepts one file per run:
+Check every JavaScript file individually, because `node --check` accepts one file per run. The
+check walks the whole `assets/js/` tree, so a new subdirectory is covered the moment a file lands
+in it:
 
-    for f in assets/js/*.js; do node --check "$f"; done
+    find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
 
 Report the real command output. Do not claim a gate passed if it did not run.
 
