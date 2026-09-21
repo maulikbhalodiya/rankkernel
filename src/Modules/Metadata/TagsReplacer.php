@@ -90,12 +90,24 @@ final class TagsReplacer {
 	 * @return string Resolved string.
 	 */
 	private function doReplace( Context $ctx, string $template ): string {
-		// Performance optimization: token values are fetched via resolveToken() which uses $tokenCache
-		// to avoid repeating expensive queries/functions across different fields on the same context.
-		$map = [];
+		// Performance optimization: parse template for token placeholders and selectively resolve only tokens present
+		// in the template, avoiding expensive unneeded operations (e.g., category DB queries, author meta, excerpt formatting).
+		preg_match_all( '/%%([a-z_]+)%%/', $template, $matches );
+		$templateTokens = ! empty( $matches[1] ) ? array_unique( $matches[1] ) : [];
 
-		foreach ( self::SUPPORTED_TOKENS as $token ) {
-			$map[ $token ] = $this->resolveToken( $token, $ctx );
+		$map       = [];
+		$hasFilter = function_exists( 'has_filter' ) && has_filter( 'rankkernel/tokens' );
+
+		if ( $hasFilter ) {
+			foreach ( self::SUPPORTED_TOKENS as $token ) {
+				$map[ $token ] = $this->resolveToken( $token, $ctx );
+			}
+		} else {
+			foreach ( $templateTokens as $token ) {
+				if ( in_array( $token, self::SUPPORTED_TOKENS, true ) ) {
+					$map[ $token ] = $this->resolveToken( $token, $ctx );
+				}
+			}
 		}
 
 		/**

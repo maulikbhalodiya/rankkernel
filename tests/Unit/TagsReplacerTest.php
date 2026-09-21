@@ -442,4 +442,29 @@ final class TagsReplacerTest extends TestCase {
 			$this->assertSame( $value, $replacer->replace( $ctx, '%%' . $token . '%%', 'field_' . $token ), 'token ' . $token );
 		}
 	}
+
+	/**
+	 * Test selective token resolution skips unused tokens like category or author.
+	 */
+	public function test_selective_token_resolution_skips_unused_tokens(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$categoryCallCount = 0;
+		Functions\when( 'get_the_category' )->alias(
+			static function () use ( &$categoryCallCount ): array {
+				++$categoryCallCount;
+
+				return [ (object) [ 'name' => 'Should Not Be Called' ] ];
+			}
+		);
+
+		Functions\when( 'get_the_title' )->justReturn( 'Title Only' );
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value = null ): mixed => $value );
+
+		$result = $replacer->replace( $ctx, '%%title%% %%sep%% %%sitename%%', 'title' );
+
+		$this->assertSame( 'Title Only – My Site', $result );
+		$this->assertSame( 0, $categoryCallCount, 'Unused token %category% must not be evaluated when not in template.' );
+	}
 }
