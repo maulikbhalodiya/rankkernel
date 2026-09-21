@@ -341,7 +341,7 @@ final class SchemaMetabox {
 		$fields = ( isset( $schema['fields'] ) && is_array( $schema['fields'] ) ) ? $schema['fields'] : [];
 
 		$autoLabel = '' !== $resolved
-			// translators: %s: schema type name, e.g. Blog Posting.
+			/* translators: %s: schema type name, e.g. Blog Posting. */
 			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $resolved ) )
 			: __( 'Automatic', 'rankkernel' );
 
@@ -1049,6 +1049,10 @@ final class SchemaMetabox {
 		} else {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback keeps unit tests free of WP, used only when wp_json_encode is missing.
 			$json = (string) json_encode( $schema );
+		}
+
+		if ( function_exists( 'nocache_headers' ) ) {
+			nocache_headers();
 		}
 
 		header( 'Content-Type: application/json; charset=utf-8' );

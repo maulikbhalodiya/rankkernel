@@ -12,6 +12,11 @@ if (! defined('ABSPATH')) {
     define('ABSPATH', '/tmp/');
 }
 
+// WordPress period constants, defined before plugins load in a real install.
+if (! defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 86400);
+}
+
 // Composer autoloader (after composer install).
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (file_exists($autoload)) {
@@ -23,6 +28,10 @@ if (file_exists($autoload)) {
 
 // Polyfills for WordPress functions used in src/ that Brain Monkey doesn't auto-stub.
 // These are only needed if not already stubbed via Brain\Monkey\Functions\when.
+
+// Object cache polyfills live in their own file, so Patchwork can instrument them
+// and Brain Monkey can override them per test.
+require_once __DIR__ . '/wp-cache-polyfills.php';
 
 // Ensure plugin helper stubs exist.
 if (! function_exists('plugin_basename')) {

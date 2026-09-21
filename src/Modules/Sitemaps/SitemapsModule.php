@@ -170,6 +170,12 @@ class SitemapsModule implements ModuleInterface {
 
 		if ( \RankKernel\Plugin::version() !== $codeVersion ) {
 			update_option( SitemapCache::VALIDATOR_GLOBAL, (string) time() . '-' . (string) wp_rand(), false );
+
+			// This write bypasses SitemapCache, so it has to retire the request memo itself.
+			// Otherwise a validator read earlier in this request keeps answering from the memo
+			// and the bump looks like it never happened.
+			SitemapCache::resetValidatorCache();
+
 			update_option( 'rankkernel_sitemap_code_version', \RankKernel\Plugin::version(), false );
 		}
 

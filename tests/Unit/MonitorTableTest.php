@@ -192,4 +192,117 @@ final class MonitorTableTest extends TestCase {
 		$this->assertFalse( LogTable::ensureTables() );
 		$this->assertSame( 'wp_rankkernel_404_log', LogTable::name() );
 	}
+
+	/**
+	 * Test a probe writes the persistent cache entry with the right key and ttl.
+	 */
+	public function test_exists_writes_the_persistent_cache_after_the_probe(): void {
+		$written = array();
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->alias(
+			function ( string $key, mixed $value, string $group, int $ttl ) use ( &$written ): bool {
+				$written = [
+					'key'   => $key,
+					'value' => $value,
+					'group' => $group,
+					'ttl'   => $ttl,
+				];
+
+				return true;
+			}
+		);
+
+		LogTable::resetCache();
+		$this->db->tableExists = true;
+
+		$this->assertTrue( LogTable::exists() );
+		$this->assertSame( 'table_exists_wp_rankkernel_404_log', $written['key'] );
+		$this->assertSame( 'rankkernel_tables', $written['group'] );
+		$this->assertTrue( $written['value'] );
+		$this->assertSame( DAY_IN_SECONDS, $written['ttl'] );
+	}
+
+	/**
+	 * Test a persistent cache hit answers without touching the database.
+	 */
+	public function test_exists_uses_a_persistent_cache_hit_without_probing(): void {
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( string $key, string $group, bool $force, &$found ): mixed {
+				$found = true;
+
+				return true;
+			}
+		);
+
+		LogTable::resetCache();
+		$this->db->tableExists = false;
+
+		$this->assertTrue( LogTable::exists() );
+		$this->assertSame( 0, $this->db->schemaProbes, 'A cache hit must not probe the database' );
+	}
+
+	/**
+	 * Test a cached false is honoured rather than treated as a miss.
+	 */
+	public function test_exists_honours_a_persistently_cached_false(): void {
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( string $key, string $group, bool $force, &$found ): mixed {
+				$found = true;
+
+				return false;
+			}
+		);
+
+		LogTable::resetCache();
+		$this->db->tableExists = true;
+
+		$this->assertFalse( LogTable::exists() );
+		$this->assertSame( 0, $this->db->schemaProbes, 'A cached false must not fall through to a probe' );
+	}
+
+	/**
+	 * Test reset cache retires the persistent entry too.
+	 */
+	public function test_reset_cache_retires_the_persistent_entry(): void {
+		$deleted = array();
+
+		Functions\when( 'wp_cache_delete' )->alias(
+			function ( string $key, string $group ) use ( &$deleted ): bool {
+				$deleted[] = [ $key, $group ];
+
+				return true;
+			}
+		);
+
+		LogTable::resetCache();
+
+		$this->assertContains(
+			[ 'table_exists_wp_rankkernel_404_log', 'rankkernel_tables' ],
+			$deleted
+		);
+	}
+
+	/**
+	 * Test creation records the table as present rather than leaving a stale false.
+	 */
+	public function test_ensure_tables_refreshes_the_persistent_entry(): void {
+		$values = array();
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->alias(
+			function ( string $key, mixed $value, string $group, int $ttl ) use ( &$values ): bool {
+				unset( $key, $group, $ttl );
+				$values[] = $value;
+
+				return true;
+			}
+		);
+
+		LogTable::resetCache();
+		$this->db->tableExists = false;
+
+		$this->assertTrue( LogTable::ensureTables() );
+		$this->assertSame( true, end( $values ), 'The last persistent write must record the table as present' );
+	}
 }
