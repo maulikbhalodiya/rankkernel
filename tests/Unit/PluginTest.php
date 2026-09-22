@@ -116,4 +116,28 @@ final class PluginTest extends TestCase {
 			'The header Version and RANKKERNEL_VERSION must match, assets read only the constant'
 		);
 	}
+
+	/**
+	 * Test PHP requirement is consistent across configurations.
+	 */
+	public function test_php_requirement_is_consistent_across_configurations(): void {
+		$root = dirname( __DIR__, 2 );
+
+		$php_source = (string) file_get_contents( $root . '/rankkernel.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertSame( 1, preg_match( '/^\s*\*\s*Requires PHP:\s*(\S+)/m', $php_source, $php_header ) );
+		$this->assertSame( '8.2', $php_header[1], 'rankkernel.php header must require PHP 8.2' );
+
+		$readme_source = (string) file_get_contents( $root . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertSame( 1, preg_match( '/^Requires PHP:\s*(\S+)/m', $readme_source, $readme_header ) );
+		$this->assertSame( '8.2', $readme_header[1], 'readme.txt must require PHP 8.2' );
+
+		$composer_json = (string) file_get_contents( $root . '/composer.json' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$composer_data = json_decode( $composer_json, true );
+		$this->assertIsArray( $composer_data );
+		$this->assertSame( '>=8.2', $composer_data['require']['php'] ?? null, 'composer.json must require php >=8.2' );
+
+		$phpcs_source = (string) file_get_contents( $root . '/phpcs.xml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertSame( 1, preg_match( '/<config name="testVersion" value="([^"]+)"\s*\/>/', $phpcs_source, $phpcs_match ) );
+		$this->assertSame( '8.2-', $phpcs_match[1], 'phpcs.xml must test against PHP 8.2-' );
+	}
 }

@@ -26,7 +26,7 @@ XML sitemaps (cache ON) · Schema/JSON-LD · Breadcrumbs · Redirects (cache-fir
 ## Requirements
 
 - WordPress 6.5+
-- PHP 8.1+
+- PHP 8.2+
 
 ## Development
 
