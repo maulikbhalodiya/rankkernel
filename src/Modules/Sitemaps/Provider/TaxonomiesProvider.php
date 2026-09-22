@@ -240,6 +240,18 @@ class TaxonomiesProvider {
 			return [];
 		}
 
+		// Performance optimization: prime term object caches in a single batch query to prevent N+1 queries in get_term_link().
+		$termIds = [];
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['term_id'] ) && (int) $row['term_id'] > 0 ) {
+				$termIds[] = (int) $row['term_id'];
+			}
+		}
+
+		if ( [] !== $termIds && function_exists( '_prime_term_caches' ) ) {
+			_prime_term_caches( $termIds, false );
+		}
+
 		$rows = $this->dropCanonicalMismatchRows( $rows, $taxonomy );
 
 		if ( [] === $rows ) {
@@ -258,16 +270,22 @@ class TaxonomiesProvider {
 				continue;
 			}
 
-			$term = get_term( $termId, $taxonomy );
+			$link = isset( $row['_term_link'] ) && is_string( $row['_term_link'] )
+				? $row['_term_link']
+				: null;
 
-			if ( ! $term || is_wp_error( $term ) ) {
-				continue;
-			}
+			if ( null === $link ) {
+				$term = get_term( $termId, $taxonomy );
 
-			$link = get_term_link( $term );
+				if ( ! $term || is_wp_error( $term ) ) {
+					continue;
+				}
 
-			if ( is_wp_error( $link ) || ! is_string( $link ) || '' === $link ) {
-				continue;
+				$link = get_term_link( $term );
+
+				if ( is_wp_error( $link ) || ! is_string( $link ) || '' === $link ) {
+					continue;
+				}
 			}
 
 			$lastmodGmt = isset( $row['lastmod_gmt'] ) && is_string( $row['lastmod_gmt'] ) ? $row['lastmod_gmt'] : '';
@@ -482,7 +500,8 @@ class TaxonomiesProvider {
 				continue;
 			}
 
-			$kept[] = $row;
+			$row['_term_link'] = $link;
+			$kept[]            = $row;
 		}
 
 		return $kept;

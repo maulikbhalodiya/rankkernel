@@ -174,6 +174,18 @@ class PostsProvider {
 			return [];
 		}
 
+		// Performance optimization: prime post object caches in a single batch query to prevent N+1 queries in get_permalink().
+		$postIds = [];
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['ID'] ) && (int) $row['ID'] > 0 ) {
+				$postIds[] = (int) $row['ID'];
+			}
+		}
+
+		if ( [] !== $postIds && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $postIds, false, false );
+		}
+
 		$rows = $this->dropCanonicalMismatchRows( $rows );
 
 		if ( [] === $rows ) {
@@ -192,7 +204,9 @@ class PostsProvider {
 				continue;
 			}
 
-			$permalink = get_permalink( $postId );
+			$permalink = isset( $row['_permalink'] ) && is_string( $row['_permalink'] )
+				? $row['_permalink']
+				: get_permalink( $postId );
 
 			if ( ! is_string( $permalink ) || '' === $permalink ) {
 				$permalink = home_url( '/?p=' . (string) $postId );
@@ -480,7 +494,8 @@ class PostsProvider {
 				continue;
 			}
 
-			$kept[] = $row;
+			$row['_permalink'] = $permalink;
+			$kept[]            = $row;
 		}
 
 		return $kept;
