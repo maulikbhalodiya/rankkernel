@@ -788,6 +788,8 @@ final class MonitorAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'Log Status', $html );
 		$this->assertStringContainsString( '2 / 1,000', $html );
+		$this->assertStringContainsString( 'aria-label="Log capacity used"', $html );
+		$this->assertStringContainsString( 'aria-valuetext="2 of 1,000 entries used"', $html );
 		$this->assertStringContainsString( '30 days', $html );
 		$this->assertStringContainsString( 'rk-clear-form', $html );
 		$this->assertStringContainsString( 'Manual clearing is separate', $html );
