@@ -152,11 +152,62 @@ final class SettingsController {
 	}
 
 	/**
-	 * Endpoint args (for sanitization documentation).
+	 * Endpoint args for REST schema validation and sanitization.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private function getEndpointArgs(): array {
-		return [];
+		$args = [
+			'site_represents'       => [
+				'type'              => 'string',
+				'enum'              => [ 'organization', 'person' ],
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'org_name'              => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			],
+			'org_logo'              => [
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+			],
+			'org_sameas'            => [
+				'type'  => 'array',
+				'items' => [
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				],
+			],
+			'website_search_action' => [ 'type' => 'boolean' ],
+			'schema_breadcrumbs'    => [ 'type' => 'boolean' ],
+			'schema_author'         => [ 'type' => 'boolean' ],
+			'purge_on_uninstall'    => [ 'type' => [ 'boolean', 'null' ] ],
+		];
+
+		$textKeys = [
+			'title_template',
+			'description_template',
+			'separator',
+			'social_facebook',
+			'social_twitter',
+			'social_instagram',
+			'social_linkedin',
+			'social_youtube',
+			'social_pinterest',
+			'webmaster_google',
+			'webmaster_bing',
+			'webmaster_yandex',
+			'webmaster_baidu',
+			'webmaster_pinterest',
+		];
+
+		foreach ( $textKeys as $key ) {
+			$args[ $key ] = [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			];
+		}
+
+		return $args;
 	}
 }
