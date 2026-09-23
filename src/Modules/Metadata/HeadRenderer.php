@@ -133,12 +133,12 @@ final class HeadRenderer {
 				$resolved = $this->replacer->replace( $ctx, $payloadTitle, 'title' );
 
 				if ( '' !== trim( $resolved ) ) {
-					$this->resolvedTitleMemo[ $ctx->hash() ] = $resolved;
+					$this->resolvedTitleMemo[ $hash ] = $resolved;
 
 					return $resolved;
 				}
 			} else {
-				$this->resolvedTitleMemo[ $ctx->hash() ] = $payloadTitle;
+				$this->resolvedTitleMemo[ $hash ] = $payloadTitle;
 
 				return $payloadTitle;
 			}
@@ -151,7 +151,7 @@ final class HeadRenderer {
 			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
 
 			if ( '' !== trim( $resolved ) ) {
-				$this->resolvedTitleMemo[ $ctx->hash() ] = $resolved;
+				$this->resolvedTitleMemo[ $hash ] = $resolved;
 
 				return $resolved;
 			}
@@ -295,10 +295,7 @@ final class HeadRenderer {
 			}
 		}
 
-		$fallback                         = $ctx->title();
-		$this->resolvedTitleMemo[ $hash ] = $fallback;
-
-		return $fallback;
+		return $ctx->title();
 	}
 
 	/**

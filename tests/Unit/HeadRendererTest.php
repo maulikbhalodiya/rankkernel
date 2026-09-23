@@ -951,4 +951,31 @@ final class HeadRendererTest extends TestCase {
 		// The filter should STILL NOT fire again during render() because HeadRenderer memoizes the title.
 		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire during render even if TagsReplacer memo is cleared' );
 	}
+
+	/**
+	 * Test empty payload and empty template fallback isolation between title() and getResolvedTitle().
+	 */
+	public function test_empty_payload_and_template_fallback_isolation(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[
+				'title_template'       => '',
+				'description_template' => '',
+			]
+		);
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		// title() returns the WP filter default without poisoning getResolvedTitle().
+		$filterDefault = $renderer->title( 'Filter WP Default' );
+		$this->assertSame( 'Filter WP Default', $filterDefault );
+
+		// render() uses Context title for og:title and twitter:title tags.
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'og:title', $out );
+		$this->assertStringContainsString( 'Post Title', $out );
+	}
 }
