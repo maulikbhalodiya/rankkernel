@@ -78,3 +78,40 @@ if ( ! function_exists( 'wp_cache_delete' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( '_prime_post_caches' ) ) {
+	/**
+	 * Accept a post cache priming request.
+	 *
+	 * WordPress owns this function in a real install. The providers guard
+	 * the call with function_exists, so a real definition here keeps the
+	 * call reachable and gives a Brain Monkey stub something to restore at
+	 * tear down instead of leaving an inactive mock behind.
+	 *
+	 * @param int[] $ids               Post ids.
+	 * @param bool  $update_term_cache Whether to update the term cache.
+	 * @param bool  $update_meta_cache Whether to update the meta cache.
+	 * @return void
+	 */
+	function _prime_post_caches( $ids, $update_term_cache = true, $update_meta_cache = true ) {
+		unset( $ids, $update_term_cache, $update_meta_cache );
+	}
+}
+
+if ( ! function_exists( '_prime_term_caches' ) ) {
+	/**
+	 * Accept a term cache priming request.
+	 *
+	 * WordPress owns this function in a real install. The providers guard
+	 * the call with function_exists, so a real definition here keeps the
+	 * call reachable and gives a Brain Monkey stub something to restore at
+	 * tear down instead of leaving an inactive mock behind.
+	 *
+	 * @param int[] $term_ids          Term ids.
+	 * @param bool  $update_meta_cache Whether to update the term meta cache.
+	 * @return void
+	 */
+	function _prime_term_caches( $term_ids, $update_meta_cache = true ) {
+		unset( $term_ids, $update_meta_cache );
+	}
+}

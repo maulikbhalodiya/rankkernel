@@ -51,8 +51,6 @@ final class SitemapCanonicalTest extends TestCase {
 		Functions\when( 'trailingslashit' )->alias( static fn ( string $s ): string => rtrim( $s, '/' ) . '/' );
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'mysql2date' )->alias( static fn ( string $f, string $d, bool $t = true ): string => gmdate( $f, strtotime( $d ) ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress mysql2date signature.
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_permalink signature.
-		Functions\when( 'get_permalink' )->alias( static fn ( int $id ): string => 'https://example.com/hello/' );
 		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
 		Functions\when( 'is_wp_error' )->alias( static fn ( mixed $v ): bool => $v instanceof \WP_Error );
 	}
@@ -107,6 +105,8 @@ final class SitemapCanonicalTest extends TestCase {
 	public function test_post_canonical_matrix(): void {
 		$this->seedPostRows();
 
+		Functions\when( 'get_permalink' )->alias( static fn ( int $id ): string => 'https://example.com/hello/' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_permalink signature.
+
 		$entries = ( new PostsProvider() )->getEntries( 'post', 1, 10 );
 		$locs    = array_column( $entries, 'loc' );
 
@@ -148,5 +148,70 @@ final class SitemapCanonicalTest extends TestCase {
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'https://example.com/cat/', $entries[0]['loc'] );
+	}
+
+	/**
+	 * Test that a matching canonical resolves its permalink exactly once.
+	 *
+	 * The stored permalink feeds the entry, so the entry loop must reuse it
+	 * instead of resolving the same post a second time.
+	 */
+	public function test_matching_canonicals_resolve_each_permalink_once(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+			[
+				'ID'                => 2,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+			[
+				'ID'                => 3,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+			[
+				'ID'                => 4,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		foreach ( [ 1, 2, 3, 4 ] as $id ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- test fixture uses the existing stored serialization format.
+			$this->db->postmetaRows[ $id ] = serialize( [ 'canonical' => 'https://example.com/hello/' ] );
+		}
+
+		// Four rows, four resolutions: the memoized permalinks cover the
+		// entry loop, which must not resolve any of them again.
+		Functions\expect( 'get_permalink' )->times( 4 )->andReturn( 'https://example.com/hello/' );
+
+		$entries = ( new PostsProvider() )->getEntries( 'post', 1, 10 );
+
+		$this->assertCount( 4, $entries );
+		$this->assertSame( 'https://example.com/hello/', $entries[0]['loc'] );
+	}
+
+	/**
+	 * Test that an unresolvable permalink fails open.
+	 *
+	 * A stored canonical can only drop a row when the permalink resolves,
+	 * and the surviving entry falls back to the query string form.
+	 */
+	public function test_unresolvable_permalink_fails_open_with_query_fallback(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 7,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+		];
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- test fixture uses the existing stored serialization format.
+		$this->db->postmetaRows = [ 7 => serialize( [ 'canonical' => 'https://example.com/hello/' ] ) ];
+
+		Functions\when( 'get_permalink' )->justReturn( '' );
+
+		$entries = ( new PostsProvider() )->getEntries( 'post', 1, 10 );
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'https://example.com/?p=7', $entries[0]['loc'] );
 	}
 }

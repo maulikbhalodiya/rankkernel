@@ -174,6 +174,23 @@ class PostsProvider {
 			return [];
 		}
 
+		// Performance optimization: prime post objects, term relationships and
+		// post meta in batched queries, because the code below resolves one
+		// permalink per row (the post row, plus the category relationship
+		// cache when the permalink structure carries %category%) and one
+		// featured image id per row (the _thumbnail_id meta). Left unprimed
+		// each of those reads is a separate query, an N+1 over the page.
+		$postIds = [];
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['ID'] ) && (int) $row['ID'] > 0 ) {
+				$postIds[] = (int) $row['ID'];
+			}
+		}
+
+		if ( [] !== $postIds && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $postIds, true, true );
+		}
+
 		$rows = $this->dropCanonicalMismatchRows( $rows );
 
 		if ( [] === $rows ) {
@@ -192,7 +209,9 @@ class PostsProvider {
 				continue;
 			}
 
-			$permalink = get_permalink( $postId );
+			$permalink = isset( $row['_permalink'] ) && is_string( $row['_permalink'] )
+				? $row['_permalink']
+				: get_permalink( $postId );
 
 			if ( ! is_string( $permalink ) || '' === $permalink ) {
 				$permalink = home_url( '/?p=' . (string) $postId );
@@ -480,7 +499,8 @@ class PostsProvider {
 				continue;
 			}
 
-			$kept[] = $row;
+			$row['_permalink'] = $permalink;
+			$kept[]            = $row;
 		}
 
 		return $kept;
