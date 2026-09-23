@@ -137,6 +137,27 @@ final class SitemapsModuleTest extends TestCase {
 	}
 
 	/**
+	 * Test takeover notice is suppressed on non-RankKernel screens.
+	 */
+	public function test_render_takeover_notice_suppressed_on_other_screens(): void {
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+
+		$module = new SitemapsModule();
+		ob_start();
+		$module->renderTakeoverNotice();
+		$out = ob_get_clean();
+
+		$this->assertSame( '', $out );
+
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		ob_start();
+		$module->renderTakeoverNotice();
+		$outNull = ob_get_clean();
+
+		$this->assertSame( '', $outNull );
+	}
+
+	/**
 	 * Test boot flushes rewrite rules once per version.
 	 */
 	public function test_boot_flushes_rewrite_rules_once_per_version(): void {
