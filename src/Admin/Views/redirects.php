@@ -408,8 +408,8 @@ $rkMatchBadgeMap = [
 							role="status"
 							data-msg-empty="<?php echo esc_attr__( 'Enter a pattern to check it. Patterns are limited to 200 characters.', 'rankkernel' ); ?>"
 							data-msg-long="<?php echo esc_attr__( 'That pattern is too long. Please keep regex patterns under 200 characters.', 'rankkernel' ); ?>"
-							data-msg-invalid="<?php echo esc_attr__( 'That pattern does not compile. Check the syntax and try again.', 'rankkernel' ); ?>"
-							data-msg-valid="<?php echo esc_attr__( 'Pattern compiles cleanly.', 'rankkernel' ); ?>"
+							data-msg-preview="<?php echo esc_attr__( 'The browser preview could not compile this pattern. The server will verify it when you save.', 'rankkernel' ); ?>"
+							data-msg-valid="<?php echo esc_attr__( 'Pattern compiles in the browser preview. The server tests it again before saving.', 'rankkernel' ); ?>"
 							data-msg-anchor="<?php echo esc_attr__( 'Tip: add ^ at the start and $ at the end to match the whole path.', 'rankkernel' ); ?>"
 						><?php echo esc_html( $regexState['message'] ); ?></p>
 						<p class="rk-form-hint" id="rk-regex-help"><?php echo esc_html__( 'Full pattern match, limited to 200 characters. Anchor with ^ and $ to match the whole path, e.g. ^/blog/[0-9]+$.', 'rankkernel' ); ?></p>

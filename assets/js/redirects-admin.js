@@ -597,9 +597,10 @@ function rankkernelAnnounce( text ) {
 				return;
 			}
 
-			var pattern = sourceInput.value;
-			var message = feedback.getAttribute( 'data-msg-empty' ) || '';
-			var ok      = false;
+			var pattern  = sourceInput.value;
+			var message  = feedback.getAttribute( 'data-msg-empty' ) || '';
+			var ok       = false;
+			var advisory = false;
 
 			if ( '' !== pattern && pattern.length > 200 ) {
 				message = feedback.getAttribute( 'data-msg-long' ) || message;
@@ -615,12 +616,19 @@ function rankkernelAnnounce( text ) {
 						message += ' ' + ( feedback.getAttribute( 'data-msg-anchor' ) || '' );
 					}
 				} catch ( e ) {
-					message = feedback.getAttribute( 'data-msg-invalid' ) || message;
+					/*
+					 * JavaScript and PHP compile different pattern dialects, so
+					 * a browser compile failure is not proof that the server
+					 * would reject the pattern. Show an advisory and leave the
+					 * verdict to the server.
+					 */
+					advisory = true;
+					message  = feedback.getAttribute( 'data-msg-preview' ) || message;
 				}
 			}
 
 			feedback.textContent = message.replace( /\s+$/, '' );
-			feedback.className   = ok ? 'rk-regex-ok' : 'rk-regex-bad';
+			feedback.className   = advisory ? 'rk-form-hint' : ( ok ? 'rk-regex-ok' : 'rk-regex-bad' );
 		}
 
 		function warnFragment() {
