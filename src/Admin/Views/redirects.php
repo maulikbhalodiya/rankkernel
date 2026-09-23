@@ -477,7 +477,13 @@ $rkMatchBadgeMap = [
 					<span class="rk-card-header-icon" aria-hidden="true">&#8661;</span>
 					<h3 class="rk-card-title"><?php echo esc_html__( 'Import and Export', 'rankkernel' ); ?></h3>
 				</div>
-				<button type="button" class="rk-card-collapse" aria-expanded="true" aria-controls="rk-csv-body">
+				<button
+					type="button"
+					class="rk-card-collapse"
+					data-rk-panel-toggle="rk-redirect-csv"
+					aria-expanded="false"
+					aria-controls="rk-redirect-csv"
+				>
 					<span class="rk-collapse-icon" aria-hidden="true">&#8963;</span>
 				</button>
 			</div>
@@ -580,7 +586,6 @@ $rkMatchBadgeMap = [
 				<button
 					type="button"
 					class="rk-card-cancel rk-settings-hide"
-					data-hide-target="rk-redirect-settings"
 				><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></button>
 			</div>
 

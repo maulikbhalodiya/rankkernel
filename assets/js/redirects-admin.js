@@ -42,7 +42,25 @@
  * @package RankKernel
  */
 
-/* global wp, rkRedirects */
+/* global rkRedirects */
+
+/**
+ * Speak an accessible announcement when wp.a11y is available.
+ *
+ * Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+ * The helper takes an already translated string. Every announcement literal is translated at its
+ * own call site, because the WordPress string extractor only reads literal arguments to a
+ * translation function.
+ *
+ * @param {string} text Translated message to announce.
+ */
+function rankkernelAnnounce( text ) {
+	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+		return;
+	}
+
+	window.wp.a11y.speak( text );
+}
 
 ( function () {
 	'use strict';
@@ -51,29 +69,14 @@
 	 * Helpers
 	 * ------------------------------------------------------------------ */
 
-	/**
-	 * Speak an accessible announcement when wp.a11y is available.
-	 *
-	 * @param {string} message Message to announce.
-	 */
-	function rkAnnounce( message ) {
-		if (
-			typeof window.wp !== 'undefined' &&
-			typeof window.wp.a11y !== 'undefined' &&
-			typeof window.wp.a11y.speak === 'function'
-		) {
-			var text = message;
-
-			if (
-				typeof window.wp.i18n !== 'undefined' &&
-				typeof window.wp.i18n.__ === 'function'
-			) {
-				text = window.wp.i18n.__( message, 'rankkernel' );
-			}
-
-			window.wp.a11y.speak( text );
-		}
-	}
+	// The translator falls back to the raw string when wp.i18n is absent. Every user facing
+	// literal is translated at its own call site, because the WordPress extractor only reads
+	// literal arguments to a translation function.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) {
+			return text;
+		};
 
 	/* ------------------------------------------------------------------
 	 * Panel accordion
@@ -217,18 +220,6 @@
 		} );
 	} );
 
-	/* Import/Export collapse button (within the CSV card itself). */
-	var csvCollapseBtn = document.querySelector( '#rk-redirect-csv .rk-card-collapse' );
-	var csvBody        = document.getElementById( 'rk-csv-body' );
-
-	if ( csvCollapseBtn && csvBody ) {
-		csvCollapseBtn.addEventListener( 'click', function () {
-			var expanded = csvCollapseBtn.getAttribute( 'aria-expanded' ) === 'true';
-			csvBody.hidden = expanded;
-			csvCollapseBtn.setAttribute( 'aria-expanded', String( ! expanded ) );
-		} );
-	}
-
 	/* ------------------------------------------------------------------
 	 * AJAX list refresh
 	 *
@@ -346,7 +337,7 @@
 						window.history.replaceState( {}, '', filterUrl );
 					}
 
-					rkAnnounce( 'Redirect list updated.' );
+					rankkernelAnnounce( __( 'Redirect list updated.', 'rankkernel' ) );
 				} else {
 					throw new Error( 'Unexpected response' );
 				}
@@ -366,10 +357,35 @@
 	}
 
 	/**
+	 * Bind the select-all checkbox: mirror its state onto every row checkbox and
+	 * announce the new state. Called once on load and again after every AJAX swap.
+	 */
+	function bindSelectAll() {
+		var selectAll = document.getElementById( 'rk-select-all' );
+		var bulkForm  = document.getElementById( 'rk-bulk-form' );
+
+		if ( ! selectAll || ! bulkForm ) {
+			return;
+		}
+
+		selectAll.addEventListener( 'change', function () {
+			bulkForm.querySelectorAll( 'input[name="rule_ids[]"]' ).forEach( function ( cb ) {
+				cb.checked = selectAll.checked;
+			} );
+
+			rankkernelAnnounce( selectAll.checked
+				? __( 'All redirects selected.', 'rankkernel' )
+				: __( 'All redirects deselected.', 'rankkernel' ) );
+		} );
+	}
+
+	/**
 	 * Bind list-level event listeners. Called once on load and again after
 	 * every AJAX swap so dynamically inserted markup is covered.
 	 */
 	function bindListEvents() {
+		bindSelectAll();
+
 		if ( ! listWrap ) {
 			return;
 		}
@@ -412,7 +428,7 @@
 		/* Destructive row confirm links. */
 		listWrap.querySelectorAll( '.rk-confirm' ).forEach( function ( link ) {
 			link.addEventListener( 'click', function ( event ) {
-				var message = link.getAttribute( 'data-rk-confirm' ) || 'Are you sure?';
+				var message = link.getAttribute( 'data-rk-confirm' ) || __( 'Are you sure?', 'rankkernel' );
 
 				if ( ! window.confirm( message ) ) {
 					event.preventDefault();
@@ -421,29 +437,19 @@
 		} );
 
 		/* Bulk form confirmation. */
-		var bulkForm  = listWrap.querySelector( '#rk-bulk-form' );
-		var selectAll = listWrap.querySelector( '#rk-select-all' );
+		var bulkForm = listWrap.querySelector( '#rk-bulk-form' );
 
 		if ( bulkForm ) {
 			bulkForm.addEventListener( 'submit', function ( event ) {
 				var actionSel = bulkForm.querySelector( '#rk-bulk-action' );
 
 				if ( actionSel && 'delete' === actionSel.value ) {
-					var message = bulkForm.getAttribute( 'data-rk-confirm' ) || 'Are you sure?';
+					var message = bulkForm.getAttribute( 'data-rk-confirm' ) || __( 'Are you sure?', 'rankkernel' );
 
 					if ( ! window.confirm( message ) ) {
 						event.preventDefault();
 					}
 				}
-			} );
-		}
-
-		/* Select-all checkbox. */
-		if ( selectAll && bulkForm ) {
-			selectAll.addEventListener( 'change', function () {
-				bulkForm.querySelectorAll( 'input[name="rule_ids[]"]' ).forEach( function ( cb ) {
-					cb.checked = selectAll.checked;
-				} );
 			} );
 		}
 	}
@@ -648,7 +654,7 @@
 			openPanel( 'rk-redirect-editor', button );
 			destField.value = destination;
 			destField.focus();
-			rkAnnounce( 'Recommended destination applied to Destination URL field.' );
+			rankkernelAnnounce( __( 'Recommended destination applied to Destination URL field.', 'rankkernel' ) );
 		} );
 	} );
 
@@ -657,7 +663,7 @@
 	 * ------------------------------------------------------------------ */
 
 	var fileInput     = document.getElementById( 'rk-csv-file' );
-	var fileZoneLabel = document.querySelector( '.rk-file-zone-label' );
+	var fileZoneLabel = fileInput ? document.querySelector( '.rk-file-zone-label' ) : null;
 
 	if ( fileInput && fileZoneLabel ) {
 		var originalLabel = fileZoneLabel.textContent;

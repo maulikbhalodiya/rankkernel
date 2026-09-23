@@ -1059,6 +1059,10 @@
 	margin-block: var(--rk-space-4);
 }
 
+.rk-redirects .rk-csv-card[hidden] {
+	display: none;
+}
+
 .rk-redirects .rk-csv-body {
 	padding: var(--rk-space-6);
 }
