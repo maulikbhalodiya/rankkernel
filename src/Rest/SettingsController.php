@@ -104,11 +104,11 @@ final class SettingsController {
 	 * @return WP_REST_Response|WP_Error The result.
 	 */
 	public function updateSettings( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$params = $request->get_json_params();
-
-		if ( ! is_array( $params ) ) {
-			$params = $request->get_params();
-		}
+		// The endpoint args schema validates and sanitizes every param before
+		// WP_REST_Server::dispatch() calls this handler. get_params() returns
+		// those validated, sanitized values for JSON and form encoded bodies
+		// alike, so the store never receives raw input.
+		$params = $request->get_params();
 
 		if ( ! is_array( $params ) || [] === $params ) {
 			return new WP_Error(
@@ -152,11 +152,75 @@ final class SettingsController {
 	}
 
 	/**
-	 * Endpoint args (for sanitization documentation).
+	 * Endpoint args for REST schema validation and sanitization.
+	 *
+	 * A custom sanitize_callback replaces the framework default, so every arg
+	 * that carries one also declares rest_validate_request_arg: type and enum
+	 * checks keep running before the sanitizer.
+	 *
+	 * Dynamic schema_default_{post_type} keys stay out of this static schema on
+	 * purpose. SettingsStore::set() validates them against SchemaTypes::SUPPORTED
+	 * before they persist.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private function getEndpointArgs(): array {
-		return [];
+		$args = [
+			'site_represents'       => [
+				'type'              => 'string',
+				'enum'              => [ 'organization', 'person' ],
+				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'org_name'              => [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'org_logo'              => [
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'org_sameas'            => [
+				'type'              => 'array',
+				'items'             => [
+					'type'   => 'string',
+					'format' => 'uri',
+				],
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'website_search_action' => [ 'type' => 'boolean' ],
+			'schema_breadcrumbs'    => [ 'type' => 'boolean' ],
+			'schema_author'         => [ 'type' => 'boolean' ],
+			'purge_on_uninstall'    => [ 'type' => [ 'boolean', 'null' ] ],
+		];
+
+		$text_keys = [
+			'title_template',
+			'description_template',
+			'separator',
+			'social_facebook',
+			'social_twitter',
+			'social_instagram',
+			'social_linkedin',
+			'social_youtube',
+			'social_pinterest',
+			'webmaster_google',
+			'webmaster_bing',
+			'webmaster_yandex',
+			'webmaster_baidu',
+			'webmaster_pinterest',
+		];
+
+		foreach ( $text_keys as $key ) {
+			$args[ $key ] = [
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
+			];
+		}
+
+		return $args;
 	}
 }
