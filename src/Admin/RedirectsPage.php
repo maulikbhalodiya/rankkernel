@@ -338,7 +338,13 @@ final class RedirectsPage {
 		$pageCount  = (int) $result['pages'];
 		$perPage    = max( 1, (int) $result['per_page'] );
 
-		$statusViews     = $this->statusViews( $filters, $totalRows, (int) $result['active'], (int) $result['inactive'] );
+		/*
+		 * The status tabs count under the other filters, so All is the combined
+		 * active plus inactive total, not the status filtered total that
+		 * pagination and the item count report.
+		 */
+		$allRows         = (int) $result['active'] + (int) $result['inactive'];
+		$statusViews     = $this->statusViews( $filters, $allRows, (int) $result['active'], (int) $result['inactive'] );
 		$sortableHeaders = $this->sortableHeaders( $filters );
 		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
 

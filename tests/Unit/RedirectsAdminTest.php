@@ -1819,4 +1819,33 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Showing 1 to 1 of 3 redirects', $html );
 		$this->assertStringContainsString( 'Page 1 of 3', $html );
 	}
+
+	/**
+	 * The status tabs count under the other filters, so an active status
+	 * filter leaves the All tab at the combined active plus inactive total
+	 * while pagination keeps reporting the filtered total.
+	 */
+	public function test_ajax_list_status_filter_keeps_all_tab_total_across_statuses(): void {
+		$this->seedRule( '/active-one', '/active-one-new' );
+		$this->seedRule( '/active-two', '/active-two-new' );
+		$this->seedRule( '/inactive-one', '/inactive-one-new', '301', 'exact', false );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_status' => 'inactive' ] );
+
+		// The All tab excludes the status filter itself, so it must not shrink
+		// to the filtered status total.
+		$this->assertStringContainsString( '>All <span class="count">3</span>', $html );
+		$this->assertStringContainsString( '>Active <span class="count">2</span>', $html );
+		$this->assertStringContainsString( '>Inactive <span class="count">1</span>', $html );
+
+		// Pagination and the item count keep reflecting the filtered total.
+		$this->assertStringContainsString( 'Showing 1 to 1 of 1 redirects', $html );
+		$this->assertStringContainsString( '<span class="rk-items-count">1 redirects</span>', $html );
+
+		$this->assertStringContainsString( '/inactive-one', $html );
+		$this->assertStringNotContainsString( '/active-one', $html );
+	}
 }
