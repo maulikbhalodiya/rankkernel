@@ -9,7 +9,7 @@ Inspection-only audit of the actual codebase (branch GH-11, unpushed). Every cla
 | Plugin version | **0.1.0** (`rankkernel.php` header; `Plugin::VERSION` const) |
 | Plugin name | RankKernel – Free SEO & Schema Engine |
 | Author | Maulik Bhalodiya |
-| Requires | PHP **8.2+**, WordPress **6.5+** (enforced at boot + activation self-deactivate) |
+| Requires | PHP **8.1+**, WordPress **6.5+** (enforced at boot + activation self-deactivate) |
 | Current branch | **GH-11** (local feature branch, **unpushed**; `origin/main` is at `af9aab8`) |
 | Git status | Clean tree (verified). Stale local branch `GH-7` still exists locally |
 | Latest commit | `8437f51` Fix block asset URLs to derive from plugin root (#11) |
