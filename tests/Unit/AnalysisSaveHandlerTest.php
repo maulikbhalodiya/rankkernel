@@ -35,11 +35,11 @@ final class AnalysisSaveHandlerTest extends TestCase {
 	private array $meta = [];
 
 	/**
-	 * Last written record.
+	 * Written values, keyed by meta key.
 	 *
-	 * @var mixed
+	 * @var array<string, mixed>
 	 */
-	private mixed $saved = null;
+	private array $saved = [];
 
 	/**
 	 * Delete calls, each a post id and meta key pair.
@@ -66,7 +66,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 		$post->post_content = '<p>We write about red apples and how to pick them. Red apples keep well.</p>';
 		$this->post         = $post;
 		$this->meta         = [ '_rankkernel_meta_data' => [ 'focus_keywords' => [ 'red apples' ] ] ];
-		$this->saved        = null;
+		$this->saved        = [];
 		$this->deleted      = [];
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
@@ -92,7 +92,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 		);
 		Functions\when( 'update_post_meta' )->alias(
 			function ( int $id, string $key, mixed $value ): bool {
-				$this->saved = $value;
+				$this->saved[ $key ] = $value;
 
 				return true;
 			}
@@ -132,9 +132,10 @@ final class AnalysisSaveHandlerTest extends TestCase {
 	public function test_save_stores_the_record(): void {
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertIsArray( $this->saved );
-		$this->assertArrayHasKey( 'score', $this->saved );
-		$this->assertSame( 1, $this->saved['keywords'] );
+		$this->assertArrayHasKey( AnalysisScore::META_KEY, $this->saved );
+		$this->assertArrayHasKey( 'score', $this->saved[ AnalysisScore::META_KEY ] );
+		$this->assertSame( 1, $this->saved[ AnalysisScore::META_KEY ]['keywords'] );
+		$this->assertSame( $this->saved[ AnalysisScore::META_KEY ]['score'], $this->saved[ AnalysisScore::SCORE_VALUE_KEY ] );
 		$this->assertSame( [], $this->deleted );
 	}
 
@@ -146,7 +147,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertNull( $this->saved );
+		$this->assertSame( [], $this->saved );
 		$this->assertSame( [], $this->deleted );
 	}
 
@@ -158,7 +159,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertNull( $this->saved );
+		$this->assertSame( [], $this->saved );
 		$this->assertSame( [], $this->deleted );
 	}
 
@@ -170,7 +171,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertNull( $this->saved );
+		$this->assertSame( [], $this->saved );
 		$this->assertSame( [], $this->deleted );
 	}
 
@@ -182,7 +183,7 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertNull( $this->saved );
+		$this->assertSame( [], $this->saved );
 		$this->assertSame( [], $this->deleted );
 	}
 
@@ -194,8 +195,8 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertSame( [ [ 11, AnalysisScore::META_KEY ] ], $this->deleted );
-		$this->assertNull( $this->saved );
+		$this->assertSame( [ [ 11, AnalysisScore::META_KEY ], [ 11, AnalysisScore::SCORE_VALUE_KEY ] ], $this->deleted );
+		$this->assertSame( [], $this->saved );
 	}
 
 	/**
@@ -225,8 +226,9 @@ final class AnalysisSaveHandlerTest extends TestCase {
 
 		( new AnalysisSaveHandler() )->handle( 11, $this->post );
 
-		$this->assertIsArray( $this->saved );
-		$this->assertSame( 2, $this->saved['keywords'] );
+		$this->assertArrayHasKey( AnalysisScore::META_KEY, $this->saved );
+		$this->assertSame( 2, $this->saved[ AnalysisScore::META_KEY ]['keywords'] );
+		$this->assertSame( $this->saved[ AnalysisScore::META_KEY ]['score'], $this->saved[ AnalysisScore::SCORE_VALUE_KEY ] );
 		$this->assertSame( [], $this->deleted );
 	}
 }

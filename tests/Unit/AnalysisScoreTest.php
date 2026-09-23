@@ -35,13 +35,6 @@ final class AnalysisScoreTest extends TestCase {
 	private array $meta = [];
 
 	/**
-	 * Last value written.
-	 *
-	 * @var mixed
-	 */
-	private mixed $saved = null;
-
-	/**
 	 * Whether delete post meta was called.
 	 *
 	 * @var bool
@@ -66,7 +59,6 @@ final class AnalysisScoreTest extends TestCase {
 		$post->post_content = '<p>We write about red apples and how to pick them. Red apples keep well.</p>';
 		$this->post         = $post;
 		$this->meta         = [];
-		$this->saved        = null;
 		$this->deleted      = false;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
@@ -93,7 +85,6 @@ final class AnalysisScoreTest extends TestCase {
 		Functions\when( 'update_post_meta' )->alias(
 			function ( int $id, string $key, mixed $value ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_post_meta signature.
 				$this->meta[ $key ] = $value;
-				$this->saved        = $value;
 
 				return true;
 			}
@@ -200,13 +191,42 @@ final class AnalysisScoreTest extends TestCase {
 		$score  = new AnalysisScore();
 		$record = $score->store( 7 );
 
-		$this->assertSame( $record, $this->saved );
+		$this->assertSame( $record, $this->meta[ AnalysisScore::META_KEY ] );
 		$this->assertSame( $record, $score->read( 7 ) );
 
 		$this->meta['_rankkernel_meta_data'] = [ 'focus_keywords' => [] ];
 
 		$this->assertSame( [], $score->store( 7 ) );
 		$this->assertTrue( $this->deleted );
+	}
+
+	/**
+	 * Store keeps the scalar sort mirror in step with the record.
+	 */
+	public function test_store_writes_and_clears_the_scalar_sort_mirror(): void {
+		$this->withKeywords( [ 'red apples' ] );
+
+		$score  = new AnalysisScore();
+		$record = $score->store( 7 );
+
+		$this->assertSame( $record['score'], $this->meta[ AnalysisScore::SCORE_VALUE_KEY ] );
+
+		$this->meta['_rankkernel_meta_data'] = [ 'focus_keywords' => [] ];
+		$score->store( 7 );
+
+		$this->assertArrayNotHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->meta );
+	}
+
+	/**
+	 * The shared featured alt lookup reads the attachment alt and degrades.
+	 */
+	public function test_featured_alt_reads_the_attachment_alt(): void {
+		$this->assertSame( '', AnalysisScore::featuredAlt( 0 ) );
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 12 );
+		$this->meta['_wp_attachment_image_alt'] = 'A photo of red apples';
+
+		$this->assertSame( 'A photo of red apples', AnalysisScore::featuredAlt( 7 ) );
 	}
 
 	/**

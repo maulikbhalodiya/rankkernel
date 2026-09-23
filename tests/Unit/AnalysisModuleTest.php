@@ -228,6 +228,24 @@ final class AnalysisModuleTest extends TestCase {
 	}
 
 	/**
+	 * The scalar mirror the list table sorts on is registered beside it.
+	 */
+	public function test_register_registers_the_scalar_sort_mirror(): void {
+		$this->options['rankkernel_modules'] = [ 'analysis' ];
+
+		( new AnalysisModule( new ModuleEnableMap() ) )->register();
+
+		$this->assertArrayHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->registeredMeta );
+
+		$registered = $this->registeredMeta[ AnalysisScore::SCORE_VALUE_KEY ];
+
+		$this->assertSame( 'post', $registered['object_type'] );
+		$this->assertSame( 'integer', $registered['args']['type'] );
+		$this->assertSame( 'absint', $registered['args']['sanitize_callback'] );
+		$this->assertArrayNotHasKey( 'show_in_rest', $registered['args'] );
+	}
+
+	/**
 	 * Test the enabled state is read once and cached.
 	 */
 	public function test_enabled_state_is_cached(): void {

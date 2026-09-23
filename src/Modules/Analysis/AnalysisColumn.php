@@ -29,6 +29,11 @@ final class AnalysisColumn {
 	private const COLUMN = 'rankkernel_analysis';
 
 	/**
+	 * Meta query clause name and orderby key for the score sort.
+	 */
+	private const SORT_CLAUSE = 'rankkernel_analysis_score';
+
+	/**
 	 * Style handle.
 	 */
 	private const STYLE_HANDLE = 'rankkernel-analysis-column';
@@ -153,7 +158,14 @@ final class AnalysisColumn {
 	}
 
 	/**
-	 * Apply a numeric meta sort for our column only.
+	 * Apply a numeric sort on the score mirror for our column only.
+	 *
+	 * The stored record is a serialized array, which MySQL reads as zero, so
+	 * the sort runs on the scalar mirror written beside it. A plain meta_key
+	 * would inner join and drop every post that has no score, so the meta
+	 * query is an OR of the mirror existing and not existing, which keeps
+	 * them. Naming the existing clause lets WordPress cast the mirror to a
+	 * number for the order and lets the list table order toggle hold.
 	 *
 	 * @param WP_Query $query Query.
 	 */
@@ -170,8 +182,24 @@ final class AnalysisColumn {
 			return;
 		}
 
-		$query->set( 'meta_key', AnalysisScore::META_KEY );
-		$query->set( 'orderby', 'meta_value_num' );
+		$order = 'ASC' === strtoupper( (string) $query->get( 'order' ) ) ? 'ASC' : 'DESC';
+
+		$query->set(
+			'meta_query',
+			[
+				'relation'                     => 'OR',
+				self::SORT_CLAUSE              => [
+					'key'     => AnalysisScore::SCORE_VALUE_KEY,
+					'compare' => 'EXISTS',
+					'type'    => 'NUMERIC',
+				],
+				self::SORT_CLAUSE . '_missing' => [
+					'key'     => AnalysisScore::SCORE_VALUE_KEY,
+					'compare' => 'NOT EXISTS',
+				],
+			]
+		);
+		$query->set( 'orderby', [ self::SORT_CLAUSE => $order ] );
 	}
 
 	/**

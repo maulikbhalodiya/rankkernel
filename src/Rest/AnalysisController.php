@@ -12,6 +12,7 @@ namespace RankKernel\Rest;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Analysis\AnalysisScore;
 use RankKernel\Modules\Analysis\Analyzer;
 use RankKernel\Modules\Analysis\KeywordIndex;
 use WP_Error;
@@ -22,9 +23,9 @@ use WP_REST_Response;
 /**
  * Handles POST /rankkernel/v1/analysis.
  *
- * The editor posts the content it currently holds rather than a post id alone,
- * because a writer wants the analysis of what they have typed, not of the last
- * saved revision. The content is read for counting and never stored, escaped or
+ * The editor panels score the draft locally through the ported JavaScript
+ * engine and do not post here; the route is retained for REST and headless
+ * consumers. The content is read for counting and never stored, escaped or
  * echoed, and the route is gated on the capability to edit that post.
  */
 final class AnalysisController {
@@ -139,28 +140,12 @@ final class AnalysisController {
 				'slug'          => (string) $request->get_param( 'slug' ),
 				'keywords'      => $keywords,
 				'site_url'      => home_url( '/' ),
-				'featured_alt'  => $this->featuredAlt( $postId ),
+				'featured_alt'  => AnalysisScore::featuredAlt( $postId ),
 				'used_keywords' => $this->usedKeywords( $keywords, $postId ),
 			]
 		);
 
 		return new WP_REST_Response( $result, 200 );
-	}
-
-	/**
-	 * Alt text of the featured image, when one is set.
-	 *
-	 * @param int $postId Post id.
-	 * @return string The result.
-	 */
-	private function featuredAlt( int $postId ): string {
-		$thumbnail = (int) get_post_thumbnail_id( $postId );
-
-		if ( $thumbnail <= 0 ) {
-			return '';
-		}
-
-		return (string) get_post_meta( $thumbnail, '_wp_attachment_image_alt', true );
 	}
 
 	/**

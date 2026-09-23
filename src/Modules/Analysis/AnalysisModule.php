@@ -18,12 +18,12 @@ use RankKernel\Modules\ModuleInterface;
 use RankKernel\Rest\AnalysisController;
 
 /**
- * Wires the analyser into the editor through one REST route.
+ * Wires the analyser into the editors and to the REST API.
  *
- * The engine runs on the server so there is a single tested implementation of
- * every check. The editor posts the content it currently holds, including
- * unsaved edits, and renders what comes back, so a duplicate JavaScript engine
- * never has to be kept in step with this one.
+ * Both editors score the draft locally through the ported JavaScript engine
+ * and render the result without a request. PHP stays the persisted reference
+ * engine: the save handler stores the score from the same rules, and the REST
+ * route remains for REST and headless consumers.
  */
 final class AnalysisModule implements ModuleInterface {
 	/**
@@ -97,16 +97,19 @@ final class AnalysisModule implements ModuleInterface {
 	}
 
 	/**
-	 * Register the score meta key, only when the module is on.
+	 * Register the score meta keys, only when the module is on.
 	 *
-	 * The key is not exposed in the REST schema, so the editor cannot write
-	 * it, and the auth callback ties a write to the edit capability for the
+	 * The keys are not exposed in the REST schema, so the editor cannot write
+	 * them, and the auth callback ties a write to the edit capability for the
 	 * post. The sanitize callback accepts mixed and validates defensively.
 	 */
 	public function register(): void {
 		if ( ! $this->isEnabled() ) {
 			return;
 		}
+
+		$auth = static fn ( mixed $value, string $meta_key, int $object_id ): bool
+			=> current_user_can( 'edit_post', $object_id );
 
 		register_meta(
 			'post',
@@ -115,8 +118,18 @@ final class AnalysisModule implements ModuleInterface {
 				'type'              => 'object',
 				'single'            => true,
 				'sanitize_callback' => [ AnalysisScore::class, 'sanitize' ],
-				'auth_callback'     => static fn ( mixed $value, string $meta_key, int $object_id ): bool
-					=> current_user_can( 'edit_post', $object_id ),
+				'auth_callback'     => $auth,
+			]
+		);
+
+		register_meta(
+			'post',
+			AnalysisScore::SCORE_VALUE_KEY,
+			[
+				'type'              => 'integer',
+				'single'            => true,
+				'sanitize_callback' => 'absint',
+				'auth_callback'     => $auth,
 			]
 		);
 	}

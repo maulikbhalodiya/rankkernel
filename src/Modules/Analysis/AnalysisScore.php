@@ -26,6 +26,17 @@ final class AnalysisScore {
 	public const META_KEY = '_rankkernel_analysis_score';
 
 	/**
+	 * Post meta key holding the score on its own, for list table sorting.
+	 *
+	 * The record above is a serialized array, so MySQL reads it as zero and a
+	 * meta_value_num sort on it ties every row. This mirror is written with
+	 * the record and holds only the numeric score, which is what the list
+	 * table orders on. The record stays the source of truth for rendering,
+	 * and a save that clears the record clears this key with it.
+	 */
+	public const SCORE_VALUE_KEY = '_rankkernel_analysis_score_value';
+
+	/**
 	 * Meta key holding the editor payload, read for the keywords and description.
 	 */
 	private const PAYLOAD_KEY = '_rankkernel_meta_data';
@@ -139,7 +150,7 @@ final class AnalysisScore {
 				'slug'          => (string) $post->post_name,
 				'keywords'      => $keywords,
 				'site_url'      => function_exists( 'home_url' ) ? (string) home_url( '/' ) : '',
-				'featured_alt'  => $this->featuredAlt( $postId ),
+				'featured_alt'  => self::featuredAlt( $postId ),
 				'used_keywords' => null,
 			]
 		);
@@ -167,6 +178,7 @@ final class AnalysisScore {
 		if ( null === $record ) {
 			if ( function_exists( 'delete_post_meta' ) ) {
 				delete_post_meta( $postId, self::META_KEY );
+				delete_post_meta( $postId, self::SCORE_VALUE_KEY );
 			}
 
 			return [];
@@ -174,6 +186,7 @@ final class AnalysisScore {
 
 		if ( function_exists( 'update_post_meta' ) ) {
 			update_post_meta( $postId, self::META_KEY, $record );
+			update_post_meta( $postId, self::SCORE_VALUE_KEY, (int) $record['score'] );
 		}
 
 		return $record;
@@ -309,11 +322,14 @@ final class AnalysisScore {
 	/**
 	 * Featured image alt text, when one is set.
 	 *
+	 * The single lookup behind the browser panel, the REST route and the
+	 * stored score, so the three can never read a different value.
+	 *
 	 * @param int $postId Post id.
 	 * @return string The result.
 	 */
-	private function featuredAlt( int $postId ): string {
-		if ( ! function_exists( 'get_post_thumbnail_id' ) || ! function_exists( 'get_post_meta' ) ) {
+	public static function featuredAlt( int $postId ): string {
+		if ( $postId <= 0 || ! function_exists( 'get_post_thumbnail_id' ) || ! function_exists( 'get_post_meta' ) ) {
 			return '';
 		}
 

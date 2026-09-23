@@ -347,16 +347,131 @@ final class AnalysisColumnTest extends TestCase {
 	}
 
 	/**
-	 * The orderby guard applies a numeric meta sort for our own column.
+	 * Score rows for the sort tests, one row per post.
+	 *
+	 * @return array<int, array{id: int, score: int|null}> Fixture rows.
 	 */
-	public function test_orderby_applies_a_numeric_meta_sort(): void {
+	private function scoreRows(): array {
+		return [
+			[
+				'id'    => 11,
+				'score' => 87,
+			],
+			[
+				'id'    => 22,
+				'score' => null,
+			],
+			[
+				'id'    => 33,
+				'score' => 43,
+			],
+		];
+	}
+
+	/**
+	 * Run orderBy against a query double and return the vars it set.
+	 *
+	 * @param string $order Order value as the list table sends it.
+	 * @return array<string, mixed> The query vars our code set.
+	 */
+	private function sortedVars( string $order ): array {
+		$vars  = [];
 		$query = Mockery::mock( WP_Query::class );
 		$query->shouldReceive( 'is_main_query' )->andReturn( true );
 		$query->shouldReceive( 'get' )->with( 'orderby' )->andReturn( 'rankkernel_analysis' );
-		$query->shouldReceive( 'set' )->with( 'meta_key', AnalysisScore::META_KEY )->once();
-		$query->shouldReceive( 'set' )->with( 'orderby', 'meta_value_num' )->once();
+		$query->shouldReceive( 'get' )->with( 'order' )->andReturn( $order );
+		$query->shouldReceive( 'set' )->andReturnUsing(
+			static function ( string $key, mixed $value ) use ( &$vars ): void {
+				$vars[ $key ] = $value;
+			}
+		);
 
 		( new AnalysisColumn() )->orderBy( $query );
+
+		return $vars;
+	}
+
+	/**
+	 * Apply the sort the way WordPress and MySQL apply it.
+	 *
+	 * A meta query with a NOT EXISTS clause becomes a left join, so a post
+	 * without the meta stays in the result, and a named NUMERIC clause orders
+	 * by the cast meta value. MySQL orders a NULL first ascending and last
+	 * descending, which is where a post without a score lands.
+	 *
+	 * @param array<string, mixed>                        $vars Query vars set by orderBy.
+	 * @param array<int, array{id: int, score: int|null}> $rows Fixture rows.
+	 * @return int[] The surviving post ids in sort order.
+	 */
+	private function sortedIds( array $vars, array $rows ): array {
+		$this->assertSame( 'OR', $vars['meta_query']['relation'] );
+
+		$keepsMissing = false;
+		$sortsNumeric = false;
+
+		foreach ( $vars['meta_query'] as $clause ) {
+			if ( ! is_array( $clause ) || ! isset( $clause['key'] ) ) {
+				continue;
+			}
+
+			$this->assertSame( AnalysisScore::SCORE_VALUE_KEY, $clause['key'] );
+
+			if ( 'NOT EXISTS' === $clause['compare'] ) {
+				$keepsMissing = true;
+			}
+
+			if ( 'NUMERIC' === ( $clause['type'] ?? '' ) ) {
+				$sortsNumeric = true;
+			}
+		}
+
+		$this->assertTrue( $keepsMissing, 'the sort must keep posts without a score' );
+		$this->assertTrue( $sortsNumeric, 'the sort must read the score as a number' );
+
+		$this->assertIsArray( $vars['orderby'] );
+		$order = strtoupper( (string) reset( $vars['orderby'] ) );
+
+		usort(
+			$rows,
+			static function ( array $a, array $b ) use ( $order ): int {
+				if ( $a['score'] === $b['score'] ) {
+					return 0;
+				}
+
+				if ( null === $a['score'] ) {
+					return 'ASC' === $order ? -1 : 1;
+				}
+
+				if ( null === $b['score'] ) {
+					return 'ASC' === $order ? 1 : -1;
+				}
+
+				return 'ASC' === $order ? $a['score'] <=> $b['score'] : $b['score'] <=> $a['score'];
+			}
+		);
+
+		return array_map( static fn ( array $row ): int => $row['id'], $rows );
+	}
+
+	/**
+	 * Descending score order puts the best first and the unscored post last.
+	 */
+	public function test_orderby_descending_scores_keeps_the_unscored_post(): void {
+		$this->assertSame( [ 11, 33, 22 ], $this->sortedIds( $this->sortedVars( 'DESC' ), $this->scoreRows() ) );
+	}
+
+	/**
+	 * Ascending score order reverses the scores and keeps the unscored post.
+	 */
+	public function test_orderby_ascending_scores_keeps_the_unscored_post(): void {
+		$this->assertSame( [ 22, 33, 11 ], $this->sortedIds( $this->sortedVars( 'ASC' ), $this->scoreRows() ) );
+	}
+
+	/**
+	 * A missing order value falls back to descending.
+	 */
+	public function test_orderby_defaults_to_descending(): void {
+		$this->assertSame( [ 11, 33, 22 ], $this->sortedIds( $this->sortedVars( '' ), $this->scoreRows() ) );
 	}
 
 	/**

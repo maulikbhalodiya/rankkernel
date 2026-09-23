@@ -12,6 +12,7 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Analysis\AnalysisScore;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\TagsReplacer;
@@ -697,7 +698,7 @@ final class MetadataBox {
 		$siteUrl   = function_exists( 'site_url' ) ? (string) site_url() : '';
 		$homeUrl   = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
-		$featuredAlt = $this->featuredAlt( $postId );
+		$featuredAlt = AnalysisScore::featuredAlt( $postId );
 
 		$state = [
 			'postId'      => $postId,
@@ -1039,29 +1040,6 @@ final class MetadataBox {
 		$url = wp_get_attachment_image_url( $thumbId, 'large' );
 
 		return is_string( $url ) ? $url : '';
-	}
-
-	/**
-	 * Alt text of the featured image, when one is set.
-	 *
-	 * Mirrors AnalysisController::featuredAlt so the browser and the REST
-	 * route see the same value for keyword_in_image_alt and image_alt_quality.
-	 *
-	 * @param int $postId Post id.
-	 * @return string The result.
-	 */
-	private function featuredAlt( int $postId ): string {
-		if ( $postId <= 0 || ! function_exists( 'get_post_thumbnail_id' ) || ! function_exists( 'get_post_meta' ) ) {
-			return '';
-		}
-
-		$thumbnail = (int) get_post_thumbnail_id( $postId );
-
-		if ( $thumbnail <= 0 ) {
-			return '';
-		}
-
-		return (string) get_post_meta( $thumbnail, '_wp_attachment_image_alt', true );
 	}
 
 	/**
