@@ -4,7 +4,7 @@
  * Description: 100% free, lightweight SEO with no paywalls or upsell banners, metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow. Modules that are off cost zero: no hooks, no queries, no bloat.
  * Version: 0.1.0
  * Requires at least: 6.5
- * Requires PHP: 8.1
+ * Requires PHP: 8.2
  * Author: Maulik Bhalodiya
  * Author URI: https://github.com/maulikbhalodiya
  * License: GPLv2 or later
@@ -20,12 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Requirement checks BEFORE autoload.
-if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
+if ( version_compare( PHP_VERSION, '8.2.0', '<' ) ) {
 	add_action(
 		'admin_notices',
 		static function () {
 			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'RankKernel requires PHP 8.1 or higher. Please upgrade PHP to use this plugin.', 'rankkernel' );
+			echo esc_html__( 'RankKernel requires PHP 8.2 or higher. Please upgrade PHP to use this plugin.', 'rankkernel' );
 			echo '</p></div>';
 		}
 	);
@@ -63,7 +63,7 @@ if ( file_exists( $rankkernel_autoloader ) ) {
  */
 function rankkernel_activate(): void {
 	// Check requirements at activation, deactivate self if missing.
-	if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
+	if ( version_compare( PHP_VERSION, '8.2.0', '<' ) ) {
 		deactivate_plugins( plugin_basename( RANKKERNEL_FILE ) );
 		return;
 	}
