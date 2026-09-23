@@ -236,11 +236,11 @@ $rkListMatchBadgeMap = [
 								</td>
 
 								<?php
-								// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- values are esc_html() escaped on the next line.
 								$rkCodeVal   = esc_html( $ruleRow['code'] );
 								$rkCodeClass = $rkListCodeBadgeMap[ $ruleRow['code'] ] ?? 'rk-badge rk-badge-exact';
 								?>
 								<td class="rk-col-code">
+									<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rkCodeVal is esc_html() escaped when assigned above. ?>
 									<span class="<?php echo esc_attr( $rkCodeClass ); ?>"><?php echo $rkCodeVal; ?></span>
 								</td>
 
@@ -249,9 +249,9 @@ $rkListMatchBadgeMap = [
 								$rkMatchClass = $rkListMatchBadgeMap[ strtolower( $ruleRow['match'] ) ] ?? 'rk-badge rk-badge-exact';
 								?>
 								<td class="rk-col-match">
+									<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rkMatchVal is esc_html() escaped when assigned above. ?>
 									<span class="<?php echo esc_attr( $rkMatchClass ); ?>"><?php echo $rkMatchVal; ?></span>
 								</td>
-								<?php // phpcs:enable ?>
 
 								<td class="rk-col-hits"><?php echo esc_html( $ruleRow['hitsLabel'] ); ?></td>
 								<td class="rk-col-accessed"><?php echo esc_html( $ruleRow['accessedLabel'] ); ?></td>
