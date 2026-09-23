@@ -723,10 +723,10 @@ final class MetadataBox {
 			'restPath'    => $this->restPath( $postId ),
 		];
 
-		// The editor posts its current draft to this route and renders the reply.
-		// The transport is only handed over when the module that owns the route is
-		// on, because a disabled module registers no route, so a panel shipped
-		// anyway would post into a 404 on every debounced keystroke.
+		// The path is the module enabled signal the local engine checks, so the
+		// block editor panel only mounts when the analysis module is on. The
+		// route itself is retained deliberately for REST and headless consumers,
+		// and the editors no longer post a draft to it.
 		if ( $this->analysisEnabled() ) {
 			$state['analysis'] = [
 				'path'  => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/analysis' ) : '',

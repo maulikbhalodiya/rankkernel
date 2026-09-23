@@ -57,15 +57,15 @@
 
 	function bandLabel( band ) {
 		if ( 'good' === band ) {
-			return 'Good';
+			return translate( 'Good' );
 		}
 		if ( 'improve' === band ) {
-			return 'Needs improvement';
+			return translate( 'Needs improvement' );
 		}
 		if ( 'problem' === band ) {
-			return 'Poor';
+			return translate( 'Poor' );
 		}
-		return 'Not analysed';
+		return translate( 'Not analysed' );
 	}
 
 	function scoreSlot() {
@@ -234,7 +234,7 @@
 
 		var note = document.createElement( 'p' );
 		note.className = 'description rk-analysis-note';
-		note.textContent = ANALYSIS_HONESTY;
+		note.textContent = translate( ANALYSIS_HONESTY );
 		results.appendChild( note );
 
 		hasResult = true;
@@ -261,9 +261,8 @@
 			return;
 		}
 
-		lastSignature = nextSignature;
-
 		if ( ! input.keywords.length ) {
+			lastSignature = nextSignature;
 			hasResult = false;
 			setMessage( EMPTY_MESSAGE, false );
 			return;
@@ -282,6 +281,10 @@
 			setMessage( FAIL_MESSAGE, true );
 			return;
 		}
+
+		// Only a run that produced a result is memoised, so an engine failure
+		// can retry the identical input on the next event.
+		lastSignature = nextSignature;
 
 		render( result );
 	}

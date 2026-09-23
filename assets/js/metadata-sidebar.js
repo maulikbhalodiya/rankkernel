@@ -1650,6 +1650,13 @@
 			return null;
 		}
 
+		// The enqueue puts the engine beside this panel, so an absent engine
+		// means its script failed to load. Render nothing rather than a
+		// permanent loading message with no recovery.
+		if ( ! analyzer || ! bridge ) {
+			return null;
+		}
+
 		if ( '' === keywordKey ) {
 			return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
 		}
