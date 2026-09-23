@@ -104,11 +104,11 @@ final class SettingsController {
 	 * @return WP_REST_Response|WP_Error The result.
 	 */
 	public function updateSettings( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$params = $request->get_json_params();
-
-		if ( ! is_array( $params ) ) {
-			$params = $request->get_params();
-		}
+		// The endpoint args schema validates and sanitizes every param before
+		// WP_REST_Server::dispatch() calls this handler. get_params() returns
+		// those validated, sanitized values for JSON and form encoded bodies
+		// alike, so the store never receives raw input.
+		$params = $request->get_params();
 
 		if ( ! is_array( $params ) || [] === $params ) {
 			return new WP_Error(
@@ -154,6 +154,14 @@ final class SettingsController {
 	/**
 	 * Endpoint args for REST schema validation and sanitization.
 	 *
+	 * A custom sanitize_callback replaces the framework default, so every arg
+	 * that carries one also declares rest_validate_request_arg: type and enum
+	 * checks keep running before the sanitizer.
+	 *
+	 * Dynamic schema_default_{post_type} keys stay out of this static schema on
+	 * purpose. SettingsStore::set() validates them against SchemaTypes::SUPPORTED
+	 * before they persist.
+	 *
 	 * @return array<string, mixed>
 	 */
 	private function getEndpointArgs(): array {
@@ -162,21 +170,25 @@ final class SettingsController {
 				'type'              => 'string',
 				'enum'              => [ 'organization', 'person' ],
 				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
 			],
 			'org_name'              => [
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
 			],
 			'org_logo'              => [
 				'type'              => 'string',
 				'sanitize_callback' => 'esc_url_raw',
+				'validate_callback' => 'rest_validate_request_arg',
 			],
 			'org_sameas'            => [
-				'type'  => 'array',
-				'items' => [
-					'type'              => 'string',
-					'sanitize_callback' => 'esc_url_raw',
+				'type'              => 'array',
+				'items'             => [
+					'type'   => 'string',
+					'format' => 'uri',
 				],
+				'validate_callback' => 'rest_validate_request_arg',
 			],
 			'website_search_action' => [ 'type' => 'boolean' ],
 			'schema_breadcrumbs'    => [ 'type' => 'boolean' ],
@@ -184,7 +196,7 @@ final class SettingsController {
 			'purge_on_uninstall'    => [ 'type' => [ 'boolean', 'null' ] ],
 		];
 
-		$textKeys = [
+		$text_keys = [
 			'title_template',
 			'description_template',
 			'separator',
@@ -201,10 +213,11 @@ final class SettingsController {
 			'webmaster_pinterest',
 		];
 
-		foreach ( $textKeys as $key ) {
+		foreach ( $text_keys as $key ) {
 			$args[ $key ] = [
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
+				'validate_callback' => 'rest_validate_request_arg',
 			];
 		}
 
