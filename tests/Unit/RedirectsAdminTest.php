@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\RedirectsPage;
 use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
@@ -52,6 +53,13 @@ final class RedirectsAdminTest extends TestCase {
 	private string $lastRedirect = '';
 
 	/**
+	 * Payload captured from wp_send_json_success.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $ajaxPayload = [];
+
+	/**
 	 * Set up doubles.
 	 */
 	protected function setUp(): void {
@@ -69,6 +77,7 @@ final class RedirectsAdminTest extends TestCase {
 		$this->options      = [];
 		$this->db           = new RedirectsFakeDb();
 		$this->lastRedirect = '';
+		$this->ajaxPayload  = [];
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -92,6 +101,8 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( array $params = [], string $url = '' ): string {
 				if ( [] === $params ) {
@@ -167,10 +178,26 @@ final class RedirectsAdminTest extends TestCase {
 			}
 		);
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $v, array $allowed ): string {
+				$tags = '';
+				foreach ( array_keys( $allowed ) as $tag ) {
+					$tags .= '<' . (string) $tag . '>';
+				}
+
+				return strip_tags( $v, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+			}
+		);
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => number_format( (int) $n ) );
 		Functions\when( 'current_time' )->alias( static fn (): string => gmdate( 'Y-m-d H:i:s' ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
+		Functions\when( 'wp_send_json_success' )->alias(
+			function ( mixed $data = null ): void {
+				$this->ajaxPayload = is_array( $data ) ? $data : [];
+			}
+		);
 		Functions\when( 'checked' )->alias(
 			static function ( mixed $first, mixed $second ): string {
 				$same = (string) $first === (string) $second && '' !== (string) $first;
@@ -283,6 +310,30 @@ final class RedirectsAdminTest extends TestCase {
 		ob_start();
 		$page->render();
 		$html = ob_get_clean();
+
+		return is_string( $html ) ? $html : '';
+	}
+
+	/**
+	 * Invoke the AJAX list handler with the given posted filters.
+	 *
+	 * @param RedirectsPage        $page    Page.
+	 * @param array<string, mixed> $filters Filters posted alongside the action and nonce.
+	 * @return string Rendered list section HTML.
+	 */
+	private function ajaxList( RedirectsPage $page, array $filters = [] ): string {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array_merge(
+			[
+				'action'      => 'rankkernel_redirects_list',
+				'_ajax_nonce' => 'nonce-rankkernel_redirects_list',
+			],
+			$filters
+		);
+
+		$page->handleAjaxList();
+
+		$html = $this->ajaxPayload['html'] ?? '';
 
 		return is_string( $html ) ? $html : '';
 	}
@@ -1417,7 +1468,7 @@ final class RedirectsAdminTest extends TestCase {
 		$html = $this->renderPage( $page );
 
 		$this->assertStringContainsString( 'aria-expanded="false"', $html );
-		$this->assertStringContainsString( 'id="rk-redirect-editor" hidden', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-redirect-editor"[^>]*\shidden\b/', $html );
 	}
 
 	/**
@@ -1466,7 +1517,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->renderPage( $page );
 
-		$this->assertStringContainsString( 'id="rk-target-row" hidden', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-target-row"[^>]*\shidden\b/', $html );
 		$this->assertStringContainsString( 'disabled', $html );
 		$this->assertStringContainsString( 'no destination is needed', $html );
 	}
@@ -1640,8 +1691,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-select-all"', $html );
 		$this->assertStringContainsString( '<label for="rk-search-input"', $html );
 		$this->assertStringContainsString( 'id="rk-search-input"', $html );
-		$this->assertStringContainsString( '<label for="rk-filter-status"', $html );
-		$this->assertStringContainsString( 'id="rk-filter-status"', $html );
+		// The status filter is a labeled tab nav now, one tab per status view.
+		$this->assertStringContainsString( 'aria-label="Filter redirects by status"', $html );
+		$this->assertSame( 3, preg_match_all( '/class="rk-tab(?:\s|")/', $html ), 'One status tab per All, Active and Inactive view' );
 		$this->assertStringContainsString( '<label for="rk-filter-match"', $html );
 		$this->assertStringContainsString( 'id="rk-filter-match"', $html );
 		$this->assertStringContainsString( '<label for="rk-filter-code"', $html );
@@ -1650,12 +1702,180 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Select bulk action', $html );
 		$this->assertStringContainsString( 'Select All', $html );
 		$this->assertStringContainsString( 'Search redirects', $html );
-		$this->assertStringContainsString( 'Filter by status', $html );
+		$this->assertStringContainsString( '>All <span class="count">', $html );
+		$this->assertStringContainsString( '>Active <span class="count">', $html );
+		$this->assertStringContainsString( '>Inactive <span class="count">', $html );
+		$this->assertSame( 1, substr_count( $html, 'aria-current="page"' ), 'Exactly one status tab may be marked as current' );
 		$this->assertStringContainsString( 'Filter by match type', $html );
 		$this->assertStringContainsString( 'Filter by redirect type', $html );
 
 		$this->assertStringContainsString( 'aria-label="Select redirect for /a"', $html );
 		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
+	}
+
+	/**
+	 * The header pill, action labels, table columns, pagination copy, empty
+	 * state icons, editor counters, and icon font match the design system.
+	 */
+	public function test_render_matches_design_components_and_copy(): void {
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$this->seedRule( '/old-' . (string) $i, '/new-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'rk-count-pill', $html );
+		$this->assertStringContainsString( '25 Total Rules', $html );
+		$this->assertStringContainsString( 'Export CSV', $html );
+		$this->assertStringNotContainsString( 'Import / Export', $html );
+		$this->assertStringContainsString( '>Source<', $html );
+		$this->assertStringContainsString( '>Destination<', $html );
+		$this->assertStringContainsString( '>Actions<', $html );
+		$this->assertStringContainsString( 'rk-col-actions', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 20</strong> of <strong>25</strong> redirects', $html );
+		$this->assertStringContainsString( '25 redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 2', $html );
+		$this->assertStringContainsString( 'Rows per page:', $html );
+		$this->assertStringContainsString( 'rk-page-num', $html );
+		$this->assertStringContainsString( 'rk-selected-chip', $html );
+		$this->assertStringContainsString( 'rk-source-count', $html );
+		$this->assertStringContainsString( 'rk-target-count', $html );
+		$this->assertStringContainsString( '0 chars', $html );
+		$this->assertStringContainsString( 'Advanced options', $html );
+		$this->assertStringContainsString( 'rk-advanced-arrow', $html );
+		$this->assertStringContainsString( '<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>', $html );
+		$this->assertStringNotContainsString( '&#10007;', $html );
+		$this->assertStringNotContainsString( '&#10003;', $html );
+		$this->assertStringNotContainsString( '&#9881;', $html );
+	}
+
+	/**
+	 * The CSV upload hint states the same cap the server enforces.
+	 *
+	 * The hint is derived from CsvHandler::MAX_FILE_SIZE, so it can never
+	 * invite a file the importer then rejects.
+	 */
+	public function test_render_csv_upload_hint_matches_server_size_cap(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString(
+			'.csv files only (up to ' . size_format( CsvHandler::MAX_FILE_SIZE ) . ')',
+			$html
+		);
+		$this->assertStringNotContainsString( 'up to 5 MB', $html );
+	}
+
+	/**
+	 * The rows per page override narrows the list without touching settings.
+	 */
+	public function test_render_per_page_override_narrows_list(): void {
+		for ( $i = 1; $i <= 12; $i++ ) {
+			$this->seedRule( '/old-' . (string) $i, '/new-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [ 'rk_per_page' => '10' ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Showing <strong>1 to 10</strong> of <strong>12</strong> redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 2', $html );
+		$this->assertArrayNotHasKey( RedirectsSettings::OPTION, $this->options, 'The display override must not write the stored setting' );
+	}
+
+	/**
+	 * The empty states use the design icons, one variant per situation.
+	 */
+	public function test_render_empty_states_use_design_icons(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$emptyHtml = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">alt_route</span>', $emptyHtml );
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">add</span>', $emptyHtml );
+		$this->assertStringNotContainsString( 'search_off', $emptyHtml );
+
+		$this->seedRule( '/a', '/b' );
+
+		$_GET = [ 's' => 'zzz-no-match' ];
+
+		$filteredHtml = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">search_off</span>', $filteredHtml );
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">filter_alt_off</span>', $filteredHtml );
+		$this->assertStringNotContainsString( 'alt_route', $filteredHtml );
+	}
+
+	/**
+	 * The AJAX refresh applies the posted status filter, the reported bug.
+	 */
+	public function test_ajax_list_applies_posted_status_filter(): void {
+		$this->seedRule( '/active-old', '/active-new' );
+		$this->seedRule( '/inactive-old', '/inactive-new', '301', 'exact', false );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_status' => 'inactive' ] );
+
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>1</strong> redirects', $html );
+		$this->assertStringContainsString( '/inactive-old', $html );
+		$this->assertStringNotContainsString( '/active-old', $html );
+	}
+
+	/**
+	 * The AJAX refresh applies the posted rows per page value.
+	 */
+	public function test_ajax_list_applies_posted_per_page_value(): void {
+		$this->seedRule( '/a', '/b' );
+		$this->seedRule( '/c', '/d' );
+		$this->seedRule( '/e', '/f' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_per_page' => '1' ] );
+
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>3</strong> redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 3', $html );
+	}
+
+	/**
+	 * The status tabs count under the other filters, so an active status
+	 * filter leaves the All tab at the combined active plus inactive total
+	 * while pagination keeps reporting the filtered total.
+	 */
+	public function test_ajax_list_status_filter_keeps_all_tab_total_across_statuses(): void {
+		$this->seedRule( '/active-one', '/active-one-new' );
+		$this->seedRule( '/active-two', '/active-two-new' );
+		$this->seedRule( '/inactive-one', '/inactive-one-new', '301', 'exact', false );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_status' => 'inactive' ] );
+
+		// The All tab excludes the status filter itself, so it must not shrink
+		// to the filtered status total.
+		$this->assertStringContainsString( '>All <span class="count">3</span>', $html );
+		$this->assertStringContainsString( '>Active <span class="count">2</span>', $html );
+		$this->assertStringContainsString( '>Inactive <span class="count">1</span>', $html );
+
+		// Pagination and the item count keep reflecting the filtered total.
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>1</strong> redirects', $html );
+		$this->assertStringContainsString( '<span class="rk-items-count">1 redirects</span>', $html );
+
+		$this->assertStringContainsString( '/inactive-one', $html );
+		$this->assertStringNotContainsString( '/active-one', $html );
 	}
 }

@@ -77,8 +77,8 @@ final class RedirectsPage {
 	 * @var array<string, string>
 	 */
 	private const SORTABLE = [
-		'source'        => 'From',
-		'target'        => 'To',
+		'source'        => 'Source',
+		'target'        => 'Destination',
 		'code'          => 'Code',
 		'match_type'    => 'Match',
 		'hits'          => 'Hits',
@@ -254,6 +254,169 @@ final class RedirectsPage {
 		$js = plugins_url( 'assets/js/redirects-admin.js', (string) RANKKERNEL_FILE );
 		wp_register_script( 'rankkernel-redirects-admin', $js, [ 'wp-a11y', 'wp-i18n' ], $version, true );
 		wp_enqueue_script( 'rankkernel-redirects-admin' );
+
+		/*
+		 * Pass configuration to JS so it can make authenticated AJAX requests
+		 * to swap only the list section without reloading the whole page.
+		 * wp_localize_script must be called after wp_register_script.
+		 */
+		wp_localize_script(
+			'rankkernel-redirects-admin',
+			'rkRedirects',
+			[
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'rankkernel_redirects_list' ),
+				'screenSlug' => self::SLUG,
+			]
+		);
+	}
+
+	/**
+	 * Handle the wp_ajax list request.
+	 *
+	 * Returns the rendered HTML for #rk-list-section only. Capability and
+	 * nonce are verified before any output is produced.
+	 */
+	public function handleAjaxList(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'rankkernel' ) ], 403 );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed then verified by check_ajax_referer below.
+		check_ajax_referer( 'rankkernel_redirects_list' );
+
+		ob_start();
+		// Read only display filters from the nonce verified request, every value sanitized and validated by listFilters().
+		$this->renderListSection( $this->listFilters( $_POST ) );
+		$html = ob_get_clean();
+
+		wp_send_json_success( [ 'html' => $html ] );
+	}
+
+	/**
+	 * Render the list section (tabs + filter bar + table or empty state) as HTML.
+	 *
+	 * Used both by render() for the full page load and by handleAjaxList() for
+	 * the AJAX partial refresh.
+	 *
+	 * @param array<string, mixed> $filters Validated filter set from listFilters().
+	 */
+	public function renderListSection( array $filters ): void {
+		$fallbackPerPage = $this->rulesPerPage();
+		$perPage         = (int) ( $filters['per_page'] ?? 0 );
+
+		if ( $perPage < 1 ) {
+			$perPage = $fallbackPerPage;
+		}
+
+		$perPage = max( 1, min( 100, $perPage ) );
+
+		$result = $this->repository->paginate(
+			[
+				'search'     => $filters['search'],
+				'status'     => $filters['status'],
+				'match_type' => $filters['match_type'],
+				'code'       => $filters['code'],
+				'orderby'    => $filters['orderby'],
+				'order'      => $filters['order'],
+				'page'       => $filters['page'],
+				'per_page'   => $perPage,
+			]
+		);
+
+		$listRows    = [];
+		$listHasRows = [] !== $result['rows'];
+
+		foreach ( $result['rows'] as $row ) {
+			if ( is_array( $row ) ) {
+				$listRows[] = $this->rowState( $row );
+			}
+		}
+
+		$totalRows  = (int) $result['total'];
+		$pageNumber = max( 1, (int) $result['page'] );
+		$pageCount  = (int) $result['pages'];
+		$perPage    = max( 1, (int) $result['per_page'] );
+
+		/*
+		 * The status tabs count under the other filters, so All is the combined
+		 * active plus inactive total, not the status filtered total that
+		 * pagination and the item count report.
+		 */
+		$allRows         = (int) $result['active'] + (int) $result['inactive'];
+		$statusViews     = $this->statusViews( $filters, $allRows, (int) $result['active'], (int) $result['inactive'] );
+		$sortableHeaders = $this->sortableHeaders( $filters );
+		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
+
+		$paginationText = sprintf(
+			/* translators: %1$d: current page, %2$d: total pages */
+			__( 'Page %1$d of %2$d', 'rankkernel' ),
+			$pageNumber,
+			max( 1, $pageCount )
+		);
+
+		$rangeStart = $totalRows > 0 ? ( $pageNumber - 1 ) * $perPage + 1 : 0;
+		$rangeEnd   = min( $pageNumber * $perPage, $totalRows );
+
+		$showingLabel = sprintf(
+			/* translators: %1$s: first visible row, %2$s: last visible row, %3$s: total rows */
+			__( 'Showing <strong>%1$s to %2$s</strong> of <strong>%3$s</strong> redirects', 'rankkernel' ),
+			number_format_i18n( $rangeStart ),
+			number_format_i18n( $rangeEnd ),
+			number_format_i18n( $totalRows )
+		);
+
+		$totalLabel = sprintf(
+			/* translators: %s: total number of redirects */
+			__( '%s redirects', 'rankkernel' ),
+			number_format_i18n( $totalRows )
+		);
+
+		$perPageOptions = [ 10, 20, 25, 50, 100 ];
+
+		if ( ! in_array( $perPage, $perPageOptions, true ) ) {
+			$perPageOptions[] = $perPage;
+			sort( $perPageOptions );
+		}
+
+		$filterSearch = (string) $filters['search'];
+		$filterStatus = (string) $filters['status'];
+		$filterMatch  = (string) $filters['match_type'];
+		$filterCode   = (string) $filters['code'];
+		$hasFilter    = '' !== $filterSearch || 'all' !== $filterStatus || '' !== $filterMatch || '' !== $filterCode;
+
+		$clearFiltersUrl  = $this->pageUrl( [] );
+		$addFirstUrl      = $this->pageUrl( [ 'rk_open' => 1 ] );
+		$bulkFormAction   = $this->pageUrl( [] );
+		$filtersActionUrl = admin_url( 'admin.php' );
+		$screenSlug       = self::SLUG;
+		$nonceBulkAction  = self::NONCE_BULK;
+
+		$matchLabels  = $this->matchOptions();
+		$matchHints   = $this->matchHints();
+		$matchOptions = [];
+
+		foreach ( $matchLabels as $matchKey => $matchLabel ) {
+			$matchOptions[] = [
+				'value' => (string) $matchKey,
+				'label' => $matchLabel,
+				'hint'  => (string) ( $matchHints[ $matchKey ] ?? '' ),
+			];
+		}
+
+		$codeLabels  = $this->codeOptions();
+		$codeHints   = $this->codeHints();
+		$codeOptions = [];
+
+		foreach ( $codeLabels as $codeKey => $codeLabel ) {
+			$codeOptions[] = [
+				'value' => (string) $codeKey,
+				'label' => $codeLabel,
+				'hint'  => (string) ( $codeHints[ $codeKey ] ?? '' ),
+			];
+		}
+
+		require __DIR__ . '/Views/redirects-list.php';
 	}
 
 	/**
@@ -354,62 +517,52 @@ final class RedirectsPage {
 		$autoSlugRedirect = ! empty( $settings['auto_slug_redirect'] );
 		$rulesPerPage     = max( 1, min( 100, (int) ( $settings['rules_per_page'] ?? 20 ) ) );
 
-		$filters = $this->listFilters();
-		$perPage = $this->rulesPerPage();
+		$totalRules = $this->repository->count();
 
-		$result = $this->repository->paginate(
-			[
-				'search'     => $filters['search'],
-				'status'     => $filters['status'],
-				'match_type' => $filters['match_type'],
-				'code'       => $filters['code'],
-				'orderby'    => $filters['orderby'],
-				'order'      => $filters['order'],
-				'page'       => $filters['page'],
-				'per_page'   => $perPage,
-			]
-		);
-
-		$listRows    = [];
-		$listHasRows = [] !== $result['rows'];
-
-		foreach ( $result['rows'] as $row ) {
-			if ( is_array( $row ) ) {
-				$listRows[] = $this->rowState( $row );
-			}
+		if ( 1 === $totalRules ) {
+			$countPill = sprintf(
+				/* translators: %s: total number of redirect rules */
+				__( '%s Total Rule', 'rankkernel' ),
+				number_format_i18n( $totalRules )
+			);
+		} else {
+			$countPill = sprintf(
+				/* translators: %s: total number of redirect rules */
+				__( '%s Total Rules', 'rankkernel' ),
+				number_format_i18n( $totalRules )
+			);
 		}
 
-		$totalRows       = (int) $result['total'];
-		$pageNumber      = max( 1, (int) $result['page'] );
-		$pageCount       = (int) $result['pages'];
-		$statusViews     = $this->statusViews( $filters, $totalRows, (int) $result['active'], (int) $result['inactive'] );
-		$sortableHeaders = $this->sortableHeaders( $filters );
-		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
+		$sourceLen = function_exists( 'mb_strlen' ) ? mb_strlen( $sourceValue ) : strlen( $sourceValue );
+		$targetLen = function_exists( 'mb_strlen' ) ? mb_strlen( $targetValue ) : strlen( $targetValue );
 
-		$paginationText = sprintf(
-			/* translators: %1$d: current page, %2$d: total pages */
-			__( 'Page %1$d of %2$d', 'rankkernel' ),
-			$pageNumber,
-			$pageCount
-		);
+		if ( 1 === $sourceLen ) {
+			$sourceCount = sprintf(
+				/* translators: %d: character count of the source field */
+				__( '%d char', 'rankkernel' ),
+				$sourceLen
+			);
+		} else {
+			$sourceCount = sprintf(
+				/* translators: %d: character count of the source field */
+				__( '%d chars', 'rankkernel' ),
+				$sourceLen
+			);
+		}
 
-		$itemsLabel = sprintf(
-			/* translators: %d: total number of redirects */
-			__( '%d items', 'rankkernel' ),
-			$totalRows
-		);
-
-		$filterSearch = (string) $filters['search'];
-		$filterStatus = (string) $filters['status'];
-		$filterMatch  = (string) $filters['match_type'];
-		$filterCode   = (string) $filters['code'];
-		$hasFilter    = '' !== $filterSearch || 'all' !== $filterStatus || '' !== $filterMatch || '' !== $filterCode;
-
-		$clearFiltersUrl  = $this->pageUrl( [] );
-		$addFirstUrl      = $this->pageUrl( [ 'rk_open' => 1 ] );
-		$bulkFormAction   = $this->pageUrl( [] );
-		$filtersActionUrl = admin_url( 'admin.php' );
-		$screenSlug       = self::SLUG;
+		if ( 1 === $targetLen ) {
+			$targetCount = sprintf(
+				/* translators: %d: character count of the destination field */
+				__( '%d char', 'rankkernel' ),
+				$targetLen
+			);
+		} else {
+			$targetCount = sprintf(
+				/* translators: %d: character count of the destination field */
+				__( '%d chars', 'rankkernel' ),
+				$targetLen
+			);
+		}
 
 		$exportUrl        = wp_nonce_url( $this->pageUrl( [ 'rk_action' => 'export' ] ), self::NONCE_EXPORT );
 		$importData       = $this->importResult;
@@ -484,6 +637,17 @@ final class RedirectsPage {
 		$nonceBulkAction     = self::NONCE_BULK;
 		$nonceSettingsAction = self::NONCE_SETTINGS;
 		$nonceImportAction   = self::NONCE_IMPORT;
+
+		/*
+		 * Pre-render the list section into a string so the view can embed it
+		 * directly. The AJAX handler renders the same section fresh on each
+		 * request, so the logic lives in one place: renderListSection().
+		 */
+		ob_start();
+		// Read only display filters, every value sanitized and validated by listFilters().
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, every value sanitized and validated by listFilters(), no state changes.
+		$this->renderListSection( $this->listFilters( $_GET ) );
+		$listSectionHtml = (string) ob_get_clean();
 
 		require __DIR__ . '/Views/redirects.php';
 	}
@@ -668,7 +832,9 @@ final class RedirectsPage {
 			'code'            => $code,
 			'match'           => $match,
 			'hitsLabel'       => (string) number_format_i18n( $hits ),
+			'hitsDim'         => 0 === $hits,
 			'accessedLabel'   => '' === $accessed ? __( 'Never', 'rankkernel' ) : $accessed,
+			'accessedDim'     => '' === $accessed,
 			'active'          => $active,
 			'editUrl'         => $editUrl,
 			'toggleUrl'       => $toggleUrl,
@@ -700,10 +866,11 @@ final class RedirectsPage {
 
 		foreach ( $views as $status => $view ) {
 			$params = [
-				's'         => $filters['search'],
-				'rk_status' => 'all' === $status ? '' : $status,
-				'rk_match'  => $filters['match_type'],
-				'rk_code'   => $filters['code'],
+				's'           => $filters['search'],
+				'rk_status'   => 'all' === $status ? '' : $status,
+				'rk_match'    => $filters['match_type'],
+				'rk_code'     => $filters['code'],
+				'rk_per_page' => $filters['per_page'] ?? 0,
 			];
 
 			$out[] = [
@@ -721,7 +888,7 @@ final class RedirectsPage {
 	 * Prepared sortable column headers, preserving the current filters.
 	 *
 	 * @param array<string, mixed> $filters Current filters.
-	 * @return array<int, array{label: string, url: string, current: bool, arrow: string}>
+	 * @return array<int, array{label: string, url: string, current: bool, arrow: string, column: string}>
 	 */
 	private function sortableHeaders( array $filters ): array {
 		$out = [];
@@ -733,12 +900,13 @@ final class RedirectsPage {
 
 			$url = $this->pageUrl(
 				[
-					's'          => $filters['search'],
-					'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
-					'rk_match'   => $filters['match_type'],
-					'rk_code'    => $filters['code'],
-					'rk_orderby' => $column,
-					'rk_order'   => $next,
+					's'           => $filters['search'],
+					'rk_status'   => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+					'rk_match'    => $filters['match_type'],
+					'rk_code'     => $filters['code'],
+					'rk_orderby'  => $column,
+					'rk_order'    => $next,
+					'rk_per_page' => $filters['per_page'] ?? 0,
 				]
 			);
 
@@ -747,6 +915,7 @@ final class RedirectsPage {
 				'url'     => $url,
 				'current' => $current,
 				'arrow'   => $arrow,
+				'column'  => (string) $column,
 			];
 		}
 
@@ -759,31 +928,91 @@ final class RedirectsPage {
 	 * @param int                  $pageNumber Current page.
 	 * @param int                  $pageCount  Total pages.
 	 * @param array<string, mixed> $filters    Current filters.
-	 * @return array{show: bool, prevUrl: string, nextUrl: string}
+	 * @return array{show: bool, prevUrl: string, nextUrl: string, pages: array<int, array{label: string, url: string, current: bool}>}
 	 */
 	private function paginationState( int $pageNumber, int $pageCount, array $filters ): array {
+		$base = [
+			's'           => $filters['search'],
+			'rk_status'   => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+			'rk_match'    => $filters['match_type'],
+			'rk_code'     => $filters['code'],
+			'rk_orderby'  => $filters['orderby'],
+			'rk_order'    => strtolower( (string) $filters['order'] ),
+			'rk_per_page' => $filters['per_page'] ?? 0,
+		];
+
+		$pages = [];
+
+		foreach ( $this->pageWindow( $pageNumber, $pageCount ) as $pageEntry ) {
+			if ( ! is_int( $pageEntry ) ) {
+				$pages[] = [
+					'label'   => '…',
+					'url'     => '',
+					'current' => false,
+				];
+
+				continue;
+			}
+
+			$pages[] = [
+				'label'   => (string) $pageEntry,
+				'url'     => $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageEntry ] ) ),
+				'current' => $pageEntry === $pageNumber,
+			];
+		}
+
 		if ( $pageCount <= 1 ) {
 			return [
 				'show'    => false,
 				'prevUrl' => '',
 				'nextUrl' => '',
+				'pages'   => [],
 			];
 		}
-
-		$base = [
-			's'          => $filters['search'],
-			'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
-			'rk_match'   => $filters['match_type'],
-			'rk_code'    => $filters['code'],
-			'rk_orderby' => $filters['orderby'],
-			'rk_order'   => strtolower( (string) $filters['order'] ),
-		];
 
 		return [
 			'show'    => true,
 			'prevUrl' => $pageNumber > 1 ? $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageNumber - 1 ] ) ) : '',
 			'nextUrl' => $pageNumber < $pageCount ? $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageNumber + 1 ] ) ) : '',
+			'pages'   => $pages,
 		];
+	}
+
+	/**
+	 * Page numbers for the numbered pagination buttons.
+	 *
+	 * Shows every page when there are seven or fewer, otherwise the first
+	 * page, the last page, and a one page window around the current page
+	 * with string gaps where pages are elided.
+	 *
+	 * @param int $current Current page.
+	 * @param int $total   Total pages.
+	 * @return array<int, int|string> Page numbers and gap markers.
+	 */
+	private function pageWindow( int $current, int $total ): array {
+		$total = max( 1, $total );
+
+		if ( $total <= 7 ) {
+			return range( 1, $total );
+		}
+
+		$window = [ 1 ];
+
+		if ( $current > 3 ) {
+			$window[] = 'gap-start';
+		}
+
+		foreach ( range( max( 2, $current - 1 ), min( $total - 1, $current + 1 ) ) as $page ) {
+			$window[] = $page;
+		}
+
+		if ( $current < $total - 2 ) {
+			$window[] = 'gap-end';
+		}
+
+		$window[] = $total;
+
+		return $window;
 	}
 
 	/**
@@ -1738,60 +1967,62 @@ final class RedirectsPage {
 	}
 
 	/**
-	 * Current list filters from the query string, sanitized and validated.
+	 * Current list filters from the given request input, sanitized and validated.
 	 *
+	 * The input array is explicit so the full page load resolves filters from
+	 * $_GET and the AJAX handler resolves them from $_POST, both through this
+	 * single validation path.
+	 *
+	 * @param array<string, mixed> $input Request input, normally $_GET or $_POST.
 	 * @return array{search: string, status: string, match_type: string, code: string, orderby: string, order: string, page: int}
 	 */
-	private function listFilters(): array {
-		// Read only display flags, every value sanitized below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';
+	private function listFilters( array $input ): array {
+		// Read only display flag, value sanitized on the following statement.
+		$search = isset( $input['s'] ) ? sanitize_text_field( (string) wp_unslash( $input['s'] ) ) : '';
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawStatus = isset( $_GET['rk_status'] ) ? (string) wp_unslash( $_GET['rk_status'] ) : 'all';
+		// Read only display flag, value validated below.
+		$rawStatus = isset( $input['rk_status'] ) ? (string) wp_unslash( $input['rk_status'] ) : 'all';
 		$status    = sanitize_key( $rawStatus );
 
 		if ( ! in_array( $status, [ 'all', 'active', 'inactive' ], true ) ) {
 			$status = 'all';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawMatch = isset( $_GET['rk_match'] ) ? (string) wp_unslash( $_GET['rk_match'] ) : '';
+		// Read only display flag, value validated below.
+		$rawMatch = isset( $input['rk_match'] ) ? (string) wp_unslash( $input['rk_match'] ) : '';
 		$match    = sanitize_key( $rawMatch );
 
 		if ( '' !== $match && ! Normalizer::isMatchType( $match ) ) {
 			$match = '';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawCode = isset( $_GET['rk_code'] ) ? (string) wp_unslash( $_GET['rk_code'] ) : '';
+		// Read only display flag, value validated below.
+		$rawCode = isset( $input['rk_code'] ) ? (string) wp_unslash( $input['rk_code'] ) : '';
 		$code    = sanitize_key( $rawCode );
 
 		if ( '' !== $code && ! Normalizer::isCode( $code ) ) {
 			$code = '';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawOrderBy = isset( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'id';
+		// Read only display flag, value validated below.
+		$rawOrderBy = isset( $input['rk_orderby'] ) ? (string) wp_unslash( $input['rk_orderby'] ) : 'id';
 		$orderby    = sanitize_key( $rawOrderBy );
 
 		if ( ! array_key_exists( $orderby, self::SORTABLE ) && 'id' !== $orderby ) {
 			$orderby = 'id';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, validated against an allow list below.
-		$rawOrder = isset( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';
+		// Read only display flag, value validated below.
+		$rawOrder = isset( $input['rk_order'] ) ? (string) wp_unslash( $input['rk_order'] ) : 'DESC';
 		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
 
-		// Read only display flags, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawPage = isset( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : 1;
+		// Read only display flag, value unslashed then cast to int below.
+		$rawPage = isset( $input['rk_paged'] ) ? wp_unslash( $input['rk_paged'] ) : 1;
 		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
+
+		// Read only display flag, value unslashed then cast to int below.
+		$rawPerPage = isset( $input['rk_per_page'] ) ? wp_unslash( $input['rk_per_page'] ) : 0;
+		$perPage    = (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 0 );
 
 		return [
 			'search'     => $search,
@@ -1801,6 +2032,7 @@ final class RedirectsPage {
 			'orderby'    => $orderby,
 			'order'      => $order,
 			'page'       => $page,
+			'per_page'   => $perPage > 0 ? min( 100, $perPage ) : 0,
 		];
 	}
 

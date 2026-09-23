@@ -1,65 +1,897 @@
 /**
  * Redirect Manager screen styles.
  *
- * Loaded only on the Redirects admin screen. Every rule is scoped under
- * .rk-redirects so nothing leaks onto other admin pages.
+ * Pixel-matched to the RankKernel Redirects Admin V2-1.0 Stitch design.
+ * Loaded only on the Redirects admin screen via RedirectsPage::enqueueAssets.
+ * Every rule is scoped under .rk-redirects so nothing leaks elsewhere.
+ * All colour, spacing, radius, and shadow values come from var(--rk-*) tokens
+ * defined in rankkernel-admin.css. No raw hex is permitted here.
+ *
+ * @package RankKernel
  */
 
-.rk-redirects .rk-sub {
-	color: #50575e;
-	max-width: 72ch;
+@import url("rankkernel-admin.css");
+
+/* ==========================================================================
+   Wrap shell — suppress WP native notices that bleed from other plugins
+   inside our styled page area. Our own notices use .rk-notice classes.
+   ========================================================================== */
+
+/*
+ * WordPress outputs its own .notice divs inside .wrap before our content.
+ * Those from other plugins should appear naturally above .rk-redirects.
+ * Any that get injected inside .rk-redirects are suppressed so they do
+ * not break the design.
+ */
+.rk-redirects-wrap .rk-redirects > .notice,
+.rk-redirects-wrap .rk-redirects > .updated,
+.rk-redirects-wrap .rk-redirects > .error,
+.rk-redirects-wrap .rk-redirects > .update-nag {
+	display: none;
 }
+
+/* ==========================================================================
+   Page container
+   ========================================================================== */
+
+
+/* ==========================================================================
+   RankKernel notice banners
+   Matches the Stitch design: left-border-4, soft bg, icon + text + dismiss.
+   ========================================================================== */
+
+.rk-redirects .rk-notice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	margin: 0 0 var(--rk-space-3);
+	padding: 14px var(--rk-space-4);
+	border: 1px solid transparent;
+	border-inline-start: 4px solid transparent;
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-notice-icon {
+	flex-shrink: 0;
+	font-size: 18px;
+	line-height: 1;
+	margin-block-start: 1px;
+}
+
+.rk-redirects .rk-notice-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-redirects .rk-notice-title {
+	font-weight: 600;
+	margin: 0;
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-notice-text {
+	margin: 2px 0 0;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-notice-dismiss {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
+	line-height: 1;
+	padding: 2px 4px;
+	margin-block-start: -1px;
+	transition: color 0.15s;
+}
+
+.rk-redirects .rk-notice-dismiss:hover {
+	color: var(--rk-color-text);
+}
+
+/* Success */
+.rk-redirects .rk-notice-success {
+	background: var(--rk-color-secondary-1-soft);
+	border-color: rgba(15, 118, 110, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-1);
+}
+
+.rk-redirects .rk-notice-success .rk-notice-icon {
+	color: var(--rk-color-secondary-1);
+}
+
+/* Error / blocked */
+.rk-redirects .rk-notice-error {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: rgba(220, 38, 38, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-4);
+}
+
+.rk-redirects .rk-notice-error .rk-notice-icon {
+	color: var(--rk-color-secondary-4);
+}
+
+/* Warning / chain */
+.rk-redirects .rk-notice-warning {
+	background: var(--rk-color-secondary-3-soft);
+	border-color: rgba(234, 88, 12, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-3);
+}
+
+.rk-redirects .rk-notice-warning .rk-notice-icon {
+	color: var(--rk-color-secondary-3);
+}
+
+/* Info */
+.rk-redirects .rk-notice-info {
+	background: var(--rk-color-primary-soft);
+	border-color: rgba(37, 99, 235, 0.2);
+	border-inline-start-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-notice-info .rk-notice-icon {
+	color: var(--rk-color-primary);
+}
+
+/* Inline action button inside a notice (chain recommendation) */
+.rk-redirects .rk-notice-action {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	margin-block-start: var(--rk-space-2);
+	padding: 4px 10px;
+	background: var(--rk-color-primary);
+	border: none;
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-surface);
+	cursor: pointer;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: 1.5;
+	text-decoration: none;
+	transition: background 0.15s;
+}
+
+.rk-redirects .rk-notice-action:hover {
+	background: var(--rk-color-primary-hover);
+	color: var(--rk-color-surface);
+}
+
+/* ==========================================================================
+   Page header card
+   ========================================================================== */
+
+.rk-redirects .rk-page-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	margin: 0 0 var(--rk-space-4);
+	padding: var(--rk-space-5) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-page-header-title-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+}
+
+.rk-redirects .rk-page-title {
+	margin: 0;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+	letter-spacing: -0.015em;
+}
+
+.rk-redirects .rk-page-header .rk-sub {
+	margin: 4px 0 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-redirects .rk-page-header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-shrink: 0;
+}
+
+/* Primary "Add Redirect" button */
+.rk-redirects .rk-btn-add {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	font-weight: 600;
+}
+
+/* Gear settings toggle */
+.rk-redirects .rk-btn-settings-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 34px;
+	padding: 0;
+	font-size: 18px;
+	line-height: 1;
+}
+
+/* ==========================================================================
+   Generic card shell
+   ========================================================================== */
 
 .rk-redirects .rk-card {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-	margin: 16px 0;
-	padding: 8px 24px 20px;
+	margin-block: var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	overflow: hidden;
 }
 
-.rk-redirects .rk-card h2 {
-	font-size: 1.3em;
-	margin: 1em 0 0.5em;
+.rk-redirects .rk-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border-block-end: 1px solid var(--rk-color-border);
 }
 
-.rk-redirects .rk-card h3 {
-	font-size: 1.05em;
-	margin: 1.4em 0 0.4em;
+.rk-redirects .rk-card-header-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
 }
 
-.rk-redirects .rk-hints {
-	margin-top: 8px;
-	max-width: 72ch;
+.rk-redirects .rk-card-header-icon {
+	color: var(--rk-color-primary);
+	font-size: 18px;
+	line-height: 1;
 }
 
-.rk-redirects .rk-hints summary {
-	color: #2271b1;
+.rk-redirects .rk-card-header-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-card-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-redirects .rk-card-cancel,
+.rk-redirects .rk-card-collapse {
+	background: none;
+	border: none;
 	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	transition: color 0.15s;
 }
 
-.rk-redirects .rk-hints ul {
-	margin: 8px 0 0 18px;
+.rk-redirects .rk-card-cancel {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	padding: 0;
+	text-decoration: none;
 }
 
-.rk-redirects .rk-hints li {
-	margin-bottom: 4px;
+.rk-redirects .rk-card-cancel:hover,
+.rk-redirects .rk-card-collapse:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-card-collapse {
+	font-size: 18px;
+	padding: 2px 4px;
+}
+
+/* Editor card: blue left border */
+.rk-redirects .rk-editor {
+	border-inline-start: 3px solid var(--rk-color-primary);
+}
+
+.rk-redirects .rk-editor[hidden] {
+	display: none;
+}
+
+/* ==========================================================================
+   Prefill info banner (sourced from 404 monitor)
+   ========================================================================== */
+
+.rk-redirects .rk-prefill {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	margin: var(--rk-space-5) var(--rk-space-6);
+	padding: 14px var(--rk-space-4);
+	background: var(--rk-color-primary-soft);
+	border: 1px solid rgba(37, 99, 235, 0.2);
+	border-inline-start: 4px solid var(--rk-color-primary);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-redirects .rk-prefill-icon {
+	flex-shrink: 0;
+	color: var(--rk-color-primary);
+	font-size: 18px;
+}
+
+.rk-redirects .rk-prefill strong {
+	font-weight: 600;
+	color: var(--rk-color-primary-active);
+}
+
+.rk-redirects .rk-prefill-hint {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	margin-inline-start: var(--rk-space-1);
+}
+
+/* ==========================================================================
+   Editor form
+   ========================================================================== */
+
+.rk-redirects .rk-editor-form {
+	padding: var(--rk-space-6);
+}
+
+.rk-redirects .rk-form-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--rk-space-5) var(--rk-space-6);
+}
+
+.rk-redirects .rk-form-row-full {
+	grid-column: 1 / -1;
+}
+
+.rk-redirects .rk-form-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+}
+
+.rk-redirects .rk-form-label {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-secondary);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-required {
+	color: var(--rk-color-secondary-4);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Input wrapper for error icon positioning */
+.rk-redirects .rk-input-wrap {
+	position: relative;
+}
+
+.rk-redirects .rk-input-error-icon {
+	position: absolute;
+	inset-inline-end: 10px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-secondary-4);
+	font-size: 18px;
+	pointer-events: none;
+}
+
+.rk-redirects .rk-form-input,
+.rk-redirects .rk-form-select {
+	width: 100%;
+	padding: var(--rk-space-2) 14px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 6px;
+	color: var(--rk-color-text);
+	font-family: inherit;
+	font-size: var(--rk-font-size-md);
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-redirects .rk-form-input:focus,
+.rk-redirects .rk-form-select:focus,
+.rk-redirects .rk-search-input:focus,
+.rk-redirects .rk-filter-select:focus,
+.rk-redirects .rk-settings-number:focus,
+.rk-redirects .rk-perpage-select:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+}
+
+.rk-redirects .rk-form-input:focus,
+.rk-redirects .rk-form-select:focus {
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.rk-redirects .rk-form-input.code {
+	font-family: var(--rk-font-mono);
+}
+
+/* Error state */
+.rk-redirects .rk-has-error .rk-form-input,
+.rk-redirects .rk-form-input.rk-input-error {
+	border-color: var(--rk-color-secondary-4);
+	background: var(--rk-color-secondary-4-soft);
+	padding-inline-end: 36px;
+}
+
+.rk-redirects .rk-has-error .rk-form-input:focus,
+.rk-redirects .rk-form-input.rk-input-error:focus {
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
 
 .rk-redirects .rk-field-error {
-	color: #b32d2e;
+	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	margin: 6px 0 0;
+	color: var(--rk-color-secondary-4);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 3px;
 }
 
-.rk-redirects .rk-filters {
-	margin: 12px 0;
+.rk-redirects .rk-form-hint {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	margin: 2px 0 0;
+	line-height: 1.5;
 }
 
-.rk-redirects .rk-filters .search-box {
-	float: right;
-	margin: 0 0 8px;
+/* Select wrapper */
+.rk-redirects .rk-select-wrap {
+	position: relative;
+}
+
+.rk-redirects .rk-select-wrap .rk-form-select {
+	appearance: none;
+	padding-inline-end: 40px;
+}
+
+.rk-redirects .rk-select-chevron {
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 0;
+	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	padding-inline: var(--rk-space-3);
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
+	line-height: 1;
+	pointer-events: none;
+}
+
+/* Active checkbox */
+.rk-redirects .rk-form-check {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-2);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+	cursor: pointer;
+}
+
+.rk-redirects .rk-form-check input[type="checkbox"] {
+	flex-shrink: 0;
+	margin-block-start: 2px;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-form-check strong {
+	color: var(--rk-color-text);
+	font-weight: 600;
+}
+
+/* Regex row styling */
+.rk-redirects .rk-regex-row {
+	padding: 14px var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border: 1px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+}
+
+.rk-redirects .rk-regex-ok {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-redirects .rk-regex-bad {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	color: var(--rk-color-secondary-4);
+}
+
+/* Advanced accordion */
+.rk-redirects .rk-advanced {
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-redirects .rk-advanced > summary {
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	padding-block: var(--rk-space-1);
+}
+
+.rk-redirects .rk-advanced > summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-redirects .rk-advanced > summary:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-hints {
+	margin-block-start: var(--rk-space-3);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-redirects .rk-hints > summary {
+	cursor: pointer;
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-hints ul {
+	margin: var(--rk-space-2) 0 0 var(--rk-space-5);
+}
+
+.rk-redirects .rk-hints li {
+	margin-block-end: var(--rk-space-1);
+	color: var(--rk-color-text-secondary);
+}
+
+/* Form action row */
+.rk-redirects .rk-form-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+/* ==========================================================================
+   Table section
+   ========================================================================== */
+
+.rk-redirects .rk-table-section {
+	margin-block: var(--rk-space-4);
+}
+
+/* ==========================================================================
+   Status filter tabs — All / Active / Inactive
+   ========================================================================== */
+
+.rk-redirects .rk-tabs {
+	display: flex;
+	align-items: flex-end;
+	gap: 0;
+	margin-block-end: 0;
+	border-block-end: 2px solid var(--rk-color-border);
+	padding-block-end: 0;
+}
+
+.rk-redirects .rk-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	padding: var(--rk-space-2) var(--rk-space-3);
+	margin-block-end: -2px;
+	border-block-end: 2px solid transparent;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	text-decoration: none;
+	transition: color 0.15s, border-color 0.15s;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-tab.current {
+	border-block-end-color: var(--rk-color-primary);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+.rk-redirects .rk-tab .count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	padding: 0 6px;
+	height: 18px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-redirects .rk-tab.current .count {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Filter bar
+   ========================================================================== */
+
+.rk-redirects .rk-filter-bar-wrap {
+	margin-block: var(--rk-space-3);
+}
+
+.rk-redirects .rk-filter-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-3) var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-filter-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex: 1 1 auto;
+	max-width: 480px;
+}
+
+.rk-redirects .rk-filter-right {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-redirects .rk-search-wrap {
+	position: relative;
+	flex: 1 1 auto;
+}
+
+.rk-redirects .rk-search-input {
+	width: 100%;
+	padding: 6px 12px 6px 36px;
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-redirects .rk-search-input:focus {
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+	background: var(--rk-color-surface);
+}
+
+.rk-redirects .rk-filter-select {
+	padding: 6px 10px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	transition: border-color 0.15s;
+}
+
+.rk-redirects .rk-filter-select:focus {
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-redirects .rk-filter-clear {
+	color: var(--rk-color-text-hint);
+	font-size: var(--rk-font-size-xs);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+
+.rk-redirects .rk-filter-clear:hover {
+	color: var(--rk-color-text-secondary);
+	text-decoration: underline;
+}
+
+/* ==========================================================================
+   Table nav bars (bulk actions + pagination)
+   ========================================================================== */
+
+.rk-redirects .rk-tablenav {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	padding-block: var(--rk-space-2);
+}
+
+.rk-redirects .rk-tablenav-top {
+	background: rgba(239, 246, 255, 0.7);
+	border: 1px solid rgba(37, 99, 235, 0.2);
+	border-radius: var(--rk-radius-md);
+	padding: 10px var(--rk-space-4);
+	margin-block-end: var(--rk-space-2);
+}
+
+.rk-redirects .rk-bulk-select {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-bulk-select select {
+	padding: 4px 10px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-table input[type="checkbox"] {
+	width: 14px;
+	height: 14px;
+	accent-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-pages {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin-inline-start: auto;
+}
+
+.rk-redirects .rk-pages .paging-text {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-items-count {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 600;
+	border-inline-start: 1px solid var(--rk-color-border);
+	padding-inline-start: var(--rk-space-3);
+	margin-inline-start: var(--rk-space-1);
+}
+
+/* ==========================================================================
+   Redirects table
+   ========================================================================== */
+
+.rk-redirects .rk-table-wrap {
+	overflow-x: auto;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-block-end: none;
+	border-radius: var(--rk-radius-lg) var(--rk-radius-lg) 0 0;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-table {
+	border-spacing: 0;
+	font-size: var(--rk-font-size-xs);
+}
+
+/* WordPress adds its own outer border and zebra striping through
+   widefat and striped. The design uses a single card border, row
+   separators only, and uniform white rows. */
+.rk-redirects .rk-table.widefat {
+	border: none;
+	background: var(--rk-color-surface);
+}
+
+.rk-redirects .rk-table.striped > tbody > :nth-child(odd) {
+	background-color: transparent;
+}
+
+.rk-redirects .rk-table thead th,
+.rk-redirects .rk-table thead td {
+	background: var(--rk-color-surface-subtle);
+	border-block-end: 1px solid var(--rk-color-border);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-muted);
+	white-space: nowrap;
+}
+
+/* Header links inherit the header colour and weight, so every heading reads
+   the same whether or not it is a sortable link. WordPress core otherwise
+   paints header links in the admin link blue. */
+.rk-redirects .rk-table thead th a {
+	color: inherit;
+	font-weight: inherit;
+	text-decoration: none;
+}
+
+.rk-redirects .rk-table thead th a:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-table tbody tr {
+	border-block-end: 1px solid var(--rk-color-border);
+	transition: background 0.1s;
+}
+
+.rk-redirects .rk-table tbody tr:hover td,
+.rk-redirects .rk-table tbody tr:hover th {
+	background: var(--rk-color-surface-subtle);
+}
+
+/* Shared cell defaults. Every header and body cell starts at the left, as
+   requested for the whole table, so no column overrides the alignment. */
+.rk-redirects .rk-table thead th,
+.rk-redirects .rk-table thead td,
+.rk-redirects .rk-table tbody th,
+.rk-redirects .rk-table tbody td {
+	padding: 12px var(--rk-space-4);
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+	text-align: left;
+}
+
+/* Column widths */
+.rk-redirects .rk-table .rk-col-cb {
+	width: 40px;
 }
 
 .rk-redirects .rk-table .rk-col-code {
@@ -67,104 +899,791 @@
 }
 
 .rk-redirects .rk-table .rk-col-match {
-	width: 11%;
+	width: 9%;
 }
 
 .rk-redirects .rk-table .rk-col-hits {
-	width: 7%;
+	width: 6%;
 }
 
 .rk-redirects .rk-table .rk-col-accessed {
-	width: 15%;
+	width: 13%;
+	color: var(--rk-color-text-muted);
 }
 
 .rk-redirects .rk-table .rk-col-status {
-	width: 10%;
+	width: 8%;
 }
 
-.rk-redirects .rk-table td {
-	overflow-wrap: anywhere;
+.rk-redirects .rk-table .rk-col-code,
+.rk-redirects .rk-table .rk-col-match,
+.rk-redirects .rk-table .rk-col-status {
+	padding-inline: var(--rk-space-3);
+}
+
+/* Source path monospace */
+.rk-redirects .rk-col-from strong {
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	word-break: break-all;
+}
+
+/* Destination monospace */
+.rk-redirects .rk-table tbody .rk-col-to {
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 400;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-table .rk-dim {
+	color: var(--rk-color-text-hint);
 }
 
 .rk-redirects .rk-muted {
-	color: #757575;
+	color: var(--rk-color-text-hint);
+	font-style: italic;
 }
 
-.rk-redirects .rk-pill {
-	border-radius: 999px;
-	display: inline-block;
-	font-size: 12px;
+/* Row actions are always visible, overriding the WordPress core rule
+   that hides .row-actions until the row is hovered. */
+.rk-redirects .rk-table .row-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding-block-start: 0;
+	visibility: visible;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-redirects .rk-table .row-actions a {
+	text-decoration: none;
+}
+
+.rk-redirects .rk-table .row-actions a:hover {
+	text-decoration: underline;
+}
+
+.rk-redirects .rk-table .row-actions .edit a {
+	color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-table .row-actions .toggle a {
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-table .row-actions .toggle a:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-table .row-actions .trash a {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-redirects .rk-table .rk-row-sep {
+	color: var(--rk-color-border-strong);
+}
+
+/* Hits column */
+.rk-redirects .rk-table tbody .rk-col-hits {
+	font-variant-numeric: tabular-nums;
+	font-family: var(--rk-font-mono);
 	font-weight: 600;
-	line-height: 2;
-	padding: 0 10px;
+	color: var(--rk-color-text);
+}
+
+/* ==========================================================================
+   Badge pills (HTTP codes, match types, status)
+   ========================================================================== */
+
+.rk-redirects .rk-badge,
+.rk-redirects .rk-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px var(--rk-space-2);
+	font-size: 11px;
+	line-height: 1.5;
 	white-space: nowrap;
 }
 
+.rk-redirects .rk-badge {
+	border-radius: var(--rk-radius-sm);
+	font-weight: 700;
+}
+
+.rk-redirects .rk-badge-301 {
+	background: var(--rk-badge-301-bg);
+	color: var(--rk-badge-301-fg);
+	border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.rk-redirects .rk-badge-302 {
+	background: var(--rk-badge-302-bg);
+	color: var(--rk-badge-302-fg);
+	border: 1px solid rgba(15, 118, 110, 0.25);
+}
+
+.rk-redirects .rk-badge-307 {
+	background: var(--rk-badge-307-bg);
+	color: var(--rk-badge-307-fg);
+	border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.rk-redirects .rk-badge-410 {
+	background: var(--rk-badge-410-bg);
+	color: var(--rk-badge-410-fg);
+	border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.rk-redirects .rk-badge-451 {
+	background: var(--rk-badge-451-bg);
+	color: var(--rk-badge-451-fg);
+}
+
+.rk-redirects .rk-badge-exact {
+	background: var(--rk-badge-exact-bg);
+	color: var(--rk-badge-exact-fg);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-badge-prefix {
+	background: var(--rk-badge-prefix-bg);
+	color: var(--rk-badge-prefix-fg);
+	border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.rk-redirects .rk-badge-regex {
+	background: var(--rk-badge-regex-bg);
+	color: var(--rk-badge-regex-fg);
+	border: 1px solid rgba(234, 88, 12, 0.2);
+}
+
+/* Status pills (kept as rk-pill-* for PHP backward compat) */
+.rk-redirects .rk-pill {
+	border-radius: var(--rk-radius-sm);
+	font-weight: 600;
+}
+
 .rk-redirects .rk-pill-active {
-	background: #edfaef;
-	color: #1a7f37;
+	background: var(--rk-badge-active-bg);
+	color: var(--rk-badge-active-fg);
+	border: 1px solid rgba(15, 118, 110, 0.2);
 }
 
 .rk-redirects .rk-pill-inactive {
-	background: #f0f0f1;
-	color: #50575e;
+	background: var(--rk-badge-inactive-bg);
+	color: var(--rk-badge-inactive-fg);
+	font-weight: 500;
 }
+
+/* ==========================================================================
+   Empty states
+   ========================================================================== */
 
 .rk-redirects .rk-empty {
-	background: #fff;
-	border: 1px dashed #c3c4c7;
-	border-radius: 4px;
-	margin: 16px 0;
-	padding: 40px 24px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-6) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
 	text-align: center;
+	box-shadow: var(--rk-shadow-sm);
 }
 
-.rk-redirects .rk-empty p {
-	font-size: 14px;
-	margin: 0.5em 0;
+.rk-redirects .rk-empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-size: 22px;
+	line-height: 1;
 }
 
-.rk-redirects .tablenav .paging-text {
-	margin-right: 8px;
+.rk-redirects .rk-empty-icon-primary {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
 }
 
-.rk-redirects .rk-editor[hidden] {
+.rk-redirects .rk-empty-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-empty-body {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	max-width: 320px;
+}
+
+/* ==========================================================================
+   Import and Export card
+   ========================================================================== */
+
+.rk-redirects .rk-csv-card {
+	margin-block: var(--rk-space-4);
+}
+
+.rk-redirects .rk-csv-card[hidden] {
 	display: none;
 }
 
-.rk-redirects .rk-prefill {
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-	max-width: 72ch;
-	padding: 8px 12px;
+.rk-redirects .rk-csv-body {
+	padding: var(--rk-space-6);
 }
 
-.rk-redirects .rk-advanced {
-	border-top: 1px solid #dcdcde;
-	margin-top: 16px;
-	max-width: 72ch;
-	padding-top: 8px;
+.rk-redirects .rk-csv-desc {
+	margin: 0 0 var(--rk-space-5);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	line-height: 1.6;
 }
 
-.rk-redirects .rk-advanced > summary {
-	color: #2271b1;
+.rk-redirects .rk-csv-desc code {
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	padding: 1px 5px;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-csv-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--rk-space-6) var(--rk-space-6);
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+	padding-block-start: var(--rk-space-6);
+}
+
+.rk-redirects .rk-csv-col {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+}
+
+.rk-redirects .rk-csv-col-header {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-csv-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-csv-col-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+/* File drop zone */
+.rk-redirects .rk-file-zone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-5);
+	background: rgba(248, 250, 252, 0.5);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	text-align: center;
 	cursor: pointer;
-	font-weight: 600;
+	transition: background 0.15s, border-color 0.15s;
 }
 
-.rk-redirects .rk-regex-ok {
-	color: #1a7f37;
-	font-weight: 600;
+.rk-redirects .rk-file-zone:hover {
+	background: var(--rk-color-surface-subtle);
+	border-color: var(--rk-color-primary);
 }
 
-.rk-redirects .rk-regex-bad {
-	color: #b32d2e;
-	font-weight: 600;
+.rk-redirects .rk-file-zone-icon {
+	color: var(--rk-color-text-muted);
+	font-size: 28px;
+	line-height: 1;
 }
+
+.rk-redirects .rk-file-zone-label {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-primary);
+	cursor: pointer;
+}
+
+.rk-redirects .rk-file-zone-label:hover {
+	text-decoration: underline;
+}
+
+.rk-redirects .rk-file-input {
+	/* Visually hidden — the label triggers it */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.rk-redirects .rk-file-zone-hint {
+	font-size: 11px;
+	color: var(--rk-color-text-hint);
+	margin: 0;
+}
+
+.rk-redirects .rk-csv-check-row {
+	margin-block: var(--rk-space-3);
+}
+
+/* Import activity report */
+.rk-redirects .rk-import-report {
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-5);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-redirects .rk-import-report-header {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	margin-block-end: var(--rk-space-3);
+}
+
+.rk-redirects .rk-import-report-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-import-report-dot-success {
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-redirects .rk-import-errors {
+	margin: var(--rk-space-2) 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	background: var(--rk-color-secondary-4-soft);
+	border: 1px solid rgba(220, 38, 38, 0.2);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-secondary-4);
+	list-style: none;
+}
+
+.rk-redirects .rk-import-errors li,
+.rk-redirects .rk-import-warnings li {
+	padding-block: 2px;
+}
+
+.rk-redirects .rk-import-warnings {
+	margin: var(--rk-space-2) 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	background: var(--rk-color-secondary-3-soft);
+	border: 1px solid rgba(234, 88, 12, 0.2);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-secondary-3);
+	list-style: none;
+}
+
+/* ==========================================================================
+   Redirect Settings card (hidden until gear icon is clicked)
+   ========================================================================== */
+
+.rk-redirects .rk-settings-card {
+	margin-block: var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-block-start: 3px solid var(--rk-color-primary);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	overflow: hidden;
+}
+
+.rk-redirects .rk-settings-card[hidden] {
+	display: none;
+}
+
+.rk-redirects .rk-settings-form {
+	padding: 0 var(--rk-space-6) var(--rk-space-5);
+}
+
+.rk-redirects .rk-settings-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding-block: var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-redirects .rk-settings-row:last-of-type {
+	border-block-end: none;
+}
+
+.rk-redirects .rk-settings-label-group {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-redirects .rk-settings-label {
+	display: block;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-settings-row-control {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-settings-number {
+	width: 96px;
+	padding: 6px var(--rk-space-3);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-settings-number:focus {
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.rk-redirects .rk-settings-footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+/* ==========================================================================
+   Focus management
+   ========================================================================== */
 
 .rk-redirects :focus-visible {
-	outline: 2px solid #2271b1;
+	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
+}
+
+/* ==========================================================================
+   AJAX list loading state
+   ========================================================================== */
+
+.rk-redirects .rk-list-loading {
+	opacity: 0.5;
+	pointer-events: none;
+	transition: opacity 0.15s;
+}
+
+/* ==========================================================================
+   Design parity additions
+   Components matched to the Stitch redirection page: count pill, header
+   action icons, search icon, editor character counters, advanced
+   disclosure, selected chip, numbered pagination, actions column.
+   ========================================================================== */
+
+/* Header count pill ("24 Total Rules" in the design) */
+.rk-redirects .rk-count-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	border: 1px solid rgba(37, 99, 235, 0.25);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+/* Header and card action buttons render their ligature icons inline */
+.rk-redirects .rk-page-header-actions .rk-icon {
+	font-size: 18px;
+}
+
+.rk-redirects .rk-btn-add .rk-icon {
+	margin-inline-start: -2px;
+}
+
+.rk-redirects .rk-btn-export {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+}
+
+.rk-redirects .rk-btn-export-full {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+/* Empty state actions pair the button label with its icon */
+.rk-redirects .rk-empty .button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-empty-icon .rk-icon {
+	font-size: 24px;
+}
+
+/* Search field icon sits inside the input, decorative only */
+.rk-redirects .rk-search-icon {
+	position: absolute;
+	inset-inline-start: 12px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-hint);
+	font-size: 18px;
+	pointer-events: none;
+}
+
+/* Editor label rows pair the label with a live character counter */
+.rk-redirects .rk-form-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-form-label-row .rk-form-label {
+	margin-block-end: 0;
+}
+
+.rk-redirects .rk-char-count {
+	font-family: var(--rk-font-mono);
+	font-size: 11px;
+	color: var(--rk-color-text-hint);
+	white-space: nowrap;
+}
+
+/* Advanced disclosure keeps the native details element, styled as the
+   design button row with a rotating arrow and trailing meta text */
+.rk-redirects .rk-advanced-toggle {
+	list-style: none;
+	width: 100%;
+}
+
+.rk-redirects .rk-advanced-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.rk-redirects .rk-advanced-toggle .rk-icon {
+	font-size: 16px;
+	color: var(--rk-color-text-hint);
+	transition: transform 0.15s;
+}
+
+.rk-redirects .rk-advanced[open] .rk-advanced-arrow {
+	transform: rotate(90deg);
+}
+
+.rk-redirects .rk-advanced-meta {
+	margin-inline-start: auto;
+	font-weight: 400;
+	font-size: 11px;
+	text-transform: none;
+	letter-spacing: normal;
+	color: var(--rk-color-text-hint);
+}
+
+/* Bulk bar selection chip ("3 selected" in the design) */
+.rk-redirects .rk-selected-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-primary);
+	color: var(--rk-color-surface);
+	font-size: 11px;
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-selected-chip[hidden] {
+	display: none;
+}
+
+/* Bottom nav: range copy, rows per page select, numbered pages */
+.rk-redirects .rk-tablenav-bottom {
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 0 0 var(--rk-radius-lg) var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-redirects .rk-showing {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-showing strong {
+	color: var(--rk-color-text);
+	font-weight: 700;
+}
+
+.rk-redirects .rk-perpage-form {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.rk-redirects .rk-perpage-label {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-perpage-select {
+	padding: 4px 8px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+/* WordPress core draws the dropdown arrow on plain selects through a
+   background image, so these rules use background color only and keep
+   right side clearance for that arrow. A background shorthand here
+   would erase the arrow entirely. */
+.rk-redirects .rk-filter-select,
+.rk-redirects .rk-bulk-select select,
+.rk-redirects .rk-perpage-select {
+	background-color: var(--rk-color-surface);
+	padding-inline-end: 24px;
+}
+
+.rk-redirects .rk-page-nums {
+	display: inline-flex;
+	align-items: stretch;
+	gap: 0;
+	border-radius: var(--rk-radius-md);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-page-nums .button {
+	margin: 0;
+	padding: 6px 12px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-redirects .rk-page-nums > :not(:first-child) {
+	margin-inline-start: -1px;
+}
+
+.rk-redirects .rk-page-nums > :first-child {
+	border-start-start-radius: var(--rk-radius-md);
+	border-end-start-radius: var(--rk-radius-md);
+}
+
+.rk-redirects .rk-page-nums > :last-child {
+	border-start-end-radius: var(--rk-radius-md);
+	border-end-end-radius: var(--rk-radius-md);
+}
+
+.rk-redirects .rk-page-nums .button:hover {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-redirects .rk-page-num.rk-page-current {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	font-weight: 700;
+	cursor: default;
+	text-decoration: none;
+}
+
+.rk-redirects .rk-page-gap {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 4px;
+	background: var(--rk-color-surface);
+	border-block: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-hint);
+}
+
+/* Actions column: row actions live in their own right aligned cell */
+.rk-redirects .rk-table .rk-col-actions {
+	white-space: nowrap;
+}
+
+/* Explicit hidden rules: author display values override the user agent
+   [hidden] rule, so every hideable feature element needs its own rule.
+   The CSV, editor, and settings panels already have theirs above. */
+.rk-redirects .rk-form-row[hidden],
+.rk-redirects .rk-regex-row[hidden],
+.rk-redirects .rk-terminal-msg[hidden] {
+	display: none;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (max-width: 900px) {
+	.rk-redirects .rk-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.rk-redirects .rk-form-row-full {
+		grid-column: 1;
+	}
+
+	.rk-redirects .rk-csv-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 @media screen and (max-width: 782px) {
@@ -173,7 +1692,28 @@
 		display: none;
 	}
 
-	.rk-redirects .rk-filters .search-box {
-		float: none;
+	.rk-redirects .rk-page-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--rk-space-3);
+	}
+
+	.rk-redirects .rk-filter-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-redirects .rk-tablenav-bottom {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-redirects .rk-filter-left {
+		max-width: none;
+	}
+
+	.rk-redirects .rk-settings-row {
+		flex-direction: column;
+		gap: var(--rk-space-2);
 	}
 }
