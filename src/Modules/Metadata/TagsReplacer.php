@@ -40,6 +40,16 @@ final class TagsReplacer {
 	];
 
 	/**
+	 * Placeholder pattern shared by the selective scan and the replacement pass.
+	 *
+	 * Both passes must use the same pattern: a placeholder the replacement
+	 * matches but the scan never resolved would silently resolve to ''.
+	 *
+	 * @var string
+	 */
+	private const TOKEN_PATTERN = '/%%([a-z_]+)%%/';
+
+	/**
 	 * Memo cache keyed by (hash|field).
 	 *
 	 * @var array<string, string>
@@ -90,12 +100,31 @@ final class TagsReplacer {
 	 * @return string Resolved string.
 	 */
 	private function doReplace( Context $ctx, string $template ): string {
-		// Performance optimization: token values are fetched via resolveToken() which uses $tokenCache
-		// to avoid repeating expensive queries/functions across different fields on the same context.
+		// Performance optimization: parse the template for token placeholders and
+		// selectively resolve only tokens present in it, avoiding expensive unneeded
+		// operations (e.g., category DB queries, author meta, excerpt formatting).
+		preg_match_all( self::TOKEN_PATTERN, $template, $matches );
+		$templateTokens = ! empty( $matches[1] ) ? array_unique( $matches[1] ) : [];
+
 		$map = [];
 
-		foreach ( self::SUPPORTED_TOKENS as $token ) {
-			$map[ $token ] = $this->resolveToken( $token, $ctx );
+		// A direct callback on this hook or a callback on the `all` hook, which
+		// apply_filters() runs for every filter, can observe the map, so every
+		// supported token is resolved for it. Otherwise only the tokens present
+		// in the template are resolved.
+		$hasFilter = function_exists( 'has_filter' )
+			&& ( has_filter( 'rankkernel/tokens' ) || has_filter( 'all' ) );
+
+		if ( $hasFilter ) {
+			foreach ( self::SUPPORTED_TOKENS as $token ) {
+				$map[ $token ] = $this->resolveToken( $token, $ctx );
+			}
+		} else {
+			foreach ( $templateTokens as $token ) {
+				if ( in_array( $token, self::SUPPORTED_TOKENS, true ) ) {
+					$map[ $token ] = $this->resolveToken( $token, $ctx );
+				}
+			}
 		}
 
 		/**
@@ -111,7 +140,7 @@ final class TagsReplacer {
 		}
 
 		$resolved = preg_replace_callback(
-			'/%%([a-z_]+)%%/',
+			self::TOKEN_PATTERN,
 			static function ( array $matches ) use ( $map ): string {
 				$token = $matches[1];
 
