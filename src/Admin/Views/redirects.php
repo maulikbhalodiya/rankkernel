@@ -70,7 +70,7 @@
  * @var string $clearFiltersUrl      Clear filters URL.
  * @var string $addFirstUrl          Add first redirect URL.
  * @var string $bulkFormAction       Bulk form action URL.
- * @var array<int, array{label: string, url: string, current: bool, arrow: string}> $sortableHeaders Sortable headers.
+ * @var array<int, array{label: string, url: string, current: bool, arrow: string, column: string}> $sortableHeaders Sortable headers.
  * @var array{show: bool, prevUrl: string, nextUrl: string} $pagination Pagination links.
  * @var string $paginationText       Pagination page text.
  * @var string $itemsLabel           Total items label.
@@ -217,7 +217,7 @@ $rkMatchBadgeMap = [
 					aria-controls="rk-redirect-editor"
 					data-toggle-url="<?php echo esc_url( $toggleUrl ); ?>"
 					data-rk-panel-toggle="rk-redirect-editor"
-				><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( '+ Add Redirect', 'rankkernel' ); ?></button>
+				><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add Redirect', 'rankkernel' ); ?></button>
 				<button
 					type="button"
 					class="button rk-btn-export"
@@ -332,6 +332,7 @@ $rkMatchBadgeMap = [
 									><?php echo esc_html( $matchRow['label'] ); ?></option>
 								<?php endforeach; ?>
 							</select>
+							<span class="rk-icon rk-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
 						<?php if ( '' !== $matchError ) : ?>
 							<p class="rk-field-error" id="rk-match_type-error" role="alert"><?php echo esc_html( $matchError ); ?></p>
@@ -388,6 +389,7 @@ $rkMatchBadgeMap = [
 									><?php echo esc_html( $codeRow['label'] ); ?></option>
 								<?php endforeach; ?>
 							</select>
+							<span class="rk-icon rk-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
 						<?php if ( '' !== $codeError ) : ?>
 							<p class="rk-field-error" id="rk-code-error" role="alert"><?php echo esc_html( $codeError ); ?></p>

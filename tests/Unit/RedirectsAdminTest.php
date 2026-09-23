@@ -178,6 +178,16 @@ final class RedirectsAdminTest extends TestCase {
 			}
 		);
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $v, array $allowed ): string {
+				$tags = '';
+				foreach ( array_keys( $allowed ) as $tag ) {
+					$tags .= '<' . (string) $tag . '>';
+				}
+
+				return strip_tags( $v, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+			}
+		);
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => number_format( (int) $n ) );
 		Functions\when( 'current_time' )->alias( static fn (): string => gmdate( 'Y-m-d H:i:s' ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
@@ -1726,7 +1736,7 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( '>Destination<', $html );
 		$this->assertStringContainsString( '>Actions<', $html );
 		$this->assertStringContainsString( 'rk-col-actions', $html );
-		$this->assertStringContainsString( 'Showing 1 to 20 of 25 redirects', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 20</strong> of <strong>25</strong> redirects', $html );
 		$this->assertStringContainsString( '25 redirects', $html );
 		$this->assertStringContainsString( 'Page 1 of 2', $html );
 		$this->assertStringContainsString( 'Rows per page:', $html );
@@ -1777,7 +1787,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->renderPage( $page );
 
-		$this->assertStringContainsString( 'Showing 1 to 10 of 12 redirects', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 10</strong> of <strong>12</strong> redirects', $html );
 		$this->assertStringContainsString( 'Page 1 of 2', $html );
 		$this->assertArrayNotHasKey( RedirectsSettings::OPTION, $this->options, 'The display override must not write the stored setting' );
 	}
@@ -1818,7 +1828,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->ajaxList( $page, [ 'rk_status' => 'inactive' ] );
 
-		$this->assertStringContainsString( 'Showing 1 to 1 of 1 redirects', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>1</strong> redirects', $html );
 		$this->assertStringContainsString( '/inactive-old', $html );
 		$this->assertStringNotContainsString( '/active-old', $html );
 	}
@@ -1836,7 +1846,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->ajaxList( $page, [ 'rk_per_page' => '1' ] );
 
-		$this->assertStringContainsString( 'Showing 1 to 1 of 3 redirects', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>3</strong> redirects', $html );
 		$this->assertStringContainsString( 'Page 1 of 3', $html );
 	}
 
@@ -1862,7 +1872,7 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( '>Inactive <span class="count">1</span>', $html );
 
 		// Pagination and the item count keep reflecting the filtered total.
-		$this->assertStringContainsString( 'Showing 1 to 1 of 1 redirects', $html );
+		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>1</strong> redirects', $html );
 		$this->assertStringContainsString( '<span class="rk-items-count">1 redirects</span>', $html );
 
 		$this->assertStringContainsString( '/inactive-one', $html );

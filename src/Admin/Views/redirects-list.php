@@ -24,7 +24,7 @@
  * @var array<int, array<string, mixed>> $listRows Prepared redirect rows.
  * @var array<int, array{value: string, label: string, hint: string}> $matchOptions Match type options.
  * @var array<int, array{value: string, label: string, hint: string}> $codeOptions  Code options.
- * @var array<int, array{label: string, url: string, current: bool, arrow: string}> $sortableHeaders Sortable headers.
+ * @var array<int, array{label: string, url: string, current: bool, arrow: string, column: string}> $sortableHeaders Sortable headers.
  * @var array{show: bool, prevUrl: string, nextUrl: string, pages: array<int, array{label: string, url: string, current: bool}>} $pagination Pagination links plus numbered pages.
  * @var string $paginationText Pagination label text.
  * @var string $showingLabel   Visible range label text.
@@ -196,10 +196,20 @@ $rkListMatchBadgeMap = [
 								<label for="rk-select-all" class="screen-reader-text"><?php echo esc_html__( 'Select All', 'rankkernel' ); ?></label>
 								<input type="checkbox" id="rk-select-all" />
 							</td>
+							<?php
+							$rkHeaderColMap = [
+								'source'        => 'rk-col-from',
+								'target'        => 'rk-col-to',
+								'code'          => 'rk-col-code',
+								'match_type'    => 'rk-col-match',
+								'hits'          => 'rk-col-hits',
+								'last_accessed' => 'rk-col-accessed',
+							];
+							?>
 							<?php foreach ( $sortableHeaders as $columnHeader ) : ?>
 								<th
 									scope="col"
-									class="manage-column sortable<?php echo $columnHeader['current'] ? ' sorted' : ''; ?>"
+									class="manage-column sortable<?php echo $columnHeader['current'] ? ' sorted' : ''; ?> <?php echo esc_attr( $rkHeaderColMap[ (string) $columnHeader['column'] ] ?? '' ); ?>"
 								>
 									<a
 										href="<?php echo esc_url( $columnHeader['url'] ); ?>"
@@ -214,7 +224,7 @@ $rkListMatchBadgeMap = [
 					<tbody>
 						<?php foreach ( $listRows as $ruleRow ) : ?>
 							<tr>
-								<th scope="row" class="check-column">
+								<th scope="row" class="check-column rk-col-cb">
 									<input
 										type="checkbox"
 										name="rule_ids[]"
@@ -253,8 +263,8 @@ $rkListMatchBadgeMap = [
 									<span class="<?php echo esc_attr( $rkMatchClass ); ?>"><?php echo $rkMatchVal; ?></span>
 								</td>
 
-								<td class="rk-col-hits"><?php echo esc_html( $ruleRow['hitsLabel'] ); ?></td>
-								<td class="rk-col-accessed"><?php echo esc_html( $ruleRow['accessedLabel'] ); ?></td>
+								<td class="rk-col-hits<?php echo $ruleRow['hitsDim'] ? ' rk-dim' : ''; ?>"><?php echo esc_html( $ruleRow['hitsLabel'] ); ?></td>
+								<td class="rk-col-accessed<?php echo $ruleRow['accessedDim'] ? ' rk-dim' : ''; ?>"><?php echo esc_html( $ruleRow['accessedLabel'] ); ?></td>
 
 								<td class="rk-col-status">
 									<span class="<?php echo esc_attr( $ruleRow['statusPillClass'] ); ?>"><?php echo esc_html( $ruleRow['statusLabel'] ); ?></span>
@@ -262,8 +272,8 @@ $rkListMatchBadgeMap = [
 
 								<td class="rk-col-actions">
 									<div class="row-actions">
-										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: redirect source URL */ __( 'Edit redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a> | </span>
-										<span class="toggle"><a href="<?php echo esc_url( $ruleRow['toggleUrl'] ); ?>"><?php echo esc_html( $ruleRow['toggleLabel'] ); ?></a> | </span>
+										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: redirect source URL */ __( 'Edit redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a></span><span class="rk-row-sep" aria-hidden="true">|</span>
+										<span class="toggle"><a href="<?php echo esc_url( $ruleRow['toggleUrl'] ); ?>"><?php echo esc_html( $ruleRow['toggleLabel'] ); ?></a></span><span class="rk-row-sep" aria-hidden="true">|</span>
 										<span class="trash"><a href="<?php echo esc_url( $ruleRow['deleteUrl'] ); ?>" class="rk-confirm" data-rk-confirm="<?php echo esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ); ?>"><?php echo esc_html__( 'Trash', 'rankkernel' ); ?></a></span>
 									</div>
 								</td>
@@ -276,7 +286,7 @@ $rkListMatchBadgeMap = [
 
 			<?php /* Bottom nav: item count + pagination. Outside the bulk form so the rows per page GET form never nests. */ ?>
 			<div class="rk-tablenav rk-tablenav-bottom">
-				<span class="rk-showing"><?php echo esc_html( $showingLabel ); ?></span>
+				<span class="rk-showing"><?php echo wp_kses( $showingLabel, [ 'strong' => [] ] ); ?></span>
 				<div class="rk-pages">
 					<form method="get" action="<?php echo esc_url( $filtersActionUrl ); ?>" class="rk-perpage-form" id="rk-perpage-form">
 						<input type="hidden" name="page" value="<?php echo esc_attr( $screenSlug ); ?>" />

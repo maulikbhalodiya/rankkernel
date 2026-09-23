@@ -360,7 +360,7 @@ final class RedirectsPage {
 
 		$showingLabel = sprintf(
 			/* translators: %1$s: first visible row, %2$s: last visible row, %3$s: total rows */
-			__( 'Showing %1$s to %2$s of %3$s redirects', 'rankkernel' ),
+			__( 'Showing <strong>%1$s to %2$s</strong> of <strong>%3$s</strong> redirects', 'rankkernel' ),
 			number_format_i18n( $rangeStart ),
 			number_format_i18n( $rangeEnd ),
 			number_format_i18n( $totalRows )
@@ -832,7 +832,9 @@ final class RedirectsPage {
 			'code'            => $code,
 			'match'           => $match,
 			'hitsLabel'       => (string) number_format_i18n( $hits ),
+			'hitsDim'         => 0 === $hits,
 			'accessedLabel'   => '' === $accessed ? __( 'Never', 'rankkernel' ) : $accessed,
+			'accessedDim'     => '' === $accessed,
 			'active'          => $active,
 			'editUrl'         => $editUrl,
 			'toggleUrl'       => $toggleUrl,
@@ -886,7 +888,7 @@ final class RedirectsPage {
 	 * Prepared sortable column headers, preserving the current filters.
 	 *
 	 * @param array<string, mixed> $filters Current filters.
-	 * @return array<int, array{label: string, url: string, current: bool, arrow: string}>
+	 * @return array<int, array{label: string, url: string, current: bool, arrow: string, column: string}>
 	 */
 	private function sortableHeaders( array $filters ): array {
 		$out = [];
@@ -913,6 +915,7 @@ final class RedirectsPage {
 				'url'     => $url,
 				'current' => $current,
 				'arrow'   => $arrow,
+				'column'  => (string) $column,
 			];
 		}
 

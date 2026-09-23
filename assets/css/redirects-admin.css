@@ -96,7 +96,6 @@
 
 /* Success */
 .rk-redirects .rk-notice-success {
-	border-inline-start-color: var(--rk-color-secondary-1);
 	background: var(--rk-color-secondary-1-soft);
 	border-color: rgba(15, 118, 110, 0.2);
 	border-inline-start-color: var(--rk-color-secondary-1);
@@ -108,7 +107,6 @@
 
 /* Error / blocked */
 .rk-redirects .rk-notice-error {
-	border-inline-start-color: var(--rk-color-secondary-4);
 	background: var(--rk-color-secondary-4-soft);
 	border-color: rgba(220, 38, 38, 0.2);
 	border-inline-start-color: var(--rk-color-secondary-4);
@@ -120,7 +118,6 @@
 
 /* Warning / chain */
 .rk-redirects .rk-notice-warning {
-	border-inline-start-color: var(--rk-color-secondary-3);
 	background: var(--rk-color-secondary-3-soft);
 	border-color: rgba(234, 88, 12, 0.2);
 	border-inline-start-color: var(--rk-color-secondary-3);
@@ -132,7 +129,6 @@
 
 /* Info */
 .rk-redirects .rk-notice-info {
-	border-inline-start-color: var(--rk-color-primary);
 	background: var(--rk-color-primary-soft);
 	border-color: rgba(37, 99, 235, 0.2);
 	border-inline-start-color: var(--rk-color-primary);
@@ -285,34 +281,30 @@
 	line-height: var(--rk-line-height-tight);
 }
 
-.rk-redirects .rk-card-cancel {
-	background: none;
-	border: none;
-	cursor: pointer;
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-sm);
-	font-weight: 500;
-	padding: 0;
-	text-decoration: none;
-	transition: color 0.15s;
-}
-
-.rk-redirects .rk-card-cancel:hover {
-	color: var(--rk-color-text);
-}
-
+.rk-redirects .rk-card-cancel,
 .rk-redirects .rk-card-collapse {
 	background: none;
 	border: none;
 	cursor: pointer;
 	color: var(--rk-color-text-muted);
-	font-size: 18px;
-	padding: 2px 4px;
 	transition: color 0.15s;
 }
 
+.rk-redirects .rk-card-cancel {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	padding: 0;
+	text-decoration: none;
+}
+
+.rk-redirects .rk-card-cancel:hover,
 .rk-redirects .rk-card-collapse:hover {
 	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-card-collapse {
+	font-size: 18px;
+	padding: 2px 4px;
 }
 
 /* Editor card: blue left border */
@@ -335,7 +327,6 @@
 	margin: var(--rk-space-5) var(--rk-space-6);
 	padding: 14px var(--rk-space-4);
 	background: var(--rk-color-primary-soft);
-	border-inline-start: 4px solid var(--rk-color-primary);
 	border: 1px solid rgba(37, 99, 235, 0.2);
 	border-inline-start: 4px solid var(--rk-color-primary);
 	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
@@ -426,17 +417,26 @@
 	border-radius: 6px;
 	color: var(--rk-color-text);
 	font-family: inherit;
-	font-size: var(--rk-font-size-sm);
+	font-size: var(--rk-font-size-md);
+	font-weight: 500;
 	line-height: var(--rk-line-height-normal);
 	box-sizing: border-box;
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .rk-redirects .rk-form-input:focus,
-.rk-redirects .rk-form-select:focus {
+.rk-redirects .rk-form-select:focus,
+.rk-redirects .rk-search-input:focus,
+.rk-redirects .rk-filter-select:focus,
+.rk-redirects .rk-settings-number:focus,
+.rk-redirects .rk-perpage-select:focus {
 	border-color: var(--rk-color-primary);
-	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 	outline: none;
+}
+
+.rk-redirects .rk-form-input:focus,
+.rk-redirects .rk-form-select:focus {
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .rk-redirects .rk-form-input.code {
@@ -480,7 +480,21 @@
 
 .rk-redirects .rk-select-wrap .rk-form-select {
 	appearance: none;
-	padding-inline-end: 32px;
+	padding-inline-end: 40px;
+}
+
+.rk-redirects .rk-select-chevron {
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 0;
+	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	padding-inline: var(--rk-space-3);
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
+	line-height: 1;
+	pointer-events: none;
 }
 
 /* Active checkbox */
@@ -695,7 +709,7 @@
 
 .rk-redirects .rk-search-input {
 	width: 100%;
-	padding: 6px 10px;
+	padding: 6px 12px 6px 36px;
 	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border-strong);
 	border-radius: var(--rk-radius-md);
@@ -706,15 +720,12 @@
 }
 
 .rk-redirects .rk-search-input:focus {
-	border-color: var(--rk-color-primary);
 	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 	background: var(--rk-color-surface);
-	outline: none;
 }
 
 .rk-redirects .rk-filter-select {
 	padding: 6px 10px;
-	background: var(--rk-color-surface);
 	border: 1px solid var(--rk-color-border-strong);
 	border-radius: var(--rk-radius-md);
 	color: var(--rk-color-text);
@@ -723,8 +734,7 @@
 }
 
 .rk-redirects .rk-filter-select:focus {
-	border-color: var(--rk-color-primary);
-	outline: none;
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
 }
 
 .rk-redirects .rk-filter-clear {
@@ -765,6 +775,21 @@
 	gap: var(--rk-space-2);
 }
 
+.rk-redirects .rk-bulk-select select {
+	padding: 4px 10px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-table input[type="checkbox"] {
+	width: 14px;
+	height: 14px;
+	accent-color: var(--rk-color-primary);
+}
+
 .rk-redirects .rk-pages {
 	display: flex;
 	align-items: center;
@@ -793,6 +818,11 @@
 
 .rk-redirects .rk-table-wrap {
 	overflow-x: auto;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-block-end: none;
+	border-radius: var(--rk-radius-lg) var(--rk-radius-lg) 0 0;
+	box-shadow: var(--rk-shadow-sm);
 }
 
 .rk-redirects .rk-table {
@@ -800,17 +830,41 @@
 	font-size: var(--rk-font-size-xs);
 }
 
+/* WordPress adds its own outer border and zebra striping through
+   widefat and striped. The design uses a single card border, row
+   separators only, and uniform white rows. */
+.rk-redirects .rk-table.widefat {
+	border: none;
+	background: var(--rk-color-surface);
+}
+
+.rk-redirects .rk-table.striped > tbody > :nth-child(odd) {
+	background-color: transparent;
+}
+
 .rk-redirects .rk-table thead th,
 .rk-redirects .rk-table thead td {
 	background: var(--rk-color-surface-subtle);
 	border-block-end: 1px solid var(--rk-color-border);
-	padding: 12px var(--rk-space-4);
 	font-size: 11px;
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--rk-color-text-muted);
 	white-space: nowrap;
+}
+
+/* Header links inherit the header colour and weight, so every heading reads
+   the same whether or not it is a sortable link. WordPress core otherwise
+   paints header links in the admin link blue. */
+.rk-redirects .rk-table thead th a {
+	color: inherit;
+	font-weight: inherit;
+	text-decoration: none;
+}
+
+.rk-redirects .rk-table thead th a:hover {
+	color: var(--rk-color-text);
 }
 
 .rk-redirects .rk-table tbody tr {
@@ -823,11 +877,16 @@
 	background: var(--rk-color-surface-subtle);
 }
 
-.rk-redirects .rk-table td,
-.rk-redirects .rk-table th {
+/* Shared cell defaults. Every header and body cell starts at the left, as
+   requested for the whole table, so no column overrides the alignment. */
+.rk-redirects .rk-table thead th,
+.rk-redirects .rk-table thead td,
+.rk-redirects .rk-table tbody th,
+.rk-redirects .rk-table tbody td {
 	padding: 12px var(--rk-space-4);
 	vertical-align: middle;
 	overflow-wrap: anywhere;
+	text-align: left;
 }
 
 /* Column widths */
@@ -837,26 +896,29 @@
 
 .rk-redirects .rk-table .rk-col-code {
 	width: 7%;
-	text-align: center;
 }
 
 .rk-redirects .rk-table .rk-col-match {
 	width: 9%;
-	text-align: center;
 }
 
 .rk-redirects .rk-table .rk-col-hits {
 	width: 6%;
-	text-align: right;
 }
 
 .rk-redirects .rk-table .rk-col-accessed {
 	width: 13%;
+	color: var(--rk-color-text-muted);
 }
 
 .rk-redirects .rk-table .rk-col-status {
 	width: 8%;
-	text-align: center;
+}
+
+.rk-redirects .rk-table .rk-col-code,
+.rk-redirects .rk-table .rk-col-match,
+.rk-redirects .rk-table .rk-col-status {
+	padding-inline: var(--rk-space-3);
 }
 
 /* Source path monospace */
@@ -864,16 +926,20 @@
 	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	color: var(--rk-color-primary);
+	color: var(--rk-color-text);
 	word-break: break-all;
 }
 
 /* Destination monospace */
-.rk-redirects .rk-col-to {
+.rk-redirects .rk-table tbody .rk-col-to {
 	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	color: var(--rk-color-text);
+	font-weight: 400;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-table .rk-dim {
+	color: var(--rk-color-text-hint);
 }
 
 .rk-redirects .rk-muted {
@@ -881,32 +947,49 @@
 	font-style: italic;
 }
 
-/* Row actions */
+/* Row actions are always visible, overriding the WordPress core rule
+   that hides .row-actions until the row is hovered. */
 .rk-redirects .rk-table .row-actions {
-	font-size: 11px;
-	padding-block-start: var(--rk-space-1);
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding-block-start: 0;
+	visibility: visible;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
 	color: var(--rk-color-text-muted);
 }
 
 .rk-redirects .rk-table .row-actions a {
-	color: var(--rk-color-text-muted);
 	text-decoration: none;
 }
 
-.rk-redirects .rk-table .row-actions .edit a:hover {
+.rk-redirects .rk-table .row-actions a:hover {
+	text-decoration: underline;
+}
+
+.rk-redirects .rk-table .row-actions .edit a {
 	color: var(--rk-color-primary);
 }
 
-.rk-redirects .rk-table .row-actions .trash a:hover {
-	color: var(--rk-color-secondary-4);
+.rk-redirects .rk-table .row-actions .toggle a {
+	color: var(--rk-color-text-secondary);
 }
 
 .rk-redirects .rk-table .row-actions .toggle a:hover {
-	color: var(--rk-color-secondary-1);
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-table .row-actions .trash a {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-redirects .rk-table .rk-row-sep {
+	color: var(--rk-color-border-strong);
 }
 
 /* Hits column */
-.rk-redirects .rk-col-hits {
+.rk-redirects .rk-table tbody .rk-col-hits {
 	font-variant-numeric: tabular-nums;
 	font-family: var(--rk-font-mono);
 	font-weight: 600;
@@ -917,15 +1000,19 @@
    Badge pills (HTTP codes, match types, status)
    ========================================================================== */
 
-.rk-redirects .rk-badge {
+.rk-redirects .rk-badge,
+.rk-redirects .rk-pill {
 	display: inline-flex;
 	align-items: center;
 	padding: 2px var(--rk-space-2);
-	border-radius: var(--rk-radius-sm);
 	font-size: 11px;
-	font-weight: 700;
 	line-height: 1.5;
 	white-space: nowrap;
+}
+
+.rk-redirects .rk-badge {
+	border-radius: var(--rk-radius-sm);
+	font-weight: 700;
 }
 
 .rk-redirects .rk-badge-301 {
@@ -977,14 +1064,8 @@
 
 /* Status pills (kept as rk-pill-* for PHP backward compat) */
 .rk-redirects .rk-pill {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px var(--rk-space-2);
-	border-radius: 999px;
-	font-size: 11px;
+	border-radius: var(--rk-radius-sm);
 	font-weight: 600;
-	line-height: 1.5;
-	white-space: nowrap;
 }
 
 .rk-redirects .rk-pill-active {
@@ -996,6 +1077,7 @@
 .rk-redirects .rk-pill-inactive {
 	background: var(--rk-badge-inactive-bg);
 	color: var(--rk-badge-inactive-fg);
+	font-weight: 500;
 }
 
 /* ==========================================================================
@@ -1218,7 +1300,8 @@
 	list-style: none;
 }
 
-.rk-redirects .rk-import-errors li {
+.rk-redirects .rk-import-errors li,
+.rk-redirects .rk-import-warnings li {
 	padding-block: 2px;
 }
 
@@ -1231,10 +1314,6 @@
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-secondary-3);
 	list-style: none;
-}
-
-.rk-redirects .rk-import-warnings li {
-	padding-block: 2px;
 }
 
 /* ==========================================================================
@@ -1303,9 +1382,7 @@
 }
 
 .rk-redirects .rk-settings-number:focus {
-	border-color: var(--rk-color-primary);
 	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-	outline: none;
 }
 
 .rk-redirects .rk-settings-footer {
@@ -1391,16 +1468,12 @@
 /* Search field icon sits inside the input, decorative only */
 .rk-redirects .rk-search-icon {
 	position: absolute;
-	inset-inline-start: 10px;
+	inset-inline-start: 12px;
 	inset-block-start: 50%;
 	transform: translateY(-50%);
 	color: var(--rk-color-text-hint);
 	font-size: 18px;
 	pointer-events: none;
-}
-
-.rk-redirects .rk-search-input {
-	padding-inline-start: 32px;
 }
 
 /* Editor label rows pair the label with a live character counter */
@@ -1474,6 +1547,13 @@
 /* Bottom nav: range copy, rows per page select, numbered pages */
 .rk-redirects .rk-tablenav-bottom {
 	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 0 0 var(--rk-radius-lg) var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	font-size: var(--rk-font-size-xs);
 }
 
 .rk-redirects .rk-showing {
@@ -1482,10 +1562,15 @@
 	font-weight: 500;
 }
 
+.rk-redirects .rk-showing strong {
+	color: var(--rk-color-text);
+	font-weight: 700;
+}
+
 .rk-redirects .rk-perpage-form {
 	display: flex;
 	align-items: center;
-	gap: var(--rk-space-2);
+	gap: 6px;
 }
 
 .rk-redirects .rk-perpage-label {
@@ -1495,24 +1580,61 @@
 }
 
 .rk-redirects .rk-perpage-select {
-	padding: 6px 10px;
-	background: var(--rk-color-surface);
+	padding: 4px 8px;
 	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-md);
+	border-radius: var(--rk-radius-sm);
 	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
 }
 
-.rk-redirects .rk-perpage-select:focus {
-	border-color: var(--rk-color-primary);
-	outline: none;
+/* WordPress core draws the dropdown arrow on plain selects through a
+   background image, so these rules use background color only and keep
+   right side clearance for that arrow. A background shorthand here
+   would erase the arrow entirely. */
+.rk-redirects .rk-filter-select,
+.rk-redirects .rk-bulk-select select,
+.rk-redirects .rk-perpage-select {
+	background-color: var(--rk-color-surface);
+	padding-inline-end: 24px;
 }
 
 .rk-redirects .rk-page-nums {
-	display: flex;
-	align-items: center;
-	gap: 2px;
+	display: inline-flex;
+	align-items: stretch;
+	gap: 0;
+	border-radius: var(--rk-radius-md);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-page-nums .button {
+	margin: 0;
+	padding: 6px 12px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-redirects .rk-page-nums > :not(:first-child) {
+	margin-inline-start: -1px;
+}
+
+.rk-redirects .rk-page-nums > :first-child {
+	border-start-start-radius: var(--rk-radius-md);
+	border-end-start-radius: var(--rk-radius-md);
+}
+
+.rk-redirects .rk-page-nums > :last-child {
+	border-start-end-radius: var(--rk-radius-md);
+	border-end-end-radius: var(--rk-radius-md);
+}
+
+.rk-redirects .rk-page-nums .button:hover {
+	background: var(--rk-color-surface-subtle);
 }
 
 .rk-redirects .rk-page-num.rk-page-current {
@@ -1524,18 +1646,17 @@
 }
 
 .rk-redirects .rk-page-gap {
-	padding: 0 4px;
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 4px;
+	background: var(--rk-color-surface);
+	border-block: 1px solid var(--rk-color-border-strong);
 	color: var(--rk-color-text-hint);
 }
 
 /* Actions column: row actions live in their own right aligned cell */
 .rk-redirects .rk-table .rk-col-actions {
-	text-align: right;
 	white-space: nowrap;
-}
-
-.rk-redirects .rk-col-actions .row-actions {
-	padding-block-start: 0;
 }
 
 /* Explicit hidden rules: author display values override the user agent
@@ -1578,6 +1699,11 @@
 	}
 
 	.rk-redirects .rk-filter-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-redirects .rk-tablenav-bottom {
 		flex-direction: column;
 		align-items: stretch;
 	}

@@ -176,6 +176,16 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 			}
 		);
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $v, array $allowed ): string {
+				$tags = '';
+				foreach ( array_keys( $allowed ) as $tag ) {
+					$tags .= '<' . (string) $tag . '>';
+				}
+
+				return strip_tags( $v, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+			}
+		);
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => number_format( (int) $n ) );
 		Functions\when( 'current_time' )->alias( static fn (): string => '2026-01-01 00:00:00' );
 		Functions\when( 'wp_nonce_url' )->alias(
