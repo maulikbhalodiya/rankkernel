@@ -1,170 +1,1354 @@
 /**
  * Redirect Manager screen styles.
  *
- * Loaded only on the Redirects admin screen. Every rule is scoped under
- * .rk-redirects so nothing leaks onto other admin pages.
+ * Pixel-matched to the RankKernel Redirects Admin V2-1.0 Stitch design.
+ * Loaded only on the Redirects admin screen via RedirectsPage::enqueueAssets.
+ * Every rule is scoped under .rk-redirects so nothing leaks elsewhere.
+ * All colour, spacing, radius, and shadow values come from var(--rk-*) tokens
+ * defined in rankkernel-admin.css. No raw hex is permitted here.
+ *
+ * @package RankKernel
  */
 
-.rk-redirects .rk-sub {
-	color: #50575e;
-	max-width: 72ch;
+@import url("rankkernel-admin.css");
+
+/* ==========================================================================
+   Wrap shell — suppress WP native notices that bleed from other plugins
+   inside our styled page area. Our own notices use .rk-notice classes.
+   ========================================================================== */
+
+/*
+ * WordPress outputs its own .notice divs inside .wrap before our content.
+ * Those from other plugins should appear naturally above .rk-redirects.
+ * Any that get injected inside .rk-redirects are suppressed so they do
+ * not break the design.
+ */
+.rk-redirects-wrap .rk-redirects > .notice,
+.rk-redirects-wrap .rk-redirects > .updated,
+.rk-redirects-wrap .rk-redirects > .error,
+.rk-redirects-wrap .rk-redirects > .update-nag {
+	display: none;
 }
+
+/* ==========================================================================
+   Page container
+   ========================================================================== */
+
+.rk-redirects {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* ==========================================================================
+   RankKernel notice banners
+   Matches the Stitch design: left-border-4, soft bg, icon + text + dismiss.
+   ========================================================================== */
+
+.rk-redirects .rk-notice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	margin: 0 0 var(--rk-space-3);
+	padding: 14px var(--rk-space-4);
+	border: 1px solid transparent;
+	border-inline-start: 4px solid transparent;
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-notice-icon {
+	flex-shrink: 0;
+	font-size: 18px;
+	line-height: 1;
+	margin-block-start: 1px;
+}
+
+.rk-redirects .rk-notice-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-redirects .rk-notice-title {
+	font-weight: 600;
+	margin: 0;
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-notice-text {
+	margin: 2px 0 0;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-notice-dismiss {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
+	line-height: 1;
+	padding: 2px 4px;
+	margin-block-start: -1px;
+	transition: color 0.15s;
+}
+
+.rk-redirects .rk-notice-dismiss:hover {
+	color: var(--rk-color-text);
+}
+
+/* Success */
+.rk-redirects .rk-notice-success {
+	border-inline-start-color: var(--rk-color-secondary-1);
+	background: var(--rk-color-secondary-1-soft);
+	border-color: rgba(15, 118, 110, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-1);
+}
+
+.rk-redirects .rk-notice-success .rk-notice-icon {
+	color: var(--rk-color-secondary-1);
+}
+
+/* Error / blocked */
+.rk-redirects .rk-notice-error {
+	border-inline-start-color: var(--rk-color-secondary-4);
+	background: var(--rk-color-secondary-4-soft);
+	border-color: rgba(220, 38, 38, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-4);
+}
+
+.rk-redirects .rk-notice-error .rk-notice-icon {
+	color: var(--rk-color-secondary-4);
+}
+
+/* Warning / chain */
+.rk-redirects .rk-notice-warning {
+	border-inline-start-color: var(--rk-color-secondary-3);
+	background: var(--rk-color-secondary-3-soft);
+	border-color: rgba(234, 88, 12, 0.2);
+	border-inline-start-color: var(--rk-color-secondary-3);
+}
+
+.rk-redirects .rk-notice-warning .rk-notice-icon {
+	color: var(--rk-color-secondary-3);
+}
+
+/* Info */
+.rk-redirects .rk-notice-info {
+	border-inline-start-color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+	border-color: rgba(37, 99, 235, 0.2);
+	border-inline-start-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-notice-info .rk-notice-icon {
+	color: var(--rk-color-primary);
+}
+
+/* Inline action button inside a notice (chain recommendation) */
+.rk-redirects .rk-notice-action {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	margin-block-start: var(--rk-space-2);
+	padding: 4px 10px;
+	background: var(--rk-color-primary);
+	border: none;
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-surface);
+	cursor: pointer;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: 1.5;
+	text-decoration: none;
+	transition: background 0.15s;
+}
+
+.rk-redirects .rk-notice-action:hover {
+	background: var(--rk-color-primary-hover);
+	color: var(--rk-color-surface);
+}
+
+/* ==========================================================================
+   Page header card
+   ========================================================================== */
+
+.rk-redirects .rk-page-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	margin: 0 0 var(--rk-space-4);
+	padding: var(--rk-space-5) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-page-header-title-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+}
+
+.rk-redirects .rk-page-title {
+	margin: 0;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+	letter-spacing: -0.015em;
+}
+
+.rk-redirects .rk-page-header .rk-sub {
+	margin: 4px 0 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-redirects .rk-page-header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-shrink: 0;
+}
+
+/* Primary "Add Redirect" button */
+.rk-redirects .rk-btn-add {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	font-weight: 600;
+}
+
+/* Gear settings toggle */
+.rk-redirects .rk-btn-settings-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 34px;
+	padding: 0;
+	font-size: 18px;
+	line-height: 1;
+}
+
+/* ==========================================================================
+   Generic card shell
+   ========================================================================== */
 
 .rk-redirects .rk-card {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-	margin: 16px 0;
-	padding: 8px 24px 20px;
+	margin-block: var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	overflow: hidden;
 }
 
-.rk-redirects .rk-card h2 {
-	font-size: 1.3em;
-	margin: 1em 0 0.5em;
+.rk-redirects .rk-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border-block-end: 1px solid var(--rk-color-border);
 }
 
-.rk-redirects .rk-card h3 {
-	font-size: 1.05em;
-	margin: 1.4em 0 0.4em;
+.rk-redirects .rk-card-header-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
 }
 
-.rk-redirects .rk-hints {
-	margin-top: 8px;
-	max-width: 72ch;
+.rk-redirects .rk-card-header-icon {
+	color: var(--rk-color-primary);
+	font-size: 18px;
+	line-height: 1;
 }
 
-.rk-redirects .rk-hints summary {
-	color: #2271b1;
-	cursor: pointer;
-}
-
-.rk-redirects .rk-hints ul {
-	margin: 8px 0 0 18px;
-}
-
-.rk-redirects .rk-hints li {
-	margin-bottom: 4px;
-}
-
-.rk-redirects .rk-field-error {
-	color: #b32d2e;
-	font-weight: 600;
-	margin: 6px 0 0;
-}
-
-.rk-redirects .rk-filters {
-	margin: 12px 0;
-}
-
-.rk-redirects .rk-filters .search-box {
-	float: right;
-	margin: 0 0 8px;
-}
-
-.rk-redirects .rk-table .rk-col-code {
-	width: 7%;
-}
-
-.rk-redirects .rk-table .rk-col-match {
-	width: 11%;
-}
-
-.rk-redirects .rk-table .rk-col-hits {
-	width: 7%;
-}
-
-.rk-redirects .rk-table .rk-col-accessed {
-	width: 15%;
-}
-
-.rk-redirects .rk-table .rk-col-status {
-	width: 10%;
-}
-
-.rk-redirects .rk-table td {
-	overflow-wrap: anywhere;
-}
-
-.rk-redirects .rk-muted {
-	color: #757575;
-}
-
-.rk-redirects .rk-pill {
-	border-radius: 999px;
+.rk-redirects .rk-card-header-dot {
 	display: inline-block;
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 2;
-	padding: 0 10px;
-	white-space: nowrap;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	flex-shrink: 0;
 }
 
-.rk-redirects .rk-pill-active {
-	background: #edfaef;
-	color: #1a7f37;
+.rk-redirects .rk-card-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
 }
 
-.rk-redirects .rk-pill-inactive {
-	background: #f0f0f1;
-	color: #50575e;
+.rk-redirects .rk-card-cancel {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	padding: 0;
+	text-decoration: none;
+	transition: color 0.15s;
 }
 
-.rk-redirects .rk-empty {
-	background: #fff;
-	border: 1px dashed #c3c4c7;
-	border-radius: 4px;
-	margin: 16px 0;
-	padding: 40px 24px;
-	text-align: center;
+.rk-redirects .rk-card-cancel:hover {
+	color: var(--rk-color-text);
 }
 
-.rk-redirects .rk-empty p {
-	font-size: 14px;
-	margin: 0.5em 0;
+.rk-redirects .rk-card-collapse {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
+	padding: 2px 4px;
+	transition: color 0.15s;
 }
 
-.rk-redirects .tablenav .paging-text {
-	margin-right: 8px;
+.rk-redirects .rk-card-collapse:hover {
+	color: var(--rk-color-text);
+}
+
+/* Editor card: blue left border */
+.rk-redirects .rk-editor {
+	border-inline-start: 3px solid var(--rk-color-primary);
 }
 
 .rk-redirects .rk-editor[hidden] {
 	display: none;
 }
 
+/* ==========================================================================
+   Prefill info banner (sourced from 404 monitor)
+   ========================================================================== */
+
 .rk-redirects .rk-prefill {
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-	max-width: 72ch;
-	padding: 8px 12px;
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	margin: var(--rk-space-5) var(--rk-space-6);
+	padding: 14px var(--rk-space-4);
+	background: var(--rk-color-primary-soft);
+	border-inline-start: 4px solid var(--rk-color-primary);
+	border: 1px solid rgba(37, 99, 235, 0.2);
+	border-inline-start: 4px solid var(--rk-color-primary);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
 }
 
-.rk-redirects .rk-advanced {
-	border-top: 1px solid #dcdcde;
-	margin-top: 16px;
-	max-width: 72ch;
-	padding-top: 8px;
+.rk-redirects .rk-prefill-icon {
+	flex-shrink: 0;
+	color: var(--rk-color-primary);
+	font-size: 18px;
 }
 
-.rk-redirects .rk-advanced > summary {
-	color: #2271b1;
-	cursor: pointer;
+.rk-redirects .rk-prefill strong {
 	font-weight: 600;
+	color: var(--rk-color-primary-active);
+}
+
+.rk-redirects .rk-prefill-hint {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	margin-inline-start: var(--rk-space-1);
+}
+
+/* ==========================================================================
+   Editor form
+   ========================================================================== */
+
+.rk-redirects .rk-editor-form {
+	padding: var(--rk-space-6);
+}
+
+.rk-redirects .rk-form-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--rk-space-5) var(--rk-space-6);
+}
+
+.rk-redirects .rk-form-row-full {
+	grid-column: 1 / -1;
+}
+
+.rk-redirects .rk-form-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+}
+
+.rk-redirects .rk-form-label {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-secondary);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-required {
+	color: var(--rk-color-secondary-4);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Input wrapper for error icon positioning */
+.rk-redirects .rk-input-wrap {
+	position: relative;
+}
+
+.rk-redirects .rk-input-error-icon {
+	position: absolute;
+	inset-inline-end: 10px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-secondary-4);
+	font-size: 18px;
+	pointer-events: none;
+}
+
+.rk-redirects .rk-form-input,
+.rk-redirects .rk-form-select {
+	width: 100%;
+	padding: var(--rk-space-2) 14px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 6px;
+	color: var(--rk-color-text);
+	font-family: inherit;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-redirects .rk-form-input:focus,
+.rk-redirects .rk-form-select:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+	outline: none;
+}
+
+.rk-redirects .rk-form-input.code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Error state */
+.rk-redirects .rk-has-error .rk-form-input,
+.rk-redirects .rk-form-input.rk-input-error {
+	border-color: var(--rk-color-secondary-4);
+	background: var(--rk-color-secondary-4-soft);
+	padding-inline-end: 36px;
+}
+
+.rk-redirects .rk-has-error .rk-form-input:focus,
+.rk-redirects .rk-form-input.rk-input-error:focus {
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.rk-redirects .rk-field-error {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-secondary-4);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.rk-redirects .rk-form-hint {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	margin: 2px 0 0;
+	line-height: 1.5;
+}
+
+/* Select wrapper */
+.rk-redirects .rk-select-wrap {
+	position: relative;
+}
+
+.rk-redirects .rk-select-wrap .rk-form-select {
+	appearance: none;
+	padding-inline-end: 32px;
+}
+
+/* Active checkbox */
+.rk-redirects .rk-form-check {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-2);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+	cursor: pointer;
+}
+
+.rk-redirects .rk-form-check input[type="checkbox"] {
+	flex-shrink: 0;
+	margin-block-start: 2px;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-form-check strong {
+	color: var(--rk-color-text);
+	font-weight: 600;
+}
+
+/* Regex row styling */
+.rk-redirects .rk-regex-row {
+	padding: 14px var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border: 1px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
 }
 
 .rk-redirects .rk-regex-ok {
-	color: #1a7f37;
+	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
+	color: var(--rk-color-secondary-1);
 }
 
 .rk-redirects .rk-regex-bad {
-	color: #b32d2e;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	color: var(--rk-color-secondary-4);
+}
+
+/* Advanced accordion */
+.rk-redirects .rk-advanced {
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-redirects .rk-advanced > summary {
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	padding-block: var(--rk-space-1);
+}
+
+.rk-redirects .rk-advanced > summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-redirects .rk-advanced > summary:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-hints {
+	margin-block-start: var(--rk-space-3);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-redirects .rk-hints > summary {
+	cursor: pointer;
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-hints ul {
+	margin: var(--rk-space-2) 0 0 var(--rk-space-5);
+}
+
+.rk-redirects .rk-hints li {
+	margin-block-end: var(--rk-space-1);
+	color: var(--rk-color-text-secondary);
+}
+
+/* Form action row */
+.rk-redirects .rk-form-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+/* ==========================================================================
+   Table section
+   ========================================================================== */
+
+.rk-redirects .rk-table-section {
+	margin-block: var(--rk-space-4);
+}
+
+/* ==========================================================================
+   Status filter tabs — All / Active / Inactive
+   ========================================================================== */
+
+.rk-redirects .rk-tabs {
+	display: flex;
+	align-items: flex-end;
+	gap: 0;
+	margin-block-end: 0;
+	border-block-end: 2px solid var(--rk-color-border);
+	padding-block-end: 0;
+}
+
+.rk-redirects .rk-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	padding: var(--rk-space-2) var(--rk-space-3);
+	margin-block-end: -2px;
+	border-block-end: 2px solid transparent;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	text-decoration: none;
+	transition: color 0.15s, border-color 0.15s;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-tab.current {
+	border-block-end-color: var(--rk-color-primary);
+	color: var(--rk-color-primary);
 	font-weight: 600;
 }
 
+.rk-redirects .rk-tab .count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	padding: 0 6px;
+	height: 18px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-redirects .rk-tab.current .count {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Filter bar
+   ========================================================================== */
+
+.rk-redirects .rk-filter-bar-wrap {
+	margin-block: var(--rk-space-3);
+}
+
+.rk-redirects .rk-filter-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-3) var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-filter-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex: 1 1 auto;
+	max-width: 480px;
+}
+
+.rk-redirects .rk-filter-right {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-redirects .rk-search-wrap {
+	position: relative;
+	flex: 1 1 auto;
+}
+
+.rk-redirects .rk-search-input {
+	width: 100%;
+	padding: 6px 10px;
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-redirects .rk-search-input:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+	background: var(--rk-color-surface);
+	outline: none;
+}
+
+.rk-redirects .rk-filter-select {
+	padding: 6px 10px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	transition: border-color 0.15s;
+}
+
+.rk-redirects .rk-filter-select:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+}
+
+.rk-redirects .rk-filter-clear {
+	color: var(--rk-color-text-hint);
+	font-size: var(--rk-font-size-xs);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+
+.rk-redirects .rk-filter-clear:hover {
+	color: var(--rk-color-text-secondary);
+	text-decoration: underline;
+}
+
+/* ==========================================================================
+   Table nav bars (bulk actions + pagination)
+   ========================================================================== */
+
+.rk-redirects .rk-tablenav {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	padding-block: var(--rk-space-2);
+}
+
+.rk-redirects .rk-tablenav-top {
+	background: rgba(239, 246, 255, 0.7);
+	border: 1px solid rgba(37, 99, 235, 0.2);
+	border-radius: var(--rk-radius-md);
+	padding: 10px var(--rk-space-4);
+	margin-block-end: var(--rk-space-2);
+}
+
+.rk-redirects .rk-bulk-select {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-pages {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin-inline-start: auto;
+}
+
+.rk-redirects .rk-pages .paging-text {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-items-count {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 600;
+	border-inline-start: 1px solid var(--rk-color-border);
+	padding-inline-start: var(--rk-space-3);
+	margin-inline-start: var(--rk-space-1);
+}
+
+/* ==========================================================================
+   Redirects table
+   ========================================================================== */
+
+.rk-redirects .rk-table-wrap {
+	overflow-x: auto;
+}
+
+.rk-redirects .rk-table {
+	border-spacing: 0;
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-redirects .rk-table thead th,
+.rk-redirects .rk-table thead td {
+	background: var(--rk-color-surface-subtle);
+	border-block-end: 1px solid var(--rk-color-border);
+	padding: 12px var(--rk-space-4);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-muted);
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-table tbody tr {
+	border-block-end: 1px solid var(--rk-color-border);
+	transition: background 0.1s;
+}
+
+.rk-redirects .rk-table tbody tr:hover td,
+.rk-redirects .rk-table tbody tr:hover th {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-redirects .rk-table td,
+.rk-redirects .rk-table th {
+	padding: 12px var(--rk-space-4);
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+/* Column widths */
+.rk-redirects .rk-table .rk-col-cb {
+	width: 40px;
+}
+
+.rk-redirects .rk-table .rk-col-code {
+	width: 7%;
+	text-align: center;
+}
+
+.rk-redirects .rk-table .rk-col-match {
+	width: 9%;
+	text-align: center;
+}
+
+.rk-redirects .rk-table .rk-col-hits {
+	width: 6%;
+	text-align: right;
+}
+
+.rk-redirects .rk-table .rk-col-accessed {
+	width: 13%;
+}
+
+.rk-redirects .rk-table .rk-col-status {
+	width: 8%;
+	text-align: center;
+}
+
+/* Source path monospace */
+.rk-redirects .rk-col-from strong {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-primary);
+	word-break: break-all;
+}
+
+/* Destination monospace */
+.rk-redirects .rk-col-to {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-muted {
+	color: var(--rk-color-text-hint);
+	font-style: italic;
+}
+
+/* Row actions */
+.rk-redirects .rk-table .row-actions {
+	font-size: 11px;
+	padding-block-start: var(--rk-space-1);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-redirects .rk-table .row-actions a {
+	color: var(--rk-color-text-muted);
+	text-decoration: none;
+}
+
+.rk-redirects .rk-table .row-actions .edit a:hover {
+	color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-table .row-actions .trash a:hover {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-redirects .rk-table .row-actions .toggle a:hover {
+	color: var(--rk-color-secondary-1);
+}
+
+/* Hits column */
+.rk-redirects .rk-col-hits {
+	font-variant-numeric: tabular-nums;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-weight: 600;
+	color: var(--rk-color-text);
+}
+
+/* ==========================================================================
+   Badge pills (HTTP codes, match types, status)
+   ========================================================================== */
+
+.rk-redirects .rk-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px var(--rk-space-2);
+	border-radius: var(--rk-radius-sm);
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-badge-301 {
+	background: var(--rk-badge-301-bg);
+	color: var(--rk-badge-301-fg);
+	border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.rk-redirects .rk-badge-302 {
+	background: var(--rk-badge-302-bg);
+	color: var(--rk-badge-302-fg);
+	border: 1px solid rgba(15, 118, 110, 0.25);
+}
+
+.rk-redirects .rk-badge-307 {
+	background: var(--rk-badge-307-bg);
+	color: var(--rk-badge-307-fg);
+	border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.rk-redirects .rk-badge-410 {
+	background: var(--rk-badge-410-bg);
+	color: var(--rk-badge-410-fg);
+	border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.rk-redirects .rk-badge-451 {
+	background: var(--rk-badge-451-bg);
+	color: var(--rk-badge-451-fg);
+}
+
+.rk-redirects .rk-badge-exact {
+	background: var(--rk-badge-exact-bg);
+	color: var(--rk-badge-exact-fg);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-badge-prefix {
+	background: var(--rk-badge-prefix-bg);
+	color: var(--rk-badge-prefix-fg);
+	border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.rk-redirects .rk-badge-regex {
+	background: var(--rk-badge-regex-bg);
+	color: var(--rk-badge-regex-fg);
+	border: 1px solid rgba(234, 88, 12, 0.2);
+}
+
+/* Status pills (kept as rk-pill-* for PHP backward compat) */
+.rk-redirects .rk-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px var(--rk-space-2);
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-pill-active {
+	background: var(--rk-badge-active-bg);
+	color: var(--rk-badge-active-fg);
+	border: 1px solid rgba(15, 118, 110, 0.2);
+}
+
+.rk-redirects .rk-pill-inactive {
+	background: var(--rk-badge-inactive-bg);
+	color: var(--rk-badge-inactive-fg);
+}
+
+/* ==========================================================================
+   Empty states
+   ========================================================================== */
+
+.rk-redirects .rk-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-6) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	text-align: center;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-redirects .rk-empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-size: 22px;
+	line-height: 1;
+}
+
+.rk-redirects .rk-empty-icon-primary {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-empty-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-redirects .rk-empty-body {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	max-width: 320px;
+}
+
+/* ==========================================================================
+   Import and Export card
+   ========================================================================== */
+
+.rk-redirects .rk-csv-card {
+	margin-block: var(--rk-space-4);
+}
+
+.rk-redirects .rk-csv-body {
+	padding: var(--rk-space-6);
+}
+
+.rk-redirects .rk-csv-desc {
+	margin: 0 0 var(--rk-space-5);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	line-height: 1.6;
+}
+
+.rk-redirects .rk-csv-desc code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: var(--rk-font-size-xs);
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	padding: 1px 5px;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-redirects .rk-csv-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--rk-space-6) var(--rk-space-6);
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+	padding-block-start: var(--rk-space-6);
+}
+
+.rk-redirects .rk-csv-col {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+}
+
+.rk-redirects .rk-csv-col-header {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-csv-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-csv-col-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+/* File drop zone */
+.rk-redirects .rk-file-zone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-5);
+	background: rgba(248, 250, 252, 0.5);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	text-align: center;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+.rk-redirects .rk-file-zone:hover {
+	background: var(--rk-color-surface-subtle);
+	border-color: var(--rk-color-primary);
+}
+
+.rk-redirects .rk-file-zone-icon {
+	color: var(--rk-color-text-muted);
+	font-size: 28px;
+	line-height: 1;
+}
+
+.rk-redirects .rk-file-zone-label {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-primary);
+	cursor: pointer;
+}
+
+.rk-redirects .rk-file-zone-label:hover {
+	text-decoration: underline;
+}
+
+.rk-redirects .rk-file-input {
+	/* Visually hidden — the label triggers it */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.rk-redirects .rk-file-zone-hint {
+	font-size: 11px;
+	color: var(--rk-color-text-hint);
+	margin: 0;
+}
+
+.rk-redirects .rk-csv-check-row {
+	margin-block: var(--rk-space-3);
+}
+
+/* Import activity report */
+.rk-redirects .rk-import-report {
+	margin-block-start: var(--rk-space-5);
+	padding-block-start: var(--rk-space-5);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-redirects .rk-import-report-header {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	margin-block-end: var(--rk-space-3);
+}
+
+.rk-redirects .rk-import-report-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-import-report-dot-success {
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-redirects .rk-import-errors {
+	margin: var(--rk-space-2) 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	background: var(--rk-color-secondary-4-soft);
+	border: 1px solid rgba(220, 38, 38, 0.2);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-secondary-4);
+	list-style: none;
+}
+
+.rk-redirects .rk-import-errors li {
+	padding-block: 2px;
+}
+
+.rk-redirects .rk-import-warnings {
+	margin: var(--rk-space-2) 0;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	background: var(--rk-color-secondary-3-soft);
+	border: 1px solid rgba(234, 88, 12, 0.2);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-secondary-3);
+	list-style: none;
+}
+
+.rk-redirects .rk-import-warnings li {
+	padding-block: 2px;
+}
+
+/* ==========================================================================
+   Redirect Settings card (hidden until gear icon is clicked)
+   ========================================================================== */
+
+.rk-redirects .rk-settings-card {
+	margin-block: var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-block-start: 3px solid var(--rk-color-primary);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	overflow: hidden;
+}
+
+.rk-redirects .rk-settings-card[hidden] {
+	display: none;
+}
+
+.rk-redirects .rk-settings-form {
+	padding: 0 var(--rk-space-6) var(--rk-space-5);
+}
+
+.rk-redirects .rk-settings-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding-block: var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-redirects .rk-settings-row:last-of-type {
+	border-block-end: none;
+}
+
+.rk-redirects .rk-settings-label-group {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-redirects .rk-settings-label {
+	display: block;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-settings-row-control {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-shrink: 0;
+}
+
+.rk-redirects .rk-settings-number {
+	width: 96px;
+	padding: 6px var(--rk-space-3);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-settings-number:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+	outline: none;
+}
+
+.rk-redirects .rk-settings-footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+/* ==========================================================================
+   Focus management
+   ========================================================================== */
+
 .rk-redirects :focus-visible {
-	outline: 2px solid #2271b1;
+	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
+}
+
+/* ==========================================================================
+   AJAX list loading state
+   ========================================================================== */
+
+.rk-redirects .rk-list-loading {
+	opacity: 0.5;
+	pointer-events: none;
+	transition: opacity 0.15s;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (max-width: 900px) {
+	.rk-redirects .rk-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.rk-redirects .rk-form-row-full {
+		grid-column: 1;
+	}
+
+	.rk-redirects .rk-csv-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 @media screen and (max-width: 782px) {
@@ -173,7 +1357,23 @@
 		display: none;
 	}
 
-	.rk-redirects .rk-filters .search-box {
-		float: none;
+	.rk-redirects .rk-page-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--rk-space-3);
+	}
+
+	.rk-redirects .rk-filter-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-redirects .rk-filter-left {
+		max-width: none;
+	}
+
+	.rk-redirects .rk-settings-row {
+		flex-direction: column;
+		gap: var(--rk-space-2);
 	}
 }

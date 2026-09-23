@@ -254,6 +254,136 @@ final class RedirectsPage {
 		$js = plugins_url( 'assets/js/redirects-admin.js', (string) RANKKERNEL_FILE );
 		wp_register_script( 'rankkernel-redirects-admin', $js, [ 'wp-a11y', 'wp-i18n' ], $version, true );
 		wp_enqueue_script( 'rankkernel-redirects-admin' );
+
+		/*
+		 * Pass configuration to JS so it can make authenticated AJAX requests
+		 * to swap only the list section without reloading the whole page.
+		 * wp_localize_script must be called after wp_register_script.
+		 */
+		wp_localize_script(
+			'rankkernel-redirects-admin',
+			'rkRedirects',
+			[
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'rankkernel_redirects_list' ),
+				'screenSlug' => self::SLUG,
+			]
+		);
+	}
+
+	/**
+	 * Handle the wp_ajax list request.
+	 *
+	 * Returns the rendered HTML for #rk-list-section only. Capability and
+	 * nonce are verified before any output is produced.
+	 */
+	public function handleAjaxList(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'rankkernel' ) ], 403 );
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed then verified by check_ajax_referer below.
+		check_ajax_referer( 'rankkernel_redirects_list' );
+
+		ob_start();
+		$this->renderListSection( $this->listFilters() );
+		$html = ob_get_clean();
+
+		wp_send_json_success( [ 'html' => $html ] );
+	}
+
+	/**
+	 * Render the list section (tabs + filter bar + table or empty state) as HTML.
+	 *
+	 * Used both by render() for the full page load and by handleAjaxList() for
+	 * the AJAX partial refresh.
+	 *
+	 * @param array<string, mixed> $filters Validated filter set from listFilters().
+	 */
+	public function renderListSection( array $filters ): void {
+		$perPage = $this->rulesPerPage();
+
+		$result = $this->repository->paginate(
+			[
+				'search'     => $filters['search'],
+				'status'     => $filters['status'],
+				'match_type' => $filters['match_type'],
+				'code'       => $filters['code'],
+				'orderby'    => $filters['orderby'],
+				'order'      => $filters['order'],
+				'page'       => $filters['page'],
+				'per_page'   => $perPage,
+			]
+		);
+
+		$listRows    = [];
+		$listHasRows = [] !== $result['rows'];
+
+		foreach ( $result['rows'] as $row ) {
+			if ( is_array( $row ) ) {
+				$listRows[] = $this->rowState( $row );
+			}
+		}
+
+		$totalRows       = (int) $result['total'];
+		$pageNumber      = max( 1, (int) $result['page'] );
+		$pageCount       = (int) $result['pages'];
+		$statusViews     = $this->statusViews( $filters, $totalRows, (int) $result['active'], (int) $result['inactive'] );
+		$sortableHeaders = $this->sortableHeaders( $filters );
+		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
+
+		$paginationText = sprintf(
+			/* translators: %1$d: current page, %2$d: total pages */
+			__( 'Page %1$d of %2$d', 'rankkernel' ),
+			$pageNumber,
+			$pageCount
+		);
+
+		$itemsLabel = sprintf(
+			/* translators: %d: total number of redirects */
+			__( '%d items', 'rankkernel' ),
+			$totalRows
+		);
+
+		$filterSearch = (string) $filters['search'];
+		$filterStatus = (string) $filters['status'];
+		$filterMatch  = (string) $filters['match_type'];
+		$filterCode   = (string) $filters['code'];
+		$hasFilter    = '' !== $filterSearch || 'all' !== $filterStatus || '' !== $filterMatch || '' !== $filterCode;
+
+		$clearFiltersUrl  = $this->pageUrl( [] );
+		$addFirstUrl      = $this->pageUrl( [ 'rk_open' => 1 ] );
+		$bulkFormAction   = $this->pageUrl( [] );
+		$filtersActionUrl = admin_url( 'admin.php' );
+		$screenSlug       = self::SLUG;
+		$nonceBulkAction  = self::NONCE_BULK;
+
+		$matchLabels  = $this->matchOptions();
+		$matchHints   = $this->matchHints();
+		$matchOptions = [];
+
+		foreach ( $matchLabels as $matchKey => $matchLabel ) {
+			$matchOptions[] = [
+				'value' => (string) $matchKey,
+				'label' => $matchLabel,
+				'hint'  => (string) ( $matchHints[ $matchKey ] ?? '' ),
+			];
+		}
+
+		$codeLabels  = $this->codeOptions();
+		$codeHints   = $this->codeHints();
+		$codeOptions = [];
+
+		foreach ( $codeLabels as $codeKey => $codeLabel ) {
+			$codeOptions[] = [
+				'value' => (string) $codeKey,
+				'label' => $codeLabel,
+				'hint'  => (string) ( $codeHints[ $codeKey ] ?? '' ),
+			];
+		}
+
+		require __DIR__ . '/Views/redirects-list.php';
 	}
 
 	/**
@@ -354,63 +484,6 @@ final class RedirectsPage {
 		$autoSlugRedirect = ! empty( $settings['auto_slug_redirect'] );
 		$rulesPerPage     = max( 1, min( 100, (int) ( $settings['rules_per_page'] ?? 20 ) ) );
 
-		$filters = $this->listFilters();
-		$perPage = $this->rulesPerPage();
-
-		$result = $this->repository->paginate(
-			[
-				'search'     => $filters['search'],
-				'status'     => $filters['status'],
-				'match_type' => $filters['match_type'],
-				'code'       => $filters['code'],
-				'orderby'    => $filters['orderby'],
-				'order'      => $filters['order'],
-				'page'       => $filters['page'],
-				'per_page'   => $perPage,
-			]
-		);
-
-		$listRows    = [];
-		$listHasRows = [] !== $result['rows'];
-
-		foreach ( $result['rows'] as $row ) {
-			if ( is_array( $row ) ) {
-				$listRows[] = $this->rowState( $row );
-			}
-		}
-
-		$totalRows       = (int) $result['total'];
-		$pageNumber      = max( 1, (int) $result['page'] );
-		$pageCount       = (int) $result['pages'];
-		$statusViews     = $this->statusViews( $filters, $totalRows, (int) $result['active'], (int) $result['inactive'] );
-		$sortableHeaders = $this->sortableHeaders( $filters );
-		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
-
-		$paginationText = sprintf(
-			/* translators: %1$d: current page, %2$d: total pages */
-			__( 'Page %1$d of %2$d', 'rankkernel' ),
-			$pageNumber,
-			$pageCount
-		);
-
-		$itemsLabel = sprintf(
-			/* translators: %d: total number of redirects */
-			__( '%d items', 'rankkernel' ),
-			$totalRows
-		);
-
-		$filterSearch = (string) $filters['search'];
-		$filterStatus = (string) $filters['status'];
-		$filterMatch  = (string) $filters['match_type'];
-		$filterCode   = (string) $filters['code'];
-		$hasFilter    = '' !== $filterSearch || 'all' !== $filterStatus || '' !== $filterMatch || '' !== $filterCode;
-
-		$clearFiltersUrl  = $this->pageUrl( [] );
-		$addFirstUrl      = $this->pageUrl( [ 'rk_open' => 1 ] );
-		$bulkFormAction   = $this->pageUrl( [] );
-		$filtersActionUrl = admin_url( 'admin.php' );
-		$screenSlug       = self::SLUG;
-
 		$exportUrl        = wp_nonce_url( $this->pageUrl( [ 'rk_action' => 'export' ] ), self::NONCE_EXPORT );
 		$importData       = $this->importResult;
 		$showImportReport = is_array( $importData );
@@ -484,6 +557,15 @@ final class RedirectsPage {
 		$nonceBulkAction     = self::NONCE_BULK;
 		$nonceSettingsAction = self::NONCE_SETTINGS;
 		$nonceImportAction   = self::NONCE_IMPORT;
+
+		/*
+		 * Pre-render the list section into a string so the view can embed it
+		 * directly. The AJAX handler renders the same section fresh on each
+		 * request, so the logic lives in one place: renderListSection().
+		 */
+		ob_start();
+		$this->renderListSection( $this->listFilters() );
+		$listSectionHtml = (string) ob_get_clean();
 
 		require __DIR__ . '/Views/redirects.php';
 	}

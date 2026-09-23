@@ -145,6 +145,17 @@ final class Plugin {
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
 
+			/*
+			 * AJAX handler for the redirect list partial refresh.
+			 * Only available to authenticated admins — wp_ajax_ not
+			 * wp_ajax_nopriv_ so unauthenticated requests are rejected
+			 * before our handler even runs.
+			 */
+			add_action(
+				'wp_ajax_rankkernel_redirects_list',
+				[ $adminMenu->getRedirectsPage(), 'handleAjaxList' ]
+			);
+
 			$schemaMetabox = new SchemaMetabox();
 			$schemaMetabox->register();
 			$this->services['schema_metabox'] = $schemaMetabox;
