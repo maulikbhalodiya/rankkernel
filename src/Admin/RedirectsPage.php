@@ -286,7 +286,8 @@ final class RedirectsPage {
 		check_ajax_referer( 'rankkernel_redirects_list' );
 
 		ob_start();
-		$this->renderListSection( $this->listFilters() );
+		// Read only display filters from the nonce verified request, every value sanitized and validated by listFilters().
+		$this->renderListSection( $this->listFilters( $_POST ) );
 		$html = ob_get_clean();
 
 		wp_send_json_success( [ 'html' => $html ] );
@@ -637,7 +638,9 @@ final class RedirectsPage {
 		 * request, so the logic lives in one place: renderListSection().
 		 */
 		ob_start();
-		$this->renderListSection( $this->listFilters() );
+		// Read only display filters, every value sanitized and validated by listFilters().
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, every value sanitized and validated by listFilters(), no state changes.
+		$this->renderListSection( $this->listFilters( $_GET ) );
 		$listSectionHtml = (string) ob_get_clean();
 
 		require __DIR__ . '/Views/redirects.php';
@@ -1955,64 +1958,61 @@ final class RedirectsPage {
 	}
 
 	/**
-	 * Current list filters from the query string, sanitized and validated.
+	 * Current list filters from the given request input, sanitized and validated.
 	 *
+	 * The input array is explicit so the full page load resolves filters from
+	 * $_GET and the AJAX handler resolves them from $_POST, both through this
+	 * single validation path.
+	 *
+	 * @param array<string, mixed> $input Request input, normally $_GET or $_POST.
 	 * @return array{search: string, status: string, match_type: string, code: string, orderby: string, order: string, page: int}
 	 */
-	private function listFilters(): array {
-		// Read only display flags, every value sanitized below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';
+	private function listFilters( array $input ): array {
+		// Read only display flag, value sanitized on the following statement.
+		$search = isset( $input['s'] ) ? sanitize_text_field( (string) wp_unslash( $input['s'] ) ) : '';
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawStatus = isset( $_GET['rk_status'] ) ? (string) wp_unslash( $_GET['rk_status'] ) : 'all';
+		// Read only display flag, value validated below.
+		$rawStatus = isset( $input['rk_status'] ) ? (string) wp_unslash( $input['rk_status'] ) : 'all';
 		$status    = sanitize_key( $rawStatus );
 
 		if ( ! in_array( $status, [ 'all', 'active', 'inactive' ], true ) ) {
 			$status = 'all';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawMatch = isset( $_GET['rk_match'] ) ? (string) wp_unslash( $_GET['rk_match'] ) : '';
+		// Read only display flag, value validated below.
+		$rawMatch = isset( $input['rk_match'] ) ? (string) wp_unslash( $input['rk_match'] ) : '';
 		$match    = sanitize_key( $rawMatch );
 
 		if ( '' !== $match && ! Normalizer::isMatchType( $match ) ) {
 			$match = '';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawCode = isset( $_GET['rk_code'] ) ? (string) wp_unslash( $_GET['rk_code'] ) : '';
+		// Read only display flag, value validated below.
+		$rawCode = isset( $input['rk_code'] ) ? (string) wp_unslash( $input['rk_code'] ) : '';
 		$code    = sanitize_key( $rawCode );
 
 		if ( '' !== $code && ! Normalizer::isCode( $code ) ) {
 			$code = '';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, sanitized on the following statement.
-		$rawOrderBy = isset( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'id';
+		// Read only display flag, value validated below.
+		$rawOrderBy = isset( $input['rk_orderby'] ) ? (string) wp_unslash( $input['rk_orderby'] ) : 'id';
 		$orderby    = sanitize_key( $rawOrderBy );
 
 		if ( ! array_key_exists( $orderby, self::SORTABLE ) && 'id' !== $orderby ) {
 			$orderby = 'id';
 		}
 
-		// Read only display flags, value validated below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value validated below, unslashed here, validated against an allow list below.
-		$rawOrder = isset( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';
+		// Read only display flag, value validated below.
+		$rawOrder = isset( $input['rk_order'] ) ? (string) wp_unslash( $input['rk_order'] ) : 'DESC';
 		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
 
-		// Read only display flags, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawPage = isset( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : 1;
+		// Read only display flag, value unslashed then cast to int below.
+		$rawPage = isset( $input['rk_paged'] ) ? wp_unslash( $input['rk_paged'] ) : 1;
 		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
 
 		// Read only display flag, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawPerPage = isset( $_GET['rk_per_page'] ) ? wp_unslash( $_GET['rk_per_page'] ) : 0;
+		$rawPerPage = isset( $input['rk_per_page'] ) ? wp_unslash( $input['rk_per_page'] ) : 0;
 		$perPage    = (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 0 );
 
 		return [

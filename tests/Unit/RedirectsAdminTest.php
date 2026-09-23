@@ -52,6 +52,13 @@ final class RedirectsAdminTest extends TestCase {
 	private string $lastRedirect = '';
 
 	/**
+	 * Payload captured from wp_send_json_success.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $ajaxPayload = [];
+
+	/**
 	 * Set up doubles.
 	 */
 	protected function setUp(): void {
@@ -69,6 +76,7 @@ final class RedirectsAdminTest extends TestCase {
 		$this->options      = [];
 		$this->db           = new RedirectsFakeDb();
 		$this->lastRedirect = '';
+		$this->ajaxPayload  = [];
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -173,6 +181,12 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'current_time' )->alias( static fn (): string => gmdate( 'Y-m-d H:i:s' ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
+		Functions\when( 'wp_send_json_success' )->alias(
+			function ( mixed $data = null ): void {
+				$this->ajaxPayload = is_array( $data ) ? $data : [];
+			}
+		);
 		Functions\when( 'checked' )->alias(
 			static function ( mixed $first, mixed $second ): string {
 				$same = (string) $first === (string) $second && '' !== (string) $first;
@@ -285,6 +299,30 @@ final class RedirectsAdminTest extends TestCase {
 		ob_start();
 		$page->render();
 		$html = ob_get_clean();
+
+		return is_string( $html ) ? $html : '';
+	}
+
+	/**
+	 * Invoke the AJAX list handler with the given posted filters.
+	 *
+	 * @param RedirectsPage        $page    Page.
+	 * @param array<string, mixed> $filters Filters posted alongside the action and nonce.
+	 * @return string Rendered list section HTML.
+	 */
+	private function ajaxList( RedirectsPage $page, array $filters = [] ): string {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array_merge(
+			[
+				'action'      => 'rankkernel_redirects_list',
+				'_ajax_nonce' => 'nonce-rankkernel_redirects_list',
+			],
+			$filters
+		);
+
+		$page->handleAjaxList();
+
+		$html = $this->ajaxPayload['html'] ?? '';
 
 		return is_string( $html ) ? $html : '';
 	}
@@ -1746,5 +1784,39 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">search_off</span>', $filteredHtml );
 		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">filter_alt_off</span>', $filteredHtml );
 		$this->assertStringNotContainsString( 'alt_route', $filteredHtml );
+	}
+
+	/**
+	 * The AJAX refresh applies the posted status filter, the reported bug.
+	 */
+	public function test_ajax_list_applies_posted_status_filter(): void {
+		$this->seedRule( '/active-old', '/active-new' );
+		$this->seedRule( '/inactive-old', '/inactive-new', '301', 'exact', false );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_status' => 'inactive' ] );
+
+		$this->assertStringContainsString( 'Showing 1 to 1 of 1 redirects', $html );
+		$this->assertStringContainsString( '/inactive-old', $html );
+		$this->assertStringNotContainsString( '/active-old', $html );
+	}
+
+	/**
+	 * The AJAX refresh applies the posted rows per page value.
+	 */
+	public function test_ajax_list_applies_posted_per_page_value(): void {
+		$this->seedRule( '/a', '/b' );
+		$this->seedRule( '/c', '/d' );
+		$this->seedRule( '/e', '/f' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->ajaxList( $page, [ 'rk_per_page' => '1' ] );
+
+		$this->assertStringContainsString( 'Showing 1 to 1 of 3 redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 3', $html );
 	}
 }
