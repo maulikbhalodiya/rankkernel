@@ -53,6 +53,7 @@
  * @var array<int, array{label: string, hint: string}> $matchHintRows Match type explanations.
  * @var array<int, array{label: string, hint: string}> $codeHintRows  Code explanations.
  * @var string $cancelUrl            Editor cancel URL.
+ * @var string $listSectionHtml      Pre-rendered list section HTML from renderListSection().
  * @var bool   $listHasRows          Whether the list has rows.
  * @var array<int, array<string, mixed>> $listRows Prepared redirect rows.
  * @var array<int, array{url: string, current: bool, label: string, count: string}> $statusViews Status views.

@@ -92,6 +92,8 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( array $params = [], string $url = '' ): string {
 				if ( [] === $params ) {
@@ -1417,7 +1419,7 @@ final class RedirectsAdminTest extends TestCase {
 		$html = $this->renderPage( $page );
 
 		$this->assertStringContainsString( 'aria-expanded="false"', $html );
-		$this->assertStringContainsString( 'id="rk-redirect-editor" hidden', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-redirect-editor"[^>]*\shidden\b/', $html );
 	}
 
 	/**
@@ -1466,7 +1468,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->renderPage( $page );
 
-		$this->assertStringContainsString( 'id="rk-target-row" hidden', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-target-row"[^>]*\shidden\b/', $html );
 		$this->assertStringContainsString( 'disabled', $html );
 		$this->assertStringContainsString( 'no destination is needed', $html );
 	}
@@ -1640,8 +1642,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-select-all"', $html );
 		$this->assertStringContainsString( '<label for="rk-search-input"', $html );
 		$this->assertStringContainsString( 'id="rk-search-input"', $html );
-		$this->assertStringContainsString( '<label for="rk-filter-status"', $html );
-		$this->assertStringContainsString( 'id="rk-filter-status"', $html );
+		// The status filter is a labeled tab nav now, one tab per status view.
+		$this->assertStringContainsString( 'aria-label="Filter redirects by status"', $html );
+		$this->assertSame( 3, preg_match_all( '/class="rk-tab(?:\s|")/', $html ), 'One status tab per All, Active and Inactive view' );
 		$this->assertStringContainsString( '<label for="rk-filter-match"', $html );
 		$this->assertStringContainsString( 'id="rk-filter-match"', $html );
 		$this->assertStringContainsString( '<label for="rk-filter-code"', $html );
@@ -1650,7 +1653,10 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Select bulk action', $html );
 		$this->assertStringContainsString( 'Select All', $html );
 		$this->assertStringContainsString( 'Search redirects', $html );
-		$this->assertStringContainsString( 'Filter by status', $html );
+		$this->assertStringContainsString( '>All <span class="count">', $html );
+		$this->assertStringContainsString( '>Active <span class="count">', $html );
+		$this->assertStringContainsString( '>Inactive <span class="count">', $html );
+		$this->assertSame( 1, substr_count( $html, 'aria-current="page"' ), 'Exactly one status tab may be marked as current' );
 		$this->assertStringContainsString( 'Filter by match type', $html );
 		$this->assertStringContainsString( 'Filter by redirect type', $html );
 

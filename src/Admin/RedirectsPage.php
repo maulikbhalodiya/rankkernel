@@ -280,7 +280,6 @@ final class RedirectsPage {
 	public function handleAjaxList(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'rankkernel' ) ], 403 );
-			return;
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed then verified by check_ajax_referer below.
