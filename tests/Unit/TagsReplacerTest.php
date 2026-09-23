@@ -445,17 +445,29 @@ final class TagsReplacerTest extends TestCase {
 
 	/**
 	 * Test selective token resolution skips unused tokens like category or author.
+	 *
+	 * @return void
 	 */
 	public function test_selective_token_resolution_skips_unused_tokens(): void {
 		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
 		$replacer = new TagsReplacer();
 
 		$categoryCallCount = 0;
+		$authorCallCount   = 0;
+
+		Functions\when( 'has_filter' )->justReturn( false );
 		Functions\when( 'get_the_category' )->alias(
 			static function () use ( &$categoryCallCount ): array {
 				++$categoryCallCount;
 
 				return [ (object) [ 'name' => 'Should Not Be Called' ] ];
+			}
+		);
+		Functions\when( 'get_the_author' )->alias(
+			static function () use ( &$authorCallCount ): string {
+				++$authorCallCount;
+
+				return 'Should Not Be Called';
 			}
 		);
 
@@ -466,5 +478,80 @@ final class TagsReplacerTest extends TestCase {
 
 		$this->assertSame( 'Title Only – My Site', $result );
 		$this->assertSame( 0, $categoryCallCount, 'Unused token %category% must not be evaluated when not in template.' );
+		$this->assertSame( 0, $authorCallCount, 'Unused token %author% must not be evaluated when not in template.' );
+	}
+
+	/**
+	 * Test a registered token filter receives the complete supported token map.
+	 *
+	 * Selective resolution must never shrink what a filter callback sees, so a
+	 * registered callback switches the replacer back to full resolution.
+	 *
+	 * @return void
+	 */
+	public function test_registered_token_filter_receives_complete_supported_map(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$captured = null;
+
+		Functions\when( 'has_filter' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value = null ) use ( &$captured ): mixed {
+				if ( 'rankkernel/tokens' === $hook && is_array( $value ) ) {
+					$captured = $value;
+				}
+
+				return $value;
+			}
+		);
+
+		$result = $replacer->replace( $ctx, '%%title%%', 'title' );
+
+		$this->assertSame( 'My Title', $result );
+		$this->assertIsArray( $captured, 'The token filter must be applied.' );
+		$this->assertSame(
+			TagsReplacer::SUPPORTED_TOKENS,
+			array_keys( $captured ),
+			'A registered token filter must receive the complete supported token map.'
+		);
+	}
+
+	/**
+	 * Test an all hook callback receives the complete supported token map.
+	 *
+	 * WordPress runs `all` callbacks for every filter in apply_filters(), so a
+	 * callback on that hook can observe the map and must see it complete too.
+	 *
+	 * @return void
+	 */
+	public function test_all_hook_callback_receives_complete_supported_map(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$captured = null;
+
+		Functions\when( 'has_filter' )->alias(
+			static fn ( string $hook ): bool => 'all' === $hook
+		);
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value = null ) use ( &$captured ): mixed {
+				if ( 'rankkernel/tokens' === $hook && is_array( $value ) ) {
+					$captured = $value;
+				}
+
+				return $value;
+			}
+		);
+
+		$result = $replacer->replace( $ctx, '%%title%%', 'title' );
+
+		$this->assertSame( 'My Title', $result );
+		$this->assertIsArray( $captured, 'The token filter must be applied.' );
+		$this->assertSame(
+			TagsReplacer::SUPPORTED_TOKENS,
+			array_keys( $captured ),
+			'A callback on the all hook must still receive the complete supported token map.'
+		);
 	}
 }
