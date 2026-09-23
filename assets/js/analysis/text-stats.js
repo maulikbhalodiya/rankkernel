@@ -17,6 +17,14 @@
 	'use strict';
 
 	var PHP_TRIM = /^[ \t\n\r\x00\x0B]+|[ \t\n\r\x00\x0B]+$/g;
+
+	// PHP's \s is two different sets. Without the /u modifier it is ASCII:
+	// space, tab, newline, carriage return, form feed and vertical tab. With
+	// /u (PHP 7.4 through 8.5 on PCRE2 10.40 and later) it adds U+0085,
+	// U+00A0, U+1680, U+180E and U+2000 to U+3000 spacing, and still excludes
+	// U+FEFF. JavaScript's \s adds U+FEFF and drops U+0085. Patterns mirrored
+	// from PHP therefore spell out the set the PHP side really uses, so both
+	// engines cut the same text and return the same score.
 	var NAMED_ENTITIES = {
 		amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
 		copy: '\u00a9', reg: '\u00ae', trade: '\u2122', hellip: '\u2026',
@@ -59,12 +67,12 @@
 	function plainText( html ) {
 		var text = String( html == null ? '' : html );
 		text = text.replace( /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ' );
-		text = text.replace( /<br\s*\/?>/gi, '\n' );
+		text = text.replace( /<br[ \t\n\r\f\v]*\/?>/gi, '\n' );
 		text = text.replace( /<\/(p|div|h[1-6]|li|blockquote|tr)>/gi, '\n' );
 		text = text.replace( /<[^>]*>/g, ' ' );
 		text = decodeEntities( text );
 		text = text.replace( /[ \t\x0B\f\r]+/g, ' ' );
-		text = text.replace( /\n\s*\n+/g, '\n' );
+		text = text.replace( /\n[ \t\n\r\f\v]*\n+/g, '\n' );
 		return phpTrim( text );
 	}
 
@@ -91,7 +99,7 @@
 			if ( '' === line ) {
 				continue;
 			}
-			var parts = line.split( /(?<=[.!?])\s+/u );
+			var parts = line.split( /(?<=[.!?])[ \t\n\r\f\v\u0085\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/u );
 			for ( var j = 0; j < parts.length; j++ ) {
 				var part = phpTrim( parts[ j ] );
 				if ( '' !== part ) {
@@ -128,7 +136,7 @@
 		var out = [];
 		var tags = String( html == null ? '' : html ).match( /<img\b[^>]*>/gi ) || [];
 		for ( var i = 0; i < tags.length; i++ ) {
-			var alt = tags[ i ].match( /\balt\s*=\s*("([^"]*)"|'([^']*)')/i );
+			var alt = tags[ i ].match( /\balt[ \t\n\r\f\v]*=[ \t\n\r\f\v]*("([^"]*)"|'([^']*)')/i );
 			out.push( alt ? ( alt[ 2 ] !== undefined ? alt[ 2 ] : alt[ 3 ] ) : '' );
 		}
 		return out;
@@ -140,8 +148,8 @@
 		var match;
 		while ( ( match = pattern.exec( String( html == null ? '' : html ) ) ) !== null ) {
 			var attrs = match[ 1 ];
-			var hrefMatch = attrs.match( /\bhref\s*=\s*("([^"]*)"|'([^']*)')/i );
-			var relMatch = attrs.match( /\brel\s*=\s*("([^"]*)"|'([^']*)')/i );
+			var hrefMatch = attrs.match( /\bhref[ \t\n\r\f\v]*=[ \t\n\r\f\v]*("([^"]*)"|'([^']*)')/i );
+			var relMatch = attrs.match( /\brel[ \t\n\r\f\v]*=[ \t\n\r\f\v]*("([^"]*)"|'([^']*)')/i );
 			var rawHref = hrefMatch ? ( hrefMatch[ 2 ] !== undefined ? hrefMatch[ 2 ] : hrefMatch[ 3 ] ) : '';
 			var rawRel = relMatch ? ( relMatch[ 2 ] !== undefined ? relMatch[ 2 ] : relMatch[ 3 ] ) : '';
 			out.push( { href: decodeEntities( rawHref ), rel: rawRel.toLowerCase(), text: plainText( match[ 2 ] ) } );

@@ -46,7 +46,7 @@
 		}
 		value = value.toLowerCase();
 		value = value.replace( /[^\p{L}\p{N}]+/gu, ' ' );
-		value = value.replace( /\s+/gu, ' ' );
+		value = value.replace( /[ \t\n\r\f\v\u0085\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/gu, ' ' );
 		return TextStats.phpTrim( value );
 	}
 

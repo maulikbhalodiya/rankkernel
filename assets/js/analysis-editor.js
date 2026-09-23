@@ -97,11 +97,10 @@
 		return node && 'string' === typeof node.value ? node.value : '';
 	}
 
-	// The analysis scores the post title, matching the block editor sidebar.
-	// The SEO title is only a fallback when the post title field is absent.
+	// The PHP stored score reads post_title only, so the panel scores that
+	// field and never the SEO title override, which is not part of the score.
 	function postTitle() {
-		var title = valueOf( 'title' );
-		return '' !== title ? title : valueOf( 'rankkernel-meta-title' );
+		return valueOf( 'title' );
 	}
 
 	function postSlug() {
@@ -144,7 +143,9 @@
 		var i = 0;
 
 		for ( i = 0; i < parts.length; i++ ) {
-			var clean = parts[ i ].replace( /^\s+|\s+$/g, '' );
+			// The same character list PHP trim() uses when it splits the
+			// posted keyword field, so the browser and the stored list agree.
+			var clean = parts[ i ].replace( /^[ \t\n\r\x00\x0B]+|[ \t\n\r\x00\x0B]+$/g, '' );
 
 			if ( '' !== clean ) {
 				out.push( clean );
@@ -277,6 +278,10 @@
 		try {
 			result = analyzer.analyze( input, { translate: translate, stripAccents: true } );
 		} catch ( e ) {
+			// A throw is not a scored run, so the memo is cleared. Otherwise a
+			// revert to the last good input would match the stale signature and
+			// the failure message would stick even though the draft is scored.
+			lastSignature = null;
 			hasResult = false;
 			setMessage( FAIL_MESSAGE, true );
 			return;

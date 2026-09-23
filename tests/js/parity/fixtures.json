@@ -1240,5 +1240,35 @@
       "html": "<p>red apples body text here for the reader now.</p>",
       "site_url": "https://example.com"
     }
+  },
+  {
+    "id": "whitespace-nbsp-paragraph",
+    "input": {
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>red apples here for the reader now.</p><p>&nbsp;</p><p>more text follows here for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "whitespace-unicode-separators",
+    "input": {
+      "keywords": [
+        "reader"
+      ],
+      "html": "<p>Alpha one here for the reader.\u2028Alpha two here for the reader.\u0085Alpha three here for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "whitespace-feff",
+    "input": {
+      "keywords": [
+        "reader"
+      ],
+      "html": "<p>Alpha one here for the reader.\uFEFFAlpha two here for the reader.\uFEFFAlpha three here for the reader.</p>",
+      "site_url": "https://example.com"
+    }
   }
 ]

@@ -156,7 +156,8 @@ test( 'readability checks follow their preconditions', () => {
 	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>' + new Array( 130 ).fill( 'word' ).join( ' ' ) + '</p>' } ) ), 'short_paragraphs' ).status, 'improve' );
 	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>Short. Tiny.</p>' } ) ), 'consecutive_sentences' ).status, 'na' );
 	const passive = checkById( Analyzer.analyze( input( { html: '<p>The ball was thrown by the boy. It was seen by all. More words here now.</p>' } ) ), 'passive_voice' );
-	assert.ok( [ 'pass', 'improve' ].indexOf( passive.status ) !== -1 );
+	assert.equal( passive.status, 'improve' );
+	assert.equal( passive.earned, 0 );
 } );
 
 test( 'single_h1, table_of_contents and text_present follow their rules', () => {

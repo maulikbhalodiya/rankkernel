@@ -35,7 +35,7 @@ const fixtures = fixtureFile.concat( generatedFixtures );
 
 // Pinned so that deleting a fixture nobody names in an assertion fails loudly
 // instead of silently shrinking parity coverage.
-const FIXTURE_FILE_INVENTORY = 119;
+const FIXTURE_FILE_INVENTORY = 122;
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
 
@@ -196,6 +196,10 @@ test( 'the PHP runner answers with a result for every fixture', () => {
 		assert.ok( js[ fixture.id ], 'js missing ' + fixture.id );
 		assert.equal( js[ fixture.id ].checks.length, php[ fixture.id ].checks.length, 'check count in ' + fixture.id );
 	}
+} );
+
+test( 'the PHP and JavaScript rules versions are the same constant', () => {
+	assert.equal( payload.probes.rulesVersion, Analyzer.RULES_VERSION );
 } );
 
 test( 'score and band match for every fixture', () => {
@@ -493,6 +497,23 @@ test( 'the script, style and malformed markup extraction agrees', () => {
 	assertStatusOnly( 'numeric-entities-href', 'generic_anchor_text', 'pass' );
 	assertAgree( 'headings-nested', 'keyword_in_subheading', 'pass', 3 );
 	assertAgree( 'sentence-newline', 'consecutive_sentences', 'pass', 3 );
+} );
+
+// The whitespace fixtures pin the sentence count both engines cut from a
+// non breaking space paragraph and from the two separators where PHP and
+// JavaScript disagree about \s. A regression names the check it moved.
+test( 'the whitespace fixtures keep the sentence counting aligned', () => {
+	// PHP keeps the whitespace only paragraph line, so it sees three
+	// sentences and passes the repeated opening rule.
+	assertAgree( 'whitespace-nbsp-paragraph', 'consecutive_sentences', 'pass', 3 );
+
+	// U+2028 and U+0085 are whitespace to PHP with the /u modifier and to the
+	// aligned JavaScript set, so both engines split into three sentences.
+	assertAgree( 'whitespace-unicode-separators', 'consecutive_sentences', 'improve', 0 );
+
+	// U+FEFF is whitespace to JavaScript's \s and not to PHP, so neither
+	// engine may split on it.
+	assertStatusOnly( 'whitespace-feff', 'consecutive_sentences', 'na' );
 } );
 
 test( 'the default fixture still reaches the good band and its full checklist', () => {

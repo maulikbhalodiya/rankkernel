@@ -43,7 +43,7 @@
 	var NEGATIVE_WORDS = [ 'bad', 'worst', 'fail', 'error', 'problem', 'risk', 'stop', 'avoid', 'lose', 'hard', 'slow', 'broken', 'warn', 'never', 'mistake' ];
 	var TRANSITION_WORDS = [ 'also', 'although', 'because', 'but', 'consequently', 'finally', 'first', 'for example', 'however', 'instead', 'meanwhile', 'moreover', 'next', 'since', 'therefore', 'though', 'thus', 'while', 'additionally', 'as a result' ];
 	var GENERIC_ANCHORS = [ 'click here', 'read more', 'this', 'here', 'link', 'website' ];
-	var PASSIVE_PATTERN = /\b(is|are|was|were|be|been|being)\s+(\w+ed|done|made|given|taken|seen|known|shown|held|built|sent|found|kept|left|written|read)\b/i;
+	var PASSIVE_PATTERN = /\b(is|are|was|were|be|been|being)[ \t\n\r\f\v]+(\w+ed|done|made|given|taken|seen|known|shown|held|built|sent|found|kept|left|written|read)\b/i;
 
 	function identity( text ) {
 		return text;

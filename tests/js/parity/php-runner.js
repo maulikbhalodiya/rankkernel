@@ -49,6 +49,7 @@ module.exports = [
 	'$word = \\RankKernel\\Modules\\Analysis\\TextStats::words( "\u041f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440" );',
 	'$last = end( $word );',
 	'$probes = array(',
+	'	"rulesVersion" => \\RankKernel\\Modules\\Analysis\\Analyzer::RULES_VERSION,',
 	'	"numberFormat" => array( number_format( 1.005, 2 ), number_format( 1.015, 2 ), number_format( 2.5, 2 ) ),',
 	'	"wordEdgeTrim" => array( "count" => count( $word ), "last_hex" => bin2hex( (string) $last ), "utf8_valid" => mb_check_encoding( (string) $last, "UTF-8" ) ),',
 	'	"entities" => array( bin2hex( html_entity_decode( "&#0;", ENT_QUOTES | ENT_HTML5, "UTF-8" ) ), bin2hex( html_entity_decode( "&#xD800;", ENT_QUOTES | ENT_HTML5, "UTF-8" ) ), bin2hex( html_entity_decode( "&#65535;", ENT_QUOTES | ENT_HTML5, "UTF-8" ) ) ),',
