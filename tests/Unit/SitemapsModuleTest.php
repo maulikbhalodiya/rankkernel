@@ -61,6 +61,7 @@ final class SitemapsModuleTest extends TestCase {
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => $v );
 		Functions\when( '__return_false' )->alias( static fn (): bool => false );
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
 	}
 
 	/**

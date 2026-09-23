@@ -233,6 +233,13 @@ class SitemapsModule implements ModuleInterface {
 			return;
 		}
 
+		if ( function_exists( 'get_current_screen' ) ) {
+			$screen = get_current_screen();
+			if ( ! is_object( $screen ) || ! isset( $screen->id ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
+				return;
+			}
+		}
+
 		echo '<div class="notice notice-info is-dismissible"><p>';
 		echo esc_html__( 'Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', 'rankkernel' );
 		echo '</p></div>';
