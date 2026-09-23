@@ -272,10 +272,8 @@ $rkListMatchBadgeMap = [
 
 								<?php
 								$rkToggleAria = ! empty( $ruleRow['active'] )
-									/* translators: %s: redirect source URL */
-									? sprintf( __( 'Deactivate redirect for %s', 'rankkernel' ), $ruleRow['source'] )
-									/* translators: %s: redirect source URL */
-									: sprintf( __( 'Activate redirect for %s', 'rankkernel' ), $ruleRow['source'] );
+									? sprintf( /* translators: %s: redirect source URL */ __( 'Deactivate redirect for %s', 'rankkernel' ), $ruleRow['source'] )
+									: sprintf( /* translators: %s: redirect source URL */ __( 'Activate redirect for %s', 'rankkernel' ), $ruleRow['source'] );
 								?>
 								<td class="rk-col-actions">
 									<div class="row-actions">
