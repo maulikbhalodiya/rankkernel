@@ -83,10 +83,10 @@ defined( 'ABSPATH' ) || exit;
 						</div>
 
 						<h3><?php echo esc_html__( 'robots.txt', 'rankkernel' ); ?></h3>
-						<div class="rk-robots-tabs">
-							<a class="rk-tab<?php echo 'preview' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></a>
-							<a class="rk-tab<?php echo 'edit' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=edit' ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a>
-						</div>
+						<nav class="rk-robots-tabs" aria-label="<?php echo esc_attr__( 'Robots.txt tabs', 'rankkernel' ); ?>">
+							<a class="rk-tab<?php echo 'preview' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"<?php echo 'preview' === $robotTab ? ' aria-current="page"' : ''; ?>><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></a>
+							<a class="rk-tab<?php echo 'edit' === $robotTab ? ' is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=edit' ) ); ?>"<?php echo 'edit' === $robotTab ? ' aria-current="page"' : ''; ?>><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a>
+						</nav>
 
 						<?php if ( 'edit' === $robotTab ) : ?>
 							<p class="description"><?php echo esc_html__( 'Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>

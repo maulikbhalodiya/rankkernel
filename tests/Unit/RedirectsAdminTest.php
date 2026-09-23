@@ -1712,6 +1712,8 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select redirect for /a"', $html );
 		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
+		$this->assertStringContainsString( 'aria-label="Deactivate redirect for /a"', $html );
+		$this->assertStringContainsString( 'aria-label="Delete redirect for /a"', $html );
 	}
 
 	/**

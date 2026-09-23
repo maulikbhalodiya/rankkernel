@@ -213,9 +213,9 @@ endif;
 							<td class="rk-col-seen"><?php echo '' === $listRowItem['seen'] ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $listRowItem['seen'] ); ?></td>
 							<td class="rk-col-actions">
 								<?php if ( $redirectsEnabled ) : ?>
-									<a class="button button-small" href="<?php echo esc_url( $listRowItem['createRedirectUrl'] ); ?>"><?php echo esc_html__( 'Create Redirect', 'rankkernel' ); ?></a>
+									<a class="button button-small" href="<?php echo esc_url( $listRowItem['createRedirectUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: missing page URL */ __( 'Create redirect for %s', 'rankkernel' ), $listRowItem['uri'] ) ); ?>"><?php echo esc_html__( 'Create Redirect', 'rankkernel' ); ?></a>
 								<?php endif; ?>
-								<a class="button button-small rk-confirm" href="<?php echo esc_url( $listRowItem['deleteUrl'] ); ?>" data-rk-confirm="<?php echo esc_attr__( 'Delete this entry? This cannot be undone.', 'rankkernel' ); ?>"><?php echo esc_html__( 'Delete', 'rankkernel' ); ?></a>
+								<a class="button button-small rk-confirm" href="<?php echo esc_url( $listRowItem['deleteUrl'] ); ?>" data-rk-confirm="<?php echo esc_attr__( 'Delete this entry? This cannot be undone.', 'rankkernel' ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: missing page URL */ __( 'Delete 404 entry for %s', 'rankkernel' ), $listRowItem['uri'] ) ); ?>"><?php echo esc_html__( 'Delete', 'rankkernel' ); ?></a>
 							</td>
 						</tr>
 					<?php endforeach; ?>
