@@ -911,6 +911,9 @@ final class HeadRendererTest extends TestCase {
 			[
 				'title'       => '%%title%% %%sep%% %%sitename%%',
 				'description' => 'Fixed Description',
+			],
+			[
+				'description_template' => '',
 			]
 		);
 
@@ -933,6 +936,9 @@ final class HeadRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Post Title', (string) $docTitle );
 		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should fire once during title()' );
 
+		// Explicitly clear TagsReplacer memo to isolate HeadRenderer's $resolvedTitleMemo layer.
+		$replacer->clearMemo();
+
 		// 2) Call render() which resolves og:title and twitter:title via getResolvedTitle().
 		ob_start();
 		$renderer->render();
@@ -942,7 +948,7 @@ final class HeadRendererTest extends TestCase {
 		$this->assertStringContainsString( 'twitter:title', $out );
 		$this->assertStringContainsString( 'Post Title', $out );
 
-		// The filter should NOT fire again during render() because getResolvedTitle() returns the memoized title.
-		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire again during render()' );
+		// The filter should STILL NOT fire again during render() because HeadRenderer memoizes the title.
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire during render even if TagsReplacer memo is cleared' );
 	}
 }

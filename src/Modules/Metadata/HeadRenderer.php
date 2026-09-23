@@ -59,6 +59,7 @@ final class HeadRenderer {
 	 *
 	 * Performance optimization: avoids redundant title template token parsing and regex replacement
 	 * passes across multiple calls (e.g. title(), renderOgTags(), and renderTwitterTags()) in a single request.
+	 * Context and settings are assumed immutable per request execution thread.
 	 *
 	 * @var array<string, string>
 	 */
@@ -116,8 +117,7 @@ final class HeadRenderer {
 			return $title;
 		}
 
-		$meta = $ctx->meta();
-
+		$meta         = $ctx->meta();
 		$payloadTitle = isset( $meta['title'] ) ? trim( (string) $meta['title'] ) : '';
 
 		// Payload title takes precedence.
@@ -127,9 +127,13 @@ final class HeadRenderer {
 				$resolved = $this->replacer->replace( $ctx, $payloadTitle, 'title' );
 
 				if ( '' !== trim( $resolved ) ) {
+					$this->resolvedTitleMemo[ $ctx->hash() ] = $resolved;
+
 					return $resolved;
 				}
 			} else {
+				$this->resolvedTitleMemo[ $ctx->hash() ] = $payloadTitle;
+
 				return $payloadTitle;
 			}
 		}
@@ -141,6 +145,8 @@ final class HeadRenderer {
 			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
 
 			if ( '' !== trim( $resolved ) ) {
+				$this->resolvedTitleMemo[ $ctx->hash() ] = $resolved;
+
 				return $resolved;
 			}
 		}
