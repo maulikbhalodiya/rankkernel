@@ -240,7 +240,9 @@ class TaxonomiesProvider {
 			return [];
 		}
 
-		// Performance optimization: prime term object caches in a single batch query to prevent N+1 queries in get_term_link().
+		// Performance optimization: prime term object caches in a single batch
+		// query to prevent N+1 queries in get_term_link(). Term meta stays
+		// unprimed, no call path in this provider reads it.
 		$termIds = [];
 		foreach ( $rows as $row ) {
 			if ( is_array( $row ) && isset( $row['term_id'] ) && (int) $row['term_id'] > 0 ) {

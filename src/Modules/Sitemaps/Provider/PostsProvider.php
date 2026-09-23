@@ -174,7 +174,12 @@ class PostsProvider {
 			return [];
 		}
 
-		// Performance optimization: prime post object caches in a single batch query to prevent N+1 queries in get_permalink().
+		// Performance optimization: prime post objects, term relationships and
+		// post meta in batched queries, because the code below resolves one
+		// permalink per row (the post row, plus the category relationship
+		// cache when the permalink structure carries %category%) and one
+		// featured image id per row (the _thumbnail_id meta). Left unprimed
+		// each of those reads is a separate query, an N+1 over the page.
 		$postIds = [];
 		foreach ( $rows as $row ) {
 			if ( is_array( $row ) && isset( $row['ID'] ) && (int) $row['ID'] > 0 ) {
@@ -183,7 +188,7 @@ class PostsProvider {
 		}
 
 		if ( [] !== $postIds && function_exists( '_prime_post_caches' ) ) {
-			_prime_post_caches( $postIds, false, false );
+			_prime_post_caches( $postIds, true, true );
 		}
 
 		$rows = $this->dropCanonicalMismatchRows( $rows );
