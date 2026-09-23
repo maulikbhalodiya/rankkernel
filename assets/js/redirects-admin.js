@@ -13,9 +13,10 @@
  *    only their own panel.
  *
  *  AJAX LIST REFRESH:
- *    Intercepts tab clicks, filter-form submits, sort-header clicks and
- *    pagination clicks — fetches only #rk-list-section via WordPress AJAX,
- *    injects the HTML response, and re-binds all list-level event listeners.
+ *    Intercepts tab clicks, filter-form submits, sort-header clicks,
+ *    pagination clicks and rows-per-page changes. Fetches only
+ *    #rk-list-section via WordPress AJAX, injects the HTML response, and
+ *    re-binds all list-level event listeners.
  *    Falls back silently to a full page load on any AJAX error.
  *    The browser URL is kept in sync via history.replaceState so bookmarks
  *    and the back button still work. Loading state is shown on the section.
@@ -32,7 +33,6 @@
  *    - Bulk select-all checkbox plus the selected count chip
  *    - Destructive action confirmations
  *    - File-input label display
- *    - Rows per page select submit
  *
  * Every feature degrades gracefully — the page is fully functional without JS.
  *
@@ -359,6 +359,24 @@ function rankkernelAnnounce( text ) {
 	}
 
 	/**
+	 * Serialise a GET form and refresh the list through the AJAX path.
+	 *
+	 * @param {Element} form Form whose fields become the filter URL.
+	 */
+	function refreshForm( form ) {
+		var data   = new FormData( form );
+		var params = {};
+
+		data.forEach( function ( val, key ) {
+			params[ key ] = String( val );
+		} );
+
+		var baseUrl = form.getAttribute( 'action' ) || window.location.href;
+
+		fetchList( buildFilterUrl( baseUrl, params ), true );
+	}
+
+	/**
 	 * Write the selected row count into the bulk bar chip, hiding it when
 	 * nothing is selected. Called on load, after every AJAX swap, and on
 	 * every row checkbox change.
@@ -429,16 +447,31 @@ function rankkernelAnnounce( text ) {
 			cb.addEventListener( 'change', updateSelectedChip );
 		} );
 
-		/* Rows per page select submits its GET form on change. */
+		/*
+		 * Rows per page changes refresh the list through the same AJAX path
+		 * as the other list controls. When the localized AJAX config is
+		 * missing the plain GET submit still runs, and without JavaScript
+		 * the form keeps working through its own submit button.
+		 */
 		var perPageSelect = listWrap.querySelector( '#rk-perpage-select' );
 
 		if ( perPageSelect ) {
 			perPageSelect.addEventListener( 'change', function () {
 				var perPageForm = perPageSelect.form || null;
 
-				if ( perPageForm && typeof perPageForm.submit === 'function' ) {
-					perPageForm.submit();
+				if ( ! perPageForm ) {
+					return;
 				}
+
+				if ( ! cfg ) {
+					if ( typeof perPageForm.submit === 'function' ) {
+						perPageForm.submit();
+					}
+
+					return;
+				}
+
+				refreshForm( perPageForm );
 			} );
 		}
 
@@ -456,24 +489,13 @@ function rankkernelAnnounce( text ) {
 			} );
 		} );
 
-		/* Filter form submit — serialise fields into a URL then AJAX-fetch. */
+		/* Filter form submit: serialise fields into a URL then AJAX-fetch. */
 		var filterForm = listWrap.querySelector( '#rk-filter-form' );
 
 		if ( filterForm && cfg ) {
 			filterForm.addEventListener( 'submit', function ( event ) {
 				event.preventDefault();
-
-				var data    = new FormData( filterForm );
-				var params  = {};
-
-				data.forEach( function ( val, key ) {
-					params[ key ] = String( val );
-				} );
-
-				var baseUrl = filterForm.getAttribute( 'action' ) || window.location.href;
-				var url     = buildFilterUrl( baseUrl, params );
-
-				fetchList( url, true );
+				refreshForm( filterForm );
 			} );
 		}
 
