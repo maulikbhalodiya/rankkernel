@@ -4,6 +4,18 @@
  * Small progressive enhancement only. Every destructive link works without
  * JavaScript, this file only asks for confirmation first.
  */
+// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+// Two handlers announce, so the helper stays at file scope and carries the plugin prefix. Each
+// announcement literal is translated at its own call site, because the WordPress extractor only
+// reads literal arguments.
+function rankkernelAnnounce( text ) {
+	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+		return;
+	}
+
+	window.wp.a11y.speak( text );
+}
+
 document.addEventListener( 'DOMContentLoaded', function () {
 	var confirmLinks = document.querySelectorAll( '.rk-redirects .rk-confirm' );
 
@@ -36,12 +48,21 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	var selectAll = document.getElementById( 'rk-select-all' );
 
 	if ( selectAll && bulkForm ) {
+		// Falls back to the raw string when wp.i18n is absent.
+		var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+			? window.wp.i18n.__
+			: function ( text ) { return text; };
+
 		selectAll.addEventListener( 'change', function () {
 			var boxes = bulkForm.querySelectorAll( 'input[name="rule_ids[]"]' );
 
 			boxes.forEach( function ( box ) {
 				box.checked = selectAll.checked;
 			} );
+
+			rankkernelAnnounce( selectAll.checked
+				? __( 'All redirects selected.', 'rankkernel' )
+				: __( 'All redirects deselected.', 'rankkernel' ) );
 		} );
 	}
 } );
@@ -236,18 +257,10 @@ document.addEventListener( 'DOMContentLoaded', function () {
  * remains visible.
  */
 document.addEventListener( 'DOMContentLoaded', function () {
-	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
-	function rkAnnounce( message ) {
-		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
-			return;
-		}
-
-		var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
-			? window.wp.i18n.__( message, 'rankkernel' )
-			: message;
-
-		window.wp.a11y.speak( text );
-	}
+	// Falls back to the raw string when wp.i18n is absent.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
 
 	var buttons = document.querySelectorAll( '[data-rk-use-destination]' );
 
@@ -278,7 +291,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			target.value = destination;
 			target.focus();
-			rkAnnounce( 'Recommended destination applied to Destination URL field.' );
+			rankkernelAnnounce( __( 'Recommended destination applied to Destination URL field.', 'rankkernel' ) );
 		} );
 	} );
 } );

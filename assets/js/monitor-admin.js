@@ -6,17 +6,20 @@
  */
 document.addEventListener( 'DOMContentLoaded', function () {
 	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
-	function rkAnnounce( message ) {
+	function rkAnnounce( text ) {
 		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
 			return;
 		}
 
-		var text = ( window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
-			? window.wp.i18n.__( message, 'rankkernel' )
-			: message;
-
 		window.wp.a11y.speak( text );
 	}
+
+	// The translator falls back to the raw string when wp.i18n is absent. Each announcement
+	// literal is translated at its call site instead, because the WordPress extractor only reads
+	// literal arguments and a message passed through this helper would stay invisible to it.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
 
 	var confirmLinks = document.querySelectorAll( '.rk-monitor .rk-confirm' );
 
@@ -67,6 +70,10 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			boxes.forEach( function ( box ) {
 				box.checked = selectAll.checked;
 			} );
+
+			rkAnnounce( selectAll.checked
+				? __( 'All 404 entries selected.', 'rankkernel' )
+				: __( 'All 404 entries deselected.', 'rankkernel' ) );
 		} );
 	}
 
@@ -87,7 +94,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				lastInput.focus();
 			}
 
-			rkAnnounce( 'Exclusion row added.' );
+			rkAnnounce( __( 'Exclusion row added.', 'rankkernel' ) );
 		} );
 
 		exclusionBody.addEventListener( 'click', function ( event ) {
@@ -122,7 +129,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					focusInput.focus();
 				}
 
-				rkAnnounce( 'Exclusion row removed.' );
+				rkAnnounce( __( 'Exclusion row removed.', 'rankkernel' ) );
 			} else {
 				var input = row.querySelector( 'input' );
 
@@ -131,7 +138,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					input.focus();
 				}
 
-				rkAnnounce( 'Exclusion row cleared.' );
+				rkAnnounce( __( 'Exclusion row cleared.', 'rankkernel' ) );
 			}
 		} );
 	}
