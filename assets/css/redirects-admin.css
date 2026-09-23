@@ -34,9 +34,6 @@
    Page container
    ========================================================================== */
 
-.rk-redirects {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-}
 
 /* ==========================================================================
    RankKernel notice banners
@@ -443,7 +440,7 @@
 }
 
 .rk-redirects .rk-form-input.code {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: var(--rk-font-mono);
 }
 
 /* Error state */
@@ -864,7 +861,7 @@
 
 /* Source path monospace */
 .rk-redirects .rk-col-from strong {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
 	color: var(--rk-color-primary);
@@ -873,7 +870,7 @@
 
 /* Destination monospace */
 .rk-redirects .rk-col-to {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
 	color: var(--rk-color-text);
@@ -911,7 +908,7 @@
 /* Hits column */
 .rk-redirects .rk-col-hits {
 	font-variant-numeric: tabular-nums;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: var(--rk-font-mono);
 	font-weight: 600;
 	color: var(--rk-color-text);
 }
@@ -1075,7 +1072,7 @@
 }
 
 .rk-redirects .rk-csv-desc code {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
 	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border);

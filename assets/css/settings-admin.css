@@ -233,7 +233,7 @@
 
 .rk-code-editor {
 	width: 100%;
-	font-family: Menlo, Consolas, monaco, monospace;
+	font-family: var(--rk-font-mono);
 }
 
 .rk-preview {
