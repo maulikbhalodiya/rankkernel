@@ -139,5 +139,29 @@ final class PluginTest extends TestCase {
 		$phpcs_source = (string) file_get_contents( $root . '/phpcs.xml' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
 		$this->assertSame( 1, preg_match( '/<config name="testVersion" value="([^"]+)"\s*\/>/', $phpcs_source, $phpcs_match ) );
 		$this->assertSame( '8.2-', $phpcs_match[1], 'phpcs.xml must test against PHP 8.2-' );
+
+		$guard_pattern = "/version_compare\(\s*PHP_VERSION,\s*'8\.2\.0',\s*'<'\s*\)/";
+		$this->assertSame(
+			2,
+			preg_match_all( $guard_pattern, $php_source, $php_guards, PREG_OFFSET_CAPTURE ),
+			'rankkernel.php must guard the boot path and the activation path at PHP 8.2.0'
+		);
+
+		$autoload_offset = strpos( $php_source, 'vendor/autoload.php' );
+		$this->assertNotFalse( $autoload_offset, 'rankkernel.php must load the vendor autoloader' );
+		$this->assertLessThan(
+			$autoload_offset,
+			$php_guards[0][0][1],
+			'The boot guard must run before the autoloader loads'
+		);
+		$this->assertGreaterThan(
+			$autoload_offset,
+			$php_guards[0][1][1],
+			'The activation guard must run after the autoloader, inside the activation callback'
+		);
+
+		$readme_md_source = (string) file_get_contents( $root . '/README.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertSame( 1, preg_match( '/^- PHP (\S+)$/m', $readme_md_source, $readme_md_requirement ) );
+		$this->assertSame( '8.2+', $readme_md_requirement[1], 'README.md must require PHP 8.2+' );
 	}
 }
