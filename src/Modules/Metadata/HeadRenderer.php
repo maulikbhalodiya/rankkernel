@@ -117,6 +117,12 @@ final class HeadRenderer {
 			return $title;
 		}
 
+		$hash = $ctx->hash();
+
+		if ( array_key_exists( $hash, $this->resolvedTitleMemo ) ) {
+			return $this->resolvedTitleMemo[ $hash ];
+		}
+
 		$meta         = $ctx->meta();
 		$payloadTitle = isset( $meta['title'] ) ? trim( (string) $meta['title'] ) : '';
 
