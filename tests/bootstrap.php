@@ -52,6 +52,23 @@ if (! function_exists('plugin_dir_url')) {
     }
 }
 
+// The redirects CSV hint formats the upload cap with size_format(), which is
+// not part of the minimal WP stubs. This mirrors the core output for the
+// byte values the plugin formats (2097152 bytes reads as 2 MB).
+if (! function_exists('size_format')) {
+    function size_format( int $bytes, int $decimals = 0 ): string {
+        $units = [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB' ];
+        $unit  = 0;
+
+        while ( $bytes >= 1024 && $unit < count($units) - 1 ) {
+            $bytes = $bytes / 1024;
+            $unit++;
+        }
+
+        return number_format((float) $bytes, $decimals) . ' ' . $units[ $unit ];
+    }
+}
+
 // Minimal WP stubs for unit tests (when phpunit-polyfills not yet loaded).
 if (! class_exists('WP_Error')) {
     class WP_Error {

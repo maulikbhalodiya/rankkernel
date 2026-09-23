@@ -546,7 +546,7 @@ $rkMatchBadgeMap = [
 									accept=".csv,text/csv"
 									class="rk-file-input"
 								/>
-								<p class="rk-file-zone-hint"><?php echo esc_html__( '.csv files only (up to 5 MB)', 'rankkernel' ); ?></p>
+								<p class="rk-file-zone-hint"><?php echo esc_html( sprintf( /* translators: %s: maximum accepted CSV upload size, for example 2 MB */ __( '.csv files only (up to %s)', 'rankkernel' ), size_format( \RankKernel\Modules\Redirects\CsvHandler::MAX_FILE_SIZE ) ) ); ?></p>
 							</div>
 
 							<div class="rk-csv-check-row">

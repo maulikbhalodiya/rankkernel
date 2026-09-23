@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\RedirectsPage;
 use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
@@ -1740,6 +1741,25 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringNotContainsString( '&#10007;', $html );
 		$this->assertStringNotContainsString( '&#10003;', $html );
 		$this->assertStringNotContainsString( '&#9881;', $html );
+	}
+
+	/**
+	 * The CSV upload hint states the same cap the server enforces.
+	 *
+	 * The hint is derived from CsvHandler::MAX_FILE_SIZE, so it can never
+	 * invite a file the importer then rejects.
+	 */
+	public function test_render_csv_upload_hint_matches_server_size_cap(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString(
+			'.csv files only (up to ' . size_format( CsvHandler::MAX_FILE_SIZE ) . ')',
+			$html
+		);
+		$this->assertStringNotContainsString( 'up to 5 MB', $html );
 	}
 
 	/**
