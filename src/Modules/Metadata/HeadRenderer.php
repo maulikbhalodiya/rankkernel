@@ -55,6 +55,16 @@ final class HeadRenderer {
 	private ?WP_Query $injectedQuery = null;
 
 	/**
+	 * Memoized resolved titles keyed by context hash.
+	 *
+	 * Performance optimization: avoids redundant title template token parsing and regex replacement
+	 * passes across multiple calls (e.g. title(), renderOgTags(), and renderTwitterTags()) in a single request.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $resolvedTitleMemo = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore     $settings Settings store.
@@ -229,23 +239,34 @@ final class HeadRenderer {
 	/**
 	 * Get resolved document title (payload → template → ctx title) without leaking tokens.
 	 *
-	 * Uses distinct memo field 'og_title' to avoid colliding with title() memo.
+	 * Performance optimization: memoizes the resolved title by Context hash and aligns field keys
+	 * ('title', 'title_template') with title() so TagsReplacer memo achieves 100% hits across passes.
 	 *
 	 * @param Context $ctx Context.
 	 * @return string The result.
 	 */
 	private function getResolvedTitle( Context $ctx ): string {
+		$hash = $ctx->hash();
+
+		if ( array_key_exists( $hash, $this->resolvedTitleMemo ) ) {
+			return $this->resolvedTitleMemo[ $hash ];
+		}
+
 		$meta         = $ctx->meta();
 		$payloadTitle = isset( $meta['title'] ) ? trim( (string) $meta['title'] ) : '';
 
 		if ( '' !== $payloadTitle ) {
 			if ( 1 === preg_match( '/%%[a-z_]+%%/', $payloadTitle ) ) {
-				$resolved = $this->replacer->replace( $ctx, $payloadTitle, 'og_title' );
+				$resolved = $this->replacer->replace( $ctx, $payloadTitle, 'title' );
 
 				if ( '' !== trim( $resolved ) ) {
+					$this->resolvedTitleMemo[ $hash ] = $resolved;
+
 					return $resolved;
 				}
 			} else {
+				$this->resolvedTitleMemo[ $hash ] = $payloadTitle;
+
 				return $payloadTitle;
 			}
 		}
@@ -253,14 +274,19 @@ final class HeadRenderer {
 		$template = (string) $this->settings->get( 'title_template', '%%title%% %%sep%% %%sitename%%' );
 
 		if ( '' !== trim( $template ) ) {
-			$resolved = $this->replacer->replace( $ctx, $template, 'og_title_template' );
+			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
 
 			if ( '' !== trim( $resolved ) ) {
+				$this->resolvedTitleMemo[ $hash ] = $resolved;
+
 				return $resolved;
 			}
 		}
 
-		return $ctx->title();
+		$fallback                         = $ctx->title();
+		$this->resolvedTitleMemo[ $hash ] = $fallback;
+
+		return $fallback;
 	}
 
 	/**

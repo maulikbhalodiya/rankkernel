@@ -902,4 +902,47 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * Test getResolvedTitle memoizes title resolution across title() and render() passes.
+	 */
+	public function test_get_resolved_title_memoization(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'title'       => '%%title%% %%sep%% %%sitename%%',
+				'description' => 'Fixed Description',
+			]
+		);
+
+		$filterCalls = 0;
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $val ) use ( &$filterCalls ) {
+				if ( 'rankkernel/tokens' === $hook ) {
+					++$filterCalls;
+				}
+
+				return $val;
+			}
+		);
+
+		$replacer = new TagsReplacer();
+		$renderer = new HeadRenderer( $settings, $replacer, $ctx );
+
+		// 1) Call title() filter pass.
+		$docTitle = $renderer->title( 'Default' );
+		$this->assertStringContainsString( 'Post Title', (string) $docTitle );
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should fire once during title()' );
+
+		// 2) Call render() which resolves og:title and twitter:title via getResolvedTitle().
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'og:title', $out );
+		$this->assertStringContainsString( 'twitter:title', $out );
+		$this->assertStringContainsString( 'Post Title', $out );
+
+		// The filter should NOT fire again during render() because getResolvedTitle() returns the memoized title.
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire again during render()' );
+	}
 }
