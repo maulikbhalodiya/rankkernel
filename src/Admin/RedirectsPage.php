@@ -77,8 +77,8 @@ final class RedirectsPage {
 	 * @var array<string, string>
 	 */
 	private const SORTABLE = [
-		'source'        => 'From',
-		'target'        => 'To',
+		'source'        => 'Source',
+		'target'        => 'Destination',
 		'code'          => 'Code',
 		'match_type'    => 'Match',
 		'hits'          => 'Hits',
@@ -301,7 +301,14 @@ final class RedirectsPage {
 	 * @param array<string, mixed> $filters Validated filter set from listFilters().
 	 */
 	public function renderListSection( array $filters ): void {
-		$perPage = $this->rulesPerPage();
+		$fallbackPerPage = $this->rulesPerPage();
+		$perPage         = (int) ( $filters['per_page'] ?? 0 );
+
+		if ( $perPage < 1 ) {
+			$perPage = $fallbackPerPage;
+		}
+
+		$perPage = max( 1, min( 100, $perPage ) );
 
 		$result = $this->repository->paginate(
 			[
@@ -325,9 +332,11 @@ final class RedirectsPage {
 			}
 		}
 
-		$totalRows       = (int) $result['total'];
-		$pageNumber      = max( 1, (int) $result['page'] );
-		$pageCount       = (int) $result['pages'];
+		$totalRows  = (int) $result['total'];
+		$pageNumber = max( 1, (int) $result['page'] );
+		$pageCount  = (int) $result['pages'];
+		$perPage    = max( 1, (int) $result['per_page'] );
+
 		$statusViews     = $this->statusViews( $filters, $totalRows, (int) $result['active'], (int) $result['inactive'] );
 		$sortableHeaders = $this->sortableHeaders( $filters );
 		$pagination      = $this->paginationState( $pageNumber, $pageCount, $filters );
@@ -336,14 +345,32 @@ final class RedirectsPage {
 			/* translators: %1$d: current page, %2$d: total pages */
 			__( 'Page %1$d of %2$d', 'rankkernel' ),
 			$pageNumber,
-			$pageCount
+			max( 1, $pageCount )
 		);
 
-		$itemsLabel = sprintf(
-			/* translators: %d: total number of redirects */
-			__( '%d items', 'rankkernel' ),
-			$totalRows
+		$rangeStart = $totalRows > 0 ? ( $pageNumber - 1 ) * $perPage + 1 : 0;
+		$rangeEnd   = min( $pageNumber * $perPage, $totalRows );
+
+		$showingLabel = sprintf(
+			/* translators: %1$s: first visible row, %2$s: last visible row, %3$s: total rows */
+			__( 'Showing %1$s to %2$s of %3$s redirects', 'rankkernel' ),
+			number_format_i18n( $rangeStart ),
+			number_format_i18n( $rangeEnd ),
+			number_format_i18n( $totalRows )
 		);
+
+		$totalLabel = sprintf(
+			/* translators: %s: total number of redirects */
+			__( '%s redirects', 'rankkernel' ),
+			number_format_i18n( $totalRows )
+		);
+
+		$perPageOptions = [ 10, 20, 25, 50, 100 ];
+
+		if ( ! in_array( $perPage, $perPageOptions, true ) ) {
+			$perPageOptions[] = $perPage;
+			sort( $perPageOptions );
+		}
 
 		$filterSearch = (string) $filters['search'];
 		$filterStatus = (string) $filters['status'];
@@ -482,6 +509,53 @@ final class RedirectsPage {
 		$preserveQuery    = ! empty( $settings['preserve_query'] );
 		$autoSlugRedirect = ! empty( $settings['auto_slug_redirect'] );
 		$rulesPerPage     = max( 1, min( 100, (int) ( $settings['rules_per_page'] ?? 20 ) ) );
+
+		$totalRules = $this->repository->count();
+
+		if ( 1 === $totalRules ) {
+			$countPill = sprintf(
+				/* translators: %s: total number of redirect rules */
+				__( '%s Total Rule', 'rankkernel' ),
+				number_format_i18n( $totalRules )
+			);
+		} else {
+			$countPill = sprintf(
+				/* translators: %s: total number of redirect rules */
+				__( '%s Total Rules', 'rankkernel' ),
+				number_format_i18n( $totalRules )
+			);
+		}
+
+		$sourceLen = function_exists( 'mb_strlen' ) ? mb_strlen( $sourceValue ) : strlen( $sourceValue );
+		$targetLen = function_exists( 'mb_strlen' ) ? mb_strlen( $targetValue ) : strlen( $targetValue );
+
+		if ( 1 === $sourceLen ) {
+			$sourceCount = sprintf(
+				/* translators: %d: character count of the source field */
+				__( '%d char', 'rankkernel' ),
+				$sourceLen
+			);
+		} else {
+			$sourceCount = sprintf(
+				/* translators: %d: character count of the source field */
+				__( '%d chars', 'rankkernel' ),
+				$sourceLen
+			);
+		}
+
+		if ( 1 === $targetLen ) {
+			$targetCount = sprintf(
+				/* translators: %d: character count of the destination field */
+				__( '%d char', 'rankkernel' ),
+				$targetLen
+			);
+		} else {
+			$targetCount = sprintf(
+				/* translators: %d: character count of the destination field */
+				__( '%d chars', 'rankkernel' ),
+				$targetLen
+			);
+		}
 
 		$exportUrl        = wp_nonce_url( $this->pageUrl( [ 'rk_action' => 'export' ] ), self::NONCE_EXPORT );
 		$importData       = $this->importResult;
@@ -781,10 +855,11 @@ final class RedirectsPage {
 
 		foreach ( $views as $status => $view ) {
 			$params = [
-				's'         => $filters['search'],
-				'rk_status' => 'all' === $status ? '' : $status,
-				'rk_match'  => $filters['match_type'],
-				'rk_code'   => $filters['code'],
+				's'           => $filters['search'],
+				'rk_status'   => 'all' === $status ? '' : $status,
+				'rk_match'    => $filters['match_type'],
+				'rk_code'     => $filters['code'],
+				'rk_per_page' => $filters['per_page'] ?? 0,
 			];
 
 			$out[] = [
@@ -814,12 +889,13 @@ final class RedirectsPage {
 
 			$url = $this->pageUrl(
 				[
-					's'          => $filters['search'],
-					'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
-					'rk_match'   => $filters['match_type'],
-					'rk_code'    => $filters['code'],
-					'rk_orderby' => $column,
-					'rk_order'   => $next,
+					's'           => $filters['search'],
+					'rk_status'   => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+					'rk_match'    => $filters['match_type'],
+					'rk_code'     => $filters['code'],
+					'rk_orderby'  => $column,
+					'rk_order'    => $next,
+					'rk_per_page' => $filters['per_page'] ?? 0,
 				]
 			);
 
@@ -840,31 +916,91 @@ final class RedirectsPage {
 	 * @param int                  $pageNumber Current page.
 	 * @param int                  $pageCount  Total pages.
 	 * @param array<string, mixed> $filters    Current filters.
-	 * @return array{show: bool, prevUrl: string, nextUrl: string}
+	 * @return array{show: bool, prevUrl: string, nextUrl: string, pages: array<int, array{label: string, url: string, current: bool}>}
 	 */
 	private function paginationState( int $pageNumber, int $pageCount, array $filters ): array {
+		$base = [
+			's'           => $filters['search'],
+			'rk_status'   => 'all' === (string) $filters['status'] ? '' : $filters['status'],
+			'rk_match'    => $filters['match_type'],
+			'rk_code'     => $filters['code'],
+			'rk_orderby'  => $filters['orderby'],
+			'rk_order'    => strtolower( (string) $filters['order'] ),
+			'rk_per_page' => $filters['per_page'] ?? 0,
+		];
+
+		$pages = [];
+
+		foreach ( $this->pageWindow( $pageNumber, $pageCount ) as $pageEntry ) {
+			if ( ! is_int( $pageEntry ) ) {
+				$pages[] = [
+					'label'   => '…',
+					'url'     => '',
+					'current' => false,
+				];
+
+				continue;
+			}
+
+			$pages[] = [
+				'label'   => (string) $pageEntry,
+				'url'     => $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageEntry ] ) ),
+				'current' => $pageEntry === $pageNumber,
+			];
+		}
+
 		if ( $pageCount <= 1 ) {
 			return [
 				'show'    => false,
 				'prevUrl' => '',
 				'nextUrl' => '',
+				'pages'   => [],
 			];
 		}
-
-		$base = [
-			's'          => $filters['search'],
-			'rk_status'  => 'all' === (string) $filters['status'] ? '' : $filters['status'],
-			'rk_match'   => $filters['match_type'],
-			'rk_code'    => $filters['code'],
-			'rk_orderby' => $filters['orderby'],
-			'rk_order'   => strtolower( (string) $filters['order'] ),
-		];
 
 		return [
 			'show'    => true,
 			'prevUrl' => $pageNumber > 1 ? $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageNumber - 1 ] ) ) : '',
 			'nextUrl' => $pageNumber < $pageCount ? $this->pageUrl( array_merge( $base, [ 'rk_paged' => $pageNumber + 1 ] ) ) : '',
+			'pages'   => $pages,
 		];
+	}
+
+	/**
+	 * Page numbers for the numbered pagination buttons.
+	 *
+	 * Shows every page when there are seven or fewer, otherwise the first
+	 * page, the last page, and a one page window around the current page
+	 * with string gaps where pages are elided.
+	 *
+	 * @param int $current Current page.
+	 * @param int $total   Total pages.
+	 * @return array<int, int|string> Page numbers and gap markers.
+	 */
+	private function pageWindow( int $current, int $total ): array {
+		$total = max( 1, $total );
+
+		if ( $total <= 7 ) {
+			return range( 1, $total );
+		}
+
+		$window = [ 1 ];
+
+		if ( $current > 3 ) {
+			$window[] = 'gap-start';
+		}
+
+		foreach ( range( max( 2, $current - 1 ), min( $total - 1, $current + 1 ) ) as $page ) {
+			$window[] = $page;
+		}
+
+		if ( $current < $total - 2 ) {
+			$window[] = 'gap-end';
+		}
+
+		$window[] = $total;
+
+		return $window;
 	}
 
 	/**
@@ -1870,9 +2006,14 @@ final class RedirectsPage {
 		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
 
 		// Read only display flags, value unslashed then cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
 		$rawPage = isset( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : 1;
 		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
+
+		// Read only display flag, value unslashed then cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
+		$rawPerPage = isset( $_GET['rk_per_page'] ) ? wp_unslash( $_GET['rk_per_page'] ) : 0;
+		$perPage    = (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 0 );
 
 		return [
 			'search'     => $search,
@@ -1882,6 +2023,7 @@ final class RedirectsPage {
 			'orderby'    => $orderby,
 			'order'      => $order,
 			'page'       => $page,
+			'per_page'   => $perPage > 0 ? min( 100, $perPage ) : 0,
 		];
 	}
 

@@ -1335,6 +1335,219 @@
 }
 
 /* ==========================================================================
+   Design parity additions
+   Components matched to the Stitch redirection page: count pill, header
+   action icons, search icon, editor character counters, advanced
+   disclosure, selected chip, numbered pagination, actions column.
+   ========================================================================== */
+
+/* Header count pill ("24 Total Rules" in the design) */
+.rk-redirects .rk-count-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	border: 1px solid rgba(37, 99, 235, 0.25);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+/* Header and card action buttons render their ligature icons inline */
+.rk-redirects .rk-page-header-actions .rk-icon {
+	font-size: 18px;
+}
+
+.rk-redirects .rk-btn-add .rk-icon {
+	margin-inline-start: -2px;
+}
+
+.rk-redirects .rk-btn-export {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+}
+
+.rk-redirects .rk-btn-export-full {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+/* Empty state actions pair the button label with its icon */
+.rk-redirects .rk-empty .button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-empty-icon .rk-icon {
+	font-size: 24px;
+}
+
+/* Search field icon sits inside the input, decorative only */
+.rk-redirects .rk-search-icon {
+	position: absolute;
+	inset-inline-start: 10px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-hint);
+	font-size: 18px;
+	pointer-events: none;
+}
+
+.rk-redirects .rk-search-input {
+	padding-inline-start: 32px;
+}
+
+/* Editor label rows pair the label with a live character counter */
+.rk-redirects .rk-form-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-end: 2px;
+}
+
+.rk-redirects .rk-form-label-row .rk-form-label {
+	margin-block-end: 0;
+}
+
+.rk-redirects .rk-char-count {
+	font-family: var(--rk-font-mono);
+	font-size: 11px;
+	color: var(--rk-color-text-hint);
+	white-space: nowrap;
+}
+
+/* Advanced disclosure keeps the native details element, styled as the
+   design button row with a rotating arrow and trailing meta text */
+.rk-redirects .rk-advanced-toggle {
+	list-style: none;
+	width: 100%;
+}
+
+.rk-redirects .rk-advanced-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.rk-redirects .rk-advanced-toggle .rk-icon {
+	font-size: 16px;
+	color: var(--rk-color-text-hint);
+	transition: transform 0.15s;
+}
+
+.rk-redirects .rk-advanced[open] .rk-advanced-arrow {
+	transform: rotate(90deg);
+}
+
+.rk-redirects .rk-advanced-meta {
+	margin-inline-start: auto;
+	font-weight: 400;
+	font-size: 11px;
+	text-transform: none;
+	letter-spacing: normal;
+	color: var(--rk-color-text-hint);
+}
+
+/* Bulk bar selection chip ("3 selected" in the design) */
+.rk-redirects .rk-selected-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-primary);
+	color: var(--rk-color-surface);
+	font-size: 11px;
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-selected-chip[hidden] {
+	display: none;
+}
+
+/* Bottom nav: range copy, rows per page select, numbered pages */
+.rk-redirects .rk-tablenav-bottom {
+	justify-content: space-between;
+}
+
+.rk-redirects .rk-showing {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-perpage-form {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-redirects .rk-perpage-label {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-perpage-select {
+	padding: 6px 10px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+.rk-redirects .rk-perpage-select:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+}
+
+.rk-redirects .rk-page-nums {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.rk-redirects .rk-page-num.rk-page-current {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	font-weight: 700;
+	cursor: default;
+	text-decoration: none;
+}
+
+.rk-redirects .rk-page-gap {
+	padding: 0 4px;
+	color: var(--rk-color-text-hint);
+}
+
+/* Actions column: row actions live in their own right aligned cell */
+.rk-redirects .rk-table .rk-col-actions {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.rk-redirects .rk-col-actions .row-actions {
+	padding-block-start: 0;
+}
+
+/* Explicit hidden rules: author display values override the user agent
+   [hidden] rule, so every hideable feature element needs its own rule.
+   The CSV, editor, and settings panels already have theirs above. */
+.rk-redirects .rk-form-row[hidden],
+.rk-redirects .rk-regex-row[hidden],
+.rk-redirects .rk-terminal-msg[hidden] {
+	display: none;
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 

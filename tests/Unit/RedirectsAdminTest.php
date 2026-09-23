@@ -1664,4 +1664,87 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
 	}
+
+	/**
+	 * The header pill, action labels, table columns, pagination copy, empty
+	 * state icons, editor counters, and icon font match the design system.
+	 */
+	public function test_render_matches_design_components_and_copy(): void {
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$this->seedRule( '/old-' . (string) $i, '/new-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'rk-count-pill', $html );
+		$this->assertStringContainsString( '25 Total Rules', $html );
+		$this->assertStringContainsString( 'Export CSV', $html );
+		$this->assertStringNotContainsString( 'Import / Export', $html );
+		$this->assertStringContainsString( '>Source<', $html );
+		$this->assertStringContainsString( '>Destination<', $html );
+		$this->assertStringContainsString( '>Actions<', $html );
+		$this->assertStringContainsString( 'rk-col-actions', $html );
+		$this->assertStringContainsString( 'Showing 1 to 20 of 25 redirects', $html );
+		$this->assertStringContainsString( '25 redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 2', $html );
+		$this->assertStringContainsString( 'Rows per page:', $html );
+		$this->assertStringContainsString( 'rk-page-num', $html );
+		$this->assertStringContainsString( 'rk-selected-chip', $html );
+		$this->assertStringContainsString( 'rk-source-count', $html );
+		$this->assertStringContainsString( 'rk-target-count', $html );
+		$this->assertStringContainsString( '0 chars', $html );
+		$this->assertStringContainsString( 'Advanced options', $html );
+		$this->assertStringContainsString( 'rk-advanced-arrow', $html );
+		$this->assertStringContainsString( '<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>', $html );
+		$this->assertStringNotContainsString( '&#10007;', $html );
+		$this->assertStringNotContainsString( '&#10003;', $html );
+		$this->assertStringNotContainsString( '&#9881;', $html );
+	}
+
+	/**
+	 * The rows per page override narrows the list without touching settings.
+	 */
+	public function test_render_per_page_override_narrows_list(): void {
+		for ( $i = 1; $i <= 12; $i++ ) {
+			$this->seedRule( '/old-' . (string) $i, '/new-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [ 'rk_per_page' => '10' ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'Showing 1 to 10 of 12 redirects', $html );
+		$this->assertStringContainsString( 'Page 1 of 2', $html );
+		$this->assertArrayNotHasKey( RedirectsSettings::OPTION, $this->options, 'The display override must not write the stored setting' );
+	}
+
+	/**
+	 * The empty states use the design icons, one variant per situation.
+	 */
+	public function test_render_empty_states_use_design_icons(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$emptyHtml = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">alt_route</span>', $emptyHtml );
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">add</span>', $emptyHtml );
+		$this->assertStringNotContainsString( 'search_off', $emptyHtml );
+
+		$this->seedRule( '/a', '/b' );
+
+		$_GET = [ 's' => 'zzz-no-match' ];
+
+		$filteredHtml = $this->renderPage( $page );
+
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">search_off</span>', $filteredHtml );
+		$this->assertStringContainsString( '<span class="rk-icon" aria-hidden="true">filter_alt_off</span>', $filteredHtml );
+		$this->assertStringNotContainsString( 'alt_route', $filteredHtml );
+	}
 }

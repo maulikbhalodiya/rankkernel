@@ -24,13 +24,15 @@
  *    - Match type / code select live-sync (hints, regex row, terminal row)
  *    - Regex pattern live validation
  *    - Fragment character warning in source field
+ *    - Source and destination character counters
  *    - "Use recommended destination" button (chain notice)
  *
  *  UTILITIES:
  *    - Notice dismiss
- *    - Bulk select-all checkbox
+ *    - Bulk select-all checkbox plus the selected count chip
  *    - Destructive action confirmations
  *    - File-input label display
+ *    - Rows per page select submit
  *
  * Every feature degrades gracefully — the page is fully functional without JS.
  *
@@ -357,6 +359,35 @@ function rankkernelAnnounce( text ) {
 	}
 
 	/**
+	 * Write the selected row count into the bulk bar chip, hiding it when
+	 * nothing is selected. Called on load, after every AJAX swap, and on
+	 * every row checkbox change.
+	 */
+	function updateSelectedChip() {
+		var chip = document.getElementById( 'rk-selected-chip' );
+
+		if ( ! chip ) {
+			return;
+		}
+
+		var bulkForm = document.getElementById( 'rk-bulk-form' );
+
+		if ( ! bulkForm ) {
+			return;
+		}
+
+		var checked = bulkForm.querySelectorAll( 'input[name="rule_ids[]"]:checked' ).length;
+
+		if ( checked > 0 ) {
+			chip.textContent = String( checked ) + ' ' + __( 'selected', 'rankkernel' );
+			chip.removeAttribute( 'hidden' );
+		} else {
+			chip.textContent = '';
+			chip.setAttribute( 'hidden', '' );
+		}
+	}
+
+	/**
 	 * Bind the select-all checkbox: mirror its state onto every row checkbox and
 	 * announce the new state. Called once on load and again after every AJAX swap.
 	 */
@@ -373,6 +404,8 @@ function rankkernelAnnounce( text ) {
 				cb.checked = selectAll.checked;
 			} );
 
+			updateSelectedChip();
+
 			rankkernelAnnounce( selectAll.checked
 				? __( 'All redirects selected.', 'rankkernel' )
 				: __( 'All redirects deselected.', 'rankkernel' ) );
@@ -385,9 +418,28 @@ function rankkernelAnnounce( text ) {
 	 */
 	function bindListEvents() {
 		bindSelectAll();
+		updateSelectedChip();
 
 		if ( ! listWrap ) {
 			return;
+		}
+
+		/* Row checkboxes keep the selected count chip in sync. */
+		listWrap.querySelectorAll( 'input[name="rule_ids[]"]' ).forEach( function ( cb ) {
+			cb.addEventListener( 'change', updateSelectedChip );
+		} );
+
+		/* Rows per page select submits its GET form on change. */
+		var perPageSelect = listWrap.querySelector( '#rk-perpage-select' );
+
+		if ( perPageSelect ) {
+			perPageSelect.addEventListener( 'change', function () {
+				var perPageForm = perPageSelect.form || null;
+
+				if ( perPageForm && typeof perPageForm.submit === 'function' ) {
+					perPageForm.submit();
+				}
+			} );
 		}
 
 		/* Tab links and data-rk-filter-url anchors / buttons. */
@@ -490,17 +542,19 @@ function rankkernelAnnounce( text ) {
 	var editor = document.getElementById( 'rk-redirect-editor' );
 
 	if ( editor ) {
-		var matchSelect  = document.getElementById( 'rk-match' );
-		var matchHintEl  = document.getElementById( 'rk-match-hint' );
-		var regexRow     = document.getElementById( 'rk-regex-row' );
-		var feedback     = document.getElementById( 'rk-regex-feedback' );
-		var sourceInput  = document.getElementById( 'rk-source' );
-		var sourceHintEl = document.getElementById( 'rk-source-hint' );
-		var codeSelect   = document.getElementById( 'rk-code' );
-		var codeHintEl   = document.getElementById( 'rk-code-hint' );
-		var targetRow    = document.getElementById( 'rk-target-row' );
-		var targetInput  = document.getElementById( 'rk-target' );
-		var terminalNote = document.getElementById( 'rk-terminal-note' );
+		var matchSelect   = document.getElementById( 'rk-match' );
+		var matchHintEl   = document.getElementById( 'rk-match-hint' );
+		var regexRow      = document.getElementById( 'rk-regex-row' );
+		var feedback      = document.getElementById( 'rk-regex-feedback' );
+		var sourceInput   = document.getElementById( 'rk-source' );
+		var sourceHintEl  = document.getElementById( 'rk-source-hint' );
+		var sourceCountEl = document.getElementById( 'rk-source-count' );
+		var codeSelect    = document.getElementById( 'rk-code' );
+		var codeHintEl    = document.getElementById( 'rk-code-hint' );
+		var targetRow     = document.getElementById( 'rk-target-row' );
+		var targetInput   = document.getElementById( 'rk-target' );
+		var targetCountEl = document.getElementById( 'rk-target-count' );
+		var terminalNote  = document.getElementById( 'rk-terminal-note' );
 
 		function selectedHint( select ) {
 			var opt = select.options[ select.selectedIndex ];
@@ -569,6 +623,20 @@ function rankkernelAnnounce( text ) {
 			}
 		}
 
+		function syncCounts() {
+			if ( sourceInput && sourceCountEl ) {
+				sourceCountEl.textContent = formatCount( sourceInput.value.length );
+			}
+
+			if ( targetInput && targetCountEl ) {
+				targetCountEl.textContent = formatCount( targetInput.value.length );
+			}
+		}
+
+		function formatCount( len ) {
+			return String( len ) + ' ' + ( 1 === len ? __( 'char', 'rankkernel' ) : __( 'chars', 'rankkernel' ) );
+		}
+
 		function syncMatch() {
 			if ( matchHintEl && matchSelect ) {
 				matchHintEl.textContent = selectedHint( matchSelect );
@@ -629,8 +697,15 @@ function rankkernelAnnounce( text ) {
 				}
 
 				warnFragment();
+				syncCounts();
 			} );
 		}
+
+		if ( targetInput ) {
+			targetInput.addEventListener( 'input', syncCounts );
+		}
+
+		syncCounts();
 	}
 
 	/* ------------------------------------------------------------------

@@ -25,9 +25,12 @@
  * @var array<int, array{value: string, label: string, hint: string}> $matchOptions Match type options.
  * @var array<int, array{value: string, label: string, hint: string}> $codeOptions  Code options.
  * @var array<int, array{label: string, url: string, current: bool, arrow: string}> $sortableHeaders Sortable headers.
- * @var array{show: bool, prevUrl: string, nextUrl: string} $pagination Pagination links.
+ * @var array{show: bool, prevUrl: string, nextUrl: string, pages: array<int, array{label: string, url: string, current: bool}>} $pagination Pagination links plus numbered pages.
  * @var string $paginationText Pagination label text.
- * @var string $itemsLabel     Total items label.
+ * @var string $showingLabel   Visible range label text.
+ * @var string $totalLabel     Total rows label text.
+ * @var int    $perPage        Current rows per page.
+ * @var array<int, int> $perPageOptions Rows per page choices.
  * @var string $nonceBulkAction Nonce action for the bulk form.
  */
 
@@ -82,6 +85,7 @@ $rkListMatchBadgeMap = [
 			<div class="rk-filter-left">
 				<div class="rk-search-wrap">
 					<label for="rk-search-input" class="screen-reader-text"><?php echo esc_html__( 'Search redirects', 'rankkernel' ); ?></label>
+					<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>
 					<input
 						type="search"
 						id="rk-search-input"
@@ -134,15 +138,15 @@ $rkListMatchBadgeMap = [
 
 		<div class="rk-empty">
 			<?php if ( $hasFilter ) : ?>
-				<div class="rk-empty-icon" aria-hidden="true">&#128269;</div>
+				<div class="rk-empty-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search_off</span></div>
 				<p class="rk-empty-title"><?php echo esc_html__( 'No redirects match your search.', 'rankkernel' ); ?></p>
 				<p class="rk-empty-body"><?php echo esc_html__( 'Try a different search or clear the active filter controls.', 'rankkernel' ); ?></p>
-				<a class="button" href="<?php echo esc_url( $clearFiltersUrl ); ?>"><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
+				<a class="button" href="<?php echo esc_url( $clearFiltersUrl ); ?>"><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
 			<?php else : ?>
-				<div class="rk-empty-icon rk-empty-icon-primary" aria-hidden="true">&#8644;</div>
+				<div class="rk-empty-icon rk-empty-icon-primary" aria-hidden="true"><span class="rk-icon" aria-hidden="true">alt_route</span></div>
 				<p class="rk-empty-title"><?php echo esc_html__( 'No redirects yet.', 'rankkernel' ); ?></p>
 				<p class="rk-empty-body"><?php echo esc_html__( 'Add your first redirect to send visitors from an old address to a new one.', 'rankkernel' ); ?></p>
-				<a class="button button-primary" href="<?php echo esc_url( $addFirstUrl ); ?>"><?php echo esc_html__( 'Add your first redirect', 'rankkernel' ); ?></a>
+				<a class="button button-primary" href="<?php echo esc_url( $addFirstUrl ); ?>"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add your first redirect', 'rankkernel' ); ?></a>
 			<?php endif; ?>
 		</div>
 
@@ -167,10 +171,11 @@ $rkListMatchBadgeMap = [
 						<option value="delete"><?php echo esc_html__( 'Delete', 'rankkernel' ); ?></option>
 					</select>
 					<?php submit_button( __( 'Apply', 'rankkernel' ), 'action', 'rankkernel_redirect_bulk', false ); ?>
+					<span class="rk-selected-chip" id="rk-selected-chip" hidden></span>
 				</div>
 
-				<?php if ( $pagination['show'] ) : ?>
-					<div class="rk-pages">
+				<div class="rk-pages">
+					<?php if ( $pagination['show'] ) : ?>
 						<span class="paging-text"><?php echo esc_html( $paginationText ); ?></span>
 						<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
@@ -178,10 +183,9 @@ $rkListMatchBadgeMap = [
 						<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 						<?php endif; ?>
-					</div>
-				<?php endif; ?>
-
-				<span class="rk-items-count"><?php echo esc_html( $itemsLabel ); ?></span>
+					<?php endif; ?>
+					<span class="rk-items-count"><?php echo esc_html( $totalLabel ); ?></span>
+				</div>
 			</div>
 
 			<div class="rk-table-wrap">
@@ -204,6 +208,7 @@ $rkListMatchBadgeMap = [
 								</th>
 							<?php endforeach; ?>
 							<th scope="col" class="rk-col-status"><?php echo esc_html__( 'Status', 'rankkernel' ); ?></th>
+							<th scope="col" class="rk-col-actions"><?php echo esc_html__( 'Actions', 'rankkernel' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -220,11 +225,6 @@ $rkListMatchBadgeMap = [
 
 								<td class="rk-col-from">
 									<strong><?php echo esc_html( $ruleRow['source'] ); ?></strong>
-									<div class="row-actions">
-										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a> | </span>
-										<span class="toggle"><a href="<?php echo esc_url( $ruleRow['toggleUrl'] ); ?>"><?php echo esc_html( $ruleRow['toggleLabel'] ); ?></a> | </span>
-										<span class="trash"><a href="<?php echo esc_url( $ruleRow['deleteUrl'] ); ?>" class="rk-confirm" data-rk-confirm="<?php echo esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ); ?>"><?php echo esc_html__( 'Trash', 'rankkernel' ); ?></a></span>
-									</div>
 								</td>
 
 								<td class="rk-col-to">
@@ -259,29 +259,63 @@ $rkListMatchBadgeMap = [
 								<td class="rk-col-status">
 									<span class="<?php echo esc_attr( $ruleRow['statusPillClass'] ); ?>"><?php echo esc_html( $ruleRow['statusLabel'] ); ?></span>
 								</td>
+
+								<td class="rk-col-actions">
+									<div class="row-actions">
+										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: redirect source URL */ __( 'Edit redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a> | </span>
+										<span class="toggle"><a href="<?php echo esc_url( $ruleRow['toggleUrl'] ); ?>"><?php echo esc_html( $ruleRow['toggleLabel'] ); ?></a> | </span>
+										<span class="trash"><a href="<?php echo esc_url( $ruleRow['deleteUrl'] ); ?>" class="rk-confirm" data-rk-confirm="<?php echo esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ); ?>"><?php echo esc_html__( 'Trash', 'rankkernel' ); ?></a></span>
+									</div>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			</div><!-- .rk-table-wrap -->
-
-			<?php /* Bottom nav: item count + pagination */ ?>
-			<div class="rk-tablenav rk-tablenav-bottom">
-				<span class="rk-items-count"><?php echo esc_html( $itemsLabel ); ?></span>
-				<?php if ( $pagination['show'] ) : ?>
-					<div class="rk-pages">
-						<span class="paging-text"><?php echo esc_html( $paginationText ); ?></span>
-						<?php if ( '' !== $pagination['prevUrl'] ) : ?>
-							<a class="button" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
-						<?php endif; ?>
-						<?php if ( '' !== $pagination['nextUrl'] ) : ?>
-							<a class="button" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
-						<?php endif; ?>
-					</div>
-				<?php endif; ?>
-			</div>
-
 		</form>
+
+			<?php /* Bottom nav: item count + pagination. Outside the bulk form so the rows per page GET form never nests. */ ?>
+			<div class="rk-tablenav rk-tablenav-bottom">
+				<span class="rk-showing"><?php echo esc_html( $showingLabel ); ?></span>
+				<div class="rk-pages">
+					<form method="get" action="<?php echo esc_url( $filtersActionUrl ); ?>" class="rk-perpage-form" id="rk-perpage-form">
+						<input type="hidden" name="page" value="<?php echo esc_attr( $screenSlug ); ?>" />
+						<input type="hidden" name="s" value="<?php echo esc_attr( $filterSearch ); ?>" />
+						<input type="hidden" name="rk_status" value="<?php echo esc_attr( $filterStatus ); ?>" />
+						<input type="hidden" name="rk_match" value="<?php echo esc_attr( $filterMatch ); ?>" />
+						<input type="hidden" name="rk_code" value="<?php echo esc_attr( $filterCode ); ?>" />
+						<label for="rk-perpage-select" class="rk-perpage-label"><?php echo esc_html__( 'Rows per page:', 'rankkernel' ); ?></label>
+						<select name="rk_per_page" id="rk-perpage-select" class="rk-perpage-select">
+							<?php foreach ( $perPageOptions as $perPageOption ) : ?>
+								<option
+									value="<?php echo esc_attr( (string) $perPageOption ); ?>"
+									<?php echo selected( $perPage, $perPageOption, false ); ?>
+								><?php echo esc_html( (string) $perPageOption ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<noscript><button type="submit" class="button"><?php echo esc_html__( 'Apply', 'rankkernel' ); ?></button></noscript>
+					</form>
+					<?php if ( $pagination['show'] ) : ?>
+						<div class="rk-page-nums" role="navigation" aria-label="<?php echo esc_attr__( 'Redirect list pages', 'rankkernel' ); ?>">
+							<?php if ( '' !== $pagination['prevUrl'] ) : ?>
+								<a class="button rk-page-prev" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+							<?php endif; ?>
+							<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
+								<?php if ( '' === $pageEntry['url'] ) : ?>
+									<span class="rk-page-gap" aria-hidden="true"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+								<?php elseif ( $pageEntry['current'] ) : ?>
+									<span class="button rk-page-num rk-page-current" aria-current="page"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+								<?php else : ?>
+									<a class="button rk-page-num" href="<?php echo esc_url( $pageEntry['url'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pageEntry['url'] ); ?>"><?php echo esc_html( $pageEntry['label'] ); ?></a>
+								<?php endif; ?>
+							<?php endforeach; ?>
+							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
+								<a class="button rk-page-next" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+							<?php endif; ?>
+						</div>
+					<?php endif; ?>
+				</div>
+			</div>
 
 	<?php endif; ?>
 
