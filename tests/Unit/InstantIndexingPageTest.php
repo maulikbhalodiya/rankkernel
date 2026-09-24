@@ -309,10 +309,22 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
-		Functions\expect( 'wp_remote_get' )->never();
-		Functions\expect( 'wp_safe_remote_get' )->never();
-		Functions\expect( 'wp_remote_head' )->never();
-		Functions\expect( 'wp_remote_post' )->never();
+		Functions\when( 'wp_json_encode' )->alias( static fn( mixed $d ): string => (string) json_encode( $d ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+
+		$fetches = 0;
+		$fetch   = function () use ( &$fetches ): array {
+			++$fetches;
+
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => '',
+			];
+		};
+		Functions\when( 'wp_remote_get' )->alias( $fetch );
+		Functions\when( 'wp_safe_remote_get' )->alias( $fetch );
+		Functions\when( 'wp_remote_head' )->alias( $fetch );
+		Functions\when( 'wp_safe_remote_post' )->alias( $fetch );
+		Functions\when( 'wp_remote_post' )->alias( $fetch );
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
@@ -320,6 +332,8 @@ final class InstantIndexingPageTest extends TestCase {
 		];
 
 		$this->page()->maybeHandleSave();
+
+		$this->assertSame( 0, $fetches, 'a rejected URL must never be fetched' );
 
 		$entries = $this->settings->logEntries();
 
@@ -392,8 +406,18 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
 		Functions\when( 'wp_json_encode' )->alias( static fn( mixed $d ): string => (string) json_encode( $d ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
-		Functions\expect( 'wp_safe_remote_post' )->never();
-		Functions\expect( 'wp_remote_post' )->never();
+
+		$transportCalls = 0;
+		$transport      = function () use ( &$transportCalls ): array {
+			++$transportCalls;
+
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => '',
+			];
+		};
+		Functions\when( 'wp_safe_remote_post' )->alias( $transport );
+		Functions\when( 'wp_remote_post' )->alias( $transport );
 
 		// The default callback routes through InstantIndexingModule, so a
 		// missing gate would construct the client and reach for the network.
@@ -404,6 +428,8 @@ final class InstantIndexingPageTest extends TestCase {
 			'rankkernel_indexnow_url'    => 'https://example.com/a',
 		];
 		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $transportCalls, 'a disabled module must make zero outbound requests' );
 
 		$entries = $this->settings->logEntries();
 
