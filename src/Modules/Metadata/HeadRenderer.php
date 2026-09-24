@@ -578,6 +578,12 @@ final class HeadRenderer {
 		if ( '' !== $ogImage ) {
 			echo '<meta property="og:image" content="' . esc_url( $ogImage ) . '" />' . "\n";
 
+			$ogImageAlt = $ctx->ogImageAlt();
+
+			if ( '' !== $ogImageAlt ) {
+				echo '<meta property="og:image:alt" content="' . esc_attr( $ogImageAlt ) . '" />' . "\n";
+			}
+
 			$attachmentId = $ctx->ogImageAttachmentId();
 
 			if ( $attachmentId > 0 && function_exists( 'wp_get_attachment_image_src' ) ) {
@@ -602,6 +608,40 @@ final class HeadRenderer {
 
 		if ( '' !== $locale ) {
 			echo '<meta property="og:locale" content="' . esc_attr( $locale ) . '" />' . "\n";
+		}
+
+		if ( $ctx->isSingular() ) {
+			$postId = $ctx->queriedId();
+
+			if ( $postId > 0 ) {
+				if ( function_exists( 'get_the_date' ) ) {
+					$published = get_the_date( 'c', $postId );
+
+					if ( is_string( $published ) && '' !== trim( $published ) ) {
+						echo '<meta property="article:published_time" content="' . esc_attr( $published ) . '" />' . "\n";
+					}
+				}
+
+				if ( function_exists( 'get_the_modified_date' ) ) {
+					$modified = get_the_modified_date( 'c', $postId );
+
+					if ( is_string( $modified ) && '' !== trim( $modified ) ) {
+						echo '<meta property="article:modified_time" content="' . esc_attr( $modified ) . '" />' . "\n";
+					}
+				}
+
+				if ( function_exists( 'get_post_field' ) && function_exists( 'get_author_posts_url' ) ) {
+					$authorId = get_post_field( 'post_author', $postId );
+
+					if ( is_numeric( $authorId ) && (int) $authorId > 0 ) {
+						$authorUrl = get_author_posts_url( (int) $authorId );
+
+						if ( is_string( $authorUrl ) && '' !== trim( $authorUrl ) ) {
+							echo '<meta property="article:author" content="' . esc_url( $authorUrl ) . '" />' . "\n";
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -685,6 +725,53 @@ final class HeadRenderer {
 		if ( '' !== $twImage ) {
 			echo '<meta name="twitter:image" content="' . esc_url( $twImage ) . '" />' . "\n";
 		}
+
+		$siteHandle = $this->sanitizeTwitterHandle( $this->settings->get( 'twitter_site', '' ) );
+
+		if ( '' !== $siteHandle ) {
+			echo '<meta name="twitter:site" content="' . esc_attr( '@' . $siteHandle ) . '" />' . "\n";
+		}
+
+		if ( $ctx->isSingular() ) {
+			$creatorHandle = '';
+			$postId        = $ctx->queriedId();
+
+			if ( function_exists( 'get_post_field' ) && function_exists( 'get_user_meta' ) ) {
+				$authorId = get_post_field( 'post_author', $postId );
+
+				if ( is_numeric( $authorId ) && (int) $authorId > 0 ) {
+					$creatorHandle = $this->sanitizeTwitterHandle(
+						get_user_meta( (int) $authorId, 'rankkernel_twitter_handle', true )
+					);
+				}
+			}
+
+			if ( '' === $creatorHandle ) {
+				$creatorHandle = $siteHandle;
+			}
+
+			if ( '' !== $creatorHandle ) {
+				echo '<meta name="twitter:creator" content="' . esc_attr( '@' . $creatorHandle ) . '" />' . "\n";
+			}
+		}
+	}
+
+	/**
+	 * Normalize a Twitter or X handle to its bare, bounded form.
+	 *
+	 * @param mixed $handle Raw handle.
+	 * @return string The result.
+	 */
+	private function sanitizeTwitterHandle( mixed $handle ): string {
+		$handle = is_scalar( $handle ) ? trim( (string) $handle ) : '';
+
+		if ( str_starts_with( $handle, '@' ) ) {
+			$handle = substr( $handle, 1 );
+		}
+
+		$handle = preg_replace( '/[^A-Za-z0-9_]/', '', $handle ) ?? '';
+
+		return substr( $handle, 0, 15 );
 	}
 
 	/**

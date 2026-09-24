@@ -60,6 +60,7 @@ final class MetaPayload {
 				'title'       => '',
 				'description' => '',
 				'image'       => '',
+				'image_alt'   => '',
 				'image_id'    => 0,
 				'type'        => '',
 			],
@@ -195,6 +196,10 @@ final class MetaPayload {
 
 			if ( array_key_exists( 'image', $og ) ) {
 				$out['og']['image'] = esc_url_raw( (string) $og['image'] );
+			}
+
+			if ( array_key_exists( 'image_alt', $og ) ) {
+				$out['og']['image_alt'] = sanitize_text_field( (string) $og['image_alt'] );
 			}
 
 			if ( array_key_exists( 'image_id', $og ) ) {
@@ -774,6 +779,7 @@ final class MetaPayload {
 							'type'   => 'string',
 							'format' => 'uri',
 						],
+						'image_alt'   => [ 'type' => 'string' ],
 						'image_id'    => [ 'type' => 'integer' ],
 						'type'        => [ 'type' => 'string' ],
 					],

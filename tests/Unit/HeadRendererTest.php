@@ -15,6 +15,7 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\HeadRenderer;
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\TagsReplacer;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
@@ -55,46 +56,64 @@ final class HeadRendererTest extends TestCase {
 	}
 
 	/**
-	 * Make Singular Context.
+	 * Make a metadata context.
 	 *
-	 * @param array $metaPayload       Meta Payload.
-	 * @param array $settingsOverrides Settings Overrides.
+	 * @param string $type              Context type.
+	 * @param int    $id                Queried object id.
+	 * @param array  $metaPayload       Meta Payload.
+	 * @param array  $settingsOverrides Settings Overrides.
 	 * @return array{Context, SettingsStore, WP_Query}
 	 */
-	private function makeSingularContext( array $metaPayload = [], array $settingsOverrides = [] ): array {
-		$query = Mockery::mock( WP_Query::class );
-		$query->shouldReceive( 'is_singular' )->andReturn( true )->byDefault();
-		$query->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+	private function makeContext(
+		string $type = 'post',
+		int $id = 1,
+		array $metaPayload = [],
+		array $settingsOverrides = []
+	): array {
+		$isPost    = 'post' === $type;
+		$isArchive = 'archive' === $type;
+		$query     = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( $isPost )->byDefault();
+		$query->shouldReceive( 'is_search' )->andReturn( 'search' === $type )->byDefault();
+		$query->shouldReceive( 'is_404' )->andReturn( '404' === $type )->byDefault();
 		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'get_queried_object_id' )->andReturn( 1 )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( 'home' === $type )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( 'home' === $type )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( $isArchive )->byDefault();
+		$query->shouldReceive( 'is_author' )->andReturn( 'author' === $type )->byDefault();
+		$query->shouldReceive( 'is_date' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_post_type_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
+		$query->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $id ] )->byDefault();
 		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
 
 		Functions\when( 'get_query_var' )->justReturn( 0 );
 		Functions\when( 'is_feed' )->justReturn( false );
+		Functions\when( 'is_author' )->justReturn( 'author' === $type );
+		Functions\when( 'is_date' )->justReturn( false );
+		Functions\when( 'is_post_type_archive' )->justReturn( false );
 		Functions\when( 'get_bloginfo' )->justReturn( 'My Site' );
-		Functions\when( 'get_the_title' )->justReturn( 'Post Title' );
-		Functions\when( 'get_the_excerpt' )->justReturn( 'Excerpt text for description fallback that is trimmed' );
+		Functions\when( 'get_the_title' )->justReturn( $isPost ? 'Post Title' : 'Archive Title' );
+		Functions\when( 'get_the_excerpt' )->justReturn( $isPost ? 'Excerpt text for description fallback that is trimmed' : '' );
 		Functions\when( 'get_post_field' )->justReturn( '' );
-		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/post/' );
+		Functions\when( 'get_permalink' )->justReturn( $isPost ? 'https://example.com/post/' : 'https://example.com/archive/' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-		Functions\when( 'get_the_date' )->justReturn( '2026-01-01' );
-		Functions\when( 'get_the_author' )->justReturn( 'Author' );
+		Functions\when( 'get_the_date' )->justReturn( $isPost ? '2026-01-01T00:00:00+00:00' : '' );
+		Functions\when( 'get_the_modified_date' )->justReturn( $isPost ? '2026-02-01T00:00:00+00:00' : '' );
+		Functions\when( 'get_the_author' )->justReturn( $isPost ? 'Author' : '' );
 		Functions\when( 'get_the_author_meta' )->justReturn( '' );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'get_author_posts_url' )->justReturn( '' );
 		Functions\when( 'get_the_category' )->justReturn( [] );
 		Functions\when( 'date_i18n' )->justReturn( 'Jan 1, 2026' );
 		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
 		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
 		Functions\when( 'wp_get_attachment_image_src' )->justReturn( false );
 
-		// Settings store, stub get_option to provide overrides.
 		$defaults = SettingsStore::defaults();
 		$stored   = array_merge( $defaults, $settingsOverrides );
 		Functions\when( 'get_option' )->alias(
@@ -109,8 +128,7 @@ final class HeadRendererTest extends TestCase {
 			}
 		);
 
-		// Meta read.
-		Functions\when( 'get_post_meta' )->justReturn( $metaPayload );
+		Functions\when( 'get_post_meta' )->justReturn( $isPost ? $metaPayload : [] );
 		Functions\when( 'get_term_meta' )->justReturn( [] );
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ) => $v );
 		Functions\when( 'do_action' )->justReturn( null );
@@ -119,6 +137,59 @@ final class HeadRendererTest extends TestCase {
 		$ctx      = new Context( $query, $settings );
 
 		return [ $ctx, $settings, $query ];
+	}
+
+	/**
+	 * Make Singular Context.
+	 *
+	 * @param array $metaPayload       Meta Payload.
+	 * @param array $settingsOverrides Settings Overrides.
+	 * @return array{Context, SettingsStore, WP_Query}
+	 */
+	private function makeSingularContext( array $metaPayload = [], array $settingsOverrides = [] ): array {
+		return $this->makeContext( 'post', 1, $metaPayload, $settingsOverrides );
+	}
+
+	/**
+	 * Render a context and return its head output.
+	 *
+	 * @param Context       $context  Metadata context.
+	 * @param SettingsStore $settings Settings store.
+	 * @return string Rendered output.
+	 */
+	private function renderHead( Context $context, SettingsStore $settings ): string {
+		$renderer = new HeadRenderer( $settings, null, $context );
+
+		ob_start();
+		$renderer->render();
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Assert social tags have content and are emitted once.
+	 *
+	 * @param string $output Rendered output.
+	 */
+	private function assertSocialTagsHaveUniqueNonEmptyContent( string $output ): void {
+		preg_match_all(
+			'/<meta\s+(property|name)="((?:og|twitter|article):[^"]+)"\s+content="([^"]*)"\s*\/>/',
+			$output,
+			$matches,
+			PREG_SET_ORDER
+		);
+
+		$this->assertNotEmpty( $matches );
+		$seen = [];
+
+		foreach ( $matches as $match ) {
+			$tag = $match[2];
+
+			$this->assertNotSame( '', $match[3], $tag . ' must not be empty' );
+			$this->assertArrayNotHasKey( $tag, $seen, $tag . ' must not be emitted twice' );
+
+			$seen[ $tag ] = true;
+		}
 	}
 
 	/**
@@ -850,6 +921,595 @@ final class HeadRendererTest extends TestCase {
 		];
 
 		$this->assertSame( $base, $renderer->filterRobots( $base ) );
+	}
+
+	/**
+	 * Test the image alt payload default, sanitization and REST round trip.
+	 */
+	public function test_og_image_alt_payload_round_trips(): void {
+		$clean = MetaPayload::sanitize(
+			[
+				'og' => [
+					'image_alt' => '  <strong>Illustration</strong>  ',
+				],
+			]
+		);
+
+		$this->assertSame( 'Illustration', $clean['og']['image_alt'] );
+		$this->assertSame( '', MetaPayload::defaults()['og']['image_alt'] );
+
+		$schema = MetaPayload::restSchema()['properties']['og']['properties'];
+		$this->assertSame( [ 'type' => 'string' ], $schema['image_alt'] );
+	}
+
+	/**
+	 * Test OG tags cover their present and resolved fallback fields.
+	 */
+	public function test_og_tags_cover_present_and_resolved_fallback_fields(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'title'       => 'Resolved Headline',
+				'description' => 'Resolved Description',
+				'og'          => [
+					'title'       => '',
+					'description' => '',
+					'image'       => '',
+					'image_id'    => 55,
+				],
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/og.jpg' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/og.jpg', 1200, 630 ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:title" content="Resolved Headline"', $out );
+		$this->assertStringContainsString( 'property="og:description" content="Resolved Description"', $out );
+		$this->assertStringContainsString( 'property="og:url" content="https://example.com/post/"', $out );
+		$this->assertStringContainsString( 'property="og:type" content="article"', $out );
+		$this->assertStringContainsString( 'property="og:image" content="https://example.com/og.jpg"', $out );
+		$this->assertStringContainsString( 'property="og:image:width" content="1200"', $out );
+		$this->assertStringContainsString( 'property="og:image:height" content="630"', $out );
+		$this->assertStringContainsString( 'property="og:site_name" content="My Site"', $out );
+		$this->assertStringContainsString( 'property="og:locale" content="en_US"', $out );
+	}
+
+	/**
+	 * Test OG optional fields are omitted when every fallback is empty.
+	 */
+	public function test_og_optional_fields_are_omitted_when_empty(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'title'       => 'Only Title',
+				'description' => '',
+				'og'          => [
+					'description' => '',
+					'image'       => '',
+				],
+			],
+			[ 'description_template' => '' ]
+		);
+
+		Functions\when( 'get_the_excerpt' )->justReturn( '' );
+		Functions\when( 'get_post_field' )->justReturn( '' );
+		Functions\when( 'get_bloginfo' )->justReturn( '' );
+		Functions\when( 'get_locale' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:title"', $out );
+		$this->assertStringNotContainsString( 'property="og:description"', $out );
+		$this->assertStringNotContainsString( 'property="og:image"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:width"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:height"', $out );
+		$this->assertStringNotContainsString( 'property="og:site_name"', $out );
+		$this->assertStringNotContainsString( 'property="og:locale"', $out );
+	}
+
+	/**
+	 * Test the site default image is the final OG image rung on an archive.
+	 */
+	public function test_og_image_default_image_is_last_rung_on_archive(): void {
+		[ $ctx, $settings ] = $this->makeContext(
+			'archive',
+			9,
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 91,
+			]
+		);
+
+		Functions\when( 'get_post_meta' )->justReturn( 'Default image alt' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/default.jpg', 1200, 630 ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image" content="https://example.com/default.jpg"', $out );
+		$this->assertStringContainsString( 'property="og:image:alt" content="Default image alt"', $out );
+		$this->assertStringContainsString( 'property="og:image:width" content="1200"', $out );
+		$this->assertStringContainsString( 'property="og:image:height" content="630"', $out );
+	}
+
+	/**
+	 * Test the default image does not replace a singular featured image.
+	 */
+	public function test_og_image_default_image_is_last_after_featured_image(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 91,
+			]
+		);
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 77 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/featured.jpg' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/featured.jpg', 800, 600 ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image" content="https://example.com/featured.jpg"', $out );
+		$this->assertStringNotContainsString( 'https://example.com/default.jpg', $out );
+	}
+
+	/**
+	 * Test the default image requires both its URL and attachment id.
+	 */
+	public function test_og_image_default_image_requires_url_and_attachment_id(): void {
+		foreach (
+			[
+				[ 'social_default_image' => 'https://example.com/default.jpg' ],
+				[ 'social_default_image_id' => 91 ],
+			] as $settingsOverrides
+		) {
+			[ $ctx, $settings ] = $this->makeContext( 'archive', 9, [], $settingsOverrides );
+
+			$out = $this->renderHead( $ctx, $settings );
+
+			$this->assertStringNotContainsString( 'property="og:image"', $out );
+			$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
+		}
+	}
+
+	/**
+	 * Test the per post image alt override wins without an attachment lookup.
+	 */
+	public function test_og_image_alt_override_skips_attachment_lookup(): void {
+		$meta = [
+			'og' => [
+				'image'     => 'https://example.com/custom.jpg',
+				'image_alt' => 'Payload image alt',
+			],
+		];
+
+		[ $ctx, $settings ] = $this->makeSingularContext( $meta );
+		$metaReads          = 0;
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $meta, &$metaReads ): mixed {
+				unset( $id, $single );
+				if ( '_rankkernel_meta_data' === $key ) {
+					++$metaReads;
+					return $meta;
+				}
+
+				return '';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 1, $metaReads );
+		$this->assertStringContainsString( 'property="og:image:alt" content="Payload image alt"', $out );
+	}
+
+	/**
+	 * Test attachment alt is the fallback for an attachment image.
+	 */
+	public function test_og_image_alt_falls_back_to_attachment_alt(): void {
+		$meta = [
+			'og' => [
+				'image'    => '',
+				'image_id' => 77,
+			],
+		];
+
+		[ $ctx, $settings ] = $this->makeSingularContext( $meta );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/attachment.jpg' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/attachment.jpg', 1200, 630 ] );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $meta ): mixed {
+				unset( $single );
+				if ( '_rankkernel_meta_data' === $key ) {
+					return $meta;
+				}
+
+				if ( 77 === $id && '_wp_attachment_image_alt' === $key ) {
+					return 'Attachment image alt';
+				}
+
+				return '';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image:alt" content="Attachment image alt"', $out );
+	}
+
+	/**
+	 * Test attachment alt is the fallback for a featured image.
+	 */
+	public function test_og_image_alt_falls_back_to_featured_attachment_alt(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 88 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/featured.jpg' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/featured.jpg', 800, 600 ] );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ): string {
+				unset( $single );
+				return 88 === $id && '_wp_attachment_image_alt' === $key ? 'Featured image alt' : '';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image:alt" content="Featured image alt"', $out );
+	}
+
+	/**
+	 * Test image alt is omitted for a custom URL image.
+	 */
+	public function test_og_image_alt_is_omitted_for_custom_url_image(): void {
+		$meta = [
+			'og' => [
+				'image' => 'https://example.com/custom.jpg',
+			],
+		];
+
+		[ $ctx, $settings ] = $this->makeSingularContext( $meta );
+		$attachmentReads    = 0;
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $meta, &$attachmentReads ): mixed {
+				unset( $id, $single );
+				if ( '_rankkernel_meta_data' === $key ) {
+					return $meta;
+				}
+
+				++$attachmentReads;
+
+				return '';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
+		$this->assertSame( 0, $attachmentReads );
+	}
+
+	/**
+	 * Test image alt is omitted when neither payload nor attachment alt exists.
+	 */
+	public function test_og_image_alt_is_omitted_when_no_alt_exists(): void {
+		$meta = [ 'og' => [ 'image_id' => 77 ] ];
+
+		[ $ctx, $settings ] = $this->makeSingularContext( $meta );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/attachment.jpg' );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $meta ): mixed {
+				unset( $id, $single );
+				return '_rankkernel_meta_data' === $key ? $meta : '';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="og:image"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
+	}
+
+	/**
+	 * Test article tags emit ISO dates and the author archive URL on singular content.
+	 */
+	public function test_article_tags_emit_on_singular_with_iso_dates_and_author(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_field' )->alias(
+			static fn ( string $field, int $id ): mixed => 'post_author' === $field && 1 === $id ? 7 : ''
+		);
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'property="article:published_time" content="2026-01-02T03:04:05+00:00"', $out );
+		$this->assertStringContainsString( 'property="article:modified_time" content="2026-02-03T04:05:06+00:00"', $out );
+		$this->assertStringContainsString( 'property="article:author" content="https://example.com/author/jane/"', $out );
+	}
+
+	/**
+	 * Test article tags are omitted for a singular query without a post id.
+	 */
+	public function test_article_tags_are_omitted_for_singular_query_without_post_id(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'post', 0 );
+
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+		Functions\when( 'get_post_field' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringNotContainsString( 'property="article:', $out );
+	}
+
+	/**
+	 * Test article tags are omitted on archive, search and 404 contexts.
+	 */
+	public function test_article_tags_are_omitted_on_non_singular_contexts(): void {
+		foreach ( [ 'archive', 'search', '404' ] as $type ) {
+			[ $ctx, $settings ] = $this->makeContext( $type, 9 );
+
+			Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+			Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+			Functions\when( 'get_post_field' )->justReturn( 7 );
+			Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+
+			$out = $this->renderHead( $ctx, $settings );
+
+			$this->assertStringNotContainsString( 'property="article:', $out, $type );
+		}
+	}
+
+	/**
+	 * Test unavailable article dates and author metadata are omitted on singular content.
+	 */
+	public function test_article_tags_are_omitted_when_singular_values_are_unavailable(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_field' )->justReturn( '' );
+		Functions\when( 'get_the_date' )->justReturn( '' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '' );
+		Functions\when( 'get_author_posts_url' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringNotContainsString( 'property="article:published_time"', $out );
+		$this->assertStringNotContainsString( 'property="article:modified_time"', $out );
+		$this->assertStringNotContainsString( 'property="article:author"', $out );
+	}
+
+	/**
+	 * Test article author is omitted when the archive URL is empty.
+	 */
+	public function test_article_author_is_omitted_when_archive_url_is_empty(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_field' )->justReturn( 7 );
+		Functions\when( 'get_author_posts_url' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringNotContainsString( 'property="article:author"', $out );
+	}
+
+	/**
+	 * Test Twitter tags cover their existing card, title, description and image values.
+	 */
+	public function test_twitter_tags_cover_existing_values(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'        => 'summary',
+					'title'       => 'Twitter title',
+					'description' => 'Twitter description',
+					'image'       => 'https://example.com/twitter.jpg',
+				],
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:card" content="summary"', $out );
+		$this->assertStringContainsString( 'name="twitter:title" content="Twitter title"', $out );
+		$this->assertStringContainsString( 'name="twitter:description" content="Twitter description"', $out );
+		$this->assertStringContainsString( 'name="twitter:image" content="https://example.com/twitter.jpg"', $out );
+	}
+
+	/**
+	 * Test Twitter title, description and image use the existing fallback order.
+	 */
+	public function test_twitter_fields_follow_existing_fallback_order(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'og'      => [
+					'title'       => 'OG fallback title',
+					'description' => 'OG fallback description',
+				],
+				'twitter' => [
+					'title'       => '',
+					'description' => '',
+					'image_id'    => 33,
+				],
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/twitter-id.jpg' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:title" content="OG fallback title"', $out );
+		$this->assertStringContainsString( 'name="twitter:description" content="OG fallback description"', $out );
+		$this->assertStringContainsString( 'name="twitter:image" content="https://example.com/twitter-id.jpg"', $out );
+	}
+
+	/**
+	 * Test optional Twitter values are omitted when all fallbacks are empty.
+	 */
+	public function test_twitter_optional_values_are_omitted_when_empty(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'og'      => [
+					'title'       => '',
+					'description' => '',
+					'image'       => '',
+				],
+				'twitter' => [
+					'title'       => '',
+					'description' => '',
+					'image'       => '',
+				],
+			],
+			[
+				'title_template'       => '',
+				'description_template' => '',
+			]
+		);
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+		Functions\when( 'get_the_excerpt' )->justReturn( '' );
+		Functions\when( 'get_post_field' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:card" content="summary_large_image"', $out );
+		$this->assertStringNotContainsString( 'name="twitter:title"', $out );
+		$this->assertStringNotContainsString( 'name="twitter:description"', $out );
+		$this->assertStringNotContainsString( 'name="twitter:image"', $out );
+	}
+
+	/**
+	 * Test Twitter site and creator use sanitized handles with creator precedence.
+	 */
+	public function test_twitter_site_and_creator_use_sanitized_handles(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [], [ 'twitter_site' => '@site-handle!' ] );
+
+		Functions\when( 'get_post_field' )->justReturn( 7 );
+		Functions\when( 'get_user_meta' )->justReturn( '@author_handle!' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:site" content="@sitehandle"', $out );
+		$this->assertStringContainsString( 'name="twitter:creator" content="@author_handle"', $out );
+	}
+
+	/**
+	 * Test Twitter creator falls back to the site handle when the author handle is absent.
+	 */
+	public function test_twitter_creator_falls_back_to_site_handle(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [], [ 'twitter_site' => '@site' ] );
+
+		Functions\when( 'get_post_field' )->justReturn( 7 );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:creator" content="@site"', $out );
+	}
+
+	/**
+	 * Test Twitter handles never emit hostile characters and are capped at 15 characters.
+	 */
+	public function test_twitter_handles_are_capped_and_safe_for_hostile_input(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[ 'twitter_site' => '\"><script>alert(1)</script>@foo bar' ]
+		);
+
+		Functions\when( 'get_post_field' )->justReturn( 7 );
+		Functions\when( 'get_user_meta' )->justReturn( '\"><script>alert(1)</script>@foo bar' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertMatchesRegularExpression( '/name="twitter:site" content="@[A-Za-z0-9_]{1,15}"/', $out );
+		$this->assertMatchesRegularExpression( '/name="twitter:creator" content="@[A-Za-z0-9_]{1,15}"/', $out );
+
+		preg_match( '/name="twitter:site" content="([^"]*)"/', $out, $siteMatch );
+		preg_match( '/name="twitter:creator" content="([^"]*)"/', $out, $creatorMatch );
+		$this->assertSame( 1, preg_match( '/^@[A-Za-z0-9_]{1,15}$/', $siteMatch[1] ) );
+		$this->assertSame( 1, preg_match( '/^@[A-Za-z0-9_]{1,15}$/', $creatorMatch[1] ) );
+	}
+
+	/**
+	 * Test Twitter site is emitted on archives while creator remains singular only.
+	 */
+	public function test_twitter_site_is_global_but_creator_is_singular_only(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'archive', 9, [], [ 'twitter_site' => '@site' ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="twitter:site" content="@site"', $out );
+		$this->assertStringNotContainsString( 'name="twitter:creator"', $out );
+	}
+
+	/**
+	 * Test Twitter handles are omitted when neither input contains a valid handle.
+	 */
+	public function test_twitter_handles_are_omitted_when_no_valid_handle_exists(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [], [ 'twitter_site' => '---' ] );
+
+		Functions\when( 'get_post_field' )->justReturn( 7 );
+		Functions\when( 'get_user_meta' )->justReturn( '---' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringNotContainsString( 'name="twitter:site"', $out );
+		$this->assertStringNotContainsString( 'name="twitter:creator"', $out );
+	}
+
+	/**
+	 * Test a complete social tag set has unique, non empty tag values.
+	 */
+	public function test_social_tag_set_has_unique_non_empty_content(): void {
+		$meta = [
+			'title'       => 'Complete title',
+			'description' => 'Complete description',
+			'og'          => [
+				'title'       => 'OG title',
+				'description' => 'OG description',
+				'image_id'    => 77,
+				'image_alt'   => 'Image alt',
+				'type'        => 'article',
+			],
+			'twitter'     => [
+				'card'        => 'summary_large_image',
+				'title'       => 'Twitter title',
+				'description' => 'Twitter description',
+				'image_id'    => 77,
+			],
+		];
+
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			$meta,
+			[
+				'twitter_site'            => '@site',
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 91,
+			]
+		);
+
+		Functions\when( 'get_post_field' )->alias(
+			static fn ( string $field, int $id ): mixed => 'post_author' === $field && 1 === $id ? 7 : ''
+		);
+		Functions\when( 'get_user_meta' )->justReturn( '@author' );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/attachment.jpg' );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/attachment.jpg', 1200, 630 ] );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $meta ): mixed {
+				unset( $id, $single );
+				return '_rankkernel_meta_data' === $key ? $meta : 'Image alt';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSocialTagsHaveUniqueNonEmptyContent( $out );
 	}
 
 	/**
