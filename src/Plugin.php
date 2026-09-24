@@ -18,6 +18,7 @@ use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Analysis\AnalysisModule;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
+use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
@@ -200,6 +201,12 @@ final class Plugin {
 		// Crawl Signals module (optional, default off).
 		$robotsModule = new RobotsModule( $enableMap );
 		$moduleManager->register( $robotsModule );
+
+		// Instant Indexing module (optional, default off, and its auto
+		// submit control defaults to off too, so two deliberate opt-ins
+		// stand between an install and any outbound request).
+		$instantIndexingModule = new InstantIndexingModule( $enableMap );
+		$moduleManager->register( $instantIndexingModule );
 
 		add_action( 'init', [ $migrationRunner, 'maybeRun' ], 10 );
 
