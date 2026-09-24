@@ -203,8 +203,9 @@ final class SettingsController {
 			'org_sameas'              => [
 				'type'              => 'array',
 				'items'             => [
-					'type'   => 'string',
-					'format' => 'uri',
+					'type'              => 'string',
+					'format'            => 'uri',
+					'sanitize_callback' => 'esc_url_raw',
 				],
 				'validate_callback' => 'rest_validate_request_arg',
 			],
