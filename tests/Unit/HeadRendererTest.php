@@ -902,4 +902,144 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * Test getResolvedTitle memoizes title resolution across title() and render() passes.
+	 *
+	 * @return void
+	 */
+	public function test_get_resolved_title_memoization(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'title'       => '%%title%% %%sep%% %%sitename%%',
+				'description' => 'Fixed Description',
+			],
+			[
+				'description_template' => '',
+			]
+		);
+
+		$filterCalls = 0;
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $val ) use ( &$filterCalls ) {
+				if ( 'rankkernel/tokens' === $hook ) {
+					++$filterCalls;
+				}
+
+				return $val;
+			}
+		);
+
+		$replacer = new TagsReplacer();
+		$renderer = new HeadRenderer( $settings, $replacer, $ctx );
+
+		// 1) Call title() filter pass.
+		$docTitle = $renderer->title( 'Default' );
+		$this->assertStringContainsString( 'Post Title', (string) $docTitle );
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should fire once during title()' );
+
+		// Explicitly clear TagsReplacer memo to isolate HeadRenderer's $resolvedTitleMemo layer.
+		$replacer->clearMemo();
+
+		// 2) Call render() which resolves og:title and twitter:title via getResolvedTitle().
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'og:title', $out );
+		$this->assertStringContainsString( 'twitter:title', $out );
+		$this->assertStringContainsString( 'Post Title', $out );
+
+		// The filter should STILL NOT fire again during render() because HeadRenderer memoizes the title.
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire during render even if TagsReplacer memo is cleared' );
+	}
+
+	/**
+	 * Test render then title reuses the HeadRenderer memo in the reverse order.
+	 *
+	 * @return void
+	 */
+	public function test_render_then_title_reuses_memo(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'title'       => '%%title%% %%sep%% %%sitename%%',
+				'description' => 'Fixed Description',
+			],
+			[
+				'description_template' => '',
+			]
+		);
+
+		$filterCalls = 0;
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $val ) use ( &$filterCalls ) {
+				if ( 'rankkernel/tokens' === $hook ) {
+					++$filterCalls;
+				}
+
+				return $val;
+			}
+		);
+
+		$replacer = new TagsReplacer();
+		$renderer = new HeadRenderer( $settings, $replacer, $ctx );
+
+		// 1) Call render() first, which populates the memo via og:title and twitter:title.
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'og:title', $out );
+		$this->assertStringContainsString( 'twitter:title', $out );
+		$this->assertStringContainsString( 'Post Title', $out );
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should fire once during render()' );
+
+		// Explicitly clear TagsReplacer memo to isolate HeadRenderer's $resolvedTitleMemo layer.
+		$replacer->clearMemo();
+
+		// 2) Call title() and assert it reads the memo populated by render() instead of resolving again.
+		$docTitle = $renderer->title( 'Default' );
+
+		$this->assertStringContainsString( 'Post Title', (string) $docTitle );
+		$this->assertSame( 1, $filterCalls, 'rankkernel/tokens filter should not fire during title even if TagsReplacer memo is cleared' );
+	}
+
+	/**
+	 * Test empty payload and empty template fallback isolation between title() and getResolvedTitle().
+	 *
+	 * @return void
+	 */
+	public function test_empty_payload_and_template_fallback_isolation(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[
+				'title_template'       => '',
+				'description_template' => '',
+			]
+		);
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		// title() returns the WP filter default without poisoning getResolvedTitle().
+		$filterDefault = $renderer->title( 'Filter WP Default' );
+		$this->assertSame( 'Filter WP Default', $filterDefault );
+
+		// render() uses Context title for og:title and twitter:title tags.
+		ob_start();
+		$renderer->render();
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'og:title', $out );
+		$this->assertStringContainsString( 'Post Title', $out );
+
+		// Reverse order: a render() fallback must not poison the filter arg title() returns.
+		$reverseRenderer = new HeadRenderer( $settings, null, $ctx );
+
+		ob_start();
+		$reverseRenderer->render();
+		$reverseOut = ob_get_clean();
+
+		$this->assertStringContainsString( 'Post Title', $reverseOut );
+		$this->assertSame( 'Filter WP Default', $reverseRenderer->title( 'Filter WP Default' ) );
+	}
 }
