@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\InstantIndexingPage;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
+use RankKernel\Modules\ModuleEnableMap;
 
 /**
  * Instant Indexing Page Test.
@@ -41,6 +42,13 @@ final class InstantIndexingPageTest extends TestCase {
 	private string $output = '';
 
 	/**
+	 * Option store backing the get_option and update_option stubs.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $stored = [];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -51,15 +59,15 @@ final class InstantIndexingPageTest extends TestCase {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
-		$stored = [];
+		$this->stored = [];
 		Functions\when( 'get_option' )->alias(
-			static function ( string $k, mixed $f = false ) use ( &$stored ): mixed {
-				return $stored[ $k ] ?? $f;
+			function ( string $k, mixed $f = false ): mixed {
+				return $this->stored[ $k ] ?? $f;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
-			static function ( string $k, mixed $v ) use ( &$stored ): bool {
-				$stored[ $k ] = $v;
+			function ( string $k, mixed $v ): bool {
+				$this->stored[ $k ] = $v;
 				return true;
 			}
 		);
@@ -114,11 +122,17 @@ final class InstantIndexingPageTest extends TestCase {
 	/**
 	 * Build the page under test.
 	 *
-	 * @param callable(string): void|null $submit Submission callback override.
+	 * The enable map reads the option when it is constructed, so the
+	 * module state is staged into the option store first.
+	 *
+	 * @param callable(string): void|null $submit        Submission callback override.
+	 * @param bool                        $moduleEnabled Whether instant-indexing is enabled.
 	 * @return InstantIndexingPage The result.
 	 */
-	private function page( ?callable $submit = null ): InstantIndexingPage {
-		return new InstantIndexingPage( $this->settings, $submit );
+	private function page( ?callable $submit = null, bool $moduleEnabled = true ): InstantIndexingPage {
+		$this->stored['rankkernel_modules'] = $moduleEnabled ? [ 'instant-indexing' ] : [];
+
+		return new InstantIndexingPage( $this->settings, new ModuleEnableMap(), $submit );
 	}
 
 	/**
@@ -135,15 +149,33 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the configured state renders without the key.
+	 * Test the configured state is shown when a key exists.
 	 */
-	public function test_render_shows_configured_state_without_the_key(): void {
+	public function test_render_shows_the_configured_state_when_a_key_exists(): void {
 		$page = $this->page();
 		ob_start();
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'configured', strtolower( $html ) );
+		$this->assertStringContainsString( 'Key configured', $html );
+		$this->assertStringNotContainsString( 'No key configured', $html );
+		$this->assertStringNotContainsString( $this->key, $html );
+	}
+
+	/**
+	 * Test the unconfigured state is shown when no key exists.
+	 */
+	public function test_render_shows_the_unconfigured_state_when_no_key_exists(): void {
+		unset( $this->stored[ IndexNowSettings::OPTION ] );
+
+		$page = new InstantIndexingPage( new IndexNowSettings() );
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'No key configured', $html );
+		$this->assertStringNotContainsString( 'Key configured', $html );
+		$this->assertStringNotContainsString( $this->key, $html );
 	}
 
 	/**
@@ -237,11 +269,17 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test a foreign host is rejected before the submit callback runs.
+	 * Test a foreign host is rejected by the host check before the callback.
+	 *
+	 * The wp_http_validate_url double returns the URL unchanged here, so
+	 * the request reaches the hash_equals host comparison, which is the
+	 * boundary under test. Validation is not the reason this URL is
+	 * refused.
 	 */
 	public function test_manual_submit_rejects_a_url_on_another_host_without_submitting(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
 
 		$called = 0;
 		$page   = $this->page(
@@ -257,14 +295,20 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->maybeHandleSave();
 
 		$this->assertSame( 0, $called, 'a foreign host must never be submitted' );
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'Rejected: the URL host does not match this site.', $entries[0]['message'] );
 	}
 
 	/**
-	 * Test a foreign host is logged as rejected and never fetched.
+	 * Test a foreign host is logged as a host rejection and never fetched.
 	 */
 	public function test_a_foreign_host_is_logged_as_rejected_and_never_fetched(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
 		Functions\expect( 'wp_remote_get' )->never();
 		Functions\expect( 'wp_safe_remote_get' )->never();
 		Functions\expect( 'wp_remote_head' )->never();
@@ -283,6 +327,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( 'https://evil.test/a', $entries[0]['url'] );
 		$this->assertSame( 0, $entries[0]['code'] );
 		$this->assertSame( 'manual', $entries[0]['source'] );
+		$this->assertSame( 'Rejected: the URL host does not match this site.', $entries[0]['message'] );
 	}
 
 	/**
@@ -307,5 +352,62 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->maybeHandleSave();
 
 		$this->assertSame( 1, $called );
+	}
+
+	/**
+	 * Test a disabled module refuses the manual submit before the callback.
+	 */
+	public function test_manual_submit_is_refused_while_the_module_is_disabled(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				$called++;
+			},
+			false
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_url'    => 'https://example.com/a',
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'a disabled module must never reach the submit callback' );
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'Rejected: the Instant Indexing module is disabled.', $entries[0]['message'] );
+	}
+
+	/**
+	 * Test a disabled module never reaches the transport.
+	 */
+	public function test_a_disabled_module_never_reaches_the_transport(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+		Functions\when( 'wp_json_encode' )->alias( static fn( mixed $d ): string => (string) json_encode( $d ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		Functions\expect( 'wp_safe_remote_post' )->never();
+		Functions\expect( 'wp_remote_post' )->never();
+
+		// The default callback routes through InstantIndexingModule, so a
+		// missing gate would construct the client and reach for the network.
+		$page = $this->page( null, false );
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_url'    => 'https://example.com/a',
+		];
+		$page->maybeHandleSave();
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'Rejected: the Instant Indexing module is disabled.', $entries[0]['message'] );
 	}
 }

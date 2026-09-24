@@ -89,7 +89,7 @@ final class AdminMenu {
 		$this->redirectsPage       = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
 		$this->monitorPage         = new NotFoundPage();
 		$this->dashboardPage       = new DashboardPage();
-		$this->instantIndexingPage = new InstantIndexingPage();
+		$this->instantIndexingPage = new InstantIndexingPage( null, $this->enableMap );
 	}
 
 	/**

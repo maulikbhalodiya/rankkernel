@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
+use RankKernel\Modules\ModuleEnableMap;
 
 /**
  * Renders the Instant Indexing screen and handles its writes.
@@ -56,11 +57,23 @@ final class InstantIndexingPage {
 	private const NONCE_SUBMIT = 'rankkernel_indexnow_submit';
 
 	/**
+	 * Module id consulted before any manual submission.
+	 */
+	private const MODULE_ID = 'instant-indexing';
+
+	/**
 	 * Settings store.
 	 *
 	 * @var IndexNowSettings
 	 */
 	private IndexNowSettings $settings;
+
+	/**
+	 * Module enable map, the manual path refuses to run while disabled.
+	 *
+	 * @var ModuleEnableMap
+	 */
+	private ModuleEnableMap $enableMap;
 
 	/**
 	 * Submission callback, one validated URL in.
@@ -74,14 +87,22 @@ final class InstantIndexingPage {
 	 *
 	 * The default callback routes through InstantIndexingModule, the
 	 * single submission entry point, and never calls the client directly.
+	 * It only runs after the enable map gate, so a disabled module never
+	 * constructs a client.
 	 *
-	 * @param IndexNowSettings|null       $settings Settings store, fresh one when null.
-	 * @param callable(string): void|null $submit   Submission callback, null uses the module entry point.
+	 * @param IndexNowSettings|null       $settings  Settings store, fresh one when null.
+	 * @param ModuleEnableMap|null        $enableMap Enable map, fresh one when null.
+	 * @param callable(string): void|null $submit    Submission callback, null uses the module entry point.
 	 */
-	public function __construct( ?IndexNowSettings $settings = null, ?callable $submit = null ) {
-		$this->settings = $settings ?? new IndexNowSettings();
-		$this->submit   = $submit ?? function ( string $url ): void {
-			( new InstantIndexingModule( null, $this->settings ) )->submitUrls( [ $url ], 'manual' );
+	public function __construct(
+		?IndexNowSettings $settings = null,
+		?ModuleEnableMap $enableMap = null,
+		?callable $submit = null
+	) {
+		$this->settings  = $settings ?? new IndexNowSettings();
+		$this->enableMap = $enableMap ?? new ModuleEnableMap();
+		$this->submit    = $submit ?? function ( string $url ): void {
+			( new InstantIndexingModule( $this->enableMap, $this->settings ) )->submitUrls( [ $url ], 'manual' );
 		};
 	}
 
@@ -193,10 +214,11 @@ final class InstantIndexingPage {
 	/**
 	 * Handle a manual submission.
 	 *
-	 * The URL must pass wp_http_validate_url and its host must equal the
-	 * site host, www and the apex are different hosts. A rejected URL is
-	 * logged and the submit callback is never reached, so no request is
-	 * ever made to it.
+	 * The module must be enabled, because a disabled module makes zero
+	 * outbound requests. Then the URL must pass wp_http_validate_url and
+	 * its host must equal the site host, so www and the apex are
+	 * different hosts. A rejection is logged and the submit callback is
+	 * never reached, so no request is ever made to the submitted URL.
 	 *
 	 * @return void
 	 */
@@ -204,6 +226,12 @@ final class InstantIndexingPage {
 		$this->requireAccess( self::NONCE_SUBMIT );
 
 		$url = $this->postedUrl();
+
+		if ( ! $this->isModuleEnabled() ) {
+			$this->reject( $url, __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
+
+			return;
+		}
 
 		if ( '' === $url || ! function_exists( 'wp_http_validate_url' ) ) {
 			$this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) );
@@ -214,7 +242,7 @@ final class InstantIndexingPage {
 		$validated = wp_http_validate_url( $url );
 
 		if ( ! is_string( $validated ) || ! $this->isSiteHost( $validated ) ) {
-			$this->reject( $url, __( 'Rejected: only URLs on this site can be submitted.', 'rankkernel' ) );
+			$this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) );
 
 			return;
 		}
@@ -286,6 +314,15 @@ final class InstantIndexingPage {
 				[ 'response' => 403 ]
 			);
 		}
+	}
+
+	/**
+	 * Whether the Instant Indexing module is enabled in the enable map.
+	 *
+	 * @return bool The result.
+	 */
+	private function isModuleEnabled(): bool {
+		return $this->enableMap->isEnabled( self::MODULE_ID );
 	}
 
 	/**
