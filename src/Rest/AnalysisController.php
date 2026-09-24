@@ -62,30 +62,61 @@ final class AnalysisController {
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'title'       => [
-						'type'    => 'string',
-						'default' => '',
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'description' => [
-						'type'    => 'string',
-						'default' => '',
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'slug'        => [
-						'type'    => 'string',
-						'default' => '',
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'content'     => [
-						'type'    => 'string',
-						'default' => '',
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'wp_kses_post',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'keywords'    => [
-						'type'    => 'array',
-						'default' => [],
-						'items'   => [ 'type' => 'string' ],
+						'type'              => 'array',
+						'default'           => [],
+						'items'             => [ 'type' => 'string' ],
+						// WordPress only runs the top level sanitize_callback and never the one on an
+						// item schema, so the keyword elements are cleaned by this callback.
+						'sanitize_callback' => [ self::class, 'sanitizeKeywords' ],
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
 			]
+		);
+	}
+
+	/**
+	 * Sanitize a keyword list element by element.
+	 *
+	 * The framework normalisation the default sanitizer would have applied is
+	 * kept by rest_sanitize_array (a scalar becomes a list, keys are
+	 * reindexed), then each surviving element is passed through
+	 * sanitize_text_field. The list shape, order and entry count are kept.
+	 *
+	 * @param mixed $value Raw keyword list.
+	 * @return array<int, string> The result.
+	 */
+	public static function sanitizeKeywords( mixed $value ): array {
+		return array_map(
+			static fn ( mixed $keyword ): string => sanitize_text_field( (string) $keyword ),
+			rest_sanitize_array( $value )
 		);
 	}
 
