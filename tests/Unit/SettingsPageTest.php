@@ -346,6 +346,14 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'section=robots', $output );
 		$this->assertStringContainsString( 'id="rk-section-robots"', $output );
 		$this->assertStringContainsString( 'rk_robots_policy[gptbot]', $output );
+		$this->assertStringContainsString( '<nav class="rk-robots-tabs"', $output );
+
+		$robotsTabNav = [];
+		preg_match( '/<nav class="rk-robots-tabs".*?<\/nav>/s', $output, $robotsTabNav );
+		$this->assertNotEmpty( $robotsTabNav, 'The robots tab landmark should render.' );
+		$this->assertStringContainsString( 'aria-label="Robots.txt tabs"', $robotsTabNav[0] );
+		$this->assertStringContainsString( 'aria-current="page"', $robotsTabNav[0] );
+		$this->assertSame( 1, substr_count( $robotsTabNav[0], 'aria-current="page"' ), 'Exactly one robots tab may be marked as current' );
 	}
 
 	/**
