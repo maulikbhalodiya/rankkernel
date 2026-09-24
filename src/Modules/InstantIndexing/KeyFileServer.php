@@ -116,7 +116,9 @@ final class KeyFileServer {
 	 *
 	 * The body is exactly the key and nothing else, served as plain text
 	 * with indexing disabled, then the request is terminated so no theme
-	 * or template output can follow. The exit is skipped under tests.
+	 * or template output can follow. The headers are read from
+	 * responseHeaders(), so the tested map is the map that is sent. The
+	 * exit is skipped under tests.
 	 *
 	 * @param string $key Key to serve.
 	 * @return void
@@ -127,8 +129,9 @@ final class KeyFileServer {
 				status_header( 200 );
 			}
 
-			header( 'Content-Type: text/plain; charset=utf-8' );
-			header( 'X-Robots-Tag: noindex, nofollow' );
+			foreach ( $this->responseHeaders() as $name => $value ) {
+				header( $name . ': ' . $value );
+			}
 
 			if ( function_exists( 'nocache_headers' ) ) {
 				nocache_headers();
@@ -140,6 +143,22 @@ final class KeyFileServer {
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;
 		}
+	}
+
+	/**
+	 * Headers the key file response intends to send.
+	 *
+	 * Extracted as a seam so tests can assert the noindex directive
+	 * without a live header() call. respond() sends exactly this map,
+	 * so the seam cannot drift from the real response.
+	 *
+	 * @return array<string, string> Header name to value map.
+	 */
+	public function responseHeaders(): array {
+		return [
+			'Content-Type' => 'text/plain; charset=utf-8',
+			'X-Robots-Tag' => 'noindex, nofollow',
+		];
 	}
 
 	/**

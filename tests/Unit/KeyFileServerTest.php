@@ -241,6 +241,19 @@ final class KeyFileServerTest extends TestCase {
 	}
 
 	/**
+	 * Test the response headers mark the key file plain text and noindex.
+	 */
+	public function test_response_headers_mark_the_key_file_plain_text_and_noindex(): void {
+		$server  = new KeyFileServer( $this->settings );
+		$headers = $server->responseHeaders();
+
+		$this->assertArrayHasKey( 'Content-Type', $headers, 'the key file response must declare a content type' );
+		$this->assertStringContainsString( 'text/plain', $headers['Content-Type'], 'the key file must be served as plain text' );
+		$this->assertArrayHasKey( 'X-Robots-Tag', $headers, 'the key file response must carry an X-Robots-Tag header' );
+		$this->assertStringContainsString( 'noindex', $headers['X-Robots-Tag'], 'the key file must be served noindex' );
+	}
+
+	/**
 	 * Test respond prints the key and marks the response plain text and uncacheable.
 	 */
 	public function test_respond_emits_the_key_with_a_plain_text_status(): void {

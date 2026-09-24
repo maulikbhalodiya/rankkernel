@@ -157,6 +157,8 @@ final class IndexNowClientTest extends TestCase {
 
 		$this->assertSame( [ 'host', 'key', 'keyLocation', 'urlList' ], array_keys( $payload ) );
 		$this->assertSame( 'example.com', $payload['host'] );
+		$this->assertSame( $this->settings->getKey(), $payload['key'], 'the payload must carry the stored key, never a wrong one' );
+		$this->assertNotSame( '', $payload['key'], 'the payload key must never be empty' );
 		$this->assertStringEndsWith( '.txt', $payload['keyLocation'] );
 		$this->assertSame( [ 'https://example.com/a' ], $payload['urlList'] );
 	}
@@ -169,6 +171,13 @@ final class IndexNowClientTest extends TestCase {
 
 		$this->assertCount( 1, $this->calls );
 		$this->assertSame( IndexNowClient::ENDPOINT, $this->calls[0]['url'] );
+
+		// This pins the header set WE set on the request, so a third header
+		// cannot be added unnoticed. WordPress core's HTTP API adds its own
+		// default User-Agent to wp_safe_remote_post, so the wire request is
+		// not literally one header. Our code adds no custom or telemetry
+		// header, which is the property under test.
+		$this->assertSame( [ 'Content-Type' ], array_keys( $this->calls[0]['args']['headers'] ), 'the request must set exactly one header' );
 		$this->assertSame( 'application/json; charset=utf-8', $this->calls[0]['args']['headers']['Content-Type'] );
 		$this->assertArrayNotHasKey( 'X-Source-Info', $this->calls[0]['args']['headers'] );
 		$this->assertArrayNotHasKey( 'User-Agent', $this->calls[0]['args']['headers'] );

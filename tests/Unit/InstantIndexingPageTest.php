@@ -215,6 +215,79 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test regeneration requires authorization and leaves the key unchanged.
+	 *
+	 * Covers both rejection paths required by the spec matrix: without
+	 * manage_options and without a valid nonce. Each must stop at wp_die
+	 * with a 403 and leave the stored key byte identical. The captured
+	 * nonce action proves the regenerate branch verifies its own action,
+	 * so reusing the save or submit action would fail this test.
+	 */
+	public function test_regenerate_requires_authorization_and_leaves_the_key_unchanged(): void {
+		$dies         = 0;
+		$responseCode = 0;
+		$nonceActions = [];
+
+		Functions\when( 'wp_die' )->alias(
+			static function ( string $message = '', string $title = '', array $args = [] ) use ( &$dies, &$responseCode ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the wp_die signature and records only the response code.
+				++$dies;
+				$responseCode = (int) ( $args['response'] ?? 0 );
+
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$old   = $this->settings->getKey();
+		$_POST = [ 'rankkernel_indexnow_action' => 'regenerate' ];
+
+		// Without manage_options the capability check must stop the write.
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		try {
+			$this->page()->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			// wp_die is expected, the assertions below prove it was the 403 path.
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies, 'regenerate without manage_options must stop at wp_die' );
+		$this->assertSame( 403, $responseCode, 'the capability rejection must send a 403' );
+
+		// With the capability but a failed nonce the nonce check must stop the write.
+		$dies         = 0;
+		$responseCode = 0;
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return false;
+			}
+		);
+
+		try {
+			$this->page()->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			// wp_die is expected, the assertions below prove it was the 403 path.
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies, 'regenerate without a valid nonce must stop at wp_die' );
+		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
+		$this->assertSame( [ 'rankkernel_indexnow_regenerate' ], $nonceActions, 'the regenerate branch must verify its own nonce action' );
+		$this->assertNotContains( 'rankkernel_indexnow_save', $nonceActions );
+		$this->assertNotContains( 'rankkernel_indexnow_submit', $nonceActions );
+
+		// Both rejected attempts must leave the stored key byte identical.
+		$option = (array) ( $this->stored[ IndexNowSettings::OPTION ] ?? [] );
+
+		$this->assertSame( bin2hex( $old ), bin2hex( $this->settings->getKey() ), 'the key accessor must return the old key byte for byte' );
+		$this->assertSame( $old, $option['api_key'] ?? '', 'the stored option must still hold the old key' );
+	}
+
+	/**
 	 * Test the auto submit checkbox treats a missing field as false.
 	 */
 	public function test_save_treats_an_absent_checkbox_as_false(): void {
