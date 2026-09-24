@@ -286,10 +286,17 @@ final class InstantIndexingPage {
 	 * @return string The result.
 	 */
 	private function postedUrl(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, value validated by wp_http_validate_url plus the host check before use.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, value unslashed and sanitized below, then validated by wp_http_validate_url plus the host check before use.
 		$raw = $_POST['rankkernel_indexnow_url'] ?? '';
 
-		return is_string( $raw ) ? trim( $raw ) : '';
+		if ( ! is_string( $raw ) ) {
+			return '';
+		}
+
+		$value = function_exists( 'wp_unslash' ) ? (string) wp_unslash( $raw ) : $raw;
+		$value = function_exists( 'esc_url_raw' ) ? (string) esc_url_raw( $value ) : $value;
+
+		return trim( $value );
 	}
 
 	/**

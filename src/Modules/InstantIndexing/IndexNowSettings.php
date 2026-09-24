@@ -229,6 +229,7 @@ final class IndexNowSettings {
 	 * Enable or disable automatic submission.
 	 *
 	 * @param bool $enabled Whether to enable.
+	 * @return void
 	 */
 	public function setAutoSubmit( bool $enabled ): void {
 		$this->set( [ 'auto_submit' => $enabled ] );
@@ -298,6 +299,7 @@ final class IndexNowSettings {
 	 * @param int    $code    HTTP status code.
 	 * @param string $source  Submitting surface, auto or manual.
 	 * @param string $message Human readable outcome.
+	 * @return void
 	 */
 	public function logEntry( string $url, int $code, string $source, string $message ): void {
 		$entries = $this->logEntries();
@@ -353,6 +355,8 @@ final class IndexNowSettings {
 
 	/**
 	 * Delete every log entry.
+	 *
+	 * @return void
 	 */
 	public function clearLog(): void {
 		if ( function_exists( 'update_option' ) ) {
@@ -364,6 +368,7 @@ final class IndexNowSettings {
 	 * Permalink structure, isolated so tests can simulate plain permalinks.
 	 *
 	 * @param string $structure Permalink structure to report.
+	 * @return void
 	 */
 	public function setPermalinkStructure( string $structure ): void {
 		$this->permalinkStructure = $structure;
