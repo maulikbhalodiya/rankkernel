@@ -12,6 +12,7 @@ namespace RankKernel\Rest;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Settings\SettingsStore;
 use WP_Error;
 use WP_REST_Request;
@@ -166,23 +167,40 @@ final class SettingsController {
 	 */
 	private function getEndpointArgs(): array {
 		$args = [
-			'site_represents'       => [
+			'social_default_image'    => [
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'social_default_image_id' => [
+				'type'              => 'integer',
+				'sanitize_callback' => static function ( mixed $value ): int {
+					return is_numeric( $value ) && (int) $value > 0 ? absint( $value ) : 0;
+				},
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'twitter_site'            => [
+				'type'              => 'string',
+				'sanitize_callback' => [ MetaPayload::class, 'sanitizeTwitterHandle' ],
+				'validate_callback' => 'rest_validate_request_arg',
+			],
+			'site_represents'         => [
 				'type'              => 'string',
 				'enum'              => [ 'organization', 'person' ],
 				'sanitize_callback' => 'sanitize_text_field',
 				'validate_callback' => 'rest_validate_request_arg',
 			],
-			'org_name'              => [
+			'org_name'                => [
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 				'validate_callback' => 'rest_validate_request_arg',
 			],
-			'org_logo'              => [
+			'org_logo'                => [
 				'type'              => 'string',
 				'sanitize_callback' => 'esc_url_raw',
 				'validate_callback' => 'rest_validate_request_arg',
 			],
-			'org_sameas'            => [
+			'org_sameas'              => [
 				'type'              => 'array',
 				'items'             => [
 					'type'   => 'string',
@@ -190,10 +208,10 @@ final class SettingsController {
 				],
 				'validate_callback' => 'rest_validate_request_arg',
 			],
-			'website_search_action' => [ 'type' => 'boolean' ],
-			'schema_breadcrumbs'    => [ 'type' => 'boolean' ],
-			'schema_author'         => [ 'type' => 'boolean' ],
-			'purge_on_uninstall'    => [ 'type' => [ 'boolean', 'null' ] ],
+			'website_search_action'   => [ 'type' => 'boolean' ],
+			'schema_breadcrumbs'      => [ 'type' => 'boolean' ],
+			'schema_author'           => [ 'type' => 'boolean' ],
+			'purge_on_uninstall'      => [ 'type' => [ 'boolean', 'null' ] ],
 		];
 
 		$text_keys = [

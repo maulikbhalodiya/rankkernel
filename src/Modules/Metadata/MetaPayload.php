@@ -60,6 +60,7 @@ final class MetaPayload {
 				'title'       => '',
 				'description' => '',
 				'image'       => '',
+				'image_alt'   => '',
 				'image_id'    => 0,
 				'type'        => '',
 			],
@@ -78,6 +79,28 @@ final class MetaPayload {
 				'breadcrumb_title' => '',
 			],
 		];
+	}
+
+	/**
+	 * Normalize an X or Twitter handle to its bare, bounded form.
+	 *
+	 * Shared by head rendering and the admin save path so both agree on
+	 * what a stored handle means. The renderer prefixes the emitted value
+	 * with an at sign, so this returns the handle without one.
+	 *
+	 * @param mixed $handle Raw handle.
+	 * @return string Bare handle, empty when nothing valid remains.
+	 */
+	public static function sanitizeTwitterHandle( mixed $handle ): string {
+		$handle = is_scalar( $handle ) ? trim( (string) $handle ) : '';
+
+		if ( str_starts_with( $handle, '@' ) ) {
+			$handle = substr( $handle, 1 );
+		}
+
+		$handle = preg_replace( '/[^A-Za-z0-9_]/', '', $handle ) ?? '';
+
+		return substr( $handle, 0, 15 );
 	}
 
 	/**
@@ -195,6 +218,10 @@ final class MetaPayload {
 
 			if ( array_key_exists( 'image', $og ) ) {
 				$out['og']['image'] = esc_url_raw( (string) $og['image'] );
+			}
+
+			if ( array_key_exists( 'image_alt', $og ) ) {
+				$out['og']['image_alt'] = sanitize_text_field( (string) $og['image_alt'] );
 			}
 
 			if ( array_key_exists( 'image_id', $og ) ) {
@@ -774,6 +801,7 @@ final class MetaPayload {
 							'type'   => 'string',
 							'format' => 'uri',
 						],
+						'image_alt'   => [ 'type' => 'string' ],
 						'image_id'    => [ 'type' => 'integer' ],
 						'type'        => [ 'type' => 'string' ],
 					],

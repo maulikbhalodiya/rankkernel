@@ -2,8 +2,9 @@
  * General Settings section loader.
  *
  * Loads one settings section at a time without a full page reload, and saves
- * the robots, llms and htaccess actions in place. Every failure falls back to a
- * normal page load, so nothing breaks without JavaScript.
+ * the robots, llms and htaccess actions in place, and binds the social media
+ * picker. Every failure falls back to a normal page load, so nothing breaks
+ * without JavaScript.
  *
  * Plain script, no build step. Loaded on the RankKernel General Settings
  * screen only.
@@ -44,6 +45,99 @@
 		if ( ! body || ! form ) {
 			return;
 		}
+
+		var mediaFrame = null;
+
+		function openSocialMedia() {
+			if ( 'undefined' === typeof wp || ! wp.media ) {
+				return;
+			}
+
+			if ( ! mediaFrame ) {
+				mediaFrame = wp.media( {
+					title: 'Select default social image',
+					button: { text: 'Use this image' },
+					multiple: false,
+					library: { type: 'image' }
+				} );
+
+				mediaFrame.on( 'select', function () {
+					var attachment = mediaFrame.state().get( 'selection' ).first();
+					var image = document.getElementById( 'rk-social-default-image' );
+					var imageId = document.getElementById( 'rk-social-default-image-id' );
+					var preview = document.getElementById( 'rk-social-default-image-preview' );
+					var remove = document.getElementById( 'rk-social-default-image-remove' );
+
+					if ( ! attachment || ! image || ! imageId ) {
+						return;
+					}
+
+					var url = attachment.get( 'url' );
+					var id = attachment.get( 'id' );
+
+					if ( 'string' !== typeof url || '' === url || ! id ) {
+						return;
+					}
+
+					image.value = url;
+					imageId.value = String( id );
+
+					if ( preview ) {
+						preview.src = url;
+						preview.style.display = '';
+					}
+
+					if ( remove ) {
+						remove.style.display = '';
+					}
+				} );
+			}
+
+			mediaFrame.open();
+		}
+
+		function clearSocialMedia() {
+			var image = document.getElementById( 'rk-social-default-image' );
+			var imageId = document.getElementById( 'rk-social-default-image-id' );
+			var preview = document.getElementById( 'rk-social-default-image-preview' );
+			var remove = document.getElementById( 'rk-social-default-image-remove' );
+
+			if ( image ) {
+				image.value = '';
+			}
+
+			if ( imageId ) {
+				imageId.value = '0';
+			}
+
+			if ( preview ) {
+				preview.src = '';
+				preview.style.display = 'none';
+			}
+
+			if ( remove ) {
+				remove.style.display = 'none';
+			}
+		}
+
+		document.addEventListener( 'click', function ( event ) {
+			var node = event.target;
+
+			if ( ! node || ! node.closest ) {
+				return;
+			}
+
+			if ( node.closest( '#rk-social-default-image-select' ) ) {
+				event.preventDefault();
+				openSocialMedia();
+				return;
+			}
+
+			if ( node.closest( '#rk-social-default-image-remove' ) ) {
+				event.preventDefault();
+				clearSocialMedia();
+			}
+		} );
 
 		function busy( state ) {
 			body.classList.toggle( 'rk-settings-is-busy', !! state );

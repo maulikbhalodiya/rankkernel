@@ -754,7 +754,7 @@ final class Context {
 	/**
 	 * Resolve og-image url and its attachment id in ONE place.
 	 *
-	 * Chain: payload og.image (custom URL, id 0) → og.image_id → featured.
+	 * Chain: payload og.image (custom URL, id 0) → og.image_id → featured → site default.
 	 * Custom URL never pairs with an attachment's dimensions.
 	 *
 	 * @return array{url:string,id:int} The result.
@@ -816,6 +816,21 @@ final class Context {
 			}
 		}
 
+		// 4) Site default image, only when both settings identify the same attachment.
+		$defaultImage = $this->settings->get( 'social_default_image', '' );
+		$defaultId    = $this->settings->get( 'social_default_image_id', 0 );
+		$defaultImage = is_string( $defaultImage ) ? trim( $defaultImage ) : '';
+		$defaultId    = is_numeric( $defaultId ) ? (int) $defaultId : 0;
+
+		if ( '' !== $defaultImage && $defaultId > 0 ) {
+			$this->ogImageData = [
+				'url' => $defaultImage,
+				'id'  => $defaultId,
+			];
+
+			return $this->ogImageData;
+		}
+
 		$this->ogImageData = [
 			'url' => '',
 			'id'  => 0,
@@ -825,7 +840,7 @@ final class Context {
 	}
 
 	/**
-	 * OG image, chain: payload og.image -> og.image_id via wp_get_attachment_image_url -> featured image -> ''.
+	 * OG image, chain: payload og.image -> og.image_id via wp_get_attachment_image_url -> featured image -> site default -> ''.
 	 *
 	 * @return string The result.
 	 */
@@ -840,5 +855,33 @@ final class Context {
 	 */
 	public function ogImageAttachmentId(): int {
 		return $this->resolveOgImageData()['id'];
+	}
+
+	/**
+	 * Alt text for the resolved OG image.
+	 *
+	 * A payload override wins. Attachment alt is read only when the resolved
+	 * image came from an attachment, never for a custom URL.
+	 *
+	 * @return string The result.
+	 */
+	public function ogImageAlt(): string {
+		$meta = $this->meta();
+		$og   = $meta['og'] ?? [];
+		$alt  = is_array( $og ) && isset( $og['image_alt'] ) ? trim( (string) $og['image_alt'] ) : '';
+
+		if ( '' !== $alt ) {
+			return $alt;
+		}
+
+		$attachmentId = $this->ogImageAttachmentId();
+
+		if ( $attachmentId <= 0 || ! function_exists( 'get_post_meta' ) ) {
+			return '';
+		}
+
+		$attachmentAlt = get_post_meta( $attachmentId, '_wp_attachment_image_alt', true );
+
+		return is_string( $attachmentAlt ) ? trim( $attachmentAlt ) : '';
 	}
 }
