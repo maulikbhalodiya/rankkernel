@@ -90,6 +90,10 @@ final class RobotsModuleTest extends TestCase {
 					return $this->physicalPath;
 				}
 
+				if ( 'rankkernel/llms/physical_file' === $hook && '' !== $this->physicalPath ) {
+					return $this->physicalPath;
+				}
+
 				return $value;
 			}
 		);
@@ -253,11 +257,25 @@ final class RobotsModuleTest extends TestCase {
 		$module = new RobotsModule();
 		$module->boot();
 
-		// Non-rankkernel screen.
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "# LLMS\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+		$this->physicalPath = $temp;
+
+		// Non-rankkernel screen (suppressed by screen check even when file exists).
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'plugins' ] );
 		ob_start();
 		$module->renderLlmsPhysicalNotice();
 		$out = ob_get_clean();
 		$this->assertSame( '', $out );
+
+		// RankKernel screen (outputs notice when file exists).
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		ob_start();
+		$module->renderLlmsPhysicalNotice();
+		$out = ob_get_clean();
+		$this->assertStringContainsString( 'notice notice-warning', $out );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 }
