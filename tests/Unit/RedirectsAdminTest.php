@@ -1678,7 +1678,7 @@ final class RedirectsAdminTest extends TestCase {
 	 */
 	public function test_table_controls_have_accessible_labels(): void {
 		$this->seedRule( '/a', '/b' );
-		$this->seedRule( '/c', '/d' );
+		$this->seedRule( '/c', '/d', '301', 'exact', false );
 
 		$page = $this->makePage();
 		$this->allowAccess();
@@ -1712,6 +1712,10 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select redirect for /a"', $html );
 		$this->assertStringContainsString( 'aria-label="Select redirect for /c"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select redirect for' ) );
+		$this->assertStringContainsString( 'aria-label="Edit redirect for /a"', $html );
+		$this->assertStringContainsString( 'aria-label="Deactivate redirect for /a"', $html );
+		$this->assertStringContainsString( 'aria-label="Activate redirect for /c"', $html );
+		$this->assertStringContainsString( 'aria-label="Delete redirect for /a"', $html );
 	}
 
 	/**

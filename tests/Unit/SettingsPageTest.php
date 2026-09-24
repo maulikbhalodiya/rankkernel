@@ -40,6 +40,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v, string $d = '' ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_attr__' )->alias( static fn ( string $v, string $d = '' ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_attr__ signature.
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
 		Functions\when( '__' )->alias( static fn ( string $v, string $d = '' ): string => $v ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
@@ -345,6 +346,14 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'section=robots', $output );
 		$this->assertStringContainsString( 'id="rk-section-robots"', $output );
 		$this->assertStringContainsString( 'rk_robots_policy[gptbot]', $output );
+		$this->assertStringContainsString( '<nav class="rk-robots-tabs"', $output );
+
+		$robotsTabNav = [];
+		preg_match( '/<nav class="rk-robots-tabs".*?<\/nav>/s', $output, $robotsTabNav );
+		$this->assertNotEmpty( $robotsTabNav, 'The robots tab landmark should render.' );
+		$this->assertStringContainsString( 'aria-label="Robots.txt tabs"', $robotsTabNav[0] );
+		$this->assertStringContainsString( 'aria-current="page"', $robotsTabNav[0] );
+		$this->assertSame( 1, substr_count( $robotsTabNav[0], 'aria-current="page"' ), 'Exactly one robots tab may be marked as current' );
 	}
 
 	/**

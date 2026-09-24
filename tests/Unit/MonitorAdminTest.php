@@ -1089,6 +1089,8 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Select 404 entry for /missing-page"', $html );
 		$this->assertStringContainsString( 'aria-label="Select 404 entry for /other-page"', $html );
 		$this->assertSame( 2, substr_count( $html, 'aria-label="Select 404 entry for' ) );
+		$this->assertStringContainsString( 'aria-label="Create redirect for /missing-page"', $html );
+		$this->assertStringContainsString( 'aria-label="Delete 404 entry for /missing-page"', $html );
 
 		$this->assertStringContainsString( 'role="progressbar"', $html );
 		$this->assertStringContainsString( 'aria-valuenow="0.2"', $html );
