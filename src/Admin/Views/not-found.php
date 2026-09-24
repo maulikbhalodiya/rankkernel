@@ -280,6 +280,11 @@ endif;
 				<th scope="col"><span class="screen-reader-text"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></span></th>
 			</tr></thead><tbody id="rk-exclusions-body">
 				<?php foreach ( $exclusionRowItems as $exclusionRowItem ) : ?>
+					<?php
+					$rkExclRemoveLabel = '' !== $exclusionRowItem['value']
+						? sprintf( /* translators: %s: exclusion value or pattern */ __( 'Remove exclusion rule for %s', 'rankkernel' ), $exclusionRowItem['value'] )
+						: __( 'Remove exclusion rule', 'rankkernel' );
+					?>
 					<tr class="rk-exclusion-row"><td>
 						<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare', 'rankkernel' ); ?>">
 							<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
@@ -287,7 +292,7 @@ endif;
 							<?php endforeach; ?>
 						</select></td>
 						<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="regular-text code" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value', 'rankkernel' ); ?>" /></td>
-						<td><button type="button" class="button button-small rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
+						<td><button type="button" class="button button-small rk-exclusion-remove" aria-label="<?php echo esc_attr( $rkExclRemoveLabel ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
 				<?php endforeach; ?>
 			</tbody></table>
 
