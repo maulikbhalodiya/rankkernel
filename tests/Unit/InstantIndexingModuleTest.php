@@ -40,6 +40,13 @@ final class InstantIndexingModuleTest extends TestCase {
 	private int $clientCalls = 0;
 
 	/**
+	 * URLs recorded from the submitted payloads, in submission order.
+	 *
+	 * @var string[]
+	 */
+	private array $submittedUrls = [];
+
+	/**
 	 * Option store backing the get_option and update_option stubs.
 	 *
 	 * @var array<string, mixed>
@@ -128,11 +135,24 @@ final class InstantIndexingModuleTest extends TestCase {
 	/**
 	 * Build a client wired to a recording transport double.
 	 *
+	 * The transport records the number of calls and every URL from the
+	 * submitted payload, so tests can assert which URLs were signalled.
+	 *
 	 * @return IndexNowClient Client under test.
 	 */
 	private function client(): IndexNowClient {
-		$transport = function (): array {
+		$transport = function ( string $url, array $args ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- transport signature; the payload body carries the URL list this double records.
 			++$this->clientCalls;
+
+			$payload = json_decode( (string) ( $args['body'] ?? '' ), true );
+
+			if ( is_array( $payload ) && is_array( $payload['urlList'] ?? null ) ) {
+				foreach ( $payload['urlList'] as $submittedUrl ) {
+					if ( is_string( $submittedUrl ) ) {
+						$this->submittedUrls[] = $submittedUrl;
+					}
+				}
+			}
 
 			return [
 				'response' => [ 'code' => 200 ],
@@ -204,6 +224,20 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
+	 * Read a private property from a module under test.
+	 *
+	 * @param object $target Object to read from.
+	 * @param string $name   Property name.
+	 * @return mixed The result.
+	 */
+	private function privateProperty( object $target, string $name ): mixed {
+		$property = new \ReflectionProperty( $target, $name );
+		$property->setAccessible( true );
+
+		return $property->getValue( $target );
+	}
+
+	/**
 	 * Test module identity and boot contract values.
 	 */
 	public function test_module_identity(): void {
@@ -238,6 +272,87 @@ final class InstantIndexingModuleTest extends TestCase {
 		$module->boot();
 
 		$this->assertSame( [], $hooks );
+	}
+
+	/**
+	 * Test a disabled module constructs neither a client nor settings.
+	 */
+	public function test_disabled_module_constructs_no_client(): void {
+		$hooks = [];
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
+		Functions\when( 'add_filter' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				return 'rankkernel_modules' === $key ? [] : $fallback;
+			}
+		);
+
+		// No client and no settings are injected, so the lazy constructors
+		// are the only way either dependency could appear.
+		$module = new InstantIndexingModule( new ModuleEnableMap() );
+
+		$module->register();
+		$module->boot();
+
+		$this->assertSame( [], $hooks );
+		$this->assertNull( $this->privateProperty( $module, 'client' ) );
+		$this->assertNull( $this->privateProperty( $module, 'settings' ) );
+	}
+
+	/**
+	 * Test an enabled module registers no cron or scheduler hooks.
+	 */
+	public function test_enabled_module_registers_no_cron_hooks(): void {
+		$hooks = [];
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
+		Functions\when( 'add_filter' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$scheduled = array_filter(
+			$hooks,
+			static function ( string $hook ): bool {
+				return str_contains( $hook, 'cron' )
+					|| str_contains( $hook, 'schedule' )
+					|| str_contains( $hook, 'action_scheduler' );
+			}
+		);
+
+		$this->assertSame( [], array_values( $scheduled ) );
+
+		// The exact hook set is pinned, so any added scheduling hook fails here.
+		$this->assertSame(
+			[
+				'parse_request',
+				'pre_post_update',
+				'transition_post_status',
+				'created_term',
+				'edited_term',
+				'pre_delete_term',
+			],
+			$hooks
+		);
 	}
 
 	/**
@@ -307,6 +422,21 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
+	 * Test a password protected post is never submitted.
+	 */
+	public function test_password_protected_post_is_never_submitted(): void {
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$post                = $this->post( 61 );
+		$post->post_password = 'secret';
+
+		$module->onTransitionPostStatus( 'publish', 'draft', $post );
+
+		$this->assertSame( 0, $this->clientCalls, 'a password protected post must never be signalled' );
+	}
+
+	/**
 	 * Test going from public to non public is not a publish signal.
 	 */
 	public function test_unpublishing_a_draft_submits_nothing(): void {
@@ -338,6 +468,33 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
+	 * Test a changed permalink submits the previous and current URL.
+	 */
+	public function test_a_changed_permalink_submits_the_previous_and_current_url(): void {
+		$permalink = 'https://example.com/old-slug';
+		Functions\when( 'get_permalink' )->alias(
+			static function ( int $id ) use ( &$permalink ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub answers the stateful permalink, the id is unused.
+				return $permalink;
+			}
+		);
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$post = $this->post( 44 );
+
+		// The pre_post_update hook snapshots the URL that is live right now.
+		$module->onPrePostUpdate( 44 );
+
+		$permalink = 'https://example.com/new-slug';
+
+		$module->onTransitionPostStatus( 'publish', 'publish', $post );
+
+		$this->assertSame( 1, $this->clientCalls, 'both URLs ride one request' );
+		$this->assertSame( [ 'https://example.com/old-slug', 'https://example.com/new-slug' ], $this->submittedUrls );
+	}
+
+	/**
 	 * Test a trash signal is not debounced away by the update before it.
 	 */
 	public function test_trash_bypasses_the_debounce_window(): void {
@@ -363,6 +520,13 @@ final class InstantIndexingModuleTest extends TestCase {
 	 * Test trashing submits the permalink captured before the trash.
 	 */
 	public function test_trashing_submits_the_permalink_captured_before_the_trash(): void {
+		$permalink = 'https://example.com/live-slug';
+		Functions\when( 'get_permalink' )->alias(
+			static function ( int $id ) use ( &$permalink ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub answers the stateful permalink, the id is unused.
+				return $permalink;
+			}
+		);
+
 		$module = $this->module( true, true );
 		$module->boot();
 
@@ -371,9 +535,16 @@ final class InstantIndexingModuleTest extends TestCase {
 		$module->onTransitionPostStatus( 'publish', 'publish', $post );
 		$callsAfterUpdate = $this->clientCalls;
 
+		// WordPress reports the __trashed slug after the trash lands, so
+		// the only way to signal the URL that was live is the snapshot.
+		$permalink = 'https://example.com/live-slug__trashed';
+
 		$module->onTransitionPostStatus( 'trash', 'publish', $post );
 
-		$this->assertGreaterThan( $callsAfterUpdate, $this->clientCalls );
+		$this->assertSame( 1, $callsAfterUpdate );
+		$this->assertCount( 2, $this->submittedUrls );
+		$this->assertSame( 'https://example.com/live-slug', $this->submittedUrls[1] );
+		$this->assertNotContains( 'https://example.com/live-slug__trashed', $this->submittedUrls );
 	}
 
 	/**
@@ -386,5 +557,33 @@ final class InstantIndexingModuleTest extends TestCase {
 		$module->onTermChange( 8, 8, 'category', 'created' );
 
 		$this->assertSame( 1, $this->clientCalls );
+	}
+
+	/**
+	 * Test the delete callback accepts the two argument core signature.
+	 */
+	public function test_pre_delete_term_callback_receives_the_taxonomy(): void {
+		$callbacks = [];
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook, mixed $callback = null ) use ( &$callbacks ): bool {
+				$callbacks[ $hook ] = $callback;
+				return true;
+			}
+		);
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$this->assertArrayHasKey( 'pre_delete_term', $callbacks );
+
+		$callback = $callbacks['pre_delete_term'];
+		$this->assertIsCallable( $callback );
+
+		// WordPress core fires pre_delete_term with the term id and the
+		// taxonomy only, not the term taxonomy id.
+		$callback( 8, 'category' );
+
+		$this->assertSame( 1, $this->clientCalls );
+		$this->assertSame( [ 'https://example.com/t8' ], $this->submittedUrls );
 	}
 }

@@ -72,15 +72,17 @@ final class UrlCollector {
 	 * URLs to submit for a post transition.
 	 *
 	 * A trash transition returns the snapshot, the URL captured before
-	 * the status changed. Every other signal submits the current
-	 * permalink and refreshes the snapshot for a later trash.
+	 * the status changed. A publish signal submits the current permalink
+	 * and, when a previously published post changed its permalink since
+	 * the snapshot was taken, the previous URL first so the old address
+	 * is signalled for removal. The snapshot is refreshed afterwards.
 	 *
 	 * @param int    $postId    Post id.
 	 * @param string $newStatus New post status.
 	 * @param string $oldStatus Previous post status.
 	 * @return string[] The result.
 	 */
-	public function postUrls( int $postId, string $newStatus, string $oldStatus ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- transition signature; the trash branch answers from the snapshot without needing the previous status.
+	public function postUrls( int $postId, string $newStatus, string $oldStatus ): array {
 		if ( 'trash' === $newStatus ) {
 			$snapshot = $this->permalinks[ $postId ] ?? '';
 
@@ -93,9 +95,19 @@ final class UrlCollector {
 			return [];
 		}
 
+		$previous = $this->permalinks[ $postId ] ?? '';
+		$urls     = [ $permalink ];
+
+		// The previous URL only counts when the post was published before:
+		// the pre-publish permalink of a draft was never live, so signalling
+		// it would send a draft URL the spec excludes.
+		if ( 'publish' === $oldStatus && '' !== $previous && $previous !== $permalink ) {
+			array_unshift( $urls, $previous );
+		}
+
 		$this->snapshotPermalink( $postId, $permalink );
 
-		return [ $permalink ];
+		return $urls;
 	}
 
 	/**

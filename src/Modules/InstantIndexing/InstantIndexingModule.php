@@ -31,19 +31,6 @@ final class InstantIndexingModule implements ModuleInterface {
 	private const ID = 'instant-indexing';
 
 	/**
-	 * Term hooks mapped to the action they signal.
-	 *
-	 * The pre_delete_term hook is used rather than delete_term because
-	 * the URL is only resolvable while the term row still exists, and
-	 * delete_term fires after the row is gone.
-	 */
-	private const TERM_HOOKS = [
-		'created_term'    => 'created',
-		'edited_term'     => 'edited',
-		'pre_delete_term' => 'deleted',
-	];
-
-	/**
 	 * Actions onTermChange() accepts.
 	 */
 	private const TERM_ACTIONS = [ 'created', 'edited', 'deleted' ];
@@ -183,16 +170,51 @@ final class InstantIndexingModule implements ModuleInterface {
 		add_action( 'pre_post_update', [ $this, 'onPrePostUpdate' ], 10, 1 );
 		add_action( 'transition_post_status', [ $this, 'onTransitionPostStatus' ], 10, 3 );
 
-		foreach ( self::TERM_HOOKS as $hook => $action ) {
-			add_action(
-				$hook,
-				function ( mixed $termId = null, mixed $ttId = null, mixed $taxonomy = null ) use ( $action ): void {
-					$this->onTermChange( (int) $termId, (int) $ttId, (string) $taxonomy, $action );
-				},
-				10,
-				3
-			);
-		}
+		$this->registerTermHooks();
+	}
+
+	/**
+	 * Register the created, edited and deleted term hooks.
+	 *
+	 * The hooks pass different argument shapes: created_term and
+	 * edited_term pass the term id, the term taxonomy id and the
+	 * taxonomy, while pre_delete_term passes the term id and the
+	 * taxonomy only. Each callback maps its own arguments, so the
+	 * taxonomy is never mistaken for the term taxonomy id.
+	 *
+	 * The pre_delete_term hook is used rather than delete_term because
+	 * the URL is only resolvable while the term row still exists, and
+	 * delete_term fires after the row is gone.
+	 *
+	 * @return void
+	 */
+	private function registerTermHooks(): void {
+		add_action(
+			'created_term',
+			function ( mixed $termId = null, mixed $ttId = null, mixed $taxonomy = null ): void {
+				$this->onTermChange( (int) $termId, (int) $ttId, (string) $taxonomy, 'created' );
+			},
+			10,
+			3
+		);
+
+		add_action(
+			'edited_term',
+			function ( mixed $termId = null, mixed $ttId = null, mixed $taxonomy = null ): void {
+				$this->onTermChange( (int) $termId, (int) $ttId, (string) $taxonomy, 'edited' );
+			},
+			10,
+			3
+		);
+
+		add_action(
+			'pre_delete_term',
+			function ( mixed $termId = null, mixed $taxonomy = null ): void {
+				$this->onTermChange( (int) $termId, 0, (string) $taxonomy, 'deleted' );
+			},
+			10,
+			2
+		);
 	}
 
 	/**
@@ -284,6 +306,10 @@ final class InstantIndexingModule implements ModuleInterface {
 			return;
 		}
 
+		if ( '' !== $this->postPassword( $post ) ) {
+			return;
+		}
+
 		if ( ! $this->isSignal( $newStatus, $oldStatus ) ) {
 			return;
 		}
@@ -294,10 +320,16 @@ final class InstantIndexingModule implements ModuleInterface {
 			return;
 		}
 
+		// The debounce compares against the newest URL, the state the post
+		// is in now, because that is the URL a later signal carries. A
+		// permalink change submits the previous URL first for deindexing,
+		// so only the current URL can act as the throttle key.
+		$current = $urls[ count( $urls ) - 1 ];
+
 		// The debounce applies to publish and update signals only. A trash
 		// event is a distinct fact for the engine, so a URL that was just
 		// signalled as updated is still signalled once as removed.
-		if ( 'trash' !== $newStatus && $this->collector()->wasRecentlySubmitted( $postId, $urls[0] ) ) {
+		if ( 'trash' !== $newStatus && $this->collector()->wasRecentlySubmitted( $postId, $current ) ) {
 			return;
 		}
 
@@ -307,7 +339,7 @@ final class InstantIndexingModule implements ModuleInterface {
 		// same URL for ten minutes, and an unmarked failure would let every
 		// later save retry against the endpoint inside that window.
 		if ( [] !== ( $result['results'] ?? [] ) ) {
-			$this->collector()->markSubmitted( $postId, $urls[0] );
+			$this->collector()->markSubmitted( $postId, $current );
 		}
 	}
 
@@ -423,6 +455,23 @@ final class InstantIndexingModule implements ModuleInterface {
 		}
 
 		return $post->post_type;
+	}
+
+	/**
+	 * Post password from the mixed object a hook hands over.
+	 *
+	 * A non empty password keeps the post out of every submission,
+	 * matching the spec exclusion for password protected posts.
+	 *
+	 * @param mixed $post Post object.
+	 * @return string The result.
+	 */
+	private function postPassword( mixed $post ): string {
+		if ( ! is_object( $post ) || ! isset( $post->post_password ) || ! is_string( $post->post_password ) ) {
+			return '';
+		}
+
+		return $post->post_password;
 	}
 
 	/**
