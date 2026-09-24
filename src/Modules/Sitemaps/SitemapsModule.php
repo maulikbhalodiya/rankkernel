@@ -239,7 +239,11 @@ class SitemapsModule implements ModuleInterface {
 
 		$screen = get_current_screen();
 
-		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
+		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! is_string( $screen->id ) ) {
+			return;
+		}
+
+		if ( 'toplevel_page_rankkernel' !== $screen->id && ! str_starts_with( $screen->id, 'rankkernel_page_rankkernel' ) ) {
 			return;
 		}
 
