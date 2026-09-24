@@ -13,6 +13,7 @@ namespace RankKernel\Admin;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\Robots\CrawlConsistency;
 use RankKernel\Modules\Robots\CrawlerPolicy;
@@ -61,6 +62,7 @@ final class SettingsPage {
 		private readonly ?RobotsSettings $robots = null,
 		private readonly ?LlmsSettings $llms = null
 	) {
+		( new UserProfileField() )->register();
 	}
 
 	/**
@@ -108,9 +110,12 @@ final class SettingsPage {
 
 		$allSettings = $this->store->all();
 
-		$titleTemplate       = (string) ( $allSettings['title_template'] ?? '' );
-		$descriptionTemplate = (string) ( $allSettings['description_template'] ?? '' );
-		$titleSeparator      = (string) ( $allSettings['separator'] ?? '' );
+		$titleTemplate        = (string) ( $allSettings['title_template'] ?? '' );
+		$descriptionTemplate  = (string) ( $allSettings['description_template'] ?? '' );
+		$titleSeparator       = (string) ( $allSettings['separator'] ?? '' );
+		$socialDefaultImage   = is_string( $allSettings['social_default_image'] ?? null ) ? $allSettings['social_default_image'] : '';
+		$socialDefaultImageId = is_numeric( $allSettings['social_default_image_id'] ?? null ) && (int) $allSettings['social_default_image_id'] > 0 ? (int) $allSettings['social_default_image_id'] : 0;
+		$twitterSite          = MetaPayload::sanitizeTwitterHandle( $allSettings['twitter_site'] ?? '' );
 
 		$webmasterLabels = [
 			'webmaster_google'    => __( 'Google', 'rankkernel' ),
@@ -247,6 +252,10 @@ final class SettingsPage {
 			[
 				'id'    => 'webmaster',
 				'label' => __( 'Webmaster Tools', 'rankkernel' ),
+			],
+			[
+				'id'    => 'social',
+				'label' => __( 'Social', 'rankkernel' ),
 			],
 		];
 
@@ -393,7 +402,7 @@ final class SettingsPage {
 
 		$key = sanitize_key( $raw );
 
-		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
+		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
 	}
 
 	/**
@@ -591,6 +600,25 @@ final class SettingsPage {
 			}
 		}
 
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['social_default_image'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$rawImage                        = wp_unslash( $_POST['social_default_image'] );
+			$partial['social_default_image'] = esc_url_raw( is_string( $rawImage ) ? $rawImage : '' );
+		}
+
+		if ( isset( $_POST['social_default_image_id'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$rawImageId                         = wp_unslash( $_POST['social_default_image_id'] );
+			$partial['social_default_image_id'] = is_numeric( $rawImageId ) && (int) $rawImageId > 0 ? absint( $rawImageId ) : 0;
+		}
+
+		if ( isset( $_POST['twitter_site'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$partial['twitter_site'] = MetaPayload::sanitizeTwitterHandle( wp_unslash( $_POST['twitter_site'] ) );
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
 		// Checkbox semantics: absent from POST = false.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified.
 		$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );
@@ -621,7 +649,7 @@ final class SettingsPage {
 	}
 
 	/**
-	 * Enqueue the breadcrumbs separator script on this screen only.
+	 * Enqueue the settings assets on this screen only.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
@@ -639,6 +667,10 @@ final class SettingsPage {
 			return;
 		}
 
+		if ( function_exists( 'wp_enqueue_media' ) ) {
+			wp_enqueue_media();
+		}
+
 		$src     = plugins_url( 'assets/js/breadcrumbs-admin.js', (string) RANKKERNEL_FILE );
 		$version = \RankKernel\Plugin::version();
 
@@ -648,7 +680,7 @@ final class SettingsPage {
 		wp_register_script(
 			'rankkernel-settings-admin',
 			plugins_url( 'assets/js/settings-admin.js', (string) RANKKERNEL_FILE ),
-			[],
+			[ 'media-editor' ],
 			$version,
 			true
 		);

@@ -12,6 +12,7 @@ namespace RankKernel\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Schema\SchemaTypes;
 
 /**
@@ -38,6 +39,9 @@ final class SettingsStore {
 		'social_linkedin',
 		'social_youtube',
 		'social_pinterest',
+		'social_default_image',
+		'social_default_image_id',
+		'twitter_site',
 		'webmaster_google',
 		'webmaster_bing',
 		'webmaster_yandex',
@@ -67,28 +71,31 @@ final class SettingsStore {
 	 */
 	public static function defaults(): array {
 		return [
-			'title_template'        => '%%title%% %%sep%% %%sitename%%',
-			'description_template'  => '%%excerpt%%',
-			'separator'             => '–',
-			'social_facebook'       => '',
-			'social_twitter'        => '',
-			'social_instagram'      => '',
-			'social_linkedin'       => '',
-			'social_youtube'        => '',
-			'social_pinterest'      => '',
-			'webmaster_google'      => '',
-			'webmaster_bing'        => '',
-			'webmaster_yandex'      => '',
-			'webmaster_baidu'       => '',
-			'webmaster_pinterest'   => '',
-			'site_represents'       => 'organization',
-			'org_name'              => '',
-			'org_logo'              => '',
-			'org_sameas'            => [],
-			'website_search_action' => true,
-			'schema_breadcrumbs'    => true,
-			'schema_author'         => true,
-			'purge_on_uninstall'    => null,
+			'title_template'          => '%%title%% %%sep%% %%sitename%%',
+			'description_template'    => '%%excerpt%%',
+			'separator'               => '–',
+			'social_facebook'         => '',
+			'social_twitter'          => '',
+			'social_instagram'        => '',
+			'social_linkedin'         => '',
+			'social_youtube'          => '',
+			'social_pinterest'        => '',
+			'social_default_image'    => '',
+			'social_default_image_id' => 0,
+			'twitter_site'            => '',
+			'webmaster_google'        => '',
+			'webmaster_bing'          => '',
+			'webmaster_yandex'        => '',
+			'webmaster_baidu'         => '',
+			'webmaster_pinterest'     => '',
+			'site_represents'         => 'organization',
+			'org_name'                => '',
+			'org_logo'                => '',
+			'org_sameas'              => [],
+			'website_search_action'   => true,
+			'schema_breadcrumbs'      => true,
+			'schema_author'           => true,
+			'purge_on_uninstall'      => null,
 		];
 	}
 
@@ -214,6 +221,18 @@ final class SettingsStore {
 			}
 
 			return 'organization';
+		}
+
+		if ( 'social_default_image' === $key ) {
+			return esc_url_raw( is_string( $value ) ? trim( $value ) : '' );
+		}
+
+		if ( 'social_default_image_id' === $key ) {
+			return is_numeric( $value ) && (int) $value > 0 ? absint( $value ) : 0;
+		}
+
+		if ( 'twitter_site' === $key ) {
+			return MetaPayload::sanitizeTwitterHandle( $value );
 		}
 
 		if ( 'org_logo' === $key ) {

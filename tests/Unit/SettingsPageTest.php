@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\SettingsPage;
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
 
@@ -44,6 +45,14 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
 		Functions\when( '__' )->alias( static fn ( string $v, string $d = '' ): string => $v ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
+		Functions\when( 'esc_url_raw' )->alias(
+			static function ( string $url ): string {
+				$url = trim( $url );
+
+				return preg_match( '/^https?:\\/\\//i', $url ) ? $url : '';
+			}
+		);
+		Functions\when( 'absint' )->alias( static fn ( mixed $value ): int => is_numeric( $value ) ? abs( (int) $value ) : 0 );
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v );
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
 		Functions\when( 'sanitize_key' )->alias(
@@ -74,16 +83,17 @@ final class SettingsPageTest extends TestCase {
 	/**
 	 * Make Page.
 	 *
+	 * @param array<string, mixed> $settings Stored settings values.
 	 * @return SettingsPage The result.
 	 */
-	private function makePage(): SettingsPage {
+	private function makePage( array $settings = [] ): SettingsPage {
 		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) {
+			static function ( string $key, mixed $fallback = false ) use ( $settings ) {
 				if ( 'rankkernel_modules' === $key ) {
 					return [];
 				}
 				if ( 'rankkernel_settings' === $key ) {
-					return [];
+					return $settings;
 				}
 				return $fallback;
 			}
@@ -93,6 +103,40 @@ final class SettingsPageTest extends TestCase {
 		$map   = new ModuleEnableMap();
 
 		return new SettingsPage( $store, $map );
+	}
+
+	/**
+	 * Stub the WordPress lookups used while rendering a settings section.
+	 */
+	private function stubSettingsPageRender(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+	}
+
+	/**
+	 * Capture the profile hooks registered by the settings page.
+	 *
+	 * @param array<string, array<int, callable>> $hooks Hook callbacks by hook name.
+	 */
+	private function captureProfileHooks( array &$hooks ): void {
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook, mixed $callback ) use ( &$hooks ): void {
+				$hooks[ $hook ][] = $callback;
+			}
+		);
+	}
+
+	/**
+	 * Assert a profile hook was registered with a callable.
+	 *
+	 * @param array<string, array<int, callable>> $hooks Hook callbacks by hook name.
+	 * @param string                              $hook  Hook name.
+	 */
+	private function assertProfileHook( array $hooks, string $hook ): void {
+		$this->assertArrayHasKey( $hook, $hooks );
+		$this->assertIsCallable( $hooks[ $hook ][0] );
 	}
 
 	/**
@@ -290,6 +334,40 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test media assets load only on the settings screen with the picker dependency.
+	 */
+	public function test_enqueue_assets_loads_media_only_on_settings_screen(): void {
+		$registered = [];
+		$mediaCalls = 0;
+
+		Functions\when( 'wp_enqueue_media' )->alias(
+			static function () use ( &$mediaCalls ): void {
+				++$mediaCalls;
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( string $handle, string $src, array $deps, mixed $ver, bool $inFooter ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+				$registered[ $handle ] = $deps;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+
+		$page = $this->makePage();
+
+		$page->enqueueAssets( 'some_other_page' );
+		$this->assertSame( 0, $mediaCalls );
+
+		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
+		$this->assertSame( 1, $mediaCalls );
+		$this->assertContains( 'media-editor', $registered['rankkernel-settings-admin'] );
+	}
+
+	/**
 	 * Test the settings stylesheet is enqueued only on the settings screen.
 	 */
 	public function test_enqueue_assets_adds_settings_stylesheet(): void {
@@ -299,6 +377,7 @@ final class SettingsPageTest extends TestCase {
 
 		$registered = [];
 
+		Functions\when( 'wp_enqueue_media' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_register_style' )->alias(
@@ -809,5 +888,320 @@ final class SettingsPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertSame( '', $output );
+	}
+
+	/**
+	 * Test the social section renders its stored image and site handle.
+	 */
+	public function test_social_section_renders_stored_image_and_site_handle(): void {
+		$this->stubSettingsPageRender();
+
+		$_GET['section'] = 'social';
+
+		$page = $this->makePage(
+			[
+				'social_default_image'    => 'https://example.com/social.jpg',
+				'social_default_image_id' => 42,
+				'twitter_site'            => 'rankkernel',
+			]
+		);
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'section=social', $output );
+		$this->assertStringContainsString( 'id="rk-section-social"', $output );
+		$this->assertStringContainsString( 'name="social_default_image"', $output );
+		$this->assertStringContainsString( 'name="social_default_image_id"', $output );
+		$this->assertStringContainsString( 'name="twitter_site"', $output );
+		$this->assertStringContainsString( 'value="https://example.com/social.jpg"', $output );
+		$this->assertStringContainsString( 'value="42"', $output );
+		$this->assertStringContainsString( 'value="rankkernel"', $output );
+		$this->assertStringContainsString( 'id="rk-social-default-image-select"', $output );
+	}
+
+	/**
+	 * Test social settings save through type specific sanitizers.
+	 */
+	public function test_social_settings_save_uses_type_specific_sanitizers(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'         => '1',
+			'social_default_image'    => ' https://example.com/social.jpg ',
+			'social_default_image_id' => '42',
+			'twitter_site'            => ' @rank-kernel ',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( 'https://example.com/social.jpg', $captured['social_default_image'] );
+		$this->assertSame( 42, $captured['social_default_image_id'] );
+		$this->assertSame( 'rankkernel', $captured['twitter_site'] );
+	}
+
+	/**
+	 * Test hostile social settings are neutralised by their dedicated sanitizers.
+	 */
+	public function test_social_settings_rejects_hostile_values(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		$hostileHandle = '\"><script>alert(1)</script>@foo bar';
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'         => '1',
+			'social_default_image'    => 'javascript:alert(1)',
+			'social_default_image_id' => '-7',
+			'twitter_site'            => $hostileHandle,
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( '', $captured['social_default_image'] );
+		$this->assertSame( 0, $captured['social_default_image_id'] );
+		$this->assertSame( MetaPayload::sanitizeTwitterHandle( $hostileHandle ), $captured['twitter_site'] );
+		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9_]{0,15}$/', $captured['twitter_site'] );
+	}
+
+	/**
+	 * Test non numeric and negative image ids both save as zero.
+	 */
+	public function test_non_numeric_or_negative_image_id_saves_as_zero(): void {
+		$captured = [];
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$captured[] = $value;
+				}
+
+				return true;
+			}
+		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		foreach ( [ 'not-a-number', '-7' ] as $rawId ) {
+			$page = $this->makePage();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_save'         => '1',
+				'social_default_image_id' => $rawId,
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+		}
+
+		$this->assertCount( 2, $captured );
+		$this->assertSame( 0, $captured[0]['social_default_image_id'] );
+		$this->assertSame( 0, $captured[1]['social_default_image_id'] );
+	}
+
+	/**
+	 * Test the social section is accepted by the partial loader.
+	 */
+	public function test_social_section_is_reachable_as_a_partial(): void {
+		$this->stubSettingsPageRender();
+
+		$_GET['section']    = 'social';
+		$_GET['rk_partial'] = 'social';
+
+		$page = $this->makePage();
+
+		ob_start();
+		$page->maybeHandleSave();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-section-social"', $output );
+		$this->assertStringNotContainsString( 'rk-settings-nav', $output );
+	}
+
+	/**
+	 * Test the profile field renders the stored handle in bare form.
+	 */
+	public function test_user_profile_field_renders_sanitized_handle(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+
+		$this->assertArrayHasKey( 'show_user_profile', $hooks );
+		$this->assertArrayHasKey( 'edit_user_profile', $hooks );
+		$this->assertArrayHasKey( 'personal_options_update', $hooks );
+		$this->assertArrayHasKey( 'edit_user_profile_update', $hooks );
+
+		Functions\when( 'get_user_meta' )->alias(
+			static function ( mixed ...$args ): string {
+				unset( $args );
+
+				return '@author_handle';
+			}
+		);
+
+		ob_start();
+		call_user_func( $hooks['show_user_profile'][0], (object) [ 'ID' => 42 ] );
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="rankkernel_twitter_handle"', $output );
+		$this->assertStringContainsString( 'value="author_handle"', $output );
+		$this->assertStringNotContainsString( '@author_handle', $output );
+	}
+
+	/**
+	 * Test the profile field saves a normalised handle with edit capability.
+	 */
+	public function test_user_profile_field_saves_with_edit_user_capability(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$captured = [];
+		Functions\when( 'update_user_meta' )->alias(
+			static function ( int $userId, string $key, mixed $value ) use ( &$captured ): bool {
+				$captured[] = [ $userId, $key, $value ];
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => '@author-handle',
+		];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+
+		$this->assertSame( [ [ 42, 'rankkernel_twitter_handle', 'authorhandle' ] ], $captured );
+	}
+
+	/**
+	 * Test the profile field refuses a user the current user cannot edit.
+	 */
+	public function test_user_profile_field_does_not_save_without_edit_user_capability(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'edit_user_profile_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$called = false;
+		Functions\when( 'update_user_meta' )->alias(
+			static function () use ( &$called ): bool {
+				$called = true;
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => 'authorhandle',
+		];
+
+		call_user_func( $hooks['edit_user_profile_update'][0], 42 );
+
+		$this->assertFalse( $called );
+	}
+
+	/**
+	 * Test the profile field does not write when its input is absent.
+	 */
+	public function test_user_profile_field_does_not_save_when_field_is_absent(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$called = false;
+		Functions\when( 'update_user_meta' )->alias(
+			static function () use ( &$called ): bool {
+				$called = true;
+
+				return true;
+			}
+		);
+
+		$_POST = [ '_wpnonce' => 'valid' ];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+
+		$this->assertFalse( $called );
+	}
+
+	/**
+	 * Test the profile field refuses a request with an invalid profile nonce.
+	 */
+	public function test_user_profile_field_does_not_save_without_valid_profile_nonce(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$called = false;
+		Functions\when( 'update_user_meta' )->alias(
+			static function () use ( &$called ): bool {
+				$called = true;
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'invalid',
+			'rankkernel_twitter_handle' => 'authorhandle',
+		];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+
+		$this->assertFalse( $called );
 	}
 }

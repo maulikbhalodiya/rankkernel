@@ -147,11 +147,11 @@ DONE: single-pass head renderer on wp_head priority 1, meta description hierarch
 DELIVERED, AWAITING MANUAL BROWSER VERIFICATION (issue #27, branch GH-27, unit tested and contract tested, not yet verified in a live editor session):
 - Classic Editor meta box and the PHP side of a Gutenberg sidebar for per-post Title, Description, Canonical, Robots and Social overrides. Three tabs (General, Social, Advanced), token quick insert restricted to backend resolvable tokens, template versus override signalling with a per field reset, and media library pick and remove for the Open Graph and Twitter images.
 - Live Google SERP preview with desktop and mobile frames and pixel and character budgets, and a live social unfurl card that falls back to the General values and the default Open Graph image.
-ENGINE FIXES DELIVERED (issue #27, all with regression tests): core rel_canonical unhooked so exactly one canonical is emitted, robots merged into the single core wp_robots tag with most restrictive wins, archive contexts resolve %%title%%, %%author%% and %%category%% against the queried term or user, Context::meta routes legacy rows through decodeMetaValue, invalid custom schema JSON no longer wipes stored custom schema, sitemap loc URLs escape exactly once, and the redirect cache is invalidated only on writes so cache first lookups actually happen.
+- Social SEO completion: global default Open Graph image, site X handle, and per author X handle admin surfaces delivered in issue #78, with stored values consumed by the head renderer.
+ENGINE FIXES DELIVERED (issue #27, all with regression tests): core rel_canonical unhooked so exactly one canonical is emitted, robots merged into the single core wp_robots tag with most restrictive wins, archive contexts resolve %%title%%, %%author%% and %%category%% against the queried term or user, Context::meta routes legacy rows through decodeMetaValue, invalid custom JSON no longer wipes stored custom JSON, sitemap loc URLs escape exactly once, and the redirect cache is invalidated only on writes so cache first lookups actually happen.
 MICRO-GAPS REMAINING:
 - Per-context metadata templates for post types, taxonomies, homepage, author, date, search and 404.
 - Parameterised token syntax such as token with arguments, and extended built-in variables: custom fields, parent title, term name, page numbers, product fields.
-- Global default Open Graph image and a Twitter site and creator handle, since the stored social profile settings are not yet consumed by the head renderer.
 
 ### Schema Engine (schema)
 DONE: single @graph JSON-LD output, 26 types across 29 pieces, post metabox, custom JSON support.
