@@ -287,7 +287,7 @@ endif;
 							<?php endforeach; ?>
 						</select></td>
 						<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="regular-text code" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value', 'rankkernel' ); ?>" /></td>
-						<td><button type="button" class="button button-small rk-exclusion-remove"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
+						<td><button type="button" class="button button-small rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
 				<?php endforeach; ?>
 			</tbody></table>
 
@@ -298,7 +298,7 @@ endif;
 					<?php endforeach; ?>
 				</select></td>
 				<td><input type="text" name="rk_excl_value[]" value="" class="regular-text code" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value', 'rankkernel' ); ?>" /></td>
-				<td><button type="button" class="button button-small rk-exclusion-remove"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr></template>
+				<td><button type="button" class="button button-small rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr></template>
 
 			<p><button type="button" class="button" id="rk-exclusion-add"><?php echo esc_html__( 'Add Exclusion', 'rankkernel' ); ?></button> <span class="rk-sub"><?php echo esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ); ?></span></p>
 
