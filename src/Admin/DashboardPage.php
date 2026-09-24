@@ -42,7 +42,7 @@ final class DashboardPage {
 		'importer'         => 'One click import from Yoast, Rank Math and SEOPress. Planned.',
 		'redirects'        => 'Manage 301, 302, 307, 410 and 451 redirects, with CSV import and export.',
 		'404'              => 'Log 404 errors with sane pruning and one click redirect creation.',
-		'instant-indexing' => 'Submit changed URLs with IndexNow. Planned.',
+		'instant-indexing' => 'Notify participating search engines when a URL changes, using the IndexNow protocol.',
 		'robots'           => 'A virtual robots.txt with per crawler AI controls, plus a curated llms.txt.',
 		'image-seo'        => 'Automatic image alt and title patterns. Planned.',
 		'gutenberg'        => 'An editor sidebar with analysis and previews. Planned.',
@@ -54,13 +54,14 @@ final class DashboardPage {
 	 * Settings screen slug per module, empty when the module has none.
 	 */
 	private const SETTINGS_PAGES = [
-		'metadata'    => 'rankkernel-general',
-		'sitemaps'    => 'rankkernel-sitemap',
-		'schema'      => 'rankkernel-schema',
-		'breadcrumbs' => 'rankkernel-general',
-		'redirects'   => 'rankkernel-redirects',
-		'404'         => 'rankkernel-404',
-		'robots'      => 'rankkernel-general',
+		'metadata'         => 'rankkernel-general',
+		'sitemaps'         => 'rankkernel-sitemap',
+		'schema'           => 'rankkernel-schema',
+		'breadcrumbs'      => 'rankkernel-general',
+		'redirects'        => 'rankkernel-redirects',
+		'404'              => 'rankkernel-404',
+		'instant-indexing' => 'rankkernel-instant-indexing',
+		'robots'           => 'rankkernel-general',
 	];
 
 	/**

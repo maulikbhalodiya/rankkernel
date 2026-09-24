@@ -145,6 +145,7 @@ final class Plugin {
 			add_action( 'admin_menu', [ $adminMenu, 'addSchemaPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
+			add_action( 'admin_menu', [ $adminMenu, 'addInstantIndexingPage' ] );
 
 			/*
 			 * AJAX handler for the redirect list partial refresh.
