@@ -44,6 +44,13 @@ final class IndexNowClientTest extends TestCase {
 	private array $stored = [];
 
 	/**
+	 * URLs passed to the wp_parse_url double.
+	 *
+	 * @var string[]
+	 */
+	private array $parsed = [];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -75,7 +82,9 @@ final class IndexNowClientTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_parse_url' )->alias(
-			static function ( string $url, int $component = -1 ): string|int|false|null {
+			function ( string $url, int $component = -1 ): string|int|false|null {
+				$this->parsed[] = $url;
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double mirrors wp_parse_url with the native parser.
 				return parse_url( $url, $component );
 			}
@@ -167,6 +176,16 @@ final class IndexNowClientTest extends TestCase {
 	}
 
 	/**
+	 * Test redirects are surfaced rather than followed to another host.
+	 */
+	public function test_redirects_are_surfaced_not_followed(): void {
+		$this->client()->submit( [ 'https://example.com/a' ] );
+
+		$this->assertCount( 1, $this->calls );
+		$this->assertSame( 0, $this->calls[0]['args']['redirection'] );
+	}
+
+	/**
 	 * Test a 202 is accepted, not failed.
 	 */
 	public function test_202_is_treated_as_accepted_not_failed(): void {
@@ -202,6 +221,21 @@ final class IndexNowClientTest extends TestCase {
 
 		$this->assertCount( 1, $this->calls );
 		$this->assertSame( [ 'https://example.com/b' ], json_decode( (string) $this->calls[0]['args']['body'], true )['urlList'] );
+		$this->assertSame( 1, $result['accepted'] );
+	}
+
+	/**
+	 * Test non string elements are dropped before parsing.
+	 */
+	public function test_non_string_elements_are_dropped_before_parsing(): void {
+		$urls = [ new \stdClass(), 'https://example.com/a' ];
+
+		$this->assertSame( [ 'https://example.com/a' ], $this->client()->filterUrls( $urls ) );
+		$this->assertSame( [ 'https://example.com', 'https://example.com/a' ], array_values( array_unique( $this->parsed ) ) );
+
+		$result = $this->client()->submit( $urls );
+
+		$this->assertCount( 1, $this->calls );
 		$this->assertSame( 1, $result['accepted'] );
 	}
 

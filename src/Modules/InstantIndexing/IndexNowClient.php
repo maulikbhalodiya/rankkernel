@@ -155,6 +155,10 @@ final class IndexNowClient {
 	 * apex are different hosts and are never collapsed. The list
 	 * fails closed when the WordPress URL parser is unavailable.
 	 *
+	 * Non-string elements are dropped before parsing, because the
+	 * loose array parameter is a documentation contract rather than
+	 * a runtime guarantee.
+	 *
 	 * @param string[] $urls Candidate URLs.
 	 * @return string[] Filtered list.
 	 */
@@ -167,7 +171,7 @@ final class IndexNowClient {
 		$kept       = [];
 
 		foreach ( $urls as $url ) {
-			if ( '' === $url ) {
+			if ( ! is_string( $url ) || '' === $url ) {
 				continue;
 			}
 
@@ -210,10 +214,13 @@ final class IndexNowClient {
 		}
 
 		$args = [
-			'blocking' => true,
-			'timeout'  => self::TIMEOUT,
-			'headers'  => [ 'Content-Type' => 'application/json; charset=utf-8' ],
-			'body'     => $body,
+			'blocking'    => true,
+			'timeout'     => self::TIMEOUT,
+			// Pin redirects to zero so a 3xx is surfaced as a response,
+			// never followed to another host with the key in the body.
+			'redirection' => 0,
+			'headers'     => [ 'Content-Type' => 'application/json; charset=utf-8' ],
+			'body'        => $body,
 		];
 
 		$transport = $this->transport;
