@@ -82,6 +82,28 @@ final class MetaPayload {
 	}
 
 	/**
+	 * Normalize an X or Twitter handle to its bare, bounded form.
+	 *
+	 * Shared by head rendering and the admin save path so both agree on
+	 * what a stored handle means. The renderer prefixes the emitted value
+	 * with an at sign, so this returns the handle without one.
+	 *
+	 * @param mixed $handle Raw handle.
+	 * @return string Bare handle, empty when nothing valid remains.
+	 */
+	public static function sanitizeTwitterHandle( mixed $handle ): string {
+		$handle = is_scalar( $handle ) ? trim( (string) $handle ) : '';
+
+		if ( str_starts_with( $handle, '@' ) ) {
+			$handle = substr( $handle, 1 );
+		}
+
+		$handle = preg_replace( '/[^A-Za-z0-9_]/', '', $handle ) ?? '';
+
+		return substr( $handle, 0, 15 );
+	}
+
+	/**
 	 * Decode a stored meta value to a payload array.
 	 *
 	 * Object typed meta is serialized by core on write, older rows may

@@ -726,7 +726,7 @@ final class HeadRenderer {
 			echo '<meta name="twitter:image" content="' . esc_url( $twImage ) . '" />' . "\n";
 		}
 
-		$siteHandle = $this->sanitizeTwitterHandle( $this->settings->get( 'twitter_site', '' ) );
+		$siteHandle = MetaPayload::sanitizeTwitterHandle( $this->settings->get( 'twitter_site', '' ) );
 
 		if ( '' !== $siteHandle ) {
 			echo '<meta name="twitter:site" content="' . esc_attr( '@' . $siteHandle ) . '" />' . "\n";
@@ -740,7 +740,7 @@ final class HeadRenderer {
 				$authorId = get_post_field( 'post_author', $postId );
 
 				if ( is_numeric( $authorId ) && (int) $authorId > 0 ) {
-					$creatorHandle = $this->sanitizeTwitterHandle(
+					$creatorHandle = MetaPayload::sanitizeTwitterHandle(
 						get_user_meta( (int) $authorId, 'rankkernel_twitter_handle', true )
 					);
 				}
@@ -754,24 +754,6 @@ final class HeadRenderer {
 				echo '<meta name="twitter:creator" content="' . esc_attr( '@' . $creatorHandle ) . '" />' . "\n";
 			}
 		}
-	}
-
-	/**
-	 * Normalize a Twitter or X handle to its bare, bounded form.
-	 *
-	 * @param mixed $handle Raw handle.
-	 * @return string The result.
-	 */
-	private function sanitizeTwitterHandle( mixed $handle ): string {
-		$handle = is_scalar( $handle ) ? trim( (string) $handle ) : '';
-
-		if ( str_starts_with( $handle, '@' ) ) {
-			$handle = substr( $handle, 1 );
-		}
-
-		$handle = preg_replace( '/[^A-Za-z0-9_]/', '', $handle ) ?? '';
-
-		return substr( $handle, 0, 15 );
 	}
 
 	/**
