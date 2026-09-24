@@ -91,14 +91,32 @@ final class AnalysisController {
 					'keywords'    => [
 						'type'              => 'array',
 						'default'           => [],
-						'items'             => [
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						],
+						'items'             => [ 'type' => 'string' ],
+						// WordPress only runs the top level sanitize_callback and never the one on an
+						// item schema, so the keyword elements are cleaned by this callback.
+						'sanitize_callback' => [ self::class, 'sanitizeKeywords' ],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
 			]
+		);
+	}
+
+	/**
+	 * Sanitize a keyword list element by element.
+	 *
+	 * The framework normalisation the default sanitizer would have applied is
+	 * kept by rest_sanitize_array (a scalar becomes a list, keys are
+	 * reindexed), then each surviving element is passed through
+	 * sanitize_text_field. The list shape, order and entry count are kept.
+	 *
+	 * @param mixed $value Raw keyword list.
+	 * @return array<int, string> The result.
+	 */
+	public static function sanitizeKeywords( mixed $value ): array {
+		return array_map(
+			static fn ( mixed $keyword ): string => sanitize_text_field( (string) $keyword ),
+			rest_sanitize_array( $value )
 		);
 	}
 
