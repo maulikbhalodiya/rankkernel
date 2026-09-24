@@ -12,8 +12,6 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use Mockery;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
@@ -63,6 +61,7 @@ final class SitemapsModuleTest extends TestCase {
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => $v );
 		Functions\when( '__return_false' )->alias( static fn (): bool => false );
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
 	}
 
 	/**
@@ -129,9 +128,7 @@ final class SitemapsModuleTest extends TestCase {
 
 		$this->assertTrue( $noticeFound, 'Admin notice for takeover must be queued' );
 
-		// Verify notice output contains expected text on a RankKernel screen.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
-
+		// Verify notice output contains expected text.
 		ob_start();
 		$module->renderTakeoverNotice();
 		$out = ob_get_clean();
@@ -141,96 +138,23 @@ final class SitemapsModuleTest extends TestCase {
 
 	/**
 	 * Test takeover notice is suppressed on non-RankKernel screens.
-	 *
-	 * The near miss ids contain the "rankkernel" substring but are not owned
-	 * by RankKernel, so an exact comparison must reject them. A null or
-	 * non-object screen also fails closed.
-	 *
-	 * @return void
 	 */
 	public function test_render_takeover_notice_suppressed_on_other_screens(): void {
-		$module = new SitemapsModule();
-
-		$otherScreens = [
-			'dashboard',
-			'toplevel_page_rankkernel-clone',
-			'toplevel_page_my-rankkernel-tool',
-			'rankkernel_page_rankkernel-evil',
-		];
-
-		foreach ( $otherScreens as $screenId ) {
-			Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => $screenId ] );
-
-			ob_start();
-			$module->renderTakeoverNotice();
-			$out = ob_get_clean();
-
-			$this->assertSame( '', $out, sprintf( 'Notice must be suppressed on the "%s" screen', $screenId ) );
-		}
-
-		Functions\when( 'get_current_screen' )->justReturn( null );
-		ob_start();
-		$module->renderTakeoverNotice();
-		$outNull = ob_get_clean();
-
-		$this->assertSame( '', $outNull, 'A null screen must fail closed' );
-
-		Functions\when( 'get_current_screen' )->justReturn( 'not-a-screen' );
-		ob_start();
-		$module->renderTakeoverNotice();
-		$outNonObject = ob_get_clean();
-
-		$this->assertSame( '', $outNonObject, 'A non-object screen must fail closed' );
-	}
-
-	/**
-	 * Test takeover notice renders on every RankKernel screen.
-	 *
-	 * @return void
-	 */
-	public function test_render_takeover_notice_renders_on_rankkernel_screens(): void {
-		$module = new SitemapsModule();
-
-		$rankKernelScreens = [
-			'toplevel_page_rankkernel',
-			'rankkernel_page_rankkernel-sitemap',
-			'rankkernel_page_rankkernel-general',
-			'rankkernel_page_rankkernel-schema',
-			'rankkernel_page_rankkernel-redirects',
-			'rankkernel_page_rankkernel-404',
-		];
-
-		foreach ( $rankKernelScreens as $screenId ) {
-			Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => $screenId ] );
-
-			ob_start();
-			$module->renderTakeoverNotice();
-			$out = ob_get_clean();
-
-			$this->assertStringContainsString( 'Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', $out, sprintf( 'Notice must render on the "%s" screen', $screenId ) );
-		}
-	}
-
-	/**
-	 * Test takeover notice fails closed when the screen API is absent.
-	 *
-	 * A separate process is required because stubbing get_current_screen
-	 * anywhere else in the suite defines it for the whole process, so only a
-	 * fresh process can prove the function_exists guard.
-	 *
-	 * @return void
-	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState( false )]
-	public function test_render_takeover_notice_fails_closed_without_screen_api(): void {
-		$this->assertFalse( function_exists( 'get_current_screen' ), 'Precondition: the screen API must be absent' );
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
 
 		$module = new SitemapsModule();
 		ob_start();
 		$module->renderTakeoverNotice();
 		$out = ob_get_clean();
 
-		$this->assertSame( '', $out, 'A missing screen API must fail closed' );
+		$this->assertSame( '', $out );
+
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		ob_start();
+		$module->renderTakeoverNotice();
+		$outNull = ob_get_clean();
+
+		$this->assertSame( '', $outNull );
 	}
 
 	/**

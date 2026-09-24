@@ -21,23 +21,6 @@ use WP_Post;
  */
 class SitemapsModule implements ModuleInterface {
 	/**
-	 * Admin screen ids owned by RankKernel.
-	 *
-	 * Matched by exact comparison, never by substring, so a third party screen
-	 * whose slug merely contains "rankkernel" can never receive the notice.
-	 *
-	 * @var string[]
-	 */
-	private const RANKKERNEL_SCREEN_IDS = [
-		'toplevel_page_rankkernel',
-		'rankkernel_page_rankkernel-sitemap',
-		'rankkernel_page_rankkernel-general',
-		'rankkernel_page_rankkernel-schema',
-		'rankkernel_page_rankkernel-redirects',
-		'rankkernel_page_rankkernel-404',
-	];
-
-	/**
 	 * Cached enabled check.
 	 *
 	 * @var bool|null
@@ -244,11 +227,6 @@ class SitemapsModule implements ModuleInterface {
 
 	/**
 	 * Render takeover admin notice.
-	 *
-	 * Scoped to RankKernel screens and fails closed, so a missing screen API
-	 * or an unknown screen renders nothing.
-	 *
-	 * @return void
 	 */
 	public function renderTakeoverNotice(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -261,7 +239,7 @@ class SitemapsModule implements ModuleInterface {
 
 		$screen = get_current_screen();
 
-		if ( ! is_object( $screen ) || ! in_array( (string) $screen->id, self::RANKKERNEL_SCREEN_IDS, true ) ) {
+		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
 			return;
 		}
 
