@@ -158,6 +158,7 @@ final class HeadRenderer {
 		}
 
 		// Fall back to WP default, never return '' which would break themes.
+		// Deliberately uncached: the WP filter arg is not the Context title.
 		return $title;
 	}
 
@@ -295,6 +296,9 @@ final class HeadRenderer {
 			}
 		}
 
+		// This fallback depends on the caller: title() returns the WP filter arg,
+		// this path returns Context title. Caching it under the shared hash would
+		// let whichever caller runs first poison the other, so it stays uncached.
 		return $ctx->title();
 	}
 
