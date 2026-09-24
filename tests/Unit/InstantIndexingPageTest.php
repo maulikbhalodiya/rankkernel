@@ -129,8 +129,8 @@ final class InstantIndexingPageTest extends TestCase {
 	 * The enable map reads the option when it is constructed, so the
 	 * module state is staged into the option store first.
 	 *
-	 * @param callable(string): void|null $submit        Submission callback override.
-	 * @param bool                        $moduleEnabled Whether instant-indexing is enabled.
+	 * @param callable(string[]): void|null $submit        Submission callback override.
+	 * @param bool                          $moduleEnabled Whether instant-indexing is enabled.
 	 * @return InstantIndexingPage The result.
 	 */
 	private function page( ?callable $submit = null, bool $moduleEnabled = true ): InstantIndexingPage {
@@ -321,7 +321,7 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://example.com/a',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 
 		$this->expectException( \RuntimeException::class );
@@ -337,7 +337,7 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( false );
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://example.com/a',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 
 		$this->expectException( \RuntimeException::class );
@@ -367,7 +367,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://evil.test/a',
+			'rankkernel_indexnow_urls'   => 'https://evil.test/a',
 		];
 		$page->maybeHandleSave();
 
@@ -405,7 +405,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://evil.test/a',
+			'rankkernel_indexnow_urls'   => 'https://evil.test/a',
 		];
 
 		$this->page()->maybeHandleSave();
@@ -422,27 +422,176 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test a valid same host URL reaches the submit callback once.
+	 * Test a single URL in the textarea still submits, the original behaviour.
 	 */
 	public function test_manual_submit_sends_a_valid_same_host_url(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
 
-		$called = 0;
-		$page   = $this->page(
-			function () use ( &$called ): void {
-				$called++;
+		$calls    = 0;
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$calls, &$received ): void {
+				++$calls;
+				$received = $urls;
 			}
 		);
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://example.com/a',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 		$page->maybeHandleSave();
 
-		$this->assertSame( 1, $called );
+		$this->assertSame( 1, $calls );
+		$this->assertSame( [ 'https://example.com/a' ], $received );
+	}
+
+	/**
+	 * Test three valid URLs in the textarea submit in a single call.
+	 */
+	public function test_a_textarea_with_three_valid_urls_submits_them_in_one_call(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$calls    = 0;
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$calls, &$received ): void {
+				++$calls;
+				$received = $urls;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => "https://example.com/a\nhttps://example.com/b\r\nhttps://example.com/c",
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 1, $calls, 'three valid URLs must submit in one call' );
+		$this->assertSame(
+			[ 'https://example.com/a', 'https://example.com/b', 'https://example.com/c' ],
+			$received
+		);
+		$this->assertSame( [], $this->settings->logEntries() );
+	}
+
+	/**
+	 * Test blank lines and duplicates are removed before submission.
+	 */
+	public function test_blank_lines_and_duplicates_are_removed_before_submission(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$received ): void {
+				$received = $urls;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => "https://example.com/a\n\n   \nhttps://example.com/a\nhttps://example.com/b\n",
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( [ 'https://example.com/a', 'https://example.com/b' ], $received );
+		$this->assertSame( [], $this->settings->logEntries() );
+	}
+
+	/**
+	 * Test a mixed paste submits only the valid URLs and logs each invalid one.
+	 *
+	 * The validator double mirrors wp_http_validate_url for this test, so
+	 * the malformed line fails validation and the foreign host passes it
+	 * and fails the host check, which is the exact boundary under test.
+	 */
+	public function test_a_mixed_paste_submits_the_valid_urls_and_logs_each_invalid_one(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias(
+			static function ( string $url ): string|false {
+				$validated = filter_var( $url, FILTER_VALIDATE_URL );
+
+				return is_string( $validated ) ? $validated : false;
+			}
+		);
+
+		$calls    = 0;
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$calls, &$received ): void {
+				++$calls;
+				$received = $urls;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => "https://example.com/a\nhttps://evil.test/b\nnot a url\nhttps://example.com/c",
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 1, $calls, 'the valid URLs must submit in one call' );
+		$this->assertSame( [ 'https://example.com/a', 'https://example.com/c' ], $received );
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertCount( 2, $entries );
+		// The log is newest first, so the malformed line logged last is first.
+		$this->assertSame( 'not a url', $entries[0]['url'] );
+		$this->assertSame( 'Rejected: the URL could not be validated.', $entries[0]['message'] );
+		$this->assertSame( 'https://evil.test/b', $entries[1]['url'] );
+		$this->assertSame( 'Rejected: the URL host does not match this site.', $entries[1]['message'] );
+	}
+
+	/**
+	 * Test an empty textarea is rejected with the empty list message.
+	 */
+	public function test_an_empty_textarea_is_rejected_without_submitting(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => "\n   \n",
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'an empty textarea must never reach the submit callback' );
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'Rejected: no URLs were provided.', $entries[0]['message'] );
+	}
+
+	/**
+	 * Test the submit form renders the multi URL textarea and status region.
+	 */
+	public function test_render_shows_the_multi_url_textarea(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_urls"', $html );
+		$this->assertStringContainsString( '<textarea', $html );
+		$this->assertStringContainsString( 'id="rankkernel-indexnow-urls-status"', $html );
+		$this->assertStringContainsString( 'Must be URLs on this site.', $html );
+		$this->assertStringNotContainsString( 'name="rankkernel_indexnow_url"', $html );
 	}
 
 	/**
@@ -463,7 +612,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://example.com/a',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 		$page->maybeHandleSave();
 
@@ -502,7 +651,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
-			'rankkernel_indexnow_url'    => 'https://example.com/a',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 		$page->maybeHandleSave();
 

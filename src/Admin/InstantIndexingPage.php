@@ -12,9 +12,11 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\InstantIndexing\IndexNowClient;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
 use RankKernel\Modules\ModuleEnableMap;
+use RankKernel\Plugin;
 
 /**
  * Renders the Instant Indexing screen and handles its writes.
@@ -23,7 +25,7 @@ use RankKernel\Modules\ModuleEnableMap;
  * is configured and never the key itself, no field carries it, and
  * regeneration never echoes the replacement. A manual submission is
  * validated against the site host before the module entry point sees it,
- * and the submitted URL is never fetched.
+ * and no submitted URL is ever fetched.
  */
 final class InstantIndexingPage {
 	/**
@@ -76,9 +78,9 @@ final class InstantIndexingPage {
 	private ModuleEnableMap $enableMap;
 
 	/**
-	 * Submission callback, one validated URL in.
+	 * Submission callback, validated URLs in.
 	 *
-	 * @var callable(string): void
+	 * @var callable(string[]): void
 	 */
 	private $submit;
 
@@ -90,9 +92,9 @@ final class InstantIndexingPage {
 	 * It only runs after the enable map gate, so a disabled module never
 	 * constructs a client.
 	 *
-	 * @param IndexNowSettings|null       $settings  Settings store, fresh one when null.
-	 * @param ModuleEnableMap|null        $enableMap Enable map, fresh one when null.
-	 * @param callable(string): void|null $submit    Submission callback, null uses the module entry point.
+	 * @param IndexNowSettings|null         $settings  Settings store, fresh one when null.
+	 * @param ModuleEnableMap|null          $enableMap Enable map, fresh one when null.
+	 * @param callable(string[]): void|null $submit    Submission callback, null uses the module entry point.
 	 */
 	public function __construct(
 		?IndexNowSettings $settings = null,
@@ -101,8 +103,8 @@ final class InstantIndexingPage {
 	) {
 		$this->settings  = $settings ?? new IndexNowSettings();
 		$this->enableMap = $enableMap ?? new ModuleEnableMap();
-		$this->submit    = $submit ?? function ( string $url ): void {
-			( new InstantIndexingModule( $this->enableMap, $this->settings ) )->submitUrls( [ $url ], 'manual' );
+		$this->submit    = $submit ?? function ( array $urls ): void {
+			( new InstantIndexingModule( $this->enableMap, $this->settings ) )->submitUrls( $urls, 'manual' );
 		};
 	}
 
@@ -133,9 +135,10 @@ final class InstantIndexingPage {
 	/**
 	 * Enqueue screen assets, and only on this screen.
 	 *
-	 * The screen renders with the standard wp-admin styles and needs no
-	 * script, so no asset is registered. The gate keeps the hook contract
-	 * shared with the other module pages.
+	 * The validation script is registered, enqueued and localized here.
+	 * Only the site host and the batch limit reach the browser, the API
+	 * key never does. The gate keeps the hook contract shared with the
+	 * other module pages.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -144,6 +147,29 @@ final class InstantIndexingPage {
 		if ( self::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}
+
+		if ( ! function_exists( 'plugins_url' ) || ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) ) {
+			return;
+		}
+
+		$version = Plugin::version();
+		$source  = plugins_url( 'assets/js/instant-indexing-admin.js', (string) RANKKERNEL_FILE );
+
+		wp_register_script( 'rankkernel-instant-indexing-admin', $source, [], $version, true );
+		wp_enqueue_script( 'rankkernel-instant-indexing-admin' );
+
+		if ( ! function_exists( 'wp_localize_script' ) ) {
+			return;
+		}
+
+		wp_localize_script(
+			'rankkernel-instant-indexing-admin',
+			'rankkernelInstantIndexing',
+			[
+				'siteHost' => $this->settings->siteHost(),
+				'maxUrls'  => IndexNowClient::MAX_URLS,
+			]
+		);
 	}
 
 	/**
@@ -176,6 +202,11 @@ final class InstantIndexingPage {
 		$nonceSave       = self::NONCE_SAVE;
 		$nonceRegenerate = self::NONCE_REGENERATE;
 		$nonceSubmit     = self::NONCE_SUBMIT;
+
+		$homeUrl = function_exists( 'home_url' ) ? (string) home_url() : '';
+		$base    = '' !== $homeUrl ? rtrim( $homeUrl, '/' ) . '/' : 'https://example.com/';
+
+		$urlPlaceholder = $base . "\n" . $base . "sample-page/\n" . $base . 'hello-world/';
 
 		require __DIR__ . '/Views/instant-indexing.php';
 	}
@@ -212,48 +243,86 @@ final class InstantIndexingPage {
 	}
 
 	/**
-	 * Handle a manual submission.
+	 * Handle a manual submission of one or many URLs.
 	 *
 	 * The module must be enabled, because a disabled module makes zero
-	 * outbound requests. Then the URL must pass wp_http_validate_url and
+	 * outbound requests. Each line must pass wp_http_validate_url and
 	 * its host must equal the site host, so www and the apex are
-	 * different hosts. A rejection is logged and the submit callback is
-	 * never reached, so no request is ever made to the submitted URL.
+	 * different hosts. Every invalid line is logged with its own reason
+	 * and dropped, every valid line is submitted in one call, and no
+	 * request is ever made to a submitted URL.
 	 *
 	 * @return void
 	 */
 	private function handleSubmit(): void {
 		$this->requireAccess( self::NONCE_SUBMIT );
 
-		$url = $this->postedUrl();
-
 		if ( ! $this->isModuleEnabled() ) {
-			$this->reject( $url, __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
+			$this->reject( '', __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
+			$this->redirectTo( false );
 
 			return;
 		}
 
-		if ( '' === $url || ! function_exists( 'wp_http_validate_url' ) ) {
-			$this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) );
+		$urls = $this->postedUrls();
+
+		if ( [] === $urls ) {
+			$this->reject( '', __( 'Rejected: no URLs were provided.', 'rankkernel' ) );
+			$this->redirectTo( false );
 
 			return;
+		}
+
+		$valid   = [];
+		$invalid = 0;
+
+		foreach ( $urls as $url ) {
+			$validated = $this->validateUrl( $url );
+
+			if ( '' === $validated ) {
+				$this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) );
+				++$invalid;
+				continue;
+			}
+
+			if ( ! $this->isSiteHost( $validated ) ) {
+				$this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) );
+				++$invalid;
+				continue;
+			}
+
+			$valid[] = $validated;
+		}
+
+		if ( [] !== $valid ) {
+			( $this->submit )( $valid );
+		}
+
+		$this->redirectTo( 0 === $invalid );
+	}
+
+	/**
+	 * Validate one URL through the WordPress URL validator.
+	 *
+	 * @param string $url Candidate URL.
+	 * @return string Validated URL, or an empty string when validation failed.
+	 */
+	private function validateUrl( string $url ): string {
+		if ( ! function_exists( 'wp_http_validate_url' ) ) {
+			return '';
 		}
 
 		$validated = wp_http_validate_url( $url );
 
-		if ( ! is_string( $validated ) || ! $this->isSiteHost( $validated ) ) {
-			$this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) );
-
-			return;
-		}
-
-		( $this->submit )( $validated );
-
-		$this->redirectTo();
+		return is_string( $validated ) ? $validated : '';
 	}
 
 	/**
-	 * Log a rejected manual submission and reload the screen, no request made.
+	 * Log a rejected manual submission, no request made.
+	 *
+	 * The caller redirects once after every rejection is logged, so a
+	 * paste with several invalid URLs records one entry per URL and the
+	 * screen still reloads a single time.
 	 *
 	 * @param string $url    Submitted URL, logged for the operator.
 	 * @param string $reason Human readable rejection reason.
@@ -261,8 +330,6 @@ final class InstantIndexingPage {
 	 */
 	private function reject( string $url, string $reason ): void {
 		$this->settings->logEntry( $url, 0, 'manual', $reason );
-
-		$this->redirectTo( false );
 	}
 
 	/**
@@ -278,25 +345,45 @@ final class InstantIndexingPage {
 	}
 
 	/**
-	 * Submitted URL from POST, empty when absent or not a string.
+	 * Submitted URLs from POST, empty when absent or not a string.
 	 *
-	 * The value is never trusted here. It must pass wp_http_validate_url
-	 * and the site host check before the submit callback sees it.
+	 * The textarea value is split on any newline style, each line
+	 * trimmed, empty lines dropped and duplicates removed with order
+	 * preserved. The values are never rewritten here, validation
+	 * happens next and must see the real value.
 	 *
-	 * @return string The result.
+	 * @return string[] The result.
 	 */
-	private function postedUrl(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, value unslashed and sanitized below, then validated by wp_http_validate_url plus the host check before use.
-		$raw = $_POST['rankkernel_indexnow_url'] ?? '';
+	private function postedUrls(): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, value unslashed below, every URL validated by wp_http_validate_url plus the host check before use.
+		$raw = $_POST['rankkernel_indexnow_urls'] ?? '';
 
 		if ( ! is_string( $raw ) ) {
-			return '';
+			return [];
 		}
 
 		$value = function_exists( 'wp_unslash' ) ? (string) wp_unslash( $raw ) : $raw;
-		$value = function_exists( 'esc_url_raw' ) ? (string) esc_url_raw( $value ) : $value;
+		$lines = preg_split( '/\r\n|\r|\n/', $value );
 
-		return trim( $value );
+		if ( ! is_array( $lines ) ) {
+			return [];
+		}
+
+		$urls = [];
+		$seen = [];
+
+		foreach ( $lines as $line ) {
+			$url = trim( (string) $line );
+
+			if ( '' === $url || isset( $seen[ $url ] ) ) {
+				continue;
+			}
+
+			$seen[ $url ] = true;
+			$urls[]       = $url;
+		}
+
+		return $urls;
 	}
 
 	/**

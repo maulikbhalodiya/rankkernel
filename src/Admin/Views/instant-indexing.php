@@ -17,6 +17,7 @@
  * @var string $nonceSave       Nonce action for the auto submit toggle.
  * @var string $nonceRegenerate Nonce action for key regeneration.
  * @var string $nonceSubmit     Nonce action for the manual submit form.
+ * @var string $urlPlaceholder  Placeholder with three example URLs on this site.
  */
 
 declare(strict_types=1);
@@ -53,13 +54,18 @@ defined( 'ABSPATH' ) || exit;
 		<?php submit_button( __( 'Save settings', 'rankkernel' ), 'primary', '', false ); ?>
 	</form>
 
-	<h2><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></h2>
+	<h2><?php echo esc_html__( 'Submit URLs', 'rankkernel' ); ?></h2>
 	<form method="post" action="">
 		<?php wp_nonce_field( $nonceSubmit ); ?>
 		<input type="hidden" name="rankkernel_indexnow_action" value="submit" />
-		<label class="screen-reader-text" for="rankkernel-indexnow-url"><?php echo esc_html__( 'URL to submit', 'rankkernel' ); ?></label>
-		<input type="url" class="regular-text" name="rankkernel_indexnow_url" id="rankkernel-indexnow-url" value="" />
-		<?php submit_button( __( 'Submit', 'rankkernel' ), 'primary', '', false ); ?>
+		<p>
+			<label for="rankkernel-indexnow-urls"><?php echo esc_html__( 'URLs', 'rankkernel' ); ?></label>
+			<span class="description" style="float: right;"><?php echo esc_html__( 'One per line', 'rankkernel' ); ?></span>
+		</p>
+		<textarea class="large-text code" id="rankkernel-indexnow-urls" name="rankkernel_indexnow_urls" rows="5" placeholder="<?php echo esc_attr( $urlPlaceholder ); ?>"></textarea>
+		<div id="rankkernel-indexnow-urls-status" role="status"></div>
+		<p class="description"><?php echo esc_html__( 'Must be URLs on this site. Deleted pages and redirect sources can be submitted too.', 'rankkernel' ); ?></p>
+		<?php submit_button( __( 'Submit', 'rankkernel' ), 'primary', '', false, [ 'id' => 'rankkernel-indexnow-submit' ] ); ?>
 	</form>
 
 	<h2><?php echo esc_html__( 'Recent submissions', 'rankkernel' ); ?></h2>
