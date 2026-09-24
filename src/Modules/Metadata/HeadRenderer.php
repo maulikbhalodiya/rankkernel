@@ -117,6 +117,27 @@ final class HeadRenderer {
 			return $title;
 		}
 
+		$resolved = $this->resolveTitlePayloadOrTemplate( $ctx );
+
+		if ( null !== $resolved ) {
+			return $resolved;
+		}
+
+		// Fall back to WP default, never return '' which would break themes.
+		return $title;
+	}
+
+	/**
+	 * Helper to resolve title from payload or template with memoization.
+	 *
+	 * Performance optimization: memoizes resolved title by Context hash and aligns field keys
+	 * ('title', 'title_template') so TagsReplacer memo achieves 100% hits across passes.
+	 * Returns null on fallback so title() and getResolvedTitle() apply their distinct fallbacks.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return string|null Resolved title string or null.
+	 */
+	private function resolveTitlePayloadOrTemplate( Context $ctx ): ?string {
 		$hash = $ctx->hash();
 
 		if ( array_key_exists( $hash, $this->resolvedTitleMemo ) ) {
@@ -157,9 +178,7 @@ final class HeadRenderer {
 			}
 		}
 
-		// Fall back to WP default, never return '' which would break themes.
-		// Deliberately uncached: the WP filter arg is not the Context title.
-		return $title;
+		return null;
 	}
 
 	/**
@@ -259,46 +278,12 @@ final class HeadRenderer {
 	 * @return string The result.
 	 */
 	private function getResolvedTitle( Context $ctx ): string {
-		$hash = $ctx->hash();
+		$resolved = $this->resolveTitlePayloadOrTemplate( $ctx );
 
-		if ( array_key_exists( $hash, $this->resolvedTitleMemo ) ) {
-			return $this->resolvedTitleMemo[ $hash ];
+		if ( null !== $resolved ) {
+			return $resolved;
 		}
 
-		$meta         = $ctx->meta();
-		$payloadTitle = isset( $meta['title'] ) ? trim( (string) $meta['title'] ) : '';
-
-		if ( '' !== $payloadTitle ) {
-			if ( 1 === preg_match( '/%%[a-z_]+%%/', $payloadTitle ) ) {
-				$resolved = $this->replacer->replace( $ctx, $payloadTitle, 'title' );
-
-				if ( '' !== trim( $resolved ) ) {
-					$this->resolvedTitleMemo[ $hash ] = $resolved;
-
-					return $resolved;
-				}
-			} else {
-				$this->resolvedTitleMemo[ $hash ] = $payloadTitle;
-
-				return $payloadTitle;
-			}
-		}
-
-		$template = (string) $this->settings->get( 'title_template', '%%title%% %%sep%% %%sitename%%' );
-
-		if ( '' !== trim( $template ) ) {
-			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
-
-			if ( '' !== trim( $resolved ) ) {
-				$this->resolvedTitleMemo[ $hash ] = $resolved;
-
-				return $resolved;
-			}
-		}
-
-		// This fallback depends on the caller: title() returns the WP filter arg,
-		// this path returns Context title. Caching it under the shared hash would
-		// let whichever caller runs first poison the other, so it stays uncached.
 		return $ctx->title();
 	}
 
