@@ -222,7 +222,7 @@ final class KeywordMatcher {
 		$content = [];
 
 		// Performance optimization: lazily construct an O(1) lookup map for function words
-		// to eliminate linear array scans (in_array over 130 elements per word in large texts).
+		// to eliminate linear array scans (in_array over the function words list for every word in large texts).
 		if ( null === self::$functionWordsMap ) {
 			self::$functionWordsMap = array_fill_keys( self::FUNCTION_WORDS, true );
 		}
