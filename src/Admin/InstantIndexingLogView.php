@@ -460,7 +460,10 @@ final class InstantIndexingLogView {
 	}
 
 	/**
-	 * Screen URL plus the preserved filter arguments.
+	 * Filter form action, the bare screen URL.
+	 *
+	 * The form carries the current filter values and the page slug as
+	 * its own fields, so the action itself preserves no arguments.
 	 *
 	 * @return string The result.
 	 */

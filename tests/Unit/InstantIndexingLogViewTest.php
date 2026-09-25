@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\InstantIndexingLogView;
 use RankKernel\Admin\InstantIndexingOutcomes;
+use RankKernel\Modules\InstantIndexing\IndexNowClient;
 
 /**
  * Instant Indexing Log View Test.
@@ -69,6 +70,23 @@ final class InstantIndexingLogViewTest extends TestCase {
 		$this->assertSame( 'limited', InstantIndexingOutcomes::categoryFor( 429 ) );
 		$this->assertSame( 'retry', InstantIndexingOutcomes::categoryFor( 500 ) );
 		$this->assertSame( 'retry', InstantIndexingOutcomes::categoryFor( 503 ) );
+	}
+
+	/**
+	 * Test the admin permanent codes never drift from the client list.
+	 *
+	 * The client owns the protocol list privately, so the two copies are
+	 * read through reflection and compared, and any drift fails here.
+	 */
+	public function test_permanent_code_lists_stay_identical(): void {
+		$outcomes = new \ReflectionClassConstant( InstantIndexingOutcomes::class, 'PERMANENT_CODES' );
+		$client   = new \ReflectionClassConstant( IndexNowClient::class, 'PERMANENT_CODES' );
+
+		$this->assertSame(
+			$client->getValue(),
+			$outcomes->getValue(),
+			'the admin permanent codes must match the client permanent codes'
+		);
 	}
 
 	/**

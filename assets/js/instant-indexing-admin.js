@@ -4,8 +4,8 @@
  * Enables the submit button only while every non empty line is an absolute
  * http or https URL on this site. The server validates again, so the button
  * ships enabled in the HTML and a user without JavaScript can still submit.
- * Only the site host is localized into this file, the API key never reaches
- * the browser.
+ * Only the site host and the site port are localized into this file, the API
+ * key never reaches the browser.
  *
  * Plain script, no build step. Loaded on the Instant Indexing screen only.
  */
@@ -24,12 +24,30 @@
 	var MAX_INVALID_SHOWN = 50;
 
 	/**
+	 * Whether a parsed port may be submitted.
+	 *
+	 * An empty port string means the URL used the scheme default. The
+	 * explicit default ports 80 and 443 are always allowed, and the
+	 * localized site port is allowed when the site runs on one.
+	 */
+	function portAllowed( port, sitePort ) {
+		var value = String( port || '' );
+
+		if ( '' === value || '80' === value || '443' === value ) {
+			return true;
+		}
+
+		return '' !== String( sitePort || '' ) && String( sitePort ) === value;
+	}
+
+	/**
 	 * Reason a single line cannot be submitted, empty when it can.
 	 *
-	 * The URL parser lowercases the host and the comparison against the
-	 * site host stays exact, so www and the apex are different hosts.
+	 * Mirrors the server rules: http or https only, no userinfo, no port
+	 * beyond 80, 443 and the localized site port, and a host that case
+	 * folds to the site host while www and the apex stay different.
 	 */
-	function reasonFor( url, host ) {
+	function reasonFor( url, host, sitePort ) {
 		var parsed;
 
 		if ( 'undefined' === typeof URL ) {
@@ -46,7 +64,15 @@
 			return REASON_NOT_A_URL;
 		}
 
-		if ( String( parsed.hostname ) !== String( host || '' ) ) {
+		if ( '' !== String( parsed.username || '' ) || '' !== String( parsed.password || '' ) ) {
+			return REASON_NOT_A_URL;
+		}
+
+		if ( ! portAllowed( parsed.port, sitePort ) ) {
+			return REASON_NOT_A_URL;
+		}
+
+		if ( String( parsed.hostname ).toLowerCase() !== String( host || '' ).toLowerCase() ) {
 			return REASON_FOREIGN_HOST;
 		}
 
@@ -76,7 +102,7 @@
 	 * plus the summary line and whether the submit button must stay
 	 * disabled.
 	 */
-	function validate( text, host ) {
+	function validate( text, host, sitePort ) {
 		var lines = String( text || '' ).split( /\r\n|\r|\n/ );
 		var seen = Object.create( null );
 		var entries = [];
@@ -95,7 +121,7 @@
 
 			seen[ url ] = true;
 
-			reason = reasonFor( url, host );
+			reason = reasonFor( url, host, sitePort );
 
 			if ( '' === reason ) {
 				validCount += 1;
@@ -283,10 +309,11 @@
 		var button = document.getElementById( BUTTON_ID );
 		var form = field.form || ( field.closest ? field.closest( 'form' ) : null );
 		var host = String( config().siteHost || '' );
+		var port = String( config().sitePort || '' );
 		var timer = null;
 
 		function run() {
-			var result = validate( field.value, host );
+			var result = validate( field.value, host, port );
 
 			render( status, button, result );
 

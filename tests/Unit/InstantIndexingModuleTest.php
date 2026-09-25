@@ -164,13 +164,28 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
+	 * Build a client whose transport always throws.
+	 *
+	 * @return IndexNowClient Client under test.
+	 */
+	private function throwingClient(): IndexNowClient {
+		return new IndexNowClient(
+			$this->settings,
+			static function (): array {
+				throw new \RuntimeException( 'Transport exploded.' );
+			}
+		);
+	}
+
+	/**
 	 * Build the module under test with a toggled enable map.
 	 *
-	 * @param bool $enabled    Whether the module id is in the enable map.
-	 * @param bool $autoSubmit Whether auto submit is on.
+	 * @param bool                $enabled    Whether the module id is in the enable map.
+	 * @param bool                $autoSubmit Whether auto submit is on.
+	 * @param IndexNowClient|null $client     Client override, null uses the recording double.
 	 * @return InstantIndexingModule Module under test.
 	 */
-	private function module( bool $enabled, bool $autoSubmit ): InstantIndexingModule {
+	private function module( bool $enabled, bool $autoSubmit, ?IndexNowClient $client = null ): InstantIndexingModule {
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ) use ( $enabled ): mixed {
 				if ( 'rankkernel_modules' === $key ) {
@@ -187,7 +202,7 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$this->settings->set( [ 'auto_submit' => $autoSubmit ] );
 
-		return new InstantIndexingModule( $map, $this->settings, $this->client() );
+		return new InstantIndexingModule( $map, $this->settings, $client ?? $this->client() );
 	}
 
 	/**
@@ -545,6 +560,33 @@ final class InstantIndexingModuleTest extends TestCase {
 		$this->assertCount( 2, $this->submittedUrls );
 		$this->assertSame( 'https://example.com/live-slug', $this->submittedUrls[1] );
 		$this->assertNotContains( 'https://example.com/live-slug__trashed', $this->submittedUrls );
+	}
+
+	/**
+	 * Test a thrown batch failure logs every URL in the batch.
+	 *
+	 * The Throwable handler must not hide the rest of the batch behind
+	 * the first URL, because the operator needs to know which URLs were
+	 * affected.
+	 */
+	public function test_a_thrown_batch_failure_logs_every_url(): void {
+		$module = $this->module( true, true, $this->throwingClient() );
+
+		$result = $module->submitUrls(
+			[ 'https://example.com/a', 'https://example.com/b', 'https://example.com/c' ],
+			'manual'
+		);
+
+		$entries = $this->settings->logEntries();
+
+		$this->assertSame( [], $result['results'] );
+		$this->assertCount( 3, $entries, 'every URL in the failed batch must be logged' );
+
+		// The log is stored newest first, so the last URL in the batch leads.
+		$this->assertSame( [ 'https://example.com/c', 'https://example.com/b', 'https://example.com/a' ], array_column( $entries, 'url' ) );
+		$this->assertSame( [ 0, 0, 0 ], array_column( $entries, 'code' ) );
+		$this->assertSame( [ 'manual', 'manual', 'manual' ], array_column( $entries, 'source' ) );
+		$this->assertSame( [ 'Transport exploded.', 'Transport exploded.', 'Transport exploded.' ], array_column( $entries, 'message' ) );
 	}
 
 	/**

@@ -117,7 +117,7 @@ final class InstantIndexingPage {
 	 *
 	 * Runs on load rankkernel page rankkernel instant indexing, so wp safe
 	 * redirect can still send headers. The marker field selects one of
-	 * three branches and each branch verifies capability plus its own
+	 * four branches and each branch verifies capability plus its own
 	 * nonce before writing.
 	 *
 	 * @return void
@@ -143,9 +143,9 @@ final class InstantIndexingPage {
 	 * Enqueue screen assets, and only on this screen.
 	 *
 	 * The stylesheet plus the validation script are registered, enqueued
-	 * and localized here. Only the site host reaches the browser, the API
-	 * key never does, and the gate keeps the hook contract shared with
-	 * the other module pages.
+	 * and localized here. Only the site host and the site port reach the
+	 * browser, the API key never does, and the gate keeps the hook
+	 * contract shared with the other module pages.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -186,6 +186,7 @@ final class InstantIndexingPage {
 			'rankkernelInstantIndexing',
 			[
 				'siteHost' => $this->settings->siteHost(),
+				'sitePort' => $this->sitePort(),
 			]
 		);
 	}
@@ -490,16 +491,47 @@ final class InstantIndexingPage {
 	}
 
 	/**
-	 * Whether a validated URL host exactly equals the site host.
+	 * Whether a validated URL host equals the site host, case folded.
 	 *
-	 * The comparison is byte exact through hash_equals, so www and the
-	 * apex are different hosts.
+	 * Both hosts are lower cased before the byte exact hash_equals
+	 * comparison, so a URL written with an uppercase host is accepted
+	 * while www and the apex stay different hosts.
 	 *
 	 * @param string $url Validated URL.
 	 * @return bool The result.
 	 */
 	private function isSiteHost( string $url ): bool {
-		return hash_equals( $this->settings->siteHost(), $this->urlHost( $url ) );
+		return hash_equals( strtolower( $this->settings->siteHost() ), strtolower( $this->urlHost( $url ) ) );
+	}
+
+	/**
+	 * Port component of the home URL, empty for a default port.
+	 *
+	 * Derived from the same home_url the site host comes from, so the
+	 * browser can allow the site own port and refuse every other non
+	 * standard port exactly as the server does.
+	 *
+	 * @return string The result.
+	 */
+	private function sitePort(): string {
+		$home = function_exists( 'home_url' ) ? (string) home_url() : '';
+
+		if ( '' === $home ) {
+			return '';
+		}
+
+		if ( function_exists( 'wp_parse_url' ) ) {
+			$port = wp_parse_url( $home, PHP_URL_PORT );
+		} else {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- wp_parse_url is unavailable outside WordPress, the fallback only parses the core built home URL.
+			$port = parse_url( $home, PHP_URL_PORT );
+		}
+
+		if ( ! is_int( $port ) || 80 === $port || 443 === $port ) {
+			return '';
+		}
+
+		return (string) $port;
 	}
 
 	/**

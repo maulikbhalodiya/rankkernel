@@ -453,6 +453,35 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test an uppercase host URL is accepted by the case folded host check.
+	 *
+	 * The browser validator folds host case too, so this pins the
+	 * agreement between the two layers: an uppercase host reaches the
+	 * submit callback instead of being rejected.
+	 */
+	public function test_an_uppercase_host_url_is_accepted_by_the_site_host_check(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$received ): void {
+				$received = $urls;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://EXAMPLE.com/a',
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( [ 'https://EXAMPLE.com/a' ], $received, 'an uppercase host must be accepted, matching the browser validator' );
+		$this->assertSame( [], $this->settings->logEntries() );
+	}
+
+	/**
 	 * Test three valid URLs in the textarea submit in a single call.
 	 */
 	public function test_a_textarea_with_three_valid_urls_submits_them_in_one_call(): void {
@@ -599,6 +628,41 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'Must be URLs on this site. Deleted pages can be submitted too.', $html );
 		$this->assertStringNotContainsString( 'redirect sources', $html );
 		$this->assertStringNotContainsString( 'name="rankkernel_indexnow_url"', $html );
+	}
+
+	/**
+	 * Test the render pins the submit button id the script looks for.
+	 *
+	 * The validation script finds the button by id, and this suite stubs
+	 * submit_button to return an empty string, so the id is asserted on
+	 * the captured call arguments instead of the rendered HTML.
+	 */
+	public function test_render_pins_the_submit_button_id_the_script_looks_for(): void {
+		$buttonCalls = [];
+
+		Functions\when( 'submit_button' )->alias(
+			static function ( ...$args ) use ( &$buttonCalls ): void {
+				$buttonCalls[] = $args;
+			}
+		);
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		ob_get_clean();
+
+		$ids = [];
+
+		foreach ( $buttonCalls as $args ) {
+			$attributes = is_array( $args[4] ?? null ) ? $args[4] : [];
+			$ids[]      = (string) ( $attributes['id'] ?? '' );
+		}
+
+		$this->assertContains(
+			'rankkernel-indexnow-submit',
+			$ids,
+			'the rendered submit button must carry the id the validation script looks for'
+		);
 	}
 
 	/**
@@ -864,9 +928,12 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
 		$this->assertSame(
-			[ 'siteHost' => 'example.com' ],
+			[
+				'siteHost' => 'example.com',
+				'sitePort' => '',
+			],
 			$localizedScripts['rankkernelInstantIndexing'],
-			'the payload must carry the site host only'
+			'the payload must carry the site host and the site port only'
 		);
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
@@ -879,6 +946,39 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringNotContainsString( $this->key, $registeredJson, 'the key must never appear in registered script arguments' );
 		$this->assertStringNotContainsString( $this->key, $localizedJson, 'the key must never appear in localized data' );
 		$this->assertStringNotContainsString( $this->key, $stylesJson, 'the key must never appear in registered style arguments' );
+	}
+
+	/**
+	 * Test the localized site port derives from the same home URL as the host.
+	 *
+	 * A site running on a non standard port must tell the browser which
+	 * port to allow, while a default port localizes as an empty string.
+	 */
+	public function test_enqueue_localizes_the_site_port_derived_from_home_url(): void {
+		Functions\when( 'home_url' )->alias( static fn( string $path = '' ): string => 'http://example.com:8080' . $path );
+		Functions\when( 'plugins_url' )->alias( static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path );
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+
+		$localizedScripts = [];
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $objectName, array $data ) use ( &$localizedScripts ): void {
+				$localizedScripts[ $objectName ] = $data;
+			}
+		);
+
+		$this->page()->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
+
+		$this->assertSame(
+			[
+				'siteHost' => 'example.com',
+				'sitePort' => '8080',
+			],
+			$localizedScripts['rankkernelInstantIndexing'],
+			'the port must derive from the home URL and nothing else may be localized'
+		);
 	}
 
 	/**

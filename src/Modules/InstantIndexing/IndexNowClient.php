@@ -151,9 +151,10 @@ final class IndexNowClient {
 	/**
 	 * Keep only same host http and https URLs, deduplicated.
 	 *
-	 * The host comparison is exact string equality, so www and the
-	 * apex are different hosts and are never collapsed. The list
-	 * fails closed when the WordPress URL parser is unavailable.
+	 * The host comparison case folds both hosts first and then compares
+	 * exactly, so an uppercase host is accepted while www and the apex
+	 * stay different hosts and are never collapsed. The list fails
+	 * closed when the WordPress URL parser is unavailable.
 	 *
 	 * Non-string elements are dropped before parsing, because the
 	 * loose array parameter is a documentation contract rather than
@@ -167,7 +168,7 @@ final class IndexNowClient {
 			return [];
 		}
 
-		$targetHost = $this->settings->siteHost();
+		$targetHost = strtolower( $this->settings->siteHost() );
 		$kept       = [];
 
 		foreach ( $urls as $url ) {
@@ -186,7 +187,7 @@ final class IndexNowClient {
 				continue;
 			}
 
-			if ( $host !== $targetHost ) {
+			if ( strtolower( $host ) !== $targetHost ) {
 				continue;
 			}
 

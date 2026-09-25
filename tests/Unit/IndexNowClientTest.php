@@ -234,6 +234,20 @@ final class IndexNowClientTest extends TestCase {
 	}
 
 	/**
+	 * Test host case is folded while www and the apex stay different hosts.
+	 *
+	 * The page accepts an uppercase host once case is folded, so the
+	 * client must keep that URL in the batch instead of silently
+	 * dropping it, and folding must never merge www with the apex.
+	 */
+	public function test_host_case_is_folded_without_merging_www(): void {
+		$this->assertSame(
+			[ 'https://EXAMPLE.com/a' ],
+			$this->client()->filterUrls( [ 'https://EXAMPLE.com/a', 'https://www.example.com/a' ] )
+		);
+	}
+
+	/**
 	 * Test non string elements are dropped before parsing.
 	 */
 	public function test_non_string_elements_are_dropped_before_parsing(): void {

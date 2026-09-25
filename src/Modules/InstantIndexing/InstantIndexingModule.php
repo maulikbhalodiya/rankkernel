@@ -223,7 +223,8 @@ final class InstantIndexingModule implements ModuleInterface {
 	 * The debounce lives on the post signal path, which knows its post
 	 * id; this entry point is also the manual path, where no post id
 	 * exists and a human click is never suppressed. A thrown transport
-	 * failure is logged and returned as an empty summary.
+	 * failure is logged once per URL in the batch, so no URL disappears,
+	 * and returned as an empty summary.
 	 *
 	 * @param array<int|string, mixed> $urls   URLs to submit.
 	 * @param string                   $source Submitting surface, auto or manual.
@@ -245,7 +246,9 @@ final class InstantIndexingModule implements ModuleInterface {
 		try {
 			return $this->client()->submit( $list, $source );
 		} catch ( \Throwable $error ) {
-			$this->settings()->logEntry( $list[0], 0, $source, $error->getMessage() );
+			foreach ( $list as $url ) {
+				$this->settings()->logEntry( $url, 0, $source, $error->getMessage() );
+			}
 
 			return self::emptyResult();
 		}

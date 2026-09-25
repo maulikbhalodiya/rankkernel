@@ -21,7 +21,7 @@ function source( file ) {
 	return readFileSync( path.join( root, 'assets', 'js', file ), 'utf8' );
 }
 
-function validator( siteHost ) {
+function validator( siteHost, sitePort ) {
 	const document = {
 		readyState: 'complete',
 		addEventListener() {},
@@ -31,7 +31,8 @@ function validator( siteHost ) {
 	};
 
 	const config = {
-		siteHost: siteHost || 'example.com'
+		siteHost: siteHost || 'example.com',
+		sitePort: sitePort || ''
 	};
 	const sandbox = { document, URL, rankkernelInstantIndexing: config };
 
@@ -40,7 +41,7 @@ function validator( siteHost ) {
 
 	assert.equal( typeof config.validate, 'function', 'the pure validator must be reachable from the harness' );
 
-	return ( text ) => config.validate( text, config.siteHost );
+	return ( text ) => config.validate( text, config.siteHost, config.sitePort );
 }
 
 test( 'a valid same host URL validates clean', () => {
@@ -85,6 +86,59 @@ test( 'a www host against an apex site host is invalid', () => {
 	assert.equal( result.invalidCount, 1 );
 	assert.equal( result.entries[ 0 ].reason, 'This URL is not on this site.' );
 	assert.equal( result.disabled, true );
+} );
+
+test( 'a URL with userinfo is invalid in the browser validator', () => {
+	const validate = validator( 'example.com' );
+	const result = validate( 'https://user:pass@example.com/post' );
+
+	assert.equal( result.total, 1 );
+	assert.equal( result.validCount, 0 );
+	assert.equal( result.invalidCount, 1 );
+	assert.equal( result.entries[ 0 ].valid, false );
+	assert.equal( result.entries[ 0 ].reason, 'Not a valid URL.' );
+	assert.equal( result.disabled, true );
+} );
+
+test( 'a URL on a non standard port is invalid', () => {
+	const validate = validator( 'example.com' );
+	const result = validate( 'https://example.com:8443/post' );
+
+	assert.equal( result.total, 1 );
+	assert.equal( result.validCount, 0 );
+	assert.equal( result.invalidCount, 1 );
+	assert.equal( result.entries[ 0 ].reason, 'Not a valid URL.' );
+	assert.equal( result.disabled, true );
+} );
+
+test( "a URL on the site's own port is valid", () => {
+	const validate = validator( 'example.com', '8443' );
+	const result = validate( 'https://example.com:8443/post' );
+
+	assert.equal( result.total, 1 );
+	assert.equal( result.validCount, 1 );
+	assert.equal( result.invalidCount, 0 );
+	assert.equal( result.entries[ 0 ].valid, true );
+	assert.equal( result.entries[ 0 ].reason, '' );
+	assert.equal( result.disabled, false );
+} );
+
+test( 'the default ports 80 and 443 are allowed without a localized site port', () => {
+	const validate = validator( 'example.com' );
+
+	assert.equal( validate( 'https://example.com:80/post' ).invalidCount, 0 );
+	assert.equal( validate( 'http://example.com:443/post' ).invalidCount, 0 );
+} );
+
+test( 'host case differences are folded on both sides without merging www', () => {
+	const upperUrl = validator( 'example.com' )( 'https://EXAMPLE.com/post' );
+	const upperHost = validator( 'EXAMPLE.com' )( 'https://example.com/post' );
+	const www = validator( 'example.com' )( 'https://WWW.example.com/post' );
+
+	assert.equal( upperUrl.validCount, 1 );
+	assert.equal( upperHost.validCount, 1 );
+	assert.equal( www.invalidCount, 1 );
+	assert.equal( www.entries[ 0 ].reason, 'This URL is not on this site.' );
 } );
 
 test( 'an empty input returns the empty state', () => {
