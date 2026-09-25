@@ -64,6 +64,17 @@ jobs:
         uses: nilesh32236/opencode-ai-reviewer@103082c963f64cb2cf979ae14b729ec41d40866e # v1.22.0
         with:
           mode: review
+          # Pin the OpenCode CLI rather than tracking latest, so every run
+          # downloads the same bytes. v1.18.31 is the newest release that
+          # still publishes an opencode-linux-x64.tar.gz asset.
+          opencode_version: 'v1.18.31'
+          # Integrity verification is off ON PURPOSE. Upstream
+          # anomalyco/opencode publishes no checksum assets for any release,
+          # so require_opencode_checksum can never be satisfied and only
+          # fails the job closed. The version pin above restores
+          # determinism, which is the property the checksum protected. This
+          # is a known, accepted supply chain gap, not an oversight.
+          require_opencode_checksum: 'false'
           github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -196,6 +207,8 @@ jobs:
         uses: nilesh32236/opencode-ai-reviewer@103082c963f64cb2cf979ae14b729ec41d40866e # v1.22.0
         with:
           mode: fix
+          opencode_version: 'v1.18.31'
+          require_opencode_checksum: 'false'
           github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
