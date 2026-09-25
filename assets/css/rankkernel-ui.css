@@ -1,0 +1,724 @@
+/**
+ * RankKernel shared admin UI layer.
+ *
+ * Opt in component layer for RankKernel admin screens. A page adopts it by
+ * adding the rk-ui class to its root element alongside its own page class,
+ * and by importing this file from its feature stylesheet after the base
+ * token file. Every selector below is scoped under .rk-ui so nothing here
+ * applies unless the page opts in.
+ *
+ * This file requires rankkernel-admin.css. It declares no @import of its
+ * own because the adopting feature stylesheet already imports the base.
+ * It consumes only var(--rk-*) tokens and contains no raw hex. It is
+ * imported after the base ONLY by adopting feature stylesheets, and it is
+ * never loaded by a frozen sheet.
+ *
+ * The rk-ui-* namespace is new on purpose, and existing component names
+ * were deliberately not promoted. A promoted top level selector still
+ * applies every property that a page scoped rule does not declare, so
+ * promoting would visibly change frozen pages. Concretely, .rk-card-title
+ * would make all 13 Dashboard headings weight 700 and change their colour,
+ * and .rk-tabs would push the Redirects status tabs 24px right and make
+ * them a scroll container. Core buttons need the wrapper scoped .rk-ui
+ * .button form used below, because a bare .button rule cannot restyle
+ * WordPress core buttons at all, as core .wp-core-ui .button wins on
+ * specificity and only an equally specific later rule themes them.
+ *
+ * Source is the Instant Indexing reference design, moved verbatim with the
+ * page scope dropped and rk- component names renamed to rk-ui-*. The move
+ * stays visual only, so an adopting page renders exactly as before.
+ *
+ * @package RankKernel
+ */
+
+/* ==========================================================================
+   Buttons, primary plus secondary plus icon plus destructive plus disabled
+   ========================================================================== */
+
+.rk-ui .rk-ui-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-2) var(--rk-space-4);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: var(--rk-shadow-sm);
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+	box-sizing: border-box;
+}
+
+.rk-ui .rk-ui-btn .rk-icon {
+	font-size: 18px;
+}
+
+.rk-ui .rk-ui-btn-primary {
+	background: var(--rk-color-primary);
+	border: 1px solid var(--rk-color-primary);
+	color: var(--rk-color-surface);
+}
+
+.rk-ui .rk-ui-btn-primary:hover {
+	background: var(--rk-color-primary-hover);
+	border-color: var(--rk-color-primary-hover);
+	color: var(--rk-color-surface);
+}
+
+.rk-ui .rk-ui-btn-primary:active {
+	background: var(--rk-color-primary-active);
+	border-color: var(--rk-color-primary-active);
+}
+
+.rk-ui .rk-ui-btn-secondary {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-ui .rk-ui-btn-secondary:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+/* Icon only header control, equal in height, border, radius, background and weight to the secondary control. */
+.rk-ui .rk-ui-btn-icon {
+	min-width: 37px;
+	padding-inline: var(--rk-space-2);
+	justify-content: center;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-ui .rk-ui-btn-icon:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+/* Destructive text action, sourced from the reference clear log control. */
+.rk-ui .rk-ui-btn-danger {
+	background: none;
+	border: none;
+	box-shadow: none;
+	padding: var(--rk-space-1) var(--rk-space-2);
+	color: var(--rk-color-secondary-4);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-ui .rk-ui-btn-danger:hover {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4);
+	text-decoration: underline;
+}
+
+/* WordPress submit buttons inside our cards take the same treatment. */
+.rk-ui .button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-2) var(--rk-space-4);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	cursor: pointer;
+	box-shadow: var(--rk-shadow-sm);
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+	box-sizing: border-box;
+}
+
+.rk-ui .button-primary {
+	background: var(--rk-color-primary);
+	border: 1px solid var(--rk-color-primary);
+	color: var(--rk-color-surface);
+}
+
+.rk-ui .button-primary:hover {
+	background: var(--rk-color-primary-hover);
+	border-color: var(--rk-color-primary-hover);
+	color: var(--rk-color-surface);
+}
+
+.rk-ui .button-primary:active {
+	background: var(--rk-color-primary-active);
+	border-color: var(--rk-color-primary-active);
+}
+
+.rk-ui .button-secondary {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-ui .button-secondary:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+.rk-ui .button:disabled,
+.rk-ui .button-primary:disabled,
+.rk-ui .button-secondary:disabled,
+.rk-ui .rk-ui-btn:disabled,
+.rk-ui .rk-ui-btn-disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Card shell
+   ========================================================================== */
+
+.rk-ui .rk-ui-card {
+	margin: 0;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-ui .rk-ui-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6) 16px;
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-ui .rk-ui-card-header-left {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.rk-ui .rk-ui-card-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+}
+
+/* ==========================================================================
+   Page header card
+   ========================================================================== */
+
+.rk-ui .rk-ui-page-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding: var(--rk-space-5) var(--rk-space-6);
+}
+
+.rk-ui .rk-ui-page-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-ui .rk-ui-page-header-title-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+}
+
+.rk-ui .rk-ui-page-title {
+	margin: 0;
+	padding: 0;
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+	letter-spacing: -0.015em;
+}
+
+.rk-ui .rk-ui-page-header .rk-ui-sub {
+	margin: 4px 0 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-ui .rk-ui-page-header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Notice banners in all four semantic colours
+   ========================================================================== */
+
+.rk-ui .rk-ui-notice {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	margin: 0;
+	padding: 14px var(--rk-space-4);
+	border: 1px solid transparent;
+	border-inline-start: 4px solid transparent;
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	box-shadow: var(--rk-shadow-sm);
+	box-sizing: border-box;
+}
+
+.rk-ui .rk-ui-notice-icon {
+	flex-shrink: 0;
+	font-size: 20px;
+	line-height: 1;
+}
+
+.rk-ui .rk-ui-notice-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	font-weight: 500;
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-notice-dismiss {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--rk-color-text-muted);
+	padding: var(--rk-space-1);
+	border-radius: var(--rk-radius-sm);
+	transition: color 0.15s;
+}
+
+.rk-ui .rk-ui-notice-dismiss:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-notice-dismiss .rk-icon {
+	font-size: 18px;
+}
+
+.rk-ui .rk-ui-notice-success {
+	background: var(--rk-color-secondary-1-soft);
+	border-color: var(--rk-tint-positive-border);
+	border-inline-start-color: var(--rk-color-secondary-1);
+}
+
+.rk-ui .rk-ui-notice-success .rk-ui-notice-icon {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-ui .rk-ui-notice-error {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: var(--rk-tint-error-border);
+	border-inline-start-color: var(--rk-color-secondary-4);
+}
+
+.rk-ui .rk-ui-notice-error .rk-ui-notice-icon {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-ui .rk-ui-notice-warning {
+	background: var(--rk-color-secondary-3-soft);
+	border-color: var(--rk-tint-warning-border);
+	border-inline-start-color: var(--rk-color-secondary-3);
+}
+
+.rk-ui .rk-ui-notice-warning .rk-ui-notice-icon {
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-ui .rk-ui-notice-info {
+	background: var(--rk-color-primary-soft);
+	border-color: var(--rk-tint-primary-border);
+	border-inline-start-color: var(--rk-color-primary);
+}
+
+.rk-ui .rk-ui-notice-info .rk-ui-notice-icon {
+	color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Status pills in the shared semantic set
+   ========================================================================== */
+
+.rk-ui .rk-ui-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-ui .rk-ui-pill-success {
+	background: var(--rk-color-secondary-1-soft);
+	border: 1px solid var(--rk-tint-positive-border);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-ui .rk-ui-pill-info {
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
+	color: var(--rk-color-primary);
+}
+
+.rk-ui .rk-ui-pill-danger {
+	background: var(--rk-color-secondary-4-soft);
+	border: 1px solid var(--rk-tint-error-border);
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-ui .rk-ui-pill-warning {
+	background: var(--rk-color-secondary-3-soft);
+	border: 1px solid var(--rk-tint-warning-border);
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-ui .rk-ui-pill-neutral {
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-secondary);
+}
+
+/* ==========================================================================
+   Log table
+   ========================================================================== */
+
+.rk-ui .rk-ui-table-wrap {
+	overflow-x: auto;
+}
+
+.rk-ui .rk-ui-table {
+	width: 100%;
+	border-spacing: 0;
+	border-collapse: collapse;
+	font-size: var(--rk-font-size-xs);
+	text-align: left;
+}
+
+.rk-ui .rk-ui-table thead th {
+	background: var(--rk-color-surface-subtle);
+	border-block-end: 1px solid var(--rk-color-border);
+	padding: var(--rk-space-3) var(--rk-space-4);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-muted);
+	white-space: nowrap;
+}
+
+.rk-ui .rk-ui-table tbody tr {
+	border-block-end: 1px solid var(--rk-color-border);
+	transition: background 0.1s;
+}
+
+.rk-ui .rk-ui-table tbody tr:last-child {
+	border-block-end: none;
+}
+
+.rk-ui .rk-ui-table tbody tr:hover {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-ui .rk-ui-table tbody td {
+	padding: 10px var(--rk-space-4);
+	vertical-align: middle;
+}
+
+/* ==========================================================================
+   Segmented status tabs with real counts
+   ========================================================================== */
+
+.rk-ui .rk-ui-tabs {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-6);
+	padding: 0 var(--rk-space-6);
+	border-block-end: 1px solid var(--rk-color-border);
+	overflow-x: auto;
+}
+
+.rk-ui .rk-ui-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: var(--rk-space-3) 2px;
+	border-block-end: 2px solid transparent;
+	margin-block-end: -1px;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color 0.15s, border-color 0.15s;
+}
+
+.rk-ui .rk-ui-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-tab.is-current {
+	border-block-end-color: var(--rk-color-primary);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+.rk-ui .rk-ui-tab .rk-ui-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 18px;
+	padding: 0 6px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-ui .rk-ui-tab.is-current .rk-ui-count {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
+
+.rk-ui .rk-ui-page-nums {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+}
+
+.rk-ui .rk-ui-page-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 28px;
+	padding: 4px 10px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
+	box-sizing: border-box;
+}
+
+.rk-ui a.rk-ui-page-link:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-page-link.is-current {
+	background: var(--rk-color-primary);
+	border-color: var(--rk-color-primary);
+	color: var(--rk-color-surface);
+	font-weight: 700;
+	cursor: default;
+}
+
+.rk-ui .rk-ui-page-link.is-disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.rk-ui .rk-ui-page-gap {
+	padding: 4px;
+	color: var(--rk-color-text-hint);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* ==========================================================================
+   Search plus select
+   ========================================================================== */
+
+.rk-ui .rk-ui-search-wrap {
+	position: relative;
+	flex: 1 1 auto;
+	max-width: 420px;
+}
+
+.rk-ui .rk-ui-search-icon {
+	position: absolute;
+	inset-inline-start: 12px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-hint);
+	font-size: 18px;
+	pointer-events: none;
+}
+
+.rk-ui .rk-ui-search-input {
+	width: 100%;
+	padding: 6px 14px 6px 36px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-ui .rk-ui-search-input::placeholder {
+	color: var(--rk-color-text-hint);
+}
+
+.rk-ui .rk-ui-search-input:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-ui .rk-ui-select-wrap {
+	position: relative;
+}
+
+.rk-ui .rk-ui-select {
+	appearance: none;
+	background-color: var(--rk-color-surface);
+	padding: 6px 32px 6px 12px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	cursor: pointer;
+	transition: border-color 0.15s;
+}
+
+.rk-ui .rk-ui-select:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-ui .rk-ui-select-chevron {
+	position: absolute;
+	inset-inline-end: 8px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-muted);
+	font-size: 16px;
+	pointer-events: none;
+}
+
+/* ==========================================================================
+   Form row plus switch
+   ========================================================================== */
+
+.rk-ui .rk-ui-form-row {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.rk-ui .rk-ui-form-label {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-ui .rk-ui-switch {
+	position: relative;
+	display: inline-block;
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+.rk-ui .rk-ui-switch input[type="checkbox"] {
+	position: absolute;
+	opacity: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	cursor: pointer;
+}
+
+.rk-ui .rk-ui-switch-track {
+	display: block;
+	width: 40px;
+	height: 24px;
+	padding: 2px;
+	border-radius: 999px;
+	background: var(--rk-color-border-strong);
+	transition: background 0.15s;
+	box-sizing: border-box;
+}
+
+.rk-ui .rk-ui-switch-knob {
+	display: block;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+	transition: transform 0.15s;
+}
+
+.rk-ui .rk-ui-switch input[type="checkbox"]:checked + .rk-ui-switch-track {
+	background: var(--rk-color-primary);
+}
+
+.rk-ui .rk-ui-switch input[type="checkbox"]:checked + .rk-ui-switch-track .rk-ui-switch-knob {
+	transform: translateX(16px);
+}
+
+.rk-ui .rk-ui-switch input[type="checkbox"]:focus-visible + .rk-ui-switch-track {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Focus management
+   ========================================================================== */
+
+.rk-ui :focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Responsive stacking for the shared components
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+	.rk-ui .rk-ui-page-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.rk-ui .rk-ui-search-wrap {
+		max-width: none;
+	}
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-ui .rk-ui-btn,
+	.rk-ui .button,
+	.rk-ui .rk-ui-switch-track,
+	.rk-ui .rk-ui-switch-knob,
+	.rk-ui .rk-ui-table tbody tr,
+	.rk-ui .rk-ui-tab,
+	.rk-ui .rk-ui-page-link {
+		transition: none;
+	}
+}

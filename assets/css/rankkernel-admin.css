@@ -45,7 +45,8 @@ may fetch a font from an external host. */
 .rk-monitor,
 .rk-settings,
 .rk-analysis-col,
-.rk-dashboard {
+.rk-dashboard,
+.rk-instant-indexing {
 	/* One global UI face for every RankKernel surface. */
 	font-family: var(--rk-font-sans);
 
@@ -80,6 +81,16 @@ may fetch a font from an external host. */
 	--rk-color-text-hint: #94A3B8;
 	--rk-color-border: #E2E8F0;
 	--rk-color-border-strong: #CBD5E1;
+
+	/* Translucent accent borders plus focus rings. Feature stylesheets
+	need hairline borders and soft glows in each semantic colour without
+	reaching for raw values, so the tints live here beside the palette.
+	Hex belongs in this file alone, rgba tints included. */
+	--rk-tint-primary-border: rgba(37, 99, 235, 0.25);
+	--rk-tint-positive-border: rgba(15, 118, 110, 0.25);
+	--rk-tint-warning-border: rgba(234, 88, 12, 0.25);
+	--rk-tint-error-border: rgba(220, 38, 38, 0.25);
+	--rk-ring-primary: rgba(37, 99, 235, 0.2);
 	--rk-color-surface: #FFFFFF;
 	--rk-color-surface-subtle: #F8FAFC;
 	--rk-color-surface-muted: #F1F5F9;

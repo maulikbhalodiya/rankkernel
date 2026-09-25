@@ -65,6 +65,13 @@ final class AdminMenu {
 	private readonly DashboardPage $dashboardPage;
 
 	/**
+	 * Instant Indexing page instance.
+	 *
+	 * @var InstantIndexingPage
+	 */
+	private readonly InstantIndexingPage $instantIndexingPage;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore        $store     Settings store.
@@ -76,12 +83,13 @@ final class AdminMenu {
 		private readonly ModuleEnableMap $enableMap,
 		?SitemapSettings $sitemap = null
 	) {
-		$this->page          = new SettingsPage( $this->store, $this->enableMap );
-		$this->sitemapPage   = new SitemapSettingsPage( $sitemap ?? new SitemapSettings() );
-		$this->schemaPage    = new SchemaSettingsPage( $this->store );
-		$this->redirectsPage = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
-		$this->monitorPage   = new NotFoundPage();
-		$this->dashboardPage = new DashboardPage();
+		$this->page                = new SettingsPage( $this->store, $this->enableMap );
+		$this->sitemapPage         = new SitemapSettingsPage( $sitemap ?? new SitemapSettings() );
+		$this->schemaPage          = new SchemaSettingsPage( $this->store );
+		$this->redirectsPage       = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
+		$this->monitorPage         = new NotFoundPage();
+		$this->dashboardPage       = new DashboardPage();
+		$this->instantIndexingPage = new InstantIndexingPage( null, $this->enableMap );
 	}
 
 	/**
@@ -127,6 +135,15 @@ final class AdminMenu {
 	 */
 	public function getMonitorPage(): NotFoundPage {
 		return $this->monitorPage;
+	}
+
+	/**
+	 * Get the Instant Indexing page (for testing).
+	 *
+	 * @return InstantIndexingPage The result.
+	 */
+	public function getInstantIndexingPage(): InstantIndexingPage {
+		return $this->instantIndexingPage;
 	}
 
 	/**
@@ -290,5 +307,26 @@ final class AdminMenu {
 
 		add_action( 'load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ] );
 		add_action( 'admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ] );
+	}
+
+	/**
+	 * Register the RankKernel Instant Indexing submenu page.
+	 *
+	 * Hooked separately from the top level menu so callers control
+	 * ordering. Uses the same load hook save pattern as the other
+	 * pages, so the redirect stays header safe.
+	 */
+	public function addInstantIndexingPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			'Instant Indexing',
+			'Instant Indexing',
+			'manage_options',
+			InstantIndexingPage::SLUG,
+			[ $this->instantIndexingPage, 'render' ]
+		);
+
+		add_action( 'load-' . $hook, [ $this->instantIndexingPage, 'maybeHandleSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->instantIndexingPage, 'enqueueAssets' ] );
 	}
 }
