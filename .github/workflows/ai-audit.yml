@@ -39,7 +39,7 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs
 
       - name: AI Codebase Audit
-        uses: nilesh32236/opencode-ai-reviewer@79800cb75d3f15173bb8bea9ed9cbe39dd997118 # v1.16.1
+        uses: nilesh32236/opencode-ai-reviewer@103082c963f64cb2cf979ae14b729ec41d40866e # v1.22.0
         with:
           mode: audit
           github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
