@@ -197,6 +197,16 @@ class RobotsModule implements ModuleInterface {
 			return;
 		}
 
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+
+		$screen = get_current_screen();
+
+		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
+			return;
+		}
+
 		$writer = $this->llmsWriter;
 
 		if ( null === $writer || ! $writer->exists() ) {
@@ -254,6 +264,16 @@ class RobotsModule implements ModuleInterface {
 	 */
 	public function renderPhysicalFileNotice(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+
+		$screen = get_current_screen();
+
+		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
 			return;
 		}
 

@@ -90,6 +90,10 @@ final class RobotsModuleTest extends TestCase {
 					return $this->physicalPath;
 				}
 
+				if ( 'rankkernel/llms/physical_file' === $hook && '' !== $this->physicalPath ) {
+					return $this->physicalPath;
+				}
+
 				return $value;
 			}
 		);
@@ -103,6 +107,7 @@ final class RobotsModuleTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
 		Functions\when( 'add_rewrite_rule' )->justReturn( true );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -210,6 +215,66 @@ final class RobotsModuleTest extends TestCase {
 		$this->physicalPath = $temp;
 
 		$this->assertTrue( $module->hasPhysicalFile() );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test renderPhysicalFileNotice screen scoping.
+	 */
+	public function test_render_physical_file_notice_screen_scoping(): void {
+		$module = new RobotsModule();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkrobots' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "User-agent: *\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+		$this->physicalPath = $temp;
+
+		// On a non-rankkernel screen, no notice should output.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		ob_start();
+		$module->renderPhysicalFileNotice();
+		$out = ob_get_clean();
+		$this->assertSame( '', $out );
+
+		// On a rankkernel screen, notice should output.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		ob_start();
+		$module->renderPhysicalFileNotice();
+		$out = ob_get_clean();
+		$this->assertStringContainsString( 'notice notice-warning', $out );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test renderLlmsPhysicalNotice screen scoping.
+	 */
+	public function test_render_llms_physical_notice_screen_scoping(): void {
+		$this->options['rankkernel_modules']       = [ 'robots' ];
+		$this->options['rankkernel_llms_settings'] = [ 'enabled' => true ];
+
+		$module = new RobotsModule();
+		$module->boot();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "# LLMS\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+		$this->physicalPath = $temp;
+
+		// Non-rankkernel screen (suppressed by screen check even when file exists).
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'plugins' ] );
+		ob_start();
+		$module->renderLlmsPhysicalNotice();
+		$out = ob_get_clean();
+		$this->assertSame( '', $out );
+
+		// RankKernel screen (outputs notice when file exists).
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		ob_start();
+		$module->renderLlmsPhysicalNotice();
+		$out = ob_get_clean();
+		$this->assertStringContainsString( 'notice notice-warning', $out );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
