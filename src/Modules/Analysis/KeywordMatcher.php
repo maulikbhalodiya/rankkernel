@@ -167,6 +167,13 @@ final class KeywordMatcher {
 	];
 
 	/**
+	 * Map of function words keyed by word for O(1) hash lookups.
+	 *
+	 * @var array<string, true>|null
+	 */
+	private static ?array $functionWordsMap = null;
+
+	/**
 	 * Reduce text to comparable words.
 	 *
 	 * Lowercases, strips accents when WordPress is loaded, and collapses every
@@ -214,8 +221,14 @@ final class KeywordMatcher {
 		$words   = self::words( $text );
 		$content = [];
 
+		// Performance optimization: lazily construct an O(1) lookup map for function words
+		// to eliminate linear array scans (in_array over the function words list for every word in large texts).
+		if ( null === self::$functionWordsMap ) {
+			self::$functionWordsMap = array_fill_keys( self::FUNCTION_WORDS, true );
+		}
+
 		foreach ( $words as $word ) {
-			if ( ! in_array( $word, self::FUNCTION_WORDS, true ) ) {
+			if ( ! isset( self::$functionWordsMap[ $word ] ) ) {
 				$content[] = $word;
 			}
 		}
