@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
+use RankKernel\Modules\InstantIndexing\LogQuery;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Plugin;
 
@@ -207,7 +208,8 @@ final class InstantIndexingPage {
 	 * location contains the key because engines fetch it from that URL,
 	 * and this screen requires manage options, so access is the boundary.
 	 * The log filters are read only display values from the query string,
-	 * sanitized by the log view, and never stored or trusted for a write.
+	 * normalized by LogQuery::fromInput, and never stored or trusted for
+	 * a write.
 	 *
 	 * @return void
 	 */
@@ -247,31 +249,24 @@ final class InstantIndexingPage {
 		$keyConfigured = '' !== $this->settings->getKey();
 		$keyFileUrl    = $keyConfigured ? $this->settings->keyLocation() : '';
 		$autoSubmit    = $this->settings->getAutoSubmit();
-		$logRows       = [];
 
-		foreach ( $this->settings->logEntries() as $entry ) {
-			$logRows[] = [
-				'url'     => (string) ( $entry['url'] ?? '' ),
-				'code'    => (int) ( $entry['code'] ?? 0 ),
-				'source'  => (string) ( $entry['source'] ?? '' ),
-				'time'    => (string) ( $entry['time'] ?? '' ),
-				'message' => (string) ( $entry['message'] ?? '' ),
-			];
-		}
-
-		$stats = InstantIndexingOutcomes::stats( $logRows );
+		// The stats strip is unfiltered by design, so it describes the whole
+		// table through one grouped count, never a bounded window.
+		$statsCounts = LogQuery::fromInput( [], InstantIndexingLogView::PER_PAGE )->statusCounts();
+		$stats       = InstantIndexingOutcomes::statsFromCounts( $statsCounts );
 
 		$screenUrl = function_exists( 'admin_url' ) ? admin_url( 'admin.php?page=' . self::SLUG ) : '';
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, sanitized by InstantIndexingLogView::fromQuery, never stored.
-		$logView = InstantIndexingLogView::fromQuery( $logRows, $_GET, $screenUrl );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, normalized by LogQuery::fromInput, never stored.
+		$logQuery = LogQuery::fromInput( $_GET, InstantIndexingLogView::PER_PAGE );
 
+		$logView     = new InstantIndexingLogView( $logQuery, $screenUrl );
 		$statusTabs  = $logView->tabs();
 		$pageRows    = $logView->pageRows();
 		$pagination  = $logView->pagination();
 		$showing     = $logView->showing();
 		$hasFilter   = $logView->hasFilter();
-		$listHasRows = [] !== $logRows;
+		$listHasRows = $stats['total'] > 0;
 
 		$nonceSave       = self::NONCE_SAVE;
 		$nonceRegenerate = self::NONCE_REGENERATE;

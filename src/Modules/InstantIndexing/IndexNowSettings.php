@@ -28,15 +28,6 @@ final class IndexNowSettings {
 	public const OPTION = 'rankkernel_instant_indexing_settings';
 
 	/**
-	 * Maximum rows one read call returns.
-	 *
-	 * The table keeps every row until an admin clears it, so no read
-	 * may be unbounded. logEntries() uses this cap as its whole read
-	 * and logPage() caps a requested limit with it too.
-	 */
-	public const READ_LIMIT = 200;
-
-	/**
 	 * Per URL debounce window in seconds.
 	 */
 	public const DEBOUNCE_SECONDS = 600;
@@ -327,105 +318,6 @@ final class IndexNowSettings {
 			],
 			[ '%s', '%s', '%d', '%s', '%s', '%s' ]
 		);
-	}
-
-	/**
-	 * Get stored log entries, newest first.
-	 *
-	 * Bounded by READ_LIMIT: the table keeps every row until cleared,
-	 * so an unbounded read is never safe. Paged surfaces use logPage()
-	 * and countLog() instead. The row shape stays url, code, source,
-	 * time, message because the admin view depends on it.
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	public function logEntries(): array {
-		$entries = [];
-
-		foreach ( $this->logPage( self::READ_LIMIT, 0 ) as $row ) {
-			$entries[] = [
-				'url'     => (string) ( $row['url'] ?? '' ),
-				'code'    => (int) ( $row['code'] ?? 0 ),
-				'source'  => (string) ( $row['source'] ?? '' ),
-				'time'    => (string) ( $row['time'] ?? '' ),
-				'message' => (string) ( $row['message'] ?? '' ),
-			];
-		}
-
-		return $entries;
-	}
-
-	/**
-	 * Get one page of stored entries, newest first.
-	 *
-	 * Returns the row shape logEntries() maps, plus host, so a filtered
-	 * or retried surface can use the stored host without reparsing the
-	 * URL. The limit is capped at READ_LIMIT and the offset is never
-	 * negative.
-	 *
-	 * @param int $limit  Rows to return, capped at READ_LIMIT.
-	 * @param int $offset Rows to skip.
-	 * @return array<int, array<string, mixed>>
-	 */
-	public function logPage( int $limit, int $offset = 0 ): array {
-		$db = $this->connection();
-
-		if ( null === $db || ! LogTable::exists() ) {
-			return [];
-		}
-
-		$limit  = max( 1, min( self::READ_LIMIT, $limit ) );
-		$offset = max( 0, $offset );
-		$table  = LogTable::name();
-		$sql    = "SELECT url, host, code, source, message, created FROM `{$table}` ORDER BY created DESC, id DESC LIMIT %d OFFSET %d";
-
-		// Custom log table has no core API, paged read with placeholders through prepare.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$rows = $db->get_results( $db->prepare( $sql, $limit, $offset ), ARRAY_A );
-
-		if ( ! is_array( $rows ) ) {
-			return [];
-		}
-
-		$entries = [];
-
-		foreach ( $rows as $row ) {
-			if ( ! is_array( $row ) ) {
-				continue;
-			}
-
-			$entries[] = [
-				'url'     => (string) ( $row['url'] ?? '' ),
-				'host'    => (string) ( $row['host'] ?? '' ),
-				'code'    => (int) ( $row['code'] ?? 0 ),
-				'source'  => (string) ( $row['source'] ?? '' ),
-				'time'    => (string) ( $row['created'] ?? '' ),
-				'message' => (string) ( $row['message'] ?? '' ),
-			];
-		}
-
-		return $entries;
-	}
-
-	/**
-	 * Total stored log rows, for pagination.
-	 *
-	 * @return int The result.
-	 */
-	public function countLog(): int {
-		$db = $this->connection();
-
-		if ( null === $db || ! LogTable::exists() ) {
-			return 0;
-		}
-
-		$table = LogTable::name();
-
-		// Custom log table has no core API, unfiltered count with a constant predicate so the statement stays prepared.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$count = $db->get_var( $db->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE 1 = %d", 1 ) );
-
-		return (int) $count;
 	}
 
 	/**

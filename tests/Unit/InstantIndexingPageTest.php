@@ -14,6 +14,8 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\InstantIndexingPage;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
+use RankKernel\Modules\InstantIndexing\LogFilters;
+use RankKernel\Modules\InstantIndexing\LogQuery;
 use RankKernel\Modules\ModuleEnableMap;
 
 /**
@@ -167,6 +169,15 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->stored['rankkernel_modules'] = $moduleEnabled ? [ 'instant-indexing' ] : [];
 
 		return new InstantIndexingPage( $this->settings, new ModuleEnableMap(), $submit );
+	}
+
+	/**
+	 * Log rows read through the shared query layer.
+	 *
+	 * @return array<int, array<string, mixed>> The result.
+	 */
+	private function logRows(): array {
+		return LogQuery::fromInput( [], LogFilters::MAX_PER_PAGE )->rows();
 	}
 
 	/**
@@ -453,7 +464,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 0, $called, 'a foreign host must never be submitted' );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'Rejected: the URL host does not match this site.', $entries[0]['message'] );
@@ -492,7 +503,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 0, $fetches, 'a rejected URL must never be fetched' );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'https://evil.test/a', $entries[0]['url'] );
@@ -554,7 +565,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->maybeHandleSave();
 
 		$this->assertSame( [ 'https://EXAMPLE.com/a' ], $received, 'an uppercase host must be accepted, matching the browser validator' );
-		$this->assertSame( [], $this->settings->logEntries() );
+		$this->assertSame( [], $this->logRows() );
 	}
 
 	/**
@@ -585,7 +596,7 @@ final class InstantIndexingPageTest extends TestCase {
 			[ 'https://example.com/a', 'https://example.com/b', 'https://example.com/c' ],
 			$received
 		);
-		$this->assertSame( [], $this->settings->logEntries() );
+		$this->assertSame( [], $this->logRows() );
 	}
 
 	/**
@@ -610,7 +621,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->maybeHandleSave();
 
 		$this->assertSame( [ 'https://example.com/a', 'https://example.com/b' ], $received );
-		$this->assertSame( [], $this->settings->logEntries() );
+		$this->assertSame( [], $this->logRows() );
 	}
 
 	/**
@@ -649,7 +660,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( 1, $calls, 'the valid URLs must submit in one call' );
 		$this->assertSame( [ 'https://example.com/a', 'https://example.com/c' ], $received );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 2, $entries );
 		// The log is newest first, so the malformed line logged last is first.
@@ -681,7 +692,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 0, $called, 'an empty textarea must never reach the submit callback' );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'Rejected: no URLs were provided.', $entries[0]['message'] );
@@ -893,7 +904,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$_POST = [ 'rankkernel_indexnow_action' => 'clear' ];
 		$this->page()->maybeHandleSave();
 
-		$this->assertSame( [], $this->settings->logEntries(), 'clear must empty the log' );
+		$this->assertSame( [], $this->logRows(), 'clear must empty the log' );
 		$this->assertSame( [ 'rankkernel_indexnow_clear' ], $nonceActions, 'the clear branch must verify its own nonce action' );
 		$this->assertStringContainsString( 'rk_indexnow_notice=cleared', $redirect );
 		$this->assertStringNotContainsString( 'settings-updated', $redirect );
@@ -1081,7 +1092,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 0, $called, 'a disabled module must never reach the submit callback' );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'Rejected: the Instant Indexing module is disabled.', $entries[0]['message'] );
@@ -1120,7 +1131,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 0, $transportCalls, 'a disabled module must make zero outbound requests' );
 
-		$entries = $this->settings->logEntries();
+		$entries = $this->logRows();
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'Rejected: the Instant Indexing module is disabled.', $entries[0]['message'] );
@@ -1480,5 +1491,48 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'rk-ui-tabs', $html );
 		$this->assertStringNotContainsString( 'rk-ui-page-nums', $html );
 		$this->assertStringNotContainsString( 'Showing 1 to', $html );
+	}
+
+	/**
+	 * Test the server rendered filters work without JavaScript.
+	 *
+	 * The URL query parameters stay the source of truth: the rendered
+	 * table shows only matching rows, pagination stays on the rendered
+	 * page, and the stats strip keeps describing the whole table.
+	 */
+	public function test_server_rendered_filters_work_without_javascript(): void {
+		for ( $i = 0; $i < 25; $i++ ) {
+			$this->settings->logEntry( 'https://example.com/rejected-' . $i, 400, 'manual', 'Rejected permanently.' );
+		}
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->settings->logEntry( 'https://example.com/accepted-' . $i, 200, 'auto', 'Accepted.' );
+		}
+
+		$_GET = [
+			'page'      => InstantIndexingPage::SLUG,
+			's'         => 'rejected',
+			'rk_source' => 'manual',
+			'rk_status' => 'rejected',
+			'rk_paged'  => '2',
+		];
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'https://example.com/rejected-4', $html, 'page two of the filtered rows must render' );
+		$this->assertStringNotContainsString( 'https://example.com/rejected-24', $html, 'page one must not leak into page two' );
+		$this->assertStringNotContainsString( 'https://example.com/accepted-0', $html, 'the source and search filters must exclude accepted rows' );
+		$this->assertStringContainsString( 'Showing 21 to 25 of 25 entries', $html );
+		$this->assertStringContainsString( 's=rejected', $html, 'pagination must carry the search forward' );
+		$this->assertStringContainsString( 'rk_source=manual', $html, 'pagination must carry the source forward' );
+		$this->assertStringContainsString( 'rk_status=rejected', $html, 'pagination must carry the status forward' );
+
+		// The stats strip is unfiltered by design, so it still counts all 28 rows.
+		$this->assertStringContainsString( '<div class="rk-stat-value">28</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">3</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">25</div>', $html );
 	}
 }

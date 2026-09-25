@@ -16,10 +16,14 @@ use RankKernel\Modules\InstantIndexing\LogTable;
  * Minimal behavioral fake for the IndexNow log table.
  *
  * Interpolates prepared placeholders, then filters an in memory row set by
- * parsing the ORDER BY, LIMIT and OFFSET clauses the settings class emits.
- * It mirrors the inserts, newest first reads and full clears the storage
- * methods issue, and it resets the table existence cache on construction so
- * every test starts from a clean static state.
+ * parsing the WHERE, ORDER BY, GROUP BY, LIMIT and OFFSET clauses the query
+ * layer emits. The LIKE interpreter treats percent and underscore as real
+ * wildcards and honours backslash escapes, so a missing esc_like() call in
+ * the code under test changes the result instead of passing silently. It
+ * mirrors the inserts, filtered reads, grouped counts and full clears the
+ * storage methods issue, records every prepared template so tests can prove
+ * values never reach the SQL, and resets the table existence cache on
+ * construction so every test starts from a clean static state.
  */
 final class InstantIndexingFakeDb {
 	/**
@@ -79,6 +83,34 @@ final class InstantIndexingFakeDb {
 	public int $schemaProbes = 0;
 
 	/**
+	 * Every prepared template, placeholders still in place.
+	 *
+	 * @var string[]
+	 */
+	public array $prepared = [];
+
+	/**
+	 * Every interpolated statement after prepare, values quoted.
+	 *
+	 * @var string[]
+	 */
+	public array $interpolated = [];
+
+	/**
+	 * Reads whose statement was not the last prepared string.
+	 *
+	 * @var int
+	 */
+	public int $unpreparedReads = 0;
+
+	/**
+	 * Result of the most recent prepare call.
+	 *
+	 * @var string
+	 */
+	private string $lastPrepared = '';
+
+	/**
 	 * Reset the log table existence cache so each test starts clean.
 	 */
 	public function __construct() {
@@ -119,29 +151,51 @@ final class InstantIndexingFakeDb {
 	}
 
 	/**
-	 * Interpolate placeholders in order.
+	 * Interpolate placeholders in one forward pass.
+	 *
+	 * The pass never rescans inserted values, so a percent or an escaped
+	 * quote inside a value cannot be mistaken for the next placeholder.
 	 *
 	 * @param string $query   Query with placeholders.
 	 * @param mixed  ...$args Values.
 	 * @return string The result.
 	 */
 	public function prepare( string $query, mixed ...$args ): string {
-		foreach ( $args as $arg ) {
-			$posS = strpos( $query, '%s' );
-			$posD = strpos( $query, '%d' );
+		$this->prepared[] = $query;
 
-			if ( false === $posS && false === $posD ) {
-				break;
+		$values = array_values( $args );
+		$index  = 0;
+		$length = strlen( $query );
+		$result = '';
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $query[ $i ];
+
+			if (
+				'%' === $char
+				&& $i + 1 < $length
+				&& $index < count( $values )
+				&& ( 's' === $query[ $i + 1 ] || 'd' === $query[ $i + 1 ] )
+			) {
+				$value = $values[ $index ];
+
+				$result .= 's' === $query[ $i + 1 ]
+					? "'" . addslashes( (string) $value ) . "'"
+					: (string) (int) $value;
+
+				++$index;
+				++$i;
+
+				continue;
 			}
 
-			if ( false !== $posS && ( false === $posD || $posS < $posD ) ) {
-				$query = substr_replace( $query, "'" . addslashes( (string) $arg ) . "'", $posS, 2 );
-			} else {
-				$query = substr_replace( $query, (string) (int) $arg, (int) $posD, 2 );
-			}
+			$result .= $char;
 		}
 
-		return $query;
+		$this->lastPrepared   = $result;
+		$this->interpolated[] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -152,6 +206,7 @@ final class InstantIndexingFakeDb {
 	 */
 	public function get_var( string $query ): mixed {
 		++$this->reads;
+		$this->noteRead( $query );
 
 		if ( false !== strpos( $query, 'SHOW TABLES LIKE' ) ) {
 			++$this->schemaProbes;
@@ -160,7 +215,7 @@ final class InstantIndexingFakeDb {
 		}
 
 		if ( 0 === strpos( ltrim( $query ), 'SELECT COUNT(*)' ) ) {
-			return count( $this->rows );
+			return count( $this->filterRows( $query ) );
 		}
 
 		return null;
@@ -168,7 +223,7 @@ final class InstantIndexingFakeDb {
 
 	// Test double mirrors the wpdb method signature, so the parameter stays.
 	/**
-	 * Row list fetch, newest first with LIMIT and OFFSET.
+	 * Row list fetch, filtered, grouped when grouped, paged when limited.
 	 *
 	 * @param string $query  Query.
 	 * @param mixed  $output Unused, rows are always arrays.
@@ -176,7 +231,15 @@ final class InstantIndexingFakeDb {
 	 */
 	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->reads;
+		$this->noteRead( $query );
 
+		$grouped = [];
+
+		if ( 1 === preg_match( '/SELECT (\w+), COUNT\(\*\) AS total FROM/', $query, $grouped ) ) {
+			return $this->groupedCounts( $grouped[1], $this->filterRows( $query ) );
+		}
+
+		$rows   = $this->filterRows( $query );
 		$limit  = null;
 		$offset = 0;
 
@@ -185,7 +248,11 @@ final class InstantIndexingFakeDb {
 			$offset = (int) $clauses[2];
 		}
 
-		return array_slice( $this->newestFirst(), $offset, $limit );
+		if ( null !== $limit ) {
+			$rows = array_slice( $rows, $offset, $limit );
+		}
+
+		return $rows;
 	}
 
 	// Test double mirrors the wpdb method signature, so the parameter stays.
@@ -252,6 +319,18 @@ final class InstantIndexingFakeDb {
 	}
 
 	/**
+	 * Record a read that did not come from the last prepare call.
+	 *
+	 * @param string $query Query handed to a read method.
+	 * @return void
+	 */
+	private function noteRead( string $query ): void {
+		if ( $query !== $this->lastPrepared ) {
+			++$this->unpreparedReads;
+		}
+	}
+
+	/**
 	 * Rows sorted newest first by created then id, the read order.
 	 *
 	 * @return array<int, array<string, mixed>>
@@ -273,5 +352,137 @@ final class InstantIndexingFakeDb {
 		);
 
 		return $rows;
+	}
+
+	/**
+	 * Filter rows by the WHERE clauses the query layer emits.
+	 *
+	 * @param string $sql Sql.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function filterRows( string $sql ): array {
+		$rows = $this->newestFirst();
+		$like = [];
+
+		if ( 0 < preg_match_all( "/CONCAT\\(url, ' ', message\\) LIKE '((?:\\\\.|[^'])*)'/", $sql, $like ) ) {
+			foreach ( $like[1] as $pattern ) {
+				$regex = $this->likeRegex( stripslashes( $pattern ) );
+
+				$rows = array_values(
+					array_filter(
+						$rows,
+						static function ( array $row ) use ( $regex ): bool {
+							return 1 === preg_match( $regex, (string) $row['url'] . ' ' . (string) $row['message'] );
+						}
+					)
+				);
+			}
+		}
+
+		$source = [];
+
+		if ( 1 === preg_match( "/source = '([^']*)'/", $sql, $source ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( array $row ) use ( $source ): bool {
+						return (string) $row['source'] === $source[1];
+					}
+				)
+			);
+		}
+
+		$codes = [];
+
+		if ( 1 === preg_match( '/code IN \(([\d, ]*)\)/', $sql, $codes ) ) {
+			$wanted = [];
+
+			foreach ( explode( ',', $codes[1] ) as $part ) {
+				if ( '' !== trim( $part ) ) {
+					$wanted[] = (int) $part;
+				}
+			}
+
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( array $row ) use ( $wanted ): bool {
+						return in_array( (int) $row['code'], $wanted, true );
+					}
+				)
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Group already filtered rows by one column.
+	 *
+	 * @param string                           $column Column name.
+	 * @param array<int, array<string, mixed>> $rows   Filtered rows.
+	 * @return array<int, array<string, mixed>> The result.
+	 */
+	private function groupedCounts( string $column, array $rows ): array {
+		$counts = [];
+
+		foreach ( $rows as $row ) {
+			$key = (string) ( $row[ $column ] ?? '' );
+
+			$counts[ $key ] = ( $counts[ $key ] ?? 0 ) + 1;
+		}
+
+		$result = [];
+
+		foreach ( $counts as $value => $total ) {
+			$result[] = [
+				$column => $value,
+				'total' => $total,
+			];
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Turn a MySQL LIKE pattern into an anchored, case insensitive regex.
+	 *
+	 * Percent matches any run, underscore matches one character, and a
+	 * backslash escapes the next character, so an escaped wildcard is
+	 * matched literally exactly as MySQL would.
+	 *
+	 * @param string $pattern Like pattern.
+	 * @return string The result.
+	 */
+	private function likeRegex( string $pattern ): string {
+		$regex  = '';
+		$length = strlen( $pattern );
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $pattern[ $i ];
+
+			if ( '\\' === $char && $i + 1 < $length ) {
+				++$i;
+				$regex .= preg_quote( $pattern[ $i ], '/' );
+
+				continue;
+			}
+
+			if ( '%' === $char ) {
+				$regex .= '.*';
+
+				continue;
+			}
+
+			if ( '_' === $char ) {
+				$regex .= '.';
+
+				continue;
+			}
+
+			$regex .= preg_quote( $char, '/' );
+		}
+
+		return '/^' . $regex . '$/i';
 	}
 }

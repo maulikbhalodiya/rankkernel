@@ -6,8 +6,8 @@
  * and owns capability checks, nonce verification, request handling and
  * redirects. The API key is deliberately absent: the view receives the
  * configured state and never the key, so it cannot render it by mistake.
- * Every stat, tab count, pill and table row derives from the real log rows
- * through InstantIndexingLogView, nothing on this screen is hard coded.
+ * Every stat, tab count, pill and table row derives from the real log table
+ * through the shared query layer, nothing on this screen is hard coded.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -16,7 +16,7 @@
  * @var array{type: string, message: string}|null $notice Submit outcome notice, null for none.
  * @var bool $keyConfigured   Whether a usable key is stored.
  * @var bool $autoSubmit      Whether automatic submission is on.
- * @var array{total: int, accepted: int, rejected: int, limited: int} $stats Stats strip numbers derived from the log rows.
+ * @var array{total: int, accepted: int, rejected: int, limited: int} $stats Stats strip numbers over the whole log table.
  * @var string $screenUrl     Screen URL without filter arguments.
  * @var InstantIndexingLogView $logView Log filters plus tabs plus pagination state.
  * @var array<int, array{key: string, label: string, url: string, count: int, current: bool}> $statusTabs Status tabs with real counts.

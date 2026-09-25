@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\InstantIndexing\IndexNowClient;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
+use RankKernel\Modules\InstantIndexing\LogFilters;
+use RankKernel\Modules\InstantIndexing\LogQuery;
 use RankKernel\Modules\ModuleEnableMap;
 use WP_Post;
 
@@ -619,7 +621,7 @@ final class InstantIndexingModuleTest extends TestCase {
 			'manual'
 		);
 
-		$entries = $this->settings->logEntries();
+		$entries = LogQuery::fromInput( [], LogFilters::MAX_PER_PAGE )->rows();
 
 		$this->assertSame( [], $result['results'] );
 		$this->assertCount( 3, $entries, 'every URL in the failed batch must be logged' );

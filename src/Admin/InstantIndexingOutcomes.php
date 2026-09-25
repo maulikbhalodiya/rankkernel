@@ -2,10 +2,11 @@
 /**
  * Instant Indexing outcome taxonomy, codes to display state.
  *
- * Maps every stored status code to one display category, derives the stats
- * strip numbers from the same rows the table renders, and labels the pills.
- * No WordPress APIs are called here, only translation functions, so the
- * whole class stays unit testable without a loaded WordPress.
+ * Maps every stored status code to one display category, reverses the same
+ * map into SQL facing status codes for the query layer, derives the stats
+ * strip numbers from those counts, and labels the pills. No WordPress APIs
+ * are called here, only translation functions, so the whole class stays unit
+ * testable without a loaded WordPress.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -83,6 +84,25 @@ final class InstantIndexingOutcomes {
 	}
 
 	/**
+	 * Stored status codes per display category, the SQL facing reverse.
+	 *
+	 * The query layer builds its status filter from this map, and the
+	 * categoryFor agreement test proves the two directions can never
+	 * drift. The retry category has no entry because it is defined as
+	 * everything else, it has no tab.
+	 *
+	 * @return array<string, int[]> The result.
+	 */
+	public static function categoryCodes(): array {
+		return [
+			self::CATEGORY_ACCEPTED => [ 200 ],
+			self::CATEGORY_PENDING  => [ 202 ],
+			self::CATEGORY_REJECTED => array_merge( [ 0 ], self::PERMANENT_CODES ),
+			self::CATEGORY_LIMITED  => [ 429 ],
+		];
+	}
+
+	/**
 	 * Translated pill label for one display category.
 	 *
 	 * @param string $category Category slug from categoryFor.
@@ -155,36 +175,23 @@ final class InstantIndexingOutcomes {
 	}
 
 	/**
-	 * Stats strip numbers derived from the given rows.
+	 * Stats strip numbers derived from per category counts.
 	 *
-	 * Accepted counts 200 plus 202, rejected counts the permanent codes
-	 * plus refused rows, rate limited counts 429 only.
+	 * The query layer supplies the counts, so the strip covers the whole
+	 * table rather than a page. Accepted is the accepted plus pending
+	 * count, rejected is the rejected count, limited is the limited
+	 * count, and total is every row including the retry category, which
+	 * has no card of its own.
 	 *
-	 * @param array<int, array{url: string, code: int, source: string, time: string, message: string}> $rows Log rows, newest first.
+	 * @param array<string, int> $counts Category counts keyed by category slug plus all.
 	 * @return array{total: int, accepted: int, rejected: int, limited: int} The result.
 	 */
-	public static function stats( array $rows ): array {
-		$stats = [
-			'total'    => 0,
-			'accepted' => 0,
-			'rejected' => 0,
-			'limited'  => 0,
+	public static function statsFromCounts( array $counts ): array {
+		return [
+			'total'    => (int) ( $counts['all'] ?? 0 ),
+			'accepted' => (int) ( $counts[ self::CATEGORY_ACCEPTED ] ?? 0 ) + (int) ( $counts[ self::CATEGORY_PENDING ] ?? 0 ),
+			'rejected' => (int) ( $counts[ self::CATEGORY_REJECTED ] ?? 0 ),
+			'limited'  => (int) ( $counts[ self::CATEGORY_LIMITED ] ?? 0 ),
 		];
-
-		foreach ( $rows as $row ) {
-			++$stats['total'];
-
-			$category = self::categoryFor( (int) $row['code'] );
-
-			if ( self::CATEGORY_ACCEPTED === $category || self::CATEGORY_PENDING === $category ) {
-				++$stats['accepted'];
-			} elseif ( self::CATEGORY_REJECTED === $category ) {
-				++$stats['rejected'];
-			} elseif ( self::CATEGORY_LIMITED === $category ) {
-				++$stats['limited'];
-			}
-		}
-
-		return $stats;
 	}
 }
