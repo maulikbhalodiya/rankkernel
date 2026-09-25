@@ -37,6 +37,14 @@ final class LogFilters {
 	public const SOURCE_ALL = 'all';
 
 	/**
+	 * Accepted source filter values, the unfiltered default plus both writers.
+	 *
+	 * The REST args schema reads this list as its enum, so an unknown source
+	 * is rejected there while fromInput keeps normalizing it for the page.
+	 */
+	public const SOURCES = [ self::SOURCE_ALL, 'auto', 'manual' ];
+
+	/**
 	 * Largest page size one query may request.
 	 */
 	public const MAX_PER_PAGE = 200;
@@ -117,7 +125,7 @@ final class LogFilters {
 		$source = $input['rk_source'] ?? self::SOURCE_ALL;
 		$source = is_string( $source ) ? $source : self::SOURCE_ALL;
 
-		if ( 'auto' !== $source && 'manual' !== $source ) {
+		if ( ! in_array( $source, self::SOURCES, true ) ) {
 			$source = self::SOURCE_ALL;
 		}
 

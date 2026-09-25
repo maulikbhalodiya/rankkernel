@@ -27,6 +27,7 @@ use RankKernel\Modules\Redirects\RedirectsModule;
 use RankKernel\Modules\Robots\RobotsModule;
 use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Sitemaps\SitemapsModule;
+use RankKernel\Rest\LogController;
 use RankKernel\Rest\ModulesController;
 use RankKernel\Rest\SettingsController;
 use RankKernel\Settings\SettingsStore;
@@ -115,6 +116,7 @@ final class Plugin {
 
 		$settingsController = new SettingsController( $settingsStore );
 		$modulesController  = new ModulesController();
+		$logController      = new LogController();
 
 		$migrationRunner = new MigrationRunner();
 
@@ -133,6 +135,7 @@ final class Plugin {
 		$this->services['module_manager']      = $moduleManager;
 		$this->services['settings_controller'] = $settingsController;
 		$this->services['modules_controller']  = $modulesController;
+		$this->services['log_controller']      = $logController;
 		$this->services['migrations']          = $migrationRunner;
 
 		// Admin UI, register only on admin screens.
@@ -217,9 +220,10 @@ final class Plugin {
 		// Register REST routes on rest_api_init (core service, always on).
 		add_action(
 			'rest_api_init',
-			function () use ( $settingsController, $modulesController ): void {
+			function () use ( $settingsController, $modulesController, $logController ): void {
 				$settingsController->registerRoutes();
 				$modulesController->registerRoutes();
+				$logController->registerRoutes();
 			}
 		);
 
