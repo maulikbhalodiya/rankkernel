@@ -1109,14 +1109,13 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the settings container plus the help card start collapsed.
+	 * Test the three panels share one area above the log and start hidden.
 	 *
-	 * The header Settings control and the header help icon are real
-	 * toggles with expanded state plus a controls target, each panel
-	 * hides with the hidden attribute, and each Hide control is a plain
-	 * text link, never a button, so assistive tech reports the state and
-	 * the form inside keeps posting. The help card is the single help
-	 * panel, opened from the header icon, never a panel inside itself.
+	 * The header Submit, Settings and help controls are exclusive toggles
+	 * with expanded state plus a controls target, each panel hides with
+	 * the hidden attribute, and each Hide control is a plain text link,
+	 * never a button, so assistive tech reports the state and every form
+	 * inside keeps posting. The shared area sits above the log card.
 	 */
 	public function test_render_collapses_settings_and_help_by_default(): void {
 		$page = $this->page();
@@ -1124,20 +1123,48 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'id="rk-submit-toggle" aria-expanded="false" aria-controls="rk-submit-panel"', $html );
+		$this->assertStringContainsString( 'class="rk-card rk-submit-card rk-panel" id="rk-submit-panel" hidden', $html );
 		$this->assertStringContainsString( 'id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"', $html );
-		$this->assertStringContainsString( 'id="rk-settings-panel" class="rk-settings-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-card rk-settings-card rk-panel" id="rk-settings-panel" hidden', $html );
 		$this->assertStringContainsString( 'id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"', $html );
-		$this->assertStringContainsString( 'class="rk-card rk-help-card rk-help-panel" id="rk-help-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-card rk-help-card rk-panel" id="rk-help-panel" hidden', $html );
+		$this->assertSame( 1, substr_count( $html, 'id="rk-submit-panel"' ), 'the submit card must be the only submit panel' );
+		$this->assertSame( 1, substr_count( $html, 'id="rk-settings-panel"' ), 'the settings card must be the only settings panel' );
 		$this->assertSame( 1, substr_count( $html, 'id="rk-help-panel"' ), 'the help card must be the only help panel' );
 		$this->assertSame( 1, substr_count( $html, 'id="rk-help-toggle"' ), 'the header icon must be the only help toggle' );
-		$this->assertStringNotContainsString( 'class="rk-help-panel" hidden', $html, 'no help panel may nest inside the help card' );
-		$this->assertStringContainsString( '<a href="#rk-settings" class="rk-collapse-hide" id="rk-settings-hide"', $html );
+		$this->assertStringContainsString( '<a href="#rk-submit-panel" class="rk-collapse-hide" id="rk-submit-hide"', $html );
+		$this->assertStringContainsString( '<a href="#rk-settings-panel" class="rk-collapse-hide" id="rk-settings-hide"', $html );
 		$this->assertStringContainsString( '<a href="#rk-help-panel" class="rk-collapse-hide" id="rk-help-hide"', $html );
 		$this->assertStringNotContainsString( '<button type="button" class="rk-collapse-hide"', $html );
 		$this->assertStringNotContainsString( 'id="rk-settings-hide"><button', $html );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_auto_submit"', $html );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="save"', $html );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="regenerate"', $html );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="submit"', $html );
+	}
+
+	/**
+	 * Test the shared panel area renders above the recent submissions log.
+	 */
+	public function test_render_places_the_shared_panels_above_the_log(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$submitPos   = strpos( $html, 'id="rk-submit-panel"' );
+		$settingsPos = strpos( $html, 'id="rk-settings-panel"' );
+		$helpPos     = strpos( $html, 'id="rk-help-panel"' );
+		$logPos      = strpos( $html, 'rk-log-card' );
+
+		$this->assertNotFalse( $submitPos );
+		$this->assertNotFalse( $settingsPos );
+		$this->assertNotFalse( $helpPos );
+		$this->assertNotFalse( $logPos );
+		$this->assertLessThan( $logPos, $submitPos, 'the submit panel must render above the log' );
+		$this->assertLessThan( $logPos, $settingsPos, 'the settings panel must render above the log' );
+		$this->assertLessThan( $logPos, $helpPos, 'the help panel must render above the log' );
 	}
 
 	/**
@@ -1154,7 +1181,10 @@ final class InstantIndexingPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'How Instant Indexing works', $html );
-		$this->assertStringContainsString( 'Both are off by default', $html );
+		$this->assertStringContainsString( 'Automatic submission is still off by default', $html );
+		$this->assertStringContainsString( 'submit URLs by hand', $html );
+		$this->assertStringContainsString( 'Sitemaps still cover', $html );
+		$this->assertStringNotContainsString( 'Turn the module on from the RankKernel dashboard', $html );
 		$this->assertStringContainsString( 'never sent to your browser', $html );
 		$this->assertStringContainsString( 'serves that file virtually', $html );
 		$this->assertStringContainsString( 'not sent more than once every 10 minutes', $html );
@@ -1368,5 +1398,69 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'rk_verify_code=404', $redirect );
 		$this->assertSame( '', $output );
 		$this->assertStringNotContainsString( 'marker body text', $output );
+	}
+
+	/**
+	 * Test an empty log renders the illustrative preview with every pill.
+	 *
+	 * The preview uses the same row markup and classes as real rows, shows
+	 * all five status pills plus both source pills plus a 200 and a 202
+	 * message, and the stats strip still reads zero because the preview
+	 * rows never enter the real log.
+	 */
+	public function test_empty_log_renders_the_example_preview_with_every_pill(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Example preview. These rows are illustrative and are not real submissions.', $html );
+		$this->assertStringContainsString( 'rk-pill-accepted">Accepted', $html );
+		$this->assertStringContainsString( 'rk-pill-pending">Key pending', $html );
+		$this->assertStringContainsString( 'rk-pill-rejected">Rejected', $html );
+		$this->assertStringContainsString( 'rk-pill-limited">Rate limited', $html );
+		$this->assertStringContainsString( 'rk-pill-retry">Retry later', $html );
+		$this->assertStringContainsString( 'rk-pill-source-auto">Auto', $html );
+		$this->assertStringContainsString( 'rk-pill-source-manual">Manual', $html );
+		$this->assertStringContainsString( 'Accepted, the key is pending verification.', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value">0</div>', $html );
+		$this->assertStringContainsString( '0 entries', $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
+	}
+
+	/**
+	 * Test the preview never renders once the log holds real rows.
+	 */
+	public function test_preview_never_renders_when_the_log_has_real_rows(): void {
+		$this->settings->logEntry( 'https://example.com/post', 200, 'manual', 'Accepted.' );
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'Example preview.', $html );
+		$this->assertStringContainsString( 'https://example.com/post', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value">1</div>', $html );
+	}
+
+	/**
+	 * Test the preview rows leave stats, tabs and pagination totals alone.
+	 *
+	 * With an empty log every stat reads zero, no status tabs render, and
+	 * no pagination shows, so the six illustrative rows add no counts.
+	 */
+	public function test_preview_rows_leave_stats_tabs_and_pagination_totals_alone(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">0</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">0</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning">0</div>', $html );
+		$this->assertStringNotContainsString( 'rk-tabs', $html );
+		$this->assertStringNotContainsString( 'rk-page-nums', $html );
+		$this->assertStringNotContainsString( 'Showing 1 to', $html );
 	}
 }

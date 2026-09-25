@@ -117,6 +117,21 @@
 	color: var(--rk-color-text);
 }
 
+/* Icon only header control, equal in height, border, radius, background and weight to the secondary control. */
+.rk-instant-indexing .rk-btn-icon {
+	min-width: 37px;
+	padding-inline: var(--rk-space-2);
+	justify-content: center;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-instant-indexing .rk-btn-icon:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
 /* WordPress submit buttons inside our cards take the same treatment. */
 .rk-instant-indexing .button {
 	display: inline-flex;
@@ -434,9 +449,21 @@
 
 .rk-instant-indexing .rk-submit-head {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--rk-space-3);
+}
+
+.rk-instant-indexing .rk-submit-title-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-instant-indexing .rk-submit-head .rk-collapse-row {
+	flex-shrink: 0;
+	margin-inline-start: auto;
 }
 
 .rk-instant-indexing .rk-submit-hint {
@@ -1231,10 +1258,20 @@
 
 .rk-instant-indexing .rk-settings-head {
 	display: flex;
-	align-items: baseline;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--rk-space-3);
-	flex-wrap: wrap;
+}
+
+.rk-instant-indexing .rk-settings-head > div:first-child {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-instant-indexing .rk-settings-head .rk-collapse-row {
+	flex-shrink: 0;
 }
 
 .rk-instant-indexing .rk-settings-hint {
@@ -1245,8 +1282,41 @@
 }
 
 .rk-instant-indexing .rk-settings-panel[hidden],
-.rk-instant-indexing .rk-help-panel[hidden] {
+.rk-instant-indexing .rk-help-panel[hidden],
+.rk-instant-indexing .rk-panel[hidden] {
 	display: none;
+}
+
+.rk-instant-indexing .rk-panels {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+}
+
+.rk-instant-indexing .rk-key-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+}
+
+.rk-instant-indexing .rk-key-actions form {
+	margin: 0;
+}
+
+.rk-instant-indexing .rk-preview {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) var(--rk-space-6) var(--rk-space-6);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-instant-indexing .rk-preview-label {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
 }
 
 .rk-instant-indexing .rk-settings-panel,

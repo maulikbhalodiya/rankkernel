@@ -431,6 +431,168 @@
 	}
 
 	/**
+	 * Resolve one switcher entry to its live nodes, nulls for missing ids.
+	 *
+	 * Entries with a missing toggle or panel are skipped by the switcher,
+	 * so a screen that renders only some panels still wires the rest.
+	 */
+	function resolveEntry( scope, entry ) {
+		if ( ! scope || ! scope.getElementById || ! entry ) {
+			return null;
+		}
+
+		var toggle = scope.getElementById( entry.toggleId );
+		var panel  = scope.getElementById( entry.panelId );
+		var hide   = entry.hideId ? scope.getElementById( entry.hideId ) : null;
+
+		if ( ! toggle || ! panel ) {
+			return null;
+		}
+
+		return { toggle: toggle, panel: panel, hide: hide };
+	}
+
+	/**
+	 * Open one entry while closing every other entry, aria kept in sync.
+	 *
+	 * Opening never clears form fields, so entered input survives a close
+	 * plus reopen cycle. Closing only hides, it never disables, so every
+	 * nonce field plus hidden action input still posts when the panel is
+	 * open again.
+	 */
+	function openOnly( resolved, active ) {
+		var index;
+
+		for ( index = 0; index < resolved.length; index++ ) {
+			setOpen( resolved[ index ].panel, resolved[ index ].toggle, resolved[ index ] === active );
+		}
+	}
+
+	/**
+	 * Wire the header controls as a mutually exclusive panel switcher.
+	 *
+	 * Each control opens its own panel and closes whichever panel was
+	 * open, if any. Clicking the same control again closes its panel and
+	 * returns to the all hidden state. Each Hide link only closes its own
+	 * panel and returns focus to its control. Every control keeps
+	 * aria expanded accurate through setOpen.
+	 */
+	function wirePanelSwitcher( scope, entries ) {
+		var resolved = [];
+		var index;
+		var entry;
+
+		if ( ! scope || ! scope.getElementById || ! entries ) {
+			return;
+		}
+
+		for ( index = 0; index < entries.length; index++ ) {
+			entry = resolveEntry( scope, entries[ index ] );
+
+			if ( entry ) {
+				resolved.push( entry );
+			}
+		}
+
+		if ( 0 === resolved.length ) {
+			return [];
+		}
+
+		for ( index = 0; index < resolved.length; index++ ) {
+			( function ( current ) {
+				setOpen( current.panel, current.toggle, false );
+
+				current.toggle.addEventListener( 'click', function () {
+					var willOpen = ! isOpen( current.panel );
+
+					if ( willOpen ) {
+						openOnly( resolved, current );
+						scrollPanelIntoView( current.panel );
+					} else {
+						setOpen( current.panel, current.toggle, false );
+					}
+				} );
+
+				if ( current.hide ) {
+					current.hide.addEventListener( 'click', function ( event ) {
+						if ( event && event.preventDefault ) {
+							event.preventDefault();
+						}
+
+						setOpen( current.panel, current.toggle, false );
+
+						if ( current.toggle.focus ) {
+							try {
+								current.toggle.focus();
+							} catch ( error ) {
+							}
+						}
+					} );
+				}
+				}( resolved[ index ] ) );
+		}
+
+		return resolved;
+	}
+
+	/**
+	 * Wire opener buttons that jump straight to one panel.
+	 *
+	 * The empty log call to action opens the submit panel without
+	 * toggling, so operators reach the form in one click. The opener
+	 * closes any open panel first, keeping the switcher exclusive.
+	 */
+	function wirePanelOpeners( scope, resolved ) {
+		var openers;
+		var index;
+
+		if ( ! scope || ! scope.querySelectorAll || ! resolved ) {
+			return;
+		}
+
+		openers = scope.querySelectorAll( '[data-rk-open-panel]' );
+
+		for ( index = 0; index < openers.length; index++ ) {
+			( function ( opener ) {
+				var targetId = opener.getAttribute ? opener.getAttribute( 'data-rk-open-panel' ) : null;
+
+				if ( ! targetId ) {
+					return;
+				}
+
+				opener.addEventListener( 'click', function () {
+					var match;
+					var cursor;
+
+					for ( cursor = 0; cursor < resolved.length; cursor++ ) {
+						if ( resolved[ cursor ].panel === scope.getElementById( targetId ) ) {
+							match = resolved[ cursor ];
+						}
+					}
+
+					if ( ! match ) {
+						return;
+					}
+
+					openOnly( resolved, match );
+					scrollPanelIntoView( match.panel );
+
+					if ( match.toggle.focus ) {
+						try {
+							match.toggle.focus( { preventScroll: true } );
+						} catch ( error ) {
+							try {
+								match.toggle.focus();
+							} catch ( ignored ) {
+							}
+						}
+					}
+				} );
+			}( openers[ index ] ) );
+		}
+	}
+
+	/**
 	 * Wire one collapsible card to its header toggle plus its Hide link.
 	 *
 	 * The header control toggles, the Hide link only closes. Both keep
@@ -500,7 +662,9 @@
 		window.rankkernelInstantIndexing.collapsibles = {
 			isOpen: isOpen,
 			setOpen: setOpen,
-			wireCollapsible: wireCollapsible
+			wireCollapsible: wireCollapsible,
+			wirePanelSwitcher: wirePanelSwitcher,
+			wirePanelOpeners: wirePanelOpeners
 		};
 	}
 
@@ -511,8 +675,16 @@
 		}
 
 		if ( document.getElementById ) {
-			wireCollapsible( document, 'rk-settings-toggle', 'rk-settings-panel', 'rk-settings-hide' );
-			wireCollapsible( document, 'rk-help-toggle', 'rk-help-panel', 'rk-help-hide' );
+			var panels = wirePanelSwitcher(
+				document,
+				[
+					{ toggleId: 'rk-submit-toggle', panelId: 'rk-submit-panel', hideId: 'rk-submit-hide' },
+					{ toggleId: 'rk-settings-toggle', panelId: 'rk-settings-panel', hideId: 'rk-settings-hide' },
+					{ toggleId: 'rk-help-toggle', panelId: 'rk-help-panel', hideId: 'rk-help-hide' }
+				]
+			);
+
+			wirePanelOpeners( document, panels );
 		}
 
 		var field = document.getElementById ? document.getElementById( FIELD_ID ) : null;

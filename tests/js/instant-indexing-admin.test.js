@@ -495,14 +495,39 @@ function hideLinkNode( panel, toggle ) {
 	return node;
 }
 
+function openerNode( targetId ) {
+	const listeners = {};
+	const node = {
+		attrs: { 'data-rk-open-panel': targetId },
+		addEventListener( eventType, handler ) {
+			listeners[ eventType ] = handler;
+		},
+		fire( eventType, event ) {
+			listeners[ eventType ]( event || {} );
+		},
+		getAttribute( name ) {
+			return Object.prototype.hasOwnProperty.call( this.attrs, name ) ? this.attrs[ name ] : null;
+		}
+	};
+
+	return node;
+}
+
 function mountToggles() {
+	const submitToggle = toggleNode();
+	const submitPanel = panelNode();
+	const submitHide = hideLinkNode( submitPanel, submitToggle );
 	const settingsToggle = toggleNode();
 	const settingsPanel = panelNode();
 	const settingsHide = hideLinkNode( settingsPanel, settingsToggle );
 	const helpToggle = toggleNode();
 	const helpPanel = panelNode();
 	const helpHide = hideLinkNode( helpPanel, helpToggle );
+	const submitOpener = openerNode( 'rk-submit-panel' );
 	const byId = {
+		'rk-submit-toggle': submitToggle,
+		'rk-submit-panel': submitPanel,
+		'rk-submit-hide': submitHide,
 		'rk-settings-toggle': settingsToggle,
 		'rk-settings-panel': settingsPanel,
 		'rk-settings-hide': settingsHide,
@@ -517,7 +542,11 @@ function mountToggles() {
 		getElementById( id ) {
 			return byId[ id ] || null;
 		},
-		querySelectorAll() {
+		querySelectorAll( selector ) {
+			if ( selector.indexOf( 'data-rk-open-panel' ) !== -1 ) {
+				return [ submitOpener ];
+			}
+
 			return [];
 		},
 		createElement() {
@@ -544,7 +573,7 @@ function mountToggles() {
 
 	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
 
-	return { settingsToggle, settingsPanel, settingsHide, helpToggle, helpPanel, helpHide };
+	return { submitToggle, submitPanel, submitHide, submitOpener, settingsToggle, settingsPanel, settingsHide, helpToggle, helpPanel, helpHide };
 }
 
 test( 'the settings container opens on first activation and closes on second', () => {
@@ -590,4 +619,61 @@ test( 'the help container toggles with the same pattern', () => {
 
 	assert.equal( helpPanel.hidden, true );
 	assert.equal( helpToggle.attrs[ 'aria-expanded' ], 'false' );
+} );
+
+test( 'all three panels start hidden with accurate expanded state', () => {
+	const { submitToggle, submitPanel, settingsToggle, settingsPanel, helpToggle, helpPanel } = mountToggles();
+
+	assert.equal( submitPanel.hidden, true );
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( helpPanel.hidden, true );
+	assert.equal( submitToggle.attrs[ 'aria-expanded' ], 'false' );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
+	assert.equal( helpToggle.attrs[ 'aria-expanded' ], 'false' );
+} );
+
+test( 'opening a second panel closes the first one', () => {
+	const { settingsToggle, settingsPanel, helpToggle, helpPanel } = mountToggles();
+
+	settingsToggle.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, false );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'true' );
+
+	helpToggle.fire( 'click' );
+
+	assert.equal( helpPanel.hidden, false );
+	assert.equal( helpToggle.attrs[ 'aria-expanded' ], 'true' );
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
+} );
+
+test( 'clicking the open control again returns to the all hidden state', () => {
+	const { submitToggle, submitPanel, settingsPanel, helpPanel } = mountToggles();
+
+	submitToggle.fire( 'click' );
+
+	assert.equal( submitPanel.hidden, false );
+
+	submitToggle.fire( 'click' );
+
+	assert.equal( submitPanel.hidden, true );
+	assert.equal( submitToggle.attrs[ 'aria-expanded' ], 'false' );
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( helpPanel.hidden, true );
+} );
+
+test( 'the empty log opener jumps straight to the submit panel', () => {
+	const { submitOpener, submitToggle, submitPanel, settingsToggle, settingsPanel } = mountToggles();
+
+	settingsToggle.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, false );
+
+	submitOpener.fire( 'click' );
+
+	assert.equal( submitPanel.hidden, false );
+	assert.equal( submitToggle.attrs[ 'aria-expanded' ], 'true' );
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
 } );
