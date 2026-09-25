@@ -594,23 +594,212 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_urls"', $html );
 		$this->assertStringContainsString( '<textarea', $html );
 		$this->assertStringContainsString( 'id="rankkernel-indexnow-urls-status"', $html );
+		$this->assertStringContainsString( 'rk-instant-indexing', $html );
+		$this->assertStringContainsString( 'rk-urls-input', $html );
 		$this->assertStringContainsString( 'Must be URLs on this site. Deleted pages can be submitted too.', $html );
 		$this->assertStringNotContainsString( 'redirect sources', $html );
 		$this->assertStringNotContainsString( 'name="rankkernel_indexnow_url"', $html );
 	}
 
 	/**
+	 * Test the stats strip numbers derive from the log rows.
+	 *
+	 * Two 200 plus one 202 read as three accepted, one 400 plus one
+	 * refused row read as two rejected, one 429 reads as limited, and one
+	 * 503 lands in the total only, so none of the four cards can be hard
+	 * coded.
+	 */
+	public function test_render_stats_derive_from_the_log_rows(): void {
+		$this->settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' );
+		$this->settings->logEntry( 'https://example.com/b', 200, 'auto', 'Accepted.' );
+		$this->settings->logEntry( 'https://example.com/c', 202, 'manual', 'Accepted, the key is pending verification.' );
+		$this->settings->logEntry( 'https://example.com/d', 400, 'manual', 'Rejected permanently, retrying will not help.' );
+		$this->settings->logEntry( 'https://example.com/e', 0, 'auto', 'Rejected: the URL host does not match this site.' );
+		$this->settings->logEntry( 'https://example.com/f', 429, 'manual', 'Temporary failure, retry later.' );
+		$this->settings->logEntry( 'https://example.com/g', 503, 'auto', 'Temporary failure, retry later.' );
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="rk-stat-value">7</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">3</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">2</div>', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning">1</div>', $html );
+		$this->assertStringContainsString( '>Rejected <span class="count">2</span>', $html );
+		$this->assertStringContainsString( 'rk-pill-accepted">Accepted', $html );
+		$this->assertStringContainsString( 'rk-pill-pending">Key pending', $html );
+		$this->assertStringContainsString( 'rk-pill-rejected">Rejected', $html );
+		$this->assertStringContainsString( 'rk-pill-limited">Rate limited', $html );
+		$this->assertStringContainsString( 'rk-pill-retry">Retry later', $html );
+		$this->assertStringNotContainsString( $this->key, $html );
+	}
+
+	/**
+	 * Test a refused submit renders the error notice with the reason.
+	 */
+	public function test_render_shows_the_error_notice_for_a_refused_submit(): void {
+		$_GET['rk_indexnow_notice'] = 'host';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-notice-error', $html );
+		$this->assertStringContainsString( 'does not match this site', $html );
+		$this->assertStringNotContainsString( $this->key, $html );
+	}
+
+	/**
+	 * Test the cleared log renders the info notice.
+	 */
+	public function test_render_shows_the_info_notice_for_a_cleared_log(): void {
+		$_GET['rk_indexnow_notice'] = 'cleared';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-notice-info', $html );
+		$this->assertStringContainsString( 'Log cleared.', $html );
+	}
+
+	/**
+	 * Test an unknown notice code renders no notice.
+	 */
+	public function test_render_ignores_an_unknown_notice_code(): void {
+		$_GET['rk_indexnow_notice'] = 'not-a-real-code"><script';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'rk-notice-error', $html );
+		$this->assertStringNotContainsString( 'rk-notice-info', $html );
+		$this->assertStringNotContainsString( '<script', $html );
+	}
+
+	/**
+	 * Test the saved notice still renders after the redesign.
+	 */
+	public function test_render_keeps_the_settings_saved_notice(): void {
+		$_GET['settings-updated'] = '1';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-notice-success', $html );
+		$this->assertStringContainsString( 'Settings saved.', $html );
+	}
+
+	/**
+	 * Test the header pill follows the automatic submission setting.
+	 */
+	public function test_render_header_pill_follows_the_auto_submit_setting(): void {
+		$this->settings->set( [ 'auto_submit' => true ] );
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Automatic submission on', $html );
+		$this->assertStringNotContainsString( 'Automatic submission off', $html );
+
+		$this->settings->set( [ 'auto_submit' => false ] );
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Automatic submission off', $html );
+		$this->assertStringNotContainsString( 'Automatic submission on', $html );
+	}
+
+	/**
+	 * Test the clear log form empties the log and redirects with a notice.
+	 */
+	public function test_clear_empties_the_log_and_redirects_with_a_notice(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$nonceActions = [];
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return true;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$this->settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' );
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'clear' ];
+		$this->page()->maybeHandleSave();
+
+		$this->assertSame( [], $this->settings->logEntries(), 'clear must empty the log' );
+		$this->assertSame( [ 'rankkernel_indexnow_clear' ], $nonceActions, 'the clear branch must verify its own nonce action' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=cleared', $redirect );
+		$this->assertStringNotContainsString( 'settings-updated', $redirect );
+	}
+
+	/**
+	 * Test a refused submit redirects with the reason code.
+	 */
+	public function test_refused_submit_redirects_with_the_reason_code(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://evil.test/a',
+		];
+		$this->page()->maybeHandleSave();
+
+		$this->assertStringContainsString( 'rk_indexnow_notice=host', $redirect );
+		$this->assertStringNotContainsString( 'settings-updated', $redirect );
+	}
+
+	/**
 	 * Test the screen script is scoped, footer loaded and key free.
 	 *
 	 * The enqueue path is the only data path from PHP to the browser, so
-	 * this pins the security invariant the spec cares about: the asset
-	 * loads on this screen only, and the API key reaches neither the
+	 * this pins the security invariant the spec cares about: the assets
+	 * load on this screen only, and the API key reaches neither the
 	 * localized object nor the registered script arguments.
 	 */
 	public function test_enqueue_assets_is_screen_scoped_and_never_passes_the_key(): void {
 		$registeredScripts = [];
 		$enqueuedScripts   = [];
 		$localizedScripts  = [];
+		$registeredStyles  = [];
+		$enqueuedStyles    = [];
 
 		Functions\when( 'plugins_url' )->alias(
 			static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path
@@ -635,6 +824,20 @@ final class InstantIndexingPageTest extends TestCase {
 				$localizedScripts[ $objectName ] = $data;
 			}
 		);
+		Functions\when( 'wp_register_style' )->alias(
+			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles ): void {
+				$registeredStyles[ $handle ] = [
+					'src'  => $src,
+					'deps' => $deps,
+					'ver'  => $ver,
+				];
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( string $handle ) use ( &$enqueuedStyles ): void {
+				$enqueuedStyles[] = $handle;
+			}
+		);
 
 		$page = $this->page();
 
@@ -643,6 +846,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( [], $registeredScripts, 'the script must not register on another screen' );
 		$this->assertSame( [], $enqueuedScripts, 'the script must not enqueue on another screen' );
 		$this->assertSame( [], $localizedScripts, 'nothing must localize on another screen' );
+		$this->assertSame( [], $registeredStyles, 'the stylesheet must not register on another screen' );
+		$this->assertSame( [], $enqueuedStyles, 'the stylesheet must not enqueue on another screen' );
 
 		$page->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
 
@@ -652,6 +857,10 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertContains( $handle, $enqueuedScripts );
 		$this->assertTrue( $registeredScripts[ $handle ]['in_footer'], 'the script must load in the footer' );
 		$this->assertStringContainsString( 'instant-indexing-admin.js', $registeredScripts[ $handle ]['src'] );
+
+		$this->assertArrayHasKey( $handle, $registeredStyles, 'the stylesheet must register on this screen' );
+		$this->assertContains( $handle, $enqueuedStyles, 'the stylesheet must enqueue on this screen' );
+		$this->assertStringContainsString( 'instant-indexing-admin.css', $registeredStyles[ $handle ]['src'] );
 
 		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
 		$this->assertSame(
@@ -664,9 +873,12 @@ final class InstantIndexingPageTest extends TestCase {
 		$registeredJson = (string) json_encode( $registeredScripts );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
 		$localizedJson = (string) json_encode( $localizedScripts );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		$stylesJson = (string) json_encode( $registeredStyles );
 
 		$this->assertStringNotContainsString( $this->key, $registeredJson, 'the key must never appear in registered script arguments' );
 		$this->assertStringNotContainsString( $this->key, $localizedJson, 'the key must never appear in localized data' );
+		$this->assertStringNotContainsString( $this->key, $stylesJson, 'the key must never appear in registered style arguments' );
 	}
 
 	/**

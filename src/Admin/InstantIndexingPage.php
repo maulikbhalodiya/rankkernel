@@ -58,6 +58,11 @@ final class InstantIndexingPage {
 	private const NONCE_SUBMIT = 'rankkernel_indexnow_submit';
 
 	/**
+	 * Nonce action for the clear log form.
+	 */
+	private const NONCE_CLEAR = 'rankkernel_indexnow_clear';
+
+	/**
 	 * Module id consulted before any manual submission.
 	 */
 	private const MODULE_ID = 'instant-indexing';
@@ -128,15 +133,19 @@ final class InstantIndexingPage {
 			case 'submit':
 				$this->handleSubmit();
 				break;
+			case 'clear':
+				$this->handleClear();
+				break;
 		}
 	}
 
 	/**
 	 * Enqueue screen assets, and only on this screen.
 	 *
-	 * The validation script is registered, enqueued and localized here.
-	 * Only the site host reaches the browser, the API key never does, and
-	 * the gate keeps the hook contract shared with the other module pages.
+	 * The stylesheet plus the validation script are registered, enqueued
+	 * and localized here. Only the site host reaches the browser, the API
+	 * key never does, and the gate keeps the hook contract shared with
+	 * the other module pages.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -146,12 +155,24 @@ final class InstantIndexingPage {
 			return;
 		}
 
-		if ( ! function_exists( 'plugins_url' ) || ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) ) {
+		if ( ! function_exists( 'plugins_url' ) ) {
 			return;
 		}
 
 		$version = Plugin::version();
-		$source  = plugins_url( 'assets/js/instant-indexing-admin.js', (string) RANKKERNEL_FILE );
+
+		if ( function_exists( 'wp_register_style' ) && function_exists( 'wp_enqueue_style' ) ) {
+			$css = plugins_url( 'assets/css/instant-indexing-admin.css', (string) RANKKERNEL_FILE );
+
+			wp_register_style( 'rankkernel-instant-indexing-admin', $css, [], $version );
+			wp_enqueue_style( 'rankkernel-instant-indexing-admin' );
+		}
+
+		if ( ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) ) {
+			return;
+		}
+
+		$source = plugins_url( 'assets/js/instant-indexing-admin.js', (string) RANKKERNEL_FILE );
 
 		wp_register_script( 'rankkernel-instant-indexing-admin', $source, [], $version, true );
 		wp_enqueue_script( 'rankkernel-instant-indexing-admin' );
@@ -173,14 +194,20 @@ final class InstantIndexingPage {
 	 * Prepare the view state and load the Instant Indexing view.
 	 *
 	 * The key is reduced to a boolean here, so the view never receives
-	 * the key value and cannot render it by mistake.
+	 * the key value and cannot render it by mistake. The log filters are
+	 * read only display values from the query string, sanitized by the
+	 * log view, and never stored or trusted for a write.
 	 *
 	 * @return void
 	 */
 	public function render(): void {
-		// Read only display flag, compared strictly against a literal, never stored or output.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display flag, compared strictly against a literal, never stored or output.
+		// Read only display flags, compared strictly against literals, never stored or output.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display flags, compared strictly against literals, never stored or output.
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === $_GET['settings-updated'];
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display flag, whitelisted by InstantIndexingLogView::noticeFor, never stored or output raw.
+		$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? $_GET['rk_indexnow_notice'] : '';
+		$notice     = InstantIndexingLogView::noticeFor( $noticeCode );
 
 		$keyConfigured = '' !== $this->settings->getKey();
 		$autoSubmit    = $this->settings->getAutoSubmit();
@@ -196,9 +223,24 @@ final class InstantIndexingPage {
 			];
 		}
 
+		$stats = InstantIndexingOutcomes::stats( $logRows );
+
+		$screenUrl = function_exists( 'admin_url' ) ? admin_url( 'admin.php?page=' . self::SLUG ) : '';
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, sanitized by InstantIndexingLogView::fromQuery, never stored.
+		$logView = InstantIndexingLogView::fromQuery( $logRows, $_GET, $screenUrl );
+
+		$statusTabs  = $logView->tabs();
+		$pageRows    = $logView->pageRows();
+		$pagination  = $logView->pagination();
+		$showing     = $logView->showing();
+		$hasFilter   = $logView->hasFilter();
+		$listHasRows = [] !== $logRows;
+
 		$nonceSave       = self::NONCE_SAVE;
 		$nonceRegenerate = self::NONCE_REGENERATE;
 		$nonceSubmit     = self::NONCE_SUBMIT;
+		$nonceClear      = self::NONCE_CLEAR;
 
 		$homeUrl = function_exists( 'home_url' ) ? (string) home_url() : '';
 		$base    = '' !== $homeUrl ? rtrim( $homeUrl, '/' ) . '/' : 'https://example.com/';
@@ -240,6 +282,19 @@ final class InstantIndexingPage {
 	}
 
 	/**
+	 * Handle the clear log form, capability plus nonce first.
+	 *
+	 * @return void
+	 */
+	private function handleClear(): void {
+		$this->requireAccess( self::NONCE_CLEAR );
+
+		$this->settings->clearLog();
+
+		$this->redirectTo( false, 'cleared' );
+	}
+
+	/**
 	 * Handle a manual submission of one or many URLs.
 	 *
 	 * The module must be enabled, because a disabled module makes zero
@@ -247,7 +302,9 @@ final class InstantIndexingPage {
 	 * its host must equal the site host, so www and the apex are
 	 * different hosts. Every invalid line is logged with its own reason
 	 * and dropped, every valid line is submitted in one call, and no
-	 * request is ever made to a submitted URL.
+	 * request is ever made to a submitted URL. A submit with any invalid
+	 * line redirects with an outcome code, so the screen can render an
+	 * error notice that names the reason.
 	 *
 	 * @return void
 	 */
@@ -256,7 +313,7 @@ final class InstantIndexingPage {
 
 		if ( ! $this->isModuleEnabled() ) {
 			$this->reject( '', __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
-			$this->redirectTo( false );
+			$this->redirectTo( false, 'disabled' );
 
 			return;
 		}
@@ -265,13 +322,15 @@ final class InstantIndexingPage {
 
 		if ( [] === $urls ) {
 			$this->reject( '', __( 'Rejected: no URLs were provided.', 'rankkernel' ) );
-			$this->redirectTo( false );
+			$this->redirectTo( false, 'empty' );
 
 			return;
 		}
 
-		$valid   = [];
-		$invalid = 0;
+		$valid          = [];
+		$invalid        = 0;
+		$reasonsInvalid = false;
+		$reasonsHost    = false;
 
 		foreach ( $urls as $url ) {
 			$validated = $this->validateUrl( $url );
@@ -279,12 +338,14 @@ final class InstantIndexingPage {
 			if ( '' === $validated ) {
 				$this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) );
 				++$invalid;
+				$reasonsInvalid = true;
 				continue;
 			}
 
 			if ( ! $this->isSiteHost( $validated ) ) {
 				$this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) );
 				++$invalid;
+				$reasonsHost = true;
 				continue;
 			}
 
@@ -295,7 +356,19 @@ final class InstantIndexingPage {
 			( $this->submit )( $valid );
 		}
 
-		$this->redirectTo( 0 === $invalid );
+		if ( 0 === $invalid ) {
+			$this->redirectTo( true );
+
+			return;
+		}
+
+		if ( $reasonsInvalid && $reasonsHost ) {
+			$this->redirectTo( false, 'mixed' );
+
+			return;
+		}
+
+		$this->redirectTo( false, $reasonsHost ? 'host' : 'unvalidated' );
 	}
 
 	/**
@@ -447,14 +520,23 @@ final class InstantIndexingPage {
 	/**
 	 * Redirect back to the screen, header safe on the load hook.
 	 *
-	 * @param bool $saved Whether the saved flag should render a notice.
+	 * The notice code is one of the internal outcome literals from the
+	 * submit and clear handlers, never user input, so it is safe to
+	 * carry on the query string for the view to map to a notice.
+	 *
+	 * @param bool   $saved  Whether the saved flag should render a notice.
+	 * @param string $notice Outcome code for the error or info notice, empty for none.
 	 * @return void
 	 */
-	private function redirectTo( bool $saved = true ): void {
+	private function redirectTo( bool $saved = true, string $notice = '' ): void {
 		$url = admin_url( 'admin.php?page=' . self::SLUG );
 
 		if ( $saved ) {
 			$url .= '&settings-updated=1';
+		}
+
+		if ( '' !== $notice ) {
+			$url .= '&rk_indexnow_notice=' . $notice;
 		}
 
 		wp_safe_redirect( $url );

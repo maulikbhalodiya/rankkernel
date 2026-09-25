@@ -20,6 +20,8 @@
 	var REASON_NOT_A_URL = 'Not a valid URL.';
 	var REASON_FOREIGN_HOST = 'This URL is not on this site.';
 	var MESSAGE_EMPTY = 'Enter at least one URL on this site.';
+	var MAX_VALID_SHOWN = 5;
+	var MAX_INVALID_SHOWN = 50;
 
 	/**
 	 * Reason a single line cannot be submitted, empty when it can.
@@ -117,39 +119,93 @@
 	/**
 	 * Render the summary and the per line status, textContent only.
 	 *
-	 * A URL is user input, so it is never written as markup.
+	 * A URL is user input, so it is never written as markup. The summary
+	 * icon comes from CSS, the line icons are icon font spans marked
+	 * decorative. The summary stays the first child of the status region
+	 * so assistive tech announces it first.
 	 */
 	function render( status, button, result ) {
 		var summary = document.createElement( 'p' );
 		var list;
 		var item;
+		var icon;
+		var text;
 		var entry;
 		var index;
+		var shown;
+		var validShown = 0;
+		var invalidShown = 0;
+		var more;
 
 		if ( result.invalidCount > 0 ) {
-			summary.className = 'notice notice-warning inline';
+			status.className = 'rk-validation rk-validation-warning';
 		} else if ( result.total > 0 ) {
-			summary.className = 'notice notice-success inline';
+			status.className = 'rk-validation rk-validation-success';
 		} else {
-			summary.className = 'description';
+			status.className = 'rk-validation rk-validation-empty';
 		}
 
+		summary.className = 'rk-validation-summary';
 		summary.textContent = result.summary;
 
 		status.textContent = '';
 		status.appendChild( summary );
 
-		if ( result.invalidCount > 0 ) {
+		if ( result.total > 0 ) {
 			list = document.createElement( 'ul' );
-			list.className = 'rankkernel-indexnow-validation';
+			list.className = 'rk-validation-list';
 
 			for ( index = 0; index < result.entries.length; index++ ) {
 				entry = result.entries[ index ];
+
+				if ( entry.valid ) {
+					if ( validShown >= MAX_VALID_SHOWN ) {
+						continue;
+					}
+
+					validShown += 1;
+					item = document.createElement( 'li' );
+					item.className = 'rk-validation-item is-valid';
+
+					icon = document.createElement( 'span' );
+					icon.className = 'rk-icon';
+					icon.setAttribute( 'aria-hidden', 'true' );
+					icon.textContent = 'check_circle';
+
+					text = document.createElement( 'span' );
+					text.textContent = entry.url;
+
+					item.appendChild( icon );
+					item.appendChild( text );
+				} else {
+					if ( invalidShown >= MAX_INVALID_SHOWN ) {
+						continue;
+					}
+
+					invalidShown += 1;
+					item = document.createElement( 'li' );
+					item.className = 'rk-validation-item is-invalid';
+
+					text = document.createElement( 'span' );
+					text.textContent = entry.url;
+
+					more = document.createElement( 'span' );
+					more.className = 'rk-validation-reason';
+					more.textContent = entry.reason;
+
+					item.appendChild( text );
+					item.appendChild( more );
+				}
+
+				list.appendChild( item );
+			}
+
+			shown = validShown + invalidShown;
+
+			if ( shown < result.total ) {
 				item = document.createElement( 'li' );
-
-				item.className = entry.valid ? 'is-valid' : 'is-invalid';
-				item.textContent = entry.valid ? '\u2713 ' + entry.url : entry.url + ' ' + entry.reason;
-
+				item.className = 'rk-validation-more';
+				item.textContent = '+ ' + ( result.total - shown ) + ' more URLs';
 				list.appendChild( item );
 			}
 
@@ -181,6 +237,27 @@
 		}
 	}
 
+	/**
+	 * Hide our own notice banners through their dismiss buttons.
+	 *
+	 * WordPress core notices dismiss through their own script, ours hide
+	 * locally so no request is needed.
+	 */
+	function wireDismiss( scope ) {
+		var buttons = scope.querySelectorAll( '.rk-instant-indexing .rk-notice-dismiss' );
+		var index;
+
+		for ( index = 0; index < buttons.length; index++ ) {
+			buttons[ index ].addEventListener( 'click', function ( event ) {
+				var notice = event.target && event.target.closest ? event.target.closest( '.rk-notice' ) : null;
+
+				if ( notice ) {
+					notice.style.display = 'none';
+				}
+			} );
+		}
+	}
+
 	// Exposed so the node test harness can load this file in a vm and call
 	// the pure validator directly, without a DOM.
 	if ( 'undefined' !== typeof window ) {
@@ -194,6 +271,10 @@
 	onReady( function () {
 		var field = document.getElementById( FIELD_ID );
 		var status = document.getElementById( STATUS_ID );
+
+		if ( document.querySelectorAll ) {
+			wireDismiss( document );
+		}
 
 		if ( ! field || ! status ) {
 			return;
