@@ -235,7 +235,11 @@
 				swap( html );
 				busy( false );
 				markActive( section );
-				rankkernelAnnounce( __( 'Settings updated.', 'rankkernel' ) );
+				if ( -1 !== String( marker ).indexOf( 'reset' ) ) {
+					rankkernelAnnounce( __( 'Settings reset.', 'rankkernel' ) );
+				} else {
+					rankkernelAnnounce( __( 'Settings updated.', 'rankkernel' ) );
+				}
 			} ).catch( function () {
 				busy( false );
 				form.submit();
