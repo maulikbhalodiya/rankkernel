@@ -9,19 +9,6 @@
  * Plain script, no build step. Loaded on the RankKernel General Settings
  * screen only.
  */
-/**
- * Speak an accessible announcement when wp.a11y is available.
- *
- * @param {string} text Translated message to announce.
- */
-function rankkernelAnnounce( text ) {
-	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
-		return;
-	}
-
-	window.wp.a11y.speak( text );
-}
-
 ( function () {
 	'use strict';
 
@@ -30,6 +17,19 @@ function rankkernelAnnounce( text ) {
 		: function ( text ) {
 			return text;
 		};
+
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
 
 	function onReady( callback ) {
 		if ( document.readyState !== 'loading' ) {
