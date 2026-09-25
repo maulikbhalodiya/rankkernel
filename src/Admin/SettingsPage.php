@@ -680,7 +680,7 @@ final class SettingsPage {
 		wp_register_script(
 			'rankkernel-settings-admin',
 			plugins_url( 'assets/js/settings-admin.js', (string) RANKKERNEL_FILE ),
-			[ 'media-editor' ],
+			[ 'media-editor', 'wp-a11y', 'wp-i18n' ],
 			$version,
 			true
 		);

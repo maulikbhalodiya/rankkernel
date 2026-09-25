@@ -9,8 +9,27 @@
  * Plain script, no build step. Loaded on the RankKernel General Settings
  * screen only.
  */
+/**
+ * Speak an accessible announcement when wp.a11y is available.
+ *
+ * @param {string} text Translated message to announce.
+ */
+function rankkernelAnnounce( text ) {
+	if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+		return;
+	}
+
+	window.wp.a11y.speak( text );
+}
+
 ( function () {
 	'use strict';
+
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) {
+			return text;
+		};
 
 	function onReady( callback ) {
 		if ( document.readyState !== 'loading' ) {
@@ -189,6 +208,7 @@
 				busy( false );
 				markActive( section );
 				window.history.pushState( {}, '', url );
+				rankkernelAnnounce( __( 'Settings section loaded.', 'rankkernel' ) );
 			} ).catch( function () {
 				window.location.href = url;
 			} );
@@ -215,6 +235,7 @@
 				swap( html );
 				busy( false );
 				markActive( section );
+				rankkernelAnnounce( __( 'Settings saved.', 'rankkernel' ) );
 			} ).catch( function () {
 				busy( false );
 				form.submit();

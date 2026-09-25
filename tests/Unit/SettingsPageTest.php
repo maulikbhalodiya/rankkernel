@@ -365,6 +365,8 @@ final class SettingsPageTest extends TestCase {
 		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 		$this->assertSame( 1, $mediaCalls );
 		$this->assertContains( 'media-editor', $registered['rankkernel-settings-admin'] );
+		$this->assertContains( 'wp-a11y', $registered['rankkernel-settings-admin'] );
+		$this->assertContains( 'wp-i18n', $registered['rankkernel-settings-admin'] );
 	}
 
 	/**
