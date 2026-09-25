@@ -193,11 +193,40 @@ final class PluginTest extends TestCase {
 		$output_non_rk = ob_get_clean();
 		$this->assertEmpty( $output_non_rk );
 
-		// Case 2: RankKernel screen -> Should output conflict notice.
+		// Case 2: Null screen -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_null_screen = ob_get_clean();
+		$this->assertEmpty( $output_null_screen );
+
+		// Case 3: User lacking manage_options -> Should output nothing.
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_cap = ob_get_clean();
+		$this->assertEmpty( $output_no_cap );
+
+		// Case 4: RankKernel screen with manage_options capability -> Should output conflict notice.
+		Functions\when( 'current_user_can' )->justReturn( true );
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_rk = ob_get_clean();
 		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
+
+		// Case 5: Empty conflict list -> Should output nothing.
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_conflict_notice' === $key ) {
+					return [];
+				}
+				return $fallback;
+			}
+		);
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_conflicts = ob_get_clean();
+		$this->assertEmpty( $output_no_conflicts );
 	}
 }
