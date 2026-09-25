@@ -19,6 +19,10 @@ if ( ! isset( $GLOBALS['rankkernel_test_object_cache'] ) ) {
 	$GLOBALS['rankkernel_test_object_cache'] = array();
 }
 
+if ( ! isset( $GLOBALS['rankkernel_test_transients'] ) ) {
+	$GLOBALS['rankkernel_test_transients'] = array();
+}
+
 if ( ! function_exists( 'wp_cache_get' ) ) {
 	/**
 	 * Read a value from the in-memory test store.
@@ -113,5 +117,55 @@ if ( ! function_exists( '_prime_term_caches' ) ) {
 	 */
 	function _prime_term_caches( $term_ids, $update_meta_cache = true ) {
 		unset( $term_ids, $update_meta_cache );
+	}
+}
+
+if ( ! function_exists( 'get_transient' ) ) {
+	/**
+	 * Read a transient from the in-memory test store.
+	 *
+	 * @param string $transient Transient key.
+	 * @return mixed Stored value or false on a miss.
+	 */
+	function get_transient( $transient ) {
+		$store = $GLOBALS['rankkernel_test_transients'];
+
+		return array_key_exists( $transient, $store ) ? $store[ $transient ] : false;
+	}
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+	/**
+	 * Store a transient in the in-memory test store.
+	 *
+	 * @param string $transient  Transient key.
+	 * @param mixed  $value      Value to store.
+	 * @param int    $expiration Expiration in seconds.
+	 * @return bool True.
+	 */
+	function set_transient( $transient, $value, $expiration = 0 ) {
+		unset( $expiration );
+
+		$GLOBALS['rankkernel_test_transients'][ $transient ] = $value;
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+	/**
+	 * Delete a transient from the in-memory test store.
+	 *
+	 * @param string $transient Transient key.
+	 * @return bool True when removed, false otherwise.
+	 */
+	function delete_transient( $transient ) {
+		if ( ! array_key_exists( $transient, $GLOBALS['rankkernel_test_transients'] ) ) {
+			return false;
+		}
+
+		unset( $GLOBALS['rankkernel_test_transients'][ $transient ] );
+
+		return true;
 	}
 }

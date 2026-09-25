@@ -89,6 +89,10 @@ if ( is_array( $tables ) ) {
 		if ( function_exists( 'wp_cache_delete' ) ) {
 			wp_cache_delete( 'table_exists_' . $table, 'rankkernel_tables' );
 		}
+
+		if ( function_exists( 'delete_transient' ) ) {
+			delete_transient( 'rankkernel_tbl_exists_' . md5( $table ) );
+		}
 	}
 }
 
