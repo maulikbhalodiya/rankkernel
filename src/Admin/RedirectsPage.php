@@ -1650,10 +1650,16 @@ final class RedirectsPage {
 		}
 
 		// Fail closed: when the name is unusable or the checker is unavailable, reject rather than pass.
-		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
-		$type = '' !== $name && function_exists( 'wp_check_filetype' )
-			? wp_check_filetype( $name, [ 'csv' => 'text/csv' ] )
-			: false;
+		$name  = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+		$mimes = [ 'csv' => 'text/csv' ];
+
+		if ( '' !== $name && function_exists( 'wp_check_filetype_and_ext' ) ) {
+			$type = wp_check_filetype_and_ext( $tmp, $name, $mimes );
+		} elseif ( '' !== $name && function_exists( 'wp_check_filetype' ) ) {
+			$type = wp_check_filetype( $name, $mimes );
+		} else {
+			$type = false;
+		}
 
 		if ( ! is_array( $type ) || empty( $type['ext'] ) ) {
 			$this->importResult = $this->importFileError( __( 'Invalid file type. Please upload a valid CSV file.', 'rankkernel' ) );

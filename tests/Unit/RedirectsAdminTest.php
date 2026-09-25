@@ -218,6 +218,19 @@ final class RedirectsAdminTest extends TestCase {
 				return '';
 			}
 		);
+		Functions\when( 'wp_check_filetype_and_ext' )->alias(
+			static fn ( string $path, string $filename, ?array $mimes = null ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress wp_check_filetype_and_ext signature.
+				'ext'             => str_ends_with( strtolower( $filename ), '.csv' ) ? 'csv' : false,
+				'type'            => str_ends_with( strtolower( $filename ), '.csv' ) ? 'text/csv' : false,
+				'proper_filename' => false,
+			]
+		);
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn ( string $filename, ?array $mimes = null ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress wp_check_filetype signature.
+				'ext'  => str_ends_with( strtolower( $filename ), '.csv' ) ? 'csv' : false,
+				'type' => str_ends_with( strtolower( $filename ), '.csv' ) ? 'text/csv' : false,
+			]
+		);
 	}
 
 	/**
@@ -504,6 +517,60 @@ final class RedirectsAdminTest extends TestCase {
 			$result = $page->import_result();
 			$this->assertIsArray( $result );
 			$this->assertSame( 'Invalid file type. Please upload a valid CSV file.', $result['errors'][0]['reason'] );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
+	 * Test import uses wp_check_filetype_and_ext when available.
+	 */
+	public function test_import_uses_wp_check_filetype_and_ext(): void {
+		$tmp = (string) tempnam( sys_get_temp_dir(), 'rkcsv' );
+		file_put_contents( $tmp, "source,target,code,match_type,active,hits,last_accessed\n/from,/to,301,exact,yes,0,\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		Functions\when( 'wp_check_filetype_and_ext' )->alias(
+			static fn ( string $path, string $filename, ?array $mimes = null ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress wp_check_filetype_and_ext signature.
+				'ext'             => 'csv',
+				'type'            => 'text/csv',
+				'proper_filename' => false,
+			]
+		);
+
+		try {
+			$page = new RedirectsPage(
+				new RedirectRepository( $this->db ),
+				new RedirectsSettings(),
+				new Validator(),
+				new DestinationValidator(),
+				static fn ( string $p ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			);
+
+			$this->allowAccess();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_redirect_import' => '1',
+				'_wpnonce'                   => 'valid',
+			];
+			$_FILES                    = [
+				'rk_csv_file' => [
+					'name'     => 'test.csv',
+					'type'     => 'text/csv',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 100,
+				],
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+
+			$result = $page->import_result();
+			$this->assertIsArray( $result );
+			$this->assertSame( 1, $result['created'] );
+			$this->assertSame( [], $result['errors'] );
 		} finally {
 			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 		}

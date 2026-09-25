@@ -930,8 +930,15 @@ final class SchemaMetabox {
 			];
 		}
 
-		if ( function_exists( 'wp_check_filetype' ) && isset( $file['name'] ) && is_string( $file['name'] ) ) {
-			$check = wp_check_filetype( $file['name'], [ 'json' => 'application/json' ] );
+		if ( isset( $file['name'] ) && is_string( $file['name'] ) ) {
+			$mimes = [ 'json' => 'application/json' ];
+			if ( function_exists( 'wp_check_filetype_and_ext' ) ) {
+				$check = wp_check_filetype_and_ext( $tmp, $file['name'], $mimes );
+			} elseif ( function_exists( 'wp_check_filetype' ) ) {
+				$check = wp_check_filetype( $file['name'], $mimes );
+			} else {
+				$check = false;
+			}
 
 			if ( ! is_array( $check ) || empty( $check['ext'] ) ) {
 				return [
