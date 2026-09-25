@@ -29,7 +29,11 @@
  * @var string $nonceRegenerate Nonce action for key regeneration.
  * @var string $nonceSubmit     Nonce action for the manual submit form.
  * @var string $nonceClear      Nonce action for the clear log form.
+ * @var string $nonceVerify     Nonce action for the key file verification check.
  * @var string $urlPlaceholder  Placeholder with three example URLs on this site.
+ * @var string $noticeCode      Outcome code from the redirect, empty for none.
+ * @var string $keyFileUrl      Public key file location, empty when no key is stored.
+ * @var int $verifyCode         Status code from the last key file check, zero when none ran.
  */
 
 declare(strict_types=1);
@@ -68,7 +72,7 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 			<div class="rk-page-header-actions">
 				<a class="rk-btn rk-btn-primary" href="#rk-submit"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></a>
-				<a class="rk-btn rk-btn-secondary" href="#rk-settings"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></a>
+				<button type="button" class="rk-btn rk-btn-secondary" id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></button>
 			</div>
 		</header>
 
@@ -265,61 +269,110 @@ defined( 'ABSPATH' ) || exit;
 			<?php endif; ?>
 		</div>
 
-		<?php /* Section 6: settings and key card. */ ?>
+		<?php /* Section 6: settings and key card, collapsed until the header toggle opens it. */ ?>
 		<div class="rk-card rk-settings-card" id="rk-settings">
-			<h2 class="rk-card-title"><?php echo esc_html__( 'Settings and key', 'rankkernel' ); ?></h2>
-
-			<div class="rk-settings-group">
-				<div class="rk-settings-group-head">
-					<div class="rk-settings-group-title">
-						<span class="rk-icon" aria-hidden="true">shield</span>
-						<span class="rk-settings-group-name"><?php echo esc_html__( 'Verification key', 'rankkernel' ); ?></span>
-					</div>
-					<?php if ( $keyConfigured ) : ?>
-						<span class="rk-pill rk-pill-accepted"><?php echo esc_html__( 'Key configured', 'rankkernel' ); ?></span>
-					<?php else : ?>
-						<span class="rk-pill rk-pill-limited"><?php echo esc_html__( 'No key configured', 'rankkernel' ); ?></span>
-					<?php endif; ?>
-				</div>
-				<?php if ( $keyConfigured ) : ?>
-					<p class="rk-settings-text"><?php echo esc_html__( 'The key is generated on the server and is never shown here, so it cannot leak into your browser.', 'rankkernel' ); ?></p>
-				<?php else : ?>
-					<p class="rk-settings-text"><?php echo esc_html__( 'A key is generated automatically the first time the module is enabled.', 'rankkernel' ); ?></p>
-				<?php endif; ?>
-				<form method="post" action="" class="rk-key-form">
-					<?php wp_nonce_field( $nonceRegenerate ); ?>
-					<input type="hidden" name="rankkernel_indexnow_action" value="regenerate" />
-					<?php if ( $keyConfigured ) : ?>
-						<?php submit_button( __( 'Regenerate key', 'rankkernel' ), 'secondary', '', false ); ?>
-					<?php else : ?>
-						<?php submit_button( __( 'Generate key', 'rankkernel' ), 'primary', '', false ); ?>
-					<?php endif; ?>
-				</form>
-				<p class="rk-settings-note"><span class="rk-icon" aria-hidden="true">lock</span><?php echo esc_html__( 'The verification file is served virtually from your site root. No file is written to disk.', 'rankkernel' ); ?></p>
+			<div class="rk-settings-head">
+				<h2 class="rk-card-title"><?php echo esc_html__( 'Settings and key', 'rankkernel' ); ?></h2>
+				<p class="rk-settings-hint"><?php echo esc_html__( 'Open to manage the key and automatic submission.', 'rankkernel' ); ?></p>
 			</div>
 
-			<hr class="rk-settings-divider" />
+			<div id="rk-settings-panel" class="rk-settings-panel" hidden>
+				<div class="rk-collapse-row">
+					<a href="#rk-settings" class="rk-collapse-hide" id="rk-settings-hide" aria-label="<?php echo esc_attr( __( 'Hide settings and key', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></a>
+				</div>
 
-			<div class="rk-settings-group">
-				<form method="post" action="" class="rk-auto-form">
-					<?php wp_nonce_field( $nonceSave ); ?>
-					<input type="hidden" name="rankkernel_indexnow_action" value="save" />
-					<div class="rk-auto-row">
-						<div class="rk-auto-text">
-							<div class="rk-auto-title"><?php echo esc_html__( 'Submit URLs automatically when a post or term changes.', 'rankkernel' ); ?></div>
-							<p class="rk-settings-text"><?php echo esc_html__( 'Runs when a post is published, updated or trashed. Autosaves and revisions are skipped.', 'rankkernel' ); ?></p>
-							<p class="rk-settings-note"><?php echo esc_html__( 'Off by default. Nothing is sent until you turn this on.', 'rankkernel' ); ?></p>
+				<div class="rk-settings-group">
+					<div class="rk-settings-group-head">
+						<div class="rk-settings-group-title">
+							<span class="rk-icon" aria-hidden="true">shield</span>
+							<span class="rk-settings-group-name"><?php echo esc_html__( 'Verification key', 'rankkernel' ); ?></span>
 						</div>
-						<label class="rk-switch">
-							<input type="checkbox" name="rankkernel_indexnow_auto_submit" value="1" <?php echo checked( $autoSubmit, true, false ); ?> aria-label="<?php echo esc_attr( __( 'Submit URLs automatically when a post or term changes.', 'rankkernel' ) ); ?>" />
-							<span class="rk-switch-track" aria-hidden="true"><span class="rk-switch-knob"></span></span>
-						</label>
+						<?php if ( $keyConfigured ) : ?>
+							<span class="rk-pill rk-pill-accepted"><?php echo esc_html__( 'Key configured', 'rankkernel' ); ?></span>
+						<?php else : ?>
+							<span class="rk-pill rk-pill-limited"><?php echo esc_html__( 'No key configured', 'rankkernel' ); ?></span>
+						<?php endif; ?>
 					</div>
-					<div class="rk-settings-actions">
-						<a class="rk-btn rk-btn-secondary" href="<?php echo esc_url( $screenUrl ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
-						<?php submit_button( __( 'Save settings', 'rankkernel' ), 'primary', '', false ); ?>
-					</div>
-				</form>
+					<?php if ( $keyConfigured ) : ?>
+						<p class="rk-settings-text"><?php echo esc_html__( 'The key is generated on the server and is never shown here, so it cannot leak into your browser.', 'rankkernel' ); ?></p>
+						<p class="rk-settings-text">
+							<?php echo esc_html__( 'Key file:', 'rankkernel' ); ?>
+							<a class="rk-key-url" href="<?php echo esc_url( $keyFileUrl ); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr( __( 'Open the key file in a new tab', 'rankkernel' ) ); ?>"><?php echo esc_html( $keyFileUrl ); ?></a>
+						</p>
+						<p class="rk-settings-text"><?php echo esc_html__( 'Opening that URL should show only the key as plain text. A 404 or a login redirect means the file is not publicly reachable and verification will fail.', 'rankkernel' ); ?></p>
+						<form method="post" action="" class="rk-verify-form">
+							<?php wp_nonce_field( $nonceVerify ); ?>
+							<input type="hidden" name="rankkernel_indexnow_action" value="verify" />
+							<?php submit_button( __( 'Verify key file', 'rankkernel' ), 'secondary', '', false ); ?>
+						</form>
+						<?php if ( 'verified' === $noticeCode ) : ?>
+							<p class="rk-verify-result is-ok" role="status"><?php echo esc_html( sprintf( /* translators: %d: HTTP status code from the key file check. */ __( 'Key file verified. Returned %d and contained the expected key.', 'rankkernel' ), $verifyCode ) ); ?></p>
+						<?php elseif ( 'verify_failed' === $noticeCode ) : ?>
+							<p class="rk-verify-result is-error" role="alert"><?php echo esc_html( sprintf( /* translators: %d: HTTP status code from the key file check. */ __( 'Key file check failed. Returned %d. The file did not contain the expected key.', 'rankkernel' ), $verifyCode ) ); ?></p>
+						<?php endif; ?>
+					<?php else : ?>
+						<p class="rk-settings-text"><?php echo esc_html__( 'A key is generated automatically the first time the module is enabled.', 'rankkernel' ); ?></p>
+					<?php endif; ?>
+					<form method="post" action="" class="rk-key-form">
+						<?php wp_nonce_field( $nonceRegenerate ); ?>
+						<input type="hidden" name="rankkernel_indexnow_action" value="regenerate" />
+						<?php if ( $keyConfigured ) : ?>
+							<?php submit_button( __( 'Regenerate key', 'rankkernel' ), 'secondary', '', false ); ?>
+						<?php else : ?>
+							<?php submit_button( __( 'Generate key', 'rankkernel' ), 'primary', '', false ); ?>
+						<?php endif; ?>
+					</form>
+					<p class="rk-settings-note"><span class="rk-icon" aria-hidden="true">lock</span><?php echo esc_html__( 'The verification file is served virtually from your site root. No file is written to disk.', 'rankkernel' ); ?></p>
+				</div>
+
+				<hr class="rk-settings-divider" />
+
+				<div class="rk-settings-group">
+					<form method="post" action="" class="rk-auto-form">
+						<?php wp_nonce_field( $nonceSave ); ?>
+						<input type="hidden" name="rankkernel_indexnow_action" value="save" />
+						<div class="rk-auto-row">
+							<div class="rk-auto-text">
+								<div class="rk-auto-title"><?php echo esc_html__( 'Submit URLs automatically when a post or term changes.', 'rankkernel' ); ?></div>
+								<p class="rk-settings-text"><?php echo esc_html__( 'Runs when a post is published, updated or trashed. Autosaves and revisions are skipped.', 'rankkernel' ); ?></p>
+								<p class="rk-settings-note"><?php echo esc_html__( 'Off by default. Nothing is sent until you turn this on.', 'rankkernel' ); ?></p>
+							</div>
+							<label class="rk-switch">
+								<input type="checkbox" name="rankkernel_indexnow_auto_submit" value="1" <?php echo checked( $autoSubmit, true, false ); ?> aria-label="<?php echo esc_attr( __( 'Submit URLs automatically when a post or term changes.', 'rankkernel' ) ); ?>" />
+								<span class="rk-switch-track" aria-hidden="true"><span class="rk-switch-knob"></span></span>
+							</label>
+						</div>
+						<div class="rk-settings-actions">
+							<a class="rk-btn rk-btn-secondary" href="<?php echo esc_url( $screenUrl ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
+							<?php submit_button( __( 'Save settings', 'rankkernel' ), 'primary', '', false ); ?>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<?php /* Section 7: help card, collapsed on load, same toggle pattern as settings. */ ?>
+		<div class="rk-card rk-help-card" id="rk-help">
+			<div class="rk-settings-head">
+				<h2 class="rk-card-title">
+					<button type="button" class="rk-help-toggle" id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"><?php echo esc_html__( 'How Instant Indexing works', 'rankkernel' ); ?></button>
+				</h2>
+				<p class="rk-settings-hint"><?php echo esc_html__( 'Open for a short walkthrough of the IndexNow flow.', 'rankkernel' ); ?></p>
+			</div>
+
+			<div id="rk-help-panel" class="rk-help-panel" hidden>
+				<div class="rk-collapse-row">
+					<a href="#rk-help" class="rk-collapse-hide" id="rk-help-hide" aria-label="<?php echo esc_attr( __( 'Hide the walkthrough', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></a>
+				</div>
+				<ol class="rk-help-list">
+					<li><?php echo esc_html__( 'Turn the module on from the RankKernel dashboard, then turn on automatic submission here. Both are off by default, so nothing is sent until you do both.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'A verification key is created on your server the first time the module is enabled. It is stored server side and is never sent to your browser.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'Search engines verify the key by fetching a small public text file. This plugin serves that file virtually, so no file is written to your site root or your disk.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'When a post, page or term is published, updated or trashed, the plugin tells the search engines that the URL changed. Autosaves and revisions are skipped, and the same URL is not sent more than once every 10 minutes.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'The engines reply with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected and retrying will not help. 429 means too many requests, so try later.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'A submission means the engine was notified, not that the page was indexed. Sitemaps still handle full site coverage.', 'rankkernel' ); ?></li>
+					<li><?php echo esc_html__( 'Nothing else is contacted. There is no telemetry.', 'rankkernel' ); ?></li>
+				</ol>
 			</div>
 		</div>
 

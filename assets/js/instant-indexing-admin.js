@@ -264,6 +264,89 @@
 	}
 
 	/**
+	 * Whether the user prefers reduced motion.
+	 *
+	 * Guards matchMedia so the script stays safe where it is missing,
+	 * as in the node test harness.
+	 */
+	function prefersReducedMotion() {
+		if ( 'undefined' === typeof window || ! window.matchMedia ) {
+			return false;
+		}
+
+		try {
+			return !! window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+		} catch ( error ) {
+			return false;
+		}
+	}
+
+	/**
+	 * Remove a notice from view, keeping assistive tech announcements.
+	 *
+	 * The notice keeps its role attribute until removal, so screen
+	 * readers announce it before it leaves. Removal uses remove() when
+	 * present and display none as the fallback.
+	 */
+	function hideNotice( notice ) {
+		if ( ! notice ) {
+			return;
+		}
+
+		if ( notice.remove ) {
+			notice.remove();
+		} else if ( notice.style ) {
+			notice.style.display = 'none';
+		}
+	}
+
+	/**
+	 * Whether a notice is an error notice, which must persist.
+	 *
+	 * Error notices usually need reading and action, so they never
+	 * auto dismiss. Success, info and warning notices dismiss after
+	 * the timeout.
+	 */
+	function isErrorNotice( notice ) {
+		var name = notice && notice.className ? String( notice.className ) : '';
+
+		return name.indexOf( 'rk-notice-error' ) !== -1;
+	}
+
+	/**
+	 * Dismiss notices automatically after five seconds, errors persist.
+	 *
+	 * Manual dismissal keeps working through wireDismiss. The timer
+	 * handle comes from the window so tests can capture it. No motion
+	 * is applied, so there is nothing to gate on reduced motion.
+	 */
+	function wireAutoDismiss( scope ) {
+		var notices;
+		var index;
+		var schedule;
+
+		if ( ! scope || ! scope.querySelectorAll ) {
+			return;
+		}
+
+		notices = scope.querySelectorAll( '.rk-instant-indexing .rk-notice' );
+
+		schedule = ( 'undefined' !== typeof window && window.setTimeout ) ? window.setTimeout : setTimeout;
+
+		for ( index = 0; index < notices.length; index++ ) {
+			( function ( notice ) {
+				if ( isErrorNotice( notice ) ) {
+					return;
+				}
+
+				schedule( function () {
+					hideNotice( notice );
+				}, 5000 );
+			}( notices[ index ] ) );
+		}
+	}
+
+	/**
 	 * Hide our own notice banners through their dismiss buttons.
 	 *
 	 * WordPress core notices dismiss through their own script, ours hide
@@ -277,8 +360,124 @@
 			buttons[ index ].addEventListener( 'click', function ( event ) {
 				var notice = event.target && event.target.closest ? event.target.closest( '.rk-notice' ) : null;
 
-				if ( notice ) {
-					notice.style.display = 'none';
+				hideNotice( notice );
+			} );
+		}
+	}
+
+	/**
+	 * Whether a collapsible panel is currently open.
+	 *
+	 * The hidden property is the state source, with the attribute as
+	 * the fallback for older markup.
+	 */
+	function isOpen( panel ) {
+		if ( 'undefined' !== typeof panel.hidden ) {
+			return ! panel.hidden;
+		}
+
+		return ! ( panel.getAttribute && panel.getAttribute( 'hidden' ) !== null );
+	}
+
+	/**
+	 * Set the open state of a collapsible panel plus its toggle.
+	 *
+	 * Opening never clears form fields, so entered input survives a
+	 * close plus reopen cycle. Closing only hides, it never disables,
+	 * so every nonce field plus hidden action input still posts when
+	 * the container is open again.
+	 */
+	function setOpen( panel, toggle, open ) {
+		if ( ! panel ) {
+			return;
+		}
+
+		if ( 'undefined' !== typeof panel.hidden ) {
+			panel.hidden = ! open;
+		}
+
+		if ( panel.setAttribute && panel.removeAttribute ) {
+			if ( open ) {
+				panel.removeAttribute( 'hidden' );
+			} else {
+				panel.setAttribute( 'hidden', '' );
+			}
+		}
+
+		if ( toggle && toggle.setAttribute ) {
+			toggle.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		}
+	}
+
+	/**
+	 * Bring an opened panel into view without surprising motion users.
+	 *
+	 * Smooth scrolling applies only when reduced motion is off. The
+	 * call is guarded so markup without scrollIntoView stays safe.
+	 */
+	function scrollPanelIntoView( panel ) {
+		if ( ! panel || ! panel.scrollIntoView ) {
+			return;
+		}
+
+		try {
+			panel.scrollIntoView( { block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' } );
+		} catch ( error ) {
+			try {
+				panel.scrollIntoView();
+			} catch ( ignored ) {
+			}
+		}
+	}
+
+	/**
+	 * Wire one collapsible card to its header toggle plus its Hide link.
+	 *
+	 * The header control toggles, the Hide link only closes. Both keep
+	 * aria expanded on the toggle in sync with the panel state.
+	 */
+	function wireCollapsible( scope, toggleId, panelId, hideId ) {
+		var toggle;
+		var panel;
+		var hide;
+
+		if ( ! scope || ! scope.getElementById ) {
+			return;
+		}
+
+		toggle = scope.getElementById( toggleId );
+		panel  = scope.getElementById( panelId );
+		hide   = scope.getElementById( hideId );
+
+		if ( ! toggle || ! panel ) {
+			return;
+		}
+
+		setOpen( panel, toggle, isOpen( panel ) );
+
+		toggle.addEventListener( 'click', function () {
+			var open = ! isOpen( panel );
+
+			setOpen( panel, toggle, open );
+
+			if ( open ) {
+				scrollPanelIntoView( panel );
+			}
+		} );
+
+		if ( hide ) {
+			hide.addEventListener( 'click', function ( event ) {
+				if ( event && event.preventDefault ) {
+					event.preventDefault();
+				}
+
+				setOpen( panel, toggle, false );
+
+				if ( toggle.focus ) {
+					try {
+						toggle.focus();
+					} catch ( error ) {
+					}
 				}
 			} );
 		}
@@ -292,15 +491,32 @@
 		}
 
 		window.rankkernelInstantIndexing.validate = validate;
+		window.rankkernelInstantIndexing.notices = {
+			hideNotice: hideNotice,
+			isErrorNotice: isErrorNotice,
+			wireDismiss: wireDismiss,
+			wireAutoDismiss: wireAutoDismiss
+		};
+		window.rankkernelInstantIndexing.collapsibles = {
+			isOpen: isOpen,
+			setOpen: setOpen,
+			wireCollapsible: wireCollapsible
+		};
 	}
 
 	onReady( function () {
-		var field = document.getElementById( FIELD_ID );
-		var status = document.getElementById( STATUS_ID );
-
 		if ( document.querySelectorAll ) {
 			wireDismiss( document );
+			wireAutoDismiss( document );
 		}
+
+		if ( document.getElementById ) {
+			wireCollapsible( document, 'rk-settings-toggle', 'rk-settings-panel', 'rk-settings-hide' );
+			wireCollapsible( document, 'rk-help-toggle', 'rk-help-panel', 'rk-help-hide' );
+		}
+
+		var field = document.getElementById ? document.getElementById( FIELD_ID ) : null;
+		var status = document.getElementById ? document.getElementById( STATUS_ID ) : null;
 
 		if ( ! field || ! status ) {
 			return;

@@ -303,3 +303,291 @@ test( 'the mounted script disables the button and blocks an invalid submit', () 
 	assert.equal( fixture.status.children[ 0 ].textContent, '2 URLs ready to submit.' );
 	assert.equal( fixture.submit(), false, 'a valid submit event must go through' );
 } );
+
+function noticeFixture( type ) {
+	const listeners = {};
+	const node = {
+		className: 'rk-notice rk-notice-' + type,
+		style: {},
+		removed: false,
+		remove() {
+			this.removed = true;
+		},
+		addEventListener( eventType, handler ) {
+			listeners[ eventType ] = handler;
+		},
+		fire( eventType, event ) {
+			if ( listeners[ eventType ] ) {
+				listeners[ eventType ]( event || {} );
+			}
+		},
+		closest( selector ) {
+			if ( '.rk-notice' === selector ) {
+				return node;
+			}
+
+			return null;
+		}
+	};
+
+	return node;
+}
+
+function loadWithNotices( types ) {
+	const timers = [];
+	const notices = types.map( noticeFixture );
+	const buttons = notices.map( ( notice ) => {
+		const button = {
+			listeners: {},
+			addEventListener( eventType, handler ) {
+				this.listeners[ eventType ] = handler;
+			},
+			fire( eventType, event ) {
+				this.listeners[ eventType ]( event );
+			},
+			notice
+		};
+
+		return button;
+	} );
+
+	const document = {
+		readyState: 'complete',
+		addEventListener() {},
+		getElementById() {
+			return null;
+		},
+		querySelectorAll( selector ) {
+			if ( selector.indexOf( 'rk-notice-dismiss' ) !== -1 ) {
+				return buttons;
+			}
+
+			return notices;
+		},
+		createElement() {
+			return fakeNode( {} );
+		}
+	};
+
+	const sandbox = {
+		document,
+		URL,
+		rankkernelInstantIndexing: { siteHost: 'example.com' }
+	};
+
+	sandbox.window = sandbox;
+	sandbox.window.setTimeout = ( callback, ms ) => {
+		timers.push( { callback, ms } );
+
+		return timers.length;
+	};
+	sandbox.window.clearTimeout = () => {};
+	sandbox.window.matchMedia = () => ( { matches: false } );
+	sandbox.setTimeout = sandbox.window.setTimeout;
+	sandbox.clearTimeout = () => {};
+
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	return { timers, notices, buttons };
+}
+
+test( 'a success notice is removed after the timer fires', () => {
+	const { timers, notices } = loadWithNotices( [ 'success' ] );
+
+	assert.equal( timers.length, 1 );
+	assert.equal( timers[ 0 ].ms, 5000 );
+
+	timers[ 0 ].callback();
+
+	assert.equal( notices[ 0 ].removed, true );
+} );
+
+test( 'an error notice is never removed by the timer', () => {
+	const { timers, notices } = loadWithNotices( [ 'error', 'success', 'info', 'warning' ] );
+
+	assert.equal( timers.length, 3 );
+
+	timers.forEach( ( timer ) => timer.callback() );
+
+	assert.equal( notices[ 0 ].removed, false );
+	assert.equal( notices[ 1 ].removed, true );
+	assert.equal( notices[ 2 ].removed, true );
+	assert.equal( notices[ 3 ].removed, true );
+} );
+
+test( 'manual dismissal still hides the notice', () => {
+	const { buttons, notices } = loadWithNotices( [ 'success' ] );
+
+	buttons[ 0 ].fire( 'click', { target: { closest: () => notices[ 0 ] } } );
+
+	assert.equal( notices[ 0 ].removed, true );
+} );
+
+function toggleNode() {
+	const listeners = {};
+	const node = {
+		attrs: { 'aria-expanded': 'false' },
+		focused: false,
+		addEventListener( eventType, handler ) {
+			listeners[ eventType ] = handler;
+		},
+		fire( eventType, event ) {
+			listeners[ eventType ]( event || {} );
+		},
+		setAttribute( name, value ) {
+			this.attrs[ name ] = String( value );
+		},
+		getAttribute( name ) {
+			return Object.prototype.hasOwnProperty.call( this.attrs, name ) ? this.attrs[ name ] : null;
+		},
+		focus() {
+			this.focused = true;
+		}
+	};
+
+	return node;
+}
+
+function panelNode() {
+	const listeners = {};
+	const node = {
+		hidden: true,
+		attrs: { hidden: '' },
+		scrolled: false,
+		addEventListener( eventType, handler ) {
+			listeners[ eventType ] = handler;
+		},
+		fire( eventType, event ) {
+			if ( listeners[ eventType ] ) {
+				listeners[ eventType ]( event || {} );
+			}
+		},
+		setAttribute( name, value ) {
+			this.attrs[ name ] = String( value );
+		},
+		getAttribute( name ) {
+			return Object.prototype.hasOwnProperty.call( this.attrs, name ) ? this.attrs[ name ] : null;
+		},
+		removeAttribute( name ) {
+			delete this.attrs[ name ];
+		},
+		scrollIntoView() {
+			this.scrolled = true;
+		}
+	};
+
+	return node;
+}
+
+function hideLinkNode( panel, toggle ) {
+	const listeners = {};
+	const node = {
+		panel,
+		toggle,
+		addEventListener( eventType, handler ) {
+			listeners[ eventType ] = handler;
+		},
+		fire( eventType, event ) {
+			listeners[ eventType ]( Object.assign( { preventDefault() {} }, event || {} ) );
+		}
+	};
+
+	return node;
+}
+
+function mountToggles() {
+	const settingsToggle = toggleNode();
+	const settingsPanel = panelNode();
+	const settingsHide = hideLinkNode( settingsPanel, settingsToggle );
+	const helpToggle = toggleNode();
+	const helpPanel = panelNode();
+	const helpHide = hideLinkNode( helpPanel, helpToggle );
+	const byId = {
+		'rk-settings-toggle': settingsToggle,
+		'rk-settings-panel': settingsPanel,
+		'rk-settings-hide': settingsHide,
+		'rk-help-toggle': helpToggle,
+		'rk-help-panel': helpPanel,
+		'rk-help-hide': helpHide
+	};
+
+	const document = {
+		readyState: 'complete',
+		addEventListener() {},
+		getElementById( id ) {
+			return byId[ id ] || null;
+		},
+		querySelectorAll() {
+			return [];
+		},
+		createElement() {
+			return fakeNode( {} );
+		}
+	};
+
+	const sandbox = {
+		document,
+		URL,
+		rankkernelInstantIndexing: { siteHost: 'example.com' }
+	};
+
+	sandbox.window = sandbox;
+	sandbox.window.setTimeout = ( callback ) => {
+		callback();
+
+		return 1;
+	};
+	sandbox.window.clearTimeout = () => {};
+	sandbox.window.matchMedia = () => ( { matches: true } );
+	sandbox.setTimeout = sandbox.window.setTimeout;
+	sandbox.clearTimeout = () => {};
+
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	return { settingsToggle, settingsPanel, settingsHide, helpToggle, helpPanel, helpHide };
+}
+
+test( 'the settings container opens on first activation and closes on second', () => {
+	const { settingsToggle, settingsPanel } = mountToggles();
+
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
+
+	settingsToggle.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, false );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'true' );
+	assert.equal( settingsPanel.scrolled, true );
+
+	settingsToggle.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
+} );
+
+test( 'the plain text close control closes the container', () => {
+	const { settingsToggle, settingsPanel, settingsHide } = mountToggles();
+
+	settingsToggle.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, false );
+
+	settingsHide.fire( 'click' );
+
+	assert.equal( settingsPanel.hidden, true );
+	assert.equal( settingsToggle.attrs[ 'aria-expanded' ], 'false' );
+} );
+
+test( 'the help container toggles with the same pattern', () => {
+	const { helpToggle, helpPanel, helpHide } = mountToggles();
+
+	helpToggle.fire( 'click' );
+
+	assert.equal( helpPanel.hidden, false );
+	assert.equal( helpToggle.attrs[ 'aria-expanded' ], 'true' );
+
+	helpHide.fire( 'click' );
+
+	assert.equal( helpPanel.hidden, true );
+	assert.equal( helpToggle.attrs[ 'aria-expanded' ], 'false' );
+} );

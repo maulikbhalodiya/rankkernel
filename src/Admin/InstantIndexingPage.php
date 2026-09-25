@@ -63,6 +63,11 @@ final class InstantIndexingPage {
 	private const NONCE_CLEAR = 'rankkernel_indexnow_clear';
 
 	/**
+	 * Nonce action for the key file verification check.
+	 */
+	private const NONCE_VERIFY = 'rankkernel_indexnow_verify';
+
+	/**
 	 * Module id consulted before any manual submission.
 	 */
 	private const MODULE_ID = 'instant-indexing';
@@ -136,6 +141,9 @@ final class InstantIndexingPage {
 			case 'clear':
 				$this->handleClear();
 				break;
+			case 'verify':
+				$this->handleVerify();
+				break;
 		}
 	}
 
@@ -194,10 +202,12 @@ final class InstantIndexingPage {
 	/**
 	 * Prepare the view state and load the Instant Indexing view.
 	 *
-	 * The key is reduced to a boolean here, so the view never receives
-	 * the key value and cannot render it by mistake. The log filters are
-	 * read only display values from the query string, sanitized by the
-	 * log view, and never stored or trusted for a write.
+	 * The key is reduced to a boolean plus its public file location here,
+	 * so the view never receives the key as a standalone value. The file
+	 * location contains the key because engines fetch it from that URL,
+	 * and this screen requires manage options, so access is the boundary.
+	 * The log filters are read only display values from the query string,
+	 * sanitized by the log view, and never stored or trusted for a write.
 	 *
 	 * @return void
 	 */
@@ -210,7 +220,32 @@ final class InstantIndexingPage {
 		$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? $_GET['rk_indexnow_notice'] : '';
 		$notice     = InstantIndexingLogView::noticeFor( $noticeCode );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display value, numeric only, never stored or output raw.
+		$verifyRaw  = $_GET['rk_verify_code'] ?? null;
+		$verifyCode = is_numeric( $verifyRaw ) ? (int) $verifyRaw : 0;
+
+		if ( 'verified' === $noticeCode ) {
+			$notice = [
+				'type'    => 'success',
+				'message' => sprintf(
+					/* translators: %d: HTTP status code from the key file check. */
+					__( 'Key file verified. The file returned %d and contained the expected key.', 'rankkernel' ),
+					$verifyCode
+				),
+			];
+		} elseif ( 'verify_failed' === $noticeCode ) {
+			$notice = [
+				'type'    => 'error',
+				'message' => sprintf(
+					/* translators: %d: HTTP status code from the key file check. */
+					__( 'Key file check failed. The file returned %d. Opening the key file URL should show only the key as plain text.', 'rankkernel' ),
+					$verifyCode
+				),
+			];
+		}
+
 		$keyConfigured = '' !== $this->settings->getKey();
+		$keyFileUrl    = $keyConfigured ? $this->settings->keyLocation() : '';
 		$autoSubmit    = $this->settings->getAutoSubmit();
 		$logRows       = [];
 
@@ -242,6 +277,7 @@ final class InstantIndexingPage {
 		$nonceRegenerate = self::NONCE_REGENERATE;
 		$nonceSubmit     = self::NONCE_SUBMIT;
 		$nonceClear      = self::NONCE_CLEAR;
+		$nonceVerify     = self::NONCE_VERIFY;
 
 		$homeUrl = function_exists( 'home_url' ) ? (string) home_url() : '';
 		$base    = '' !== $homeUrl ? rtrim( $homeUrl, '/' ) . '/' : 'https://example.com/';
@@ -293,6 +329,25 @@ final class InstantIndexingPage {
 		$this->settings->clearLog();
 
 		$this->redirectTo( false, 'cleared' );
+	}
+
+	/**
+	 * Handle the key file verification check, read only plus guarded.
+	 *
+	 * The check fetches only the plugin own key file location, never a
+	 * caller supplied URL, and never echoes the response body. Only the
+	 * verdict plus the status code travel on the redirect, both as
+	 * internal literals plus an integer, so nothing attacker controlled
+	 * reaches the screen.
+	 *
+	 * @return void
+	 */
+	private function handleVerify(): void {
+		$this->requireAccess( self::NONCE_VERIFY );
+
+		$result = ( new InstantIndexingKeyCheck() )->check( $this->settings );
+
+		$this->redirectTo( false, $result['ok'] ? 'verified' : 'verify_failed', (int) $result['code'] );
 	}
 
 	/**
@@ -556,11 +611,12 @@ final class InstantIndexingPage {
 	 * submit and clear handlers, never user input, so it is safe to
 	 * carry on the query string for the view to map to a notice.
 	 *
-	 * @param bool   $saved  Whether the saved flag should render a notice.
-	 * @param string $notice Outcome code for the error or info notice, empty for none.
+	 * @param bool   $saved      Whether the saved flag should render a notice.
+	 * @param string $notice     Outcome code for the error or info notice, empty for none.
+	 * @param int    $verifyCode Status code from the key file check, negative when absent.
 	 * @return void
 	 */
-	private function redirectTo( bool $saved = true, string $notice = '' ): void {
+	private function redirectTo( bool $saved = true, string $notice = '', int $verifyCode = -1 ): void {
 		$url = admin_url( 'admin.php?page=' . self::SLUG );
 
 		if ( $saved ) {
@@ -569,6 +625,10 @@ final class InstantIndexingPage {
 
 		if ( '' !== $notice ) {
 			$url .= '&rk_indexnow_notice=' . $notice;
+		}
+
+		if ( $verifyCode >= 0 ) {
+			$url .= '&rk_verify_code=' . $verifyCode;
 		}
 
 		wp_safe_redirect( $url );

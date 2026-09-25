@@ -78,6 +78,13 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'admin_url' )->alias( static fn( string $p = '' ): string => 'https://example.com/wp-admin/' . $p );
 		Functions\when( 'trailingslashit' )->alias( static fn( string $u ): string => rtrim( $u, '/' ) . '/' );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( string $key, string $value, string $url ): string {
+				$separator = str_contains( $url, '?' ) ? '&' : '?';
+
+				return $url . $separator . $key . '=' . rawurlencode( $value );
+			}
+		);
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): string|int|false|null {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double mirrors wp_parse_url with the native parser.
@@ -144,6 +151,27 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Rendered HTML with the intentional key file URL removed.
+	 *
+	 * The administrator only screen links the public key file location,
+	 * which contains the key because engines fetch it from that URL.
+	 * Key secrecy therefore means the key appears nowhere else, so
+	 * tests strip that one intentional URL before asserting absence.
+	 *
+	 * @param string $html Rendered HTML.
+	 * @return string The result.
+	 */
+	private function htmlWithoutKeyFileUrl( string $html ): string {
+		$url = $this->settings->keyLocation();
+
+		if ( '' !== $url ) {
+			$html = str_replace( $url, '', $html );
+		}
+
+		return $html;
+	}
+
+	/**
 	 * Test the rendered admin HTML never contains the API key.
 	 */
 	public function test_render_never_contains_the_key(): void {
@@ -152,7 +180,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringNotContainsString( $this->key, $html, 'the API key must never reach admin HTML' );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ), 'the API key must never reach admin HTML outside the intentional key file URL' );
 		$this->assertStringContainsString( 'Instant Indexing', $html );
 	}
 
@@ -196,7 +224,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Key configured', $html );
 		$this->assertStringNotContainsString( 'No key configured', $html );
-		$this->assertStringNotContainsString( $this->key, $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 	}
 
 	/**
@@ -226,7 +254,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringNotContainsString( $this->key, $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 		$this->assertStringContainsString( 'https://example.com/post', $html );
 	}
 
@@ -726,7 +754,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'rk-pill-rejected">Rejected', $html );
 		$this->assertStringContainsString( 'rk-pill-limited">Rate limited', $html );
 		$this->assertStringContainsString( 'rk-pill-retry">Retry later', $html );
-		$this->assertStringNotContainsString( $this->key, $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 	}
 
 	/**
@@ -742,7 +770,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'rk-notice-error', $html );
 		$this->assertStringContainsString( 'does not match this site', $html );
-		$this->assertStringNotContainsString( $this->key, $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 	}
 
 	/**
@@ -1077,5 +1105,262 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'Rejected: the Instant Indexing module is disabled.', $entries[0]['message'] );
+	}
+
+	/**
+	 * Test the settings container plus the help card start collapsed.
+	 *
+	 * The header Settings control is a real toggle with expanded state
+	 * plus a controls target, each panel hides with the hidden attribute,
+	 * and each Hide control is a plain text link, never a button, so
+	 * assistive tech reports the state and the form inside keeps posting.
+	 */
+	public function test_render_collapses_settings_and_help_by_default(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"', $html );
+		$this->assertStringContainsString( 'id="rk-settings-panel" class="rk-settings-panel" hidden', $html );
+		$this->assertStringContainsString( 'id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"', $html );
+		$this->assertStringContainsString( 'id="rk-help-panel" class="rk-help-panel" hidden', $html );
+		$this->assertStringContainsString( '<a href="#rk-settings" class="rk-collapse-hide" id="rk-settings-hide"', $html );
+		$this->assertStringContainsString( '<a href="#rk-help" class="rk-collapse-hide" id="rk-help-hide"', $html );
+		$this->assertStringNotContainsString( '<button type="button" class="rk-collapse-hide"', $html );
+		$this->assertStringNotContainsString( 'id="rk-settings-hide"><button', $html );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_auto_submit"', $html );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="save"', $html );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="regenerate"', $html );
+	}
+
+	/**
+	 * Test the help card walks the real flow in plain words.
+	 *
+	 * Each step names behaviour the plugin owns, and the card promises
+	 * nothing about a retry queue, a quota, a schedule, or bulk work,
+	 * because none of those exist.
+	 */
+	public function test_render_help_card_covers_the_real_flow(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'How Instant Indexing works', $html );
+		$this->assertStringContainsString( 'Both are off by default', $html );
+		$this->assertStringContainsString( 'never sent to your browser', $html );
+		$this->assertStringContainsString( 'serves that file virtually', $html );
+		$this->assertStringContainsString( 'not sent more than once every 10 minutes', $html );
+		$this->assertStringContainsString( '202 means accepted and the key is still pending verification', $html );
+		$this->assertStringContainsString( 'not that the page was indexed', $html );
+		$this->assertStringContainsString( 'There is no telemetry', $html );
+		$this->assertStringNotContainsString( 'retry queue', $html );
+		$this->assertStringNotContainsString( 'quota', $html );
+		$this->assertStringNotContainsString( 'bulk submission', $html );
+	}
+
+	/**
+	 * Test the key file URL renders as a new tab link with the guard rel.
+	 *
+	 * The location contains the key because engines fetch it from that
+	 * URL, which is intentional on this administrator only screen. The
+	 * standalone key still appears nowhere else in the markup.
+	 */
+	public function test_render_shows_key_file_url_as_new_tab_link(): void {
+		$labels = [];
+
+		Functions\when( 'submit_button' )->alias(
+			static function ( ...$args ) use ( &$labels ): void {
+				$labels[] = (string) ( $args[0] ?? '' );
+			}
+		);
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$url = $this->settings->keyLocation();
+
+		$this->assertNotSame( '', $url );
+		$this->assertStringContainsString( 'href="' . $url . '"', $html );
+		$this->assertStringContainsString( 'target="_blank"', $html );
+		$this->assertStringContainsString( 'rel="noopener noreferrer"', $html );
+		$this->assertContains( 'Verify key file', $labels, 'the verify control must render with its own label' );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="verify"', $html );
+		$this->assertStringContainsString( 'should show only the key as plain text', $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
+	}
+
+	/**
+	 * Test a passed check reports the code without echoing the body.
+	 */
+	public function test_render_verify_success_reports_code_without_body(): void {
+		$_GET['rk_indexnow_notice'] = 'verified';
+		$_GET['rk_verify_code']     = '200';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Key file verified', $html );
+		$this->assertStringContainsString( 'Returned 200', $html );
+		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
+	}
+
+	/**
+	 * Test the verify action needs the capability plus its own nonce.
+	 *
+	 * Both rejection paths stop at wp_die with a 403. The captured nonce
+	 * action proves the verify branch verifies its own action, so reusing
+	 * another action would fail this test.
+	 */
+	public function test_verify_requires_capability_and_own_nonce(): void {
+		$dies         = 0;
+		$responseCode = 0;
+		$nonceActions = [];
+
+		Functions\when( 'wp_die' )->alias(
+			static function ( string $message = '', string $title = '', array $args = [] ) use ( &$dies, &$responseCode ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the wp_die signature and records only the response code.
+				++$dies;
+				$responseCode = (int) ( $args['response'] ?? 0 );
+
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'verify' ];
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		try {
+			$this->page()->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies );
+		$this->assertSame( 403, $responseCode );
+
+		$dies         = 0;
+		$responseCode = 0;
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return false;
+			}
+		);
+
+		try {
+			$this->page()->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies );
+		$this->assertSame( 403, $responseCode );
+		$this->assertSame( [ 'rankkernel_indexnow_verify' ], $nonceActions );
+	}
+
+	/**
+	 * Test the verify action fetches only the own key file location.
+	 *
+	 * A caller supplied URL in POST is ignored, the stub records the one
+	 * URL the check was given, and the redirect carries the verified code
+	 * plus the status without echoing the response body.
+	 */
+	public function test_verify_requests_only_the_own_key_file(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$expected  = $this->settings->keyLocation();
+		$requested = '';
+
+		Functions\when( 'wp_safe_remote_get' )->alias(
+			static function ( string $url ) use ( &$requested ): array {
+				$requested = $url;
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => 'placeholder',
+				];
+			}
+		);
+		Functions\when( 'is_wp_error' )->alias( static fn(): bool => false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias( static fn(): int => 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			function (): string {
+				return $this->settings->getKey();
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'verify',
+			'rankkernel_indexnow_urls'   => 'https://evil.test/steer',
+		];
+
+		ob_start();
+		$this->page()->maybeHandleSave();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( $expected, $requested, 'the check must fetch the own key file, never a caller supplied URL' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=verified', $redirect );
+		$this->assertStringContainsString( 'rk_verify_code=200', $redirect );
+		$this->assertSame( '', $output );
+		$this->assertStringNotContainsString( $this->settings->getKey(), $output );
+	}
+
+	/**
+	 * Test a failed check redirects with the failed code and no body.
+	 */
+	public function test_verify_failure_redirects_with_failed_code_and_no_body(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_remote_get' )->alias(
+			static function (): array {
+				return [
+					'response' => [ 'code' => 404 ],
+					'body'     => 'marker body text',
+				];
+			}
+		);
+		Functions\when( 'is_wp_error' )->alias( static fn(): bool => false );
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias( static fn(): int => 404 );
+		Functions\when( 'wp_remote_retrieve_body' )->alias( static fn(): string => 'marker body text' );
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'verify' ];
+
+		ob_start();
+		$this->page()->maybeHandleSave();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk_indexnow_notice=verify_failed', $redirect );
+		$this->assertStringContainsString( 'rk_verify_code=404', $redirect );
+		$this->assertSame( '', $output );
+		$this->assertStringNotContainsString( 'marker body text', $output );
 	}
 }
