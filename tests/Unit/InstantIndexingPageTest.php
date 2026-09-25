@@ -108,6 +108,7 @@ final class InstantIndexingPageTest extends TestCase {
 			static fn( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v
 		);
 		Functions\when( 'esc_html__' )->alias( static fn( string $v ): string => $v );
+		Functions\when( 'esc_attr__' )->alias( static fn( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -1110,10 +1111,12 @@ final class InstantIndexingPageTest extends TestCase {
 	/**
 	 * Test the settings container plus the help card start collapsed.
 	 *
-	 * The header Settings control is a real toggle with expanded state
-	 * plus a controls target, each panel hides with the hidden attribute,
-	 * and each Hide control is a plain text link, never a button, so
-	 * assistive tech reports the state and the form inside keeps posting.
+	 * The header Settings control and the header help icon are real
+	 * toggles with expanded state plus a controls target, each panel
+	 * hides with the hidden attribute, and each Hide control is a plain
+	 * text link, never a button, so assistive tech reports the state and
+	 * the form inside keeps posting. The help card is the single help
+	 * panel, opened from the header icon, never a panel inside itself.
 	 */
 	public function test_render_collapses_settings_and_help_by_default(): void {
 		$page = $this->page();
@@ -1124,9 +1127,12 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"', $html );
 		$this->assertStringContainsString( 'id="rk-settings-panel" class="rk-settings-panel" hidden', $html );
 		$this->assertStringContainsString( 'id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"', $html );
-		$this->assertStringContainsString( 'id="rk-help-panel" class="rk-help-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-card rk-help-card rk-help-panel" id="rk-help-panel" hidden', $html );
+		$this->assertSame( 1, substr_count( $html, 'id="rk-help-panel"' ), 'the help card must be the only help panel' );
+		$this->assertSame( 1, substr_count( $html, 'id="rk-help-toggle"' ), 'the header icon must be the only help toggle' );
+		$this->assertStringNotContainsString( 'class="rk-help-panel" hidden', $html, 'no help panel may nest inside the help card' );
 		$this->assertStringContainsString( '<a href="#rk-settings" class="rk-collapse-hide" id="rk-settings-hide"', $html );
-		$this->assertStringContainsString( '<a href="#rk-help" class="rk-collapse-hide" id="rk-help-hide"', $html );
+		$this->assertStringContainsString( '<a href="#rk-help-panel" class="rk-collapse-hide" id="rk-help-hide"', $html );
 		$this->assertStringNotContainsString( '<button type="button" class="rk-collapse-hide"', $html );
 		$this->assertStringNotContainsString( 'id="rk-settings-hide"><button', $html );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_auto_submit"', $html );

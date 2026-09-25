@@ -1284,19 +1284,6 @@
 	gap: var(--rk-space-4);
 }
 
-.rk-instant-indexing .rk-help-toggle {
-	background: none;
-	border: none;
-	padding: 0;
-	margin: 0;
-	cursor: pointer;
-	font-size: 15px;
-	font-weight: 700;
-	color: var(--rk-color-text);
-	line-height: var(--rk-line-height-tight);
-	text-align: start;
-}
-
 .rk-instant-indexing .rk-help-list {
 	margin: 0;
 	padding-inline-start: var(--rk-space-5);

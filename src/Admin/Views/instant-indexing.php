@@ -73,6 +73,7 @@ defined( 'ABSPATH' ) || exit;
 			<div class="rk-page-header-actions">
 				<a class="rk-btn rk-btn-primary" href="#rk-submit"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></a>
 				<button type="button" class="rk-btn rk-btn-secondary" id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></button>
+				<button type="button" class="rk-btn rk-btn-icon" id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel" aria-label="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>" title="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">help</span></button>
 			</div>
 		</header>
 
@@ -351,29 +352,25 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</div>
 
-		<?php /* Section 7: help card, collapsed on load, same toggle pattern as settings. */ ?>
-		<div class="rk-card rk-help-card" id="rk-help">
+		<?php /* Section 7: help card, the single help panel, collapsed on load, opened from the header help icon. */ ?>
+		<div class="rk-card rk-help-card rk-help-panel" id="rk-help-panel" hidden>
 			<div class="rk-settings-head">
-				<h2 class="rk-card-title">
-					<button type="button" class="rk-help-toggle" id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"><?php echo esc_html__( 'How Instant Indexing works', 'rankkernel' ); ?></button>
-				</h2>
-				<p class="rk-settings-hint"><?php echo esc_html__( 'Open for a short walkthrough of the IndexNow flow.', 'rankkernel' ); ?></p>
+				<h2 class="rk-card-title"><?php echo esc_html__( 'How Instant Indexing works', 'rankkernel' ); ?></h2>
+				<p class="rk-settings-hint"><?php echo esc_html__( 'The IndexNow flow from setup to submission, in short steps.', 'rankkernel' ); ?></p>
 			</div>
 
-			<div id="rk-help-panel" class="rk-help-panel" hidden>
-				<div class="rk-collapse-row">
-					<a href="#rk-help" class="rk-collapse-hide" id="rk-help-hide" aria-label="<?php echo esc_attr( __( 'Hide the walkthrough', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></a>
-				</div>
-				<ol class="rk-help-list">
-					<li><?php echo esc_html__( 'Turn the module on from the RankKernel dashboard, then turn on automatic submission here. Both are off by default, so nothing is sent until you do both.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'A verification key is created on your server the first time the module is enabled. It is stored server side and is never sent to your browser.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'Search engines verify the key by fetching a small public text file. This plugin serves that file virtually, so no file is written to your site root or your disk.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'When a post, page or term is published, updated or trashed, the plugin tells the search engines that the URL changed. Autosaves and revisions are skipped, and the same URL is not sent more than once every 10 minutes.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'The engines reply with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected and retrying will not help. 429 means too many requests, so try later.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'A submission means the engine was notified, not that the page was indexed. Sitemaps still handle full site coverage.', 'rankkernel' ); ?></li>
-					<li><?php echo esc_html__( 'Nothing else is contacted. There is no telemetry.', 'rankkernel' ); ?></li>
-				</ol>
+			<div class="rk-collapse-row">
+				<a href="#rk-help-panel" class="rk-collapse-hide" id="rk-help-hide" aria-label="<?php echo esc_attr( __( 'Hide the walkthrough', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></a>
 			</div>
+			<ol class="rk-help-list">
+				<li><?php echo esc_html__( 'Turn the module on from the RankKernel dashboard, then turn on automatic submission here. Both are off by default, so nothing is sent until you do both.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'A verification key is created on your server the first time the module is enabled. It is stored server side and is never sent to your browser.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'Search engines verify the key by fetching a small public text file. This plugin serves that file virtually, so no file is written to your site root or your disk.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'When a post, page or term is published, updated or trashed, the plugin tells the search engines that the URL changed. Autosaves and revisions are skipped, and the same URL is not sent more than once every 10 minutes.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'The engines reply with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected and retrying will not help. 429 means too many requests, so try later.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'A submission means the engine was notified, not that the page was indexed. Sitemaps still handle full site coverage.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'Nothing else is contacted. There is no telemetry.', 'rankkernel' ); ?></li>
+			</ol>
 		</div>
 
 	</div>
