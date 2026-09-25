@@ -164,4 +164,40 @@ final class PluginTest extends TestCase {
 		$this->assertSame( 1, preg_match( '/^- PHP (\S+)$/m', $readme_md_source, $readme_md_requirement ) );
 		$this->assertSame( '8.2+', $readme_md_requirement[1], 'README.md must require PHP 8.2+' );
 	}
+
+	/**
+	 * Test rankkernel_conflict_notice is scoped to RankKernel admin screens.
+	 */
+	public function test_conflict_notice_is_scoped_to_rankkernel_screens(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_conflict_notice' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_conflict_notice' === $key ) {
+					return [ 'Yoast SEO' ];
+				}
+				return $fallback;
+			}
+		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		// Case 1: Non-RankKernel screen -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_non_rk = ob_get_clean();
+		$this->assertEmpty( $output_non_rk );
+
+		// Case 2: RankKernel screen -> Should output conflict notice.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_rk = ob_get_clean();
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
+	}
 }
