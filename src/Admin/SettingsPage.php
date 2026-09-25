@@ -684,6 +684,11 @@ final class SettingsPage {
 			$version,
 			true
 		);
+
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-settings-admin', 'rankkernel' );
+		}
+
 		wp_enqueue_script( 'rankkernel-settings-admin' );
 
 		wp_register_style(
