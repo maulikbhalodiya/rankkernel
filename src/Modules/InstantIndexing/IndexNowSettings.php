@@ -14,12 +14,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Manages the rankkernel_instant_indexing_settings option plus the
- * rankkernel_instant_indexing_log ring buffer.
+ * wp_rankkernel_indexnow_log table.
  *
  * The API key is generated server side, stored with the autoloaded
- * settings, and never leaves PHP. The log holds the most recent
- * outcomes and is stored with autoload disabled so it stays out of
- * the alloptions cache.
+ * settings, and never leaves PHP. The log records every outcome in its
+ * own table until an admin clears it, so the row count is a record
+ * rather than a rolling window, and no log row ever carries the key.
  */
 final class IndexNowSettings {
 	/**
@@ -28,14 +28,13 @@ final class IndexNowSettings {
 	public const OPTION = 'rankkernel_instant_indexing_settings';
 
 	/**
-	 * Outcome log option name, stored without autoload.
+	 * Maximum rows one read call returns.
+	 *
+	 * The table keeps every row until an admin clears it, so no read
+	 * may be unbounded. logEntries() uses this cap as its whole read
+	 * and logPage() caps a requested limit with it too.
 	 */
-	public const LOG_OPTION = 'rankkernel_instant_indexing_log';
-
-	/**
-	 * Maximum number of retained log entries.
-	 */
-	public const LOG_LIMIT = 50;
+	public const READ_LIMIT = 200;
 
 	/**
 	 * Per URL debounce window in seconds.
@@ -293,7 +292,13 @@ final class IndexNowSettings {
 	}
 
 	/**
-	 * Prepend one outcome to the capped log.
+	 * Append one outcome to the log.
+	 *
+	 * A single INSERT, never a read then rewrite: the table is the
+	 * record and keeps every row until an admin clears it. The time is
+	 * UTC, matching the option rows this replaces, and long values are
+	 * clamped to the column widths so strict SQL mode never loses a
+	 * diagnostic row to its length.
 	 *
 	 * @param string $url     Submitted URL.
 	 * @param int    $code    HTTP status code.
@@ -302,55 +307,125 @@ final class IndexNowSettings {
 	 * @return void
 	 */
 	public function logEntry( string $url, int $code, string $source, string $message ): void {
-		$entries = $this->logEntries();
+		$db = $this->connection();
 
-		array_unshift(
-			$entries,
-			[
-				'url'     => $url,
-				'code'    => $code,
-				'source'  => $source,
-				'time'    => gmdate( 'Y-m-d H:i:s' ),
-				'message' => $message,
-			]
-		);
-
-		$entries = array_slice( $entries, 0, self::LOG_LIMIT );
-
-		if ( function_exists( 'update_option' ) ) {
-			update_option( self::LOG_OPTION, $entries, false );
+		if ( null === $db || ! LogTable::exists() ) {
+			return;
 		}
+
+		// Custom log table has no core API, typed insert with a format list.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$db->insert(
+			LogTable::name(),
+			[
+				'url'     => $this->clamp( $url, 65535 ),
+				'host'    => $this->clamp( $this->urlHost( $url ), 255 ),
+				'code'    => max( 0, min( 65535, $code ) ),
+				'source'  => $this->clamp( $source, 20 ),
+				'message' => $this->clamp( $message, 500 ),
+				'created' => gmdate( 'Y-m-d H:i:s' ),
+			],
+			[ '%s', '%s', '%d', '%s', '%s', '%s' ]
+		);
 	}
 
 	/**
-	 * Get the stored log entries, newest first.
+	 * Get stored log entries, newest first.
+	 *
+	 * Bounded by READ_LIMIT: the table keeps every row until cleared,
+	 * so an unbounded read is never safe. Paged surfaces use logPage()
+	 * and countLog() instead. The row shape stays url, code, source,
+	 * time, message because the admin view depends on it.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function logEntries(): array {
-		$stored = function_exists( 'get_option' ) ? get_option( self::LOG_OPTION, [] ) : [];
+		$entries = [];
 
-		if ( ! is_array( $stored ) ) {
+		foreach ( $this->logPage( self::READ_LIMIT, 0 ) as $row ) {
+			$entries[] = [
+				'url'     => (string) ( $row['url'] ?? '' ),
+				'code'    => (int) ( $row['code'] ?? 0 ),
+				'source'  => (string) ( $row['source'] ?? '' ),
+				'time'    => (string) ( $row['time'] ?? '' ),
+				'message' => (string) ( $row['message'] ?? '' ),
+			];
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * Get one page of stored entries, newest first.
+	 *
+	 * Returns the row shape logEntries() maps, plus host, so a filtered
+	 * or retried surface can use the stored host without reparsing the
+	 * URL. The limit is capped at READ_LIMIT and the offset is never
+	 * negative.
+	 *
+	 * @param int $limit  Rows to return, capped at READ_LIMIT.
+	 * @param int $offset Rows to skip.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function logPage( int $limit, int $offset = 0 ): array {
+		$db = $this->connection();
+
+		if ( null === $db || ! LogTable::exists() ) {
+			return [];
+		}
+
+		$limit  = max( 1, min( self::READ_LIMIT, $limit ) );
+		$offset = max( 0, $offset );
+		$table  = LogTable::name();
+		$sql    = "SELECT url, host, code, source, message, created FROM `{$table}` ORDER BY created DESC, id DESC LIMIT %d OFFSET %d";
+
+		// Custom log table has no core API, paged read with placeholders through prepare.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $db->get_results( $db->prepare( $sql, $limit, $offset ), ARRAY_A );
+
+		if ( ! is_array( $rows ) ) {
 			return [];
 		}
 
 		$entries = [];
 
-		foreach ( $stored as $entry ) {
-			if ( ! is_array( $entry ) ) {
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
 				continue;
 			}
 
 			$entries[] = [
-				'url'     => (string) ( $entry['url'] ?? '' ),
-				'code'    => (int) ( $entry['code'] ?? 0 ),
-				'source'  => (string) ( $entry['source'] ?? '' ),
-				'time'    => (string) ( $entry['time'] ?? '' ),
-				'message' => (string) ( $entry['message'] ?? '' ),
+				'url'     => (string) ( $row['url'] ?? '' ),
+				'host'    => (string) ( $row['host'] ?? '' ),
+				'code'    => (int) ( $row['code'] ?? 0 ),
+				'source'  => (string) ( $row['source'] ?? '' ),
+				'time'    => (string) ( $row['created'] ?? '' ),
+				'message' => (string) ( $row['message'] ?? '' ),
 			];
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Total stored log rows, for pagination.
+	 *
+	 * @return int The result.
+	 */
+	public function countLog(): int {
+		$db = $this->connection();
+
+		if ( null === $db || ! LogTable::exists() ) {
+			return 0;
+		}
+
+		$table = LogTable::name();
+
+		// Custom log table has no core API, unfiltered count with a constant predicate so the statement stays prepared.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$count = $db->get_var( $db->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE 1 = %d", 1 ) );
+
+		return (int) $count;
 	}
 
 	/**
@@ -359,9 +434,68 @@ final class IndexNowSettings {
 	 * @return void
 	 */
 	public function clearLog(): void {
-		if ( function_exists( 'update_option' ) ) {
-			update_option( self::LOG_OPTION, [], false );
+		$db = $this->connection();
+
+		if ( null === $db || ! LogTable::exists() ) {
+			return;
 		}
+
+		$table = LogTable::name();
+
+		// Custom log table has no core API, full clear with a constant predicate so the statement stays prepared.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$db->query( $db->prepare( "DELETE FROM `{$table}` WHERE 1 = %d", 1 ) );
+	}
+
+	/**
+	 * Host of a submitted URL, empty when it cannot be parsed.
+	 *
+	 * Stored so the host filter and display never reparse the URL.
+	 *
+	 * @param string $url Submitted URL.
+	 * @return string The result.
+	 */
+	private function urlHost( string $url ): string {
+		if ( '' === $url ) {
+			return '';
+		}
+
+		if ( function_exists( 'wp_parse_url' ) ) {
+			return (string) wp_parse_url( $url, PHP_URL_HOST );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- wp_parse_url is unavailable outside WordPress, the fallback only reads the host.
+		return (string) parse_url( $url, PHP_URL_HOST );
+	}
+
+	/**
+	 * Clamp a value to a column width.
+	 *
+	 * @param string $value Value to clamp.
+	 * @param int    $limit Maximum length in characters.
+	 * @return string The result.
+	 */
+	private function clamp( string $value, int $limit ): string {
+		if ( strlen( $value ) <= $limit ) {
+			return $value;
+		}
+
+		return function_exists( 'mb_substr' ) ? mb_substr( $value, 0, $limit ) : substr( $value, 0, $limit );
+	}
+
+	/**
+	 * Active database handle, null outside WordPress.
+	 *
+	 * @return \wpdb|null The result.
+	 */
+	private function connection() {
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return null;
+		}
+
+		return $wpdb;
 	}
 
 	/**

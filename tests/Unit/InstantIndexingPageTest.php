@@ -49,11 +49,28 @@ final class InstantIndexingPageTest extends TestCase {
 	private array $stored = [];
 
 	/**
+	 * Fake database backing the log table storage.
+	 *
+	 * @var InstantIndexingFakeDb
+	 */
+	private InstantIndexingFakeDb $db;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		if ( ! defined( 'ARRAY_A' ) ) {
+			define( 'ARRAY_A', 'ARRAY_A' );
+		}
+
+		$this->db = new InstantIndexingFakeDb();
+
+		// Test installs the in memory wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $this->db;
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			define( 'RANKKERNEL_TESTING', true );
@@ -131,6 +148,7 @@ final class InstantIndexingPageTest extends TestCase {
 	protected function tearDown(): void {
 		$_POST = [];
 		$_GET  = [];
+		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}

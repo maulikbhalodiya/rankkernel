@@ -140,6 +140,9 @@ final class InstantIndexingModule implements ModuleInterface {
 	 *
 	 * Returns before anything is constructed while disabled, so a
 	 * disabled module registers zero hooks and constructs zero clients.
+	 * The register path runs on every request a module boots, not only
+	 * on activation, so the log table is also created for a site that
+	 * upgraded to this version with the module already enabled.
 	 *
 	 * @return void
 	 */
@@ -147,6 +150,8 @@ final class InstantIndexingModule implements ModuleInterface {
 		if ( ! $this->isEnabled() ) {
 			return;
 		}
+
+		LogTable::ensureTables();
 
 		$this->settings()->ensureKey();
 	}
