@@ -235,7 +235,7 @@
 				swap( html );
 				busy( false );
 				markActive( section );
-				rankkernelAnnounce( __( 'Settings saved.', 'rankkernel' ) );
+				rankkernelAnnounce( __( 'Settings updated.', 'rankkernel' ) );
 			} ).catch( function () {
 				busy( false );
 				form.submit();
