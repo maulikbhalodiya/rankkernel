@@ -14,7 +14,7 @@ these files through paths relative to that stylesheet.
 | --- | --- | --- | --- | --- |
 | `inter-variable-latin.woff2` | Inter | wght 400 to 700 | Latin | 48256 bytes |
 | `jetbrains-mono-variable-latin.woff2` | JetBrains Mono | wght 400 to 500 | Latin | 31432 bytes |
-| `material-symbols-outlined-variable.woff2` | Material Symbols Outlined | FILL 0 to 1 | 25 icon ligatures | 4564 bytes |
+| `material-symbols-outlined-variable.woff2` | Material Symbols Outlined | FILL 0 to 1 | 29 icon ligatures | 5184 bytes |
 
 The two text families carry the Latin subset only, which covers the admin UI
 copy. Characters outside it fall through to the next family in the token
@@ -49,47 +49,52 @@ returns the woff2 variable files instead of legacy formats.
 `material-symbols-outlined-variable.woff2` is a subset of the source file in
 the Sources table. The full variable file is 4001608 bytes, too heavy for a
 plugin that markets itself as lightweight, so the shipped file keeps only
-the 25 ligature names the redirects screen design uses:
+the 29 ligature names the admin screens use:
 
 	add, alt_route, arrow_right, assessment, auto_fix_high, cancel,
 	check_circle, close, cloud_upload, code_blocks, download, error,
-	expand_less, expand_more, filter_alt_off, info, link, priority_high,
-	search, search_off, settings, swap_vert, tune, upload, warning
+	expand_less, expand_more, filter_alt_off, inbox, info, link, lock,
+	priority_high, search, search_off, send, settings, shield, swap_vert,
+	tune, upload, warning
 
 Ligature names shape to a single glyph through the `rlig` GSUB feature, so
 the subset must keep the component letter glyphs and the ligature rules
 beside the icon outlines. Two names are aliases inside the font: `assessment`
 shapes to the `insert_chart` glyph and `auto_fix_high` shapes to the
-`auto_fix` glyph. The outline list therefore retains the shaped names, not
-the ligature names:
+`auto_fix` glyph. The four IndexNow names shape to same named outlines
+(`send`, `shield`, `lock`, `inbox`). The outline list therefore retains the
+shaped names, not the ligature names:
 
 	add, alt_route, arrow_right, insert_chart, auto_fix, cancel,
 	check_circle, close, cloud_upload, code_blocks, download, error,
-	expand_less, expand_more, filter_alt_off, info, link, priority_high,
-	search, search_off, settings, swap_vert, tune, upload, warning
+	expand_less, expand_more, filter_alt_off, inbox, info, link, lock,
+	priority_high, search, search_off, send, settings, shield, swap_vert,
+	tune, upload, warning
 
-Eleven of those glyphs have a `.fill` twin, and the design's `fill-1` class
+Fifteen of those glyphs have a `.fill` twin, and the design's `fill-1` class
 switches to them through the `rclt` feature at `FILL` 1. The subset keeps
 those twins and the feature: `insert_chart.fill`, `auto_fix.fill`,
 `cancel.fill`, `check_circle.fill`, `cloud_upload.fill`, `code_blocks.fill`,
-`error.fill`, `filter_alt_off.fill`, `info.fill`, `settings.fill`,
-`warning.fill`.
+`error.fill`, `filter_alt_off.fill`, `inbox.fill`, `info.fill`, `lock.fill`,
+`send.fill`, `settings.fill`, `shield.fill`, `warning.fill`.
 
 ### Regenerating the subset
 
-Install the tools, then run both commands from the plugin root. The first
-writes a temporary file, the second replaces the shipped woff2:
+Install the tools, download the full source file from the Sources table with
+the desktop Chrome User-Agent as `/tmp/material-symbols-full-v374.woff2`, then
+run both commands from the plugin root. The first writes a temporary file, the
+second replaces the shipped woff2:
 
 ```sh
 pip install --user fonttools brotli
 # when pip refuses to write into an externally managed Python, append
 # --break-system-packages or install inside a virtual environment
 
-pyftsubset assets/fonts/material-symbols-outlined-variable.woff2 \
+pyftsubset /tmp/material-symbols-full-v374.woff2 \
 	--output-file=/tmp/material-symbols-subset.woff2 \
 	--flavor=woff2 \
 	--text='_abcdefghiklmnoprstuvwxy' \
-	--glyphs='add,alt_route,arrow_right,insert_chart,auto_fix,cancel,check_circle,close,cloud_upload,code_blocks,download,error,expand_less,expand_more,filter_alt_off,info,link,priority_high,search,search_off,settings,swap_vert,tune,upload,warning,insert_chart.fill,auto_fix.fill,cancel.fill,check_circle.fill,cloud_upload.fill,code_blocks.fill,error.fill,filter_alt_off.fill,info.fill,settings.fill,warning.fill' \
+	--glyphs='add,alt_route,arrow_right,insert_chart,auto_fix,cancel,check_circle,close,cloud_upload,code_blocks,download,error,expand_less,expand_more,filter_alt_off,inbox,info,link,lock,priority_high,search,search_off,send,settings,shield,swap_vert,tune,upload,warning,insert_chart.fill,auto_fix.fill,cancel.fill,check_circle.fill,cloud_upload.fill,code_blocks.fill,error.fill,filter_alt_off.fill,inbox.fill,info.fill,lock.fill,send.fill,settings.fill,shield.fill,warning.fill' \
 	--layout-features='*' \
 	--no-layout-closure \
 	--glyph-names \
@@ -100,19 +105,21 @@ fonttools varLib.instancer /tmp/material-symbols-subset.woff2 \
 	--output=assets/fonts/material-symbols-outlined-variable.woff2
 ```
 
-`--text` carries every letter and the underscore the 25 names use, so the
-component glyphs and their cmap entries survive. `--glyphs` carries the
-outline glyph names listed above. `--no-layout-closure` is required: the
-default closure retains every icon whose name reuses the retained letters,
-which would balloon the file back toward the full set. The subsetter keeps
-`rlig` and `rclt` because `--layout-features='*'` names every feature.
+`--text` carries every letter and the underscore the 29 names use, so the
+component glyphs and their cmap entries survive. The four IndexNow names
+reuse letters already present in the string, so `--text` is unchanged.
+`--glyphs` carries the outline glyph names listed above. `--no-layout-closure`
+is required: the default closure retains every icon whose name reuses the
+retained letters, which would balloon the file back toward the full set. The
+subsetter keeps `rlig` and `rclt` because `--layout-features='*'` names every
+feature.
 
 The instancer pins `wght`, `GRAD` and `opsz` and keeps `FILL` as a range
 from 0 to 1, so the `fill-1` design class and any consumer opt in still
-switch glyphs. Keeping all four axes costs 19304 bytes, while the pinned
-build is 4564 bytes.
+switch glyphs. Keeping all four axes costs 22920 bytes, while the pinned
+build is 5184 bytes.
 
-After a rebuild, decompress the woff2 with fontTools, shape each of the 25
+After a rebuild, decompress the woff2 with fontTools, shape each of the 29
 names with HarfBuzz at `FILL` 0 and `FILL` 1, and assert one glyph per name
 with the same glyph name the full font returns.
 
@@ -143,8 +150,8 @@ curl -fsSL -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit
 All three binaries were checked on 2026-09-23 with `file`, which reports Web
 Open Font Format (Version 2), and every file begins with the `wOF2` magic
 bytes. None is an HTML error page. The Material Symbols subset was rebuilt
-and re-checked the same day: `file` reports 4564 bytes of Web Open Font
-Format (Version 2), the file starts with `wOF2`, HarfBuzz shapes all 25
+and re-checked on 2026-09-25: `file` reports 5184 bytes of Web Open Font
+Format (Version 2), the file starts with `wOF2`, HarfBuzz shapes all 29
 names to exactly one glyph at `FILL` 0 and `FILL` 1, those glyph outlines
 are identical to the full font instanced at the same settings, and
 `npx csstree-validator assets/css/rankkernel-admin.css` exits 0.

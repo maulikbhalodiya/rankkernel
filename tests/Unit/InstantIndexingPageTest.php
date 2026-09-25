@@ -157,6 +157,35 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the wrap opens with the screen reader h1 and the visible title is an h2.
+	 *
+	 * WordPress relocates third party .notice elements after the first h1 on
+	 * the page. Without this anchor the notices collect inside the header
+	 * card, so the first element inside the wrap must be the screen reader h1
+	 * and the styled title must not be an h1.
+	 */
+	public function test_render_opens_with_the_screen_reader_h1_and_keeps_the_visible_title_as_h2(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$wrapOpen = '<div class="wrap rk-instant-indexing-wrap">';
+		$wrapPos  = strpos( $html, $wrapOpen );
+		$this->assertNotFalse( $wrapPos, 'the wrap must render' );
+
+		$insideWrap = substr( $html, $wrapPos + strlen( $wrapOpen ) );
+		$this->assertMatchesRegularExpression(
+			'/^\s*<h1 class="screen-reader-text">Instant Indexing<\/h1>/',
+			$insideWrap,
+			'the screen reader h1 must be the first element inside the wrap'
+		);
+
+		$this->assertStringContainsString( '<h2 class="rk-page-title">Instant Indexing</h2>', $html );
+		$this->assertSame( 1, substr_count( $html, '<h1' ), 'the screen reader heading must be the only h1' );
+	}
+
+	/**
 	 * Test the configured state is shown when a key exists.
 	 */
 	public function test_render_shows_the_configured_state_when_a_key_exists(): void {

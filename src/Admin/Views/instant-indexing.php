@@ -40,13 +40,24 @@ use RankKernel\Admin\InstantIndexingPage;
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="wrap rk-instant-indexing-wrap">
+
+	<?php
+	/*
+	 * WordPress injects third-party plugin notices directly into .wrap before
+	 * our rendered content. We output a screen-reader heading here so WP has
+	 * the h1 it expects, then open .rk-instant-indexing below the native
+	 * notice area.
+	 */
+	?>
+	<h1 class="screen-reader-text"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h1>
+
 	<div class="rk-instant-indexing">
 
 		<?php /* Section 1: page header card. */ ?>
 		<header class="rk-card rk-page-header">
 			<div class="rk-page-header-text">
 				<div class="rk-page-header-title-row">
-					<h1 class="rk-page-title"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h1>
+					<h2 class="rk-page-title"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h2>
 					<?php if ( $autoSubmit ) : ?>
 						<span class="rk-auto-pill rk-auto-pill-on"><span class="rk-auto-pill-dot" aria-hidden="true"></span><?php echo esc_html__( 'Automatic submission on', 'rankkernel' ); ?></span>
 					<?php else : ?>
