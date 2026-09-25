@@ -523,6 +523,52 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test import of a file containing PHP payload under a .csv extension is safely parsed/rejected without executing.
+	 */
+	public function test_import_csv_with_php_payload_handled_safely(): void {
+		$tmp = (string) tempnam( sys_get_temp_dir(), 'rkcsv' );
+		file_put_contents( $tmp, "<?php echo 'malicious'; ?>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		try {
+			$page = new RedirectsPage(
+				new RedirectRepository( $this->db ),
+				new RedirectsSettings(),
+				new Validator(),
+				new DestinationValidator(),
+				static fn ( string $p ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			);
+
+			$this->allowAccess();
+
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST                     = [
+				'rankkernel_redirect_import' => '1',
+				'_wpnonce'                   => 'valid',
+			];
+			$_FILES                    = [
+				'rk_csv_file' => [
+					'name'     => 'malicious.csv',
+					'type'     => 'text/csv',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 30,
+				],
+			];
+
+			ob_start();
+			$page->maybeHandleSave();
+			ob_end_clean();
+
+			$result = $page->import_result();
+			$this->assertIsArray( $result );
+			$this->assertSame( 0, $result['created'] );
+			$this->assertSame( 1, $result['errors'][0]['row'] );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
 	 * Test import uses wp_check_filetype_and_ext when available.
 	 */
 	public function test_import_uses_wp_check_filetype_and_ext(): void {

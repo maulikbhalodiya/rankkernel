@@ -787,6 +787,82 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Test save import fails closed when file name is missing or non-string.
+	 */
+	public function test_save_import_invalid_filename_type_fails_closed(): void {
+		$stored = $this->storedPayload();
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn ( int $id, string $key, bool $single ) => $stored // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors get_post_meta signature.
+		);
+		Functions\expect( 'update_post_meta' )->never();
+
+		$tmp = $this->writeImportTmp( '{"type":"Product"}' );
+
+		try {
+			$_POST  = [ 'rankkernel_schema_nonce' => 'valid' ];
+			$_FILES = [
+				'rankkernel_schema_import' => [
+					'name'     => [ 'array-style.json' ],
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 18,
+				],
+			];
+
+			$box = new SchemaMetabox( static fn ( string $p ): bool => true ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- callback signature.
+			$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+			$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
+	 * Test save import of PHP payload under .json extension is safely rejected by JSON decoder.
+	 */
+	public function test_save_import_php_payload_rejected_by_decoder(): void {
+		$stored = $this->storedPayload();
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn ( int $id, string $key, bool $single ) => $stored // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors get_post_meta signature.
+		);
+		Functions\expect( 'update_post_meta' )->never();
+
+		$tmp = $this->writeImportTmp( "<?php system('id'); ?>\n" );
+
+		try {
+			$_POST  = [ 'rankkernel_schema_nonce' => 'valid' ];
+			$_FILES = [
+				'rankkernel_schema_import' => [
+					'name'     => 'malicious.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 22,
+				],
+			];
+
+			$box = new SchemaMetabox( static fn ( string $p ): bool => true ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- callback signature.
+			$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+			$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+	}
+
+	/**
 	 * Test save import garbage saves nothing.
 	 */
 	public function test_save_import_garbage_saves_nothing(): void {
