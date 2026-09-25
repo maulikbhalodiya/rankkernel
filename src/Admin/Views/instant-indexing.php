@@ -64,7 +64,7 @@ defined( 'ABSPATH' ) || exit;
 		</p>
 		<textarea class="large-text code" id="rankkernel-indexnow-urls" name="rankkernel_indexnow_urls" rows="5" placeholder="<?php echo esc_attr( $urlPlaceholder ); ?>"></textarea>
 		<div id="rankkernel-indexnow-urls-status" role="status"></div>
-		<p class="description"><?php echo esc_html__( 'Must be URLs on this site. Deleted pages and redirect sources can be submitted too.', 'rankkernel' ); ?></p>
+		<p class="description"><?php echo esc_html__( 'Must be URLs on this site. Deleted pages can be submitted too.', 'rankkernel' ); ?></p>
 		<?php submit_button( __( 'Submit', 'rankkernel' ), 'primary', '', false, [ 'id' => 'rankkernel-indexnow-submit' ] ); ?>
 	</form>
 

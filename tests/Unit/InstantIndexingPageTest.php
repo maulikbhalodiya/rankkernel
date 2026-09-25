@@ -59,6 +59,10 @@ final class InstantIndexingPageTest extends TestCase {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
+		}
+
 		$this->stored = [];
 		Functions\when( 'get_option' )->alias(
 			function ( string $k, mixed $f = false ): mixed {
@@ -590,8 +594,79 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_urls"', $html );
 		$this->assertStringContainsString( '<textarea', $html );
 		$this->assertStringContainsString( 'id="rankkernel-indexnow-urls-status"', $html );
-		$this->assertStringContainsString( 'Must be URLs on this site.', $html );
+		$this->assertStringContainsString( 'Must be URLs on this site. Deleted pages can be submitted too.', $html );
+		$this->assertStringNotContainsString( 'redirect sources', $html );
 		$this->assertStringNotContainsString( 'name="rankkernel_indexnow_url"', $html );
+	}
+
+	/**
+	 * Test the screen script is scoped, footer loaded and key free.
+	 *
+	 * The enqueue path is the only data path from PHP to the browser, so
+	 * this pins the security invariant the spec cares about: the asset
+	 * loads on this screen only, and the API key reaches neither the
+	 * localized object nor the registered script arguments.
+	 */
+	public function test_enqueue_assets_is_screen_scoped_and_never_passes_the_key(): void {
+		$registeredScripts = [];
+		$enqueuedScripts   = [];
+		$localizedScripts  = [];
+
+		Functions\when( 'plugins_url' )->alias(
+			static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( string $handle, string $src, array $deps = [], string $ver = '', bool $inFooter = false ) use ( &$registeredScripts ): void {
+				$registeredScripts[ $handle ] = [
+					'src'       => $src,
+					'deps'      => $deps,
+					'ver'       => $ver,
+					'in_footer' => $inFooter,
+				];
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( string $handle ) use ( &$enqueuedScripts ): void {
+				$enqueuedScripts[] = $handle;
+			}
+		);
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $objectName, array $data ) use ( &$localizedScripts ): void {
+				$localizedScripts[ $objectName ] = $data;
+			}
+		);
+
+		$page = $this->page();
+
+		$page->enqueueAssets( 'toplevel_page_rankkernel' );
+
+		$this->assertSame( [], $registeredScripts, 'the script must not register on another screen' );
+		$this->assertSame( [], $enqueuedScripts, 'the script must not enqueue on another screen' );
+		$this->assertSame( [], $localizedScripts, 'nothing must localize on another screen' );
+
+		$page->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
+
+		$handle = 'rankkernel-instant-indexing-admin';
+
+		$this->assertArrayHasKey( $handle, $registeredScripts );
+		$this->assertContains( $handle, $enqueuedScripts );
+		$this->assertTrue( $registeredScripts[ $handle ]['in_footer'], 'the script must load in the footer' );
+		$this->assertStringContainsString( 'instant-indexing-admin.js', $registeredScripts[ $handle ]['src'] );
+
+		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
+		$this->assertSame(
+			[ 'siteHost' => 'example.com' ],
+			$localizedScripts['rankkernelInstantIndexing'],
+			'the payload must carry the site host only'
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		$registeredJson = (string) json_encode( $registeredScripts );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		$localizedJson = (string) json_encode( $localizedScripts );
+
+		$this->assertStringNotContainsString( $this->key, $registeredJson, 'the key must never appear in registered script arguments' );
+		$this->assertStringNotContainsString( $this->key, $localizedJson, 'the key must never appear in localized data' );
 	}
 
 	/**

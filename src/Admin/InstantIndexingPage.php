@@ -12,7 +12,6 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
-use RankKernel\Modules\InstantIndexing\IndexNowClient;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
 use RankKernel\Modules\ModuleEnableMap;
@@ -136,9 +135,8 @@ final class InstantIndexingPage {
 	 * Enqueue screen assets, and only on this screen.
 	 *
 	 * The validation script is registered, enqueued and localized here.
-	 * Only the site host and the batch limit reach the browser, the API
-	 * key never does. The gate keeps the hook contract shared with the
-	 * other module pages.
+	 * Only the site host reaches the browser, the API key never does, and
+	 * the gate keeps the hook contract shared with the other module pages.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -167,7 +165,6 @@ final class InstantIndexingPage {
 			'rankkernelInstantIndexing',
 			[
 				'siteHost' => $this->settings->siteHost(),
-				'maxUrls'  => IndexNowClient::MAX_URLS,
 			]
 		);
 	}

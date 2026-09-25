@@ -4,8 +4,8 @@
  * Enables the submit button only while every non empty line is an absolute
  * http or https URL on this site. The server validates again, so the button
  * ships enabled in the HTML and a user without JavaScript can still submit.
- * Only the site host and the batch limit are localized into this file, the
- * API key never reaches the browser.
+ * Only the site host is localized into this file, the API key never reaches
+ * the browser.
  *
  * Plain script, no build step. Loaded on the Instant Indexing screen only.
  */
@@ -69,11 +69,14 @@
 	/**
 	 * Validate every non empty line, pure and DOM free.
 	 *
-	 * Returns the per line entries plus the summary line and whether the
-	 * submit button must stay disabled.
+	 * Duplicates are counted once, preserving order, so the live count
+	 * matches what the server will submit. Returns the per line entries
+	 * plus the summary line and whether the submit button must stay
+	 * disabled.
 	 */
 	function validate( text, host ) {
 		var lines = String( text || '' ).split( /\r\n|\r|\n/ );
+		var seen = Object.create( null );
 		var entries = [];
 		var validCount = 0;
 		var invalidCount = 0;
@@ -84,9 +87,11 @@
 		for ( index = 0; index < lines.length; index++ ) {
 			url = lines[ index ].trim();
 
-			if ( '' === url ) {
+			if ( '' === url || seen[ url ] ) {
 				continue;
 			}
+
+			seen[ url ] = true;
 
 			reason = reasonFor( url, host );
 
@@ -195,11 +200,16 @@
 		}
 
 		var button = document.getElementById( BUTTON_ID );
+		var form = field.form || ( field.closest ? field.closest( 'form' ) : null );
 		var host = String( config().siteHost || '' );
 		var timer = null;
 
 		function run() {
-			render( status, button, validate( field.value, host ) );
+			var result = validate( field.value, host );
+
+			render( status, button, result );
+
+			return result;
 		}
 
 		field.addEventListener( 'input', function () {
@@ -210,11 +220,11 @@
 			timer = window.setTimeout( run, DEBOUNCE_MS );
 		} );
 
-		if ( button ) {
-			button.addEventListener( 'click', function ( event ) {
-				run();
-
-				if ( button.disabled ) {
+		// A submit with anything invalid is stopped here, so the request
+		// cannot be sent with bad input.
+		if ( form ) {
+			form.addEventListener( 'submit', function ( event ) {
+				if ( run().disabled ) {
 					event.preventDefault();
 				}
 			} );

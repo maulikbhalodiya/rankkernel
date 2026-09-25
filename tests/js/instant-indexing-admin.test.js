@@ -3,10 +3,10 @@
 /**
  * Live multi URL validation on the Instant Indexing screen.
  *
- * The script is a classic DOM script, so it runs here in a vm sandbox with
- * a minimal fake document. Each test calls the exposed pure validator with
- * the same host wp_localize_script passes in the browser, so no DOM is
- * needed for the validation rules themselves.
+ * The script is a classic DOM script. The validation rules run through the
+ * exposed pure validator with the same host wp_localize_script passes in the
+ * browser, and the wiring test mounts the script against a minimal fake
+ * document to pin the button state and the blocked submit.
  */
 
 const { test } = require( 'node:test' );
@@ -31,8 +31,7 @@ function validator( siteHost ) {
 	};
 
 	const config = {
-		siteHost: siteHost || 'example.com',
-		maxUrls: 10000
+		siteHost: siteHost || 'example.com'
 	};
 	const sandbox = { document, URL, rankkernelInstantIndexing: config };
 
@@ -113,4 +112,140 @@ test( 'mixed input reports the correct invalid count', () => {
 	);
 	assert.equal( result.summary, '2 of 4 URLs are not valid. Fix them to continue.' );
 	assert.equal( result.disabled, true );
+} );
+
+test( 'blank and duplicate lines are counted once', () => {
+	const validate = validator( 'example.com' );
+	const result = validate( 'https://example.com/a\n\nhttps://example.com/a\nhttps://example.com/b' );
+
+	assert.equal( result.total, 2 );
+	assert.equal( result.validCount, 2 );
+	assert.equal( result.summary, '2 URLs ready to submit.' );
+	assert.equal( result.entries[ 1 ].url, 'https://example.com/b' );
+} );
+
+function fakeNode( props ) {
+	const listeners = {};
+	let text = '';
+
+	const node = Object.assign(
+		{
+			value: '',
+			disabled: false,
+			className: '',
+			children: [],
+			attrs: {},
+			addEventListener( type, handler ) {
+				listeners[ type ] = handler;
+			},
+			fire( type, event ) {
+				if ( listeners[ type ] ) {
+					listeners[ type ]( Object.assign( { target: node, preventDefault() {} }, event || {} ) );
+				}
+			},
+			appendChild( child ) {
+				this.children.push( child );
+			},
+			getAttribute( name ) {
+				return Object.prototype.hasOwnProperty.call( this.attrs, name ) ? this.attrs[ name ] : null;
+			},
+			setAttribute( name, value ) {
+				this.attrs[ name ] = value;
+			}
+		},
+		props
+	);
+
+	Object.defineProperty( node, 'textContent', {
+		get() {
+			return text;
+		},
+		set( value ) {
+			text = String( value );
+			node.children.length = 0;
+		}
+	} );
+
+	return node;
+}
+
+function mount( value ) {
+	const readyHandlers = [];
+	const form = fakeNode( {} );
+	const field = fakeNode( { value: value, form: form } );
+	const status = fakeNode( {} );
+	const button = fakeNode( {} );
+
+	const document = {
+		readyState: 'loading',
+		addEventListener( type, handler ) {
+			if ( 'DOMContentLoaded' === type ) {
+				readyHandlers.push( handler );
+			}
+		},
+		getElementById( id ) {
+			if ( 'rankkernel-indexnow-urls' === id ) {
+				return field;
+			}
+			if ( 'rankkernel-indexnow-urls-status' === id ) {
+				return status;
+			}
+			if ( 'rankkernel-indexnow-submit' === id ) {
+				return button;
+			}
+
+			return null;
+		},
+		createElement( tag ) {
+			return fakeNode( { tagName: tag } );
+		}
+	};
+
+	const sandbox = {
+		document,
+		URL,
+		setTimeout( callback ) {
+			callback();
+
+			return 1;
+		},
+		clearTimeout() {},
+		rankkernelInstantIndexing: { siteHost: 'example.com' }
+	};
+
+	sandbox.window = sandbox;
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+	readyHandlers.forEach( ( handler ) => handler() );
+
+	return {
+		button,
+		field,
+		status,
+		submit() {
+			let prevented = false;
+
+			form.fire( 'submit', {
+				preventDefault() {
+					prevented = true;
+				}
+			} );
+
+			return prevented;
+		}
+	};
+}
+
+test( 'the mounted script disables the button and blocks an invalid submit', () => {
+	const fixture = mount( 'https://example.com/a\nhttps://evil.test/b' );
+
+	assert.equal( fixture.button.disabled, true );
+	assert.equal( fixture.status.children[ 0 ].textContent, '1 of 2 URLs are not valid. Fix them to continue.' );
+	assert.equal( fixture.submit(), true, 'an invalid submit event must be prevented' );
+
+	fixture.field.value = 'https://example.com/a\nhttps://example.com/b';
+	fixture.field.fire( 'input' );
+
+	assert.equal( fixture.button.disabled, false );
+	assert.equal( fixture.status.children[ 0 ].textContent, '2 URLs ready to submit.' );
+	assert.equal( fixture.submit(), false, 'a valid submit event must go through' );
 } );
