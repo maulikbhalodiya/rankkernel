@@ -3,10 +3,13 @@
  *
  * Hand written match of the RankKernel Instant Indexing design export, built
  * without Tailwind and without a build step. Loaded only on the Instant
- * Indexing admin screen via InstantIndexingPage::enqueueAssets. Every rule
- * is scoped under .rk-instant-indexing so nothing leaks elsewhere. All
- * colour, spacing, radius and shadow values come from var(--rk-*) tokens
- * defined in rankkernel-admin.css. No raw hex is permitted here.
+ * Indexing admin screen via InstantIndexingPage::enqueueAssets. Shared
+ * components (buttons, cards, header, notices, pills, table, tabs,
+ * pagination, search, select, form rows and the switch) live in
+ * rankkernel-ui.css under the rk-ui scope, imported below, and this file
+ * holds only page scoped rules under .rk-instant-indexing. All colour,
+ * spacing, radius and shadow values come from var(--rk-*) tokens defined
+ * in rankkernel-admin.css. No raw hex is permitted here.
  *
  * The file covers every state from the design component sheet, including
  * states the page renders only conditionally: notices in all four semantic
@@ -19,10 +22,11 @@
  */
 
 @import url("rankkernel-admin.css");
+@import url("rankkernel-ui.css");
 
 /* ==========================================================================
    Wrap shell, suppress WP native notices that bleed from other plugins
-   inside our styled page area. Our own notices use .rk-notice classes.
+   inside our styled page area. Our own notices use .rk-ui-notice classes.
    ========================================================================== */
 
 .rk-instant-indexing-wrap .rk-instant-indexing > .notice,
@@ -45,143 +49,9 @@
 	box-sizing: border-box;
 }
 
-.rk-instant-indexing .rk-card {
-	margin: 0;
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-lg);
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-instant-indexing .rk-card-title {
-	margin: 0;
-	font-size: 15px;
-	font-weight: 700;
-	color: var(--rk-color-text);
-	line-height: var(--rk-line-height-tight);
-}
-
-.rk-instant-indexing .rk-icon {
-	font-size: 18px;
-}
-
 /* ==========================================================================
-   Buttons, primary plus secondary plus destructive plus disabled
+   Clear log form, page specific destructive override on the shared buttons
    ========================================================================== */
-
-.rk-instant-indexing .rk-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-2);
-	padding: var(--rk-space-2) var(--rk-space-4);
-	border-radius: var(--rk-radius-md);
-	font-size: var(--rk-font-size-sm);
-	font-weight: 600;
-	line-height: var(--rk-line-height-normal);
-	text-decoration: none;
-	cursor: pointer;
-	box-shadow: var(--rk-shadow-sm);
-	transition: background 0.15s, color 0.15s, border-color 0.15s;
-	box-sizing: border-box;
-}
-
-.rk-instant-indexing .rk-btn .rk-icon {
-	font-size: 18px;
-}
-
-.rk-instant-indexing .rk-btn-primary {
-	background: var(--rk-color-primary);
-	border: 1px solid var(--rk-color-primary);
-	color: var(--rk-color-surface);
-}
-
-.rk-instant-indexing .rk-btn-primary:hover {
-	background: var(--rk-color-primary-hover);
-	border-color: var(--rk-color-primary-hover);
-	color: var(--rk-color-surface);
-}
-
-.rk-instant-indexing .rk-btn-primary:active {
-	background: var(--rk-color-primary-active);
-	border-color: var(--rk-color-primary-active);
-}
-
-.rk-instant-indexing .rk-btn-secondary {
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	color: var(--rk-color-text-secondary);
-}
-
-.rk-instant-indexing .rk-btn-secondary:hover {
-	background: var(--rk-color-surface-subtle);
-	color: var(--rk-color-text);
-}
-
-/* Icon only header control, equal in height, border, radius, background and weight to the secondary control. */
-.rk-instant-indexing .rk-btn-icon {
-	min-width: 37px;
-	padding-inline: var(--rk-space-2);
-	justify-content: center;
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	color: var(--rk-color-text-secondary);
-}
-
-.rk-instant-indexing .rk-btn-icon:hover {
-	background: var(--rk-color-surface-subtle);
-	color: var(--rk-color-text);
-}
-
-/* WordPress submit buttons inside our cards take the same treatment. */
-.rk-instant-indexing .button {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-2);
-	padding: var(--rk-space-2) var(--rk-space-4);
-	border-radius: var(--rk-radius-md);
-	font-size: var(--rk-font-size-sm);
-	font-weight: 600;
-	line-height: var(--rk-line-height-normal);
-	cursor: pointer;
-	box-shadow: var(--rk-shadow-sm);
-	transition: background 0.15s, color 0.15s, border-color 0.15s;
-	box-sizing: border-box;
-}
-
-.rk-instant-indexing .button-primary {
-	background: var(--rk-color-primary);
-	border: 1px solid var(--rk-color-primary);
-	color: var(--rk-color-surface);
-}
-
-.rk-instant-indexing .button-primary:hover {
-	background: var(--rk-color-primary-hover);
-	border-color: var(--rk-color-primary-hover);
-	color: var(--rk-color-surface);
-}
-
-.rk-instant-indexing .button-primary:active {
-	background: var(--rk-color-primary-active);
-	border-color: var(--rk-color-primary-active);
-}
-
-.rk-instant-indexing .button-secondary {
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	color: var(--rk-color-text-secondary);
-}
-
-.rk-instant-indexing .button-secondary:hover {
-	background: var(--rk-color-surface-subtle);
-	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .button:disabled,
-.rk-instant-indexing .button-primary:disabled,
-.rk-instant-indexing .rk-btn:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
 
 /* Destructive text action for the clear log form. */
 .rk-instant-indexing .rk-clear-form {
@@ -204,56 +74,9 @@
 }
 
 /* ==========================================================================
-   Page header card
+   Automatic submission state pill in the header
    ========================================================================== */
 
-.rk-instant-indexing .rk-page-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--rk-space-4);
-	padding: var(--rk-space-5) var(--rk-space-6);
-}
-
-.rk-instant-indexing .rk-page-header-text {
-	display: flex;
-	flex-direction: column;
-	gap: var(--rk-space-1);
-	min-width: 0;
-}
-
-.rk-instant-indexing .rk-page-header-title-row {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-3);
-	flex-wrap: wrap;
-}
-
-.rk-instant-indexing .rk-page-title {
-	margin: 0;
-	padding: 0;
-	font-size: 22px;
-	font-weight: 700;
-	color: var(--rk-color-text);
-	line-height: var(--rk-line-height-tight);
-	letter-spacing: -0.015em;
-}
-
-.rk-instant-indexing .rk-page-header .rk-sub {
-	margin: 4px 0 0;
-	font-size: var(--rk-font-size-sm);
-	color: var(--rk-color-text-muted);
-	line-height: var(--rk-line-height-normal);
-}
-
-.rk-instant-indexing .rk-page-header-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-3);
-	flex-shrink: 0;
-}
-
-/* Automatic submission state pill in the header. */
 .rk-instant-indexing .rk-auto-pill {
 	display: inline-flex;
 	align-items: center;
@@ -291,98 +114,6 @@
 
 .rk-instant-indexing .rk-auto-pill-off .rk-auto-pill-dot {
 	background: var(--rk-color-text-hint);
-}
-
-/* ==========================================================================
-   Notice banners in all four semantic colours
-   ========================================================================== */
-
-.rk-instant-indexing .rk-notice {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-3);
-	margin: 0;
-	padding: 14px var(--rk-space-4);
-	border: 1px solid transparent;
-	border-inline-start: 4px solid transparent;
-	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
-	font-size: var(--rk-font-size-sm);
-	line-height: var(--rk-line-height-normal);
-	box-shadow: var(--rk-shadow-sm);
-	box-sizing: border-box;
-}
-
-.rk-instant-indexing .rk-notice-icon {
-	flex-shrink: 0;
-	font-size: 20px;
-	line-height: 1;
-}
-
-.rk-instant-indexing .rk-notice-text {
-	flex: 1 1 auto;
-	min-width: 0;
-	margin: 0;
-	font-weight: 500;
-	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .rk-notice-dismiss {
-	flex-shrink: 0;
-	background: none;
-	border: none;
-	cursor: pointer;
-	color: var(--rk-color-text-muted);
-	padding: var(--rk-space-1);
-	border-radius: var(--rk-radius-sm);
-	transition: color 0.15s;
-}
-
-.rk-instant-indexing .rk-notice-dismiss:hover {
-	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .rk-notice-dismiss .rk-icon {
-	font-size: 18px;
-}
-
-.rk-instant-indexing .rk-notice-success {
-	background: var(--rk-color-secondary-1-soft);
-	border-color: var(--rk-tint-positive-border);
-	border-inline-start-color: var(--rk-color-secondary-1);
-}
-
-.rk-instant-indexing .rk-notice-success .rk-notice-icon {
-	color: var(--rk-color-secondary-1);
-}
-
-.rk-instant-indexing .rk-notice-error {
-	background: var(--rk-color-secondary-4-soft);
-	border-color: var(--rk-tint-error-border);
-	border-inline-start-color: var(--rk-color-secondary-4);
-}
-
-.rk-instant-indexing .rk-notice-error .rk-notice-icon {
-	color: var(--rk-color-secondary-4);
-}
-
-.rk-instant-indexing .rk-notice-warning {
-	background: var(--rk-color-secondary-3-soft);
-	border-color: var(--rk-tint-warning-border);
-	border-inline-start-color: var(--rk-color-secondary-3);
-}
-
-.rk-instant-indexing .rk-notice-warning .rk-notice-icon {
-	color: var(--rk-color-secondary-3);
-}
-
-.rk-instant-indexing .rk-notice-info {
-	background: var(--rk-color-primary-soft);
-	border-color: var(--rk-tint-primary-border);
-	border-inline-start-color: var(--rk-color-primary);
-}
-
-.rk-instant-indexing .rk-notice-info .rk-notice-icon {
-	color: var(--rk-color-primary);
 }
 
 /* ==========================================================================
@@ -476,20 +207,6 @@
 	flex-direction: column;
 	gap: var(--rk-space-3);
 	margin: 0;
-}
-
-.rk-instant-indexing .rk-form-row {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.rk-instant-indexing .rk-form-label {
-	font-size: var(--rk-font-size-xs);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--rk-color-text-secondary);
 }
 
 .rk-instant-indexing .rk-urls-input {
@@ -661,21 +378,6 @@
 	overflow: hidden;
 }
 
-.rk-instant-indexing .rk-card-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--rk-space-3);
-	padding: var(--rk-space-4) var(--rk-space-6) 16px;
-	border-block-end: 1px solid var(--rk-color-border);
-}
-
-.rk-instant-indexing .rk-card-header-left {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-
 .rk-instant-indexing .rk-entry-count {
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
@@ -697,44 +399,6 @@
 	margin: 0;
 }
 
-.rk-instant-indexing .rk-search-wrap {
-	position: relative;
-	flex: 1 1 auto;
-	max-width: 420px;
-}
-
-.rk-instant-indexing .rk-search-icon {
-	position: absolute;
-	inset-inline-start: 12px;
-	inset-block-start: 50%;
-	transform: translateY(-50%);
-	color: var(--rk-color-text-hint);
-	font-size: 18px;
-	pointer-events: none;
-}
-
-.rk-instant-indexing .rk-search-input {
-	width: 100%;
-	padding: 6px 14px 6px 36px;
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-md);
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-xs);
-	box-sizing: border-box;
-	transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.rk-instant-indexing .rk-search-input::placeholder {
-	color: var(--rk-color-text-hint);
-}
-
-.rk-instant-indexing .rk-search-input:focus {
-	border-color: var(--rk-color-primary);
-	outline: none;
-	box-shadow: 0 0 0 2px var(--rk-ring-primary);
-}
-
 .rk-instant-indexing .rk-source-wrap {
 	display: flex;
 	align-items: center;
@@ -747,39 +411,6 @@
 	font-weight: 500;
 	color: var(--rk-color-text-secondary);
 	white-space: nowrap;
-}
-
-.rk-instant-indexing .rk-select-wrap {
-	position: relative;
-}
-
-.rk-instant-indexing .rk-filter-select {
-	appearance: none;
-	background-color: var(--rk-color-surface);
-	padding: 6px 32px 6px 12px;
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-md);
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	cursor: pointer;
-	transition: border-color 0.15s;
-}
-
-.rk-instant-indexing .rk-filter-select:focus {
-	border-color: var(--rk-color-primary);
-	outline: none;
-	box-shadow: 0 0 0 2px var(--rk-ring-primary);
-}
-
-.rk-instant-indexing .rk-select-chevron {
-	position: absolute;
-	inset-inline-end: 8px;
-	inset-block-start: 50%;
-	transform: translateY(-50%);
-	color: var(--rk-color-text-muted);
-	font-size: 16px;
-	pointer-events: none;
 }
 
 .rk-instant-indexing .rk-filter-submit {
@@ -799,174 +430,38 @@
 	text-decoration: underline;
 }
 
-/* Segmented status tabs with real counts. */
-.rk-instant-indexing .rk-tabs {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-6);
-	padding: 0 var(--rk-space-6);
-	border-block-end: 1px solid var(--rk-color-border);
-	overflow-x: auto;
-}
-
-.rk-instant-indexing .rk-tab {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: var(--rk-space-3) 2px;
-	border-block-end: 2px solid transparent;
-	margin-block-end: -1px;
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	text-decoration: none;
-	white-space: nowrap;
-	transition: color 0.15s, border-color 0.15s;
-}
-
-.rk-instant-indexing .rk-tab:hover {
-	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .rk-tab.current {
-	border-block-end-color: var(--rk-color-primary);
-	color: var(--rk-color-primary);
-	font-weight: 600;
-}
-
-.rk-instant-indexing .rk-tab .count {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 20px;
-	height: 18px;
-	padding: 0 6px;
-	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
-	background: var(--rk-color-surface-muted);
-	color: var(--rk-color-text-muted);
-}
-
-.rk-instant-indexing .rk-tab.current .count {
-	background: var(--rk-color-primary-soft);
-	color: var(--rk-color-primary);
-}
-
 /* ==========================================================================
-   Log table plus status pills plus source pills
+   Log table column widths, retargeted at the shared table so they still
+   beat the shared table rule
    ========================================================================== */
 
-.rk-instant-indexing .rk-table-wrap {
-	overflow-x: auto;
-}
-
-.rk-instant-indexing .rk-table {
-	width: 100%;
-	border-spacing: 0;
-	border-collapse: collapse;
-	font-size: var(--rk-font-size-xs);
-	text-align: left;
-}
-
-.rk-instant-indexing .rk-table thead th {
-	background: var(--rk-color-surface-subtle);
-	border-block-end: 1px solid var(--rk-color-border);
-	padding: var(--rk-space-3) var(--rk-space-4);
-	font-size: 11px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--rk-color-text-muted);
-	white-space: nowrap;
-}
-
-.rk-instant-indexing .rk-table tbody tr {
-	border-block-end: 1px solid var(--rk-color-border);
-	transition: background 0.1s;
-}
-
-.rk-instant-indexing .rk-table tbody tr:last-child {
-	border-block-end: none;
-}
-
-.rk-instant-indexing .rk-table tbody tr:hover {
-	background: var(--rk-color-surface-subtle);
-}
-
-.rk-instant-indexing .rk-table tbody td {
-	padding: 10px var(--rk-space-4);
-	vertical-align: middle;
-}
-
-.rk-instant-indexing .rk-table .rk-col-url {
+.rk-instant-indexing .rk-ui-table .rk-col-url {
 	font-family: var(--rk-font-mono);
 	color: var(--rk-color-text);
 	overflow-wrap: anywhere;
 	max-width: 320px;
 }
 
-.rk-instant-indexing .rk-table .rk-col-status,
-.rk-instant-indexing .rk-table .rk-col-source {
+.rk-instant-indexing .rk-ui-table .rk-col-status,
+.rk-instant-indexing .rk-ui-table .rk-col-source {
 	white-space: nowrap;
 }
 
-.rk-instant-indexing .rk-table .rk-col-time {
+.rk-instant-indexing .rk-ui-table .rk-col-time {
 	font-family: var(--rk-font-mono);
 	color: var(--rk-color-text-muted);
 	white-space: nowrap;
 }
 
-.rk-instant-indexing .rk-table .rk-col-message {
+.rk-instant-indexing .rk-ui-table .rk-col-message {
 	color: var(--rk-color-text-secondary);
 	overflow-wrap: anywhere;
 	max-width: 320px;
 }
 
-/* Status pills for all five outcomes. */
-.rk-instant-indexing .rk-pill {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px 8px;
-	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 600;
-	line-height: var(--rk-line-height-normal);
-	white-space: nowrap;
-}
-
-.rk-instant-indexing .rk-pill-accepted {
-	background: var(--rk-color-secondary-1-soft);
-	border: 1px solid var(--rk-tint-positive-border);
-	color: var(--rk-color-secondary-1);
-}
-
-.rk-instant-indexing .rk-pill-pending {
-	background: var(--rk-color-primary-soft);
-	border: 1px solid var(--rk-tint-primary-border);
-	color: var(--rk-color-primary);
-}
-
-.rk-instant-indexing .rk-pill-rejected {
-	background: var(--rk-color-secondary-4-soft);
-	border: 1px solid var(--rk-tint-error-border);
-	color: var(--rk-color-secondary-4);
-}
-
-.rk-instant-indexing .rk-pill-limited,
-.rk-instant-indexing .rk-pill-retry {
-	background: var(--rk-color-secondary-3-soft);
-	border: 1px solid var(--rk-tint-warning-border);
-	color: var(--rk-color-secondary-3);
-}
-
-/* Source pills for both sources. */
-.rk-instant-indexing .rk-pill-source-auto {
-	background: var(--rk-color-surface-muted);
-	border: 1px solid var(--rk-color-border-strong);
-	color: var(--rk-color-text-secondary);
-}
-
+/* Manual source pill colours, laid over the shared pill base. The auto
+source pill uses the shared neutral pill, while this manual treatment
+keeps its own primary active foreground, so it stays page scoped. */
 .rk-instant-indexing .rk-pill-source-manual {
 	background: var(--rk-color-primary-soft);
 	border: 1px solid var(--rk-tint-primary-border);
@@ -989,54 +484,6 @@
 .rk-instant-indexing .rk-showing {
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-text-muted);
-}
-
-.rk-instant-indexing .rk-page-nums {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-1);
-}
-
-.rk-instant-indexing .rk-page-link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 28px;
-	padding: 4px 10px;
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-sm);
-	color: var(--rk-color-text-secondary);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	line-height: var(--rk-line-height-normal);
-	text-decoration: none;
-	transition: background 0.15s, color 0.15s;
-	box-sizing: border-box;
-}
-
-.rk-instant-indexing a.rk-page-link:hover {
-	background: var(--rk-color-surface-subtle);
-	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .rk-page-link.is-current {
-	background: var(--rk-color-primary);
-	border-color: var(--rk-color-primary);
-	color: var(--rk-color-surface);
-	font-weight: 700;
-	cursor: default;
-}
-
-.rk-instant-indexing .rk-page-link.is-disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.rk-instant-indexing .rk-page-gap {
-	padding: 4px;
-	color: var(--rk-color-text-hint);
-	font-size: var(--rk-font-size-xs);
 }
 
 /* ==========================================================================
@@ -1166,7 +613,7 @@
 	border-block-start: 1px solid var(--rk-color-border);
 }
 
-/* Automatic submission row with the toggle in both states. */
+/* Automatic submission row, the toggle itself lives in the shared layer. */
 .rk-instant-indexing .rk-auto-form {
 	margin: 0;
 	display: flex;
@@ -1192,56 +639,6 @@
 	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
 	color: var(--rk-color-text);
-}
-
-.rk-instant-indexing .rk-switch {
-	position: relative;
-	display: inline-block;
-	flex-shrink: 0;
-	cursor: pointer;
-}
-
-.rk-instant-indexing .rk-switch input[type="checkbox"] {
-	position: absolute;
-	opacity: 0;
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	cursor: pointer;
-}
-
-.rk-instant-indexing .rk-switch-track {
-	display: block;
-	width: 40px;
-	height: 24px;
-	padding: 2px;
-	border-radius: 999px;
-	background: var(--rk-color-border-strong);
-	transition: background 0.15s;
-	box-sizing: border-box;
-}
-
-.rk-instant-indexing .rk-switch-knob {
-	display: block;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	background: var(--rk-color-surface);
-	box-shadow: var(--rk-shadow-sm);
-	transition: transform 0.15s;
-}
-
-.rk-instant-indexing .rk-switch input[type="checkbox"]:checked + .rk-switch-track {
-	background: var(--rk-color-primary);
-}
-
-.rk-instant-indexing .rk-switch input[type="checkbox"]:checked + .rk-switch-track .rk-switch-knob {
-	transform: translateX(16px);
-}
-
-.rk-instant-indexing .rk-switch input[type="checkbox"]:focus-visible + .rk-switch-track {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 2px;
 }
 
 .rk-instant-indexing .rk-settings-actions {
@@ -1402,27 +799,6 @@
 	color: var(--rk-color-secondary-4);
 }
 
-@media screen and (prefers-reduced-motion: reduce) {
-	.rk-instant-indexing .rk-btn,
-	.rk-instant-indexing .button,
-	.rk-instant-indexing .rk-switch-track,
-	.rk-instant-indexing .rk-switch-knob,
-	.rk-instant-indexing .rk-table tbody tr,
-	.rk-instant-indexing .rk-tab,
-	.rk-instant-indexing .rk-page-link {
-		transition: none;
-	}
-}
-
-/* ==========================================================================
-   Focus management
-   ========================================================================== */
-
-.rk-instant-indexing :focus-visible {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 2px;
-}
-
 /* ==========================================================================
    Responsive
    ========================================================================== */
@@ -1432,8 +808,8 @@
 		grid-template-columns: repeat(2, 1fr);
 	}
 
-	.rk-instant-indexing .rk-table .rk-col-time,
-	.rk-instant-indexing .rk-table .rk-col-message {
+	.rk-instant-indexing .rk-ui-table .rk-col-time,
+	.rk-instant-indexing .rk-ui-table .rk-col-message {
 		display: none;
 	}
 }
@@ -1443,18 +819,9 @@
 		padding-inline-end: 0;
 	}
 
-	.rk-instant-indexing .rk-page-header {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
 	.rk-instant-indexing .rk-log-filters {
 		flex-direction: column;
 		align-items: stretch;
-	}
-
-	.rk-instant-indexing .rk-search-wrap {
-		max-width: none;
 	}
 
 	.rk-instant-indexing .rk-submit-foot {

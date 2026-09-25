@@ -307,7 +307,7 @@ test( 'the mounted script disables the button and blocks an invalid submit', () 
 function noticeFixture( type ) {
 	const listeners = {};
 	const node = {
-		className: 'rk-notice rk-notice-' + type,
+		className: 'rk-ui-notice rk-ui-notice-' + type,
 		style: {},
 		removed: false,
 		remove() {
@@ -322,7 +322,7 @@ function noticeFixture( type ) {
 			}
 		},
 		closest( selector ) {
-			if ( '.rk-notice' === selector ) {
+			if ( '.rk-ui-notice' === selector ) {
 				return node;
 			}
 
@@ -358,7 +358,7 @@ function loadWithNotices( types ) {
 			return null;
 		},
 		querySelectorAll( selector ) {
-			if ( selector.indexOf( 'rk-notice-dismiss' ) !== -1 ) {
+			if ( selector.indexOf( 'rk-ui-notice-dismiss' ) !== -1 ) {
 				return buttons;
 			}
 

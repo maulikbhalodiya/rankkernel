@@ -210,7 +210,7 @@ final class InstantIndexingPageTest extends TestCase {
 			'the screen reader h1 must be the first element inside the wrap'
 		);
 
-		$this->assertStringContainsString( '<h2 class="rk-page-title">Instant Indexing</h2>', $html );
+		$this->assertStringContainsString( '<h2 class="rk-ui-page-title">Instant Indexing</h2>', $html );
 		$this->assertSame( 1, substr_count( $html, '<h1' ), 'the screen reader heading must be the only h1' );
 	}
 
@@ -749,12 +749,12 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">3</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">2</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning">1</div>', $html );
-		$this->assertStringContainsString( '>Rejected <span class="count">2</span>', $html );
-		$this->assertStringContainsString( 'rk-pill-accepted">Accepted', $html );
-		$this->assertStringContainsString( 'rk-pill-pending">Key pending', $html );
-		$this->assertStringContainsString( 'rk-pill-rejected">Rejected', $html );
-		$this->assertStringContainsString( 'rk-pill-limited">Rate limited', $html );
-		$this->assertStringContainsString( 'rk-pill-retry">Retry later', $html );
+		$this->assertStringContainsString( '>Rejected <span class="rk-ui-count">2</span>', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-success">Accepted', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-info">Key pending', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-danger">Rejected', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-warning">Rate limited', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-warning">Retry later', $html );
 		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 	}
 
@@ -769,7 +769,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'rk-notice-error', $html );
+		$this->assertStringContainsString( 'rk-ui-notice-error', $html );
 		$this->assertStringContainsString( 'does not match this site', $html );
 		$this->assertStringNotContainsString( $this->key, $this->htmlWithoutKeyFileUrl( $html ) );
 	}
@@ -785,7 +785,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'rk-notice-info', $html );
+		$this->assertStringContainsString( 'rk-ui-notice-info', $html );
 		$this->assertStringContainsString( 'Log cleared.', $html );
 	}
 
@@ -800,8 +800,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringNotContainsString( 'rk-notice-error', $html );
-		$this->assertStringNotContainsString( 'rk-notice-info', $html );
+		$this->assertStringNotContainsString( 'rk-ui-notice-error', $html );
+		$this->assertStringNotContainsString( 'rk-ui-notice-info', $html );
 		$this->assertStringNotContainsString( '<script', $html );
 	}
 
@@ -816,7 +816,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'rk-notice-success', $html );
+		$this->assertStringContainsString( 'rk-ui-notice-success', $html );
 		$this->assertStringContainsString( 'Settings saved.', $html );
 	}
 
@@ -1124,11 +1124,11 @@ final class InstantIndexingPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'id="rk-submit-toggle" aria-expanded="false" aria-controls="rk-submit-panel"', $html );
-		$this->assertStringContainsString( 'class="rk-card rk-submit-card rk-panel" id="rk-submit-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-ui-card rk-submit-card rk-panel" id="rk-submit-panel" hidden', $html );
 		$this->assertStringContainsString( 'id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"', $html );
-		$this->assertStringContainsString( 'class="rk-card rk-settings-card rk-panel" id="rk-settings-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-ui-card rk-settings-card rk-panel" id="rk-settings-panel" hidden', $html );
 		$this->assertStringContainsString( 'id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel"', $html );
-		$this->assertStringContainsString( 'class="rk-card rk-help-card rk-panel" id="rk-help-panel" hidden', $html );
+		$this->assertStringContainsString( 'class="rk-ui-card rk-help-card rk-panel" id="rk-help-panel" hidden', $html );
 		$this->assertSame( 1, substr_count( $html, 'id="rk-submit-panel"' ), 'the submit card must be the only submit panel' );
 		$this->assertSame( 1, substr_count( $html, 'id="rk-settings-panel"' ), 'the settings card must be the only settings panel' );
 		$this->assertSame( 1, substr_count( $html, 'id="rk-help-panel"' ), 'the help card must be the only help panel' );
@@ -1415,12 +1415,12 @@ final class InstantIndexingPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Example preview. These rows are illustrative and are not real submissions.', $html );
-		$this->assertStringContainsString( 'rk-pill-accepted">Accepted', $html );
-		$this->assertStringContainsString( 'rk-pill-pending">Key pending', $html );
-		$this->assertStringContainsString( 'rk-pill-rejected">Rejected', $html );
-		$this->assertStringContainsString( 'rk-pill-limited">Rate limited', $html );
-		$this->assertStringContainsString( 'rk-pill-retry">Retry later', $html );
-		$this->assertStringContainsString( 'rk-pill-source-auto">Auto', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-success">Accepted', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-info">Key pending', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-danger">Rejected', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-warning">Rate limited', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-warning">Retry later', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-neutral">Auto', $html );
 		$this->assertStringContainsString( 'rk-pill-source-manual">Manual', $html );
 		$this->assertStringContainsString( 'Accepted, the key is pending verification.', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value">0</div>', $html );
@@ -1459,8 +1459,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">0</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">0</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning">0</div>', $html );
-		$this->assertStringNotContainsString( 'rk-tabs', $html );
-		$this->assertStringNotContainsString( 'rk-page-nums', $html );
+		$this->assertStringNotContainsString( 'rk-ui-tabs', $html );
+		$this->assertStringNotContainsString( 'rk-ui-page-nums', $html );
 		$this->assertStringNotContainsString( 'Showing 1 to', $html );
 	}
 }

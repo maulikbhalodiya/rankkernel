@@ -116,14 +116,14 @@ final class InstantIndexingOutcomes {
 	 */
 	public static function statusPill( string $category ): string {
 		$map = [
-			self::CATEGORY_ACCEPTED => 'rk-pill rk-pill-accepted',
-			self::CATEGORY_PENDING  => 'rk-pill rk-pill-pending',
-			self::CATEGORY_REJECTED => 'rk-pill rk-pill-rejected',
-			self::CATEGORY_LIMITED  => 'rk-pill rk-pill-limited',
-			self::CATEGORY_RETRY    => 'rk-pill rk-pill-retry',
+			self::CATEGORY_ACCEPTED => 'rk-ui-pill rk-ui-pill-success',
+			self::CATEGORY_PENDING  => 'rk-ui-pill rk-ui-pill-info',
+			self::CATEGORY_REJECTED => 'rk-ui-pill rk-ui-pill-danger',
+			self::CATEGORY_LIMITED  => 'rk-ui-pill rk-ui-pill-warning',
+			self::CATEGORY_RETRY    => 'rk-ui-pill rk-ui-pill-warning',
 		];
 
-		return $map[ $category ] ?? 'rk-pill rk-pill-accepted';
+		return $map[ $category ] ?? 'rk-ui-pill rk-ui-pill-success';
 	}
 
 	/**
@@ -148,10 +148,10 @@ final class InstantIndexingOutcomes {
 	 */
 	public static function sourcePill( string $source ): string {
 		if ( 'manual' === $source ) {
-			return 'rk-pill rk-pill-source-manual';
+			return 'rk-ui-pill rk-pill-source-manual';
 		}
 
-		return 'rk-pill rk-pill-source-auto';
+		return 'rk-ui-pill rk-ui-pill-neutral';
 	}
 
 	/**

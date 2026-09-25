@@ -310,7 +310,7 @@
 	function isErrorNotice( notice ) {
 		var name = notice && notice.className ? String( notice.className ) : '';
 
-		return name.indexOf( 'rk-notice-error' ) !== -1;
+		return name.indexOf( 'rk-ui-notice-error' ) !== -1;
 	}
 
 	/**
@@ -329,7 +329,7 @@
 			return;
 		}
 
-		notices = scope.querySelectorAll( '.rk-instant-indexing .rk-notice' );
+		notices = scope.querySelectorAll( '.rk-instant-indexing .rk-ui-notice' );
 
 		schedule = ( 'undefined' !== typeof window && window.setTimeout ) ? window.setTimeout : setTimeout;
 
@@ -353,12 +353,12 @@
 	 * locally so no request is needed.
 	 */
 	function wireDismiss( scope ) {
-		var buttons = scope.querySelectorAll( '.rk-instant-indexing .rk-notice-dismiss' );
+		var buttons = scope.querySelectorAll( '.rk-instant-indexing .rk-ui-notice-dismiss' );
 		var index;
 
 		for ( index = 0; index < buttons.length; index++ ) {
 			buttons[ index ].addEventListener( 'click', function ( event ) {
-				var notice = event.target && event.target.closest ? event.target.closest( '.rk-notice' ) : null;
+				var notice = event.target && event.target.closest ? event.target.closest( '.rk-ui-notice' ) : null;
 
 				hideNotice( notice );
 			} );

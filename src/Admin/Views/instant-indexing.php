@@ -55,62 +55,62 @@ defined( 'ABSPATH' ) || exit;
 	?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h1>
 
-	<div class="rk-instant-indexing">
+	<div class="rk-instant-indexing rk-ui">
 
 		<?php /* Section 1: page header card. */ ?>
-		<header class="rk-card rk-page-header">
-			<div class="rk-page-header-text">
-				<div class="rk-page-header-title-row">
-					<h2 class="rk-page-title"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h2>
+		<header class="rk-ui-card rk-ui-page-header">
+			<div class="rk-ui-page-header-text">
+				<div class="rk-ui-page-header-title-row">
+					<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Instant Indexing', 'rankkernel' ); ?></h2>
 					<?php if ( $autoSubmit ) : ?>
 						<span class="rk-auto-pill rk-auto-pill-on"><span class="rk-auto-pill-dot" aria-hidden="true"></span><?php echo esc_html__( 'Automatic submission on', 'rankkernel' ); ?></span>
 					<?php else : ?>
 						<span class="rk-auto-pill rk-auto-pill-off"><span class="rk-auto-pill-dot" aria-hidden="true"></span><?php echo esc_html__( 'Automatic submission off', 'rankkernel' ); ?></span>
 					<?php endif; ?>
 				</div>
-				<p class="rk-sub"><?php echo esc_html__( 'Notify participating search engines when a URL changes, using the IndexNow protocol.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-sub"><?php echo esc_html__( 'Notify participating search engines when a URL changes, using the IndexNow protocol.', 'rankkernel' ); ?></p>
 			</div>
-			<div class="rk-page-header-actions">
-				<button type="button" class="rk-btn rk-btn-primary" id="rk-submit-toggle" aria-expanded="false" aria-controls="rk-submit-panel"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></button>
-				<button type="button" class="rk-btn rk-btn-secondary" id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></button>
-				<button type="button" class="rk-btn rk-btn-icon" id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel" aria-label="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>" title="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">help</span></button>
+			<div class="rk-ui-page-header-actions">
+				<button type="button" class="rk-ui-btn rk-ui-btn-primary" id="rk-submit-toggle" aria-expanded="false" aria-controls="rk-submit-panel"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></button>
+				<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-settings-toggle" aria-expanded="false" aria-controls="rk-settings-panel"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></button>
+				<button type="button" class="rk-ui-btn rk-ui-btn-icon" id="rk-help-toggle" aria-expanded="false" aria-controls="rk-help-panel" aria-label="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>" title="<?php echo esc_attr__( 'How Instant Indexing works', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">help</span></button>
 			</div>
 		</header>
 
 		<?php /* Section 2: notice row. */ ?>
 		<?php if ( $settingsUpdated ) : ?>
-			<div class="rk-notice rk-notice-success" role="status">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">check_circle</span>
-				<p class="rk-notice-text"><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr( __( 'Dismiss notice', 'rankkernel' ) ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+			<div class="rk-ui-notice rk-ui-notice-success" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+				<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr( __( 'Dismiss notice', 'rankkernel' ) ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 		<?php if ( null !== $notice ) : ?>
-			<div class="rk-notice rk-notice-<?php echo esc_attr( $notice['type'] ); ?>" role="alert">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true"><?php echo 'info' === $notice['type'] ? 'info' : 'error'; ?></span>
-				<p class="rk-notice-text"><?php echo esc_html( $notice['message'] ); ?></p>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr( __( 'Dismiss notice', 'rankkernel' ) ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+			<div class="rk-ui-notice rk-ui-notice-<?php echo esc_attr( $notice['type'] ); ?>" role="alert">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true"><?php echo 'info' === $notice['type'] ? 'info' : 'error'; ?></span>
+				<p class="rk-ui-notice-text"><?php echo esc_html( $notice['message'] ); ?></p>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr( __( 'Dismiss notice', 'rankkernel' ) ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php /* Section 3: stats strip, every number derived from the real log rows. */ ?>
 		<div class="rk-stats" role="region" aria-label="<?php echo esc_attr( __( 'Submission statistics', 'rankkernel' ) ); ?>">
-			<div class="rk-card rk-stat">
+			<div class="rk-ui-card rk-stat">
 				<div class="rk-stat-label"><?php echo esc_html__( 'Total submissions', 'rankkernel' ); ?></div>
 				<div class="rk-stat-value"><?php echo esc_html( (string) $stats['total'] ); ?></div>
 				<div class="rk-stat-caption"><?php echo esc_html__( 'since the log was last cleared', 'rankkernel' ); ?></div>
 			</div>
-			<div class="rk-card rk-stat">
+			<div class="rk-ui-card rk-stat">
 				<div class="rk-stat-label"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></div>
 				<div class="rk-stat-value rk-stat-value-positive"><?php echo esc_html( (string) $stats['accepted'] ); ?></div>
 				<div class="rk-stat-caption"><?php echo esc_html__( '200 and 202 responses', 'rankkernel' ); ?></div>
 			</div>
-			<div class="rk-card rk-stat">
+			<div class="rk-ui-card rk-stat">
 				<div class="rk-stat-label"><?php echo esc_html__( 'Rejected', 'rankkernel' ); ?></div>
 				<div class="rk-stat-value rk-stat-value-negative"><?php echo esc_html( (string) $stats['rejected'] ); ?></div>
 				<div class="rk-stat-caption"><?php echo esc_html__( '400, 403, 405, 422 or refused', 'rankkernel' ); ?></div>
 			</div>
-			<div class="rk-card rk-stat">
+			<div class="rk-ui-card rk-stat">
 				<div class="rk-stat-label"><?php echo esc_html__( 'Rate limited', 'rankkernel' ); ?></div>
 				<div class="rk-stat-value rk-stat-value-warning"><?php echo esc_html( (string) $stats['limited'] ); ?></div>
 				<div class="rk-stat-caption"><?php echo esc_html__( '429 temporary status', 'rankkernel' ); ?></div>
@@ -119,10 +119,10 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php /* Section 4: shared panel area above the log. One panel shows at a time, all hidden on load. */ ?>
 		<div class="rk-panels">
-		<div class="rk-card rk-submit-card rk-panel" id="rk-submit-panel" hidden>
+		<div class="rk-ui-card rk-submit-card rk-panel" id="rk-submit-panel" hidden>
 			<div class="rk-submit-head">
 				<div class="rk-submit-title-wrap">
-					<h2 class="rk-card-title"><?php echo esc_html__( 'Submit URLs', 'rankkernel' ); ?></h2>
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Submit URLs', 'rankkernel' ); ?></h2>
 					<span class="rk-submit-hint"><?php echo esc_html__( 'One per line', 'rankkernel' ); ?></span>
 				</div>
 				<div class="rk-collapse-row">
@@ -132,8 +132,8 @@ defined( 'ABSPATH' ) || exit;
 			<form method="post" action="" class="rk-submit-form">
 				<?php wp_nonce_field( $nonceSubmit ); ?>
 				<input type="hidden" name="rankkernel_indexnow_action" value="submit" />
-				<div class="rk-form-row">
-					<label class="rk-form-label" for="rankkernel-indexnow-urls"><?php echo esc_html__( 'URLs', 'rankkernel' ); ?></label>
+				<div class="rk-ui-form-row">
+					<label class="rk-ui-form-label" for="rankkernel-indexnow-urls"><?php echo esc_html__( 'URLs', 'rankkernel' ); ?></label>
 					<textarea class="rk-urls-input" id="rankkernel-indexnow-urls" name="rankkernel_indexnow_urls" rows="5" placeholder="<?php echo esc_attr( $urlPlaceholder ); ?>"></textarea>
 				</div>
 				<div id="rankkernel-indexnow-urls-status" class="rk-validation" role="status"></div>
@@ -145,10 +145,10 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 
 		<?php /* Settings panel inside the shared area. */ ?>
-		<div class="rk-card rk-settings-card rk-panel" id="rk-settings-panel" hidden>
+		<div class="rk-ui-card rk-settings-card rk-panel" id="rk-settings-panel" hidden>
 			<div class="rk-settings-head">
 				<div>
-					<h2 class="rk-card-title"><?php echo esc_html__( 'Settings and key', 'rankkernel' ); ?></h2>
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Settings and key', 'rankkernel' ); ?></h2>
 					<p class="rk-settings-hint"><?php echo esc_html__( 'Open to manage the key and automatic submission.', 'rankkernel' ); ?></p>
 				</div>
 				<div class="rk-collapse-row">
@@ -163,9 +163,9 @@ defined( 'ABSPATH' ) || exit;
 						<span class="rk-settings-group-name"><?php echo esc_html__( 'Verification key', 'rankkernel' ); ?></span>
 					</div>
 					<?php if ( $keyConfigured ) : ?>
-						<span class="rk-pill rk-pill-accepted"><?php echo esc_html__( 'Key configured', 'rankkernel' ); ?></span>
+						<span class="rk-ui-pill rk-ui-pill-success"><?php echo esc_html__( 'Key configured', 'rankkernel' ); ?></span>
 					<?php else : ?>
-						<span class="rk-pill rk-pill-limited"><?php echo esc_html__( 'No key configured', 'rankkernel' ); ?></span>
+						<span class="rk-ui-pill rk-ui-pill-warning"><?php echo esc_html__( 'No key configured', 'rankkernel' ); ?></span>
 					<?php endif; ?>
 				</div>
 				<?php if ( $keyConfigured ) : ?>
@@ -215,13 +215,13 @@ defined( 'ABSPATH' ) || exit;
 							<p class="rk-settings-text"><?php echo esc_html__( 'Runs when a post is published, updated or trashed. Autosaves and revisions are skipped.', 'rankkernel' ); ?></p>
 							<p class="rk-settings-note"><?php echo esc_html__( 'Off by default. Nothing is sent until you turn this on.', 'rankkernel' ); ?></p>
 						</div>
-						<label class="rk-switch">
+						<label class="rk-ui-switch">
 							<input type="checkbox" name="rankkernel_indexnow_auto_submit" value="1" <?php echo checked( $autoSubmit, true, false ); ?> aria-label="<?php echo esc_attr( __( 'Submit URLs automatically when a post or term changes.', 'rankkernel' ) ); ?>" />
-							<span class="rk-switch-track" aria-hidden="true"><span class="rk-switch-knob"></span></span>
+							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
 						</label>
 					</div>
 					<div class="rk-settings-actions">
-						<a class="rk-btn rk-btn-secondary" href="<?php echo esc_url( $screenUrl ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
+						<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $screenUrl ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
 						<?php submit_button( __( 'Save settings', 'rankkernel' ), 'primary', '', false ); ?>
 					</div>
 				</form>
@@ -229,10 +229,10 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 
 		<?php /* Help panel inside the shared area. */ ?>
-		<div class="rk-card rk-help-card rk-panel" id="rk-help-panel" hidden>
+		<div class="rk-ui-card rk-help-card rk-panel" id="rk-help-panel" hidden>
 			<div class="rk-settings-head">
 				<div>
-					<h2 class="rk-card-title"><?php echo esc_html__( 'How Instant Indexing works', 'rankkernel' ); ?></h2>
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'How Instant Indexing works', 'rankkernel' ); ?></h2>
 					<p class="rk-settings-hint"><?php echo esc_html__( 'The IndexNow flow from setup to submission, in short steps.', 'rankkernel' ); ?></p>
 				</div>
 				<div class="rk-collapse-row">
@@ -254,10 +254,10 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 
 		<?php /* Section 5: recent submissions card. */ ?>
-		<div class="rk-card rk-log-card">
-			<div class="rk-card-header">
-				<div class="rk-card-header-left">
-					<h2 class="rk-card-title"><?php echo esc_html__( 'Recent submissions', 'rankkernel' ); ?></h2>
+		<div class="rk-ui-card rk-log-card">
+			<div class="rk-ui-card-header">
+				<div class="rk-ui-card-header-left">
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Recent submissions', 'rankkernel' ); ?></h2>
 					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ __( '%d entries', 'rankkernel' ), $stats['total'] ) ); ?></span>
 				</div>
 				<?php if ( $listHasRows ) : ?>
@@ -276,7 +276,7 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-empty-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">inbox</span></div>
 					<p class="rk-empty-title"><?php echo esc_html__( 'Nothing has been submitted yet.', 'rankkernel' ); ?></p>
 					<p class="rk-empty-body"><?php echo esc_html__( 'Published and updated URLs will appear here once automatic submission is on.', 'rankkernel' ); ?></p>
-					<button type="button" class="rk-btn rk-btn-primary" data-rk-open-panel="rk-submit-panel"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></button>
+					<button type="button" class="rk-ui-btn rk-ui-btn-primary" data-rk-open-panel="rk-submit-panel"><span class="rk-icon" aria-hidden="true">send</span><?php echo esc_html__( 'Submit a URL', 'rankkernel' ); ?></button>
 				</div>
 				<?php
 				/*
@@ -286,8 +286,8 @@ defined( 'ABSPATH' ) || exit;
 				?>
 				<div class="rk-preview" aria-label="<?php echo esc_attr( __( 'Example preview', 'rankkernel' ) ); ?>">
 					<p class="rk-preview-label"><?php echo esc_html__( 'Example preview. These rows are illustrative and are not real submissions.', 'rankkernel' ); ?></p>
-					<div class="rk-table-wrap">
-						<table class="rk-table">
+					<div class="rk-ui-table-wrap">
+						<table class="rk-ui-table">
 							<thead>
 								<tr>
 									<th scope="col" class="rk-col-url"><?php echo esc_html__( 'URL', 'rankkernel' ); ?></th>
@@ -300,43 +300,43 @@ defined( 'ABSPATH' ) || exit;
 							<tbody>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/blog/instant-indexing-overview' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-accepted"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-auto"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-success"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 06:58' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted.', 'rankkernel' ); ?></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/products/wireless-keyboard' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-pending"><?php echo esc_html__( 'Key pending', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-info"><?php echo esc_html__( 'Key pending', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 06:42' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted, the key is pending verification.', 'rankkernel' ); ?></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/about-us' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-limited"><?php echo esc_html__( 'Rate limited', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-warning"><?php echo esc_html__( 'Rate limited', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 04:30' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Temporary failure, retry later.', 'rankkernel' ); ?></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/staging/draft-preview' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-rejected"><?php echo esc_html__( 'Rejected', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-auto"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-danger"><?php echo esc_html__( 'Rejected', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 22:11' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Rejected permanently, retrying will not help.', 'rankkernel' ); ?></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/changelog/version-2' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-retry"><?php echo esc_html__( 'Retry later', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-auto"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-warning"><?php echo esc_html__( 'Retry later', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 18:04' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Temporary failure, retry later.', 'rankkernel' ); ?></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/pricing' ); ?></td>
-									<td class="rk-col-status"><span class="rk-pill rk-pill-accepted"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></span></td>
-									<td class="rk-col-source"><span class="rk-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-success"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></span></td>
+									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 09:15' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted.', 'rankkernel' ); ?></td>
 								</tr>
@@ -349,40 +349,40 @@ defined( 'ABSPATH' ) || exit;
 					<form method="get" action="<?php echo esc_url( $logView->filtersActionUrl() ); ?>" class="rk-log-filters" role="search" aria-label="<?php echo esc_attr( __( 'Filter submissions', 'rankkernel' ) ); ?>">
 						<input type="hidden" name="page" value="<?php echo esc_attr( InstantIndexingPage::SLUG ); ?>" />
 						<input type="hidden" name="rk_status" value="<?php echo esc_attr( $logView->status() ); ?>" />
-						<div class="rk-search-wrap">
+						<div class="rk-ui-search-wrap">
 							<label for="rk-log-search" class="screen-reader-text"><?php echo esc_html__( 'Search URL or message', 'rankkernel' ); ?></label>
-							<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>
+							<span class="rk-icon rk-ui-search-icon" aria-hidden="true">search</span>
 							<input
 								type="search"
 								id="rk-log-search"
 								name="s"
 								value="<?php echo esc_attr( $logView->search() ); ?>"
 								placeholder="<?php echo esc_attr( __( 'Search URL or message', 'rankkernel' ) ); ?>"
-								class="rk-search-input"
+								class="rk-ui-search-input"
 							/>
 						</div>
 						<div class="rk-source-wrap">
 							<label for="rk-log-source" class="rk-source-label"><?php echo esc_html__( 'Source:', 'rankkernel' ); ?></label>
-							<div class="rk-select-wrap">
-								<select name="rk_source" id="rk-log-source" class="rk-filter-select">
+							<div class="rk-ui-select-wrap">
+								<select name="rk_source" id="rk-log-source" class="rk-ui-select">
 									<option value="all"<?php echo InstantIndexingLogView::SOURCE_ALL === $logView->source() ? ' selected' : ''; ?>><?php echo esc_html__( 'All sources', 'rankkernel' ); ?></option>
 									<option value="auto"<?php echo 'auto' === $logView->source() ? ' selected' : ''; ?>><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></option>
 									<option value="manual"<?php echo 'manual' === $logView->source() ? ' selected' : ''; ?>><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></option>
 								</select>
-								<span class="rk-icon rk-select-chevron" aria-hidden="true">expand_more</span>
+								<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 							</div>
 							<?php submit_button( __( 'Filter', 'rankkernel' ), 'secondary rk-filter-submit', 'rk_filter', false ); ?>
 						</div>
 					</form>
 				</div>
 
-				<nav class="rk-tabs" aria-label="<?php echo esc_attr( __( 'Filter submissions by status', 'rankkernel' ) ); ?>">
+				<nav class="rk-ui-tabs" aria-label="<?php echo esc_attr( __( 'Filter submissions by status', 'rankkernel' ) ); ?>">
 					<?php foreach ( $statusTabs as $statusTab ) : ?>
 						<a
 							href="<?php echo esc_url( $statusTab['url'] ); ?>"
-							class="rk-tab<?php echo $statusTab['current'] ? ' current' : ''; ?>"
+							class="rk-ui-tab<?php echo $statusTab['current'] ? ' is-current' : ''; ?>"
 							<?php echo $statusTab['current'] ? ' aria-current="page"' : ''; ?>
-						><?php echo esc_html( $statusTab['label'] ); ?> <span class="count"><?php echo esc_html( (string) $statusTab['count'] ); ?></span></a>
+						><?php echo esc_html( $statusTab['label'] ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $statusTab['count'] ); ?></span></a>
 					<?php endforeach; ?>
 				</nav>
 
@@ -391,11 +391,11 @@ defined( 'ABSPATH' ) || exit;
 						<div class="rk-empty-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></div>
 						<p class="rk-empty-title"><?php echo esc_html__( 'No submissions match your filters.', 'rankkernel' ); ?></p>
 						<p class="rk-empty-body"><?php echo esc_html__( 'Try a different search term or clear the filters.', 'rankkernel' ); ?></p>
-						<a class="rk-btn rk-btn-secondary" href="<?php echo esc_url( $logView->clearUrl() ); ?>"><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
+						<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $logView->clearUrl() ); ?>"><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
 					</div>
 				<?php else : ?>
-					<div class="rk-table-wrap">
-						<table class="rk-table">
+					<div class="rk-ui-table-wrap">
+						<table class="rk-ui-table">
 							<thead>
 								<tr>
 									<th scope="col" class="rk-col-url"><?php echo esc_html__( 'URL', 'rankkernel' ); ?></th>
@@ -421,25 +421,25 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-log-footer">
 						<span class="rk-showing"><?php echo esc_html( sprintf( /* translators: 1: first visible entry, 2: last visible entry, 3: total entries */ __( 'Showing %1$d to %2$d of %3$d entries', 'rankkernel' ), $showing['from'], $showing['to'], $showing['total'] ) ); ?></span>
 						<?php if ( $pagination['show'] ) : ?>
-							<div class="rk-page-nums" role="navigation" aria-label="<?php echo esc_attr( __( 'Submission log pages', 'rankkernel' ) ); ?>">
+							<div class="rk-ui-page-nums" role="navigation" aria-label="<?php echo esc_attr( __( 'Submission log pages', 'rankkernel' ) ); ?>">
 								<?php if ( '' !== $pagination['prevUrl'] ) : ?>
-									<a class="rk-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+									<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 								<?php else : ?>
-									<span class="rk-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
+									<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
 								<?php endif; ?>
 								<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
 									<?php if ( $pageEntry['gap'] ) : ?>
-										<span class="rk-page-gap" aria-hidden="true"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+										<span class="rk-ui-page-gap" aria-hidden="true"><?php echo esc_html( $pageEntry['label'] ); ?></span>
 									<?php elseif ( $pageEntry['current'] ) : ?>
-										<span class="rk-page-link is-current" aria-current="page"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+										<span class="rk-ui-page-link is-current" aria-current="page"><?php echo esc_html( $pageEntry['label'] ); ?></span>
 									<?php else : ?>
-										<a class="rk-page-link" href="<?php echo esc_url( $pageEntry['url'] ); ?>"><?php echo esc_html( $pageEntry['label'] ); ?></a>
+										<a class="rk-ui-page-link" href="<?php echo esc_url( $pageEntry['url'] ); ?>"><?php echo esc_html( $pageEntry['label'] ); ?></a>
 									<?php endif; ?>
 								<?php endforeach; ?>
 								<?php if ( '' !== $pagination['nextUrl'] ) : ?>
-									<a class="rk-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+									<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 								<?php else : ?>
-									<span class="rk-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
+									<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
 								<?php endif; ?>
 							</div>
 						<?php endif; ?>
