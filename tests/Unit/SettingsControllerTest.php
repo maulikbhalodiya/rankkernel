@@ -159,8 +159,8 @@ final class SettingsControllerTest extends TestCase {
 		self::assertSame( 'array', $sameas['type'] );
 		self::assertSame( 'string', $sameas['items']['type'] );
 		self::assertSame( 'uri', $sameas['items']['format'] );
+		self::assertSame( 'esc_url_raw', $sameas['items']['sanitize_callback'] );
 		self::assertSame( 'rest_validate_request_arg', $sameas['validate_callback'] );
-		self::assertArrayNotHasKey( 'sanitize_callback', $sameas['items'] );
 		self::assertArrayNotHasKey( 'sanitize_callback', $sameas );
 	}
 
