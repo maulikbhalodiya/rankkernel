@@ -30,6 +30,23 @@ Thank you for contributing! This project follows a strict issue-driven workflow 
 - Branch names follow `GH-*` only (e.g., `GH-1`, `GH-42`).
 - Keep one issue = one branch = one PR. No mixed-concern branches.
 
+## PR title rules
+
+- A pull request that has an issue begins its title with the issue id, then a conventional description:
+  ```
+  GH-88: feat(instant-indexing) custom log table, REST, and retry
+  GH-42: fix(sitemaps) scope the takeover notice to RankKernel screens
+  ```
+- The title carries the issue id, and the description carries a `Closes #88` line. The title satisfies
+  the naming rule; the `Closes` line is what makes GitHub link and auto-close the issue. `GH-88` in a
+  title is not itself an issue link, so the body line is still required.
+- A change that has no issue, such as a CI or chore fix, uses a conventional title with no issue id:
+  ```
+  ci(audit): stop treating high entropy as evidence of a secret
+  chore(deps): bump the reviewer action to the pinned release
+  ```
+- Never invent an issue just to satisfy the prefix. If the work is genuinely a chore, title it as one.
+
 ## One active feature, one active PR
 
 While a feature is under way in an open pull request, every remaining piece of that feature stays
