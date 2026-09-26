@@ -427,16 +427,20 @@ defined( 'ABSPATH' ) || exit;
 								<?php foreach ( $pageRows as $pageRow ) : ?>
 									<?php
 									/*
-									 * A retry is offered only for the temporary
-									 * outcomes. Accepted and pending rows already
-									 * succeeded, and a permanent rejection states
-									 * that a retry cannot help, so only the limited
-									 * and retry categories carry a control. The form
-									 * posts the row id alone, never the URL.
+									 * The issue defines the retry action for any
+									 * failure, including a permanent 4xx, and leaves
+									 * the judgment to the admin, so a retry control
+									 * renders for every row that did not already
+									 * succeed. This is the negation of the success
+									 * set rather than an enumeration of the failure
+									 * set, so a future failure category stays
+									 * retryable by default. Accepted and pending rows
+									 * already succeeded, so they carry no control.
+									 * The form posts the row id alone, never the URL.
 									 */
-									$retryable = in_array(
+									$retryable = ! in_array(
 										$pageRow['category'],
-										[ InstantIndexingOutcomes::CATEGORY_LIMITED, InstantIndexingOutcomes::CATEGORY_RETRY ],
+										[ InstantIndexingOutcomes::CATEGORY_ACCEPTED, InstantIndexingOutcomes::CATEGORY_PENDING ],
 										true
 									);
 									?>

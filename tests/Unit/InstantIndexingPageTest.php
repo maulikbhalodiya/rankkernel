@@ -2055,24 +2055,48 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the retry control renders only for temporary rows.
+	 * Test retry is offered for every failure and withheld only for rows that already succeeded.
 	 *
-	 * Accepted and pending rows succeeded, and a permanent rejection says
-	 * a retry cannot help, so exactly one control renders here, on the 503.
+	 * The issue defines the retry action for any failure, including a
+	 * permanent 4xx, and leaves the judgment to the admin. A control
+	 * therefore renders for every row except the accepted and pending
+	 * rows, which already succeeded. Reverting the view to the old narrow
+	 * limited plus retry set breaks the permanent and the count asserts.
 	 */
-	public function test_render_shows_retry_only_for_temporary_rows(): void {
+	public function test_render_shows_retry_for_every_failure_and_withholds_it_only_from_succeeded_rows(): void {
 		$this->db->seed(
 			[
-				'url'     => 'https://example.com/temp',
+				'url'     => 'https://example.com/permanent',
+				'code'    => 403,
+				'message' => 'Rejected permanently, retrying will not help.',
+			]
+		);
+		$this->db->seed(
+			[
+				'url'     => 'https://example.com/transient',
 				'code'    => 503,
 				'message' => 'Temporary failure, retry later.',
 			]
 		);
 		$this->db->seed(
 			[
-				'url'     => 'https://example.com/ok',
+				'url'     => 'https://example.com/limited',
+				'code'    => 429,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+		$this->db->seed(
+			[
+				'url'     => 'https://example.com/accepted',
 				'code'    => 200,
 				'message' => 'Accepted.',
+			]
+		);
+		$this->db->seed(
+			[
+				'url'     => 'https://example.com/pending',
+				'code'    => 202,
+				'message' => 'Accepted, the key is pending verification.',
 			]
 		);
 
@@ -2081,7 +2105,24 @@ final class InstantIndexingPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, substr_count( $html, 'value="retry"' ), 'only the temporary row must carry a retry control' );
+		$rowCarriesRetry = static function ( string $markup, string $url ): bool {
+			foreach ( explode( '<tr>', $markup ) as $rowChunk ) {
+				if ( ! str_contains( $rowChunk, $url ) ) {
+					continue;
+				}
+
+				return str_contains( $rowChunk, 'value="retry"' );
+			}
+
+			return false;
+		};
+
+		$this->assertSame( 3, substr_count( $html, 'value="retry"' ), 'each failure row must carry a retry control and the succeeded rows must not' );
+		$this->assertTrue( $rowCarriesRetry( $html, 'https://example.com/permanent' ), 'a permanent 4xx must still carry a retry control, the admin decides' );
+		$this->assertTrue( $rowCarriesRetry( $html, 'https://example.com/transient' ), 'a transient 5xx must carry a retry control' );
+		$this->assertTrue( $rowCarriesRetry( $html, 'https://example.com/limited' ), 'a 429 must carry a retry control' );
+		$this->assertFalse( $rowCarriesRetry( $html, 'https://example.com/accepted' ), 'an accepted 200 row must not carry a control' );
+		$this->assertFalse( $rowCarriesRetry( $html, 'https://example.com/pending' ), 'a pending 202 row must not carry a control' );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_id"', $html );
 		$this->assertStringContainsString( '<th scope="col" class="rk-col-actions">Actions</th>', $html );
 	}
