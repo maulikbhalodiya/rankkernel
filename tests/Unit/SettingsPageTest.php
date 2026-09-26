@@ -337,8 +337,9 @@ final class SettingsPageTest extends TestCase {
 	 * Test media assets load only on the settings screen with the picker dependency.
 	 */
 	public function test_enqueue_assets_loads_media_only_on_settings_screen(): void {
-		$registered = [];
-		$mediaCalls = 0;
+		$registered   = [];
+		$mediaCalls   = 0;
+		$translations = [];
 
 		Functions\when( 'wp_enqueue_media' )->alias(
 			static function () use ( &$mediaCalls ): void {
@@ -348,6 +349,13 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'wp_register_script' )->alias(
 			static function ( string $handle, string $src, array $deps, mixed $ver, bool $inFooter ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 				$registered[ $handle ] = $deps;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default', string $path = '' ) use ( &$translations ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+				$translations[ $handle ] = $domain;
 
 				return true;
 			}
@@ -365,6 +373,9 @@ final class SettingsPageTest extends TestCase {
 		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 		$this->assertSame( 1, $mediaCalls );
 		$this->assertContains( 'media-editor', $registered['rankkernel-settings-admin'] );
+		$this->assertContains( 'wp-a11y', $registered['rankkernel-settings-admin'] );
+		$this->assertContains( 'wp-i18n', $registered['rankkernel-settings-admin'] );
+		$this->assertSame( 'rankkernel', $translations['rankkernel-settings-admin'] ?? null );
 	}
 
 	/**
@@ -379,6 +390,7 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'wp_enqueue_media' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $handle, string $src = '', array $deps = [], mixed $ver = false ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
