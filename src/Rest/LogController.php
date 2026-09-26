@@ -91,7 +91,7 @@ final class LogController {
 
 		return new WP_REST_Response(
 			[
-				'rows'          => $query->rows(),
+				'rows'          => $this->publicRows( $query->rows() ),
 				'page'          => $query->filters()->page(),
 				'perPage'       => $query->filters()->perPage(),
 				'filteredTotal' => $query->filteredTotal(),
@@ -101,6 +101,33 @@ final class LogController {
 			],
 			200
 		);
+	}
+
+	/**
+	 * Public row shape for the REST response.
+	 *
+	 * The shared query layer also carries the row id for the admin retry
+	 * surfaces, so the response projects each row back to the six public
+	 * fields and the id never leaves through this read only route.
+	 *
+	 * @param array<int, array{id: int, url: string, host: string, code: int, source: string, time: string, message: string}> $rows Query rows.
+	 * @return array<int, array{url: string, host: string, code: int, source: string, time: string, message: string}> The result.
+	 */
+	private function publicRows( array $rows ): array {
+		$public = [];
+
+		foreach ( $rows as $row ) {
+			$public[] = [
+				'url'     => $row['url'],
+				'host'    => $row['host'],
+				'code'    => $row['code'],
+				'source'  => $row['source'],
+				'time'    => $row['time'],
+				'message' => $row['message'],
+			];
+		}
+
+		return $public;
 	}
 
 	/**

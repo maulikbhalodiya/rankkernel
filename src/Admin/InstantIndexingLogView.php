@@ -243,7 +243,10 @@ final class InstantIndexingLogView {
 	/**
 	 * Enriched rows for the current page.
 	 *
-	 * @return array<int, array{url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> The result.
+	 * Each row carries its id as an int, so the template can build a retry
+	 * form that posts the id alone, alongside the display fields.
+	 *
+	 * @return array<int, array{id: int, url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> The result.
 	 */
 	public function pageRows(): array {
 		$rows   = $this->query->withPage( $this->page() )->rows();
@@ -253,6 +256,7 @@ final class InstantIndexingLogView {
 			$category = InstantIndexingOutcomes::categoryFor( (int) $row['code'] );
 
 			$result[] = [
+				'id'          => (int) $row['id'],
 				'url'         => (string) $row['url'],
 				'code'        => (int) $row['code'],
 				'source'      => (string) $row['source'],

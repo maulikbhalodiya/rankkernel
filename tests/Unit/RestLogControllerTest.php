@@ -343,6 +343,9 @@ final class RestLogControllerTest extends TestCase {
 	 * The direct LogQuery call receives the same normalized inputs, so this
 	 * fails the moment the controller starts doing its own filtering,
 	 * counting, ordering or paging instead of reusing the shared layer.
+	 * The query layer carries the row id for the admin retry surfaces and
+	 * the REST route withholds it, so the comparison runs over the public
+	 * fields, and the filtering, ordering and paging must still match.
 	 */
 	public function test_rows_and_counts_match_the_shared_query_layer(): void {
 		$this->seed( 200, 'manual', 'Accepted alpha.', '', 'https://example.com/alpha' );
@@ -364,7 +367,16 @@ final class RestLogControllerTest extends TestCase {
 		$data   = $this->getData( $params );
 		$direct = LogQuery::fromInput( $params, LogQuery::PER_PAGE );
 
-		self::assertSame( $direct->rows(), $data['rows'] );
+		$expected = array_map(
+			static function ( array $row ): array {
+				unset( $row['id'] );
+
+				return $row;
+			},
+			$direct->rows()
+		);
+
+		self::assertSame( $expected, $data['rows'], 'the REST rows must match the shared layer minus the withheld row id' );
 		self::assertSame( $direct->filters()->page(), $data['page'] );
 		self::assertSame( $direct->filters()->perPage(), $data['perPage'] );
 		self::assertSame( $direct->filteredTotal(), $data['filteredTotal'] );

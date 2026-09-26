@@ -125,16 +125,115 @@ final class InstantIndexingLogQueryTest extends TestCase {
 	 * Test the row shape is stable and carries the UTC time.
 	 */
 	public function test_row_shape_is_stable(): void {
-		$this->seed( 202, 'auto', 'Accepted, the key is pending verification.', '2026-03-04 05:06:07' );
+		$id = $this->seed( 202, 'auto', 'Accepted, the key is pending verification.', '2026-03-04 05:06:07' );
 
 		$row = $this->query()->rows()[0];
 
-		$this->assertSame( [ 'url', 'host', 'code', 'source', 'time', 'message' ], array_keys( $row ) );
+		$this->assertSame( [ 'id', 'url', 'host', 'code', 'source', 'time', 'message' ], array_keys( $row ) );
+		$this->assertSame( $id, $row['id'], 'every row must carry its database id' );
+		$this->assertIsInt( $row['id'] );
 		$this->assertSame( 202, $row['code'] );
 		$this->assertIsInt( $row['code'] );
 		$this->assertSame( 'auto', $row['source'] );
 		$this->assertSame( '2026-03-04 05:06:07', $row['time'], 'the stored UTC string must round trip unchanged' );
 		$this->assertSame( 'example.com', $row['host'] );
+	}
+
+	/**
+	 * Test rows carry the id of the row they describe, not the newest id.
+	 */
+	public function test_rows_carry_the_matching_id_per_row(): void {
+		$first  = $this->seed( 200, 'manual', 'Accepted.', '2026-01-01 10:00:00' );
+		$second = $this->seed( 400, 'auto', 'Rejected.', '2026-01-01 12:00:00' );
+		$third  = $this->seed( 429, 'manual', 'Limited.', '2026-01-01 11:00:00' );
+
+		$rows = $this->query()->rows();
+
+		$this->assertSame( [ $second, $third, $first ], $this->column( $rows, 'id' ), 'the id must travel with each row through the newest first order' );
+	}
+
+	/**
+	 * Test getRow returns the exact row for a known id.
+	 */
+	public function test_get_row_returns_the_seeded_row_for_a_known_id(): void {
+		$id = $this->seed( 202, 'auto', 'Accepted, the key is pending verification.', '2026-03-04 05:06:07', 'https://example.com/known' );
+
+		$this->seed( 400, 'manual', 'Rejected.', '2026-03-05 00:00:00' );
+
+		$row = $this->query()->getRow( $id );
+
+		$this->assertNotNull( $row );
+		$this->assertSame( [ 'id', 'url', 'host', 'code', 'source', 'time', 'message' ], array_keys( $row ) );
+		$this->assertSame( $id, $row['id'] );
+		$this->assertIsInt( $row['id'] );
+		$this->assertSame( 'https://example.com/known', $row['url'] );
+		$this->assertSame( 'example.com', $row['host'] );
+		$this->assertSame( 202, $row['code'] );
+		$this->assertIsInt( $row['code'] );
+		$this->assertSame( 'auto', $row['source'] );
+		$this->assertSame( '2026-03-04 05:06:07', $row['time'] );
+		$this->assertSame( 'Accepted, the key is pending verification.', $row['message'] );
+	}
+
+	/**
+	 * Test getRow returns null for an id that is not stored.
+	 */
+	public function test_get_row_returns_null_for_a_missing_id(): void {
+		$id = $this->seed( 200 );
+
+		$this->assertNull( $this->query()->getRow( $id + 1000 ), 'a missing id must resolve to null' );
+	}
+
+	/**
+	 * Test getRow rejects a zero or negative id before touching the database.
+	 */
+	public function test_get_row_returns_null_for_a_non_positive_id(): void {
+		$this->seed( 200 );
+
+		$this->assertNull( $this->query()->getRow( 0 ), 'id zero must be rejected' );
+		$this->assertNull( $this->query()->getRow( -5 ), 'a negative id must be rejected' );
+		$this->assertSame( [], $this->db->prepared, 'a non-positive id must not reach the database' );
+		$this->assertSame( 0, $this->db->reads, 'a non-positive id must not read the database' );
+	}
+
+	/**
+	 * Test getRow fails to null when the table does not exist.
+	 */
+	public function test_get_row_returns_null_when_the_table_is_missing(): void {
+		$id = $this->seed( 200 );
+
+		$this->db->tableExists = false;
+		LogTable::resetCache();
+
+		$this->assertNull( $this->query()->getRow( $id ), 'a missing table must fail closed to null' );
+	}
+
+	/**
+	 * Test getRow fails to null without a database connection.
+	 */
+	public function test_get_row_returns_null_without_a_connection(): void {
+		unset( $GLOBALS['wpdb'] );
+
+		$this->assertNull( $this->query()->getRow( 1 ), 'no connection must fail closed to null' );
+	}
+
+	/**
+	 * Test the by id read travels the id as a prepared placeholder.
+	 */
+	public function test_get_row_travels_the_id_as_a_prepared_placeholder(): void {
+		$id = $this->seed( 200 );
+
+		$row = $this->query()->getRow( $id );
+
+		$this->assertNotNull( $row );
+
+		$templates = implode( "\n", $this->db->prepared );
+		$image     = implode( "\n", $this->db->interpolated );
+
+		$this->assertStringContainsString( 'id = %d', $templates, 'the id must travel as a prepared placeholder' );
+		$this->assertStringNotContainsString( 'id = ' . $id, $templates, 'the raw id must never be concatenated into the SQL template' );
+		$this->assertStringContainsString( 'id = ' . $id, $image, 'prepare must interpolate the id value' );
+		$this->assertSame( 0, $this->db->unpreparedReads, 'the single row read must go through prepare' );
 	}
 
 	/**

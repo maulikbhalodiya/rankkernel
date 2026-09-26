@@ -413,6 +413,21 @@ final class InstantIndexingFakeDb {
 			);
 		}
 
+		$id = [];
+
+		if ( 1 === preg_match( '/\bid = (\d+)/', $sql, $id ) ) {
+			$wanted = (int) $id[1];
+
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( array $row ) use ( $wanted ): bool {
+						return (int) $row['id'] === $wanted;
+					}
+				)
+			);
+		}
+
 		return $rows;
 	}
 

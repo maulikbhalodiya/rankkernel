@@ -118,11 +118,11 @@ final class LogQuery {
 	/**
 	 * Rows for the requested page, newest first.
 	 *
-	 * Row shape matches the admin view: url, host, code, source, time
+	 * Row shape matches the admin view: id, url, host, code, source, time
 	 * (the stored UTC string) and message. A page past the end returns
 	 * an empty set.
 	 *
-	 * @return array<int, array{url: string, host: string, code: int, source: string, time: string, message: string}> The result.
+	 * @return array<int, array{id: int, url: string, host: string, code: int, source: string, time: string, message: string}> The result.
 	 */
 	public function rows(): array {
 		$db = $this->connection();
@@ -136,7 +136,7 @@ final class LogQuery {
 		$table    = LogTable::name();
 		$perPage  = $this->filters->perPage();
 		$offset   = ( $this->filters->page() - 1 ) * $perPage;
-		$sql      = "SELECT url, host, code, source, message, created FROM `{$table}` WHERE {$where} ORDER BY created DESC, id DESC LIMIT %d OFFSET %d";
+		$sql      = "SELECT id, url, host, code, source, message, created FROM `{$table}` WHERE {$where} ORDER BY created DESC, id DESC LIMIT %d OFFSET %d";
 		$withPage = array_merge( [ $sql ], $params, [ $perPage, $offset ] );
 
 		// Custom log table has no core API, paged read with placeholders through prepare.
@@ -154,17 +154,53 @@ final class LogQuery {
 				continue;
 			}
 
-			$entries[] = [
-				'url'     => (string) ( $row['url'] ?? '' ),
-				'host'    => (string) ( $row['host'] ?? '' ),
-				'code'    => (int) ( $row['code'] ?? 0 ),
-				'source'  => (string) ( $row['source'] ?? '' ),
-				'time'    => (string) ( $row['created'] ?? '' ),
-				'message' => (string) ( $row['message'] ?? '' ),
-			];
+			$entries[] = $this->normalizeRow( $row );
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * One normalized row by primary key, or null when it is absent.
+	 *
+	 * The retry action addresses a single row, which the paged list cannot
+	 * offer, so this is the by id read it builds on. It returns null for a
+	 * missing connection, a missing table or a non-positive id, and the id
+	 * always travels as a prepared placeholder rather than in the SQL text.
+	 *
+	 * @param int $id Row id.
+	 * @return array{id: int, url: string, host: string, code: int, source: string, time: string, message: string}|null The result.
+	 */
+	public function getRow( int $id ): ?array {
+		if ( $id <= 0 ) {
+			return null;
+		}
+
+		$db = $this->connection();
+
+		if ( null === $db || ! LogTable::exists() ) {
+			return null;
+		}
+
+		$table = LogTable::name();
+		$sql   = "SELECT id, url, host, code, source, message, created FROM `{$table}` WHERE id = %d LIMIT 1";
+		$with  = array_merge( [ $sql ], [ $id ] );
+
+		// Custom log table has no core API, single row read by id with placeholders through prepare.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $db->get_results( $db->prepare( ...$with ), ARRAY_A );
+
+		if ( ! is_array( $rows ) ) {
+			return null;
+		}
+
+		$row = $rows[0] ?? null;
+
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+
+		return $this->normalizeRow( $row );
 	}
 
 	/**
@@ -389,6 +425,27 @@ final class LogQuery {
 		}
 
 		return addcslashes( $text, '_%\\' );
+	}
+
+	/**
+	 * Normalize one raw database row to the shared read shape.
+	 *
+	 * The id is an int so a retry form can carry it, every text column is
+	 * a string, and created is exposed as time to match the admin view.
+	 *
+	 * @param array<string, mixed> $row Raw row from the database.
+	 * @return array{id: int, url: string, host: string, code: int, source: string, time: string, message: string} The result.
+	 */
+	private function normalizeRow( array $row ): array {
+		return [
+			'id'      => (int) ( $row['id'] ?? 0 ),
+			'url'     => (string) ( $row['url'] ?? '' ),
+			'host'    => (string) ( $row['host'] ?? '' ),
+			'code'    => (int) ( $row['code'] ?? 0 ),
+			'source'  => (string) ( $row['source'] ?? '' ),
+			'time'    => (string) ( $row['created'] ?? '' ),
+			'message' => (string) ( $row['message'] ?? '' ),
+		];
 	}
 
 	/**

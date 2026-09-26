@@ -326,6 +326,38 @@ final class InstantIndexingLogViewTest extends TestCase {
 	}
 
 	/**
+	 * Test pageRows exposes the row id as an integer.
+	 *
+	 * The retry form posts the id alone, so the view must surface it on
+	 * every rendered row without dropping any existing key.
+	 */
+	public function test_page_rows_expose_the_id_as_an_integer(): void {
+		$id = $this->seed( 200, 'manual', 'Accepted.' );
+
+		$row = $this->view()->pageRows()[0];
+
+		$this->assertSame( $id, $row['id'], 'the rendered row must carry its stored id' );
+		$this->assertIsInt( $row['id'] );
+		$this->assertSame(
+			[
+				'id',
+				'url',
+				'code',
+				'source',
+				'time',
+				'message',
+				'category',
+				'statusLabel',
+				'statusPill',
+				'sourceLabel',
+				'sourcePill',
+			],
+			array_keys( $row ),
+			'the id must arrive alongside every existing display key'
+		);
+	}
+
+	/**
 	 * Test every notice code maps to its notice, unknown codes to none.
 	 */
 	public function test_notice_for_maps_every_code(): void {
