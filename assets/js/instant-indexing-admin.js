@@ -7,6 +7,12 @@
  * Only the site host and the site port are localized into this file, the API
  * key never reaches the browser.
  *
+ * The log loader below is a progressive enhancement over the server rendered
+ * Recent submissions card. The filter form stays a plain GET form and the
+ * pagination stays real anchors, so the card keeps working with JavaScript
+ * disabled. When JavaScript runs, submits and page clicks fetch the same
+ * data from the REST log route and update the table in place.
+ *
  * Plain script, no build step. Loaded on the Instant Indexing screen only.
  */
 ( function () {
@@ -645,6 +651,914 @@
 		}
 	}
 
+	/**
+	 * Status tab keys in server render order, InstantIndexingLogView::tabs.
+	 */
+	var LOG_TAB_KEYS = [ 'all', 'accepted', 'pending', 'rejected', 'limited' ];
+
+	/**
+	 * Longest search the server accepts, LogFilters::SEARCH_MAX.
+	 */
+	var LOG_SEARCH_MAX = 100;
+
+	/**
+	 * Fallback page size when the response carries none, LogQuery::PER_PAGE.
+	 */
+	var LOG_PER_PAGE_FALLBACK = 20;
+
+	/**
+	 * Display category for one stored status code.
+	 *
+	 * Mirrors InstantIndexingOutcomes::categoryFor, which stays the source
+	 * of truth. The mapping is repeated here so the table can render from
+	 * the raw REST rows without a second request.
+	 */
+	function logCategoryFor( code ) {
+		if ( 200 === code ) {
+			return 'accepted';
+		}
+
+		if ( 202 === code ) {
+			return 'pending';
+		}
+
+		if ( 429 === code ) {
+			return 'limited';
+		}
+
+		if ( 0 === code || 400 === code || 403 === code || 405 === code || 422 === code ) {
+			return 'rejected';
+		}
+
+		return 'retry';
+	}
+
+	/**
+	 * English pill label for one display category.
+	 *
+	 * Mirrors InstantIndexingOutcomes::statusLabel. The server translates
+	 * these, the script cannot, so an AJAX refresh shows the English
+	 * labels while the numbers always agree with the server.
+	 */
+	function logStatusLabel( category ) {
+		if ( 'pending' === category ) {
+			return 'Key pending';
+		}
+
+		if ( 'rejected' === category ) {
+			return 'Rejected';
+		}
+
+		if ( 'limited' === category ) {
+			return 'Rate limited';
+		}
+
+		if ( 'retry' === category ) {
+			return 'Retry later';
+		}
+
+		return 'Accepted';
+	}
+
+	/**
+	 * Pill class for one display category.
+	 *
+	 * Mirrors InstantIndexingOutcomes::statusPill, stable class names.
+	 */
+	function logStatusPill( category ) {
+		if ( 'pending' === category ) {
+			return 'rk-ui-pill rk-ui-pill-info';
+		}
+
+		if ( 'rejected' === category ) {
+			return 'rk-ui-pill rk-ui-pill-danger';
+		}
+
+		if ( 'limited' === category || 'retry' === category ) {
+			return 'rk-ui-pill rk-ui-pill-warning';
+		}
+
+		return 'rk-ui-pill rk-ui-pill-success';
+	}
+
+	/**
+	 * English source label, mirroring InstantIndexingOutcomes::sourceLabel.
+	 */
+	function logSourceLabel( source ) {
+		return 'manual' === source ? 'Manual' : 'Auto';
+	}
+
+	/**
+	 * Source pill class, mirroring InstantIndexingOutcomes::sourcePill.
+	 */
+	function logSourcePill( source ) {
+		return 'manual' === source ? 'rk-ui-pill rk-pill-source-manual' : 'rk-ui-pill rk-ui-pill-neutral';
+	}
+
+	/**
+	 * Stats strip numbers from the response counts.
+	 *
+	 * Mirrors InstantIndexingOutcomes::statsFromCounts: accepted covers
+	 * accepted plus pending, the retry category has no card of its own.
+	 */
+	function logStatsFromCounts( counts, total ) {
+		function num( value ) {
+			return 'number' === typeof value ? value : 0;
+		}
+
+		return {
+			total: total,
+			accepted: num( counts.accepted ) + num( counts.pending ),
+			rejected: num( counts.rejected ),
+			limited: num( counts.limited )
+		};
+	}
+
+	/**
+	 * Search term trimmed exactly like LogFilters::fromInput trims it.
+	 */
+	function logNormalizeSearch( value ) {
+		return String( value || '' ).slice( 0, LOG_SEARCH_MAX ).trim();
+	}
+
+	/**
+	 * Filter state read from the form fields.
+	 *
+	 * The form is the single source of truth, so the AJAX request always
+	 * carries what a plain GET submit would carry. Unknown source and
+	 * status values fall back to the unfiltered default, like the server.
+	 * Every selector below is a fixed literal, no response value ever
+	 * reaches a selector.
+	 */
+	function logReadState( form ) {
+		var searchEl = form.querySelector( '[name="s"]' );
+		var sourceEl = form.querySelector( '[name="rk_source"]' );
+		var statusEl = form.querySelector( '[name="rk_status"]' );
+		var slugEl = form.querySelector( '[name="page"]' );
+
+		var source = sourceEl && 'string' === typeof sourceEl.value ? sourceEl.value : 'all';
+		var status = statusEl && 'string' === typeof statusEl.value ? statusEl.value : 'all';
+
+		if ( 'auto' !== source && 'manual' !== source ) {
+			source = 'all';
+		}
+
+		if ( LOG_TAB_KEYS.indexOf( status ) === -1 ) {
+			status = 'all';
+		}
+
+		return {
+			search: logNormalizeSearch( searchEl && 'string' === typeof searchEl.value ? searchEl.value : '' ),
+			source: source,
+			status: status,
+			slug: slugEl && 'string' === typeof slugEl.value ? slugEl.value : ''
+		};
+	}
+
+	/**
+	 * REST query string for one filter state plus page, defaults dropped.
+	 */
+	function logRestQuery( state, page ) {
+		var parts = [];
+
+		if ( '' !== state.search ) {
+			parts.push( 's=' + encodeURIComponent( state.search ) );
+		}
+
+		if ( 'all' !== state.source ) {
+			parts.push( 'rk_source=' + encodeURIComponent( state.source ) );
+		}
+
+		if ( 'all' !== state.status ) {
+			parts.push( 'rk_status=' + encodeURIComponent( state.status ) );
+		}
+
+		if ( page > 1 ) {
+			parts.push( 'rk_paged=' + page );
+		}
+
+		return parts.join( '&' );
+	}
+
+	/**
+	 * Screen URL for one filter state plus page, defaults dropped.
+	 *
+	 * Mirrors InstantIndexingLogView::url: the bare action stays bare,
+	 * anything else is appended as a query string. The page slug travels
+	 * as a field of the GET form, so it is skipped here when the action
+	 * already carries it.
+	 */
+	function logPageUrl( action, state, page ) {
+		var base = String( action || '' );
+		var parts = [];
+
+		if ( '' !== state.slug && base.indexOf( 'page=' ) === -1 ) {
+			parts.push( 'page=' + encodeURIComponent( state.slug ) );
+		}
+
+		if ( '' !== state.search ) {
+			parts.push( 's=' + encodeURIComponent( state.search ) );
+		}
+
+		if ( 'all' !== state.source ) {
+			parts.push( 'rk_source=' + encodeURIComponent( state.source ) );
+		}
+
+		if ( 'all' !== state.status ) {
+			parts.push( 'rk_status=' + encodeURIComponent( state.status ) );
+		}
+
+		if ( page > 1 ) {
+			parts.push( 'rk_paged=' + page );
+		}
+
+		if ( 0 === parts.length ) {
+			return base;
+		}
+
+		return base + ( base.indexOf( '?' ) !== -1 ? '&' : '?' ) + parts.join( '&' );
+	}
+
+	/**
+	 * Query parameters of one URL as a plain object.
+	 */
+	function logParseQuery( href ) {
+		var params = {};
+		var text = String( href || '' );
+		var start = text.indexOf( '?' );
+
+		if ( -1 === start ) {
+			return params;
+		}
+
+		var hash = text.indexOf( '#', start );
+		var query = text.substring( start + 1, -1 === hash ? text.length : hash );
+		var pairs = query.split( '&' );
+		var index;
+		var cut;
+		var rawKey;
+		var rawValue;
+
+		for ( index = 0; index < pairs.length; index++ ) {
+			if ( '' === pairs[ index ] ) {
+				continue;
+			}
+
+			cut = pairs[ index ].indexOf( '=' );
+			rawKey = -1 === cut ? pairs[ index ] : pairs[ index ].substring( 0, cut );
+			rawValue = -1 === cut ? '' : pairs[ index ].substring( cut + 1 );
+
+			try {
+				params[ decodeURIComponent( rawKey ) ] = decodeURIComponent( rawValue.replace( /\+/g, ' ' ) );
+			} catch ( error ) {
+				params[ rawKey ] = rawValue;
+			}
+		}
+
+		return params;
+	}
+
+	/**
+	 * Page numbers with zero marking an ellipsis gap.
+	 *
+	 * Mirrors InstantIndexingLogView::pageNumbers: every page shows when
+	 * there are seven or fewer, otherwise the first plus the last plus a
+	 * window around the current page.
+	 */
+	function logPageNumbers( total, current ) {
+		var numbers = [];
+		var index;
+
+		if ( total <= 7 ) {
+			for ( index = 1; index <= total; index++ ) {
+				numbers.push( index );
+			}
+
+			return numbers;
+		}
+
+		numbers.push( 1 );
+
+		if ( current > 3 ) {
+			numbers.push( 0 );
+		}
+
+		var window = [ current - 1, current, current + 1 ];
+
+		for ( index = 0; index < window.length; index++ ) {
+			if ( window[ index ] > 1 && window[ index ] < total ) {
+				numbers.push( window[ index ] );
+			}
+		}
+
+		if ( current < total - 2 ) {
+			numbers.push( 0 );
+		}
+
+		numbers.push( total );
+
+		return numbers;
+	}
+
+	/**
+	 * Visible range for the footer label, mirroring LogView::showing.
+	 */
+	function logShowing( page, perPage, filteredTotal ) {
+		if ( filteredTotal <= 0 ) {
+			return { from: 0, to: 0, total: 0 };
+		}
+
+		var from = ( page - 1 ) * perPage + 1;
+
+		return {
+			from: from,
+			to: Math.min( from + perPage - 1, filteredTotal ),
+			total: filteredTotal
+		};
+	}
+
+	/**
+	 * Footer label text for one visible range, server template in English.
+	 */
+	function logShowingText( showing ) {
+		return 'Showing ' + showing.from + ' to ' + showing.to + ' of ' + showing.total + ' entries';
+	}
+
+	/**
+	 * Create one element with an optional class plus textContent.
+	 *
+	 * Every response value reaches the page through this helper, so every
+	 * value is written as text and never as markup.
+	 */
+	function logEl( doc, tag, className, text ) {
+		var node = doc.createElement( tag );
+
+		if ( className ) {
+			node.className = className;
+		}
+
+		if ( 'undefined' !== typeof text ) {
+			node.textContent = text;
+		}
+
+		return node;
+	}
+
+	/**
+	 * Remove one node through its parent, quietly when already detached.
+	 */
+	function logRemove( node ) {
+		if ( node && node.parentNode && node.parentNode.removeChild ) {
+			node.parentNode.removeChild( node );
+		}
+	}
+
+	/**
+	 * One table row for one raw REST row.
+	 *
+	 * The URL is displayed as text, exactly like the server markup, never
+	 * as a link. Pills reuse the shared rk-ui classes, labels and classes
+	 * come from the mirrored taxonomy above.
+	 */
+	function logBuildRow( doc, row ) {
+		var data = row || {};
+		var code = 'number' === typeof data.code ? data.code : 0;
+		var category = logCategoryFor( code );
+		var source = 'manual' === data.source ? 'manual' : 'auto';
+
+		var tr = logEl( doc, 'tr' );
+		var urlCell = logEl( doc, 'td', 'rk-col-url', String( data.url || '' ) );
+
+		var statusCell = logEl( doc, 'td', 'rk-col-status' );
+		statusCell.appendChild( logEl( doc, 'span', logStatusPill( category ), logStatusLabel( category ) ) );
+
+		var sourceCell = logEl( doc, 'td', 'rk-col-source' );
+		sourceCell.appendChild( logEl( doc, 'span', logSourcePill( source ), logSourceLabel( source ) ) );
+
+		var timeCell = logEl( doc, 'td', 'rk-col-time', String( data.time || '' ) );
+		var messageCell = logEl( doc, 'td', 'rk-col-message', String( data.message || '' ) );
+
+		tr.appendChild( urlCell );
+		tr.appendChild( statusCell );
+		tr.appendChild( sourceCell );
+		tr.appendChild( timeCell );
+		tr.appendChild( messageCell );
+
+		return tr;
+	}
+
+	/**
+	 * Table skeleton matching the server markup, for the empty to rows turn.
+	 */
+	function logBuildTable( doc ) {
+		var headers = [ 'URL', 'Status', 'Source', 'Time (UTC)', 'Message' ];
+		var classes = [ 'rk-col-url', 'rk-col-status', 'rk-col-source', 'rk-col-time', 'rk-col-message' ];
+		var wrap = logEl( doc, 'div', 'rk-ui-table-wrap' );
+		var table = logEl( doc, 'table', 'rk-ui-table' );
+		var head = logEl( doc, 'thead' );
+		var row = logEl( doc, 'tr' );
+		var body = logEl( doc, 'tbody' );
+		var index;
+		var cell;
+
+		for ( index = 0; index < headers.length; index++ ) {
+			cell = logEl( doc, 'th', classes[ index ], headers[ index ] );
+			cell.setAttribute( 'scope', 'col' );
+			row.appendChild( cell );
+		}
+
+		head.appendChild( row );
+		table.appendChild( head );
+		table.appendChild( body );
+		wrap.appendChild( table );
+
+		return { wrap: wrap, body: body };
+	}
+
+	/**
+	 * Footer skeleton matching the server markup.
+	 */
+	function logBuildFooter( doc ) {
+		var footer = logEl( doc, 'div', 'rk-log-footer' );
+
+		footer.appendChild( logEl( doc, 'span', 'rk-showing', '' ) );
+
+		return footer;
+	}
+
+	/**
+	 * Empty filtered block matching the server markup.
+	 */
+	function logBuildEmpty( doc, clearUrl ) {
+		var box = logEl( doc, 'div', 'rk-empty rk-empty-filtered' );
+		var iconWrap = logEl( doc, 'div', 'rk-empty-icon' );
+		var icon = logEl( doc, 'span', 'rk-icon', 'search' );
+
+		iconWrap.setAttribute( 'aria-hidden', 'true' );
+		icon.setAttribute( 'aria-hidden', 'true' );
+		iconWrap.appendChild( icon );
+
+		var clear = logEl( doc, 'a', 'rk-ui-btn rk-ui-btn-secondary' );
+		var clearIcon = logEl( doc, 'span', 'rk-icon', 'filter_alt_off' );
+
+		clear.setAttribute( 'href', clearUrl );
+		clearIcon.setAttribute( 'aria-hidden', 'true' );
+		clear.appendChild( clearIcon );
+		clear.appendChild( doc.createTextNode( 'Clear filters' ) );
+
+		box.appendChild( iconWrap );
+		box.appendChild( logEl( doc, 'p', 'rk-empty-title', 'No submissions match your filters.' ) );
+		box.appendChild( logEl( doc, 'p', 'rk-empty-body', 'Try a different search term or clear the filters.' ) );
+		box.appendChild( clear );
+
+		return box;
+	}
+
+	/**
+	 * Pagination block matching the server markup for one page window.
+	 */
+	function logBuildPagination( doc, action, state, current, totalPages ) {
+		var nav = logEl( doc, 'div', 'rk-ui-page-nums' );
+
+		nav.setAttribute( 'role', 'navigation' );
+		nav.setAttribute( 'aria-label', 'Submission log pages' );
+
+		if ( current > 1 ) {
+			var prev = logEl( doc, 'a', 'rk-ui-page-link', 'Previous' );
+			prev.setAttribute( 'href', logPageUrl( action, state, current - 1 ) );
+			nav.appendChild( prev );
+		} else {
+			var prevOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', 'Previous' );
+			prevOff.setAttribute( 'aria-disabled', 'true' );
+			nav.appendChild( prevOff );
+		}
+
+		var numbers = logPageNumbers( totalPages, current );
+		var index;
+
+		for ( index = 0; index < numbers.length; index++ ) {
+			if ( 0 === numbers[ index ] ) {
+				var gap = logEl( doc, 'span', 'rk-ui-page-gap', '…' );
+				gap.setAttribute( 'aria-hidden', 'true' );
+				nav.appendChild( gap );
+			} else if ( numbers[ index ] === current ) {
+				var here = logEl( doc, 'span', 'rk-ui-page-link is-current', String( numbers[ index ] ) );
+				here.setAttribute( 'aria-current', 'page' );
+				nav.appendChild( here );
+			} else {
+				var link = logEl( doc, 'a', 'rk-ui-page-link', String( numbers[ index ] ) );
+				link.setAttribute( 'href', logPageUrl( action, state, numbers[ index ] ) );
+				nav.appendChild( link );
+			}
+		}
+
+		if ( current < totalPages ) {
+			var next = logEl( doc, 'a', 'rk-ui-page-link', 'Next' );
+			next.setAttribute( 'href', logPageUrl( action, state, current + 1 ) );
+			nav.appendChild( next );
+		} else {
+			var nextOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', 'Next' );
+			nextOff.setAttribute( 'aria-disabled', 'true' );
+			nav.appendChild( nextOff );
+		}
+
+		return nav;
+	}
+
+	/**
+	 * Status tabs in place: counts, current mark and hrefs.
+	 *
+	 * Hrefs are rebuilt too, so a tab clicked after an AJAX filter still
+	 * carries the current search plus source instead of a stale pair.
+	 * Tabs keep navigating normally, only their numbers refresh in place.
+	 */
+	function logRenderTabs( card, action, state, counts ) {
+		var tabs = card.querySelectorAll( '.rk-ui-tabs .rk-ui-tab' );
+		var index;
+		var key;
+		var tab;
+		var countNode;
+		var tabState;
+		var active;
+
+		for ( index = 0; index < tabs.length && index < LOG_TAB_KEYS.length; index++ ) {
+			key = LOG_TAB_KEYS[ index ];
+			tab = tabs[ index ];
+			active = key === state.status;
+
+			countNode = tab.querySelector ? tab.querySelector( '.rk-ui-count' ) : null;
+
+			if ( countNode ) {
+				countNode.textContent = String( 'number' === typeof counts[ key ] ? counts[ key ] : 0 );
+			}
+
+			if ( tab.setAttribute && tab.removeAttribute ) {
+				tabState = { search: state.search, source: state.source, status: key, slug: state.slug };
+				tab.setAttribute( 'href', logPageUrl( action, tabState, 1 ) );
+
+				if ( tab.classList && tab.classList.toggle ) {
+					tab.classList.toggle( 'is-current', active );
+				}
+
+				if ( active ) {
+					tab.setAttribute( 'aria-current', 'page' );
+				} else {
+					tab.removeAttribute( 'aria-current' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Stats strip plus entry count in place, numbers only.
+	 */
+	function logRenderNumbers( card, stats, total ) {
+		function setValue( selector, value ) {
+			var node = card.querySelector( selector );
+
+			if ( node ) {
+				node.textContent = String( value );
+			}
+		}
+
+		setValue( '.rk-stats .rk-stat-value', stats.total );
+		setValue( '.rk-stat-value-positive', stats.accepted );
+		setValue( '.rk-stat-value-negative', stats.rejected );
+		setValue( '.rk-stat-value-warning', stats.limited );
+
+		var entryCount = card.querySelector( '.rk-entry-count' );
+
+		if ( entryCount ) {
+			entryCount.textContent = total + ' entries';
+		}
+	}
+
+	/**
+	 * Table plus footer in place for one response.
+	 *
+	 * Swaps between the table and the empty filtered block exactly like
+	 * the server does, so a filter with no matches never leaves a stale
+	 * table behind. Pagination and the clear filters link are rebuilt
+	 * from the same state the request carried.
+	 */
+	function logRenderTable( doc, card, action, state, data, current, perPage, filteredTotal ) {
+		var rows = data.rows;
+
+		if ( 0 === rows.length ) {
+			logRemove( card.querySelector( '.rk-ui-table-wrap' ) );
+			logRemove( card.querySelector( '.rk-log-footer' ) );
+
+			if ( ! card.querySelector( '.rk-empty-filtered' ) ) {
+				card.appendChild( logBuildEmpty( doc, action ) );
+			}
+
+			return;
+		}
+
+		logRemove( card.querySelector( '.rk-empty-filtered' ) );
+
+		var footer = card.querySelector( '.rk-log-footer' );
+		var body = card.querySelector( '.rk-ui-table tbody' );
+
+		if ( ! body ) {
+			var built = logBuildTable( doc );
+
+			if ( footer && footer.parentNode === card && card.insertBefore ) {
+				card.insertBefore( built.wrap, footer );
+			} else {
+				card.appendChild( built.wrap );
+			}
+
+			body = built.body;
+		}
+
+		if ( ! footer ) {
+			footer = logBuildFooter( doc );
+			card.appendChild( footer );
+		}
+
+		body.textContent = '';
+
+		var index;
+
+		for ( index = 0; index < rows.length; index++ ) {
+			body.appendChild( logBuildRow( doc, rows[ index ] ) );
+		}
+
+		var showing = footer.querySelector ? footer.querySelector( '.rk-showing' ) : null;
+
+		if ( ! showing ) {
+			showing = logEl( doc, 'span', 'rk-showing', '' );
+			footer.appendChild( showing );
+		}
+
+		showing.textContent = logShowingText( logShowing( current, perPage, filteredTotal ) );
+
+		var totalPages = Math.max( 1, Math.ceil( filteredTotal / perPage ) );
+		var nav = footer.querySelector ? footer.querySelector( '.rk-ui-page-nums' ) : null;
+		var clear = footer.querySelector ? footer.querySelector( '.rk-filter-clear' ) : null;
+
+		if ( totalPages > 1 ) {
+			var fresh = logBuildPagination( doc, action, state, current, totalPages );
+
+			if ( nav ) {
+				if ( footer.replaceChild ) {
+					footer.replaceChild( fresh, nav );
+				} else {
+					logRemove( nav );
+					footer.appendChild( fresh );
+				}
+			} else if ( clear && footer.insertBefore && card ) {
+				footer.insertBefore( fresh, clear );
+			} else {
+				footer.appendChild( fresh );
+			}
+		} else if ( nav ) {
+			logRemove( nav );
+		}
+
+		var hasFilter = '' !== state.search || 'all' !== state.source || 'all' !== state.status;
+
+		if ( hasFilter ) {
+			if ( ! clear ) {
+				clear = logEl( doc, 'a', 'rk-filter-clear', 'Clear filters' );
+				footer.appendChild( clear );
+			}
+
+			if ( clear.setAttribute ) {
+				clear.setAttribute( 'href', action );
+			}
+		} else if ( clear ) {
+			logRemove( clear );
+		}
+	}
+
+	/**
+	 * Render one successful response, every value from the response.
+	 *
+	 * Counts, totals and rows all come from the REST payload, which reads
+	 * through the same LogQuery layer as the server path, so the two agree
+	 * by construction. The displayed page is clamped exactly like
+	 * InstantIndexingLogView::page clamps it.
+	 */
+	function logRender( doc, card, action, state, data, page ) {
+		var perPage = 'number' === typeof data.perPage && data.perPage > 0 ? data.perPage : LOG_PER_PAGE_FALLBACK;
+		var filteredTotal = 'number' === typeof data.filteredTotal && data.filteredTotal >= 0 ? data.filteredTotal : 0;
+		var total = 'number' === typeof data.total && data.total >= 0 ? data.total : 0;
+		var rawCounts = data.statusCounts && 'object' === typeof data.statusCounts ? data.statusCounts : {};
+
+		function countOf( key ) {
+			return 'number' === typeof rawCounts[ key ] && rawCounts[ key ] >= 0 ? rawCounts[ key ] : 0;
+		}
+
+		var counts = {
+			all: countOf( 'all' ),
+			accepted: countOf( 'accepted' ),
+			pending: countOf( 'pending' ),
+			rejected: countOf( 'rejected' ),
+			limited: countOf( 'limited' ),
+			retry: countOf( 'retry' )
+		};
+
+		var totalPages = Math.max( 1, Math.ceil( filteredTotal / perPage ) );
+		var current = Math.min( Math.max( 1, page ), totalPages );
+
+		logRenderNumbers( card, logStatsFromCounts( counts, total ), total );
+		logRenderTabs( card, action, state, counts );
+		logRenderTable( doc, card, action, state, data, current, perPage, filteredTotal );
+	}
+
+	/**
+	 * Copy one address bar state into the form fields.
+	 */
+	function logSyncForm( form, params ) {
+		var searchEl = form.querySelector( '[name="s"]' );
+		var sourceEl = form.querySelector( '[name="rk_source"]' );
+		var statusEl = form.querySelector( '[name="rk_status"]' );
+
+		if ( searchEl && 'undefined' !== typeof searchEl.value ) {
+			searchEl.value = 'string' === typeof params.s ? params.s : '';
+		}
+
+		if ( sourceEl && 'undefined' !== typeof sourceEl.value ) {
+			sourceEl.value = 'auto' === params.rk_source || 'manual' === params.rk_source ? params.rk_source : 'all';
+		}
+
+		if ( statusEl && 'undefined' !== typeof statusEl.value ) {
+			statusEl.value = LOG_TAB_KEYS.indexOf( params.rk_status ) !== -1 ? params.rk_status : 'all';
+		}
+	}
+
+	/**
+	 * Wire the progressive enhancement log loader.
+	 *
+	 * Finds the GET filter form plus the log card and returns quietly when
+	 * either is missing, when the localized REST config is missing, or
+	 * when fetch is unavailable, so the script stays harmless on any other
+	 * screen and the plain form plus anchors keep working. A generation
+	 * token drops stale responses, mirroring the analysis editor: only the
+	 * newest request may write. Any failure navigates to the equivalent
+	 * GET URL instead of leaving a stale table behind.
+	 */
+	function wireLogLoader( scope ) {
+		if ( ! scope || ! scope.querySelector || ! scope.createElement ) {
+			return;
+		}
+
+		var cfg = config();
+
+		if ( ! cfg || ! cfg.logUrl || ! cfg.restNonce ) {
+			return;
+		}
+
+		if ( 'undefined' === typeof window || ! window.fetch ) {
+			return;
+		}
+
+		var form = scope.querySelector( '.rk-log-filters' );
+		var card = scope.querySelector( '.rk-log-card' );
+
+		if ( ! form || ! card ) {
+			return;
+		}
+
+		var doc = scope;
+		var action = form.getAttribute ? ( form.getAttribute( 'action' ) || '' ) : '';
+		var generation = 0;
+
+		function controls() {
+			return [
+				scope.getElementById ? scope.getElementById( 'rk-log-search' ) : null,
+				scope.getElementById ? scope.getElementById( 'rk-log-source' ) : null,
+				form.querySelector( '[type="submit"]' )
+			];
+		}
+
+		function setBusy( on ) {
+			if ( card.setAttribute && card.removeAttribute ) {
+				if ( on ) {
+					card.setAttribute( 'aria-busy', 'true' );
+				} else {
+					card.removeAttribute( 'aria-busy' );
+				}
+			}
+
+			var found = controls();
+			var index;
+
+			for ( index = 0; index < found.length; index++ ) {
+				if ( found[ index ] ) {
+					found[ index ].disabled = !! on;
+				}
+			}
+		}
+
+		function fallback( state, page ) {
+			setBusy( false );
+
+			if ( window.location ) {
+				window.location.href = logPageUrl( action, state, page );
+			} else if ( form.submit ) {
+				try {
+					form.submit();
+				} catch ( error ) {
+				}
+			}
+		}
+
+		function load( page, push ) {
+			var state = logReadState( form );
+			var safePage = 'number' === typeof page && page > 0 ? Math.floor( page ) : 1;
+
+			generation += 1;
+			var token = generation;
+
+			var query = logRestQuery( state, safePage );
+			var url = String( cfg.logUrl ) + ( '' === query ? '' : ( String( cfg.logUrl ).indexOf( '?' ) !== -1 ? '&' : '?' ) + query );
+
+			setBusy( true );
+
+			window.fetch( url, {
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': String( cfg.restNonce ) }
+			} ).then( function ( response ) {
+				if ( ! response || ! response.ok ) {
+					throw new Error( 'log request failed' );
+				}
+
+				return response.json();
+			} ).then( function ( data ) {
+				if ( token !== generation ) {
+					return;
+				}
+
+				if ( ! data || 'object' !== typeof data || 'string' === typeof data.code || ! Array.isArray( data.rows ) ) {
+					throw new Error( 'log response invalid' );
+				}
+
+				setBusy( false );
+				logRender( doc, card, action, state, data, safePage );
+
+				if ( push && window.history && window.history.pushState ) {
+					try {
+						window.history.pushState( {}, '', logPageUrl( action, state, safePage ) );
+					} catch ( error ) {
+					}
+				}
+			} ).catch( function () {
+				if ( token !== generation ) {
+					return;
+				}
+
+				fallback( state, safePage );
+			} );
+		}
+
+		form.addEventListener( 'submit', function ( event ) {
+			if ( event && event.preventDefault ) {
+				event.preventDefault();
+			}
+
+			load( 1, true );
+		} );
+
+		card.addEventListener( 'click', function ( event ) {
+			var target = event && event.target ? event.target : null;
+			var link = target && target.closest ? target.closest( 'a.rk-ui-page-link' ) : null;
+
+			if ( ! link || ! link.getAttribute ) {
+				return;
+			}
+
+			var href = link.getAttribute( 'href' );
+
+			if ( ! href ) {
+				return;
+			}
+
+			var params = logParseQuery( href );
+			var paged = parseInt( params.rk_paged || '', 10 );
+
+			if ( event.preventDefault ) {
+				event.preventDefault();
+			}
+
+			load( isNaN( paged ) || paged < 1 ? 1 : paged, true );
+		} );
+
+		if ( window.addEventListener ) {
+			window.addEventListener( 'popstate', function () {
+				var params = logParseQuery( window.location ? window.location.href : '' );
+
+				logSyncForm( form, params );
+
+				var paged = parseInt( params.rk_paged || '', 10 );
+
+				load( isNaN( paged ) || paged < 1 ? 1 : paged, false );
+			} );
+		}
+	}
+
 	// Exposed so the node test harness can load this file in a vm and call
 	// the pure validator directly, without a DOM.
 	if ( 'undefined' !== typeof window ) {
@@ -653,6 +1567,22 @@
 		}
 
 		window.rankkernelInstantIndexing.validate = validate;
+		window.rankkernelInstantIndexing.logLoader = {
+			categoryFor: logCategoryFor,
+			statusLabel: logStatusLabel,
+			statusPill: logStatusPill,
+			sourceLabel: logSourceLabel,
+			sourcePill: logSourcePill,
+			statsFromCounts: logStatsFromCounts,
+			pageNumbers: logPageNumbers,
+			showing: logShowing,
+			showingText: logShowingText,
+			restQuery: logRestQuery,
+			pageUrl: logPageUrl,
+			parseQuery: logParseQuery,
+			readState: logReadState,
+			wire: wireLogLoader
+		};
 		window.rankkernelInstantIndexing.notices = {
 			hideNotice: hideNotice,
 			isErrorNotice: isErrorNotice,
@@ -672,6 +1602,10 @@
 		if ( document.querySelectorAll ) {
 			wireDismiss( document );
 			wireAutoDismiss( document );
+		}
+
+		if ( document.querySelector ) {
+			wireLogLoader( document );
 		}
 
 		if ( document.getElementById ) {

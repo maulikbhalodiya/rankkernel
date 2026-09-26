@@ -111,6 +111,7 @@ final class MetadataBoxTest extends TestCase {
 
 		Functions\when( 'wp_unslash' )->alias( $unslash );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
 				return $this->options[ $key ] ?? $fallback;
@@ -567,11 +568,11 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertArrayHasKey( 'analysis', $state );
 
 		// The route is the wiring that matters, and rest_url is stubbed in setUp,
-		// so a hardcoded or empty path fails here. The nonce is not value asserted
-		// because wp_create_nonce is absent from the unit environment on purpose:
-		// stubbing it in one test leaks the definition process wide.
+		// so a hardcoded or empty path fails here. The nonce is stubbed in
+		// setUp like the redirects tests stub it, because a stub defined in
+		// any earlier file persists process wide, so absence cannot be relied on.
 		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/analysis', $state['analysis']['path'] );
-		$this->assertIsString( $state['analysis']['nonce'] );
+		$this->assertSame( 'nonce-wp_rest', $state['analysis']['nonce'] );
 	}
 
 	/**

@@ -152,9 +152,12 @@ final class InstantIndexingPage {
 	 * Enqueue screen assets, and only on this screen.
 	 *
 	 * The stylesheet plus the validation script are registered, enqueued
-	 * and localized here. Only the site host and the site port reach the
-	 * browser, the API key never does, and the gate keeps the hook
-	 * contract shared with the other module pages.
+	 * and localized here. The site host, the site port, the log REST URL
+	 * and the REST nonce reach the browser, the API key never does, and
+	 * the gate keeps the hook contract shared with the other module pages.
+	 * The nonce is the standard WordPress REST CSRF token, action wp_rest,
+	 * which core verifies itself for cookie authenticated requests, so
+	 * carrying it in the page is the documented pattern, not a leak.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -194,8 +197,10 @@ final class InstantIndexingPage {
 			'rankkernel-instant-indexing-admin',
 			'rankkernelInstantIndexing',
 			[
-				'siteHost' => $this->settings->siteHost(),
-				'sitePort' => $this->sitePort(),
+				'siteHost'  => $this->settings->siteHost(),
+				'sitePort'  => $this->sitePort(),
+				'logUrl'    => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/instant-indexing/log' ) : '',
+				'restNonce' => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '',
 			]
 		);
 	}

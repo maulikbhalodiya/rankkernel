@@ -1016,11 +1016,13 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
 		$this->assertSame(
 			[
-				'siteHost' => 'example.com',
-				'sitePort' => '',
+				'siteHost'  => 'example.com',
+				'sitePort'  => '',
+				'logUrl'    => '',
+				'restNonce' => '',
 			],
 			$localizedScripts['rankkernelInstantIndexing'],
-			'the payload must carry the site host and the site port only'
+			'the payload must carry the site host, the site port, the log REST URL and the REST nonce only'
 		);
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
@@ -1060,12 +1062,105 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame(
 			[
-				'siteHost' => 'example.com',
-				'sitePort' => '8080',
+				'siteHost'  => 'example.com',
+				'sitePort'  => '8080',
+				'logUrl'    => '',
+				'restNonce' => '',
 			],
 			$localizedScripts['rankkernelInstantIndexing'],
 			'the port must derive from the home URL and nothing else may be localized'
 		);
+	}
+
+	/**
+	 * Test the localized payload carries the log REST URL plus the REST nonce.
+	 *
+	 * The script fetches the log route with fetch plus the X-WP-Nonce
+	 * header, so both values must reach the browser. The nonce action must
+	 * be wp_rest, the standard WordPress REST token core verifies itself,
+	 * and the URL must be the log route LogController serves.
+	 */
+	public function test_enqueue_localizes_the_log_rest_url_and_nonce(): void {
+		$nonceActions = [];
+
+		Functions\when( 'plugins_url' )->alias(
+			static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path
+		);
+		Functions\when( 'rest_url' )->alias(
+			static fn( string $path = '' ): string => 'https://example.com/wp-json/' . $path
+		);
+		Functions\when( 'wp_create_nonce' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): string {
+				$nonceActions[] = $action;
+
+				return 'test-rest-nonce';
+			}
+		);
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+
+		$localizedScripts = [];
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $objectName, array $data ) use ( &$localizedScripts ): void {
+				$localizedScripts[ $objectName ] = $data;
+			}
+		);
+
+		$this->page()->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
+
+		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
+
+		$payload = $localizedScripts['rankkernelInstantIndexing'];
+
+		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/instant-indexing/log', $payload['logUrl'] );
+		$this->assertSame( 'test-rest-nonce', $payload['restNonce'] );
+		$this->assertSame( [ 'wp_rest' ], $nonceActions, 'the nonce must use the standard WordPress REST action' );
+		$this->assertSame( 'example.com', $payload['siteHost'], 'the existing host value must survive the new keys' );
+		$this->assertArrayHasKey( 'sitePort', $payload );
+	}
+
+	/**
+	 * Test the localized payload never contains the API key.
+	 *
+	 * Serializes the exact payload the browser receives and asserts the
+	 * known stored key is absent, so no future key shaped value can hide
+	 * in the REST URL or the nonce either.
+	 */
+	public function test_localized_payload_never_contains_the_key(): void {
+		Functions\when( 'plugins_url' )->alias(
+			static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path
+		);
+		Functions\when( 'rest_url' )->alias(
+			static fn( string $path = '' ): string => 'https://example.com/wp-json/' . $path
+		);
+		Functions\when( 'wp_create_nonce' )->alias(
+			static function ( string $action = '' ): string {
+				return 'test-rest-nonce-for-' . $action;
+			}
+		);
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+
+		$localizedScripts = [];
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $objectName, array $data ) use ( &$localizedScripts ): void {
+				$localizedScripts[ $objectName ] = $data;
+			}
+		);
+
+		$this->page()->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
+
+		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		$payloadJson = (string) json_encode( $localizedScripts['rankkernelInstantIndexing'] );
+
+		$this->assertStringContainsString( 'test-rest-nonce-for-wp_rest', $payloadJson, 'the payload must carry the REST nonce' );
+		$this->assertStringNotContainsString( $this->key, $payloadJson, 'the API key must never reach the localized payload' );
 	}
 
 	/**
