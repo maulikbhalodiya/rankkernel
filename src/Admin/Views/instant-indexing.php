@@ -253,11 +253,11 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 		</div>
 
-		<?php /* Section 5: recent submissions card. */ ?>
+		<?php /* Section 5: submission history card. */ ?>
 		<div class="rk-ui-card rk-log-card">
 			<div class="rk-ui-card-header">
 				<div class="rk-ui-card-header-left">
-					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Recent submissions', 'rankkernel' ); ?></h2>
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Submission history', 'rankkernel' ); ?></h2>
 					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ __( '%d entries', 'rankkernel' ), $stats['total'] ) ); ?></span>
 				</div>
 				<?php if ( $listHasRows ) : ?>

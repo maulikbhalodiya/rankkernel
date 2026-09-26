@@ -679,7 +679,7 @@ test( 'the empty log opener jumps straight to the submit panel', () => {
 } );
 
 /**
- * Log loader harness, a minimal fake DOM around the Recent submissions
+ * Log loader harness, a minimal fake DOM around the Submission history
  * card plus controllable fetch, history and location doubles.
  *
  * Every fake element throws on any innerHTML access, so a test fails the

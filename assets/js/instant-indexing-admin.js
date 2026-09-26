@@ -8,7 +8,7 @@
  * key never reaches the browser.
  *
  * The log loader below is a progressive enhancement over the server rendered
- * Recent submissions card. The filter form stays a plain GET form and the
+ * Submission history card. The filter form stays a plain GET form and the
  * pagination stays real anchors, so the card keeps working with JavaScript
  * disabled. When JavaScript runs, submits and page clicks fetch the same
  * data from the REST log route and update the table in place.

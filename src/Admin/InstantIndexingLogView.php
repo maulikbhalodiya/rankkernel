@@ -22,7 +22,7 @@ use RankKernel\Modules\InstantIndexing\LogFilters;
 use RankKernel\Modules\InstantIndexing\LogQuery;
 
 /**
- * Prepares the Recent submissions card state for the view.
+ * Prepares the Submission history card state for the view.
  */
 final class InstantIndexingLogView {
 	/**

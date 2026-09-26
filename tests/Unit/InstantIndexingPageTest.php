@@ -1269,7 +1269,7 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the shared panel area renders above the recent submissions log.
+	 * Test the shared panel area renders above the submission history log.
 	 */
 	public function test_render_places_the_shared_panels_above_the_log(): void {
 		$page = $this->page();
@@ -1566,6 +1566,25 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Example preview.', $html );
 		$this->assertStringContainsString( 'https://example.com/post', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value">1</div>', $html );
+	}
+
+	/**
+	 * Test the log card heading names the full submission history.
+	 *
+	 * The log table keeps every row until an admin clears it, so the
+	 * heading must not imply a limited or recent window. This pins the
+	 * full history label so the wording cannot silently regress.
+	 */
+	public function test_log_card_heading_names_the_full_submission_history(): void {
+		$this->settings->logEntry( 'https://example.com/post', 200, 'manual', 'Accepted.' );
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<h2 class="rk-ui-card-title">Submission history</h2>', $html );
+		$this->assertStringNotContainsString( 'Recent submissions', $html );
 	}
 
 	/**
