@@ -922,7 +922,7 @@ final class SchemaMetabox {
 
 		$probe = $this->isUploadedFile;
 
-		if ( ! is_string( $tmp ) || '' === $tmp || ! $probe( $tmp ) ) {
+		if ( ! is_string( $tmp ) || '' === $tmp || ! $probe( $tmp ) || ! is_readable( $tmp ) ) {
 			return [
 				'found'  => true,
 				'valid'  => false,
@@ -930,16 +930,52 @@ final class SchemaMetabox {
 			];
 		}
 
-		if ( function_exists( 'wp_check_filetype' ) && isset( $file['name'] ) && is_string( $file['name'] ) ) {
-			$check = wp_check_filetype( $file['name'], [ 'json' => 'application/json' ] );
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
 
-			if ( ! is_array( $check ) || empty( $check['ext'] ) ) {
-				return [
-					'found'  => true,
-					'valid'  => false,
-					'schema' => [],
-				];
-			}
+		if ( '' === $name ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
+		}
+
+		$mimes = [ 'json' => 'application/json' ];
+
+		// wp_check_filetype_and_ext() cross checks the extension against the
+		// sniffed mime type, but it also requires the detected type to be in the
+		// site upload allow list, which excludes application/json by default.
+		// Allow the import mime for this probe only, then drop the filter so the
+		// site upload policy is untouched. This is a mime sniff, never full
+		// content validation; json_decode below rejects anything that is not JSON.
+		$allowImportMime = static function ( array $allowed ): array {
+			$allowed['json'] = 'application/json';
+
+			return $allowed;
+		};
+
+		if ( function_exists( 'add_filter' ) ) {
+			add_filter( 'upload_mimes', $allowImportMime );
+		}
+
+		if ( function_exists( 'wp_check_filetype_and_ext' ) ) {
+			$check = wp_check_filetype_and_ext( $tmp, $name, $mimes );
+		} elseif ( function_exists( 'wp_check_filetype' ) ) {
+			$check = wp_check_filetype( $name, $mimes );
+		} else {
+			$check = false;
+		}
+
+		if ( function_exists( 'remove_filter' ) ) {
+			remove_filter( 'upload_mimes', $allowImportMime );
+		}
+
+		if ( ! is_array( $check ) || empty( $check['ext'] ) ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
 		}
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads the verified local upload temp path, never a URL, after the upload probe and JSON type check.
