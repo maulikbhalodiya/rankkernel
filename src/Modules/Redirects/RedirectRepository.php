@@ -75,11 +75,11 @@ final class RedirectRepository {
 	private ?RedirectCache $cache = null;
 
 	/**
-	 * In-memory memoized pattern rows within the current request execution thread.
+	 * Shared static request-level memoized pattern rows across repository instances.
 	 *
 	 * @var array<int, array<string, mixed>>|null
 	 */
-	private ?array $patternsMemo = null;
+	private static ?array $patternsMemo = null;
 
 	/**
 	 * Constructor.
@@ -90,6 +90,13 @@ final class RedirectRepository {
 	public function __construct( $db = null, ?RedirectCache $cache = null ) {
 		$this->db    = $db;
 		$this->cache = $cache;
+	}
+
+	/**
+	 * Reset static pattern memoization (primarily for tests).
+	 */
+	public static function resetMemo(): void {
+		self::$patternsMemo = null;
 	}
 
 	/**
@@ -188,15 +195,15 @@ final class RedirectRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function all_patterns(): array {
-		if ( null !== $this->patternsMemo ) {
-			return $this->patternsMemo;
+		if ( null !== self::$patternsMemo ) {
+			return self::$patternsMemo;
 		}
 
 		if ( null !== $this->cache ) {
 			$cached = $this->cache->getPatterns();
 
 			if ( null !== $cached ) {
-				$this->patternsMemo = $cached;
+				self::$patternsMemo = $cached;
 
 				return $cached;
 			}
@@ -231,7 +238,7 @@ final class RedirectRepository {
 		}
 
 		// Performance optimization: memoize pattern rows in memory for the duration of the request execution thread.
-		$this->patternsMemo = $out;
+		self::$patternsMemo = $out;
 
 		return $out;
 	}
@@ -890,7 +897,7 @@ final class RedirectRepository {
 	 * memory maps.
 	 */
 	private function touch(): void {
-		$this->patternsMemo = null;
+		self::$patternsMemo = null;
 
 		if ( null !== $this->cache ) {
 			$this->cache->invalidate();

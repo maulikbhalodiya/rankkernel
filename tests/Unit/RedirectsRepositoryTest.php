@@ -427,12 +427,21 @@ final class RedirectsRepositoryTest extends TestCase {
 			]
 		);
 
-		$first  = $this->repo->all_patterns();
-		$second = $this->repo->all_patterns();
+		$readsBefore = $this->db->ruleReads;
+		$first       = $this->repo->all_patterns();
+		$readsFirst  = $this->db->ruleReads;
 
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+
+		// Second call on same or separate repository instance reuses static memo (0 new DB reads).
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->all_patterns();
+		$readsSecond = $this->db->ruleReads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
 		$this->assertSame( $first, $second );
 
-		// Insert a new pattern rule to trigger touch() and clear the memo.
+		// Insert a new pattern rule to trigger touch() and clear static memo.
 		$this->repo->insert(
 			[
 				'source'     => '/prefix2*',
@@ -441,8 +450,11 @@ final class RedirectsRepositoryTest extends TestCase {
 			]
 		);
 
-		$third = $this->repo->all_patterns();
+		$readsWrite = $this->db->ruleReads;
+		$third      = $secondRepo->all_patterns();
+		$readsThird = $this->db->ruleReads;
 
+		$this->assertGreaterThan( $readsWrite, $readsThird );
 		$this->assertCount( 2, $third );
 		$this->assertNotSame( $first, $third );
 	}
