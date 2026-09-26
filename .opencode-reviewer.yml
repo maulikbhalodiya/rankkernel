@@ -79,3 +79,10 @@ fix:
 secrets:
   enabled: true
   failCI: false
+  # The scanner's generic high entropy rule flags the Google Fonts filename
+  # hash in the asset provenance table, because that hash is long and clears
+  # the entropy floor. It is a public font file URL, not a credential, so it
+  # is allowlisted by its exact public path rather than by excluding the whole
+  # file, which would stop genuine secrets in that file from being scanned.
+  allowlist:
+    - "/fonts\\.gstatic\\.com\\/s\\/[a-z]+\\/v[0-9]+\\/[A-Za-z0-9]+\\.woff2/"

@@ -93,7 +93,32 @@ Prefer `wp_safe_remote_*` over `wp_remote_*`, because the safe variants block pr
 
 ### Secrets and private data
 
-Flag any credential, API key, token, password, private key, licence key, local socket path or absolute local filesystem path committed to the repository. Check `.github/workflows/` as well: a secret interpolated into a `run:` step can leak through logs, so confirm secrets come from `${{ secrets.* }}` and are never echoed.
+Flag a real credential committed to the repository: an API key, an authentication token, a password, a private key, a licence key, a session secret, a webhook secret, a database connection string with a password in it, an OAuth client secret, or a private key block. Also flag a local socket path or an absolute local filesystem path, because those leak the developer's environment.
+
+**High entropy alone is NOT evidence of a secret.** This rule exists because a previous run of this audit flagged a public Google Fonts `.woff2` URL recorded in an asset provenance table, purely because the font filename hash looked random. That was a false positive and it cost real time. Do not repeat it.
+
+Treat all of the following as NON-SECRETS unless there is separate contextual evidence that credential material is present:
+
+- public CDN URLs, including `fonts.googleapis.com` and `fonts.gstatic.com`
+- font file URLs, image URLs and any other public asset URL
+- font hashes, asset fingerprints, and content hashes such as a woff2 filename segment
+- public checksums and published digests, for example an integrity hash in a provenance table
+- versioned asset identifiers and build identifiers
+- provenance, attribution and licence records, including a sources table in a README
+- public dependency metadata: a package name, a version, a licence name, a registry URL, a repository URL
+
+Before reporting a hardcoded secret, require contextual evidence. Name the evidence in the finding. Acceptable evidence is any of:
+
+- the value appears in an assignment with a credential-shaped key, such as `api_key`, `secret`, `token`, `password`, `client_secret`, `private_key`, `access_key`, or `auth`
+- the value has a recognised credential prefix or shape, such as `ghp_`, `github_pat_`, `sk-`, `xoxb-`, `AKIA`, `AIza`, `eyJ` followed by a base64 JSON payload, or a `-----BEGIN ... PRIVATE KEY-----` block
+- the value is used to authenticate a request, sign a payload, decrypt data, or unlock an API
+- the value is read from an environment variable or a config file that is itself gitignored, and then committed by mistake
+
+If the evidence is only "it looks random", do not report it. If a value is uncertain, report it as **minor** with the reasoning and the exact file and line, so a human can decide, rather than as critical.
+
+Never propose rotating a value you have not confirmed is a credential. A rotation suggestion on a public URL is a false alarm that erodes trust in every other finding.
+
+Check `.github/workflows/` as well: a secret interpolated into a `run:` step can leak through logs, so confirm secrets come from `${{ secrets.* }}` and are never echoed. Note that a public CDN or font URL in a workflow is not a secret.
 
 Flag logging of a secret or of personal data. A debug log must not contain an API key, a nonce, a session token, an email address, or a stored key value.
 
