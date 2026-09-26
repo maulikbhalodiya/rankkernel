@@ -1,14 +1,14 @@
 # Contributing to RankKernel
 
-Thank you for contributing! This project follows a strict issue-driven workflow so every change is traceable.
+Thank you for contributing! This project follows a strict workflow with two lanes, issue-backed work and issue-free maintenance, so every change is traceable.
 
 ## The workflow (no exceptions)
 
-1. **Issue first.** Every change starts as a GitHub issue with a clear title, e.g. `Add XML sitemaps module`. One issue = one feature/fix.
-2. **Branch from the issue.** Branch name is `GH-<issue-number>`:
-   - Issue `#1` → branch `GH-1`
-   - Always branch from the latest `main`.
-3. **Commit with context.** Commit messages must reference the issue and describe the *why*, not just the *what*:
+1. **Pick the lane first.** Every change is exactly one of two lanes, and the lane decides the branch name and the PR title.
+   - **Issue-backed work: every feature and every fix.** The work starts as a GitHub issue with a clear title, e.g. `Add XML sitemaps module`. One issue = one feature/fix. The branch name is `GH-<issue-number>` (issue `#1` → branch `GH-1`), the PR title carries the `GH-<number>` prefix, and the PR body carries a `Closes #<number>` line. `GH-<number>` in a title is not itself an issue link, so the `Closes` line is what makes GitHub link and auto-close the issue.
+   - **Issue-free maintenance: CI, chore and documentation changes.** Do not create a fake issue merely to satisfy a naming rule. Use the conventional branch and title exception: the branch carries a conventional name with no issue id, and the PR title carries a conventional type and no issue id, for example `ci(audit): stop treating high entropy as evidence of a secret` or `docs(contributing): document the PR title convention`.
+2. **Branch from the latest `main`.** Whether the change is issue-backed or issue-free, the branch starts at the latest `main` and nothing else.
+3. **Commit with context.** Commit messages must describe the *why*, not just the *what*. An issue-backed commit references its issue, and an issue-free commit uses a conventional message with no issue reference:
    ```
    Add sitemap cache with validator-based invalidation (#2)
 
@@ -27,8 +27,8 @@ Thank you for contributing! This project follows a strict issue-driven workflow 
 ## Branch rules
 
 - `main` is always releasable. Direct pushes to `main` are not allowed.
-- Branch names follow `GH-*` only (e.g., `GH-1`, `GH-42`).
-- Keep one issue = one branch = one PR. No mixed-concern branches.
+- Issue-backed branch names follow `GH-*` only (e.g., `GH-1`, `GH-42`). Issue-free maintenance branches use a conventional name with no issue id, as the workflow section describes.
+- Keep one issue = one branch = one PR for issue-backed work, and one concern = one branch = one PR for issue-free maintenance. No mixed-concern branches.
 
 ## PR title rules
 

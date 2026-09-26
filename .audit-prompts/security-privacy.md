@@ -102,7 +102,7 @@ Treat all of the following as NON-SECRETS unless there is separate contextual ev
 - public CDN URLs, including `fonts.googleapis.com` and `fonts.gstatic.com`
 - font file URLs, image URLs and any other public asset URL
 - font hashes, asset fingerprints, and content hashes such as a woff2 filename segment
-- public checksums and published digests, for example a integrity hash in a provenance table
+- public checksums and published digests, for example an integrity hash in a provenance table
 - versioned asset identifiers and build identifiers
 - provenance, attribution and licence records, including a sources table in a README
 - public dependency metadata: a package name, a version, a licence name, a registry URL, a repository URL
@@ -110,7 +110,7 @@ Treat all of the following as NON-SECRETS unless there is separate contextual ev
 Before reporting a hardcoded secret, require contextual evidence. Name the evidence in the finding. Acceptable evidence is any of:
 
 - the value appears in an assignment with a credential-shaped key, such as `api_key`, `secret`, `token`, `password`, `client_secret`, `private_key`, `access_key`, or `auth`
-- the value has a recognized credential prefix or shape, such as `ghp_`, `github_pat_`, `sk-`, `xoxb-`, `AKIA`, `AIza`, `eyJ` followed by a base64 JSON payload, or a `-----BEGIN ... PRIVATE KEY-----` block
+- the value has a recognised credential prefix or shape, such as `ghp_`, `github_pat_`, `sk-`, `xoxb-`, `AKIA`, `AIza`, `eyJ` followed by a base64 JSON payload, or a `-----BEGIN ... PRIVATE KEY-----` block
 - the value is used to authenticate a request, sign a payload, decrypt data, or unlock an API
 - the value is read from an environment variable or a config file that is itself gitignored, and then committed by mistake
 
