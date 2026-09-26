@@ -164,4 +164,83 @@ final class PluginTest extends TestCase {
 		$this->assertSame( 1, preg_match( '/^- PHP (\S+)$/m', $readme_md_source, $readme_md_requirement ) );
 		$this->assertSame( '8.2+', $readme_md_requirement[1], 'README.md must require PHP 8.2+' );
 	}
+
+	/**
+	 * Test rankkernel_conflict_notice is scoped to RankKernel admin screens.
+	 */
+	public function test_conflict_notice_is_scoped_to_rankkernel_screens(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_conflict_notice' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_conflict_notice' === $key ) {
+					return [ 'Yoast SEO' ];
+				}
+				return $fallback;
+			}
+		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		// Case 1: Non-RankKernel screen -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_non_rk = ob_get_clean();
+		$this->assertEmpty( $output_non_rk );
+
+		// Case 1b: Near match top level screen (e.g. toplevel_page_rankkernel-tools) -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel-tools' ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_near_match = ob_get_clean();
+		$this->assertEmpty( $output_near_match );
+
+		// Case 2: Null screen -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_null_screen = ob_get_clean();
+		$this->assertEmpty( $output_null_screen );
+
+		// Case 3: User lacking manage_options -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_cap = ob_get_clean();
+		$this->assertEmpty( $output_no_cap );
+
+		// Case 4: RankKernel screen with manage_options capability -> Should output conflict notice.
+		Functions\when( 'current_user_can' )->justReturn( true );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_rk = ob_get_clean();
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
+
+		// Case 4b: RankKernel submenu screen -> Should output conflict notice.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-redirects' ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_rk_sub = ob_get_clean();
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk_sub );
+
+		// Case 5: Empty conflict list -> Should output nothing.
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_conflict_notice' === $key ) {
+					return [];
+				}
+				return $fallback;
+			}
+		);
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_conflicts = ob_get_clean();
+		$this->assertEmpty( $output_no_conflicts );
+	}
 }
