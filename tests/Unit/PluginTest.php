@@ -17,6 +17,7 @@ use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Plugin;
+use RankKernel\Rest\LogController;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -93,6 +94,66 @@ final class PluginTest extends TestCase {
 		$this->assertInstanceOf( ModuleManager::class, $manager );
 		$enabled = $manager->enabledModules();
 		$this->assertArrayHasKey( 'metadata', $enabled );
+	}
+
+	/**
+	 * Test the Instant Indexing log route is wired on rest_api_init.
+	 */
+	public function test_instant_indexing_log_route_is_wired_on_rest_api_init(): void {
+		$routes    = [];
+		$callbacks = [];
+
+		Functions\when( 'register_rest_route' )->alias(
+			static function ( string $route_namespace, string $path ) use ( &$routes ): bool {
+				$routes[] = [ $route_namespace, $path ];
+
+				return true;
+			}
+		);
+
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook, callable $callback ) use ( &$callbacks ): bool {
+				if ( 'rest_api_init' === $hook ) {
+					$callbacks[] = $callback;
+				}
+
+				return true;
+			}
+		);
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_modules' === $key || 'rankkernel_settings' === $key ) {
+					return [];
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_term_meta' )->justReturn( [] );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'load_plugin_textdomain' )->justReturn( true );
+
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
+		}
+
+		$plugin = Plugin::getInstance();
+		$plugin->registerCoreServices();
+
+		$this->assertInstanceOf( LogController::class, $plugin->get( 'log_controller' ) );
+		$this->assertNotEmpty( $callbacks, 'the plugin must register a rest_api_init callback' );
+
+		foreach ( $callbacks as $callback ) {
+			$callback();
+		}
+
+		$this->assertContains(
+			[ 'rankkernel/v1', '/instant-indexing/log' ],
+			$routes,
+			'the plugin must register the Instant Indexing log route on rest_api_init'
+		);
 	}
 
 	/**

@@ -6,8 +6,8 @@
  * and owns capability checks, nonce verification, request handling and
  * redirects. The API key is deliberately absent: the view receives the
  * configured state and never the key, so it cannot render it by mistake.
- * Every stat, tab count, pill and table row derives from the real log rows
- * through InstantIndexingLogView, nothing on this screen is hard coded.
+ * Every stat, tab count, pill and table row derives from the real log table
+ * through the shared query layer, nothing on this screen is hard coded.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -16,11 +16,11 @@
  * @var array{type: string, message: string}|null $notice Submit outcome notice, null for none.
  * @var bool $keyConfigured   Whether a usable key is stored.
  * @var bool $autoSubmit      Whether automatic submission is on.
- * @var array{total: int, accepted: int, rejected: int, limited: int} $stats Stats strip numbers derived from the log rows.
+ * @var array{total: int, accepted: int, rejected: int, limited: int} $stats Stats strip numbers over the whole log table.
  * @var string $screenUrl     Screen URL without filter arguments.
  * @var InstantIndexingLogView $logView Log filters plus tabs plus pagination state.
  * @var array<int, array{key: string, label: string, url: string, count: int, current: bool}> $statusTabs Status tabs with real counts.
- * @var array<int, array{url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> $pageRows Enriched rows for the current page.
+ * @var array<int, array{id: int, url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> $pageRows Enriched rows for the current page.
  * @var array{show: bool, prevUrl: string, nextUrl: string, pages: array<int, array{label: string, url: string, current: bool, gap: bool}>} $pagination Pagination links plus numbered pages.
  * @var array{from: int, to: int, total: int} $showing Visible range for the footer label.
  * @var bool $hasFilter       Whether any filter is active.
@@ -30,6 +30,7 @@
  * @var string $nonceSubmit     Nonce action for the manual submit form.
  * @var string $nonceClear      Nonce action for the clear log form.
  * @var string $nonceVerify     Nonce action for the key file verification check.
+ * @var string $nonceRetry      Nonce action for the single row retry form.
  * @var string $urlPlaceholder  Placeholder with three example URLs on this site.
  * @var string $noticeCode      Outcome code from the redirect, empty for none.
  * @var string $keyFileUrl      Public key file location, empty when no key is stored.
@@ -39,6 +40,7 @@
 declare(strict_types=1);
 
 use RankKernel\Admin\InstantIndexingLogView;
+use RankKernel\Admin\InstantIndexingOutcomes;
 use RankKernel\Admin\InstantIndexingPage;
 
 defined( 'ABSPATH' ) || exit;
@@ -245,7 +247,7 @@ defined( 'ABSPATH' ) || exit;
 				<li><?php echo esc_html__( 'A verification key was created on your server when the module was enabled. It is stored on the server and the key value is never sent to your browser.', 'rankkernel' ); ?></li>
 				<li><?php echo esc_html__( 'Search engines confirm the key by fetching a small public text file at the key file URL shown in Settings. This plugin serves that file virtually, so no file is written to your site root or your disk.', 'rankkernel' ); ?></li>
 				<li><?php echo esc_html__( 'When a post, page or term is published, updated or trashed, the plugin tells the search engines the URL changed. Autosaves and revisions are skipped, and the same URL is not sent more than once every 10 minutes.', 'rankkernel' ); ?></li>
-				<li><?php echo esc_html__( 'The engines answer with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected and retrying will not help. 429 means too many requests, so try again later.', 'rankkernel' ); ?></li>
+				<li><?php echo esc_html__( 'The engines answer with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected, and the engine is likely to reject the same URL again unless the page changes, though you can still retry it. 429 means too many requests, so try again later.', 'rankkernel' ); ?></li>
 				<li><?php echo esc_html__( 'You can also submit URLs by hand from the Submit a URL panel when you change something outside the normal publishing flow.', 'rankkernel' ); ?></li>
 				<li><?php echo esc_html__( 'A submission means the engine was notified, not that the page was indexed. Sitemaps still cover your whole site.', 'rankkernel' ); ?></li>
 				<li><?php echo esc_html__( 'Nothing else is contacted. There is no telemetry.', 'rankkernel' ); ?></li>
@@ -253,11 +255,11 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 		</div>
 
-		<?php /* Section 5: recent submissions card. */ ?>
+		<?php /* Section 5: submission history card. */ ?>
 		<div class="rk-ui-card rk-log-card">
 			<div class="rk-ui-card-header">
 				<div class="rk-ui-card-header-left">
-					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Recent submissions', 'rankkernel' ); ?></h2>
+					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Submission history', 'rankkernel' ); ?></h2>
 					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ __( '%d entries', 'rankkernel' ), $stats['total'] ) ); ?></span>
 				</div>
 				<?php if ( $listHasRows ) : ?>
@@ -295,15 +297,25 @@ defined( 'ABSPATH' ) || exit;
 									<th scope="col" class="rk-col-source"><?php echo esc_html__( 'Source', 'rankkernel' ); ?></th>
 									<th scope="col" class="rk-col-time"><?php echo esc_html__( 'Time (UTC)', 'rankkernel' ); ?></th>
 									<th scope="col" class="rk-col-message"><?php echo esc_html__( 'Message', 'rankkernel' ); ?></th>
+									<th scope="col" class="rk-col-actions"><?php echo esc_html__( 'Actions', 'rankkernel' ); ?></th>
 								</tr>
 							</thead>
 							<tbody>
+								<?php
+								/*
+								 * Preview rows are illustrative and have no stored
+								 * id, so every Actions cell stays empty. The real
+								 * table below renders the per row retry form, and
+								 * the matching header keeps the two tables aligned.
+								 */
+								?>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/blog/instant-indexing-overview' ); ?></td>
 									<td class="rk-col-status"><span class="rk-ui-pill rk-ui-pill-success"><?php echo esc_html__( 'Accepted', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 06:58' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/products/wireless-keyboard' ); ?></td>
@@ -311,6 +323,7 @@ defined( 'ABSPATH' ) || exit;
 									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 06:42' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted, the key is pending verification.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/about-us' ); ?></td>
@@ -318,6 +331,7 @@ defined( 'ABSPATH' ) || exit;
 									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-24 04:30' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Temporary failure, retry later.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/staging/draft-preview' ); ?></td>
@@ -325,6 +339,7 @@ defined( 'ABSPATH' ) || exit;
 									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 22:11' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Rejected permanently, retrying will not help.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/changelog/version-2' ); ?></td>
@@ -332,6 +347,7 @@ defined( 'ABSPATH' ) || exit;
 									<td class="rk-col-source"><span class="rk-ui-pill rk-ui-pill-neutral"><?php echo esc_html__( 'Auto', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 18:04' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Temporary failure, retry later.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 								<tr>
 									<td class="rk-col-url"><?php echo esc_html( 'https://example.com/pricing' ); ?></td>
@@ -339,6 +355,7 @@ defined( 'ABSPATH' ) || exit;
 									<td class="rk-col-source"><span class="rk-ui-pill rk-pill-source-manual"><?php echo esc_html__( 'Manual', 'rankkernel' ); ?></span></td>
 									<td class="rk-col-time"><?php echo esc_html( '2026-09-23 09:15' ); ?></td>
 									<td class="rk-col-message"><?php echo esc_html__( 'Accepted.', 'rankkernel' ); ?></td>
+									<td class="rk-col-actions"></td>
 								</tr>
 							</tbody>
 						</table>
@@ -403,16 +420,46 @@ defined( 'ABSPATH' ) || exit;
 									<th scope="col" class="rk-col-source"><?php echo esc_html__( 'Source', 'rankkernel' ); ?></th>
 									<th scope="col" class="rk-col-time"><?php echo esc_html__( 'Time (UTC)', 'rankkernel' ); ?></th>
 									<th scope="col" class="rk-col-message"><?php echo esc_html__( 'Message', 'rankkernel' ); ?></th>
+									<th scope="col" class="rk-col-actions"><?php echo esc_html__( 'Actions', 'rankkernel' ); ?></th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach ( $pageRows as $pageRow ) : ?>
+									<?php
+									/*
+									 * The issue defines the retry action for any
+									 * failure, including a permanent 4xx, and leaves
+									 * the judgment to the admin, so a retry control
+									 * renders for every row that did not already
+									 * succeed. This is the negation of the success
+									 * set rather than an enumeration of the failure
+									 * set, so a future failure category stays
+									 * retryable by default. Accepted and pending rows
+									 * already succeeded, so they carry no control.
+									 * The form posts the row id alone, never the URL.
+									 */
+									$retryable = ! in_array(
+										$pageRow['category'],
+										[ InstantIndexingOutcomes::CATEGORY_ACCEPTED, InstantIndexingOutcomes::CATEGORY_PENDING ],
+										true
+									);
+									?>
 									<tr>
 										<td class="rk-col-url"><?php echo esc_html( $pageRow['url'] ); ?></td>
 										<td class="rk-col-status"><span class="<?php echo esc_attr( $pageRow['statusPill'] ); ?>"><?php echo esc_html( $pageRow['statusLabel'] ); ?></span></td>
 										<td class="rk-col-source"><span class="<?php echo esc_attr( $pageRow['sourcePill'] ); ?>"><?php echo esc_html( $pageRow['sourceLabel'] ); ?></span></td>
 										<td class="rk-col-time"><?php echo esc_html( $pageRow['time'] ); ?></td>
 										<td class="rk-col-message"><?php echo esc_html( $pageRow['message'] ); ?></td>
+										<td class="rk-col-actions">
+											<?php if ( $retryable ) : ?>
+												<form method="post" action="" class="rk-retry-form">
+													<?php wp_nonce_field( $nonceRetry ); ?>
+													<input type="hidden" name="rankkernel_indexnow_action" value="retry" />
+													<input type="hidden" name="rankkernel_indexnow_id" value="<?php echo esc_attr( (string) $pageRow['id'] ); ?>" />
+													<?php submit_button( __( 'Retry', 'rankkernel' ), 'secondary rk-retry-submit', '', false ); ?>
+												</form>
+											<?php endif; ?>
+										</td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>

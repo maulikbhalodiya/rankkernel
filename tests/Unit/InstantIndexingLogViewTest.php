@@ -21,11 +21,35 @@ use RankKernel\Modules\InstantIndexing\IndexNowClient;
  */
 final class InstantIndexingLogViewTest extends TestCase {
 	/**
+	 * Fake database.
+	 *
+	 * @var InstantIndexingFakeDb
+	 */
+	private InstantIndexingFakeDb $db;
+
+	/**
+	 * Screen URL under test.
+	 *
+	 * @var string
+	 */
+	private string $baseUrl = 'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing';
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		if ( ! defined( 'ARRAY_A' ) ) {
+			define( 'ARRAY_A', 'ARRAY_A' );
+		}
+
+		$this->db = new InstantIndexingFakeDb();
+
+		// Test installs the in memory wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $this->db;
 
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
 	}
@@ -34,26 +58,38 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	/**
-	 * Build one normalized log row.
+	 * Seed one log row.
 	 *
 	 * @param int    $code    Status code.
 	 * @param string $source  Source value.
 	 * @param string $message Message value.
-	 * @return array{url: string, code: int, source: string, time: string, message: string} The result.
+	 * @return int Assigned id.
 	 */
-	private function row( int $code, string $source = 'manual', string $message = 'Message.' ): array {
-		return [
-			'url'     => 'https://example.com/' . $code . $source,
-			'code'    => $code,
-			'source'  => $source,
-			'time'    => '2026-09-24 06:58:00',
-			'message' => $message,
-		];
+	private function seed( int $code, string $source = 'manual', string $message = 'Message.' ): int {
+		return $this->db->seed(
+			[
+				'url'     => 'https://example.com/seed-' . $code . '-' . $source . '-' . $this->db->nextId,
+				'code'    => $code,
+				'source'  => $source,
+				'message' => $message,
+			]
+		);
+	}
+
+	/**
+	 * Build the view from raw query arguments.
+	 *
+	 * @param array<string, mixed> $query Raw query arguments.
+	 * @return InstantIndexingLogView The result.
+	 */
+	private function view( array $query = [] ): InstantIndexingLogView {
+		return InstantIndexingLogView::fromQuery( $query, $this->baseUrl );
 	}
 
 	/**
@@ -90,18 +126,29 @@ final class InstantIndexingLogViewTest extends TestCase {
 	}
 
 	/**
-	 * Test the stats derive from the rows with the specified buckets.
+	 * Test the SQL facing code map agrees with the categoriser.
+	 *
+	 * Every code the tab predicate map covers must categorise as exactly
+	 * that category, and every other code must not be covered, so a
+	 * mapping drift fails here before it can change a displayed number.
 	 */
-	public function test_stats_derive_from_the_rows(): void {
-		$rows = [
-			$this->row( 200 ),
-			$this->row( 202 ),
-			$this->row( 400 ),
-			$this->row( 0 ),
-			$this->row( 429 ),
-			$this->row( 503 ),
-		];
+	public function test_category_codes_agree_with_the_categoriser(): void {
+		$map = InstantIndexingOutcomes::categoryCodes();
 
+		foreach ( $map as $category => $codes ) {
+			foreach ( $codes as $code ) {
+				$this->assertSame( $category, InstantIndexingOutcomes::categoryFor( (int) $code ) );
+			}
+		}
+
+		$this->assertSame( [ 0, 400, 403, 405, 422 ], $map[ InstantIndexingOutcomes::CATEGORY_REJECTED ] );
+		$this->assertSame( [ 429 ], $map[ InstantIndexingOutcomes::CATEGORY_LIMITED ] );
+	}
+
+	/**
+	 * Test the stats strip derives from the category counts.
+	 */
+	public function test_stats_derive_from_the_category_counts(): void {
 		$this->assertSame(
 			[
 				'total'    => 6,
@@ -109,7 +156,16 @@ final class InstantIndexingLogViewTest extends TestCase {
 				'rejected' => 2,
 				'limited'  => 1,
 			],
-			InstantIndexingOutcomes::stats( $rows )
+			InstantIndexingOutcomes::statsFromCounts(
+				[
+					'all'      => 6,
+					'accepted' => 1,
+					'pending'  => 1,
+					'rejected' => 2,
+					'limited'  => 1,
+					'retry'    => 1,
+				]
+			)
 		);
 	}
 
@@ -117,15 +173,13 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test unknown query values fall back to the unfiltered state.
 	 */
 	public function test_from_query_sanitizes_unknown_values(): void {
-		$view = InstantIndexingLogView::fromQuery(
-			[],
+		$view = $this->view(
 			[
 				's'         => '  hello  ',
 				'rk_source' => 'robot',
 				'rk_status' => 'retry',
 				'rk_paged'  => '0',
-			],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
+			]
 		);
 
 		$this->assertSame( 'hello', $view->search() );
@@ -139,16 +193,10 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test the search matches the message as well as the URL.
 	 */
 	public function test_search_matches_url_and_message(): void {
-		$rows = [
-			$this->row( 200, 'manual', 'Accepted.' ),
-			$this->row( 400, 'manual', 'Rejected permanently, retrying will not help.' ),
-		];
+		$this->seed( 200, 'manual', 'Accepted.' );
+		$this->seed( 400, 'manual', 'Rejected permanently, retrying will not help.' );
 
-		$view = InstantIndexingLogView::fromQuery(
-			$rows,
-			[ 's' => 'permanently' ],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
-		);
+		$view = $this->view( [ 's' => 'permanently' ] );
 
 		$this->assertSame( 1, $view->totalFiltered() );
 		$this->assertSame( 400, $view->pageRows()[0]['code'] );
@@ -158,19 +206,15 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test the source plus status filters narrow the rows.
 	 */
 	public function test_source_and_status_filters_narrow_the_rows(): void {
-		$rows = [
-			$this->row( 200, 'manual' ),
-			$this->row( 200, 'auto' ),
-			$this->row( 202, 'manual' ),
-		];
+		$this->seed( 200, 'manual' );
+		$this->seed( 200, 'auto' );
+		$this->seed( 202, 'manual' );
 
-		$view = InstantIndexingLogView::fromQuery(
-			$rows,
+		$view = $this->view(
 			[
 				'rk_source' => 'manual',
 				'rk_status' => 'accepted',
-			],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
+			]
 		);
 
 		$this->assertSame( 1, $view->totalFiltered() );
@@ -181,19 +225,12 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test the tabs carry real counts over the searched rows.
 	 */
 	public function test_tabs_carry_real_counts(): void {
-		$rows = [
-			$this->row( 200, 'manual' ),
-			$this->row( 200, 'manual' ),
-			$this->row( 202, 'manual' ),
-			$this->row( 429, 'manual' ),
-		];
+		$this->seed( 200, 'manual' );
+		$this->seed( 200, 'manual' );
+		$this->seed( 202, 'manual' );
+		$this->seed( 429, 'manual' );
 
-		$view = InstantIndexingLogView::fromQuery(
-			$rows,
-			[],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
-		);
-
+		$view   = $this->view();
 		$counts = [];
 
 		foreach ( $view->tabs() as $tab ) {
@@ -216,17 +253,11 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test pagination slices the rows and labels the range.
 	 */
 	public function test_pagination_slices_the_rows(): void {
-		$rows = [];
-
 		for ( $i = 0; $i < 25; $i++ ) {
-			$rows[] = $this->row( 200 );
+			$this->seed( 200 );
 		}
 
-		$view = InstantIndexingLogView::fromQuery(
-			$rows,
-			[ 'rk_paged' => '2' ],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
-		);
+		$view = $this->view( [ 'rk_paged' => '2' ] );
 
 		$this->assertSame( 2, $view->page() );
 		$this->assertCount( 5, $view->pageRows() );
@@ -250,15 +281,80 @@ final class InstantIndexingLogViewTest extends TestCase {
 	 * Test a page past the end clamps to the last page.
 	 */
 	public function test_page_past_the_end_clamps_to_the_last_page(): void {
-		$view = InstantIndexingLogView::fromQuery(
-			[ $this->row( 200 ) ],
-			[ 'rk_paged' => '99' ],
-			'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing'
-		);
+		$this->seed( 200 );
+
+		$view = $this->view( [ 'rk_paged' => '99' ] );
 
 		$this->assertSame( 1, $view->page() );
 		$this->assertCount( 1, $view->pageRows() );
 		$this->assertFalse( $view->pagination()['show'] );
+	}
+
+	/**
+	 * Test pagination and tab links preserve every filter.
+	 *
+	 * This is the no JavaScript path: the URL query parameters stay the
+	 * source of truth, so paging must carry search, source and status.
+	 */
+	public function test_pagination_and_tab_links_preserve_every_filter(): void {
+		for ( $i = 0; $i < 25; $i++ ) {
+			$this->seed( 429, 'auto' );
+		}
+
+		$view = $this->view(
+			[
+				's'         => 'seed',
+				'rk_source' => 'auto',
+				'rk_status' => 'limited',
+			]
+		);
+
+		$links = [ $view->pagination()['nextUrl'] ];
+		$tabs  = $view->tabs();
+
+		foreach ( $tabs as $tab ) {
+			$links[] = $tab['url'];
+		}
+
+		foreach ( $links as $link ) {
+			$this->assertStringContainsString( 's=seed', $link );
+			$this->assertStringContainsString( 'rk_source=auto', $link );
+		}
+
+		$this->assertStringContainsString( 'rk_status=limited', $view->pagination()['nextUrl'] );
+		$this->assertStringContainsString( 'rk_status=accepted', $tabs[1]['url'] );
+	}
+
+	/**
+	 * Test pageRows exposes the row id as an integer.
+	 *
+	 * The retry form posts the id alone, so the view must surface it on
+	 * every rendered row without dropping any existing key.
+	 */
+	public function test_page_rows_expose_the_id_as_an_integer(): void {
+		$id = $this->seed( 200, 'manual', 'Accepted.' );
+
+		$row = $this->view()->pageRows()[0];
+
+		$this->assertSame( $id, $row['id'], 'the rendered row must carry its stored id' );
+		$this->assertIsInt( $row['id'] );
+		$this->assertSame(
+			[
+				'id',
+				'url',
+				'code',
+				'source',
+				'time',
+				'message',
+				'category',
+				'statusLabel',
+				'statusPill',
+				'sourceLabel',
+				'sourcePill',
+			],
+			array_keys( $row ),
+			'the id must arrive alongside every existing display key'
+		);
 	}
 
 	/**

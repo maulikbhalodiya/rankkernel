@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\InstantIndexing\IndexNowClient;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
+use RankKernel\Modules\InstantIndexing\LogFilters;
+use RankKernel\Modules\InstantIndexing\LogQuery;
 use RankKernel\Modules\ModuleEnableMap;
 use WP_Post;
 
@@ -54,11 +56,36 @@ final class InstantIndexingModuleTest extends TestCase {
 	private array $stored = [];
 
 	/**
+	 * Fake database backing the log table storage.
+	 *
+	 * @var InstantIndexingFakeDb
+	 */
+	private InstantIndexingFakeDb $db;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		if ( ! defined( 'ARRAY_A' ) ) {
+			define( 'ARRAY_A', 'ARRAY_A' );
+		}
+
+		$this->db = new InstantIndexingFakeDb();
+
+		// Test installs the in memory wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $this->db;
+
+		// The table creation path prefers dbDelta, which WordPress always
+		// defines, so the double records the create the way core would.
+		Functions\when( 'dbDelta' )->alias(
+			function (): void {
+				$this->db->tableExists = true;
+			}
+		);
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			define( 'RANKKERNEL_TESTING', true );
@@ -128,6 +155,7 @@ final class InstantIndexingModuleTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -322,6 +350,22 @@ final class InstantIndexingModuleTest extends TestCase {
 		$this->assertSame( [], $hooks );
 		$this->assertNull( $this->privateProperty( $module, 'client' ) );
 		$this->assertNull( $this->privateProperty( $module, 'settings' ) );
+	}
+
+	/**
+	 * Test register creates the log table, so an upgrade gets it too.
+	 *
+	 * The feature shipped without a table and the per request register
+	 * path is the upgrade path: a later plugin update must create it
+	 * without a fresh activation.
+	 */
+	public function test_register_creates_the_log_table_for_an_upgrade(): void {
+		$this->db->tableExists = false;
+
+		$module = $this->module( true, false );
+		$module->register();
+
+		$this->assertTrue( $this->db->tableExists, 'register must ensure the log table on an upgrade' );
 	}
 
 	/**
@@ -577,7 +621,7 @@ final class InstantIndexingModuleTest extends TestCase {
 			'manual'
 		);
 
-		$entries = $this->settings->logEntries();
+		$entries = LogQuery::fromInput( [], LogFilters::MAX_PER_PAGE )->rows();
 
 		$this->assertSame( [], $result['results'] );
 		$this->assertCount( 3, $entries, 'every URL in the failed batch must be logged' );

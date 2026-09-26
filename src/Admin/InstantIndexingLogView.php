@@ -2,10 +2,10 @@
 /**
  * Instant Indexing log presentation, filters plus tabs plus pages.
  *
- * Pure presentation over the IndexNow outcome log. It applies the search,
- * source and status filters plus pagination from read only query
- * arguments, while InstantIndexingOutcomes owns the code to display
- * mapping. No WordPress APIs are called here, only translation functions,
+ * Pure presentation over the IndexNow outcome log. The query layer owns
+ * filtering, counting, ordering and paging in SQL, and InstantIndexingOutcomes
+ * owns the code to display mapping, so this class only shapes that state for
+ * the template. No WordPress APIs are called here, only translation functions,
  * so the whole class stays unit testable without a loaded WordPress.
  *
  * @package RankKernel
@@ -18,8 +18,11 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\InstantIndexing\LogFilters;
+use RankKernel\Modules\InstantIndexing\LogQuery;
+
 /**
- * Prepares the Recent submissions card state for the view.
+ * Prepares the Submission history card state for the view.
  */
 final class InstantIndexingLogView {
 	/**
@@ -30,47 +33,19 @@ final class InstantIndexingLogView {
 	/**
 	 * Unfiltered status value.
 	 */
-	public const STATUS_ALL = 'all';
+	public const STATUS_ALL = LogFilters::STATUS_ALL;
 
 	/**
 	 * Unfiltered source value.
 	 */
-	public const SOURCE_ALL = 'all';
+	public const SOURCE_ALL = LogFilters::SOURCE_ALL;
 
 	/**
-	 * Normalized log rows, newest first.
+	 * Query layer behind every number on the card.
 	 *
-	 * @var array<int, array{url: string, code: int, source: string, time: string, message: string}>
+	 * @var LogQuery
 	 */
-	private array $rows;
-
-	/**
-	 * Current search term, matched against URL plus message.
-	 *
-	 * @var string
-	 */
-	private string $search;
-
-	/**
-	 * Current source filter, all or auto or manual.
-	 *
-	 * @var string
-	 */
-	private string $source;
-
-	/**
-	 * Current status filter, all or one category slug.
-	 *
-	 * @var string
-	 */
-	private string $status;
-
-	/**
-	 * Current page number, one based.
-	 *
-	 * @var int
-	 */
-	private int $page;
+	private LogQuery $query;
 
 	/**
 	 * Screen URL without filter arguments.
@@ -82,56 +57,26 @@ final class InstantIndexingLogView {
 	/**
 	 * Set up the view state.
 	 *
-	 * @param array<int, array{url: string, code: int, source: string, time: string, message: string}> $rows    Normalized log rows, newest first.
-	 * @param string                                                                                   $search  Search term, matched against URL plus message.
-	 * @param string                                                                                   $source  Source filter, all or auto or manual.
-	 * @param string                                                                                   $status  Status filter, all or one category slug.
-	 * @param int                                                                                      $page    Page number, one based.
-	 * @param string                                                                                   $baseUrl Screen URL without filter arguments.
+	 * @param LogQuery $query   Normalized filters plus the read layer.
+	 * @param string   $baseUrl Screen URL without filter arguments.
 	 */
-	public function __construct( array $rows, string $search, string $source, string $status, int $page, string $baseUrl ) {
-		$this->rows    = $rows;
-		$this->search  = $search;
-		$this->source  = $source;
-		$this->status  = $status;
-		$this->page    = $page < 1 ? 1 : $page;
+	public function __construct( LogQuery $query, string $baseUrl ) {
+		$this->query   = $query;
 		$this->baseUrl = $baseUrl;
 	}
 
 	/**
 	 * Build the view state from raw query arguments.
 	 *
-	 * Every value is sanitized with plain PHP only, unknown status and
-	 * source values fall back to all, and the page number is clamped to
-	 * a minimum of one. The caller passes the superglobal as is.
+	 * Normalization lives in the query layer, so the page and the future
+	 * REST route share the same accepted values and fallbacks.
 	 *
-	 * @param array<int, array{url: string, code: int, source: string, time: string, message: string}> $rows    Normalized log rows, newest first.
-	 * @param array<string, mixed>                                                                     $query   Raw query arguments.
-	 * @param string                                                                                   $baseUrl Screen URL without filter arguments.
+	 * @param array<string, mixed> $query   Raw query arguments.
+	 * @param string               $baseUrl Screen URL without filter arguments.
 	 * @return self The result.
 	 */
-	public static function fromQuery( array $rows, array $query, string $baseUrl ): self {
-		$search = $query['s'] ?? '';
-		$search = is_string( $search ) ? trim( substr( $search, 0, 100 ) ) : '';
-
-		$source = $query['rk_source'] ?? self::SOURCE_ALL;
-		$source = is_string( $source ) ? $source : self::SOURCE_ALL;
-
-		if ( 'auto' !== $source && 'manual' !== $source ) {
-			$source = self::SOURCE_ALL;
-		}
-
-		$status = $query['rk_status'] ?? self::STATUS_ALL;
-		$status = is_string( $status ) ? $status : self::STATUS_ALL;
-
-		if ( ! in_array( $status, [ self::STATUS_ALL, InstantIndexingOutcomes::CATEGORY_ACCEPTED, InstantIndexingOutcomes::CATEGORY_PENDING, InstantIndexingOutcomes::CATEGORY_REJECTED, InstantIndexingOutcomes::CATEGORY_LIMITED ], true ) ) {
-			$status = self::STATUS_ALL;
-		}
-
-		$paged = $query['rk_paged'] ?? 1;
-		$paged = is_numeric( $paged ) ? (int) $paged : 1;
-
-		return new self( $rows, $search, $source, $status, $paged, $baseUrl );
+	public static function fromQuery( array $query, string $baseUrl ): self {
+		return new self( LogQuery::fromInput( $query, self::PER_PAGE ), $baseUrl );
 	}
 
 	/**
@@ -187,6 +132,41 @@ final class InstantIndexingLogView {
 			];
 		}
 
+		if ( 'retried' === $code ) {
+			return [
+				'type'    => 'info',
+				'message' => __( 'Re-submitted. A new entry was added to the log below.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_missing' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. No log entry was selected.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_notfound' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The selected log entry no longer exists.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_unvalidated' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The stored URL could not be validated.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_host' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The stored URL host does not match this site.', 'rankkernel' ),
+			];
+		}
+
 		return null;
 	}
 
@@ -196,7 +176,7 @@ final class InstantIndexingLogView {
 	 * @return string The result.
 	 */
 	public function search(): string {
-		return $this->search;
+		return $this->query->filters()->search();
 	}
 
 	/**
@@ -205,7 +185,7 @@ final class InstantIndexingLogView {
 	 * @return string The result.
 	 */
 	public function source(): string {
-		return $this->source;
+		return $this->query->filters()->source();
 	}
 
 	/**
@@ -214,22 +194,27 @@ final class InstantIndexingLogView {
 	 * @return string The result.
 	 */
 	public function status(): string {
-		return $this->status;
+		return $this->query->filters()->status();
 	}
 
 	/**
 	 * Current page number, clamped to the available pages.
 	 *
+	 * The query layer returns an empty set for a page past the end, and
+	 * this clamp keeps the displayed page and its links on the last real
+	 * page, matching the old in memory behaviour.
+	 *
 	 * @return int The result.
 	 */
 	public function page(): int {
-		$pages = $this->pageCount();
+		$page  = $this->query->filters()->page();
+		$pages = $this->query->pageCount();
 
-		if ( $this->page > $pages ) {
+		if ( $page > $pages ) {
 			return $pages;
 		}
 
-		return $this->page;
+		return $page;
 	}
 
 	/**
@@ -238,34 +223,7 @@ final class InstantIndexingLogView {
 	 * @return bool The result.
 	 */
 	public function hasFilter(): bool {
-		return '' !== $this->search || self::SOURCE_ALL !== $this->source || self::STATUS_ALL !== $this->status;
-	}
-
-	/**
-	 * Rows after search plus source plus status, newest first.
-	 *
-	 * @return array<int, array{url: string, code: int, source: string, time: string, message: string}> The result.
-	 */
-	public function filteredRows(): array {
-		$filtered = [];
-
-		foreach ( $this->rows as $row ) {
-			if ( self::SOURCE_ALL !== $this->source && $row['source'] !== $this->source ) {
-				continue;
-			}
-
-			if ( self::STATUS_ALL !== $this->status && InstantIndexingOutcomes::categoryFor( (int) $row['code'] ) !== $this->status ) {
-				continue;
-			}
-
-			if ( '' !== $this->search && false === stripos( $row['url'] . ' ' . $row['message'], $this->search ) ) {
-				continue;
-			}
-
-			$filtered[] = $row;
-		}
-
-		return $filtered;
+		return $this->query->filters()->hasFilter();
 	}
 
 	/**
@@ -274,43 +232,19 @@ final class InstantIndexingLogView {
 	 * @return int The result.
 	 */
 	public function totalFiltered(): int {
-		return count( $this->filteredRows() );
+		return $this->query->filteredTotal();
 	}
 
 	/**
 	 * Status tabs with real counts over the search plus source rows.
 	 *
-	 * Counts ignore the active status tab itself, so every tab shows how
-	 * many rows it would display.
+	 * Counts come from the query layer, which ignores the active status
+	 * tab itself, so every tab shows how many rows it would display.
 	 *
 	 * @return array<int, array{key: string, label: string, url: string, count: int, current: bool}> The result.
 	 */
 	public function tabs(): array {
-		$counts = [
-			self::STATUS_ALL                           => 0,
-			InstantIndexingOutcomes::CATEGORY_ACCEPTED => 0,
-			InstantIndexingOutcomes::CATEGORY_PENDING  => 0,
-			InstantIndexingOutcomes::CATEGORY_REJECTED => 0,
-			InstantIndexingOutcomes::CATEGORY_LIMITED  => 0,
-		];
-
-		foreach ( $this->rows as $row ) {
-			if ( self::SOURCE_ALL !== $this->source && $row['source'] !== $this->source ) {
-				continue;
-			}
-
-			if ( '' !== $this->search && false === stripos( $row['url'] . ' ' . $row['message'], $this->search ) ) {
-				continue;
-			}
-
-			++$counts[ self::STATUS_ALL ];
-
-			$category = InstantIndexingOutcomes::categoryFor( (int) $row['code'] );
-
-			if ( isset( $counts[ $category ] ) ) {
-				++$counts[ $category ];
-			}
-		}
+		$counts = $this->query->statusCounts();
 
 		$labels = [
 			self::STATUS_ALL                           => __( 'All', 'rankkernel' ),
@@ -328,13 +262,13 @@ final class InstantIndexingLogView {
 				'label'   => $label,
 				'url'     => $this->url(
 					[
-						's'         => $this->search,
-						'rk_source' => $this->source,
+						's'         => $this->search(),
+						'rk_source' => $this->source(),
 						'rk_status' => $key,
 					]
 				),
 				'count'   => $counts[ $key ],
-				'current' => $key === $this->status,
+				'current' => $key === $this->status(),
 			];
 		}
 
@@ -344,32 +278,34 @@ final class InstantIndexingLogView {
 	/**
 	 * Enriched rows for the current page.
 	 *
-	 * @return array<int, array{url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> The result.
+	 * Each row carries its id as an int, so the template can build a retry
+	 * form that posts the id alone, alongside the display fields.
+	 *
+	 * @return array<int, array{id: int, url: string, code: int, source: string, time: string, message: string, category: string, statusLabel: string, statusPill: string, sourceLabel: string, sourcePill: string}> The result.
 	 */
 	public function pageRows(): array {
-		$filtered = $this->filteredRows();
-		$offset   = ( $this->page() - 1 ) * self::PER_PAGE;
-		$slice    = array_slice( $filtered, $offset, self::PER_PAGE );
-		$rows     = [];
+		$rows   = $this->query->withPage( $this->page() )->rows();
+		$result = [];
 
-		foreach ( $slice as $row ) {
+		foreach ( $rows as $row ) {
 			$category = InstantIndexingOutcomes::categoryFor( (int) $row['code'] );
 
-			$rows[] = [
-				'url'         => $row['url'],
+			$result[] = [
+				'id'          => (int) $row['id'],
+				'url'         => (string) $row['url'],
 				'code'        => (int) $row['code'],
-				'source'      => $row['source'],
-				'time'        => $row['time'],
-				'message'     => $row['message'],
+				'source'      => (string) $row['source'],
+				'time'        => (string) $row['time'],
+				'message'     => (string) $row['message'],
 				'category'    => $category,
 				'statusLabel' => InstantIndexingOutcomes::statusLabel( $category ),
 				'statusPill'  => InstantIndexingOutcomes::statusPill( $category ),
-				'sourceLabel' => InstantIndexingOutcomes::sourceLabel( $row['source'] ),
-				'sourcePill'  => InstantIndexingOutcomes::sourcePill( $row['source'] ),
+				'sourceLabel' => InstantIndexingOutcomes::sourceLabel( (string) $row['source'] ),
+				'sourcePill'  => InstantIndexingOutcomes::sourcePill( (string) $row['source'] ),
 			];
 		}
 
-		return $rows;
+		return $result;
 	}
 
 	/**
@@ -378,7 +314,7 @@ final class InstantIndexingLogView {
 	 * @return int The result.
 	 */
 	public function pageCount(): int {
-		return max( 1, (int) ceil( $this->totalFiltered() / self::PER_PAGE ) );
+		return $this->query->pageCount();
 	}
 
 	/**
@@ -406,9 +342,9 @@ final class InstantIndexingLogView {
 				'label'   => (string) $number,
 				'url'     => $this->url(
 					[
-						's'         => $this->search,
-						'rk_source' => $this->source,
-						'rk_status' => $this->status,
+						's'         => $this->search(),
+						'rk_source' => $this->source(),
+						'rk_status' => $this->status(),
 						'rk_paged'  => $number,
 					]
 				),
@@ -480,9 +416,9 @@ final class InstantIndexingLogView {
 	private function pageUrl( int $number ): string {
 		return $this->url(
 			[
-				's'         => $this->search,
-				'rk_source' => $this->source,
-				'rk_status' => $this->status,
+				's'         => $this->search(),
+				'rk_source' => $this->source(),
+				'rk_status' => $this->status(),
 				'rk_paged'  => $number,
 			]
 		);
