@@ -166,12 +166,15 @@ final class InstantIndexingPage {
 	 * Enqueue screen assets, and only on this screen.
 	 *
 	 * The stylesheet plus the validation script are registered, enqueued
-	 * and localized here. The site host, the site port, the log REST URL
-	 * and the REST nonce reach the browser, the API key never does, and
-	 * the gate keeps the hook contract shared with the other module pages.
-	 * The nonce is the standard WordPress REST CSRF token, action wp_rest,
-	 * which core verifies itself for cookie authenticated requests, so
-	 * carrying it in the page is the documented pattern, not a leak.
+	 * and localized here. The site host, the site port, the log REST URL,
+	 * the REST nonce and the retry nonce reach the browser, the API key
+	 * never does, and the gate keeps the hook contract shared with the
+	 * other module pages. The nonce is the standard WordPress REST CSRF
+	 * token, action wp_rest, which core verifies itself for cookie
+	 * authenticated requests, so carrying it in the page is the documented
+	 * pattern, not a leak. The retry nonce lets an AJAX rebuilt row carry
+	 * the same retry form the server renders, so the control survives a
+	 * filter, a search or a page click instead of only a full page load.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 * @return void
@@ -211,10 +214,11 @@ final class InstantIndexingPage {
 			'rankkernel-instant-indexing-admin',
 			'rankkernelInstantIndexing',
 			[
-				'siteHost'  => $this->settings->siteHost(),
-				'sitePort'  => $this->sitePort(),
-				'logUrl'    => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/instant-indexing/log' ) : '',
-				'restNonce' => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '',
+				'siteHost'   => $this->settings->siteHost(),
+				'sitePort'   => $this->sitePort(),
+				'logUrl'     => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/instant-indexing/log' ) : '',
+				'restNonce'  => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '',
+				'retryNonce' => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( self::NONCE_RETRY ) : '',
 			]
 		);
 	}

@@ -83,6 +83,17 @@ final class LogController {
 	 * plus the page size clamp, so an oversized page size can never reach a
 	 * statement even when the handler is called outside the REST pipeline.
 	 *
+	 * The rows travel exactly as the shared layer returns them, including
+	 * the integer row id. This reverses an earlier decision to withhold the
+	 * id from this route: the AJAX refresh rebuilds each table row in the
+	 * browser, so the retry control needs the id to address its row, and
+	 * without it the control disappears after any filter, search or page
+	 * click. The route already requires manage_options and returns only
+	 * this screen own log rows, so the id is necessary for the admin UI to
+	 * function and no wider exposure follows. Returning the shared shape
+	 * unchanged also keeps the REST response and the admin table from
+	 * disagreeing, which a second projection could reintroduce.
+	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response The result.
 	 */
@@ -91,7 +102,7 @@ final class LogController {
 
 		return new WP_REST_Response(
 			[
-				'rows'          => $this->publicRows( $query->rows() ),
+				'rows'          => $query->rows(),
 				'page'          => $query->filters()->page(),
 				'perPage'       => $query->filters()->perPage(),
 				'filteredTotal' => $query->filteredTotal(),
@@ -101,33 +112,6 @@ final class LogController {
 			],
 			200
 		);
-	}
-
-	/**
-	 * Public row shape for the REST response.
-	 *
-	 * The shared query layer also carries the row id for the admin retry
-	 * surfaces, so the response projects each row back to the six public
-	 * fields and the id never leaves through this read only route.
-	 *
-	 * @param array<int, array{id: int, url: string, host: string, code: int, source: string, time: string, message: string}> $rows Query rows.
-	 * @return array<int, array{url: string, host: string, code: int, source: string, time: string, message: string}> The result.
-	 */
-	private function publicRows( array $rows ): array {
-		$public = [];
-
-		foreach ( $rows as $row ) {
-			$public[] = [
-				'url'     => $row['url'],
-				'host'    => $row['host'],
-				'code'    => $row['code'],
-				'source'  => $row['source'],
-				'time'    => $row['time'],
-				'message' => $row['message'],
-			];
-		}
-
-		return $public;
 	}
 
 	/**

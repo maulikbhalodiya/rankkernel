@@ -1226,7 +1226,8 @@ function mountLog( options ) {
 			siteHost: 'example.com',
 			sitePort: '',
 			logUrl: 'logUrl' in opts ? opts.logUrl : LOG_REST,
-			restNonce: 'restNonce' in opts ? opts.restNonce : 'test-rest-nonce'
+			restNonce: 'restNonce' in opts ? opts.restNonce : 'test-rest-nonce',
+			retryNonce: 'retryNonce' in opts ? opts.retryNonce : 'test-retry-nonce'
 		},
 		location,
 		history,
@@ -1339,8 +1340,8 @@ function logPayload( overrides ) {
 	return Object.assign(
 		{
 			rows: [
-				{ url: 'https://example.com/a', host: 'example.com', code: 200, source: 'auto', time: '2026-09-25 10:00', message: 'Accepted.' },
-				{ url: 'https://example.com/b', host: 'example.com', code: 403, source: 'manual', time: '2026-09-25 09:00', message: 'Rejected permanently, retrying will not help.' }
+				{ id: 101, url: 'https://example.com/a', host: 'example.com', code: 200, source: 'auto', time: '2026-09-25 10:00', message: 'Accepted.' },
+				{ id: 102, url: 'https://example.com/b', host: 'example.com', code: 403, source: 'manual', time: '2026-09-25 09:00', message: 'Rejected permanently, retrying will not help.' }
 			],
 			page: 1,
 			perPage: 20,
@@ -1594,4 +1595,191 @@ test( 'a log submit without the localized REST config navigates normally', () =>
 
 	assert.equal( fixture.submit(), false, 'no handler may prevent the plain GET submit' );
 	assert.equal( fixture.requests.length, 0, 'no request may run without the REST config' );
+} );
+
+/**
+ * AJAX rebuilt retry control.
+ *
+ * The server renders a retry form per retryable row, but the AJAX refresh
+ * rebuilds every row from the REST payload. These tests pin the rebuilt
+ * Actions cell so a search, a filter change or a page click can no longer
+ * erase the retry control, and pin the input rule that only the row id
+ * travels while the stored URL never does.
+ */
+
+function retryFields( form ) {
+	const byName = {};
+
+	form.querySelectorAll( 'input' ).forEach( ( field ) => {
+		byName[ field.getAttribute( 'name' ) ] = field.getAttribute( 'value' );
+	} );
+
+	return byName;
+}
+
+function assertNoLinkOrUrl( form, url ) {
+	const walk = ( node ) => {
+		assert.equal( node.getAttribute( 'href' ), null, 'no node in the retry form may carry an href' );
+
+		for ( const child of node.children || [] ) {
+			walk( child );
+		}
+	};
+
+	walk( form );
+
+	assert.equal( String( form.textContent ).indexOf( url ), -1, 'the stored URL must never appear in the JS built retry form' );
+	assert.equal( String( form.textContent ).indexOf( 'href' ), -1, 'no href text may reach the JS built retry form' );
+}
+
+test( 'an AJAX log render rebuilds the Actions cell with the retry form for a retryable row', async () => {
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const rows = fixture.tbody().children;
+	const cell = rows[ 1 ].querySelector( '.rk-col-actions' );
+
+	assert.ok( cell, 'a retryable row must carry an Actions cell after an AJAX render' );
+
+	const form = cell.querySelector( '.rk-retry-form' );
+
+	assert.ok( form, 'the Actions cell must carry the retry form the server renders' );
+	assert.equal( form.getAttribute( 'method' ), 'post', 'the retry form must post' );
+	assert.equal( form.getAttribute( 'action' ), '', 'the retry form action must stay empty' );
+
+	const fields = retryFields( form );
+
+	assert.equal( fields._wpnonce, 'test-retry-nonce', 'the form must carry the localized retry nonce' );
+	assert.equal( fields.rankkernel_indexnow_action, 'retry', 'the form must carry the retry action marker' );
+	assert.equal( fields.rankkernel_indexnow_id, '102', 'the form must carry the row id from the REST row' );
+	assert.ok( form.querySelector( '.rk-retry-submit' ), 'the form must carry a submit control' );
+} );
+
+test( 'the JS built retry form carries only the row id and never the URL or a link', async () => {
+	const payload = 'https://example.com/a?x=1&"<script>alert(1)</script>';
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve(
+		logJson(
+			logPayload(
+				{
+					rows: [
+						{ id: 77, url: payload, host: 'example.com', code: 503, source: 'auto', time: '2026-09-25 10:00', message: 'Retry later.' }
+					]
+				}
+			)
+		)
+	);
+	await logFlush();
+
+	const row = fixture.tbody().children[ 0 ];
+	const cell = row.querySelector( '.rk-col-actions' );
+	const form = row.querySelector( '.rk-retry-form' );
+
+	assert.ok( cell, 'a 503 row must carry the Actions cell after an AJAX render' );
+	assert.ok( form, 'a 503 row must carry the retry form after an AJAX render' );
+
+	const names = form.querySelectorAll( 'input' ).map( ( field ) => field.getAttribute( 'name' ) );
+
+	assert.equal( names.join( ',' ), '_wpnonce,rankkernel_indexnow_action,rankkernel_indexnow_id', 'the form must carry the nonce, the action marker and the row id only' );
+	assert.equal( names.indexOf( 'rankkernel_indexnow_url' ), -1, 'the retry form must not carry a URL field' );
+	assertNoLinkOrUrl( cell, payload );
+
+	assert.equal( row.children[ 0 ].textContent, payload, 'the URL stays literal text in its own cell' );
+	assert.equal( row.children[ 0 ].children.length, 0, 'no element may be parsed from the URL' );
+} );
+
+test( 'an empty to rows AJAX rebuild adds the Actions header and the retry cell', async () => {
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload( { rows: [], filteredTotal: 0, statusCounts: { all: 0, accepted: 0, pending: 0, rejected: 0, limited: 0, retry: 0 } } ) ) );
+	await logFlush();
+
+	assert.equal( fixture.card.querySelector( '.rk-ui-table-wrap' ), null, 'the empty response must remove the table first' );
+
+	fixture.pending.length = 0;
+	fixture.submit();
+	fixture.pending[ 0 ].resolve(
+		logJson(
+			logPayload(
+				{
+					rows: [
+						{ id: 55, url: 'https://example.com/again', host: 'example.com', code: 503, source: 'auto', time: '2026-09-25 10:00', message: 'Retry later.' }
+					]
+				}
+			)
+		)
+	);
+	await logFlush();
+
+	const wrap = fixture.card.querySelector( '.rk-ui-table-wrap' );
+
+	assert.ok( wrap, 'the table must be rebuilt from empty to rows' );
+
+	const header = wrap.querySelector( '.rk-col-actions' );
+
+	assert.ok( header, 'the rebuilt table must carry the Actions column' );
+	assert.equal( header.tagName, 'TH', 'the first actions node must be the header cell' );
+	assert.equal( header.textContent, 'Actions' );
+
+	const cell = fixture.tbody().children[ 0 ].querySelector( '.rk-col-actions' );
+
+	assert.ok( cell, 'the rebuilt retryable row must carry the Actions cell' );
+	assert.equal( cell.tagName, 'TD' );
+	assert.ok( cell.querySelector( '.rk-retry-form' ), 'the rebuilt cell must carry the retry form' );
+} );
+
+test( 'an AJAX log render leaves accepted and pending rows without an Actions cell', async () => {
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve(
+		logJson(
+			logPayload(
+				{
+					rows: [
+						{ id: 11, url: 'https://example.com/accepted', host: 'example.com', code: 200, source: 'auto', time: '2026-09-25 10:00', message: 'Accepted.' },
+						{ id: 12, url: 'https://example.com/pending', host: 'example.com', code: 202, source: 'auto', time: '2026-09-25 09:00', message: 'Accepted, the key is pending verification.' }
+					]
+				}
+			)
+		)
+	);
+	await logFlush();
+
+	const rows = fixture.tbody().children;
+
+	assert.equal( rows.length, 2 );
+	assert.equal( rows[ 0 ].querySelector( '.rk-col-actions' ), null, 'an accepted row must not carry an Actions cell' );
+	assert.equal( rows[ 1 ].querySelector( '.rk-col-actions' ), null, 'a pending row must not carry an Actions cell' );
+	assert.equal( rows[ 0 ].children.length, 5, 'an accepted row keeps the five server columns' );
+	assert.equal( rows[ 1 ].children.length, 5, 'a pending row keeps the five server columns' );
+} );
+
+test( 'a retryable row without a row id carries no retry control', async () => {
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve(
+		logJson(
+			logPayload(
+				{
+					rows: [
+						{ url: 'https://example.com/no-id', host: 'example.com', code: 503, source: 'auto', time: '2026-09-25 10:00', message: 'Retry later.' }
+					]
+				}
+			)
+		)
+	);
+	await logFlush();
+
+	const row = fixture.tbody().children[ 0 ];
+
+	assert.equal( row.querySelector( '.rk-col-actions' ), null, 'a row without an id cannot be addressed, so no control may render' );
+	assert.equal( row.querySelector( '.rk-retry-form' ), null );
 } );

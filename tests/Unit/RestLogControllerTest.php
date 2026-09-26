@@ -304,7 +304,8 @@ final class RestLogControllerTest extends TestCase {
 		self::assertCount( 3, $data['rows'] );
 
 		foreach ( $data['rows'] as $row ) {
-			self::assertSame( [ 'url', 'host', 'code', 'source', 'time', 'message' ], array_keys( $row ) );
+			self::assertSame( [ 'id', 'url', 'host', 'code', 'source', 'time', 'message' ], array_keys( $row ) );
+			self::assertIsInt( $row['id'] );
 			self::assertIsString( $row['url'] );
 			self::assertIsString( $row['host'] );
 			self::assertIsInt( $row['code'] );
@@ -343,9 +344,10 @@ final class RestLogControllerTest extends TestCase {
 	 * The direct LogQuery call receives the same normalized inputs, so this
 	 * fails the moment the controller starts doing its own filtering,
 	 * counting, ordering or paging instead of reusing the shared layer.
-	 * The query layer carries the row id for the admin retry surfaces and
-	 * the REST route withholds it, so the comparison runs over the public
-	 * fields, and the filtering, ordering and paging must still match.
+	 * The response carries the shared row shape unchanged, including the
+	 * integer row id the AJAX rebuilt retry control needs, so the whole
+	 * comparison runs directly against LogQuery::rows() with no projection
+	 * step between them.
 	 */
 	public function test_rows_and_counts_match_the_shared_query_layer(): void {
 		$this->seed( 200, 'manual', 'Accepted alpha.', '', 'https://example.com/alpha' );
@@ -367,16 +369,7 @@ final class RestLogControllerTest extends TestCase {
 		$data   = $this->getData( $params );
 		$direct = LogQuery::fromInput( $params, LogQuery::PER_PAGE );
 
-		$expected = array_map(
-			static function ( array $row ): array {
-				unset( $row['id'] );
-
-				return $row;
-			},
-			$direct->rows()
-		);
-
-		self::assertSame( $expected, $data['rows'], 'the REST rows must match the shared layer minus the withheld row id' );
+		self::assertSame( $direct->rows(), $data['rows'], 'the REST rows must match the shared layer verbatim, id included' );
 		self::assertSame( $direct->filters()->page(), $data['page'] );
 		self::assertSame( $direct->filters()->perPage(), $data['perPage'] );
 		self::assertSame( $direct->filteredTotal(), $data['filteredTotal'] );
@@ -499,7 +492,8 @@ final class RestLogControllerTest extends TestCase {
 			array_keys( $data )
 		);
 
-		self::assertArrayNotHasKey( 'id', $data['rows'][0], 'the raw row id stays out of the response' );
+		self::assertArrayHasKey( 'id', $data['rows'][0], 'the row id must now reach the response so the retry control can address its row' );
+		self::assertIsInt( $data['rows'][0]['id'], 'the exposed row id must be an integer' );
 		self::assertArrayNotHasKey( 'key', $data );
 		self::assertArrayNotHasKey( 'settings', $data );
 	}

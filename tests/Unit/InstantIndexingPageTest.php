@@ -1016,13 +1016,14 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
 		$this->assertSame(
 			[
-				'siteHost'  => 'example.com',
-				'sitePort'  => '',
-				'logUrl'    => '',
-				'restNonce' => '',
+				'siteHost'   => 'example.com',
+				'sitePort'   => '',
+				'logUrl'     => '',
+				'restNonce'  => '',
+				'retryNonce' => '',
 			],
 			$localizedScripts['rankkernelInstantIndexing'],
-			'the payload must carry the site host, the site port, the log REST URL and the REST nonce only'
+			'the payload must carry the site host, the site port, the log REST URL, the REST nonce and the retry nonce only'
 		);
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
@@ -1062,10 +1063,11 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame(
 			[
-				'siteHost'  => 'example.com',
-				'sitePort'  => '8080',
-				'logUrl'    => '',
-				'restNonce' => '',
+				'siteHost'   => 'example.com',
+				'sitePort'   => '8080',
+				'logUrl'     => '',
+				'restNonce'  => '',
+				'retryNonce' => '',
 			],
 			$localizedScripts['rankkernelInstantIndexing'],
 			'the port must derive from the home URL and nothing else may be localized'
@@ -1073,12 +1075,14 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the localized payload carries the log REST URL plus the REST nonce.
+	 * Test the localized payload carries the log REST URL plus both nonces.
 	 *
 	 * The script fetches the log route with fetch plus the X-WP-Nonce
-	 * header, so both values must reach the browser. The nonce action must
-	 * be wp_rest, the standard WordPress REST token core verifies itself,
-	 * and the URL must be the log route LogController serves.
+	 * header, so both values must reach the browser. The REST nonce action
+	 * must be wp_rest, the standard WordPress REST token core verifies
+	 * itself, the retry nonce must use the retry write action so an AJAX
+	 * rebuilt row can post the same retry form the server renders, and the
+	 * URL must be the log route LogController serves.
 	 */
 	public function test_enqueue_localizes_the_log_rest_url_and_nonce(): void {
 		$nonceActions = [];
@@ -1116,7 +1120,12 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/instant-indexing/log', $payload['logUrl'] );
 		$this->assertSame( 'test-rest-nonce', $payload['restNonce'] );
-		$this->assertSame( [ 'wp_rest' ], $nonceActions, 'the nonce must use the standard WordPress REST action' );
+		$this->assertSame( 'test-rest-nonce', $payload['retryNonce'], 'the retry nonce must reach the payload so a rebuilt row can post a retry' );
+		$this->assertSame(
+			[ 'wp_rest', 'rankkernel_indexnow_retry' ],
+			$nonceActions,
+			'the REST nonce must use wp_rest and the retry nonce must use its own retry action'
+		);
 		$this->assertSame( 'example.com', $payload['siteHost'], 'the existing host value must survive the new keys' );
 		$this->assertArrayHasKey( 'sitePort', $payload );
 	}

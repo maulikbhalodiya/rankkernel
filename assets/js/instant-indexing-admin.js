@@ -1014,15 +1014,70 @@
 	}
 
 	/**
+	 * Whether one display category offers a retry control.
+	 *
+	 * The PHP view is the authority: src/Admin/Views/instant-indexing.php
+	 * sets its retryable flag as the negation of the success set, so an
+	 * accepted or pending row never carries a control while every other
+	 * category does. The rule is repeated here so the AJAX rebuilt table
+	 * matches the server table instead of drifting from it.
+	 */
+	function logIsRetryable( category ) {
+		return 'accepted' !== category && 'pending' !== category;
+	}
+
+	/**
+	 * One hidden input for the retry form, name plus value as attributes.
+	 */
+	function logField( doc, name, value ) {
+		var input = logEl( doc, 'input', '' );
+
+		input.setAttribute( 'type', 'hidden' );
+		input.setAttribute( 'name', name );
+		input.setAttribute( 'value', String( value ) );
+
+		return input;
+	}
+
+	/**
+	 * Actions cell for one retryable row, the same form the PHP view builds.
+	 *
+	 * The form posts, it never fetches: method post with an empty action,
+	 * the localized retry nonce, the action marker and the row id alone.
+	 * The stored URL stays absent by design, it is never a field, never a
+	 * link and never an href.
+	 */
+	function logBuildActions( doc, id ) {
+		var cfg = config();
+		var nonce = cfg && 'string' === typeof cfg.retryNonce ? cfg.retryNonce : '';
+		var cell = logEl( doc, 'td', 'rk-col-actions' );
+		var form = logEl( doc, 'form', 'rk-retry-form' );
+		var submit = logEl( doc, 'button', 'button secondary rk-retry-submit', 'Retry' );
+
+		form.setAttribute( 'method', 'post' );
+		form.setAttribute( 'action', '' );
+		form.appendChild( logField( doc, '_wpnonce', nonce ) );
+		form.appendChild( logField( doc, 'rankkernel_indexnow_action', 'retry' ) );
+		form.appendChild( logField( doc, 'rankkernel_indexnow_id', id ) );
+		submit.setAttribute( 'type', 'submit' );
+		form.appendChild( submit );
+		cell.appendChild( form );
+
+		return cell;
+	}
+
+	/**
 	 * One table row for one raw REST row.
 	 *
 	 * The URL is displayed as text, exactly like the server markup, never
 	 * as a link. Pills reuse the shared rk-ui classes, labels and classes
-	 * come from the mirrored taxonomy above.
+	 * come from the mirrored taxonomy above. A row that failed carries the
+	 * same retry form the server renders, rebuilt from the REST row id.
 	 */
 	function logBuildRow( doc, row ) {
 		var data = row || {};
 		var code = 'number' === typeof data.code ? data.code : 0;
+		var id = 'number' === typeof data.id && data.id > 0 ? data.id : 0;
 		var category = logCategoryFor( code );
 		var source = 'manual' === data.source ? 'manual' : 'auto';
 
@@ -1044,6 +1099,10 @@
 		tr.appendChild( timeCell );
 		tr.appendChild( messageCell );
 
+		if ( logIsRetryable( category ) && id > 0 ) {
+			tr.appendChild( logBuildActions( doc, id ) );
+		}
+
 		return tr;
 	}
 
@@ -1051,8 +1110,8 @@
 	 * Table skeleton matching the server markup, for the empty to rows turn.
 	 */
 	function logBuildTable( doc ) {
-		var headers = [ 'URL', 'Status', 'Source', 'Time (UTC)', 'Message' ];
-		var classes = [ 'rk-col-url', 'rk-col-status', 'rk-col-source', 'rk-col-time', 'rk-col-message' ];
+		var headers = [ 'URL', 'Status', 'Source', 'Time (UTC)', 'Message', 'Actions' ];
+		var classes = [ 'rk-col-url', 'rk-col-status', 'rk-col-source', 'rk-col-time', 'rk-col-message', 'rk-col-actions' ];
 		var wrap = logEl( doc, 'div', 'rk-ui-table-wrap' );
 		var table = logEl( doc, 'table', 'rk-ui-table' );
 		var head = logEl( doc, 'thead' );
