@@ -459,6 +459,21 @@
 	max-width: 320px;
 }
 
+/* Actions column: the per row retry control sits in its own right
+aligned cell and never wraps, so the two table bodies stay aligned. */
+.rk-instant-indexing .rk-ui-table .rk-col-actions {
+	white-space: nowrap;
+}
+
+.rk-instant-indexing .rk-retry-form {
+	display: inline;
+	margin: 0;
+}
+
+.rk-instant-indexing .rk-retry-form .rk-retry-submit {
+	margin: 0;
+}
+
 /* Manual source pill colours, laid over the shared pill base. The auto
 source pill uses the shared neutral pill, while this manual treatment
 keeps its own primary active foreground, so it stays page scoped. */

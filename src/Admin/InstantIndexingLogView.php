@@ -132,6 +132,41 @@ final class InstantIndexingLogView {
 			];
 		}
 
+		if ( 'retried' === $code ) {
+			return [
+				'type'    => 'info',
+				'message' => __( 'Re-submitted. A new entry was added to the log below.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_missing' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. No log entry was selected.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_notfound' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The selected log entry no longer exists.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_unvalidated' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The stored URL could not be validated.', 'rankkernel' ),
+			];
+		}
+
+		if ( 'retry_host' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not retry. The stored URL host does not match this site.', 'rankkernel' ),
+			];
+		}
+
 		return null;
 	}
 

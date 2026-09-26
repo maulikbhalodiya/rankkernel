@@ -1649,4 +1649,541 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">3</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">25</div>', $html );
 	}
+
+	/**
+	 * Seed one retryable log row, a transient 503 outcome.
+	 *
+	 * @return int The assigned row id.
+	 */
+	private function seedRetryableRow(): int {
+		return $this->db->seed(
+			[
+				'url'     => 'https://example.com/retry-me',
+				'code'    => 503,
+				'source'  => 'auto',
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+	}
+
+	/**
+	 * Test a retry submits the stored URL of exactly the addressed row.
+	 *
+	 * The form posts the id alone, so this pins the whole point of the
+	 * feature: the server reads the URL back from the row and submits that
+	 * one URL once, never a posted value and never a batch.
+	 */
+	public function test_retry_submits_the_stored_url_of_one_row(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$calls    = 0;
+		$received = [];
+		$page     = $this->page(
+			function ( array $urls ) use ( &$calls, &$received ): void {
+				++$calls;
+				$received = $urls;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$id = $this->seedRetryableRow();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 1, $calls, 'a retry must submit exactly once' );
+		$this->assertSame( [ 'https://example.com/retry-me' ], $received, 'a retry must submit the stored URL of the addressed row' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=retried', $redirect );
+	}
+
+	/**
+	 * Test a retry appends a new row and leaves the original untouched.
+	 *
+	 * The default callback routes through the real InstantIndexingModule,
+	 * so this exercises the module entry point rather than a stub: a 200
+	 * from the transport stores one new row while the addressed row stays
+	 * byte identical, which is the append only contract.
+	 */
+	public function test_retry_appends_a_new_log_row_and_leaves_the_original_unchanged(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+		Functions\when( 'wp_json_encode' )->alias( static fn( mixed $d ): string => (string) json_encode( $d ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+
+		$transport = static function (): array {
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => '',
+			];
+		};
+		Functions\when( 'wp_safe_remote_post' )->alias( $transport );
+		Functions\when( 'wp_remote_post' )->alias( $transport );
+
+		$id       = $this->seedRetryableRow();
+		$original = $this->db->rows[ $id ];
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+		$this->page()->maybeHandleSave();
+
+		$this->assertCount( 2, $this->db->rows, 'a retry must append exactly one new log row' );
+		$this->assertSame( $original, $this->db->rows[ $id ], 'the addressed row must stay byte identical' );
+
+		$entries = $this->logRows();
+
+		$this->assertCount( 2, $entries );
+		$this->assertSame( 'https://example.com/retry-me', $entries[0]['url'], 'the new row must carry the stored URL' );
+		$this->assertSame( 200, $entries[0]['code'] );
+		$this->assertSame( 'manual', $entries[0]['source'], 'a retry must be logged as a manual submission' );
+	}
+
+	/**
+	 * Test a missing or non positive row id submits nothing.
+	 *
+	 * Every malformed shape collapses to zero or below before the query
+	 * runs, so the handler refuses with its own outcome and never reaches
+	 * the submit callback.
+	 */
+	public function test_retry_with_a_non_positive_id_writes_no_submission(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		foreach ( [ null, '0', '-3', 'abc', '' ] as $value ) {
+			$called   = 0;
+			$redirect = '';
+
+			$_POST = [ 'rankkernel_indexnow_action' => 'retry' ];
+
+			if ( null !== $value ) {
+				$_POST['rankkernel_indexnow_id'] = $value;
+			}
+
+			$page->maybeHandleSave();
+
+			$this->assertSame( 0, $called, 'a non positive row id must never reach the submit callback' );
+			$this->assertStringContainsString( 'rk_indexnow_notice=retry_missing', $redirect );
+		}
+
+		$this->assertSame( 0, $this->db->writes, 'a refused retry must write nothing' );
+	}
+
+	/**
+	 * Test a retry of an absent row submits nothing.
+	 */
+	public function test_retry_of_a_missing_row_writes_no_submission(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => '424242',
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'an absent row must never reach the submit callback' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=retry_notfound', $redirect );
+	}
+
+	/**
+	 * Test a retry is refused while the module is disabled.
+	 */
+	public function test_retry_is_refused_while_the_module_is_disabled(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			},
+			false
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$id = $this->seedRetryableRow();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'a disabled module must never reach the submit callback' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=disabled', $redirect );
+	}
+
+	/**
+	 * Test a stored URL on a foreign host is refused, never submitted.
+	 */
+	public function test_retry_refuses_a_stored_url_that_fails_the_host_check(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$id = $this->db->seed(
+			[
+				'url'     => 'https://evil.test/a',
+				'host'    => 'evil.test',
+				'code'    => 503,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'a foreign host must never be submitted by a retry' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=retry_host', $redirect );
+	}
+
+	/**
+	 * Test a stored URL that no longer validates is refused, not submitted.
+	 */
+	public function test_retry_refuses_a_stored_url_that_cannot_be_validated(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string|false => '' === $u ? '' : false );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$id = $this->db->seed(
+			[
+				'url'     => 'not a url',
+				'code'    => 503,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+		$page->maybeHandleSave();
+
+		$this->assertSame( 0, $called, 'an unvalidated stored URL must never be submitted' );
+		$this->assertStringContainsString( 'rk_indexnow_notice=retry_unvalidated', $redirect );
+	}
+
+	/**
+	 * Test a retry without the capability stops at wp_die with a 403.
+	 */
+	public function test_retry_is_rejected_without_capability(): void {
+		$dies         = 0;
+		$responseCode = 0;
+
+		Functions\when( 'wp_die' )->alias(
+			static function ( string $message = '', string $title = '', array $args = [] ) use ( &$dies, &$responseCode ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the wp_die signature and records only the response code.
+				++$dies;
+				$responseCode = (int) ( $args['response'] ?? 0 );
+
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$id = $this->seedRetryableRow();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+
+		try {
+			$page->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies, 'a retry without the capability must stop at wp_die' );
+		$this->assertSame( 403, $responseCode, 'the capability rejection must send a 403' );
+		$this->assertSame( 0, $called, 'a rejected retry must never submit' );
+	}
+
+	/**
+	 * Test a retry verifies its own nonce and stops with 403 otherwise.
+	 *
+	 * The captured action proves the retry branch uses NONCE_RETRY rather
+	 * than the submit nonce, so a submit form nonce can never authorize a
+	 * retry.
+	 */
+	public function test_retry_requires_its_own_nonce(): void {
+		$dies         = 0;
+		$responseCode = 0;
+		$nonceActions = [];
+
+		Functions\when( 'wp_die' )->alias(
+			static function ( string $message = '', string $title = '', array $args = [] ) use ( &$dies, &$responseCode ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the wp_die signature and records only the response code.
+				++$dies;
+				$responseCode = (int) ( $args['response'] ?? 0 );
+
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return false;
+			}
+		);
+
+		$called = 0;
+		$page   = $this->page(
+			function () use ( &$called ): void {
+				++$called;
+			}
+		);
+
+		$id = $this->seedRetryableRow();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'retry',
+			'rankkernel_indexnow_id'     => (string) $id,
+		];
+
+		try {
+			$page->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
+
+		$this->assertSame( 1, $dies, 'a retry without a valid nonce must stop at wp_die' );
+		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
+		$this->assertSame( [ 'rankkernel_indexnow_retry' ], $nonceActions, 'the retry branch must verify its own nonce action' );
+		$this->assertNotContains( 'rankkernel_indexnow_submit', $nonceActions );
+		$this->assertSame( 0, $called, 'a rejected retry must never submit' );
+	}
+
+	/**
+	 * Test the retry control renders only for temporary rows.
+	 *
+	 * Accepted and pending rows succeeded, and a permanent rejection says
+	 * a retry cannot help, so exactly one control renders here, on the 503.
+	 */
+	public function test_render_shows_retry_only_for_temporary_rows(): void {
+		$this->db->seed(
+			[
+				'url'     => 'https://example.com/temp',
+				'code'    => 503,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+		$this->db->seed(
+			[
+				'url'     => 'https://example.com/ok',
+				'code'    => 200,
+				'message' => 'Accepted.',
+			]
+		);
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'value="retry"' ), 'only the temporary row must carry a retry control' );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_id"', $html );
+		$this->assertStringContainsString( '<th scope="col" class="rk-col-actions">Actions</th>', $html );
+	}
+
+	/**
+	 * Test the retry form carries the id alone and never the stored URL.
+	 *
+	 * The stored URL is attacker influenced, so the form must post the row
+	 * id only, keep an empty action, and carry no URL field, no link and no
+	 * raw copy of the URL anywhere.
+	 */
+	public function test_retry_form_carries_only_the_row_id_and_never_the_url(): void {
+		$payload = 'https://example.com/a?x=1&"<script>alert(1)</script>';
+
+		Functions\when( 'wp_nonce_field' )->alias(
+			static function ( string $action = '' ): void {
+				echo '<input type="hidden" name="_wpnonce" value="nonce-' . esc_attr( $action ) . '" />';
+			}
+		);
+
+		$id = $this->db->seed(
+			[
+				'url'     => $payload,
+				'code'    => 503,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/<form[^>]*class="rk-retry-form"/', $html, 'the temporary row must render a retry form' );
+
+		$forms = [];
+		preg_match_all( '/<form[^>]*class="rk-retry-form".*?<\/form>/s', $html, $forms );
+
+		$this->assertCount( 1, $forms[0], 'the temporary row must render exactly one retry form' );
+
+		$form = $forms[0][0];
+
+		$this->assertStringContainsString( 'action=""', $form, 'the retry form action must stay empty' );
+		$this->assertStringContainsString( 'name="_wpnonce" value="nonce-rankkernel_indexnow_retry"', $form, 'the retry form must carry its own nonce action' );
+		$this->assertStringContainsString( 'name="rankkernel_indexnow_id" value="' . (string) $id . '"', $form );
+		$this->assertSame( 3, substr_count( $form, '<input type="hidden"' ), 'the retry form must carry the nonce, the action marker and the row id only' );
+		$this->assertStringNotContainsString( 'rankkernel_indexnow_url', $form, 'the retry form must not carry a URL field' );
+		$this->assertStringNotContainsString( 'href=', $form, 'the retry form must not contain a link' );
+		$this->assertStringNotContainsString( $payload, $form, 'the stored URL must never appear in the retry form markup' );
+
+		$this->assertStringNotContainsString( '<script>', $html, 'the stored URL must be escaped in the table cell' );
+		$this->assertStringNotContainsString( 'href="' . $payload . '"', $html, 'the stored URL must never become a link' );
+	}
+
+	/**
+	 * Test the empty log preview keeps the Actions column of the real table.
+	 *
+	 * The preview and the real table share the same column set, so the
+	 * illustrative table must carry the Actions header and an empty cell
+	 * for each of its rows.
+	 */
+	public function test_empty_log_preview_carries_the_actions_column(): void {
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Example preview.', $html );
+		$this->assertStringContainsString( '<th scope="col" class="rk-col-actions">Actions</th>', $html );
+		$this->assertStringContainsString( '<td class="rk-col-actions"></td>', $html );
+	}
+
+	/**
+	 * Test the retried outcome renders the info notice.
+	 */
+	public function test_render_shows_the_info_notice_for_a_retried_row(): void {
+		$_GET['rk_indexnow_notice'] = 'retried';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-ui-notice-info', $html );
+		$this->assertStringContainsString( 'Re-submitted.', $html );
+	}
+
+	/**
+	 * Test a refused retry renders the error notice naming the reason.
+	 *
+	 * Every retry refusal code maps to a message, so the operator learns
+	 * why the stored URL was not re-sent.
+	 */
+	public function test_render_shows_the_error_notice_for_a_refused_retry(): void {
+		$_GET['rk_indexnow_notice'] = 'retry_host';
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-ui-notice-error', $html );
+		$this->assertStringContainsString( 'Could not retry. The stored URL host does not match this site.', $html );
+	}
 }

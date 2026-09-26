@@ -25,7 +25,8 @@ use RankKernel\Plugin;
  * is configured and never the key itself, no field carries it, and
  * regeneration never echoes the replacement. A manual submission is
  * validated against the site host before the module entry point sees it,
- * and no submitted URL is ever fetched.
+ * and no submitted URL is ever fetched. A retry carries only the log row
+ * id, and the stored URL is re-read plus re-validated server side.
  */
 final class InstantIndexingPage {
 	/**
@@ -67,6 +68,16 @@ final class InstantIndexingPage {
 	 * Nonce action for the key file verification check.
 	 */
 	private const NONCE_VERIFY = 'rankkernel_indexnow_verify';
+
+	/**
+	 * Nonce action for the single row retry form.
+	 *
+	 * Retry is a distinct write from a manual submit, so it carries its own
+	 * action. The form posts the row id alone, the URL is re-read server
+	 * side and re-validated, and a nonce from the submit form can never
+	 * authorize a retry.
+	 */
+	private const NONCE_RETRY = 'rankkernel_indexnow_retry';
 
 	/**
 	 * Module id consulted before any manual submission.
@@ -123,7 +134,7 @@ final class InstantIndexingPage {
 	 *
 	 * Runs on load rankkernel page rankkernel instant indexing, so wp safe
 	 * redirect can still send headers. The marker field selects one of
-	 * four branches and each branch verifies capability plus its own
+	 * six branches and each branch verifies capability plus its own
 	 * nonce before writing.
 	 *
 	 * @return void
@@ -144,6 +155,9 @@ final class InstantIndexingPage {
 				break;
 			case 'verify':
 				$this->handleVerify();
+				break;
+			case 'retry':
+				$this->handleRetry();
 				break;
 		}
 	}
@@ -278,6 +292,7 @@ final class InstantIndexingPage {
 		$nonceSubmit     = self::NONCE_SUBMIT;
 		$nonceClear      = self::NONCE_CLEAR;
 		$nonceVerify     = self::NONCE_VERIFY;
+		$nonceRetry      = self::NONCE_RETRY;
 
 		$homeUrl = function_exists( 'home_url' ) ? (string) home_url() : '';
 		$base    = '' !== $homeUrl ? rtrim( $homeUrl, '/' ) . '/' : 'https://example.com/';
@@ -425,6 +440,83 @@ final class InstantIndexingPage {
 		}
 
 		$this->redirectTo( false, $reasonsHost ? 'host' : 'unvalidated' );
+	}
+
+	/**
+	 * Handle a retry of one logged submission.
+	 *
+	 * The retry form posts the row id alone. The URL never travels through
+	 * the browser for this action, because it is attacker influenced: it
+	 * came from a submission, so a posted URL could be steered. The id is
+	 * cast to an int, read back through the shared query layer, which binds
+	 * it as a prepared placeholder, and the stored URL is then re-validated
+	 * through the same validator plus host check the manual submit uses
+	 * before it reaches the module. A refusal writes no submission and the
+	 * original row is never touched. A success appends a new row through
+	 * the module entry point with the manual source, so the host filter
+	 * inside the client still applies. The module must be enabled, because
+	 * a disabled module makes zero outbound requests.
+	 *
+	 * @return void
+	 */
+	private function handleRetry(): void {
+		$this->requireAccess( self::NONCE_RETRY );
+
+		if ( ! $this->isModuleEnabled() ) {
+			$this->redirectTo( false, 'disabled' );
+
+			return;
+		}
+
+		$id = $this->postedRowId();
+
+		if ( $id <= 0 ) {
+			$this->redirectTo( false, 'retry_missing' );
+
+			return;
+		}
+
+		$row = LogQuery::fromInput( [] )->getRow( $id );
+
+		if ( null === $row ) {
+			$this->redirectTo( false, 'retry_notfound' );
+
+			return;
+		}
+
+		$validated = $this->validateUrl( $row['url'] );
+
+		if ( '' === $validated ) {
+			$this->redirectTo( false, 'retry_unvalidated' );
+
+			return;
+		}
+
+		if ( ! $this->isSiteHost( $validated ) ) {
+			$this->redirectTo( false, 'retry_host' );
+
+			return;
+		}
+
+		( $this->submit )( [ $validated ] );
+
+		$this->redirectTo( false, 'retried' );
+	}
+
+	/**
+	 * Posted log row id from POST, zero when absent or not numeric.
+	 *
+	 * The value is only ever used as an int. It reaches SQL solely through
+	 * LogQuery::getRow(), which binds it as a prepared placeholder, so no
+	 * posted value is ever interpolated into a statement.
+	 *
+	 * @return int The result.
+	 */
+	private function postedRowId(): int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, the value is cast to an int and read back through the prepared id query, never interpolated into SQL.
+		$raw = $_POST['rankkernel_indexnow_id'] ?? 0;
+
+		return is_numeric( $raw ) ? (int) $raw : 0;
 	}
 
 	/**
