@@ -47,6 +47,10 @@ final class LogTable {
 			wp_cache_delete( 'table_exists_' . $table, 'rankkernel_tables' );
 		}
 
+		if ( function_exists( 'delete_transient' ) ) {
+			delete_transient( 'rankkernel_tbl_exists_' . md5( $table ) );
+		}
+
 		self::$existsCache = array();
 	}
 
@@ -95,6 +99,23 @@ final class LogTable {
 			}
 		}
 
+		// Performance optimization: check transient fallback to prevent running SHOW TABLES SQL query on every request when persistent object cache is disabled.
+		$transientKey = 'rankkernel_tbl_exists_' . md5( $table );
+		if ( function_exists( 'get_transient' ) ) {
+			$cachedTransient = get_transient( $transientKey );
+
+			if ( '1' === $cachedTransient || '0' === $cachedTransient ) {
+				$exists                      = '1' === $cachedTransient;
+				self::$existsCache[ $table ] = $exists;
+
+				if ( function_exists( 'wp_cache_set' ) ) {
+					wp_cache_set( 'table_exists_' . $table, $exists, 'rankkernel_tables', DAY_IN_SECONDS );
+				}
+
+				return $exists;
+			}
+		}
+
 		// Custom table existence probe, single prepared SHOW statement, fail open guard.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
@@ -104,6 +125,10 @@ final class LogTable {
 
 		if ( function_exists( 'wp_cache_set' ) ) {
 			wp_cache_set( 'table_exists_' . $table, $exists, 'rankkernel_tables', DAY_IN_SECONDS );
+		}
+
+		if ( function_exists( 'set_transient' ) ) {
+			set_transient( $transientKey, $exists ? '1' : '0', DAY_IN_SECONDS );
 		}
 
 		return $exists;

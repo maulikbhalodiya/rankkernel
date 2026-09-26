@@ -227,6 +227,36 @@ final class RedirectsTableTest extends TestCase {
 	}
 
 	/**
+	 * Test a transient cache hit answers when object cache misses, without probing the database.
+	 */
+	public function test_exists_uses_transient_cache_hit_when_object_cache_misses(): void {
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( string $key, string $group, bool $force, &$found ): mixed {
+				$found = false;
+
+				return false;
+			}
+		);
+
+		$transientKey = 'rankkernel_tbl_exists_' . md5( 'wp_rankkernel_redirects' );
+		Functions\when( 'get_transient' )->alias(
+			static function ( string $key ) use ( $transientKey ): mixed {
+				if ( $key === $transientKey ) {
+					return '1';
+				}
+
+				return false;
+			}
+		);
+
+		RedirectTable::resetCache();
+		$this->db->tableExists = false;
+
+		$this->assertTrue( RedirectTable::exists() );
+		$this->assertSame( 0, $this->db->schemaProbes, 'A transient cache hit must not probe the database' );
+	}
+
+	/**
 	 * Test reset cache retires the persistent entry too.
 	 */
 	public function test_reset_cache_retires_the_persistent_entry(): void {
