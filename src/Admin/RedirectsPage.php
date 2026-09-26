@@ -1653,12 +1653,32 @@ final class RedirectsPage {
 		$name  = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
 		$mimes = [ 'csv' => 'text/csv' ];
 
+		// wp_check_filetype_and_ext() cross checks the extension against the
+		// sniffed mime type, but it also requires the detected type to be in the
+		// site upload allow list. csv is allowed by default, yet a hardened site
+		// can remove it, so allow the import mime for this probe only and drop
+		// the filter right after. This is a mime sniff; every imported row still
+		// passes the full validation pipeline in CsvHandler.
+		$allowImportMime = static function ( array $allowed ): array {
+			$allowed['csv'] = 'text/csv';
+
+			return $allowed;
+		};
+
+		if ( function_exists( 'add_filter' ) ) {
+			add_filter( 'upload_mimes', $allowImportMime );
+		}
+
 		if ( '' !== $name && function_exists( 'wp_check_filetype_and_ext' ) ) {
 			$type = wp_check_filetype_and_ext( $tmp, $name, $mimes );
 		} elseif ( '' !== $name && function_exists( 'wp_check_filetype' ) ) {
 			$type = wp_check_filetype( $name, $mimes );
 		} else {
 			$type = false;
+		}
+
+		if ( function_exists( 'remove_filter' ) ) {
+			remove_filter( 'upload_mimes', $allowImportMime );
 		}
 
 		if ( ! is_array( $type ) || empty( $type['ext'] ) ) {

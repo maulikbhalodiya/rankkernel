@@ -863,6 +863,174 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Stub the WordPress calls the schema import save path needs.
+	 *
+	 * @param bool $expectSave Whether the import is expected to write meta.
+	 */
+	private function primeImportSave( bool $expectSave = false ): void {
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			fn ( int $id, string $key, bool $single ) => $this->storedPayload() // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the get_post_meta signature.
+		);
+
+		if ( $expectSave ) {
+			Functions\expect( 'update_post_meta' )->once();
+		} else {
+			Functions\expect( 'update_post_meta' )->never();
+		}
+	}
+
+	/**
+	 * Run the schema import save against one upload entry.
+	 *
+	 * @param array<string, mixed> $file       The rankkernel_schema_import file entry.
+	 * @param bool                 $isUploaded Result of the upload probe.
+	 * @return string Redirect location carrying the status message.
+	 */
+	private function runImportSave( array $file, bool $isUploaded = true ): string {
+		$_POST  = [ 'rankkernel_schema_nonce' => 'valid' ];
+		$_FILES = [ 'rankkernel_schema_import' => $file ];
+
+		$box = new SchemaMetabox( static fn ( string $p ): bool => $isUploaded ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- callback signature required by the stubbed probe seam.
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		return $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
+	}
+
+	/**
+	 * Test save import fails closed when the file name key is absent.
+	 */
+	public function test_save_import_missing_filename_fails_closed(): void {
+		$this->primeImportSave();
+
+		$tmp = $this->writeImportTmp( '{"type":"Product","fields":{"headline":"Imported"}}' );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 44,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
+	 * Test save import fails closed when the file name is empty.
+	 */
+	public function test_save_import_empty_filename_fails_closed(): void {
+		$this->primeImportSave();
+
+		$tmp = $this->writeImportTmp( '{"type":"Product","fields":{"headline":"Imported"}}' );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => '',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 44,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
+	 * Test save import fails closed when the upload probe rejects the path.
+	 */
+	public function test_save_import_non_uploaded_file_fails_closed(): void {
+		$this->primeImportSave();
+
+		$tmp = $this->writeImportTmp( '{"type":"Product","fields":{"headline":"Imported"}}' );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => 'post-schema.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 44,
+				],
+				false
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
+	 * Test save import fails closed when the temp path is not readable.
+	 */
+	public function test_save_import_unreadable_file_fails_closed(): void {
+		$this->primeImportSave();
+
+		$missing = sys_get_temp_dir() . '/rkimport-missing-' . uniqid( 'rk', true );
+
+		$redirect = $this->runImportSave(
+			[
+				'name'     => 'post-schema.json',
+				'type'     => 'application/json',
+				'tmp_name' => $missing,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 44,
+			]
+		);
+
+		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+	}
+
+	/**
+	 * Test save import fails closed when the sniffed type does not match the
+	 * extension, even though the payload itself decodes as valid JSON.
+	 */
+	public function test_save_import_mismatched_type_fails_closed(): void {
+		$this->primeImportSave();
+
+		Functions\when( 'wp_check_filetype_and_ext' )->alias(
+			static fn ( string $path, string $filename, ?array $mimes = null ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the wp_check_filetype_and_ext signature.
+				'ext'             => false,
+				'type'            => false,
+				'proper_filename' => false,
+			]
+		);
+
+		$tmp = $this->writeImportTmp( '{"type":"Product","fields":{"headline":"Imported"}}' );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => 'post-schema.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 44,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
 	 * Test save import garbage saves nothing.
 	 */
 	public function test_save_import_garbage_saves_nothing(): void {
