@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
@@ -167,7 +169,15 @@ final class PluginTest extends TestCase {
 
 	/**
 	 * Test rankkernel_conflict_notice is scoped to RankKernel admin screens.
+	 *
+	 * The plugin entry point is loaded here to exercise the real function. It
+	 * defines the RANKKERNEL_* constants, which are process global and cannot be
+	 * undefined, so this test runs in its own process. That keeps the shared
+	 * process constants, and the bare define diagnostics in rankkernel.php,
+	 * exactly as they are for every other test file.
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_conflict_notice_is_scoped_to_rankkernel_screens(): void {
 		Functions\when( 'register_activation_hook' )->justReturn( true );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
@@ -176,57 +186,72 @@ final class PluginTest extends TestCase {
 			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
 		}
 
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ) {
 				if ( 'rankkernel_conflict_notice' === $key ) {
-					return [ 'Yoast SEO' ];
+					return [ '<script>alert(1)</script>' ];
 				}
 				return $fallback;
 			}
 		);
-		Functions\when( 'current_user_can' )->justReturn( true );
 
-		// Case 1: Non-RankKernel screen -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_non_rk = ob_get_clean();
-		$this->assertEmpty( $output_non_rk );
+		// Case 1: get_current_screen missing entirely. This is the frontend,
+		// cron, AJAX and REST shape, so the notice must fail closed. This case
+		// runs before any stub defines get_current_screen.
+		$this->assertFalse( function_exists( 'get_current_screen' ) );
+		$this->assertSame( '', $this->render_conflict_notice() );
 
-		// Case 2: Null screen -> Should output nothing.
+		// Case 2: a null screen, WordPress returns null when no screen is set.
 		Functions\when( 'get_current_screen' )->justReturn( null );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_null_screen = ob_get_clean();
-		$this->assertEmpty( $output_null_screen );
+		$this->assertSame( '', $this->render_conflict_notice() );
 
-		// Case 3: User lacking manage_options -> Should output nothing.
+		// Case 3: a non object screen fails closed.
+		Functions\when( 'get_current_screen' )->justReturn( 'dashboard' );
+		$this->assertSame( '', $this->render_conflict_notice() );
+
+		// Case 4: an object screen without an id property fails closed.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'base' => 'dashboard' ] );
+		$this->assertSame( '', $this->render_conflict_notice() );
+
+		// Case 5: a non RankKernel screen renders nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		$this->assertSame( '', $this->render_conflict_notice() );
+
+		// Case 6: a RankKernel screen without manage_options renders nothing.
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_no_cap = ob_get_clean();
-		$this->assertEmpty( $output_no_cap );
+		$this->assertSame( '', $this->render_conflict_notice() );
 
-		// Case 4: RankKernel screen with manage_options capability -> Should output conflict notice.
+		// Case 7: a RankKernel top level screen with manage_options renders the
+		// notice, and the interpolated plugin name is escaped.
 		Functions\when( 'current_user_can' )->justReturn( true );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_rk = ob_get_clean();
-		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
+		$output = $this->render_conflict_notice();
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output );
+		$this->assertStringContainsString( '&lt;script&gt;alert(1)&lt;/script&gt;', $output );
+		$this->assertStringNotContainsString( '<script>', $output );
 
-		// Case 5: Empty conflict list -> Should output nothing.
-		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) {
-				if ( 'rankkernel_conflict_notice' === $key ) {
-					return [];
-				}
-				return $fallback;
-			}
-		);
+		// Case 8: a RankKernel submenu screen renders the notice too.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-redirects' ] );
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $this->render_conflict_notice() );
+
+		// Case 9: no stored conflicts renders nothing.
+		Functions\when( 'get_option' )->justReturn( [] );
+		$this->assertSame( '', $this->render_conflict_notice() );
+
+		// Case 10: a non array stored value renders nothing.
+		Functions\when( 'get_option' )->justReturn( 'Yoast SEO' );
+		$this->assertSame( '', $this->render_conflict_notice() );
+	}
+
+	/**
+	 * Render the conflict notice and return the captured output.
+	 *
+	 * @return string The captured output.
+	 */
+	private function render_conflict_notice(): string {
 		ob_start();
 		\rankkernel_conflict_notice();
-		$output_no_conflicts = ob_get_clean();
-		$this->assertEmpty( $output_no_conflicts );
+		return (string) ob_get_clean();
 	}
 }
