@@ -47,10 +47,18 @@ if ( isset( $wp_version ) && version_compare( $wp_version, '6.5', '<' ) ) {
 
 // Single source of truth for the plugin version. Bump this one value on
 // release and every asset URL and stored version reference follows.
-define( 'RANKKERNEL_VERSION', '0.1.0' );
-define( 'RANKKERNEL_FILE', __FILE__ );
-define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );
-define( 'RANKKERNEL_URL', plugin_dir_url( __FILE__ ) );
+if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
+	define( 'RANKKERNEL_VERSION', '0.1.0' );
+}
+if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+	define( 'RANKKERNEL_FILE', __FILE__ );
+}
+if ( ! defined( 'RANKKERNEL_DIR' ) ) {
+	define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );
+}
+if ( ! defined( 'RANKKERNEL_URL' ) ) {
+	define( 'RANKKERNEL_URL', plugin_dir_url( __FILE__ ) );
+}
 
 // Autoload.
 $rankkernel_autoloader = RANKKERNEL_DIR . 'vendor/autoload.php';
@@ -136,7 +144,7 @@ function rankkernel_conflict_notice(): void {
 		return;
 	}
 	$screen_id = $screen->id;
-	if ( ! str_starts_with( $screen_id, 'toplevel_page_rankkernel' ) && ! str_starts_with( $screen_id, 'rankkernel_page_' ) && 'rankkernel' !== $screen_id ) {
+	if ( 'toplevel_page_rankkernel' !== $screen_id && ! str_starts_with( $screen_id, 'rankkernel_page_' ) && 'rankkernel' !== $screen_id ) {
 		return;
 	}
 	echo '<div class="notice notice-warning is-dismissible"><p>';
