@@ -152,6 +152,7 @@ final class RedirectCache {
 	 */
 	public static function invalidateAll(): void {
 		self::$cachedValidator = null;
+		RedirectRepository::resetMemo();
 		update_option( self::VALIDATOR_OPTION, (string) time() . '_' . uniqid( '', true ), false );
 	}
 

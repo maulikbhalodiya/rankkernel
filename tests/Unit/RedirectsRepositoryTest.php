@@ -416,6 +416,50 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test cacheless repository memoizes all_patterns across calls and invalidates on write.
+	 */
+	public function test_cacheless_all_patterns_memoizes_and_invalidates_on_write(): void {
+		$this->repo->insert(
+			[
+				'source'     => '/prefix*',
+				'target'     => '/target',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$readsBefore = $this->db->ruleReads;
+		$first       = $this->repo->all_patterns();
+		$readsFirst  = $this->db->ruleReads;
+
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+
+		// Second call on same or separate repository instance reuses static memo (0 new DB reads).
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->all_patterns();
+		$readsSecond = $this->db->ruleReads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
+		$this->assertSame( $first, $second );
+
+		// Insert a new pattern rule to trigger touch() and clear static memo.
+		$this->repo->insert(
+			[
+				'source'     => '/prefix2*',
+				'target'     => '/target2',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$readsWrite = $this->db->ruleReads;
+		$third      = $secondRepo->all_patterns();
+		$readsThird = $this->db->ruleReads;
+
+		$this->assertGreaterThan( $readsWrite, $readsThird );
+		$this->assertCount( 2, $third );
+		$this->assertNotSame( $first, $third );
+	}
+
+	/**
 	 * Test count with filters.
 	 */
 	public function test_count_with_filters(): void {
