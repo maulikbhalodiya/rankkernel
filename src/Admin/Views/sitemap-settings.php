@@ -52,10 +52,17 @@ endif;
 			<h2><?php echo esc_html__( 'General', 'rankkernel' ); ?></h2>
 			<p>
 				<?php
-				printf(
-					/* translators: %s: sitemap index URL link */
-					esc_html__( 'Your sitemap index can be found here: %s', 'rankkernel' ),
-					'<a href="' . esc_url( $indexUrl ) . '">' . esc_html( $indexUrl ) . '</a>'
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: sitemap index URL link */
+						__( 'Your sitemap index can be found here: %s', 'rankkernel' ),
+						'<a href="' . esc_url( $indexUrl ) . '">' . esc_html( $indexUrl ) . '</a>'
+					),
+					[
+						'a' => [
+							'href' => [],
+						],
+					]
 				);
 				?>
 			</p>
@@ -95,7 +102,7 @@ endif;
 						<td>
 							<label><input type="checkbox" name="<?php echo esc_attr( $postTypeRow['key'] ); ?>" value="1" <?php echo checked( $postTypeRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="description"><?php echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description"><?php echo esc_html( sprintf( /* translators: %s: sitemap URL */ __( 'Sitemap URL: %s', 'rankkernel' ), $postTypeRow['url'] ) ); ?></p>
+							<p class="description"><?php printf( /* translators: %s: sitemap URL */ esc_html__( 'Sitemap URL: %s', 'rankkernel' ), esc_html( $postTypeRow['url'] ) ); ?></p>
 						</td>
 					</tr>
 				<?php endforeach; ?>
@@ -109,7 +116,7 @@ endif;
 						<td>
 							<label><input type="checkbox" name="<?php echo esc_attr( $taxonomyRow['key'] ); ?>" value="1" <?php echo checked( $taxonomyRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="description"><?php echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description"><?php echo esc_html( sprintf( /* translators: %s: sitemap URL */ __( 'Sitemap URL: %s', 'rankkernel' ), $taxonomyRow['url'] ) ); ?></p>
+							<p class="description"><?php printf( /* translators: %s: sitemap URL */ esc_html__( 'Sitemap URL: %s', 'rankkernel' ), esc_html( $taxonomyRow['url'] ) ); ?></p>
 						</td>
 					</tr>
 				<?php endforeach; ?>
