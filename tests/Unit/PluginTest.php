@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
@@ -167,7 +169,14 @@ final class PluginTest extends TestCase {
 
 	/**
 	 * Test rankkernel_conflict_notice is scoped to RankKernel admin screens.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants. In the shared process earlier test files already
+	 * define some of them, so the bare defines would raise PHP warnings that
+	 * the failOnWarning setting turns into a failure.
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_conflict_notice_is_scoped_to_rankkernel_screens(): void {
 		Functions\when( 'register_activation_hook' )->justReturn( true );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
@@ -186,36 +195,73 @@ final class PluginTest extends TestCase {
 		);
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		// Case 1: Non-RankKernel screen -> Should output nothing.
+		// Case 1: get_current_screen unavailable, as on a frontend request -> Should output nothing.
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_screen_function = ob_get_clean();
+		$this->assertEmpty( $output_no_screen_function, 'Notice must not render when get_current_screen is unavailable' );
+
+		// Case 2: Non RankKernel screen -> Should output nothing.
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_non_rk = ob_get_clean();
-		$this->assertEmpty( $output_non_rk );
+		$this->assertEmpty( $output_non_rk, 'Notice must not render on a screen outside RankKernel' );
 
-		// Case 2: Null screen -> Should output nothing.
+		// Case 3: Null screen -> Should output nothing.
 		Functions\when( 'get_current_screen' )->justReturn( null );
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_null_screen = ob_get_clean();
-		$this->assertEmpty( $output_null_screen );
+		$this->assertEmpty( $output_null_screen, 'Notice must not render when get_current_screen returns null' );
 
-		// Case 3: User lacking manage_options -> Should output nothing.
+		// Case 4: Screen object without an id property -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( new \stdClass() );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_no_id = ob_get_clean();
+		$this->assertEmpty( $output_no_id, 'Notice must not render when the screen has no id property' );
+
+		// Case 5: Integer screen id -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 123 ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_int_id = ob_get_clean();
+		$this->assertEmpty( $output_int_id, 'Notice must not render when the screen id is an integer' );
+
+		// Case 6: Object screen id that would coerce to a RankKernel match -> Should output nothing.
+		$stringable_id = new class() {
+			/**
+			 * String value for the screen id double.
+			 *
+			 * @return string
+			 */
+			public function __toString(): string {
+				return 'rankkernel';
+			}
+		};
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => $stringable_id ] );
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_object_id = ob_get_clean();
+		$this->assertEmpty( $output_object_id, 'Notice must not render when the screen id is not a string' );
+
+		// Case 7: User lacking manage_options -> Should output nothing.
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_no_cap = ob_get_clean();
-		$this->assertEmpty( $output_no_cap );
+		$this->assertEmpty( $output_no_cap, 'Notice must not render without the manage_options capability' );
 
-		// Case 4: RankKernel screen with manage_options capability -> Should output conflict notice.
+		// Case 8: RankKernel screen with manage_options capability -> Should output conflict notice.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_rk = ob_get_clean();
 		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
 
-		// Case 5: Empty conflict list -> Should output nothing.
+		// Case 9: Empty conflict list -> Should output nothing.
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ) {
 				if ( 'rankkernel_conflict_notice' === $key ) {
@@ -227,6 +273,21 @@ final class PluginTest extends TestCase {
 		ob_start();
 		\rankkernel_conflict_notice();
 		$output_no_conflicts = ob_get_clean();
-		$this->assertEmpty( $output_no_conflicts );
+		$this->assertEmpty( $output_no_conflicts, 'Notice must not render without conflicts' );
+
+		// Case 10: Conflict names are escaped -> Should output no raw script tag.
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_conflict_notice' === $key ) {
+					return [ '<script>alert("xss")</script>' ];
+				}
+				return $fallback;
+			}
+		);
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output_escaped = ob_get_clean();
+		$this->assertStringNotContainsString( '<script>', $output_escaped, 'Conflict names must not be emitted as raw HTML' );
+		$this->assertStringContainsString( '&lt;script&gt;', $output_escaped, 'Conflict names must pass through esc_html' );
 	}
 }
