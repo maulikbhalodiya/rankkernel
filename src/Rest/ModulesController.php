@@ -76,6 +76,7 @@ final class ModulesController {
 					'enabled' => [
 						'required'          => true,
 						'type'              => 'boolean',
+						'sanitize_callback' => 'rest_sanitize_request_arg',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
