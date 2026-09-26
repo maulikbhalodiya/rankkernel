@@ -416,6 +416,38 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test cacheless repository memoizes all_patterns across calls and invalidates on write.
+	 */
+	public function test_cacheless_all_patterns_memoizes_and_invalidates_on_write(): void {
+		$this->repo->insert(
+			[
+				'source'     => '/prefix*',
+				'target'     => '/target',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$first  = $this->repo->all_patterns();
+		$second = $this->repo->all_patterns();
+
+		$this->assertSame( $first, $second );
+
+		// Insert a new pattern rule to trigger touch() and clear the memo.
+		$this->repo->insert(
+			[
+				'source'     => '/prefix2*',
+				'target'     => '/target2',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$third = $this->repo->all_patterns();
+
+		$this->assertCount( 2, $third );
+		$this->assertNotSame( $first, $third );
+	}
+
+	/**
 	 * Test count with filters.
 	 */
 	public function test_count_with_filters(): void {
