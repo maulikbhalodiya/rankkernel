@@ -87,6 +87,10 @@ final class DashboardPageTest extends TestCase {
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
+		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( '__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
 	}
@@ -197,5 +201,18 @@ final class DashboardPageTest extends TestCase {
 
 		$page->enqueueAssets( DashboardPage::HOOK_SUFFIX );
 		$this->assertSame( 1, $enqueued );
+	}
+
+	/**
+	 * Test render outputs accessible aria-labels for module action links and buttons.
+	 */
+	public function test_render_outputs_accessible_aria_labels(): void {
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'aria-label="Settings for Metadata Engine"', $output );
+		$this->assertStringContainsString( 'aria-label="Turn off Metadata Engine module"', $output );
+		$this->assertStringContainsString( 'aria-label="Turn on Robots.txt &amp; .htaccess module"', $output );
 	}
 }
