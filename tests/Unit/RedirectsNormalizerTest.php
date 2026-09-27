@@ -31,6 +31,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Normalizer::resetCache();
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
@@ -48,6 +49,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		Normalizer::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -139,6 +141,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 */
 	public function test_subdirectory_home_stripped(): void {
 		$this->homeUrl = 'https://example.com/blog';
+		Normalizer::resetCache();
 
 		$this->assertSame( '/old', Normalizer::normalize( '/blog/old' ) );
 		$this->assertSame( '/old', Normalizer::normalize( 'https://example.com/blog/old/' ) );

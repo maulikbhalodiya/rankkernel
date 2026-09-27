@@ -177,32 +177,64 @@ final class Normalizer {
 	}
 
 	/**
+	 * Request-level static cache for the subdirectory home path.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $homePathCache = null;
+
+	/**
+	 * Reset the static home path cache (primarily for unit tests).
+	 */
+	public static function resetCache(): void {
+		self::$homePathCache = null;
+	}
+
+	/**
 	 * Subdirectory home path, derived from home_url parsing.
+	 *
+	 * Performance optimization: memoizes the parsed subdirectory path in static memory
+	 * so repeated normalization calls within a request do not repeatedly invoke
+	 * home_url('/') or wp_parse_url().
 	 *
 	 * Returns an empty string for root installs and for unparseable values.
 	 *
 	 * @return string Home path like /blog, or empty when none applies.
 	 */
 	public static function homePath(): string {
+		if ( null !== self::$homePathCache ) {
+			return self::$homePathCache;
+		}
+
 		if ( ! function_exists( 'home_url' ) ) {
+			self::$homePathCache = '';
+
 			return '';
 		}
 
 		$home = home_url( '/' );
 
 		if ( ! is_string( $home ) || '' === $home ) {
+			self::$homePathCache = '';
+
 			return '';
 		}
 
 		$parts = wp_parse_url( $home );
 
 		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) ) {
+			self::$homePathCache = '';
+
 			return '';
 		}
 
 		$base = '/' . trim( $parts['path'], '/' );
 
-		return '/' === $base ? '' : $base;
+		$path = '/' === $base ? '' : $base;
+
+		self::$homePathCache = $path;
+
+		return $path;
 	}
 
 	/**
