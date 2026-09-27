@@ -122,6 +122,9 @@ final class HtaccessFileTest extends TestCase {
 
 	/**
 	 * Test that DISALLOW_FILE_EDIT constant blocks saving and writability.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_disallow_file_edit_blocks_writability_and_saving(): void {
 		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
