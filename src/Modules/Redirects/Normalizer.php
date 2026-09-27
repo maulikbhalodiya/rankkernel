@@ -207,8 +207,7 @@ final class Normalizer {
 		if ( function_exists( 'get_current_blog_id' ) ) {
 			try {
 				$blogId = (int) get_current_blog_id();
-			} catch ( \Throwable $e ) {
-				unset( $e );
+			} catch ( \Throwable ) {
 				$blogId = 1;
 			}
 		}
