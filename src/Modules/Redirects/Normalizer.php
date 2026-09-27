@@ -185,6 +185,8 @@ final class Normalizer {
 
 	/**
 	 * Reset the static home path cache (primarily for unit tests or blog switches).
+	 *
+	 * @return void
 	 */
 	public static function resetCache(): void {
 		self::$homePathCache = [];
@@ -194,8 +196,9 @@ final class Normalizer {
 	 * Subdirectory home path, derived from home_url parsing.
 	 *
 	 * Performance optimization: memoizes the parsed subdirectory path in static memory per blog ID
-	 * so repeated normalization calls within a request do not repeatedly invoke
-	 * home_url('/') or wp_parse_url().
+	 * for the duration of the current request execution thread so repeated normalization calls do
+	 * not repeatedly invoke home_url('/') or wp_parse_url(). If the home option is modified mid-request,
+	 * callers should invoke Normalizer::resetCache().
 	 *
 	 * Returns an empty string for root installs and for unparseable values.
 	 *

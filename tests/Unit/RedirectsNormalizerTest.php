@@ -223,5 +223,10 @@ final class RedirectsNormalizerTest extends TestCase {
 		// Repeated call on blog 2 is memoized.
 		$this->assertSame( '/shop', Normalizer::homePath() );
 		$this->assertSame( 2, $callCount );
+
+		// Switch back to blog 1 and verify original entry is retained from memory without new home_url calls.
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
 	}
 }
