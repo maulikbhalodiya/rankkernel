@@ -88,7 +88,7 @@ final class HtaccessFile {
 	 * @return bool The result.
 	 */
 	public function isWritable(): bool {
-		if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) {
+		if ( ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) || ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS ) ) {
 			return false;
 		}
 

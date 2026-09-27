@@ -121,6 +121,36 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test that DISALLOW_FILE_MODS constant blocks saving and writability.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_disallow_file_mods_blocks_writability_and_saving(): void {
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		$this->path      = $temp;
+		$this->supported = true;
+
+		$file = new HtaccessFile();
+
+		$this->assertFalse( $file->isWritable() );
+
+		$result = $file->save( "# attempt\n" );
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
 	 * Test that DISALLOW_FILE_EDIT constant blocks saving and writability.
 	 *
 	 * @runInSeparateProcess
