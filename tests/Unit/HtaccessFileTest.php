@@ -136,6 +136,8 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->assertIsString( $temp );
 
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
 		$this->path      = $temp;
 		$this->supported = true;
 
@@ -148,6 +150,7 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertFalse( $result['saved'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
 		$this->assertSame( '', $result['backup'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
@@ -166,6 +169,8 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->assertIsString( $temp );
 
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
 		$this->path      = $temp;
 		$this->supported = true;
 
@@ -178,6 +183,7 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertFalse( $result['saved'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
 		$this->assertSame( '', $result['backup'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
