@@ -79,14 +79,3 @@ RankKernel substantial admin menu and page rendering uses dedicated PHP view tem
 * Small fragments stay inline. A compact metabox fragment or a single row of markup does not need its own template. The rule targets substantial page rendering, not every echo statement.
 
 New substantial admin pages must follow this architecture. Do not add a new admin menu or screen whose body is built through a long sequence of `echo` statements. The smallest correct shape is a `NewPage` class in `src/Admin/` plus `src/Admin/Views/new-page.php`, with the class handling requests and preparing data and the template rendering it.
-
-## 9. Internationalization (i18n) & Translator Comments
-
-All user-facing strings must be internationalized using the `'rankkernel'` text domain and standard WordPress i18n functions (`__`, `esc_html__`, `esc_attr__`, `sprintf`).
-
-* Dynamic translatable strings containing placeholders (e.g., `%s`, `%d`, `%1$s`) must be preceded immediately by a C-style block translator comment:
-  ```php
-  /* translators: %s: path name */
-  sprintf( __( 'Path: %s', 'rankkernel' ), $path )
-  ```
-* Do not use single-line C++ comments (`// translators:`) as Gettext extraction tools (`xgettext` / `wp i18n make-pot`) require standard block comment syntax (`/* translators: ... */`).
