@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\HtaccessFile;
 
@@ -122,10 +124,9 @@ final class HtaccessFileTest extends TestCase {
 
 	/**
 	 * Test that DISALLOW_FILE_MODS constant blocks saving and writability.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_disallow_file_mods_blocks_writability_and_saving(): void {
 		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
 			define( 'DISALLOW_FILE_MODS', true );
@@ -153,10 +154,9 @@ final class HtaccessFileTest extends TestCase {
 
 	/**
 	 * Test that DISALLOW_FILE_EDIT constant blocks saving and writability.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_disallow_file_edit_blocks_writability_and_saving(): void {
 		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
 			define( 'DISALLOW_FILE_EDIT', true );
