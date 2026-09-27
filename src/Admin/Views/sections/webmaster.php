@@ -49,10 +49,29 @@ defined( 'ABSPATH' ) || exit;
 					<p class="description"><?php echo esc_html__( 'Paste the verification codes from each search engine.', 'rankkernel' ); ?></p>
 					<table class="form-table" role="presentation"><tbody>
 						<?php foreach ( $webmasters as $webmaster ) : ?>
+							<?php $rk_desc_id = $webmaster['fieldId'] . '-desc'; ?>
 							<tr>
 								<th scope="row"><label for="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"><?php echo esc_html( $webmaster['label'] ); ?></label></th>
 								<td>
-									<input type="text" id="<?php echo esc_attr( $webmaster['fieldId'] ); ?>" name="<?php echo esc_attr( $webmaster['key'] ); ?>" value="<?php echo esc_attr( $webmaster['value'] ); ?>" class="regular-text" />
+									<input
+										type="text"
+										id="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"
+										name="<?php echo esc_attr( $webmaster['key'] ); ?>"
+										value="<?php echo esc_attr( $webmaster['value'] ); ?>"
+										class="regular-text"
+										aria-describedby="<?php echo esc_attr( $rk_desc_id ); ?>"
+									/>
+									<p id="<?php echo esc_attr( $rk_desc_id ); ?>" class="description">
+										<?php
+										echo esc_html(
+											sprintf(
+												/* translators: %s: Search engine / webmaster service name */
+												__( 'Enter your %s verification meta tag or meta content code.', 'rankkernel' ),
+												$webmaster['label']
+											)
+										);
+										?>
+									</p>
 								</td>
 							</tr>
 						<?php endforeach; ?>
