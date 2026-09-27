@@ -146,6 +146,7 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->assertFalse( $result['saved'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertSame( '', $result['backup'] );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
@@ -176,6 +177,7 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->assertFalse( $result['saved'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertSame( '', $result['backup'] );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
