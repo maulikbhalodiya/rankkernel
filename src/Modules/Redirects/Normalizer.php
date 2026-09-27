@@ -177,23 +177,23 @@ final class Normalizer {
 	}
 
 	/**
-	 * Request-level static cache for the subdirectory home path.
+	 * Request-level static cache for the subdirectory home path, keyed by blog ID.
 	 *
-	 * @var string|null
+	 * @var array<int, string>
 	 */
-	private static ?string $homePathCache = null;
+	private static array $homePathCache = [];
 
 	/**
-	 * Reset the static home path cache (primarily for unit tests).
+	 * Reset the static home path cache (primarily for unit tests or blog switches).
 	 */
 	public static function resetCache(): void {
-		self::$homePathCache = null;
+		self::$homePathCache = [];
 	}
 
 	/**
 	 * Subdirectory home path, derived from home_url parsing.
 	 *
-	 * Performance optimization: memoizes the parsed subdirectory path in static memory
+	 * Performance optimization: memoizes the parsed subdirectory path in static memory per blog ID
 	 * so repeated normalization calls within a request do not repeatedly invoke
 	 * home_url('/') or wp_parse_url().
 	 *
@@ -202,12 +202,23 @@ final class Normalizer {
 	 * @return string Home path like /blog, or empty when none applies.
 	 */
 	public static function homePath(): string {
-		if ( null !== self::$homePathCache ) {
-			return self::$homePathCache;
+		$blogId = 1;
+
+		if ( function_exists( 'get_current_blog_id' ) ) {
+			try {
+				$blogId = (int) get_current_blog_id();
+			} catch ( \Throwable $e ) {
+				unset( $e );
+				$blogId = 1;
+			}
+		}
+
+		if ( array_key_exists( $blogId, self::$homePathCache ) ) {
+			return self::$homePathCache[ $blogId ];
 		}
 
 		if ( ! function_exists( 'home_url' ) ) {
-			self::$homePathCache = '';
+			self::$homePathCache[ $blogId ] = '';
 
 			return '';
 		}
@@ -215,7 +226,7 @@ final class Normalizer {
 		$home = home_url( '/' );
 
 		if ( ! is_string( $home ) || '' === $home ) {
-			self::$homePathCache = '';
+			self::$homePathCache[ $blogId ] = '';
 
 			return '';
 		}
@@ -223,7 +234,7 @@ final class Normalizer {
 		$parts = wp_parse_url( $home );
 
 		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) ) {
-			self::$homePathCache = '';
+			self::$homePathCache[ $blogId ] = '';
 
 			return '';
 		}
@@ -232,7 +243,7 @@ final class Normalizer {
 
 		$path = '/' === $base ? '' : $base;
 
-		self::$homePathCache = $path;
+		self::$homePathCache[ $blogId ] = $path;
 
 		return $path;
 	}

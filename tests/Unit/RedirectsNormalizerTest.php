@@ -190,4 +190,38 @@ final class RedirectsNormalizerTest extends TestCase {
 		$this->assertTrue( Normalizer::isCode( '451' ) );
 		$this->assertFalse( Normalizer::isCode( '308' ) );
 	}
+
+	/**
+	 * Test homePath memoization across repeated calls and multisite blog switches.
+	 */
+	public function test_home_path_memoized_and_multisite_aware(): void {
+		$callCount = 0;
+		Functions\when( 'home_url' )->alias(
+			function ( string $path = '/' ) use ( &$callCount ): string {
+				++$callCount;
+				return rtrim( $this->homeUrl, '/' ) . '/' . ltrim( $path, '/' );
+			}
+		);
+
+		Normalizer::resetCache();
+
+		$this->homeUrl = 'https://example.com/blog';
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 1, $callCount );
+
+		// Subsequent call uses static memory without re-evaluating home_url.
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 1, $callCount );
+
+		// Simulate multisite switch_to_blog.
+		Functions\when( 'get_current_blog_id' )->justReturn( 2 );
+		$this->homeUrl = 'https://example.com/shop';
+
+		$this->assertSame( '/shop', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
+
+		// Repeated call on blog 2 is memoized.
+		$this->assertSame( '/shop', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
+	}
 }
