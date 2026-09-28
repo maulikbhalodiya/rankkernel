@@ -15,6 +15,16 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\DashboardPage;
 use RankKernel\Modules\ModuleRegistry;
 
+/*
+ * The dashboard view prints the plugin version from RANKKERNEL_VERSION, which
+ * rankkernel.php defines as the single version source. The bootstrap does not
+ * load the plugin file, so the constant is declared here the same way the
+ * metadata and schema metabox tests already do it.
+ */
+if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
+	define( 'RANKKERNEL_VERSION', '0.1.0-test' );
+}
+
 /**
  * Dashboard Page Test.
  */
