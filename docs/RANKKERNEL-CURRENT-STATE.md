@@ -21,7 +21,8 @@ Everything below was verified against `origin/main` and the live GitHub API on *
 | PHPStan | **[OK] No errors**, level 6 | `composer stan` |
 | `node --check` | clean across `assets/js` | `find assets/js -name '*.js' -print0 \| xargs -0 -n1 node --check` |
 | Open PRs | **0** | `gh pr list --state open` |
-| Open issues | **3**: #111, #104, #82 | `gh issue list --state open` |
+| Open issues | **2**: #111, #82 | `gh issue list --state open` |
+| Recently closed | **#104** (owner, 2026-09-28T10:32:47Z, two seconds after #115 merged), #112, #91, #90, #88 | GitHub API timeline |
 | Active workers | **0** (all complete) | background task notifications |
 | Tracked tree cleanliness | clean in every worktree | `git status --porcelain` |
 | Worktrees | 4 (see section 3) | `git worktree list` |
@@ -160,7 +161,12 @@ Every finding carries its source. An unverified claim is never presented as a co
 | Default uninstall left the 404 log (URIs, referers, user agents) on disk | Issue #91, verified | **FIXED** `7170449`. Tables and transients now always removed |
 | `AuthorsProvider.php:80` enumerated every `wp_users` row into the public sitemap | Issue #91, verified | **FIXED** `7170449`. Scoped to publishing roles |
 | `HtaccessFile` allowed a save despite `DISALLOW_FILE_EDIT` / `DISALLOW_FILE_MODS` | PR #107, mutation proven | **FIXED** `63f60cc` |
-| Remaining `#104` IMPORTANT and MINOR findings (53 + 44) | Issue #104 | **OPEN**. Same classes across more files. Must be verified individually, never bulk applied |
+| Remaining `#104` IMPORTANT and MINOR findings (53 + 44) | Issue #104 | **UNTRACKED.** Issue #104 was **closed by the owner** at `2026-09-28T10:32:47Z`, two seconds after #115 merged. The verified subset was fixed; the remainder has **no open issue** tracking it. See the warning below |
+
+> **Warning: the remaining #104 findings are now untracked.**
+> Issue #104 was closed by the owner on 2026-09-28. The verified critical and important subset was fixed and merged (#114, #115). The remaining **53 IMPORTANT and 44 MINOR** findings, and the 12 environment-class criticals, are real entries from the audit that **no longer have an open issue**. They were never verified line by line, and the audit list is known to mix real findings with environment non-findings.
+>
+> Do not assume they are fixed. Do not bulk apply them. If they are to be actioned, they need a fresh issue and the same verify-then-fix treatment used for the subset that shipped. This is a tracking gap, not a claim that the code is clean.
 
 ### Minor
 
@@ -191,7 +197,7 @@ Every finding carries its source. An unverified claim is never presented as a co
 | --- | --- |
 | Settings-level Export / Import | Not located in code. Redirects has CSV import/export only. Do not claim a settings exporter exists |
 | `gutenberg` module registry entry | Working editor JS exists but no `GutenbergModule` class. Unclear whether the registry entry is intentionally a facade |
-| The 53 remaining `#104` IMPORTANT and 44 MINOR findings | Only the verified subset has been actioned. The rest require per-line verification before any claim |
+| The remaining `#104` IMPORTANT and 44 MINOR findings | Only the verified subset has been actioned. **The issue was closed by the owner**, so the remainder is no longer tracked anywhere. It requires per-line verification before any claim |
 | Recurrence of the entropy false positive | Root cause identified: `security-privacy.md` carries the guard, `code-quality-conventions.md` does not, so audits using the latter re-report it |
 
 ---
