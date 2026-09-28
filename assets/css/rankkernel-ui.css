@@ -251,6 +251,9 @@
 	letter-spacing: -0.015em;
 }
 
+/* The page header wants the quieter step, so it overrides the base rather than
+   replacing it. The header selector is the more specific of the two, so this
+   holds wherever the two rules are read. */
 .rk-ui .rk-ui-page-header .rk-ui-sub {
 	margin: 4px 0 0;
 	font-size: var(--rk-font-size-sm);
@@ -263,6 +266,41 @@
 	align-items: center;
 	gap: var(--rk-space-3);
 	flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Supporting text, one notation for the line that explains something
+   ========================================================================== */
+
+/* rk-ui-sub is the one line that explains a card, a section or a form row. The
+   base treatment lives here rather than in the page header block, because a
+   page may use it inside a card body as well as under a page title, and the
+   header only overrides it. One size and one colour everywhere, so the class
+   never renders two different things. */
+.rk-ui .rk-ui-sub {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* rk-ui-hint is the one helper text notation. A field hint, a table
+   description and an inline note all use it, so no page reaches for a core
+   class or a private copy to say the same thing. */
+.rk-ui .rk-ui-hint {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* A standalone paragraph of prose rather than a hint about one control. It is
+   the same class one step darker and held to a comfortable measure, which
+   keeps long sentences readable without inventing a second convention. */
+.rk-ui .rk-ui-hint-strong {
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	max-width: 72ch;
 }
 
 /* ==========================================================================
@@ -358,7 +396,7 @@
 }
 
 /* ==========================================================================
-   Status pills in the shared semantic set
+   Status pills in the shared semantic set, plus the reserved Schema accent
    ========================================================================== */
 
 .rk-ui .rk-ui-pill {
@@ -400,6 +438,17 @@
 	background: var(--rk-color-surface-muted);
 	border: 1px solid var(--rk-color-border-strong);
 	color: var(--rk-color-text-secondary);
+}
+
+/* The Schema accent, a reserved token pair for structured data only. It is a
+   pill variant here rather than a page private class, so any screen that needs
+   to badge Schema gets the same treatment the five variants above give the
+   shared semantic set. The pill always carries the word Schema, so the state
+   never rests on the colour. */
+.rk-ui .rk-ui-pill-schema {
+	background: var(--rk-color-secondary-2-soft);
+	border: 1px solid var(--rk-tint-schema-border);
+	color: var(--rk-color-secondary-2);
 }
 
 /* ==========================================================================
