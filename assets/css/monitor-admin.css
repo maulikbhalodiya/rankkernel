@@ -1,101 +1,233 @@
 /**
  * 404 Monitor screen styles.
  *
- * Loaded only on the 404 Monitor admin screen. Every rule is scoped under
- * .rk-monitor so nothing leaks onto other admin pages.
+ * Loaded only on the 404 Monitor admin screen via
+ * NotFoundPage::enqueueAssets. Shared components (buttons, cards, page
+ * header, notices, pills, table, pagination, search, select) live in
+ * rankkernel-ui.css under the rk-ui scope, and the design tokens live in
+ * rankkernel-admin.css, which already scopes its token block under
+ * .rk-monitor. This file therefore holds only page scoped layout rules under
+ * .rk-monitor.
+ *
+ * Every colour comes from a var(--rk-*) token, and spacing comes from the
+ * token scale wherever the scale has a matching step. No raw hex and no raw
+ * rgba appears here, which is what stops the screen rendering a second,
+ * competing palette next to every other RankKernel admin page. The remaining
+ * pixel values are hairlines, control heights and a focus ring, matching the
+ * same trims the shared component layer already uses.
+ *
+ * @package RankKernel
  */
 
+/* ==========================================================================
+   Page shell, a single column stack with a consistent gap
+   ========================================================================== */
+
+/* The .wrap margins are the WordPress ones, so only the column stack and the
+   bottom breathing room are set here. */
+.rk-monitor {
+	padding: 0 0 var(--rk-space-6) 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	box-sizing: border-box;
+}
+
+/* Stacked notices sit closer together than cards. The shared component is
+   marginless, so the page gap is halved between two adjacent notices. */
+.rk-monitor > .rk-ui-notice + .rk-ui-notice {
+	margin-block-start: calc(var(--rk-space-2) * -1);
+}
+
+/* Nested notices inside a card read as part of the card, not as page chrome. */
+.rk-monitor .rk-log-info {
+	padding: var(--rk-space-4) var(--rk-space-6) 0;
+}
+
+.rk-monitor .rk-log-info .rk-ui-notice {
+	margin: 0;
+	border-radius: var(--rk-radius-md);
+}
+
+/* Compact submit buttons, used by every WordPress submit_button on the screen. */
+.rk-monitor .rk-compact-submit {
+	padding: 6px 14px;
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Secondary body text, the shared rk-ui-sub is muted, this is one step darker. */
 .rk-monitor .rk-sub {
-	color: #50575e;
+	margin: 0;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
 	max-width: 72ch;
 }
 
-.rk-monitor .rk-card {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-	margin: 16px 0;
-	padding: 8px 24px 20px;
-}
+/* ==========================================================================
+   Log status card
+   ========================================================================== */
 
-.rk-monitor .rk-card h2 {
-	font-size: 1.3em;
-	margin: 1em 0 0.5em;
-}
-
-.rk-monitor .rk-card h3 {
-	font-size: 1.05em;
-	margin: 1.4em 0 0.4em;
+.rk-monitor .rk-summary-body {
+	padding: var(--rk-space-5) var(--rk-space-6) var(--rk-space-6);
 }
 
 .rk-monitor .rk-stat-grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 24px;
-	margin: 12px 0 16px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--rk-space-5);
+	margin: 0;
 }
 
 .rk-monitor .rk-stat {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	min-width: 140px;
+	gap: var(--rk-space-1);
+	min-width: 0;
+	padding: var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
 }
 
 .rk-monitor .rk-stat-wide {
-	flex: 1 1 280px;
-	max-width: 460px;
+	grid-column: span 2;
 }
 
 .rk-monitor .rk-stat-label {
-	color: #50575e;
-	font-size: 12px;
+	color: var(--rk-color-text-muted);
+	font-size: 11px;
 	font-weight: 600;
 	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .rk-monitor .rk-stat-value {
-	font-size: 20px;
-	font-weight: 600;
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: 22px;
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+	letter-spacing: -0.015em;
+}
+
+.rk-monitor .rk-stat-small {
+	font-size: var(--rk-font-size-md);
+	overflow-wrap: anywhere;
 }
 
 .rk-monitor .rk-stat-hint {
-	color: #50575e;
-	font-size: 12px;
-	max-width: 32ch;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	max-width: 34ch;
 }
 
+.rk-monitor .rk-stat-uri {
+	font-family: var(--rk-font-mono);
+	overflow-wrap: anywhere;
+	max-width: none;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-monitor .rk-summary-note {
+	margin: var(--rk-space-4) 0 0;
+}
+
+/* Capacity bar. The fill colour follows the controller supplied near limit
+   state, and the page header pill plus the notice row always state the same
+   thing in words, so the colour is never the only signal. */
 .rk-monitor .rk-progress {
-	background: #f0f0f1;
+	background: var(--rk-color-border);
 	border-radius: 999px;
-	height: 10px;
-	margin-top: 8px;
+	height: 8px;
+	margin-top: var(--rk-space-2);
 	overflow: hidden;
 }
 
 .rk-monitor .rk-progress-fill {
-	background: #2271b1;
-	border-radius: 999px;
 	height: 100%;
 	max-width: 100%;
+	border-radius: 999px;
+	transition: width 0.2s, background 0.2s;
 }
 
-.rk-monitor #rk-clear-form {
-	align-items: center;
+.rk-monitor .rk-fill-normal {
+	background: var(--rk-color-primary);
+}
+
+.rk-monitor .rk-fill-warn {
+	background: var(--rk-color-secondary-3);
+}
+
+.rk-monitor .rk-fill-high {
+	background: var(--rk-color-secondary-4);
+}
+
+/* ==========================================================================
+   Log card, toolbar plus list plus footer
+   ========================================================================== */
+
+.rk-monitor .rk-entry-count {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+.rk-monitor .rk-log-toolbar {
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface-subtle);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-log-filters {
 	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
 	flex-wrap: wrap;
-	gap: 12px;
-	margin-top: 8px;
+	margin: 0;
 }
 
-.rk-monitor .rk-filters {
-	margin: 12px 0;
+.rk-monitor .rk-log-filters .rk-ui-search-wrap {
+	flex: 0 1 320px;
+	min-width: 0;
 }
 
-.rk-monitor .rk-filters .search-box {
-	float: right;
-	margin: 0 0 8px;
+/* Bulk action bar above the table. */
+.rk-monitor .rk-log-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding: var(--rk-space-3) var(--rk-space-6);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-bulk-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.rk-monitor .rk-pages-top,
+.rk-monitor .rk-pages-bottom {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-monitor .rk-paging-text {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	white-space: nowrap;
+}
+
+/* Column sizing for the log table. The wrapper scrolls, so the table may be
+   wider than the content area without ever overflowing the page. */
+.rk-monitor .rk-table .rk-col-check {
+	width: 40px;
 }
 
 .rk-monitor .rk-table .rk-col-hits {
@@ -103,87 +235,421 @@
 }
 
 .rk-monitor .rk-table .rk-col-created {
-	width: 16%;
+	width: 15%;
 }
 
 .rk-monitor .rk-table .rk-col-seen {
-	width: 16%;
+	width: 15%;
 }
 
 .rk-monitor .rk-table .rk-col-actions {
-	width: 20%;
+	width: 22%;
 }
 
-.rk-monitor .rk-table td {
-	overflow-wrap: anywhere;
-}
-
-.rk-monitor .rk-empty {
-	background: #fff;
-	border: 1px dashed #c3c4c7;
-	border-radius: 4px;
-	margin: 16px 0;
-	padding: 40px 24px;
+.rk-monitor .rk-table th.rk-col-check,
+.rk-monitor .rk-table td.rk-col-check {
 	text-align: center;
 }
 
-.rk-monitor .rk-empty p {
-	font-size: 14px;
-	margin: 0.5em 0;
+.rk-monitor .rk-table td,
+.rk-monitor .rk-table tbody th {
+	overflow-wrap: anywhere;
 }
 
-.rk-monitor .rk-exclusions {
-	max-width: 720px;
+.rk-monitor .rk-table td.rk-col-actions {
+	text-align: end;
 }
 
-.rk-monitor .rk-settings > summary {
-	cursor: pointer;
-	font-size: 1.3em;
+.rk-monitor .rk-uri-value {
+	display: block;
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
-	margin: 1em 0 0.5em;
+	color: var(--rk-color-text);
+}
+
+/* Sortable column headers. The controller supplies the core sortable classes
+   and the arrow character, so only the core padding and float are replaced
+   and the core triangle is suppressed in favour of the real arrow. */
+.rk-monitor .rk-table th.sortable .rk-sort-link,
+.rk-monitor .rk-table th.sorted .rk-sort-link {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	overflow: visible;
+	padding: 0;
+	color: inherit;
+	text-decoration: none;
+}
+
+.rk-monitor .rk-table th.sortable .rk-sort-link span,
+.rk-monitor .rk-table th.sorted .rk-sort-link span {
+	float: none;
+	cursor: pointer;
+}
+
+.rk-monitor .rk-sort-link:hover .rk-sort-label {
+	color: var(--rk-color-text);
+}
+
+.rk-monitor .rk-sort-arrow {
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+}
+
+/* Per row actions, sized for the table rather than for a page header. */
+.rk-monitor .rk-row-action {
+	padding: 4px 10px;
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Row details disclosure. */
+.rk-monitor .rk-details {
+	margin-top: var(--rk-space-1);
 }
 
 .rk-monitor .rk-details > summary {
-	color: #2271b1;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	width: fit-content;
+	color: var(--rk-color-primary);
 	cursor: pointer;
+	font-size: var(--rk-font-size-xs);
+	list-style: none;
+}
+
+.rk-monitor .rk-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-monitor .rk-details > summary .rk-icon {
+	font-size: 16px;
+	transition: transform 0.15s;
+}
+
+.rk-monitor .rk-details[open] > summary .rk-icon {
+	transform: rotate(180deg);
 }
 
 .rk-monitor .rk-detail-list {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: 2px 12px;
-	margin: 8px 0;
+	gap: var(--rk-space-1) var(--rk-space-3);
+	margin: var(--rk-space-2) 0;
+	font-size: var(--rk-font-size-xs);
 }
 
 .rk-monitor .rk-detail-list dt {
+	color: var(--rk-color-text-muted);
 	font-weight: 600;
 }
 
 .rk-monitor .rk-detail-list dd {
 	margin: 0;
+	font-family: var(--rk-font-mono);
 	overflow-wrap: anywhere;
 }
 
-.rk-monitor .rk-stat-small {
-	font-size: 15px;
+.rk-monitor .rk-details .rk-sub {
+	margin-top: var(--rk-space-2);
+	font-size: var(--rk-font-size-xs);
 }
 
+/* Footer row under the table. */
+.rk-monitor .rk-log-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding: var(--rk-space-3) var(--rk-space-6);
+	background: var(--rk-color-surface-subtle);
+	border-block-start: 1px solid var(--rk-color-border);
+	border-end-end-radius: var(--rk-radius-lg);
+	border-end-start-radius: var(--rk-radius-lg);
+}
+
+.rk-monitor .rk-showing {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* ==========================================================================
+   Empty states
+   ========================================================================== */
+
+.rk-monitor .rk-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-2);
+	margin: var(--rk-space-6);
+	padding: var(--rk-space-6) var(--rk-space-5);
+	background: var(--rk-color-surface-subtle);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	text-align: center;
+}
+
+.rk-monitor .rk-empty-icon {
+	color: var(--rk-color-text-hint);
+}
+
+.rk-monitor .rk-empty-icon .rk-icon {
+	font-size: 32px;
+}
+
+.rk-monitor .rk-empty-title {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+}
+
+.rk-monitor .rk-empty-body {
+	margin: 0;
+	max-width: 46ch;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-monitor .rk-empty .rk-ui-btn {
+	margin-top: var(--rk-space-2);
+}
+
+/* ==========================================================================
+   Monitor settings disclosure and its form
+   ========================================================================== */
+
+.rk-monitor .rk-monitor-settings-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding: var(--rk-space-4) var(--rk-space-6);
+	cursor: pointer;
+	list-style: none;
+}
+
+.rk-monitor .rk-monitor-settings-summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-monitor .rk-monitor-settings-name {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	color: var(--rk-color-text);
+	font-size: 15px;
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-monitor .rk-monitor-settings-name .rk-icon {
+	color: var(--rk-color-primary);
+	font-size: 20px;
+}
+
+.rk-monitor .rk-monitor-settings-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-monitor .rk-monitor-settings-hint {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-monitor .rk-monitor-settings-chevron {
+	flex-shrink: 0;
+	color: var(--rk-color-text-muted);
+	transition: transform 0.15s;
+}
+
+.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-chevron {
+	transform: rotate(180deg);
+}
+
+.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-summary {
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-monitor-settings-form {
+	padding: var(--rk-space-5) var(--rk-space-6) var(--rk-space-6);
+	max-width: 780px;
+}
+
+.rk-monitor .rk-form-table {
+	margin: 0;
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.rk-monitor .rk-form-table th {
+	width: 200px;
+	padding: var(--rk-space-3) var(--rk-space-4) var(--rk-space-3) 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	text-align: start;
+	vertical-align: top;
+}
+
+.rk-monitor .rk-form-table td {
+	padding: var(--rk-space-3) 0;
+	vertical-align: top;
+}
+
+.rk-monitor .rk-form-table .description {
+	margin: var(--rk-space-1) 0 0;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-monitor .rk-form-table input[type="number"] {
+	width: 90px;
+	padding: 4px 8px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-monitor .rk-subheading {
+	margin: var(--rk-space-6) 0 var(--rk-space-2);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+}
+
+.rk-monitor .rk-exclusions-wrap {
+	margin-top: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+}
+
+.rk-monitor .rk-exclusions .rk-col-compare {
+	width: 170px;
+}
+
+.rk-monitor .rk-exclusions .rk-col-value {
+	width: auto;
+}
+
+.rk-monitor .rk-exclusions .rk-col-remove {
+	width: 110px;
+}
+
+.rk-monitor .rk-exclusions td {
+	padding: var(--rk-space-2) var(--rk-space-3);
+}
+
+.rk-monitor .rk-exclusion-select,
+.rk-monitor .rk-exclusion-value {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.rk-monitor .rk-exclusion-value {
+	padding: 6px 10px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-monitor .rk-exclusion-value:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-monitor .rk-exclusion-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	margin-top: var(--rk-space-4);
+}
+
+.rk-monitor .rk-monitor-settings-actions {
+	margin-top: var(--rk-space-5);
+}
+
+.rk-monitor .rk-monitor-settings-actions .submit {
+	margin: 0;
+	padding: 0;
+}
+
+/* ==========================================================================
+   Focus, from the shared layer for rk-ui controls, restated for the page
+   scoped controls the shared layer does not cover
+   ========================================================================== */
+
 .rk-monitor :focus-visible {
-	outline: 2px solid #2271b1;
+	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
 }
 
-.rk-monitor .tablenav .paging-text {
-	margin-right: 8px;
-}
+/* ==========================================================================
+   Narrow admin content area, the admin menu takes 160 pixels before the
+   content column even starts, so the breakpoint follows the shared layer
+   ========================================================================== */
 
 @media screen and (max-width: 782px) {
+	.rk-monitor .rk-stat-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.rk-monitor .rk-stat-wide {
+		grid-column: auto;
+	}
+
+	.rk-monitor .rk-log-toolbar,
+	.rk-monitor .rk-log-actions,
+	.rk-monitor .rk-log-footer,
+	.rk-monitor .rk-summary-body,
+	.rk-monitor .rk-monitor-settings-form,
+	.rk-monitor .rk-monitor-settings-summary,
+	.rk-monitor .rk-log-info {
+		padding-inline: var(--rk-space-4);
+	}
+
+	.rk-monitor .rk-log-filters .rk-ui-search-wrap {
+		flex: 1 1 100%;
+		max-width: none;
+	}
+
 	.rk-monitor .rk-table .rk-col-created,
 	.rk-monitor .rk-table .rk-col-seen {
 		display: none;
 	}
 
-	.rk-monitor .rk-filters .search-box {
-		float: none;
+	.rk-monitor .rk-form-table th {
+		width: auto;
+		padding-inline-end: var(--rk-space-3);
+	}
+
+	.rk-monitor .rk-empty {
+		margin: var(--rk-space-4);
+		padding: var(--rk-space-5) var(--rk-space-4);
+	}
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-monitor .rk-progress-fill,
+	.rk-monitor .rk-details > summary .rk-icon,
+	.rk-monitor .rk-monitor-settings-chevron,
+	.rk-monitor .rk-sort-link,
+	.rk-monitor .rk-icon {
+		transition: none;
 	}
 }
