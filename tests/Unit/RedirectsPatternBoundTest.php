@@ -59,6 +59,7 @@ final class RedirectsPatternBoundTest extends TestCase {
 		$this->db         = new RedirectsFakeDb();
 		$this->options    = [];
 		$this->transients = [];
+		RedirectRepository::resetMemo();
 
 		// Test installs the in memory wpdb double, restored in tearDown.
 		$GLOBALS['wpdb'] = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
