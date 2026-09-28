@@ -34,12 +34,32 @@ defined( 'ABSPATH' ) || exit;
 				<p class="rk-card-desc"><?php echo esc_html( $card['description'] ); ?></p>
 				<div class="rk-card-actions">
 					<?php if ( '' !== $card['settingsUrl'] ) : ?>
-						<a class="button button-secondary" href="<?php echo esc_url( $card['settingsUrl'] ); ?>"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></a>
+						<?php
+						$settingsAriaLabel = sprintf(
+							/* translators: %s: module name */
+							__( 'Settings for %s', 'rankkernel' ),
+							$card['label']
+						);
+						?>
+						<a class="button button-secondary" href="<?php echo esc_url( $card['settingsUrl'] ); ?>" aria-label="<?php echo esc_attr( $settingsAriaLabel ); ?>"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></a>
 					<?php endif; ?>
 					<form method="post" action="" class="rk-card-toggle">
 						<?php wp_nonce_field( 'rankkernel_module_toggle' ); ?>
 						<input type="hidden" name="rankkernel_module_toggle" value="<?php echo esc_attr( $card['id'] ); ?>" />
-						<button type="submit" class="button<?php echo $card['enabled'] ? '' : ' button-primary'; ?>"><?php echo $card['enabled'] ? esc_html__( 'Turn off', 'rankkernel' ) : esc_html__( 'Turn on', 'rankkernel' ); ?></button>
+						<?php
+						$toggleAriaLabel = $card['enabled']
+							? sprintf(
+								/* translators: %s: module name */
+								__( 'Turn off %s module', 'rankkernel' ),
+								$card['label']
+							)
+							: sprintf(
+								/* translators: %s: module name */
+								__( 'Turn on %s module', 'rankkernel' ),
+								$card['label']
+							);
+						?>
+						<button type="submit" class="button<?php echo $card['enabled'] ? '' : ' button-primary'; ?>" aria-label="<?php echo esc_attr( $toggleAriaLabel ); ?>"><?php echo $card['enabled'] ? esc_html__( 'Turn off', 'rankkernel' ) : esc_html__( 'Turn on', 'rankkernel' ); ?></button>
 					</form>
 				</div>
 			</div>
