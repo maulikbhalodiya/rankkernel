@@ -99,6 +99,18 @@ defined( 'ABSPATH' ) || exit;
 	</header>
 
 	<?php /* Section 3: notice row. It sits directly under the page header card, the order the Dashboard, the Sitemap screen, the Schema screen and the reference page all use, so the four screens open the same way. No dismiss control renders, because no script on this screen wires one. */ ?>
+	<?php
+	/*
+	 * One rule for every notice on this screen. A live region role belongs to
+	 * a message that arrives after the user acts, so the save outcomes above
+	 * keep role status and role alert. Everything below is server rendered and
+	 * present at page load, so it is a static callout and carries no role: a
+	 * live region that announces itself on load talks over the page before
+	 * the user has asked for anything. The Sitemap index callout, the Schema
+	 * defaults callout and the redirect hint below all use this identical
+	 * markup.
+	 */
+	?>
 	<?php if ( '' !== $noticeSuccess ) : ?>
 		<div class="rk-ui-notice rk-ui-notice-success" role="status">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
@@ -121,7 +133,7 @@ defined( 'ABSPATH' ) || exit;
 	<?php endif; ?>
 
 	<?php if ( '' !== $carriedChain ) : ?>
-		<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+		<div class="rk-ui-notice rk-ui-notice-warning">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
 			<p class="rk-ui-notice-text">
 				<?php
@@ -139,14 +151,14 @@ defined( 'ABSPATH' ) || exit;
 	<?php endif; ?>
 
 	<?php if ( $carriedMayLoop ) : ?>
-		<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+		<div class="rk-ui-notice rk-ui-notice-warning">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
 			<p class="rk-ui-notice-text"><?php echo esc_html__( 'The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually.', 'rankkernel' ); ?></p>
 		</div>
 	<?php endif; ?>
 
 	<?php if ( $carriedChainUnknown && '' === $carriedChain ) : ?>
-		<div class="rk-ui-notice rk-ui-notice-info" role="status">
+		<div class="rk-ui-notice rk-ui-notice-info">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' ); ?></p>
 		</div>
@@ -154,12 +166,12 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( 'normal' !== $nearState ) : ?>
 		<?php if ( 'high' === $nearState ) : ?>
-			<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+			<div class="rk-ui-notice rk-ui-notice-warning">
 				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
 				<p class="rk-ui-notice-text"><?php echo esc_html( sprintf( /* translators: %s: configured maximum entry count */ __( 'Your 404 log is nearly at its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time.', 'rankkernel' ), number_format_i18n( $nearMax ) ) ); ?></p>
 			</div>
 		<?php else : ?>
-			<div class="rk-ui-notice rk-ui-notice-info" role="status">
+			<div class="rk-ui-notice rk-ui-notice-info">
 				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 				<p class="rk-ui-notice-text"><?php echo esc_html( sprintf( /* translators: %s: configured maximum entry count */ __( 'Your 404 log is approaching its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time.', 'rankkernel' ), number_format_i18n( $nearMax ) ) ); ?></p>
 			</div>
@@ -225,7 +237,15 @@ defined( 'ABSPATH' ) || exit;
 
 		<div class="rk-ui-card-header">
 			<div class="rk-ui-card-header-left">
-				<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Tracked 404s', 'rankkernel' ); ?></h3>
+				<?php
+				/*
+				 * The card heading is also the name of the log table below, so
+				 * table navigation announces what the table holds rather than
+				 * only its shape. The id on the heading is what the table
+				 * points at, so the visible words stay the single source.
+				 */
+				?>
+				<h3 class="rk-ui-card-title" id="rk-log-heading"><?php echo esc_html__( 'Tracked 404s', 'rankkernel' ); ?></h3>
 				<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of tracked 404 entries */ __( '%d entries', 'rankkernel' ), $listTotal ) ); ?></span>
 			</div>
 		</div>
@@ -299,25 +319,56 @@ defined( 'ABSPATH' ) || exit;
 					</div>
 
 					<?php if ( $pagination['has'] ) : ?>
-						<?php /* The footer below is the labelled navigation landmark, so this repeat stays an unlabelled group. */ ?>
+						<?php
+						/*
+						 * The footer below is the labelled navigation landmark, so
+						 * this repeat stays an unlabelled group.
+						 *
+						 * A disabled page link is a link that cannot be followed.
+						 * aria-disabled on a plain span was inert, because the
+						 * span was never in the focus order and a generic
+						 * element does not carry the state, so nothing
+						 * announced it. These four controls are now anchors
+						 * with the link role and no href, kept focusable with
+						 * tabindex so the unavailable state is announced, and
+						 * with no destination so activating one does nothing.
+						 * The is-disabled class still carries the visible
+						 * treatment on all four.
+						 */
+						?>
 						<div class="rk-pages-top">
 							<span class="rk-paging-text"><?php echo esc_html( $pagination['label'] ); ?></span>
 							<?php if ( '' !== $pagination['previousUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['previousUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
+								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
+								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 						</div>
 					<?php endif; ?>
 				</div>
 
 				<div class="rk-ui-table-wrap">
-					<table class="rk-ui-table rk-table">
+					<?php
+					/*
+					 * The table is named by the card heading above, so table
+					 * navigation announces what the table holds. The column
+					 * headers below then say which one is sorted and in which
+					 * direction through aria-sort on the header cell, and the
+					 * sort link repeats that state in its own accessible name,
+					 * because the arrow glyph that shows it on screen is
+					 * decorative and hidden from assistive technology.
+					 *
+					 * The controller sends the state as the arrow character only,
+					 * so the direction is read back from that character. The
+					 * controller itself is unchanged.
+					 */
+					?>
+					<table class="rk-ui-table rk-table" aria-labelledby="rk-log-heading">
 						<thead>
 							<tr>
 								<th scope="col" class="rk-col-check">
@@ -325,8 +376,22 @@ defined( 'ABSPATH' ) || exit;
 									<input type="checkbox" id="rk-select-all" />
 								</th>
 								<?php foreach ( $sortColumns as $sortColumn ) : ?>
-									<th scope="col" class="<?php echo esc_attr( $sortColumn['class'] ); ?>">
-										<a class="rk-sort-link" href="<?php echo esc_url( $sortColumn['url'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: column label */ __( 'Sort by %s', 'rankkernel' ), $sortColumn['label'] ) ); ?>">
+									<?php
+									$rkSortIsAscending = ' ↑' === $sortColumn['arrow'];
+
+									if ( $rkSortIsAscending ) {
+										$rkSortState = 'ascending';
+										$rkSortName  = sprintf( /* translators: %s: column label */ __( 'Sort by %s, currently sorted ascending', 'rankkernel' ), $sortColumn['label'] );
+									} elseif ( ' ↓' === $sortColumn['arrow'] ) {
+										$rkSortState = 'descending';
+										$rkSortName  = sprintf( /* translators: %s: column label */ __( 'Sort by %s, currently sorted descending', 'rankkernel' ), $sortColumn['label'] );
+									} else {
+										$rkSortState = 'none';
+										$rkSortName  = sprintf( /* translators: %s: column label */ __( 'Sort by %s, not currently sorted', 'rankkernel' ), $sortColumn['label'] );
+									}
+									?>
+									<th scope="col" class="<?php echo esc_attr( $sortColumn['class'] ); ?>" aria-sort="<?php echo esc_attr( $rkSortState ); ?>">
+										<a class="rk-sort-link" href="<?php echo esc_url( $sortColumn['url'] ); ?>" aria-label="<?php echo esc_attr( $rkSortName ); ?>">
 											<span class="rk-sort-label"><?php echo esc_html( $sortColumn['label'] ); ?></span>
 											<?php if ( '' !== $sortColumn['arrow'] ) : ?>
 												<span class="rk-sort-arrow" aria-hidden="true"><?php echo esc_html( $sortColumn['arrow'] ); ?></span>
@@ -344,8 +409,18 @@ defined( 'ABSPATH' ) || exit;
 										<input type="checkbox" name="entry_ids[]" value="<?php echo esc_attr( (string) $listRowItem['id'] ); ?>" aria-label="<?php echo esc_attr( $listRowItem['selectLabel'] ); ?>" />
 									</th>
 									<td class="rk-col-uri"><strong class="rk-uri-value"><?php echo esc_html( $listRowItem['uri'] ); ?></strong>
+										<?php
+										/*
+										 * The disclosure button itself is the word Details,
+										 * and twenty rows of them meant twenty identical
+										 * buttons. The address in the same row is the one
+										 * thing that tells them apart, so it is added to
+										 * the accessible name through a screen reader
+										 * only span. The visible button is unchanged.
+										 */
+										?>
 										<details class="rk-details">
-											<summary><span class="rk-icon" aria-hidden="true">expand_more</span><?php echo esc_html__( 'Details', 'rankkernel' ); ?></summary>
+											<summary><span class="rk-icon" aria-hidden="true">expand_more</span><?php echo esc_html__( 'Details', 'rankkernel' ); ?><span class="screen-reader-text">: <?php echo esc_html( $listRowItem['uri'] ); ?></span></summary>
 											<dl class="rk-detail-list">
 												<dt><?php echo esc_html__( 'Full address', 'rankkernel' ); ?></dt><dd><?php echo esc_html( $listRowItem['uri'] ); ?></dd>
 												<dt><?php echo esc_html__( 'Hits', 'rankkernel' ); ?></dt><dd><?php echo esc_html( (string) number_format_i18n( $listRowItem['hits'] ) ); ?></dd>
@@ -384,12 +459,12 @@ defined( 'ABSPATH' ) || exit;
 							<?php if ( '' !== $pagination['previousUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['previousUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
+								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
+								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 						</nav>
 					<?php endif; ?>
@@ -400,11 +475,23 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php /* Section 6: monitor settings, collapsed. Every control posts the real settings form. */ ?>
 	<details class="rk-ui-card rk-monitor-settings" id="rk-monitor-settings">
+		<?php
+		/*
+		 * The disclosure summary carries the card heading, so the heading is
+		 * a real h3 inside the summary rather than a styled span. A heading
+		 * is allowed inside a summary, and the summary is not allowed to
+		 * hold block content, so the name and the hint are two spans inside
+		 * the heading rather than a wrapper around it. That also repairs the
+		 * outline: the Exclusions h4 below now sits under an h3 rather than
+		 * jumping a level from the page h2. The hooks the script looks for
+		 * are all below this summary and are unchanged.
+		 */
+		?>
 		<summary class="rk-monitor-settings-summary">
-			<span class="rk-monitor-settings-heading">
+			<h3 class="rk-monitor-settings-heading">
 				<span class="rk-monitor-settings-name"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Monitor Settings', 'rankkernel' ); ?></span>
 				<span class="rk-monitor-settings-hint"><?php echo esc_html__( 'Retention, entry limit, flood guard and address exclusions', 'rankkernel' ); ?></span>
-			</span>
+			</h3>
 			<span class="rk-icon rk-monitor-settings-chevron" aria-hidden="true">expand_more</span>
 		</summary>
 
@@ -437,11 +524,18 @@ defined( 'ABSPATH' ) || exit;
 					<p class="rk-ui-hint"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p></td></tr>
 			</tbody></table>
 
-			<h4 class="rk-subheading"><?php echo esc_html__( 'Exclusions', 'rankkernel' ); ?></h4>
+			<?php
+			/*
+			 * The heading above is also the name of the table below, so table
+			 * navigation announces what the table holds. It is the id the
+			 * table points at, so the visible words stay the single source.
+			 */
+			?>
+			<h4 class="rk-subheading" id="rk-exclusions-heading"><?php echo esc_html__( 'Exclusions', 'rankkernel' ); ?></h4>
 			<p class="rk-ui-hint rk-ui-hint-strong"><?php echo esc_html__( 'Skip logging for addresses that match a rule. Add as many rows as needed. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' ); ?></p>
 
 			<div class="rk-ui-table-wrap rk-exclusions-wrap">
-				<table class="rk-ui-table rk-exclusions">
+				<table class="rk-ui-table rk-exclusions" aria-labelledby="rk-exclusions-heading">
 					<thead>
 						<tr>
 							<th scope="col" class="rk-col-compare"><?php echo esc_html__( 'Compare', 'rankkernel' ); ?></th>
@@ -450,38 +544,59 @@ defined( 'ABSPATH' ) || exit;
 						</tr>
 					</thead>
 					<tbody id="rk-exclusions-body">
-						<?php foreach ( $exclusionRowItems as $exclusionRowItem ) : ?>
-							<?php
+						<?php
+						/*
+						 * Every row of this table carried the same two names, so
+						 * a screen reader heard "How to compare" and "Exclusion
+						 * value" once per row with nothing to say which rule it
+						 * was on. The position in the list is what the server
+						 * rendered rows can offer that is unique, so each pair
+						 * of controls is named after its rule number. The Remove
+						 * button in the same row already names itself after the
+						 * value it removes, which is the pattern followed here.
+						 */
+						foreach ( $exclusionRowItems as $rkExclRowIndex => $exclusionRowItem ) :
+							$rkExclRuleNumber = $rkExclRowIndex + 1;
+
 							$rkExclRemoveLabel = '' !== $exclusionRowItem['value']
 								? sprintf( /* translators: %s: exclusion value or pattern */ __( 'Remove exclusion rule for %s', 'rankkernel' ), $exclusionRowItem['value'] )
 								: __( 'Remove exclusion rule', 'rankkernel' );
 							?>
 							<tr class="rk-exclusion-row"><td>
 								<div class="rk-ui-select-wrap">
-									<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare', 'rankkernel' ); ?>" class="rk-ui-select rk-exclusion-select">
+									<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'How to compare for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" class="rk-ui-select rk-exclusion-select">
 										<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
 											<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( $exclusionRowItem['comparator'], $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
 										<?php endforeach; ?>
 									</select>
 									<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 								</div></td>
-								<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value', 'rankkernel' ); ?>" /></td>
+								<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'Exclusion value for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" /></td>
 								<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr( $rkExclRemoveLabel ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			</div>
 
+			<?php
+			/*
+			 * The row the script clones. It carries no id of its own, because
+			 * every clone would copy that id, so the controls are named from
+			 * the copy itself rather than from a per row id. A clone has no
+			 * number yet, so it says it is a new rule, and the number arrives
+			 * with the page after the save.
+			 */
+			?>
 			<template id="rk-exclusion-template"><tr class="rk-exclusion-row"><td>
 				<div class="rk-ui-select-wrap">
-					<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare', 'rankkernel' ); ?>" class="rk-ui-select rk-exclusion-select">
+					<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare for a new exclusion rule', 'rankkernel' ); ?>" class="rk-ui-select rk-exclusion-select">
 						<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
 							<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( 'prefix', $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 				</div></td>
-				<td><input type="text" name="rk_excl_value[]" value="" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value', 'rankkernel' ); ?>" /></td>
+				<td><input type="text" name="rk_excl_value[]" value="" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value for a new exclusion rule', 'rankkernel' ); ?>" /></td>
 				<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr></template>
 
 			<div class="rk-exclusion-controls">

@@ -600,6 +600,14 @@
 	cursor: not-allowed;
 }
 
+/* A disabled page link is an anchor kept in the focus order so its
+   aria-disabled state is announced. It has no destination, so it must not
+   look alive under the pointer either. */
+.rk-ui a.rk-ui-page-link.is-disabled:hover {
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text-secondary);
+}
+
 .rk-ui .rk-ui-page-gap {
 	padding: 4px;
 	color: var(--rk-color-text-hint);

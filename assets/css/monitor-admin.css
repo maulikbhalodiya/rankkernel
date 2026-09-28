@@ -443,11 +443,15 @@
 	font-size: 20px;
 }
 
+/* The card title in the summary is a real h3, so the browser heading margin
+   is reset here and the two lines sit on the padding the summary sets. The
+   rest of the rule is the column stack that was already here. */
 .rk-monitor .rk-monitor-settings-heading {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+	margin: 0;
 }
 
 .rk-monitor .rk-monitor-settings-hint {
