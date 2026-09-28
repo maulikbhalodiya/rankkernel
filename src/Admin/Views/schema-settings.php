@@ -43,7 +43,26 @@ defined( 'ABSPATH' ) || exit;
 	?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( 'Schema Settings', 'rankkernel' ); ?></h1>
 
-	<?php /* Section 1: notice row. No dismiss control, this screen wires none. */ ?>
+	<?php
+	/*
+	 * Section 1: page header card carrying the Schema accent. The page title
+	 * leads the title row, the way it does on the other three screens, so the
+	 * decorative mark and the badge follow it. The badge is the shared pill
+	 * variant beside the five semantic ones, not a page private class.
+	 */
+	?>
+	<header class="rk-ui-card rk-ui-page-header">
+		<div class="rk-ui-page-header-text">
+			<div class="rk-ui-page-header-title-row">
+				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Schema Settings', 'rankkernel' ); ?></h2>
+				<span class="rk-schema-mark"><span class="rk-icon" aria-hidden="true">code_blocks</span></span>
+				<span class="rk-ui-pill rk-ui-pill-schema"><?php echo esc_html__( 'Schema', 'rankkernel' ); ?></span>
+			</div>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'Who this site represents, the default schema type per post type, and the tools that test the result.', 'rankkernel' ); ?></p>
+		</div>
+	</header>
+
+	<?php /* Section 2: notice row. No dismiss control, this screen wires none. */ ?>
 	<?php if ( $settingsUpdated ) : ?>
 		<div class="rk-ui-notice rk-ui-notice-success" role="status">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
@@ -57,18 +76,6 @@ defined( 'ABSPATH' ) || exit;
 			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p>
 		</div>
 	<?php endif; ?>
-
-	<?php /* Section 2: page header card carrying the Schema accent. */ ?>
-	<header class="rk-ui-card rk-ui-page-header">
-		<div class="rk-ui-page-header-text">
-			<div class="rk-ui-page-header-title-row">
-				<span class="rk-schema-mark"><span class="rk-icon" aria-hidden="true">code_blocks</span></span>
-				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Schema Settings', 'rankkernel' ); ?></h2>
-				<span class="rk-ui-pill rk-pill-schema"><?php echo esc_html__( 'Schema', 'rankkernel' ); ?></span>
-			</div>
-			<p class="rk-ui-sub"><?php echo esc_html__( 'Who this site represents, the default schema type per post type, and the tools that test the result.', 'rankkernel' ); ?></p>
-		</div>
-	</header>
 
 	<?php
 	/*
@@ -86,7 +93,7 @@ defined( 'ABSPATH' ) || exit;
 				<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Identity', 'rankkernel' ); ?></h3>
 			</div>
 
-			<div class="rk-card-body">
+			<div class="rk-ui-card-body">
 				<div class="rk-ui-form-row">
 					<label class="rk-ui-form-label" for="rk-site-represents"><?php echo esc_html__( 'Site Represents', 'rankkernel' ); ?></label>
 					<div class="rk-ui-select-wrap">
@@ -96,13 +103,13 @@ defined( 'ABSPATH' ) || exit;
 						</select>
 						<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 					</div>
-					<p class="rk-schema-hint"><?php echo esc_html__( 'Choose Organization for a business or group site, Person for a personal site.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Choose Organization for a business or group site, Person for a personal site.', 'rankkernel' ); ?></p>
 				</div>
 
 				<div class="rk-ui-form-row">
 					<label class="rk-ui-form-label" for="rk-org-name"><?php echo esc_html__( 'Organization Name', 'rankkernel' ); ?></label>
 					<input type="text" id="rk-org-name" name="org_name" value="<?php echo esc_attr( $orgName ); ?>" class="regular-text" />
-					<p class="rk-schema-hint"><?php echo esc_html__( 'Shown as the site owner name in search results. Leave empty to use the site name.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Shown as the site owner name in search results. Leave empty to use the site name.', 'rankkernel' ); ?></p>
 				</div>
 
 				<?php
@@ -111,6 +118,9 @@ defined( 'ABSPATH' ) || exit;
 				 * so it is a span wired to the group instead of a label with a
 				 * for attribute. The ids inside the group are the ones the
 				 * media picker script looks up, and it is left untouched.
+				 * Removing the logo discards the stored image, so that control
+				 * takes the shared destructive button rather than a second
+				 * neutral one, which is what the 404 exclusion rows do.
 				 */
 				?>
 				<div class="rk-ui-form-row" role="group" aria-labelledby="rk-org-logo-label">
@@ -120,16 +130,16 @@ defined( 'ABSPATH' ) || exit;
 						<input type="hidden" id="rk-org-logo" name="org_logo" value="<?php echo esc_attr( $orgLogo ); ?>" />
 						<p class="rk-schema-logo-actions">
 							<button type="button" class="button" id="rk-org-logo-select"><span class="rk-icon" aria-hidden="true">cloud_upload</span><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
-							<button type="button" class="button" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?>><span class="rk-icon" aria-hidden="true">cancel</span><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
+							<button type="button" class="rk-ui-btn rk-ui-btn-danger" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?>><span class="rk-icon" aria-hidden="true">cancel</span><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
 						</p>
 					</div>
-					<p class="rk-schema-hint"><?php echo esc_html__( 'Logo image shown with your site name in search results. Pick from the media library or upload a new image.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Logo image shown with your site name in search results. Pick from the media library or upload a new image.', 'rankkernel' ); ?></p>
 				</div>
 
 				<div class="rk-ui-form-row">
 					<label class="rk-ui-form-label" for="rk-org-sameas"><?php echo esc_html__( 'Same As', 'rankkernel' ); ?></label>
 					<textarea id="rk-org-sameas" name="org_sameas" rows="4" cols="50"><?php echo esc_textarea( implode( "\n", $sameAsLines ) ); ?></textarea>
-					<p class="rk-schema-hint"><?php echo esc_html__( 'One profile address per line, for example social profiles. Tells search engines which profiles are yours.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'One profile address per line, for example social profiles. Tells search engines which profiles are yours.', 'rankkernel' ); ?></p>
 				</div>
 
 				<?php
@@ -155,8 +165,18 @@ defined( 'ABSPATH' ) || exit;
 				<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Defaults', 'rankkernel' ); ?></h3>
 			</div>
 
-			<div class="rk-card-body">
-				<div class="rk-ui-notice rk-ui-notice-info" role="status">
+			<div class="rk-ui-card-body">
+				<?php
+				/*
+				 * A static callout rather than a status message, so it
+				 * deliberately carries no live region role. One rule covers
+				 * every static callout in the product: no role, and the info
+				 * glyph the shared notice variants map it to. The Sitemap
+				 * index callout and the 404 redirect hint use the identical
+				 * markup.
+				 */
+				?>
+				<div class="rk-ui-notice rk-ui-notice-info">
 					<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 					<p class="rk-ui-notice-text"><?php echo esc_html__( 'Automatic means posts use BlogPosting, other types use Article.', 'rankkernel' ); ?></p>
 				</div>
@@ -173,7 +193,7 @@ defined( 'ABSPATH' ) || exit;
 							</select>
 							<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
-						<p class="rk-schema-hint"><?php echo esc_html__( 'Default schema type for this post type.', 'rankkernel' ); ?></p>
+						<p class="rk-ui-hint"><?php echo esc_html__( 'Default schema type for this post type.', 'rankkernel' ); ?></p>
 					</div>
 				<?php endforeach; ?>
 
@@ -199,12 +219,12 @@ defined( 'ABSPATH' ) || exit;
 				<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Tools', 'rankkernel' ); ?></h3>
 			</div>
 
-			<div class="rk-card-body">
+			<div class="rk-ui-card-body">
 				<div class="rk-schema-tools">
 					<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">search</span><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
 					<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">code_blocks</span><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
 				</div>
-				<p class="rk-schema-hint"><?php echo esc_html__( 'The Rich Results Test opens with your home URL prefilled.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-hint"><?php echo esc_html__( 'The Rich Results Test opens with your home URL prefilled.', 'rankkernel' ); ?></p>
 			</div>
 		</div>
 

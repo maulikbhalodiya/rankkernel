@@ -21,12 +21,17 @@
    Page shell, a single column of cards with the shared spacing rhythm
    ========================================================================== */
 
+/* The .wrap margins are the WordPress ones, so only the column stack and the
+   bottom breathing room are set here. This is the same decision the 404
+   Monitor screen makes, and it is why the cards on this screen line up with
+   the cards on every other RankKernel page instead of sitting 24 pixels to
+   the right of them. */
 .rk-schema-settings {
 	display: flex;
 	flex-direction: column;
 	gap: var(--rk-space-4);
 	margin: 0;
-	padding: var(--rk-space-4) var(--rk-space-6) var(--rk-space-6) 0;
+	padding: 0 0 var(--rk-space-6) 0;
 	box-sizing: border-box;
 }
 
@@ -68,31 +73,12 @@
 	font-size: 24px;
 }
 
-/* The badge carries the word Schema, so the state never rests on colour. */
-.rk-schema-settings .rk-pill-schema {
-	background: var(--rk-color-secondary-2-soft);
-	border: 1px solid var(--rk-tint-schema-border);
-	color: var(--rk-color-secondary-2);
-}
+/* The Schema badge is the shared rk-ui-pill-schema variant now, beside the
+   five semantic ones in rankkernel-ui.css, so it needs no rule here. */
 
 /* ==========================================================================
-   Card body, the row stack that replaces the core form-table
+   Checkbox sentence and field widths
    ========================================================================== */
-
-.rk-schema-settings .rk-card-body {
-	display: flex;
-	flex-direction: column;
-	gap: var(--rk-space-5);
-	padding: var(--rk-space-5) var(--rk-space-6);
-}
-
-/* Field hint, sized like the shared page sub text. */
-.rk-schema-settings .rk-schema-hint {
-	margin: 0;
-	font-size: var(--rk-font-size-xs);
-	line-height: var(--rk-line-height-normal);
-	color: var(--rk-color-text-muted);
-}
 
 /* A checkbox that sits inside a labelled sentence. The sentence is the
    label, so the row title above it is a span and not a second label. */
@@ -165,14 +151,8 @@
    ========================================================================== */
 
 @media screen and (max-width: 782px) {
-	.rk-schema-settings {
-		padding-inline-end: var(--rk-space-3);
-	}
-
-	.rk-schema-settings .rk-card-body {
-		padding: var(--rk-space-4);
-	}
-
+	/* The card body inset and the page gutter both come from the shared layer
+	   at this width now, so only the save bar alignment is left to set. */
 	.rk-schema-settings .rk-schema-form-foot {
 		justify-content: flex-start;
 	}
