@@ -271,15 +271,21 @@ $rkListMatchBadgeMap = [
 								</td>
 
 								<?php
-								$rkToggleAria = ! empty( $ruleRow['active'] )
-									? sprintf( /* translators: %s: redirect source URL */ __( 'Deactivate redirect for %s', 'rankkernel' ), $ruleRow['source'] )
-									: sprintf( /* translators: %s: redirect source URL */ __( 'Activate redirect for %s', 'rankkernel' ), $ruleRow['source'] );
+								if ( ! empty( $ruleRow['active'] ) ) {
+									/* translators: %s: redirect source URL */
+									$rkToggleAria = sprintf( __( 'Deactivate redirect for %s', 'rankkernel' ), $ruleRow['source'] );
+								} else {
+									/* translators: %s: redirect source URL */
+									$rkToggleAria = sprintf( __( 'Activate redirect for %s', 'rankkernel' ), $ruleRow['source'] );
+								}
 								?>
 								<td class="rk-col-actions">
 									<div class="row-actions">
-										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: redirect source URL */ __( 'Edit redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a></span><span class="rk-row-sep" aria-hidden="true">|</span>
+										<?php /* translators: %s: redirect source URL */ ?>
+										<span class="edit"><a href="<?php echo esc_url( $ruleRow['editUrl'] ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Edit redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Edit', 'rankkernel' ); ?></a></span><span class="rk-row-sep" aria-hidden="true">|</span>
 										<span class="toggle"><a href="<?php echo esc_url( $ruleRow['toggleUrl'] ); ?>" aria-label="<?php echo esc_attr( $rkToggleAria ); ?>"><?php echo esc_html( $ruleRow['toggleLabel'] ); ?></a></span><span class="rk-row-sep" aria-hidden="true">|</span>
-										<span class="trash"><a href="<?php echo esc_url( $ruleRow['deleteUrl'] ); ?>" class="rk-confirm" data-rk-confirm="<?php echo esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: redirect source URL */ __( 'Delete redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Trash', 'rankkernel' ); ?></a></span>
+										<?php /* translators: %s: redirect source URL */ ?>
+										<span class="trash"><a href="<?php echo esc_url( $ruleRow['deleteUrl'] ); ?>" class="rk-confirm" data-rk-confirm="<?php echo esc_attr__( 'Delete this redirect? This cannot be undone.', 'rankkernel' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Delete redirect for %s', 'rankkernel' ), $ruleRow['source'] ) ); ?>"><?php echo esc_html__( 'Trash', 'rankkernel' ); ?></a></span>
 									</div>
 								</td>
 							</tr>
