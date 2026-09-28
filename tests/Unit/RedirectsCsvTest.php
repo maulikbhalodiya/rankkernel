@@ -108,10 +108,20 @@ final class RedirectsCsvTest extends TestCase {
 	/**
 	 * Build the handler over the fake database.
 	 *
+	 * The upload probe defaults to a pass so the import tests exercise the
+	 * full pipeline with a real temp file, the handler check is covered by
+	 * its own test.
+	 *
+	 * @param callable(string): bool|null $probe Upload probe override.
 	 * @return CsvHandler The result.
 	 */
-	private function makeHandler(): CsvHandler {
-		return new CsvHandler( new RedirectRepository( $this->db ) );
+	private function makeHandler( ?callable $probe = null ): CsvHandler {
+		return new CsvHandler(
+			new RedirectRepository( $this->db ),
+			null,
+			null,
+			$probe ?? static fn ( string $path ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+		);
 	}
 
 	/**
@@ -191,6 +201,23 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( 0, (int) $second['hits'] );
 
 		$this->assertNotEmpty( $this->options['rankkernel_redirects_validator'] ?? '' );
+	}
+
+	/**
+	 * Test a path that fails the upload probe is rejected inside the handler.
+	 */
+	public function test_non_uploaded_path_is_rejected_by_the_handler_probe(): void {
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/old-one,/new-one,,,,\n"
+		);
+
+		$result = $this->makeHandler( static fn ( string $p ): bool => false )->import_csv( $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertSame( 'The uploaded file could not be read.', $result['errors'][0]['reason'] );
+		$this->assertSame( [], $this->db->rows, 'a rejected upload must not write any row' );
 	}
 
 	/**
@@ -449,7 +476,12 @@ final class RedirectsCsvTest extends TestCase {
 
 		$path = $this->write_csv( $csv );
 
-		$handler = new CsvHandler( new RedirectRepository( $freshDb ) );
+		$handler = new CsvHandler(
+			new RedirectRepository( $freshDb ),
+			null,
+			null,
+			static fn ( string $path ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+		);
 		$result  = $handler->import_csv( $path );
 
 		$this->assertSame( 2, $result['created'] );

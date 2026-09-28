@@ -120,6 +120,12 @@ final class SitemapSettingsFakeWpdb {
 	 * @var array<int, string[]>
 	 */
 	public array $userRoles = [];
+	/**
+	 * Direct capability fragments per user, merged ahead of userRoles.
+	 *
+	 * @var array<int, string[]>
+	 */
+	public array $userCapabilities = [];
 
 	/**
 	 * Last Sql.
@@ -204,7 +210,10 @@ final class SitemapSettingsFakeWpdb {
 	private function roleFragments( string $sql ): array {
 		$roles = [];
 
-		if ( preg_match_all( '/%"([^"]+)"%/', stripcslashes( $sql ), $matches ) >= 1 ) {
+		// Only the exclusion clause (um alias) carries excluded roles. The
+		// capability inclusion clause (cap alias) also holds role fragments,
+		// those must never be read as exclusions.
+		if ( preg_match_all( '/um\.meta_value LIKE \'%"([^"]+)"%\'/', stripcslashes( $sql ), $matches ) >= 1 ) {
 			foreach ( $matches[1] as $role ) {
 				$roles[] = (string) $role;
 			}
@@ -214,7 +223,63 @@ final class SitemapSettingsFakeWpdb {
 	}
 
 	/**
-	 * Whether a user id is excluded by NOT IN or role clauses.
+	 * Publishing fragments inside the capability inclusion subquery.
+	 *
+	 * The inclusion clause is written by AuthorsProvider with the cap
+	 * alias, a capabilities meta key check and a list of role slug and
+	 * capability fragments. An empty list means the query places no
+	 * capability restriction, so every user passes.
+	 *
+	 * @param string $sql Sql.
+	 * @return string[] The result.
+	 */
+	private function capabilityInclusionFragments( string $sql ): array {
+		if ( 1 !== preg_match( "/cap\.meta_key = '[^']*' AND \((.*?)\)\)/s", stripcslashes( $sql ), $m ) ) {
+			return [];
+		}
+
+		$fragments = [];
+
+		if ( preg_match_all( '/%"([^"]+)"%/', $m[1], $matches ) >= 1 ) {
+			foreach ( $matches[1] as $fragment ) {
+				$fragments[] = (string) $fragment;
+			}
+		}
+
+		return $fragments;
+	}
+
+	/**
+	 * Whether a user holds a fragment the capability inclusion requires.
+	 *
+	 * @param int    $userId User Id.
+	 * @param string $sql    Sql.
+	 * @return bool The result.
+	 */
+	private function userPublishCapable( int $userId, string $sql ): bool {
+		$fragments = $this->capabilityInclusionFragments( $sql );
+
+		if ( [] === $fragments ) {
+			return true;
+		}
+
+		$caps = $this->userCapabilities[ $userId ] ?? [];
+
+		foreach ( $this->userRoles[ $userId ] ?? [] as $role ) {
+			$caps[] = $role;
+		}
+
+		foreach ( $caps as $cap ) {
+			if ( in_array( $cap, $fragments, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether an id is excluded by NOT IN or role clauses.
 	 *
 	 * @param int    $userId User Id.
 	 * @param string $sql    Sql.
@@ -666,6 +731,10 @@ final class SitemapSettingsFakeWpdb {
 
 		foreach ( $this->usersRows as $userId => $registered ) {
 			if ( $this->userExcluded( (int) $userId, $sql ) ) {
+				continue;
+			}
+
+			if ( ! $this->userPublishCapable( (int) $userId, $sql ) ) {
 				continue;
 			}
 

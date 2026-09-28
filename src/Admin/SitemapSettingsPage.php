@@ -192,7 +192,7 @@ final class SitemapSettingsPage {
 					'name'    => 'authors_include_empty',
 					'title'   => __( 'Include authors without posts', 'rankkernel' ),
 					'checked' => ! empty( $all['authors_include_empty'] ),
-					'hint'    => __( 'List every user, not just authors with published posts.', 'rankkernel' ),
+					'hint'    => __( 'Also list users who can publish, such as authors and editors, even when they have no published posts. Enabling this can expose author archives to search engines.', 'rankkernel' ),
 				],
 			];
 

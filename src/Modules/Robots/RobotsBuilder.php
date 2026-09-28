@@ -66,7 +66,7 @@ final class RobotsBuilder {
 		foreach ( CrawlerPolicy::all() as $slug => $crawler ) {
 			$slug   = (string) $slug;
 			$policy = CrawlerPolicy::sanitizePolicy( $policies[ $slug ] ?? CrawlerPolicy::CUSTOM );
-			$token  = (string) $crawler['token'];
+			$token  = $this->safeToken( (string) $crawler['token'] );
 
 			if ( CrawlerPolicy::BLOCK === $policy ) {
 				$groups[] = 'User-agent: ' . $token . "\nDisallow: /";
@@ -76,6 +76,26 @@ final class RobotsBuilder {
 		}
 
 		return implode( "\n\n", $groups );
+	}
+
+	/**
+	 * Sanitise a crawler token for the User-agent line.
+	 *
+	 * The crawler catalogue is filterable through rankkernel/robots/crawlers,
+	 * so the sink validates the token even though CrawlerPolicy also normalises
+	 * the catalogue. A CR or LF would otherwise inject an arbitrary robots.txt
+	 * directive. Only the characters that appear in real user agent tokens
+	 * survive the class, so a stray line break can never start a new line.
+	 *
+	 * @param string $token Raw token.
+	 * @return string The result.
+	 */
+	private function safeToken( string $token ): string {
+		$token = str_replace( [ "\r", "\n" ], '', $token );
+
+		$clean = preg_replace( '/[^A-Za-z0-9._* -]/', '', $token );
+
+		return is_string( $clean ) ? $clean : '';
 	}
 
 	/**

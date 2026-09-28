@@ -39,6 +39,51 @@ final class Logger {
 	public const FIELD_LENGTH = 255;
 
 	/**
+	 * Maximum stored length of the query string.
+	 *
+	 * The query is attacker controlled and the 404 log keeps it for up to
+	 * 365 days, so it is capped to stop one request from bloating the row
+	 * or retaining a long payload. 500 characters keeps the debugging
+	 * shape of ordinary links without persisting a full blob.
+	 */
+	public const QUERY_LENGTH = 500;
+
+	/**
+	 * Placeholder written in place of a sensitive query value.
+	 */
+	private const REDACTED = '[redacted]';
+
+	/**
+	 * Query key fragments whose values are redacted before storage.
+	 *
+	 * Matched case insensitively as a substring of the parameter name, so
+	 * token, access_token and reset_token are all caught. The name and the
+	 * parameter order survive for debugging while the value never reaches
+	 * disk, so tracking ids, emails, session ids, password reset keys and
+	 * signatures are not retained as personal data for up to a year.
+	 *
+	 * @var string[]
+	 */
+	private const SENSITIVE_QUERY_FRAGMENTS = [
+		'token',
+		'key',
+		'secret',
+		'password',
+		'passwd',
+		'pwd',
+		'auth',
+		'session',
+		'email',
+		'mail',
+		'signature',
+		'sig',
+		'code',
+		'access',
+		'reset',
+		'verify',
+	];
+
+	/**
 	 * Static asset extensions, never logged.
 	 *
 	 * @var string[]
@@ -275,7 +320,11 @@ final class Logger {
 	 *
 	 * The path passes through the shared redirect normalizer so 404 URIs
 	 * and redirect sources compare identically. The query string is kept
-	 * only when the ignore_query setting is off.
+	 * only when the ignore_query setting is off. When kept, the query is
+	 * capped at QUERY_LENGTH and the value of every sensitive key is
+	 * redacted, because the row is retained for up to 365 days. A safe
+	 * query is returned byte for byte, so its hash stays stable for
+	 * redirect matching and 404 grouping.
 	 *
 	 * @param string $rawUri Raw request URI.
 	 * @return string Normalized URI used for hashing and display.
@@ -303,12 +352,121 @@ final class Logger {
 		}
 
 		$query = trim( $query );
+		$query = $this->redactQuery( $query );
 
 		if ( '' === $query ) {
 			return $normalized;
 		}
 
 		return $normalized . '?' . $query;
+	}
+
+	/**
+	 * Redact sensitive values and cap the stored query string.
+	 *
+	 * Splits on ampersand and semicolon while preserving the exact
+	 * separators and parameter order, so a safe query round trips with an
+	 * identical hash. Each parameter whose name contains a sensitive
+	 * fragment has its value replaced with a placeholder, repeated keys
+	 * included. The result is then capped at QUERY_LENGTH.
+	 *
+	 * @param string $query Raw trimmed query string.
+	 * @return string Redacted and capped query string.
+	 */
+	private function redactQuery( string $query ): string {
+		if ( '' === $query ) {
+			return $query;
+		}
+
+		$parts = preg_split( '/([&;])/', $query, -1, PREG_SPLIT_DELIM_CAPTURE );
+
+		if ( is_array( $parts ) ) {
+			$count = count( $parts );
+
+			for ( $i = 0; $i < $count; $i += 2 ) {
+				$parts[ $i ] = $this->redactParameter( (string) $parts[ $i ] );
+			}
+
+			$query = implode( '', $parts );
+		}
+
+		if ( $this->queryStringLength( $query ) > self::QUERY_LENGTH ) {
+			$query = $this->clampQuery( $query );
+		}
+
+		return $query;
+	}
+
+	/**
+	 * Replace one parameter's value when its name is sensitive.
+	 *
+	 * @param string $parameter One raw query parameter, possibly empty.
+	 * @return string The parameter with its value redacted when sensitive.
+	 */
+	private function redactParameter( string $parameter ): string {
+		if ( '' === $parameter ) {
+			return $parameter;
+		}
+
+		$eq = strpos( $parameter, '=' );
+
+		if ( false === $eq ) {
+			return $parameter;
+		}
+
+		$name = substr( $parameter, 0, (int) $eq );
+
+		if ( ! $this->isSensitiveName( $name ) ) {
+			return $parameter;
+		}
+
+		return $name . '=' . self::REDACTED;
+	}
+
+	/**
+	 * Whether a parameter name carries a sensitive fragment.
+	 *
+	 * The name is percent decoded before matching, so an encoded key
+	 * cannot slip a token or email value past the redaction.
+	 *
+	 * @param string $name Raw parameter name.
+	 * @return bool The result.
+	 */
+	private function isSensitiveName( string $name ): bool {
+		$decoded = function_exists( 'rawurldecode' ) ? rawurldecode( $name ) : $name;
+		$needle  = strtolower( $decoded );
+
+		foreach ( self::SENSITIVE_QUERY_FRAGMENTS as $fragment ) {
+			if ( str_contains( $needle, $fragment ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Length of a query string in characters, multibyte aware.
+	 *
+	 * @param string $query Query string.
+	 * @return int The result.
+	 */
+	private function queryStringLength( string $query ): int {
+		return function_exists( 'mb_strlen' ) ? mb_strlen( $query ) : strlen( $query );
+	}
+
+	/**
+	 * Cap the query to the stored maximum.
+	 *
+	 * @param string $query Query string.
+	 * @return string The result.
+	 */
+	private function clampQuery( string $query ): string {
+		if ( function_exists( 'mb_substr' ) ) {
+			return (string) mb_substr( $query, 0, self::QUERY_LENGTH );
+		}
+
+		return substr( $query, 0, self::QUERY_LENGTH );
 	}
 
 	/**

@@ -18,9 +18,9 @@ defined( 'ABSPATH' ) || exit;
  * Serves llms.txt as a virtual Markdown response.
  *
  * The route is only evaluated on the llms.txt request, so no normal page
- * view pays for it. Responses carry Content-Type text/markdown and an
- * X-Robots-Tag noindex header, and the body is cached behind a validator
- * that is bumped on content changes.
+ * view pays for it. Responses carry Content-Type text/markdown, an
+ * X-Robots-Tag noindex header and X-Content-Type-Options nosniff, and the
+ * body is cached behind a validator that is bumped on content changes.
  */
 final class LlmsRouter {
 	/**
@@ -99,14 +99,32 @@ final class LlmsRouter {
 		}
 
 		if ( ! headers_sent() ) {
-			header( 'Content-Type: text/markdown; charset=UTF-8' );
-			header( 'X-Robots-Tag: noindex, follow' );
+			foreach ( self::responseHeaders() as $header ) {
+				header( $header );
+			}
+
 			nocache_headers();
 		}
 
 		echo $this->content(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw Markdown response body.
 
 		$this->finishRender();
+	}
+
+	/**
+	 * Response headers for the Markdown document.
+	 *
+	 * The nosniff header stops a browser from MIME sniffing the Markdown
+	 * body into another type, matching the XSL stylesheet response.
+	 *
+	 * @return string[] The result.
+	 */
+	public static function responseHeaders(): array {
+		return [
+			'Content-Type: text/markdown; charset=UTF-8',
+			'X-Robots-Tag: noindex, follow',
+			'X-Content-Type-Options: nosniff',
+		];
 	}
 
 	/**

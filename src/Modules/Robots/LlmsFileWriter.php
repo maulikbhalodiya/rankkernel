@@ -23,14 +23,85 @@ final class LlmsFileWriter {
 	/**
 	 * Get the physical llms.txt path, filterable for tests.
 	 *
+	 * The filter is a public hook, so the value is only used when it is a non
+	 * empty string that resolves inside the site root. Anything else, including
+	 * a path that climbs out of the tree, falls back to the default so the
+	 * writer can never be pointed at an arbitrary file.
+	 *
 	 * @return string The result.
 	 */
 	public function path(): string {
 		$default = defined( 'ABSPATH' ) ? ABSPATH . 'llms.txt' : '';
 
-		$path = apply_filters( 'rankkernel/llms/physical_file', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		$filtered = apply_filters( 'rankkernel/llms/physical_file', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		if ( ! is_string( $filtered ) || '' === $filtered ) {
+			return $default;
+		}
+
+		if ( $filtered === $default ) {
+			return $default;
+		}
+
+		if ( ! defined( 'ABSPATH' ) ) {
+			return $filtered;
+		}
+
+		return $this->containedPath( $filtered, $default );
+	}
+
+	/**
+	 * Keep a filtered path only when it resolves inside the site root.
+	 *
+	 * When the path resolution helpers are unavailable the filter value is not
+	 * trusted, so the default is returned. The parent directory is resolved with
+	 * realpath, so a sequence such as .. cannot climb out of the tree. The file
+	 * itself may not exist yet, so only its directory is resolved before the
+	 * prefix check.
+	 *
+	 * @param string $path     Filtered path.
+	 * @param string $fallback Default path.
+	 * @return string The result.
+	 */
+	private function containedPath( string $path, string $fallback ): string {
+		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+			return $fallback;
+		}
+
+		$root = realpath( ABSPATH );
+		$dir  = realpath( dirname( $path ) );
+
+		if ( false === $root || false === $dir ) {
+			return $fallback;
+		}
+
+		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+
+		return $this->pathStartsWith( $dir, $root ) ? $path : $fallback;
+	}
+
+	/**
+	 * Whether a path starts with a root prefix.
+	 *
+	 * The str_starts_with helper is used when available and strpos as the
+	 * fallback. When neither exists the check fails closed, so the caller keeps
+	 * the default rather than trusting the filter.
+	 *
+	 * @param string $path Path to test.
+	 * @param string $root Root prefix, with a trailing slash.
+	 * @return bool The result.
+	 */
+	private function pathStartsWith( string $path, string $root ): bool {
+		if ( function_exists( 'str_starts_with' ) ) {
+			return str_starts_with( $path, $root );
+		}
+
+		if ( function_exists( 'strpos' ) ) {
+			return 0 === strpos( $path, $root );
+		}
+
+		return false;
 	}
 
 	/**
@@ -67,7 +138,19 @@ final class LlmsFileWriter {
 			];
 		}
 
-		$bytes = file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the opt-in physical llms.txt at the site root, the only portable option.
+		// The file may not exist yet, so writability is checked on its directory.
+		// Without this guard file_put_contents() emits a warning and returns
+		// false, which the caller would only see as a generic write failure.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- a directory writability probe on the opt-in write path, not a file write.
+		if ( function_exists( 'is_writable' ) && ! is_writable( dirname( $path ) ) ) {
+			return [
+				'written' => false,
+				'reason'  => 'write_failed',
+			];
+		}
+
+		// LOCK_EX keeps a concurrent request from interleaving a partial write.
+		$bytes = file_put_contents( $path, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the opt-in physical llms.txt at the site root, the only portable option.
 
 		if ( false === $bytes ) {
 			return [

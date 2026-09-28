@@ -524,6 +524,70 @@ final class MonitorLoggerTest extends TestCase {
 	}
 
 	/**
+	 * Test sensitive query values are redacted before storage.
+	 */
+	public function test_sensitive_query_values_are_redacted_before_storage(): void {
+		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
+
+		$logger = $this->makeLogger();
+
+		$this->request( $logger, '/reset?token=abc123&page=2&email=user%40example.com' );
+
+		$uri = '/reset?token=[redacted]&page=2&email=[redacted]';
+		$row = $this->repo->findByHash( hash( 'sha256', $uri ) );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( $uri, $row['uri'] );
+		$this->assertStringNotContainsString( 'abc123', (string) $row['uri'] );
+		$this->assertStringNotContainsString( 'user@example.com', (string) $row['uri'] );
+	}
+
+	/**
+	 * Test a safe query is unchanged and its hash stays stable.
+	 */
+	public function test_safe_query_is_unchanged_and_hash_is_stable(): void {
+		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
+
+		$logger = $this->makeLogger();
+
+		$this->request( $logger, '/search?q=seo&page=2' );
+
+		$row = $this->repo->findByHash( hash( 'sha256', '/search?q=seo&page=2' ) );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( '/search?q=seo&page=2', $row['uri'] );
+	}
+
+	/**
+	 * Test repeated and semicolon separated sensitive keys are redacted.
+	 */
+	public function test_repeated_and_semicolon_sensitive_keys_are_redacted(): void {
+		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
+
+		$logger = $this->makeLogger();
+
+		$uri = $logger->normalizeUri( '/go?token=a;token=b&safe=1&api_key=c' );
+
+		$this->assertSame( '/go?token=[redacted];token=[redacted]&safe=1&api_key=[redacted]', $uri );
+	}
+
+	/**
+	 * Test the stored query is capped at the query length.
+	 */
+	public function test_query_is_capped_at_the_storage_limit(): void {
+		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
+
+		$logger = $this->makeLogger();
+
+		$uri   = $logger->normalizeUri( '/long?q=' . str_repeat( 'a', 2000 ) );
+		$pos   = strpos( $uri, '?' );
+		$query = false === $pos ? '' : substr( $uri, (int) $pos + 1 );
+
+		$this->assertSame( Logger::QUERY_LENGTH, strlen( $query ) );
+		$this->assertStringStartsWith( 'q=aaaa', $query );
+	}
+
+	/**
 	 * Test advanced fields off by default.
 	 */
 	public function test_advanced_fields_off_by_default(): void {

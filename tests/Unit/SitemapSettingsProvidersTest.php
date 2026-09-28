@@ -103,6 +103,34 @@ final class SitemapSettingsProvidersTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_author_posts_url' )->alias( static fn ( int $id ): string => 'https://example.com/author/u' . $id . '/' );
+		Functions\when( 'wp_roles' )->alias(
+			static function (): object {
+				return (object) [
+					'roles' => [
+						'administrator' => [
+							'capabilities' => [
+								'edit_posts'    => true,
+								'publish_posts' => true,
+							],
+						],
+						'editor'        => [
+							'capabilities' => [
+								'edit_posts'    => true,
+								'publish_posts' => true,
+							],
+						],
+						'author'        => [
+							'capabilities' => [
+								'edit_posts'    => true,
+								'publish_posts' => true,
+							],
+						],
+						'contributor'   => [ 'capabilities' => [ 'edit_posts' => true ] ],
+						'subscriber'    => [ 'capabilities' => [ 'read' => true ] ],
+					],
+				];
+			}
+		);
 	}
 
 	/**
@@ -174,7 +202,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		$this->db->userRoles = [
 			7 => [ 'administrator' ],
 			8 => [ 'editor' ],
-			9 => [ 'subscriber' ],
+			9 => [ 'author' ],
 		];
 		$this->db->postsRows = [
 			[
@@ -529,6 +557,10 @@ final class SitemapSettingsProvidersTest extends TestCase {
 			7 => '2026-01-02 00:00:00',
 			9 => '2026-03-03 00:00:00',
 		];
+		$this->db->userRoles = [
+			7 => [ 'administrator' ],
+			9 => [ 'author' ],
+		];
 		$this->db->postsRows = [
 			[
 				'ID'                => 1,
@@ -566,6 +598,51 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		}
 
 		$this->assertTrue( $found, 'Post less author uses registration date as lastmod' );
+	}
+
+	/**
+	 * Test authors include empty excludes a post less subscriber.
+	 *
+	 * A subscriber cannot author public content, so the include empty path
+	 * must never enumerate one into the public sitemap. The count and the
+	 * entries must stay consistent for sitemap pagination.
+	 */
+	public function test_authors_include_empty_excludes_a_post_less_subscriber(): void {
+		$this->db->usersRows = [
+			7  => '2026-01-02 00:00:00',
+			9  => '2026-03-03 00:00:00',
+			11 => '2026-04-04 00:00:00',
+		];
+		$this->db->userRoles = [
+			7  => [ 'administrator' ],
+			9  => [ 'subscriber' ],
+			11 => [ 'author' ],
+		];
+		$this->db->postsRows = [
+			[
+				'ID'                => 1,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 7,
+				'post_modified_gmt' => '2026-01-03 00:00:00',
+			],
+		];
+
+		$settings = new SitemapSettings();
+		$settings->set( [ 'authors_include_empty' => true ] );
+
+		$provider = new AuthorsProvider( $settings );
+
+		$count   = $provider->getCount( 'authors' );
+		$entries = $provider->getEntries( 'authors', 1, 10 );
+		$locs    = array_column( $entries, 'loc' );
+
+		$this->assertSame( 2, $count, 'only users with a publishing capability are counted' );
+		$this->assertCount( $count, $entries, 'the count and the entries must agree' );
+		$this->assertContains( 'https://example.com/author/u7/', $locs );
+		$this->assertContains( 'https://example.com/author/u11/', $locs );
+		$this->assertNotContains( 'https://example.com/author/u9/', $locs, 'a post less subscriber must never be enumerated' );
 	}
 
 	/**

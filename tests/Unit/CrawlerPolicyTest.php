@@ -93,4 +93,38 @@ final class CrawlerPolicyTest extends TestCase {
 		$this->assertArrayNotHasKey( 'unknown', $map );
 		$this->assertSame( CrawlerPolicy::ALLOW, $map['oai-searchbot'] );
 	}
+
+	/**
+	 * Test malformed filter entries fall back or drop, well formed survive.
+	 */
+	public function test_malformed_filter_entries_fall_back_or_drop(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/robots/crawlers' === $hook ) {
+					return [
+						'gptbot' => [
+							'label' => 'Broken',
+							'token' => "Bad\r\nToken",
+						],
+						'bogus'  => 'not an array',
+						'intkey' => [
+							'label'   => 'Fine',
+							'token'   => 'FineBot',
+							'purpose' => 'training',
+							'default' => 'block',
+							'note'    => 'A new bot.',
+						],
+					];
+				}
+
+				return $value;
+			}
+		);
+
+		$all = CrawlerPolicy::all();
+
+		$this->assertSame( 'GPTBot', $all['gptbot']['token'] );
+		$this->assertArrayNotHasKey( 'bogus', $all );
+		$this->assertSame( 'FineBot', $all['intkey']['token'] );
+	}
 }

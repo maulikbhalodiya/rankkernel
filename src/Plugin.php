@@ -272,7 +272,9 @@ final class Plugin {
 	 */
 	public function get( string $id ): mixed {
 		if ( ! array_key_exists( $id, $this->services ) ) {
-			throw new \RuntimeException( esc_html( sprintf( 'RankKernel service not found: %s', $id ) ) );
+			// Exception text is not HTML output. Escaping it here would double escape it if a display site ever renders the message.
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal exception message, never echoed, escaping is applied at any display site.
+			throw new \RuntimeException( sprintf( 'RankKernel service not found: %s', $id ) );
 		}
 
 		return $this->services[ $id ];

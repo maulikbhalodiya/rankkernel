@@ -30,6 +30,13 @@ final class IndexNowSettingsTest extends TestCase {
 	private array $stored = [];
 
 	/**
+	 * Autoload flag recorded per option write.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $autoloadFlags = [];
+
+	/**
 	 * Fake database backing the log table storage.
 	 *
 	 * @var InstantIndexingFakeDb
@@ -64,8 +71,10 @@ final class IndexNowSettingsTest extends TestCase {
 			}
 		);
 		Functions\when( 'update_option' )->alias(
-			function ( string $key, mixed $value, mixed $autoload = null ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
-				$this->stored[ $key ] = $value;
+			function ( string $key, mixed $value, mixed $autoload = null ): bool {
+				$this->stored[ $key ]        = $value;
+				$this->autoloadFlags[ $key ] = $autoload;
+
 				return true;
 			}
 		);
@@ -149,6 +158,33 @@ final class IndexNowSettingsTest extends TestCase {
 
 		$this->assertNotSame( $first, $second );
 		$this->assertSame( $second, $settings->getKey() );
+	}
+
+	/**
+	 * Test the key write disables autoload.
+	 */
+	public function test_set_stores_the_key_without_autoload(): void {
+		$settings = new IndexNowSettings();
+		$settings->set( [ 'api_key' => 'abcdefgh' ] );
+
+		$this->assertArrayHasKey( IndexNowSettings::OPTION, $this->autoloadFlags );
+		$this->assertFalse( $this->autoloadFlags[ IndexNowSettings::OPTION ], 'the key must never be autoloaded' );
+	}
+
+	/**
+	 * Test a legacy autoloaded option is still read correctly.
+	 *
+	 * The read path never assumes the autoload flag, so a key stored by an
+	 * older version stays usable until the next settings save migrates the
+	 * flag with wp_set_option_autoload.
+	 */
+	public function test_a_legacy_autoloaded_option_is_still_read(): void {
+		$this->stored[ IndexNowSettings::OPTION ] = [ 'api_key' => 'legacykey' ];
+
+		$settings = new IndexNowSettings();
+
+		$this->assertTrue( IndexNowSettings::isValidKey( $settings->getKey() ) );
+		$this->assertSame( 'legacykey', $settings->getKey() );
 	}
 
 	/**
