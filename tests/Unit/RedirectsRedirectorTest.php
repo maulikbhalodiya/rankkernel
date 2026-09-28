@@ -240,6 +240,37 @@ final class RedirectsRedirectorTest extends TestCase {
 	}
 
 	/**
+	 * Build a dispatcher whose matcher throws on every lookup.
+	 *
+	 * The cache and repository stay real so the throw path is exercised
+	 * through the production lookup order.
+	 *
+	 * @return Redirector The result.
+	 */
+	private function throwingMatcherDispatcher(): Redirector {
+		$repo    = new RedirectRepository( $this->db );
+		$matcher = new class() {
+			/**
+			 * Fail every lookup.
+			 *
+			 * @param string $path Request path.
+			 * @return array<string, mixed>|null Never returns, always throws.
+			 * @throws \RuntimeException Always, to exercise the fail open path.
+			 */
+			public function match( string $path ): ?array {
+				unset( $path );
+
+				throw new \RuntimeException( 'matcher failure' );
+
+				// phpcs:ignore Squiz.PHP.NonExecutableCode.Unreachable -- keeps the declared return contract explicit for the throwing seam.
+				return null;
+			}
+		};
+
+		return new Redirector( $repo, new RedirectCache(), new HitCounter(), new RedirectsSettings(), $matcher );
+	}
+
+	/**
 	 * Seed one exact rule.
 	 *
 	 * @param string $source Source.
@@ -512,5 +543,45 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->dispatcher()->maybeRedirect();
 
 		$this->assertSame( 1, $this->db->schemaProbes, 'A normal source still probes the table exactly once' );
+	}
+
+	/**
+	 * Test a throwing matcher fails open and performs no redirect.
+	 */
+	public function test_throwing_matcher_fails_open(): void {
+		$this->seedExact();
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		$this->throwingMatcherDispatcher()->maybeRedirect();
+
+		$this->assertSame( [], $this->redirects, 'A throwing matcher must not redirect' );
+		$this->assertSame( [], $this->statuses, 'A throwing matcher must send no status' );
+		$this->assertContains( 'rankkernel/redirect/failed', $this->actions, 'The matcher failure must be logged' );
+	}
+
+	/**
+	 * Test a throwing cache read fails open and performs no redirect.
+	 */
+	public function test_throwing_cache_fails_open(): void {
+		$this->seedExact();
+
+		Functions\when( 'get_transient' )->alias(
+			static function ( string $key ): mixed {
+				if ( str_starts_with( $key, 'rkredir_' ) ) {
+					throw new \RuntimeException( 'cache failure' );
+				}
+
+				return false;
+			}
+		);
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertSame( [], $this->redirects, 'A throwing cache must not redirect' );
+		$this->assertSame( [], $this->statuses, 'A throwing cache must send no status' );
+		$this->assertContains( 'rankkernel/redirect/failed', $this->actions, 'The cache failure must be logged' );
 	}
 }

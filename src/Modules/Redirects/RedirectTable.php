@@ -116,8 +116,16 @@ final class RedirectTable {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
-		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		} catch ( \Throwable $throwable ) {
+			// A throwing probe is treated exactly like a missing table, so
+			// every caller fails open instead of the exception escaping.
+			self::logFailure( $throwable );
+
+			return false;
+		}
 
 		$exists                      = is_string( $found ) && $found === $table;
 		self::$existsCache[ $table ] = $exists;
@@ -131,6 +139,25 @@ final class RedirectTable {
 		}
 
 		return $exists;
+	}
+
+	/**
+	 * Log a failed existence probe.
+	 *
+	 * Follows the plugin failure convention: a diagnostic action plus a
+	 * warning, both guarded so they never run when WordPress is absent.
+	 *
+	 * @param \Throwable $throwable Captured failure.
+	 */
+	private static function logFailure( \Throwable $throwable ): void {
+		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			do_action( 'rankkernel/redirect/failed', 'table_probe', $throwable );
+		}
+
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
+		}
 	}
 
 	/**

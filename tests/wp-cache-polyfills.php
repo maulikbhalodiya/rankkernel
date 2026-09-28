@@ -169,3 +169,22 @@ if ( ! function_exists( 'delete_transient' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'wp_trigger_error' ) ) {
+	/**
+	 * Accept a WordPress warning trigger, a no-op in unit tests.
+	 *
+	 * WordPress owns this function from 6.4. A real definition here keeps the
+	 * failure logger reachable through its function_exists guard and gives a
+	 * Brain Monkey stub something to restore at tear down, so a later test
+	 * never calls an inactive mock.
+	 *
+	 * @param string $function_name Name of the function that triggered the error.
+	 * @param string $message       The error message.
+	 * @param int    $error_level   The error level.
+	 * @return void
+	 */
+	function wp_trigger_error( $function_name, $message, $error_level = E_USER_NOTICE ) {
+		unset( $function_name, $message, $error_level );
+	}
+}

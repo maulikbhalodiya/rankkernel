@@ -94,6 +94,19 @@ final class MetaPayloadTest extends TestCase {
 	}
 
 	/**
+	 * Test a non array value maps to defaults without a type error.
+	 *
+	 * WordPress can call the registered meta sanitize callback with a scalar,
+	 * for example a form field value or a write from other code. The callback
+	 * must tolerate that instead of throwing.
+	 */
+	public function test_sanitize_maps_non_array_input_to_defaults(): void {
+		$this->assertSame( MetaPayload::defaults(), MetaPayload::sanitize( 'a scalar value' ) );
+		$this->assertSame( MetaPayload::defaults(), MetaPayload::sanitize( 123 ) );
+		$this->assertSame( MetaPayload::defaults(), MetaPayload::sanitize( null ) );
+	}
+
+	/**
 	 * Test sanitize robots max snippet null or int.
 	 */
 	public function test_sanitize_robots_max_snippet_null_or_int(): void {

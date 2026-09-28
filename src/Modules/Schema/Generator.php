@@ -23,6 +23,10 @@ use RankKernel\Modules\Metadata\Context;
  * graph filter, then the normalizer, so third party output is cleaned
  * with the same rules as first party output.
  *
+ * The graph is not load bearing for page rendering, so a piece or filter
+ * that throws is logged and dropped. A failing piece is skipped exactly
+ * like one that builds nothing, leaving the remaining graph intact.
+ *
  * Disable states, from widest to narrowest: the module gate (boot
  * never runs, nothing renders), the page flag below (the whole graph
  * is suppressed, including the base identity nodes, matching the
@@ -76,7 +80,14 @@ final class Generator {
 		 * @param bool    $disabled Whether the graph is disabled.
 		 * @param Context $ctx      Current request context.
 		 */
-		$disabled = apply_filters( 'rankkernel/schema/disabled', false, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		try {
+			$disabled = apply_filters( 'rankkernel/schema/disabled', false, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		} catch ( \Throwable $throwable ) {
+			// A failing kill switch filter must not break the page. Treat it as
+			// not disabled and log the failure.
+			$this->logFailure( 'disabled', $throwable );
+			$disabled = false;
+		}
 
 		if ( $disabled ) {
 			return $empty;
@@ -98,32 +109,45 @@ final class Generator {
 		$graph = [];
 
 		foreach ( $this->pieces as $id => $piece ) {
-			$needed = $piece->isNeeded( $ctx );
+			try {
+				$needed = $piece->isNeeded( $ctx );
 
-			/**
-			 * Toggle filter for a single piece.
-			 *
-			 * @param bool    $needed Whether the piece is needed.
-			 * @param Context $ctx    Current request context.
-			 */
-			$needed = apply_filters( 'rankkernel/schema/needs_' . $id, $needed, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+				/**
+				 * Toggle filter for a single piece.
+				 *
+				 * @param bool    $needed Whether the piece is needed.
+				 * @param Context $ctx    Current request context.
+				 */
+				$needed = apply_filters( 'rankkernel/schema/needs_' . $id, $needed, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			} catch ( \Throwable $throwable ) {
+				// One failing piece is dropped, the rest of the graph stays.
+				$this->logFailure( 'needs_' . $id, $throwable );
+				continue;
+			}
 
 			if ( ! $needed ) {
 				continue;
 			}
 
-			$output = $piece->build( $ctx );
+			try {
+				$output = $piece->build( $ctx );
 
-			/**
-			 * Per piece output filter.
-			 *
-			 * A single node is an assoc array, a piece may also return
-			 * a list of nodes, which merges item by item.
-			 *
-			 * @param array<mixed, mixed> $output Piece output.
-			 * @param Context             $ctx    Current request context.
-			 */
-			$output = apply_filters( 'rankkernel/schema/piece/' . $id, $output, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+				/**
+				 * Per piece output filter.
+				 *
+				 * A single node is an assoc array, a piece may also return
+				 * a list of nodes, which merges item by item.
+				 *
+				 * @param array<mixed, mixed> $output Piece output.
+				 * @param Context             $ctx    Current request context.
+				 */
+				$output = apply_filters( 'rankkernel/schema/piece/' . $id, $output, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			} catch ( \Throwable $throwable ) {
+				// A piece that throws is dropped exactly like one that returns
+				// nothing, so a single bad piece cannot remove the whole graph.
+				$this->logFailure( 'piece/' . $id, $throwable );
+				continue;
+			}
 
 			if ( ! is_array( $output ) || [] === $output ) {
 				continue;
@@ -148,7 +172,13 @@ final class Generator {
 		 * @param array<int, mixed> $graph Assembled piece outputs.
 		 * @param Context           $ctx   Current request context.
 		 */
-		$graph = apply_filters( 'rankkernel/schema/graph', $graph, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		try {
+			$graph = apply_filters( 'rankkernel/schema/graph', $graph, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		} catch ( \Throwable $throwable ) {
+			// The assembled graph is already valid, so a failing third party
+			// graph filter falls back to it instead of losing the schema.
+			$this->logFailure( 'graph', $throwable );
+		}
 
 		if ( ! is_array( $graph ) ) {
 			$graph = [];
@@ -158,5 +188,25 @@ final class Generator {
 			'@context' => 'https://schema.org',
 			'@graph'   => GraphNormalizer::normalize( $graph ),
 		];
+	}
+
+	/**
+	 * Log a failing piece or filter without letting it escape.
+	 *
+	 * A schema graph is not load bearing for rendering, so a failing piece or
+	 * filter is logged and dropped rather than allowed to break the page.
+	 *
+	 * @param string     $stage     Failing stage identifier.
+	 * @param \Throwable $throwable Captured failure.
+	 */
+	private function logFailure( string $stage, \Throwable $throwable ): void {
+		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			do_action( 'rankkernel/schema/failed', $stage, $throwable );
+		}
+
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
+		}
 	}
 }
