@@ -49,11 +49,23 @@ defined( 'ABSPATH' ) || exit;
 	?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h1>
 
+	<?php /* Section 1: page header card. No actions block, because this screen has no header control the controller supplies. */ ?>
+	<header class="rk-ui-card rk-ui-page-header">
+		<div class="rk-ui-page-header-text">
+			<div class="rk-ui-page-header-title-row">
+				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h2>
+			</div>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'Choose which post types, taxonomies and author archives are listed in your XML sitemap.', 'rankkernel' ); ?></p>
+		</div>
+	</header>
+
 	<?php
 	/*
-	 * Save outcome notices. They live inside the page root so the shared
-	 * notice component applies, and they carry no dismiss button because this
-	 * screen ships no JavaScript to wire one.
+	 * Section 2: notice row. It sits directly under the page header, which is
+	 * the order the Dashboard and the reference page both use, so the four
+	 * screens open the same way. The notices live inside the page root so the
+	 * shared notice component applies, and they carry no dismiss button
+	 * because this screen ships no JavaScript to wire one.
 	 */
 	?>
 	<?php if ( $settingsUpdated ) : ?>
@@ -69,16 +81,6 @@ defined( 'ABSPATH' ) || exit;
 			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p>
 		</div>
 	<?php endif; ?>
-
-	<?php /* Page header. No actions block, because this screen has no header control the controller supplies. */ ?>
-	<header class="rk-ui-card rk-ui-page-header">
-		<div class="rk-ui-page-header-text">
-			<div class="rk-ui-page-header-title-row">
-				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h2>
-			</div>
-			<p class="rk-ui-sub"><?php echo esc_html__( 'Choose which post types, taxonomies and author archives are listed in your XML sitemap.', 'rankkernel' ); ?></p>
-		</div>
-	</header>
 
 	<?php
 	/*
@@ -107,10 +109,14 @@ defined( 'ABSPATH' ) || exit;
 					 * A static callout rather than a status message, so it
 					 * deliberately carries no live region role. The two real
 					 * outcome notices above keep role status and role alert.
+					 * One rule covers every static callout in the product: no
+					 * role, and the info glyph that the shared notice variants
+					 * map it to. The Schema defaults card and the 404 redirect
+					 * hint use the identical markup.
 					 */
 					?>
 					<div class="rk-ui-notice rk-ui-notice-info">
-						<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">link</span>
+						<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 						<p class="rk-ui-notice-text">
 							<?php
 							echo wp_kses(
@@ -132,7 +138,7 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-ui-form-row">
 						<label class="rk-ui-form-label" for="rk-items-per-page"><?php echo esc_html__( 'Links Per Sitemap', 'rankkernel' ); ?></label>
 						<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="small-text" min="1" max="50000" />
-						<p class="description"><?php echo esc_html__( 'Max number of links on each sitemap page.', 'rankkernel' ); ?></p>
+						<p class="rk-ui-hint"><?php echo esc_html__( 'Max number of links on each sitemap page.', 'rankkernel' ); ?></p>
 					</div>
 					<?php foreach ( $generalRows as $generalRow ) : ?>
 						<?php if ( 'checkbox' === $generalRow['kind'] ) : ?>
@@ -152,7 +158,7 @@ defined( 'ABSPATH' ) || exit;
 							<div class="rk-ui-form-row">
 								<label class="rk-ui-form-label" for="rk-<?php echo esc_attr( $generalRow['name'] ); ?>"><?php echo esc_html( $generalRow['title'] ); ?></label>
 								<textarea id="rk-<?php echo esc_attr( $generalRow['name'] ); ?>" name="<?php echo esc_attr( $generalRow['name'] ); ?>" rows="2" cols="40"><?php echo esc_textarea( $generalRow['value'] ); ?></textarea>
-								<p class="description"><?php echo esc_html( $generalRow['hint'] ); ?></p>
+								<p class="rk-ui-hint"><?php echo esc_html( $generalRow['hint'] ); ?></p>
 							</div>
 						<?php endif; ?>
 					<?php endforeach; ?>
@@ -169,8 +175,8 @@ defined( 'ABSPATH' ) || exit;
 						<div class="rk-ui-form-row">
 							<span class="rk-ui-form-label"><?php echo esc_html( $postTypeRow['label'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $postTypeRow['key'] ); ?>" value="1" <?php echo checked( $postTypeRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
-							<p class="description"><?php echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description">
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint">
 								<?php
 								echo wp_kses(
 									sprintf(
@@ -201,8 +207,8 @@ defined( 'ABSPATH' ) || exit;
 						<div class="rk-ui-form-row">
 							<span class="rk-ui-form-label"><?php echo esc_html( $taxonomyRow['label'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $taxonomyRow['key'] ); ?>" value="1" <?php echo checked( $taxonomyRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
-							<p class="description"><?php echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description">
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint">
 								<?php
 								echo wp_kses(
 									sprintf(
@@ -220,7 +226,7 @@ defined( 'ABSPATH' ) || exit;
 							</p>
 						</div>
 					<?php endforeach; ?>
-					<p class="description"><?php echo esc_html__( 'Empty terms are listed only when the general include empty terms setting is on.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Empty terms are listed only when the general include empty terms setting is on.', 'rankkernel' ); ?></p>
 				</div>
 			</div>
 		<?php elseif ( $showAuthors ) : ?>
@@ -239,7 +245,7 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-ui-form-row">
 						<span class="rk-ui-form-label"><?php echo esc_html__( 'Exclude roles', 'rankkernel' ); ?></span>
 						<?php if ( ! $hasEditableRoles ) : ?>
-							<p class="description"><?php echo esc_html__( 'No editable roles found.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'No editable roles found.', 'rankkernel' ); ?></p>
 						<?php else : ?>
 							<?php foreach ( $roleRows as $roleRow ) : ?>
 								<label><input type="checkbox" name="authors_exclude_roles[]" value="<?php echo esc_attr( $roleRow['slug'] ); ?>" <?php echo checked( $roleRow['excluded'], true, false ); ?> /> <?php echo esc_html( $roleRow['name'] ); ?></label><br />
@@ -249,7 +255,7 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-ui-form-row">
 						<label class="rk-ui-form-label" for="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>"><?php echo esc_html( $authorsExcludeUsers['title'] ); ?></label>
 						<textarea id="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" name="<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" rows="2" cols="40"><?php echo esc_textarea( $authorsExcludeUsers['value'] ); ?></textarea>
-						<p class="description"><?php echo esc_html( $authorsExcludeUsers['hint'] ); ?></p>
+						<p class="rk-ui-hint"><?php echo esc_html( $authorsExcludeUsers['hint'] ); ?></p>
 					</div>
 				</div>
 			</div>
