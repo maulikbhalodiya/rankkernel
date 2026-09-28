@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RankKernel - Redirects Admin V2-1.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            rk: {
+              bg: '#F0F2F5',
+              primary: '#2563EB',
+              primaryHover: '#1D4ED8',
+              success: '#0F766E',
+              warning: '#EA580C',
+              error: '#DC2626',
+              border: '#E2E8F0',
+              textPrimary: '#1E293B',
+              textSecondary: '#64748B',
+              textMuted: '#94A3B8',
+              cardBg: '#FFFFFF',
+              headerBg: '#F8FAFC',
+            }
+          },
+          boxShadow: {
+            card: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+            cardHover: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      display: inline-flex;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+  </style>
+</head>
+<body class="bg-[#F0F2F5] text-slate-800 font-sans antialiased min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+
+  <div class="max-w-[1240px] mx-auto space-y-8">
+
+    <!-- ========================================== -->
+    <!-- SECTION 1: NOTICE EXAMPLES                 -->
+    <!-- ========================================== -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Component State: Notice Banners (All 5 Types)</h2>
+        <span class="text-xs text-slate-400">Section 1 &bull; Dismissible Alert Stack</span>
+      </div>
+
+      <!-- 1a. SUCCESS notice -->
+      <div class="flex items-start justify-between p-3.5 bg-[#F0FDFA] border-l-4 border-[#0F766E] rounded-r-md shadow-sm border border-y-slate-200/40 border-r-slate-200/60">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[#0F766E] fill-1 text-xl shrink-0">check_circle</span>
+          <div class="text-sm font-medium text-slate-800">
+            Redirect saved. <span class="font-mono text-xs bg-emerald-100/70 text-emerald-900 px-1.5 py-0.5 rounded border border-emerald-200/50">/old-about-us</span> now points to <span class="font-mono text-xs bg-emerald-100/70 text-emerald-900 px-1.5 py-0.5 rounded border border-emerald-200/50">/about</span>.
+          </div>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Dismiss">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- 1b. ERROR notice -->
+      <div class="flex items-start justify-between p-3.5 bg-[#FEF2F2] border-l-4 border-[#DC2626] rounded-r-md shadow-sm border border-y-slate-200/40 border-r-slate-200/60">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[#DC2626] fill-1 text-xl shrink-0">cancel</span>
+          <div class="text-sm font-medium text-slate-800">
+            Could not save. Source path already exists as an active exact-match redirect.
+          </div>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Dismiss">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- 1c. CHAIN WARNING notice -->
+      <div class="flex items-start justify-between p-3.5 bg-[#FFF7ED] border-l-4 border-[#EA580C] rounded-r-md shadow-sm border border-y-slate-200/40 border-r-slate-200/60">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined text-[#EA580C] fill-1 text-xl shrink-0 mt-0.5">warning</span>
+          <div class="space-y-2">
+            <div class="text-sm font-medium text-slate-800">
+              Redirect chain detected: <span class="font-mono text-xs text-orange-950 font-semibold">/old-about-us</span> &rarr; <span class="font-mono text-xs text-orange-950">/about</span> &rarr; <span class="font-mono text-xs text-orange-950 font-bold">/about-us</span>.
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <span>Recommended destination: <strong class="font-mono text-slate-900">/about-us</strong></span>
+              <button type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium rounded shadow-sm text-xs transition-colors">
+                <span class="material-symbols-outlined text-sm">auto_fix_high</span>
+                Use /about-us
+              </button>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Dismiss">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- 1d. LOOP WARNING notice -->
+      <div class="flex items-start justify-between p-3.5 bg-[#FFF7ED] border-l-4 border-[#EA580C] rounded-r-md shadow-sm border border-y-slate-200/40 border-r-slate-200/60">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[#EA580C] fill-1 text-xl shrink-0">error</span>
+          <div class="text-sm font-medium text-slate-800">
+            Loop check could not fully verify this redirect. Please check it manually.
+          </div>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Dismiss">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- 1e. INFO notice -->
+      <div class="flex items-start justify-between p-3.5 bg-[#EFF6FF] border-l-4 border-[#2563EB] rounded-r-md shadow-sm border border-y-slate-200/40 border-r-slate-200/60">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[#2563EB] fill-1 text-xl shrink-0">info</span>
+          <div class="text-sm font-medium text-slate-800">
+            Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.
+          </div>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Dismiss">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 2: PAGE HEADER                     -->
+    <!-- ========================================== -->
+    <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-card px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-[22px] font-bold text-[#1E293B] tracking-tight">Redirects</h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+            24 Total Rules
+          </span>
+        </div>
+        <p class="text-[13px] text-[#64748B] mt-1">
+          Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2.5 shrink-0">
+        <!-- Add Redirect Button (Toggles editor) -->
+        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1">
+          <span class="material-symbols-outlined text-lg">add</span>
+          Add Redirect
+        </button>
+
+        <!-- Export CSV ghost button -->
+        <button type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1E293B] border border-[#CBD5E1] text-sm font-medium rounded-md shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-slate-600 text-lg">download</span>
+          Export CSV
+        </button>
+
+        <!-- Settings Icon Button -->
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-[#CBD5E1] rounded-md shadow-sm transition-colors" title="Redirect Settings">
+          <span class="material-symbols-outlined text-xl">settings</span>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 3: EDITOR FORM (SHOWN STATE)       -->
+    <!-- ========================================== -->
+    <div class="bg-white rounded-lg border border-[#E2E8F0] border-l-[3px] border-l-[#2563EB] shadow-card overflow-hidden">
+      <!-- Card Header -->
+      <div class="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#2563EB]"></span>
+          <h2 class="text-[15px] font-bold text-[#1E293B]">Add Redirect</h2>
+          <span class="text-xs text-slate-400 font-normal ml-1">(or Edit Redirect mode)</span>
+        </div>
+        <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
+          Cancel
+        </button>
+      </div>
+
+      <!-- Prefill Banner (Shown when editing from 404 Monitor) -->
+      <div class="mx-6 mt-5 p-3.5 bg-[#EFF6FF] border-l-4 border-[#2563EB] rounded-r-md flex items-center gap-3 text-sm text-[#1E293B] border border-y-blue-100 border-r-blue-100">
+        <span class="material-symbols-outlined text-[#2563EB] text-xl">link</span>
+        <div>
+          <strong class="font-semibold text-blue-900">Source prefilled from the 404 Monitor.</strong>
+          <span class="text-slate-600 text-xs ml-1">Add a destination and save to return to the monitor.</span>
+        </div>
+      </div>
+
+      <!-- Form Body -->
+      <form class="p-6 space-y-6">
+        <!-- Main 2-Column Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- LEFT COLUMN -->
+          <div class="space-y-5">
+            <!-- Field 1: SOURCE URL (with error state demonstration) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[12px] font-semibold text-[#475569] uppercase tracking-wider">
+                  Source URL <span class="text-[#DC2626]">*</span>
+                </label>
+                <span class="text-[11px] text-slate-400 font-mono">13 chars</span>
+              </div>
+              <div class="relative rounded-md">
+                <input 
+                  type="text" 
+                  value="/old-about-us" 
+                  class="w-full font-mono text-sm px-3.5 py-2 rounded-[6px] border border-[#DC2626] bg-[#FEF2F2] text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-[#DC2626] transition-all"
+                >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span class="material-symbols-outlined text-[#DC2626] text-lg">error</span>
+                </div>
+              </div>
+              <p class="text-xs text-[#DC2626] font-medium mt-1.5 flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">priority_high</span>
+                Source path already exists.
+              </p>
+              <p class="text-[12px] text-slate-500 mt-1">
+                Enter the old path, e.g. <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">/old-page</code>. Query strings are ignored when matching.
+              </p>
+            </div>
+
+            <!-- Field 2: MATCH TYPE -->
+            <div>
+              <label class="block text-[12px] font-semibold text-[#475569] uppercase tracking-wider mb-1.5">
+                Match Type
+              </label>
+              <div class="relative">
+                <select class="w-full text-sm px-3.5 py-2 rounded-[6px] border border-[#CBD5E1] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] appearance-none transition-all pr-10 font-medium">
+                  <option selected>Exact</option>
+                  <option>Prefix</option>
+                  <option>Regex</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <span class="material-symbols-outlined text-lg">expand_more</span>
+                </div>
+              </div>
+              <p class="text-[12px] text-slate-500 mt-1.5">
+                <strong class="font-medium text-slate-700">Exact:</strong> matches the URL character-for-character.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="space-y-5">
+            <!-- Field 3: DESTINATION URL -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[12px] font-semibold text-[#475569] uppercase tracking-wider">
+                  Destination URL
+                </label>
+                <span class="text-[11px] text-slate-400 font-mono">/about</span>
+              </div>
+              <input 
+                type="text" 
+                value="/about" 
+                class="w-full font-mono text-sm px-3.5 py-2 rounded-[6px] border border-[#CBD5E1] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition-all"
+                placeholder="/new-page or https://example.com"
+              >
+              <p class="text-[12px] text-slate-500 mt-1.5">
+                Where to send the visitor, e.g. <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">/new-page</code> or <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">https://example.com</code>. Leave empty only for 410 and 451.
+              </p>
+            </div>
+
+            <!-- Field 4: REDIRECT TYPE -->
+            <div>
+              <label class="block text-[12px] font-semibold text-[#475569] uppercase tracking-wider mb-1.5">
+                Redirect Type
+              </label>
+              <div class="relative">
+                <select class="w-full text-sm px-3.5 py-2 rounded-[6px] border border-[#CBD5E1] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] appearance-none transition-all pr-10 font-medium">
+                  <option selected>301 Moved Permanently (Recommended for SEO)</option>
+                  <option>302 Found (Temporary)</option>
+                  <option>307 Temporary Redirect</option>
+                  <option>410 Gone (De-indexes quickly)</option>
+                  <option>451 Unavailable For Legal Reasons</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <span class="material-symbols-outlined text-lg">expand_more</span>
+                </div>
+              </div>
+              <p class="text-[12px] text-slate-500 mt-1.5">
+                <strong class="font-medium text-slate-700">301:</strong> permanent move. Search engines update their index.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- REGEX PATTERN CHECK ROW (Full width, grey hidden state preview) -->
+        <div class="p-3.5 bg-slate-50 border border-dashed border-slate-300 rounded-md flex items-center justify-between">
+          <div class="flex items-center gap-3 text-xs text-slate-500">
+            <span class="material-symbols-outlined text-slate-400">code_blocks</span>
+            <div>
+              <span class="font-semibold text-slate-700">Pattern check &mdash; visible when Regex selected:</span>
+              <span class="text-slate-500 ml-1">Pattern check appears here when Regex match is selected.</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pattern compiles cleanly
+            </span>
+          </div>
+        </div>
+
+        <!-- ACTIVE CHECKBOX ROW (Full width) -->
+        <div class="pt-1">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" checked class="mt-0.5 w-4 h-4 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+            <div class="text-sm">
+              <span class="font-medium text-slate-900">Active &mdash; Send visitors now.</span>
+              <span class="text-slate-500 ml-1 text-xs">Turn off to keep the rule saved without redirecting.</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- ADVANCED OPTIONS (COLLAPSED ACCORDION) -->
+        <div class="border-t border-slate-200 pt-3">
+          <button type="button" class="flex items-center justify-between w-full text-left py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-base text-slate-400">arrow_right</span>
+              Advanced options
+            </span>
+            <span class="text-[11px] text-slate-400 font-normal">Query string handling, HTTP methods, headers</span>
+          </button>
+        </div>
+
+        <!-- ACTION ROW -->
+        <div class="border-t border-[#E2E8F0] pt-4 flex items-center gap-3">
+          <button type="button" class="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-md shadow-sm transition-colors">
+            Add Redirect
+          </button>
+          <button type="button" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#CBD5E1] text-sm font-medium rounded-md transition-colors">
+            Cancel
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 4: REDIRECT TABLE                  -->
+    <!-- ========================================== -->
+    <div class="space-y-4">
+      
+      <!-- SUB-NAV TABS & FILTERS -->
+      <div class="space-y-3">
+        <!-- STATUS TABS (pill tabs) -->
+        <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+          <button class="px-3 py-1.5 text-xs font-semibold text-[#2563EB] border-b-2 border-[#2563EB] -mb-[9px] flex items-center gap-1.5">
+            All <span class="bg-blue-100/80 text-blue-800 text-[11px] px-1.5 py-0.2 rounded-full font-bold">24</span>
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+            Active <span class="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">20</span>
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+            Inactive <span class="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">4</span>
+          </button>
+        </div>
+
+        <!-- FILTER ROW -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] shadow-sm">
+          <!-- Left side search -->
+          <div class="flex items-center gap-2 flex-1 max-w-md">
+            <div class="relative w-full">
+              <span class="material-symbols-outlined text-slate-400 text-lg absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+              <input 
+                type="text" 
+                placeholder="Search redirects..." 
+                class="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-[#CBD5E1] bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:bg-white transition-all"
+              >
+            </div>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-medium rounded-md transition-colors shrink-0">
+              Filter
+            </button>
+          </div>
+
+          <!-- Right side dropdowns -->
+          <div class="flex items-center gap-2.5">
+            <select class="text-xs px-2.5 py-1.5 rounded-md border border-[#CBD5E1] bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+              <option>All match types</option>
+              <option>Exact</option>
+              <option>Prefix</option>
+              <option>Regex</option>
+            </select>
+
+            <select class="text-xs px-2.5 py-1.5 rounded-md border border-[#CBD5E1] bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+              <option>All codes</option>
+              <option>301 Permanent</option>
+              <option>302 Found</option>
+              <option>307 Temporary</option>
+              <option>410 Gone</option>
+              <option>451 Unavailable</option>
+            </select>
+
+            <button type="button" class="text-xs text-slate-400 hover:text-slate-600 transition-colors ml-1" title="Clear filters">
+              Clear filters
+            </button>
+          </div>
+        </div>
+
+        <!-- BULK ACTIONS BAR (shown when rows selected) -->
+        <div class="flex items-center justify-between bg-blue-50/70 border border-blue-200/80 px-4 py-2.5 rounded-lg text-xs">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <select class="text-xs px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-700 font-medium">
+                <option>Bulk actions</option>
+                <option>Activate</option>
+                <option>Deactivate</option>
+                <option>Trash</option>
+              </select>
+              <button type="button" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded font-medium transition-colors">
+                Apply
+              </button>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded font-semibold bg-blue-600 text-white text-[11px]">
+              3 selected
+            </span>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <span class="text-slate-600 font-medium">Page 1 of 3</span>
+            <div class="inline-flex rounded-md shadow-sm">
+              <button class="px-2.5 py-1 text-xs font-medium text-slate-400 bg-white border border-slate-300 rounded-l hover:bg-slate-50 cursor-not-allowed" disabled>
+                Prev
+              </button>
+              <button class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border-t border-b border-r border-slate-300 rounded-r hover:bg-slate-50">
+                Next
+              </button>
+            </div>
+            <span class="text-slate-500 font-semibold border-l border-slate-300 pl-3">24 redirects</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TABLE (WHITE CARD) -->
+      <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-[#F8FAFC] text-[11px] font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0]">
+                <th class="w-10 px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </th>
+                <th class="px-4 py-3">Source</th>
+                <th class="px-4 py-3">Destination</th>
+                <th class="px-3 py-3 text-center">Code</th>
+                <th class="px-3 py-3 text-center">Match</th>
+                <th class="px-4 py-3 text-right">Hits</th>
+                <th class="px-4 py-3">Last Accessed</th>
+                <th class="px-3 py-3 text-center">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#E2E8F0] font-normal text-slate-700">
+
+              <!-- ROW 1 (SELECTED / CHECKED, HIGHLIGHTED) -->
+              <tr class="bg-[#EFF6FF] hover:bg-blue-50 transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-[#2563EB]">
+                  /old-about-us
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-900 font-medium">
+                  /about
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- 301 blue pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-blue-200">
+                    301
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- Exact grey pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  142
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 18, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- Active green pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 2 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /blog/2023/*
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-700">
+                  /blog/
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-blue-200">
+                    301
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- Prefix purple -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F5F3FF] text-[#7C3AED] border border-purple-200/60">
+                    Prefix
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  89
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 17, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 3 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /products/old
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-700">
+                  /shop/products
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- 302 teal pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#F0FDFA] text-[#0F766E] border border-teal-200">
+                    302
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  34
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 15, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 4 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /contact-us
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-700">
+                  /contact
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-blue-200">
+                    301
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  67
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 14, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 5 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /^\/news\/(\d+)$/
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-700">
+                  /articles/$1
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-blue-200">
+                    301
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- Regex orange pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#FFF7ED] text-[#EA580C] border border-orange-200/60">
+                    Regex
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  12
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 10, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 6 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /old-service
+                </td>
+                <td class="px-4 py-3 font-mono text-slate-700">
+                  /services
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-blue-200">
+                    301
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-400">
+                  0
+                </td>
+                <td class="px-4 py-3 text-slate-400 whitespace-nowrap">
+                  Never
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- Inactive grey pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#64748B]">
+                    Inactive
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-emerald-700 hover:underline">Activate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 7 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /deprecated
+                </td>
+                <td class="px-4 py-3 text-slate-400 italic">
+                  (none)
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- 410 red pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-red-200">
+                    410
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  8
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 12, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- ROW 8 -->
+              <tr class="hover:bg-[#F8FAFC] transition-colors group">
+                <td class="px-4 py-3 text-center">
+                  <input type="checkbox" class="w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+                </td>
+                <td class="px-4 py-3 font-mono font-medium text-slate-900">
+                  /legal/old-terms
+                </td>
+                <td class="px-4 py-3 text-slate-400 italic">
+                  (none)
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <!-- 451 dark pill -->
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#1E293B] text-white">
+                    451
+                  </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    Exact
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                  3
+                </td>
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                  Sep 8, 2026
+                </td>
+                <td class="px-3 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0FDFA] text-[#0F766E] border border-emerald-200/60">
+                    Active
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="space-x-1.5 font-medium">
+                    <button class="text-[#2563EB] hover:underline">Edit</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-slate-600 hover:text-slate-900 hover:underline">Deactivate</button>
+                    <span class="text-slate-300">|</span>
+                    <button class="text-[#DC2626] hover:underline">Trash</button>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- BOTTOM PAGINATION -->
+        <div class="px-6 py-4 border-t border-[#E2E8F0] bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <span class="text-slate-500 font-medium">
+            Showing <strong class="text-slate-800">1 to 8</strong> of <strong class="text-slate-800">24</strong> redirects
+          </span>
+
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-500">Rows per page:</span>
+              <select class="text-xs px-2 py-1 rounded border border-[#CBD5E1] bg-white text-slate-700 font-medium">
+                <option selected>25</option>
+                <option>50</option>
+                <option>100</option>
+              </select>
+            </div>
+
+            <div class="inline-flex rounded-md shadow-sm">
+              <button class="px-3 py-1.5 text-xs font-medium text-slate-400 bg-white border border-[#CBD5E1] rounded-l hover:bg-slate-50 cursor-not-allowed" disabled>
+                Previous
+              </button>
+              <button class="px-3 py-1.5 text-xs font-semibold text-[#2563EB] bg-blue-50 border-t border-b border-[#CBD5E1]">
+                1
+              </button>
+              <button class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-l-0 border-[#CBD5E1] rounded-r hover:bg-slate-50">
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE VARIANTS (PRESENTED STACKED FOR DESIGN REVIEW) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <!-- Variant A: No Redirects Yet -->
+        <div class="bg-white rounded-lg border-2 border-dashed border-[#CBD5E1] p-8 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#2563EB]">
+            <span class="material-symbols-outlined text-2xl">alt_route</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-[#1E293B]">No redirects yet.</h3>
+            <p class="text-xs text-[#64748B] max-w-xs mt-1">
+              Add your first redirect to send visitors from an old address to a new one.
+            </p>
+          </div>
+          <button type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-md shadow-sm transition-colors">
+            <span class="material-symbols-outlined text-sm">add</span>
+            Add your first redirect
+          </button>
+        </div>
+
+        <!-- Variant B: Filter Empty State -->
+        <div class="bg-white rounded-lg border-2 border-dashed border-[#CBD5E1] p-8 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+            <span class="material-symbols-outlined text-2xl">search_off</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-[#1E293B]">No redirects match your search.</h3>
+            <p class="text-xs text-[#64748B] max-w-xs mt-1">
+              Try a different search or clear the active filter controls.
+            </p>
+          </div>
+          <button type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#CBD5E1] text-xs font-medium rounded-md shadow-sm transition-colors">
+            <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+            Clear filters
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 5: IMPORT AND EXPORT CARD          -->
+    <!-- ========================================== -->
+    <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-card overflow-hidden">
+      <!-- Collapsible Card Header -->
+      <div class="px-6 py-4 bg-white border-b border-[#E2E8F0] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-[#2563EB] text-xl">swap_vert</span>
+          <h2 class="text-[15px] font-bold text-[#1E293B]">Import and Export</h2>
+        </div>
+        <button type="button" class="text-slate-400 hover:text-slate-700 transition-colors" title="Toggle collapse">
+          <span class="material-symbols-outlined text-xl">expand_less</span>
+        </button>
+      </div>
+
+      <!-- Card Body (Shown Expanded) -->
+      <div class="p-6 space-y-6">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Move redirects in and out with a CSV file. Expected columns: <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">source</code>, <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">target</code>, <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">code</code>, <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">match type</code>, <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">active</code>.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-100 pt-6">
+          
+          <!-- Export Section -->
+          <div class="space-y-4">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+              <h3 class="text-sm font-bold text-[#1E293B]">Export</h3>
+            </div>
+            <p class="text-xs text-slate-500">
+              Download all 24 active and inactive redirects in UTF-8 formatted CSV format for backups or external editing.
+            </p>
+            <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 border border-[#CBD5E1] text-xs font-semibold rounded-md shadow-sm transition-colors">
+              <span class="material-symbols-outlined text-slate-600 text-base">download</span>
+              Export Redirects
+            </button>
+          </div>
+
+          <!-- Import Section -->
+          <div class="space-y-4">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+              <h3 class="text-sm font-bold text-[#1E293B]">Import</h3>
+            </div>
+
+            <!-- File input area -->
+            <div class="border-2 border-dashed border-[#CBD5E1] rounded-lg p-5 text-center bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-colors space-y-2">
+              <span class="material-symbols-outlined text-slate-400 text-3xl">cloud_upload</span>
+              <div class="text-xs text-slate-700">
+                <span class="font-semibold text-[#2563EB] hover:underline">Choose CSV file</span> or drag and drop here
+              </div>
+              <p class="text-[11px] text-slate-400">.csv files only (up to 5MB)</p>
+            </div>
+
+            <label class="flex items-start gap-2.5 cursor-pointer pt-1">
+              <input type="checkbox" class="mt-0.5 w-3.5 h-3.5 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+              <span class="text-xs text-slate-600">
+                Update existing redirects when the source and match type already exist. Leave off to skip duplicates.
+              </span>
+            </label>
+
+            <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 border border-[#CBD5E1] text-xs font-semibold rounded-md shadow-sm transition-colors">
+              <span class="material-symbols-outlined text-slate-600 text-base">upload</span>
+              Import Redirects
+            </button>
+          </div>
+
+        </div>
+
+        <!-- IMPORT REPORT (Shown after import) -->
+        <div class="border-t border-slate-200 pt-5 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-xs text-slate-400">assessment</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Last Import Activity Report</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-md p-4 space-y-2.5">
+            <!-- Success summary -->
+            <div class="text-xs font-semibold text-slate-800 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              Imported 18 rows. 2 skipped (duplicate), 1 error.
+            </div>
+
+            <!-- Error list -->
+            <div class="text-xs text-[#DC2626] bg-[#FEF2F2] border border-red-200/80 rounded px-3 py-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm shrink-0">error</span>
+              <span><strong>Row 4:</strong> Invalid source path.</span>
+            </div>
+
+            <!-- Warning list -->
+            <div class="text-xs text-[#EA580C] bg-[#FFF7ED] border border-orange-200/80 rounded px-3 py-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm shrink-0">warning</span>
+              <span><strong>Row 7:</strong> Destination URL is external, verify it is correct.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- SECTION 6: REDIRECT SETTINGS CARD          -->
+    <!-- ========================================== -->
+    <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-card overflow-hidden">
+      <!-- Card Header -->
+      <div class="px-6 py-4 bg-white border-b border-[#E2E8F0] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-slate-700 text-xl">tune</span>
+          <h2 class="text-[15px] font-bold text-[#1E293B]">Redirect Settings</h2>
+          <span class="text-xs text-slate-400 font-normal ml-1">(Shown when gear icon in header is clicked)</span>
+        </div>
+        <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
+          Hide
+        </button>
+      </div>
+
+      <!-- Settings Form -->
+      <form class="p-6 space-y-5">
+        
+        <!-- Row 1: Query strings -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+          <div>
+            <label class="text-xs font-semibold text-[#1E293B] block">Query strings</label>
+            <p class="text-xs text-[#64748B] mt-0.5">Determine whether incoming query variables like UTM tags are preserved.</p>
+          </div>
+          <label class="flex items-center gap-2.5 cursor-pointer shrink-0">
+            <input type="checkbox" checked class="w-4 h-4 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+            <span class="text-xs text-slate-700 font-medium">Pass query string to destination</span>
+          </label>
+        </div>
+
+        <!-- Row 2: Slug changes -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+          <div>
+            <label class="text-xs font-semibold text-[#1E293B] block">Slug changes</label>
+            <p class="text-xs text-[#64748B] mt-0.5">Automated detection when posts, pages, or custom post types change permalinks.</p>
+          </div>
+          <label class="flex items-center gap-2.5 cursor-pointer shrink-0">
+            <input type="checkbox" checked class="w-4 h-4 rounded text-[#2563EB] border-slate-300 focus:ring-[#2563EB]">
+            <span class="text-xs text-slate-700 font-medium">Auto-create 301 when slug changes</span>
+          </label>
+        </div>
+
+        <!-- Row 3: Rows per page -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+          <div>
+            <label class="text-xs font-semibold text-[#1E293B] block">Rows per page</label>
+            <p class="text-xs text-[#64748B] mt-0.5">How many redirects to show per page in the admin table.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <input 
+              type="number" 
+              value="25" 
+              min="1" 
+              max="100" 
+              class="w-24 text-xs px-3 py-1.5 rounded-md border border-[#CBD5E1] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB] font-medium"
+            >
+            <span class="text-xs text-slate-400">Min 1, Max 100</span>
+          </div>
+        </div>
+
+        <!-- Footer Action -->
+        <div class="border-t border-[#E2E8F0] pt-4 flex items-center justify-end">
+          <button type="button" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 border border-[#CBD5E1] text-xs font-semibold rounded-md shadow-sm transition-colors">
+            Save Settings
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+
+</body>
+</html>
+

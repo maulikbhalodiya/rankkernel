@@ -1,0 +1,86 @@
+Design the "Instant Indexing" admin page for RankKernel, a free WordPress SEO plugin. It controls the IndexNow feature, which tells participating search engines that a URL changed. It must look like the same product as the existing Redirects and 404 Monitor admin pages.
+
+SECTION A: ABSOLUTE PROHIBITIONS. A previous iteration of this page broke these rules, so treat them as hard.
+
+A1. NEVER render the IndexNow API key in any form. Forbidden anywhere on the page: a key input, a masked or blurred or partial key, a read only key box, a copy key button, a reveal toggle, a key length, a key prefix or suffix, a key file name, a key file URL, and any "virtual location" string. The key file is named after the key, so even a truncated file name discloses part of the secret. State only whether a key is configured. Do not design any control whose purpose is to display, reveal or copy the key.
+
+A2. Do NOT invent features or metrics. Specifically forbidden, because none of these exist in the product: a remaining daily quota, a quota counter, a success rate percentage, a historical index rate, a bulk batch submission mode, a recent modified pages picker, a per engine destination column, per engine names such as Bing or Yandex in a destination field, an export logs action, a paste clipboard action, a detailed view toggle, an instances counter, a protocol version string, and a cryptographic token validation claim. A submission only means the engine was notified, never that a page was indexed, so no metric may imply indexing.
+
+A3. Automatic submission is a SINGLE on or off control for the whole site. Do not add per post type or per taxonomy checkboxes.
+
+SECTION B: DESIGN SYSTEM, MATCH THE EXISTING PAGES EXACTLY.
+- Fonts: Inter for UI text. JetBrains Mono for URLs, HTTP status codes and timestamps.
+- Icons: Material Symbols Outlined, outlined, weight 450, optical size 20.
+- Page background #F0F2F5. Cards #FFFFFF. Borders #E2E8F0, stronger #CBD5E1.
+- Primary #2563EB, hover #1D4ED8, active #1E40AF, soft tint #EFF6FF.
+- Positive #0F766E, soft #F0FDFA. Warning #EA580C, soft #FFF7ED. Error #DC2626, soft #FEF2F2.
+- Text #1E293B primary, #475569 secondary, #64748B muted, #94A3B8 hint.
+- Radius 4px small, 6px medium, 8px large. Shadow 0 1px 3px rgba(15,23,42,.05).
+- Content capped at 1240px and centered, 32px page padding, 8px vertical rhythm.
+- Card: white, 1px #E2E8F0 border, 8px radius, soft shadow, 24px padding, bold 15px title.
+- Buttons: primary solid #2563EB white semibold 6px radius. Secondary white with #CBD5E1 border. Destructive text button #DC2626. Icon button is a 36px square with a #CBD5E1 border.
+- Pills: rounded full, 12px semibold, soft background with a matching darker foreground and a 1px border of the same hue.
+- Table: 12px text, muted uppercase headers with a bottom border, 1px #E2E8F0 row separators, subtle #F8FAFC row hover, URLs in JetBrains Mono.
+- Notice banner: 4px left border in the semantic color, soft tinted background, leading Material icon, 14px medium text, dismiss close icon on the right.
+
+SECTION C: THE CORE IDEA, PROGRESSIVE DISCLOSURE.
+
+The submissions log is the hero of this page and must get the full content width. The settings and the manual submit form are NOT permanently visible. They are revealed on demand from the header, so the log is never crowded. Design it so the default screen is mostly table.
+
+SECTION D: LAYOUT, TOP TO BOTTOM.
+
+1. PAGE HEADER CARD, full width.
+- Left: h1 "Instant Indexing" at 22px bold, tight tracking, #1E293B, and immediately right of it a status pill, "Automatic submission on" in teal, since this screen shows the enabled state.
+- Under the title, one muted line: "Notify participating search engines when a URL changes, using the IndexNow protocol."
+- Right side, two controls only: a primary button "Submit a URL" with a send icon, and a secondary icon button using the settings gear icon with an accessible label "Settings". These two buttons are the ONLY way the hidden panels open.
+
+2. SUBMISSIONS CARD, full width, the dominant element.
+- Header row: bold title "Recent submissions" on the left with a muted count such as "48 entries", and on the right a destructive text button "Clear log" with a delete icon.
+- Toolbar row directly under the header, on one line, wrapping gracefully:
+  - a search input on the left, with a leading search icon and the placeholder "Search URL, message or host", taking the remaining width
+  - a source filter as a compact select: "All sources", "Auto", "Manual"
+  - a status filter as segmented tabs with counts, placed above the table or inline: "All 48", "Accepted 41", "Key pending 4", "Rejected 2", "Rate limited 1". The active tab is blue text with a 2px blue underline.
+- Table, full width, columns: URL, Status, Source, Time (UTC), Message.
+  - URL: JetBrains Mono, #475569, single line, truncated with an ellipsis only when genuinely long.
+  - Status: a pill. 200 and 202 teal, labelled "Accepted" and "Key pending". 400, 403 and 422 red, labelled "Rejected". 429 orange, labelled "Rate limited".
+  - Source: a pill, "Auto" in slate, "Manual" in blue.
+  - Time: JetBrains Mono, muted, format "2026-09-24 06:58".
+  - Message: #475569, one short line, kept to a single line per row so all rows are the same height.
+  - About eight rows, mixing 200, 202, a 422 and a 429 so every pill color appears.
+- Footer row: on the left a muted "Showing 1 to 8 of 48 entries", on the right pagination controls: a previous button, numbered page buttons with the current page in blue, and a next button. Keep them compact and quiet.
+
+3. COMPONENT SHOWCASE, below the page, clearly labelled as a component state sheet, in the same style the Redirects design used for its notice banners. This section is for design review only and shows the two hidden panels in their OPEN state, side by side or stacked:
+
+  a) "Settings panel, open state"
+  - One single container card, because all settings live together in one place.
+  - A header row with a bold title "Settings" and a close icon button on the right.
+  - Inside, two clearly separated groups with a thin divider between them:
+    - Group one, "Verification key": a shield or vpn_key icon with a teal pill "Key configured", an explanatory line "The key is generated on the server and is never shown here, so it cannot leak into your browser.", a secondary button "Regenerate key" with a refresh icon, and a muted line with a lock icon "The verification file is served virtually from your site root. No file is written to disk."
+    - Group two, "Automatic submission": a single toggle row, currently on, labelled "Submit URLs automatically when a post or term changes.", a muted supporting line "Runs when a post is published, updated or trashed. Autosaves and revisions are skipped.", a muted note "Off by default. Nothing is sent until you turn this on.", and a right aligned footer with a secondary "Cancel" and a primary "Save settings".
+  - This panel contains no key field, no key value, no key file name and no key file URL.
+
+  b) "Submit URL panel, open state"
+  - One compact container card with a bold title "Submit a URL" and a close icon button.
+  - A label "URL", a full width input in JetBrains Mono with the placeholder "https://example.com/page".
+  - A primary button "Submit" with a send icon.
+  - A muted helper line "Must be a URL on this site. Deleted pages and redirect sources can be submitted too."
+
+4. EMPTY STATE AND NO RESULTS STATE, show both as small component examples in the showcase sheet.
+- Empty: centered inbox icon, bold "Nothing has been submitted yet.", muted "Published and updated URLs will appear here once automatic submission is on.", primary "Submit a URL" button.
+- No results: centered search icon, bold "No submissions match your filters.", muted "Try a different search term or clear the filters.", secondary "Clear filters" button.
+
+SECTION E: INTERACTION NOTES TO MAKE VISIBLE IN THE DESIGN.
+- The header's two buttons toggle the two panels. When a panel is open, its button shows an active or pressed state.
+- The panels open as a full width section directly under the header and above the submissions card, so the table shifts down rather than being overlaid.
+- Only one panel is open at a time.
+- Closing a panel returns the page to the table focused default state.
+- The search, source filter and status tabs all narrow the same table.
+
+SECTION F: VISUAL NOTES.
+- Calm, dense but breathable, modern SaaS admin that still belongs in WordPress admin.
+- The table is the visual anchor. Give it room, even row heights, and generous horizontal padding in cells.
+- Use whitespace and alignment for separation, not heavy fills or borders.
+- Status is always a pill with a text label, never color alone.
+- Copy is factual and concise, sentence case, no marketing language, no exclamation marks.
+
+DELIVER one desktop page at 1440px wide showing the full page top to bottom: the default state with the panels closed and the submissions table as the hero, followed by the component showcase sheet with the settings panel open, the submit panel open, and the two empty states.

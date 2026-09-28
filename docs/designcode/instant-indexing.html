@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RankKernel - Instant Indexing Final &amp; Component Sheet</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,450,0,0" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bg: '#F0F2F5',
+            card: '#FFFFFF',
+            border: '#E2E8F0',
+            'border-strong': '#CBD5E1',
+            primary: '#2563EB',
+            'primary-hover': '#1D4ED8',
+            'primary-active': '#1E40AF',
+            'primary-soft': '#EFF6FF',
+            positive: '#0F766E',
+            'positive-soft': '#F0FDFA',
+            warning: '#EA580C',
+            'warning-soft': '#FFF7ED',
+            error: '#DC2626',
+            'error-soft': '#FEF2F2',
+            text: {
+              primary: '#1E293B',
+              secondary: '#475569',
+              muted: '#64748B',
+              hint: '#94A3B8',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 3px rgba(15, 23, 42, 0.05)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      display: inline-block;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-bg text-text-primary font-sans antialiased min-h-screen py-8">
+<!-- Main Container capped at 1240px with 32px padding -->
+<div class="max-w-[1240px] mx-auto px-8 space-y-6">
+<!-- ========================================== -->
+<!-- PART ONE: THE FINAL INSTANT INDEXING PAGE  -->
+<!-- ========================================== -->
+<!-- Section 1: Page Header Card -->
+<header class="bg-card border border-border rounded-lg p-6 shadow-soft flex items-center justify-between">
+<div class="space-y-1">
+<div class="flex items-center gap-3">
+<h1 class="text-[22px] font-bold tracking-tight text-text-primary leading-tight">Instant Indexing</h1>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-positive-soft text-positive border border-teal-200">
+<span class="w-1.5 h-1.5 rounded-full bg-positive"></span>
+            Automatic submission on
+          </span>
+</div>
+<p class="text-sm text-text-muted">Notify participating search engines when a URL changes, using the IndexNow protocol.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold rounded-[6px] transition-colors shadow-soft" type="button">
+<span class="material-symbols-outlined text-[18px]">send</span>
+          Submit a URL
+        </button>
+<button class="inline-flex items-center gap-2 px-3 py-2 bg-card hover:bg-slate-50 border border-border-strong text-text-secondary hover:text-text-primary text-sm font-semibold rounded-[6px] transition-colors shadow-soft" type="button">
+<span class="material-symbols-outlined text-[18px]">settings</span>
+          Settings
+        </button>
+</div>
+</header>
+<!-- Section 2: Notice Row (Success) -->
+<div class="bg-positive-soft border-l-4 border-positive border-y border-r border-teal-200/60 rounded-r-lg p-3.5 flex items-center justify-between shadow-soft">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-positive text-[20px]">check_circle</span>
+<span class="text-sm font-medium text-text-primary">Settings saved.</span>
+</div>
+<button aria-label="Dismiss notice" class="text-text-muted hover:text-text-primary p-1 rounded transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Section 3: Stats Strip (4 equal cards, honest counts of log rows) -->
+<div class="grid grid-cols-4 gap-4">
+<!-- Total submissions -->
+<div class="bg-card border border-border rounded-lg p-5 shadow-soft space-y-1">
+<div class="text-xs font-semibold uppercase tracking-wider text-text-muted">Total submissions</div>
+<div class="text-2xl font-bold text-text-primary font-mono tracking-tight">48</div>
+<div class="text-xs text-text-muted">since the log was last cleared</div>
+</div>
+<!-- Accepted -->
+<div class="bg-card border border-border rounded-lg p-5 shadow-soft space-y-1">
+<div class="text-xs font-semibold uppercase tracking-wider text-text-muted">Accepted</div>
+<div class="text-2xl font-bold text-positive font-mono tracking-tight">45</div>
+<div class="text-xs text-text-muted">200 and 202 responses</div>
+</div>
+<!-- Rejected -->
+<div class="bg-card border border-border rounded-lg p-5 shadow-soft space-y-1">
+<div class="text-xs font-semibold uppercase tracking-wider text-text-muted">Rejected</div>
+<div class="text-2xl font-bold text-error font-mono tracking-tight">2</div>
+<div class="text-xs text-text-muted">400, 403, 405, 422 or refused</div>
+</div>
+<!-- Rate limited -->
+<div class="bg-card border border-border rounded-lg p-5 shadow-soft space-y-1">
+<div class="text-xs font-semibold uppercase tracking-wider text-text-muted">Rate limited</div>
+<div class="text-2xl font-bold text-warning font-mono tracking-tight">1</div>
+<div class="text-xs text-text-muted">429 temporary status</div>
+</div>
+</div>
+<!-- Section 4: Submit URL Card (compact, single line submission) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-3"><div class="flex items-center justify-between"><h2 class="text-[15px] font-bold text-text-primary">Submit URLs</h2><span class="text-xs text-text-muted">One per line</span></div><div class="space-y-3"><div class="space-y-1.5"><label class="block text-xs font-semibold uppercase tracking-wider text-text-secondary" for="page-urls-input">URLs</label><textarea class="w-full bg-white border border-border-strong rounded-[6px] px-3.5 py-2 text-xs text-text-primary font-mono placeholder:text-text-hint focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y" id="page-urls-input" placeholder="https://example.com/page" rows="5">https://example.com/first-post
+https://example.com/second-post
+https://example.com/third-post</textarea></div><div class="bg-positive-soft border border-teal-200/60 rounded-[6px] p-3 space-y-2"><div class="flex items-center gap-2 text-positive text-xs font-semibold"><span class="material-symbols-outlined text-[18px]">check_circle</span><span>3 URLs ready to submit.</span></div><div class="space-y-1.5 pt-1 border-t border-teal-200/40 text-xs font-mono"><div class="flex items-center gap-2 text-text-primary"><span class="material-symbols-outlined text-positive text-[16px]">check_circle</span><span class="truncate">https://example.com/first-post</span></div><div class="flex items-center gap-2 text-text-primary"><span class="material-symbols-outlined text-positive text-[16px]">check_circle</span><span class="truncate">https://example.com/second-post</span></div><div class="flex items-center gap-2 text-text-primary"><span class="material-symbols-outlined text-positive text-[16px]">check_circle</span><span class="truncate">https://example.com/third-post</span></div></div></div><div class="flex items-center justify-between gap-4 pt-1"><p class="text-xs text-text-muted max-w-xl">Must be URLs on this site. Deleted pages and redirect sources can be submitted too. Up to 10000 URLs are sent per request.</p><button class="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold rounded-[6px] transition-colors shadow-soft shrink-0" type="button"><span class="material-symbols-outlined text-[18px]">send</span>Submit URLs</button></div></div></div>
+<!-- Section 5: Submissions Card (The dominant anchor element) -->
+<div class="bg-card border border-border rounded-lg shadow-soft overflow-hidden">
+<!-- Card Header -->
+<div class="p-6 pb-4 border-b border-border flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<h2 class="text-[15px] font-bold text-text-primary">Recent submissions</h2>
+<span class="text-xs text-text-muted font-medium">48 entries</span>
+</div>
+<button class="inline-flex items-center gap-1.5 text-xs font-semibold text-error hover:text-red-700 transition-colors p-1" type="button">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+          Clear log
+        </button>
+</div>
+<!-- Toolbar: Search + Source Dropdown -->
+<div class="px-6 py-3.5 bg-slate-50/50 border-b border-border flex items-center justify-between gap-4">
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-text-hint text-[18px]">search</span>
+<input class="w-full bg-white border border-border-strong rounded-[6px] pl-9 pr-3.5 py-1.5 text-xs text-text-primary placeholder:text-text-hint focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search URL or message" type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-text-secondary font-medium">Source:</span>
+<div class="relative">
+<select class="bg-white border border-border-strong rounded-[6px] pl-3 pr-8 py-1.5 text-xs text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer">
+<option>All sources</option>
+<option>Auto</option>
+<option>Manual</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-text-muted text-[16px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Segmented Status Tabs -->
+<div class="px-6 border-b border-border flex items-center gap-6 overflow-x-auto text-xs font-medium">
+<button class="py-3 text-primary border-b-2 border-primary font-semibold flex items-center gap-1.5" type="button">
+<span>All</span>
+<span class="px-1.5 py-0.5 rounded-full bg-primary-soft text-primary text-[11px]">48</span>
+</button>
+<button class="py-3 text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5" type="button">
+<span>Accepted</span>
+<span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-text-muted text-[11px]">41</span>
+</button>
+<button class="py-3 text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5" type="button">
+<span>Key pending</span>
+<span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-text-muted text-[11px]">4</span>
+</button>
+<button class="py-3 text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5" type="button">
+<span>Rejected</span>
+<span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-text-muted text-[11px]">2</span>
+</button>
+<button class="py-3 text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5" type="button">
+<span>Rate limited</span>
+<span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-text-muted text-[11px]">1</span>
+</button>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="bg-slate-50/70 border-b border-border text-text-muted uppercase font-semibold text-[11px] tracking-wider">
+<th class="py-3 px-6 font-semibold" scope="col">URL</th>
+<th class="py-3 px-4 font-semibold w-32" scope="col">Status</th>
+<th class="py-3 px-4 font-semibold w-24" scope="col">Source</th>
+<th class="py-3 px-4 font-semibold w-40" scope="col">Time (UTC)</th>
+<th class="py-3 px-6 font-semibold" scope="col">Message</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border">
+<!-- Row 1: 200 Accepted Auto -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/blog/instant-indexing-overview</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-positive-soft text-positive border border-teal-200">Accepted</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-24 06:58</td>
+<td class="py-2.5 px-6 text-text-secondary truncate">Accepted.</td>
+</tr>
+<!-- Row 2: 202 Key pending Manual -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/products/wireless-keyboard</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary-soft text-primary border border-blue-200">Key pending</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Manual</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-24 06:42</td>
+<td class="py-2.5 px-6 text-text-secondary truncate">Accepted, the key is pending verification.</td>
+</tr>
+<!-- Row 3: 429 Rate limited Manual -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/about-us</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warning-soft text-warning border border-orange-200">Rate limited</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Manual</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-24 04:30</td>
+<td class="py-2.5 px-6 text-warning truncate">Temporary failure, retry later.</td>
+</tr>
+<!-- Row 4: 422 Rejected Auto -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/staging/draft-preview</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-error-soft text-error border border-red-200">Rejected</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-23 22:11</td>
+<td class="py-2.5 px-6 text-error truncate">Rejected permanently, retrying will not help.</td>
+</tr>
+<!-- Row 5: 503 Retry later Auto -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/changelog/version-2</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warning-soft text-warning border border-orange-200">Retry later</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-23 18:04</td>
+<td class="py-2.5 px-6 text-warning truncate">Temporary failure, retry later.</td>
+</tr>
+<!-- Row 6: Code 0 Refused / Rejected Auto -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://external-domain.net/partner-link</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-error-soft text-error border border-red-200">Rejected</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-23 15:20</td>
+<td class="py-2.5 px-6 text-error truncate">Rejected: the URL host does not match this site.</td>
+</tr>
+<!-- Row 7: 200 Accepted Auto -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/docs/api-reference-guide</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-positive-soft text-positive border border-teal-200">Accepted</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-23 11:40</td>
+<td class="py-2.5 px-6 text-text-secondary truncate">Accepted.</td>
+</tr>
+<!-- Row 8: 200 Accepted Manual -->
+<tr class="hover:bg-slate-50/60 transition-colors h-11">
+<td class="py-2.5 px-6 font-mono text-text-primary truncate max-w-xs">https://example.com/pricing</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-positive-soft text-positive border border-teal-200">Accepted</span>
+</td>
+<td class="py-2.5 px-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Manual</span>
+</td>
+<td class="py-2.5 px-4 font-mono text-text-muted whitespace-nowrap">2026-09-23 09:15</td>
+<td class="py-2.5 px-6 text-text-secondary truncate">Accepted.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="px-6 py-3.5 bg-card border-t border-border flex items-center justify-between">
+<span class="text-xs text-text-muted">Showing 1 to 8 of 48 entries</span>
+<div class="flex items-center gap-1">
+<button class="px-2.5 py-1 text-xs text-text-muted bg-white border border-border-strong rounded-[4px] hover:bg-slate-50 disabled:opacity-40" disabled="" type="button">Previous</button>
+<button class="px-2.5 py-1 text-xs font-semibold text-white bg-primary border border-primary rounded-[4px]" type="button">1</button>
+<button class="px-2.5 py-1 text-xs text-text-secondary bg-white border border-border-strong rounded-[4px] hover:bg-slate-50" type="button">2</button>
+<button class="px-2.5 py-1 text-xs text-text-secondary bg-white border border-border-strong rounded-[4px] hover:bg-slate-50" type="button">3</button>
+<span class="px-1 text-xs text-text-muted">…</span>
+<button class="px-2.5 py-1 text-xs text-text-secondary bg-white border border-border-strong rounded-[4px] hover:bg-slate-50" type="button">6</button>
+<button class="px-2.5 py-1 text-xs text-text-secondary bg-white border border-border-strong rounded-[4px] hover:bg-slate-50" type="button">Next</button>
+</div>
+</div>
+</div>
+<!-- Section 6: Settings and Key Card (Single unified container) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-6">
+<h2 class="text-[15px] font-bold text-text-primary">Settings and key</h2>
+<!-- Group One: Verification Key -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">shield</span>
+<span class="text-sm font-semibold text-text-primary">Verification key</span>
+</div>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-positive-soft text-positive border border-teal-200">
+            Key configured
+          </span>
+</div>
+<p class="text-xs text-text-secondary">The key is generated on the server and is never shown here, so it cannot leak into your browser.</p>
+<div class="pt-1">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-border-strong text-text-primary text-xs font-semibold rounded-[6px] transition-colors shadow-soft" type="button">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+            Regenerate key
+          </button>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-text-muted pt-1">
+<span class="material-symbols-outlined text-text-hint text-[16px]">lock</span>
+<span>The verification file is served virtually from your site root. No file is written to disk.</span>
+</div>
+</div>
+<!-- Divider -->
+<hr class="border-border"/>
+<!-- Group Two: Automatic Submission -->
+<div class="space-y-4">
+<div class="flex items-start justify-between gap-4">
+<div class="space-y-1">
+<div class="text-sm font-semibold text-text-primary">Submit URLs automatically when a post or term changes.</div>
+<p class="text-xs text-text-secondary">Runs when a post is published, updated or trashed. Autosaves and revisions are skipped.</p>
+<p class="text-xs text-text-muted">Off by default. Nothing is sent until you turn this on.</p>
+</div>
+<!-- Toggle switch (40px wide, on = blue) -->
+<button aria-label="Toggle automatic submission" aria-pressed="true" class="w-10 h-6 bg-primary rounded-full relative p-0.5 transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20" type="button">
+<span class="w-5 h-5 bg-white rounded-full block shadow-sm transform translate-x-4 transition-transform"></span>
+</button>
+</div>
+<!-- Footer Actions -->
+<div class="flex items-center justify-end gap-3 pt-2">
+<button class="px-4 py-2 bg-white hover:bg-slate-50 border border-border-strong text-text-secondary hover:text-text-primary text-xs font-semibold rounded-[6px] transition-colors" type="button">Cancel</button>
+<button class="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-[6px] transition-colors shadow-soft" type="button">Save settings</button>
+</div>
+</div>
+</div>
+<!-- ======================================================= -->
+<!-- PART TWO: THE COMPLETE COMPONENT SHEET (EVERY STATE)     -->
+<!-- ======================================================= -->
+<div class="pt-12 pb-6">
+<div class="flex items-center gap-3 mb-2">
+<span class="px-2.5 py-1 rounded bg-slate-200 text-slate-800 text-xs font-bold uppercase tracking-wider">Design System Spec</span>
+<h2 class="text-xl font-bold text-text-primary tracking-tight">Component sheet, every state</h2>
+</div>
+<p class="text-sm text-text-muted">Complete specification and state catalog for the build team, following exact plugin design contracts.</p>
+</div>
+<div class="space-y-8 bg-slate-100/70 p-8 rounded-xl border border-slate-300/80">
+<!-- Item 1: Notice Banners, all four types stacked -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4">
+<div class="flex items-center justify-between border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">1. Notice Banners (All 4 Types)</h3>
+<span class="text-xs text-text-muted">Dismissible, semantic colors, 4px left border</span>
+</div>
+<div class="space-y-3">
+<!-- Success -->
+<div>
+<span class="text-[11px] font-semibold text-text-muted block mb-1">State: Success (Teal)</span>
+<div class="bg-positive-soft border-l-4 border-positive border-y border-r border-teal-200/60 rounded-r-lg p-3 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-positive text-[20px]">check_circle</span>
+<span class="text-sm font-medium text-text-primary">Settings saved.</span>
+</div>
+<button class="text-text-muted hover:text-text-primary p-1" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+</div>
+<!-- Error -->
+<div>
+<span class="text-[11px] font-semibold text-text-muted block mb-1">State: Error (Red)</span>
+<div class="bg-error-soft border-l-4 border-error border-y border-r border-red-200/60 rounded-r-lg p-3 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-error text-[20px]">error</span>
+<span class="text-sm font-medium text-text-primary">Could not submit. The URL host does not match this site.</span>
+</div>
+<button class="text-text-muted hover:text-text-primary p-1" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+</div>
+<!-- Warning -->
+<div>
+<span class="text-[11px] font-semibold text-text-muted block mb-1">State: Warning (Orange)</span>
+<div class="bg-warning-soft border-l-4 border-warning border-y border-r border-orange-200/60 rounded-r-lg p-3 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-warning text-[20px]">warning</span>
+<span class="text-sm font-medium text-text-primary">Automatic submission is off. Nothing is sent when your content changes.</span>
+</div>
+<button class="text-text-muted hover:text-text-primary p-1" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+</div>
+<!-- Info -->
+<div>
+<span class="text-[11px] font-semibold text-text-muted block mb-1">State: Info (Blue)</span>
+<div class="bg-primary-soft border-l-4 border-primary border-y border-r border-blue-200/60 rounded-r-lg p-3 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px]">info</span>
+<span class="text-sm font-medium text-text-primary">The key was regenerated. Search engines recheck it automatically.</span>
+</div>
+<button class="text-text-muted hover:text-text-primary p-1" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Log Table States (Populated reference, Empty, No results) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-6">
+<div class="flex items-center justify-between border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">2. Log Table States</h3>
+<span class="text-xs text-text-muted">Populated (shown above), Empty state, No matching results</span>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<!-- Empty State -->
+<div class="border border-dashed border-border-strong rounded-lg p-8 text-center flex flex-col items-center justify-center space-y-3 bg-slate-50/40">
+<span class="text-xs font-semibold text-text-muted uppercase tracking-wider">State: Empty Log</span>
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-text-muted">
+<span class="material-symbols-outlined text-[24px]">inbox</span>
+</div>
+<div class="space-y-1">
+<div class="text-sm font-bold text-text-primary">Nothing has been submitted yet.</div>
+<p class="text-xs text-text-muted max-w-sm">Published and updated URLs will appear here once automatic submission is on.</p>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-[6px] transition-colors shadow-soft" type="button">
+<span class="material-symbols-outlined text-[16px]">send</span>
+              Submit a URL
+            </button>
+</div>
+<!-- No Results Filtered State -->
+<div class="border border-dashed border-border-strong rounded-lg p-8 text-center flex flex-col items-center justify-center space-y-3 bg-slate-50/40">
+<span class="text-xs font-semibold text-text-muted uppercase tracking-wider">State: Filtered / Search Zero State</span>
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-text-muted">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</div>
+<div class="space-y-1">
+<div class="text-sm font-bold text-text-primary">No submissions match your filters.</div>
+<p class="text-xs text-text-muted max-w-sm">Try a different search term or clear the filters.</p>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-border-strong text-text-secondary text-xs font-semibold rounded-[6px] transition-colors shadow-soft" type="button">
+<span class="material-symbols-outlined text-[16px]">filter_alt_off</span>
+              Clear filters
+            </button>
+</div>
+</div>
+</div>
+<!-- Item 3 & 4: Status Pills & Source Pills -->
+<div class="grid grid-cols-2 gap-6">
+<!-- Status Pills (All 5) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4">
+<div class="border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">3. Status Pills (All 5 Outcomes)</h3>
+<p class="text-xs text-text-muted mt-0.5">Semantic pills with 1px border and matching foreground</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-positive-soft text-positive border border-teal-200">Accepted</span>
+<span class="block text-[10px] text-text-muted font-mono">200 (Teal)</span>
+</div>
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-soft text-primary border border-blue-200">Key pending</span>
+<span class="block text-[10px] text-text-muted font-mono">202 (Blue)</span>
+</div>
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error-soft text-error border border-red-200">Rejected</span>
+<span class="block text-[10px] text-text-muted font-mono">4xx / Refused (Red)</span>
+</div>
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning-soft text-warning border border-orange-200">Rate limited</span>
+<span class="block text-[10px] text-text-muted font-mono">429 (Orange)</span>
+</div>
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning-soft text-warning border border-orange-200">Retry later</span>
+<span class="block text-[10px] text-text-muted font-mono">5xx temp (Orange)</span>
+</div>
+</div>
+</div>
+<!-- Source Pills (Both) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4">
+<div class="border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">4. Source Pills (Both Sources)</h3>
+<p class="text-xs text-text-muted mt-0.5">Distinguishes automated worker submissions from manual triggers</p>
+</div>
+<div class="flex items-center gap-6 pt-1">
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">Auto</span>
+<span class="block text-[10px] text-text-muted font-mono">Plugin automated</span>
+</div>
+<div class="space-y-1">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Manual</span>
+<span class="block text-[10px] text-text-muted font-mono">Admin manual send</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 5: Verification Key States (Both Configured & Not Configured) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4">
+<div class="flex items-center justify-between border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">5. Verification Key States</h3>
+<span class="text-xs text-text-muted">Strict compliance: No key value, prefix, length, or file name rendered</span>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<!-- State A: Configured -->
+<div class="border border-border rounded-lg p-4 space-y-2.5 bg-slate-50/40">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-text-primary">State: Configured</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-positive-soft text-positive border border-teal-200">Key configured</span>
+</div>
+<p class="text-xs text-text-secondary">The key is generated on the server and is never shown here, so it cannot leak into your browser.</p>
+<button class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-border-strong text-text-primary text-xs font-semibold rounded-[6px]" type="button">
+<span class="material-symbols-outlined text-[15px]">refresh</span>
+              Regenerate key
+            </button>
+</div>
+<!-- State B: Not Configured -->
+<div class="border border-border rounded-lg p-4 space-y-2.5 bg-slate-50/40">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-text-primary">State: Not Configured</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warning-soft text-warning border border-orange-200">No key configured</span>
+</div>
+<p class="text-xs text-text-secondary">A key is generated automatically the first time the module is enabled.</p>
+<button class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-white text-xs font-semibold rounded-[6px] shadow-soft" type="button">
+<span class="material-symbols-outlined text-[15px]">add</span>
+              Generate key
+            </button>
+</div>
+</div>
+</div>
+<!-- Item 6 & 7: Toggle States & Submit URL States -->
+<div class="grid grid-cols-2 gap-6">
+<!-- Toggle States (On / Off) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4">
+<div class="border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">6. Automatic Submission Toggle States</h3>
+<p class="text-xs text-text-muted mt-0.5">Site-wide single control toggle</p>
+</div>
+<div class="space-y-4">
+<!-- Toggle ON -->
+<div class="flex items-center justify-between p-3 bg-slate-50/50 rounded-lg border border-border">
+<div class="space-y-0.5">
+<span class="text-xs font-bold text-text-primary">State: Enabled (On)</span>
+<span class="block text-[11px] text-text-muted">Automatic submissions will fire on publish</span>
+</div>
+<div class="w-10 h-6 bg-primary rounded-full relative p-0.5 shrink-0">
+<span class="w-5 h-5 bg-white rounded-full block shadow-sm transform translate-x-4"></span>
+</div>
+</div>
+<!-- Toggle OFF -->
+<div class="flex items-center justify-between p-3 bg-slate-50/50 rounded-lg border border-border">
+<div class="space-y-0.5">
+<span class="text-xs font-bold text-text-primary">State: Disabled (Off)</span>
+<span class="block text-[11px] text-warning font-medium">Automatic submission is off. Nothing is sent.</span>
+</div>
+<div class="w-10 h-6 bg-border-strong rounded-full relative p-0.5 shrink-0">
+<span class="w-5 h-5 bg-white rounded-full block shadow-sm"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Submit URL States (Default & Error) -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-4"><div class="border-b border-border pb-3"><h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">7. Submit URL Validation States</h3><p class="text-xs text-text-muted mt-0.5">Multi-URL live feedback &amp; submission gates across 4 scenarios</p></div><div class="space-y-4"><!-- State A: Empty input --><div class="border border-border rounded-lg p-3.5 space-y-2 bg-slate-50/40"><div class="flex items-center justify-between"><span class="text-[11px] font-bold text-text-primary uppercase tracking-wide">State A: Empty Input</span><span class="text-[10px] text-text-muted">Button Disabled</span></div><textarea class="w-full bg-white border border-border-strong rounded-[6px] px-2.5 py-1.5 text-xs text-text-primary font-mono" placeholder="https://example.com/page" readonly="" rows="2"></textarea><div class="text-xs text-text-muted flex items-center gap-1.5 py-0.5"><span class="material-symbols-outlined text-[16px] text-text-hint">info</span><span>Enter at least one URL on this site.</span></div><div class="flex items-center justify-between pt-1"><p class="text-[10px] text-text-muted truncate max-w-xs">Must be URLs on this site... Up to 10000 URLs are sent per request.</p><button class="px-3 py-1.5 bg-primary/50 text-white/80 text-xs font-semibold rounded-[6px] cursor-not-allowed opacity-50" disabled="" type="button">Submit URLs</button></div></div><!-- State B: All valid --><div class="border border-border rounded-lg p-3.5 space-y-2 bg-slate-50/40"><div class="flex items-center justify-between"><span class="text-[11px] font-bold text-text-primary uppercase tracking-wide">State B: All Valid</span><span class="text-[10px] text-positive font-semibold">Ready to send</span></div><textarea class="w-full bg-white border border-border-strong rounded-[6px] px-2.5 py-1.5 text-xs text-text-primary font-mono" readonly="" rows="2">https://example.com/first
+https://example.com/second
+https://example.com/third</textarea><div class="bg-positive-soft border border-teal-200/60 rounded p-2 text-xs space-y-1.5"><div class="flex items-center gap-1.5 text-positive font-semibold"><span class="material-symbols-outlined text-[16px]">check_circle</span><span>3 URLs ready to submit.</span></div><div class="space-y-1 text-[11px] font-mono text-text-primary pl-1"><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/first</span></div><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/second</span></div><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/third</span></div></div></div><div class="flex items-center justify-end pt-1"><button class="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-[6px] shadow-soft" type="button">Submit URLs</button></div></div><!-- State C: Mixed validity --><div class="border border-border rounded-lg p-3.5 space-y-2 bg-slate-50/40"><div class="flex items-center justify-between"><span class="text-[11px] font-bold text-text-primary uppercase tracking-wide">State C: Mixed Validity</span><span class="text-[10px] text-warning font-semibold">Gated / Disabled</span></div><textarea class="w-full bg-white border border-border-strong rounded-[6px] px-2.5 py-1.5 text-xs text-text-primary font-mono" readonly="" rows="2">https://example.com/valid-page
+https://external-domain.net/test
+not-a-valid-url</textarea><div class="bg-warning-soft border border-orange-200/60 rounded p-2 text-xs space-y-1.5"><div class="flex items-center gap-1.5 text-warning font-semibold"><span class="material-symbols-outlined text-[16px]">warning</span><span>2 of 3 URLs are not valid. Fix them to continue.</span></div><div class="space-y-1 text-[11px] font-mono pl-1"><div class="flex items-center gap-1.5 text-text-primary"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/valid-page</span></div><div class="flex items-center justify-between text-error"><span>https://external-domain.net/test</span><span class="text-[10px] font-sans font-medium text-error">This URL is not on this site.</span></div><div class="flex items-center justify-between text-error"><span>not-a-valid-url</span><span class="text-[10px] font-sans font-medium text-error">Not a valid URL.</span></div></div></div><div class="flex items-center justify-end pt-1"><button class="px-3 py-1.5 bg-primary/50 text-white/80 text-xs font-semibold rounded-[6px] cursor-not-allowed opacity-50" disabled="" type="button">Submit URLs</button></div></div><!-- State D: Large paste --><div class="border border-border rounded-lg p-3.5 space-y-2 bg-slate-50/40"><div class="flex items-center justify-between"><span class="text-[11px] font-bold text-text-primary uppercase tracking-wide">State D: Large Paste (120 URLs)</span><span class="text-[10px] text-positive font-semibold">Scroll / Preview</span></div><textarea class="w-full bg-white border border-border-strong rounded-[6px] px-2.5 py-1.5 text-xs text-text-primary font-mono" readonly="" rows="2">https://example.com/post-1
+https://example.com/post-2
+https://example.com/post-3
+... 117 more</textarea><div class="bg-positive-soft border border-teal-200/60 rounded p-2 text-xs space-y-1.5"><div class="flex items-center gap-1.5 text-positive font-semibold"><span class="material-symbols-outlined text-[16px]">check_circle</span><span>120 URLs ready to submit.</span></div><div class="space-y-1 text-[11px] font-mono text-text-primary pl-1"><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/post-1</span></div><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-positive text-[14px]">check_circle</span><span>https://example.com/post-2</span></div><div class="text-[10px] text-text-muted font-sans font-medium pt-0.5">+ 117 more valid URLs</div></div></div><div class="flex items-center justify-end pt-1"><button class="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-[6px] shadow-soft" type="button">Submit URLs</button></div></div></div></div>
+</div>
+<!-- Item 8, 9 & 10: Buttons, Controls & Pagination Catalog -->
+<div class="bg-card border border-border rounded-lg p-6 shadow-soft space-y-6">
+<div class="border-b border-border pb-3">
+<h3 class="text-sm font-bold text-text-primary uppercase tracking-wide">8, 9 &amp; 10. Buttons, Form Controls &amp; Pagination States</h3>
+</div>
+<!-- 8. Buttons -->
+<div class="space-y-2">
+<span class="text-xs font-bold text-text-secondary uppercase tracking-wider">Button Variations</span>
+<div class="flex flex-wrap items-center gap-4 pt-1"><div class="space-y-1 text-center"><button class="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-[6px] shadow-soft" type="button">Submit URLs</button><span class="block text-[10px] text-text-muted">Primary Solid</span></div><div class="space-y-1 text-center"><button class="px-4 py-2 bg-primary/50 text-white/80 text-xs font-semibold rounded-[6px] cursor-not-allowed opacity-50" disabled="" type="button">Submit URLs</button><span class="block text-[10px] text-text-muted">Primary Disabled</span></div><div class="space-y-1 text-center"><button class="px-4 py-2 bg-white border border-border-strong text-text-primary text-xs font-semibold rounded-[6px] shadow-soft" type="button">Secondary</button><span class="block text-[10px] text-text-muted">Secondary Outline</span></div><div class="space-y-1 text-center"><button class="w-9 h-9 bg-white border border-border-strong rounded-[6px] flex items-center justify-center text-text-secondary hover:text-text-primary shadow-soft" type="button"><span class="material-symbols-outlined text-[18px]">settings</span></button><span class="block text-[10px] text-text-muted">36px Icon Button</span></div><div class="space-y-1 text-center"><button class="px-3 py-2 text-error text-xs font-semibold hover:underline flex items-center gap-1" type="button"><span class="material-symbols-outlined text-[16px]">delete</span>Clear log</button><span class="block text-[10px] text-text-muted">Destructive Text</span></div><div class="space-y-1 text-center"><button class="px-4 py-2 bg-slate-100 border border-border text-text-hint text-xs font-semibold rounded-[6px] cursor-not-allowed" disabled="" type="button">Disabled</button><span class="block text-[10px] text-text-muted">Disabled Gray</span></div></div>
+</div>
+<hr class="border-border"/>
+<!-- 9. Form Controls -->
+<div class="space-y-2">
+<span class="text-xs font-bold text-text-secondary uppercase tracking-wider">Form Controls &amp; Inputs</span>
+<div class="grid grid-cols-6 gap-3 items-end pt-1">
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Toggle On</span>
+<div class="w-10 h-6 bg-primary rounded-full relative p-0.5"><span class="w-5 h-5 bg-white rounded-full block shadow-sm transform translate-x-4"></span></div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Toggle Off</span>
+<div class="w-10 h-6 bg-border-strong rounded-full relative p-0.5"><span class="w-5 h-5 bg-white rounded-full block shadow-sm"></span></div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Default Input</span>
+<input class="w-full bg-white border border-border-strong rounded-[6px] px-2.5 py-1.5 text-xs text-text-primary" placeholder="Value text" readonly="" type="text"/>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Input with Icon</span>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-2 text-text-hint text-[15px]">search</span>
+<input class="w-full bg-white border border-border-strong rounded-[6px] pl-7 pr-2 py-1.5 text-xs text-text-primary" placeholder="Search..." readonly="" type="text"/>
+</div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Error Input</span>
+<input class="w-full bg-red-50/40 border border-error rounded-[6px] px-2.5 py-1.5 text-xs text-error" readonly="" type="text" value="Invalid data"/>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-text-muted block">Select Control</span>
+<div class="relative">
+<select class="w-full bg-white border border-border-strong rounded-[6px] pl-2.5 pr-6 py-1.5 text-xs text-text-primary appearance-none">
+<option>Option 1</option>
+</select>
+<span class="material-symbols-outlined absolute right-1.5 top-2 text-text-muted text-[15px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<hr class="border-border"/>
+<!-- 10. Pagination States -->
+<div class="space-y-3">
+<span class="text-xs font-bold text-text-secondary uppercase tracking-wider">Pagination States</span>
+<div class="grid grid-cols-3 gap-4 pt-1">
+<!-- First Page -->
+<div class="border border-border rounded p-3 space-y-2 bg-slate-50/40">
+<span class="text-[11px] font-semibold text-text-muted block">State: First Page (Prev Disabled)</span>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 text-xs text-text-muted bg-white border border-border rounded opacity-40" disabled="" type="button">Previous</button>
+<button class="px-2 py-1 text-xs font-semibold text-white bg-primary rounded" type="button">1</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">2</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">3</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">Next</button>
+</div>
+</div>
+<!-- Middle Page -->
+<div class="border border-border rounded p-3 space-y-2 bg-slate-50/40">
+<span class="text-[11px] font-semibold text-text-muted block">State: Middle Page</span>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">Previous</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">1</button>
+<button class="px-2 py-1 text-xs font-semibold text-white bg-primary rounded" type="button">2</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">3</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">Next</button>
+</div>
+</div>
+<!-- Last Page -->
+<div class="border border-border rounded p-3 space-y-2 bg-slate-50/40">
+<span class="text-[11px] font-semibold text-text-muted block">State: Last Page (Next Disabled)</span>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">Previous</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">1</button>
+<button class="px-2 py-1 text-xs text-text-secondary bg-white border border-border rounded" type="button">2</button>
+<button class="px-2 py-1 text-xs font-semibold text-white bg-primary rounded" type="button">3</button>
+<button class="px-2 py-1 text-xs text-text-muted bg-white border border-border rounded opacity-40" disabled="" type="button">Next</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+
