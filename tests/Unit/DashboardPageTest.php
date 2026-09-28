@@ -54,9 +54,12 @@ final class DashboardPageTest extends TestCase {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
-		if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
-			define( 'RANKKERNEL_VERSION', '0.1.0' );
-		}
+		/*
+		 * RANKKERNEL_VERSION is declared once at file scope above, so the value
+		 * is fixed for the whole run. Do not redeclare it here with a different
+		 * value, because the file scope guard always wins and the two values
+		 * would silently disagree.
+		 */
 
 		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
 			define( 'RANKKERNEL_FILE', __FILE__ );

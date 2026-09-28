@@ -17,12 +17,14 @@
 }
 
 /* One module card. The surface, border, radius and shadow are already set by
-.rk-ui-card, so this only stacks the contents and owns the inner padding. */
+.rk-ui-card, so this only stacks the contents and owns the inner padding. No
+overflow clipping is set here, because a clip would cut the focus ring painted
+outside the card edge on the Settings link and the toggle button. Nothing in
+this card overflows its own box, so the clip bought nothing. */
 .rk-dashboard .rk-card {
 	display: flex;
 	flex-direction: column;
 	padding: 0;
-	overflow: hidden;
 }
 
 /* Inside a grid card the shared card header drops its divider, so the card
