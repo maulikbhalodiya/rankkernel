@@ -11,7 +11,8 @@
  *
  * The Schema accent uses the reserved secondary 2 pair, the violet hue the
  * token layer sets aside for Schema and structured data only. It is the
- * page accent, the badge and the card highlight. No other hue is introduced
+ * page accent and the card highlight here, and the shared rk-ui-pill-schema
+ * variant carries the same pair for the badge. No other hue is introduced
  * here, and the primary blue is not used as an accent.
  *
  * @package RankKernel
@@ -77,7 +78,7 @@
    five semantic ones in rankkernel-ui.css, so it needs no rule here. */
 
 /* ==========================================================================
-   Checkbox sentence and field widths
+   Checkbox sentence inside a labelled row
    ========================================================================== */
 
 /* A checkbox that sits inside a labelled sentence. The sentence is the
