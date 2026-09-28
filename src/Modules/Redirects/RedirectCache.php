@@ -145,13 +145,23 @@ final class RedirectCache {
 	}
 
 	/**
+	 * Reset static request-level memoization (primarily for unit tests).
+	 *
+	 * Clears static validator memoization so test suites can maintain
+	 * complete test isolation across runs.
+	 */
+	public static function resetCache(): void {
+		self::$cachedValidator = null;
+	}
+
+	/**
 	 * Bump the global validator, synchronously visible to all requests.
 	 *
 	 * The validator covers single matches and the pattern list alike, so a
 	 * toggle without a repository instance still retires both.
 	 */
 	public static function invalidateAll(): void {
-		self::$cachedValidator = null;
+		self::resetCache();
 		RedirectRepository::resetMemo();
 		update_option( self::VALIDATOR_OPTION, (string) time() . '_' . uniqid( '', true ), false );
 	}

@@ -100,55 +100,81 @@ final class Matcher {
 			return null;
 		}
 
-		$active = [];
+		// Performance optimization: bucket active rules by match_type in a single pass
+		// to avoid iterating over the full rule list up to 6 times across tier pickers.
+		$byType = [
+			'exact'    => [],
+			'prefix'   => [],
+			'wildcard' => [],
+			'contains' => [],
+			'suffix'   => [],
+			'regex'    => [],
+		];
+
+		$hasActive = false;
 
 		foreach ( $rules as $rule ) {
-			if ( ! is_array( $rule ) ) {
+			if ( ! is_array( $rule ) || 1 !== (int) ( $rule['is_active'] ?? 0 ) ) {
 				continue;
 			}
 
-			if ( 1 !== (int) ( $rule['is_active'] ?? 0 ) ) {
-				continue;
-			}
+			$type = (string) ( $rule['match_type'] ?? 'exact' );
 
-			$active[] = $rule;
+			if ( isset( $byType[ $type ] ) ) {
+				$byType[ $type ][] = $rule;
+				$hasActive         = true;
+			}
 		}
 
-		if ( [] === $active ) {
+		if ( ! $hasActive ) {
 			return null;
 		}
 
-		$winner = self::pick_exact( $path, $active );
+		if ( [] !== $byType['exact'] ) {
+			$winner = self::pick_exact( $path, $byType['exact'] );
 
-		if ( null !== $winner ) {
-			return $winner;
+			if ( null !== $winner ) {
+				return $winner;
+			}
 		}
 
-		$winner = self::pick_prefix( $path, $active );
+		if ( [] !== $byType['prefix'] ) {
+			$winner = self::pick_prefix( $path, $byType['prefix'] );
 
-		if ( null !== $winner ) {
-			return $winner;
+			if ( null !== $winner ) {
+				return $winner;
+			}
 		}
 
-		$winner = self::pick_wildcard( $path, $active );
+		if ( [] !== $byType['wildcard'] ) {
+			$winner = self::pick_wildcard( $path, $byType['wildcard'] );
 
-		if ( null !== $winner ) {
-			return $winner;
+			if ( null !== $winner ) {
+				return $winner;
+			}
 		}
 
-		$winner = self::pick_contains( $path, $active );
+		if ( [] !== $byType['contains'] ) {
+			$winner = self::pick_contains( $path, $byType['contains'] );
 
-		if ( null !== $winner ) {
-			return $winner;
+			if ( null !== $winner ) {
+				return $winner;
+			}
 		}
 
-		$winner = self::pick_suffix( $path, $active );
+		if ( [] !== $byType['suffix'] ) {
+			$winner = self::pick_suffix( $path, $byType['suffix'] );
 
-		if ( null !== $winner ) {
-			return $winner;
+			if ( null !== $winner ) {
+				return $winner;
+			}
 		}
 
-		return self::pick_regex( $path, $active );
+		if ( [] !== $byType['regex'] ) {
+			return self::pick_regex( $path, $byType['regex'] );
+		}
+
+		return null;
 	}
 
 	/**
