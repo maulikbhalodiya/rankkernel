@@ -9,6 +9,41 @@ Companion documents:
 - `docs/DESIGN-TODO.md` — your task board. Maintain it as you work.
 - `docs/design-task.md` — the earlier design brief, still valid for token and CSS detail.
 
+## 0. If You Are Starting From a Fresh Clone
+
+Everything you need is committed on `main`. Nothing important lives only on someone's disk.
+
+The repository is **public**, so either transport works. Use HTTPS if you have no SSH key configured:
+
+```bash
+git clone https://github.com/maulikbhalodiya/rankkernel.git
+# or, with SSH:
+git clone git@github.com:maulikbhalodiya/rankkernel.git
+cd rankkernel
+git checkout main
+composer install
+```
+
+You need push access to open a design PR. If your clone is read-only, stop and report that rather than working locally and losing the work.
+
+Reference material that must be present before you design, and is on `main`:
+
+| Path | What it is |
+|---|---|
+| `docs/RANKKERNEL-CURRENT-STATE.md` | Factual snapshot. Read first. |
+| `docs/DESIGN-AGENT-HANDOFF.md` | This file. |
+| `docs/DESIGN-TODO.md` | Task board. |
+| `docs/design-task.md` | Earlier design brief. |
+| `docs/designcode/redirection-page.html` | **Approved** Redirects design. |
+| `docs/designcode/instant-indexing.html` | **Approved** Instant Indexing design. |
+| `docs/designcode/instant-indexing-stitch-prompt-spec.txt` | Full Instant Indexing spec. |
+| `docs/designcode/instant-indexing-stitch-prompt-v4.txt` | Prompts, v4. |
+| `docs/designcode/instant-indexing-stitch-prompt.txt` | Prompts, early. |
+
+**If `docs/designcode/` is missing, stop and report it.** Those five files are the approved fidelity targets for Redirects and Instant Indexing. Do not design those two pages from imagination if they are absent, and do not claim they were missing if you simply did not pull `main`.
+
+The five `docs/designcode/` files are **visual references, never specifications.** If a mockup and the code disagree, the code wins.
+
 ---
 
 ## 1. Mission
@@ -135,13 +170,37 @@ The correct outcome was to design the panel without them.
 
 ### Worktree rule
 
-Use the **dedicated design worktree** at:
+Work on a **dedicated design worktree**, separate from any engineering worktree. It is a sibling checkout of the plugin, conventionally at `…/plugins/rankkernel-design`, but **the path is not fixed** — any path outside the engineering checkout is fine.
 
-```
-…/plugins/rankkernel-design
+**You may be running on a machine where it does not exist yet.** Check first:
+
+```bash
+git worktree list
 ```
 
-It is on branch `design/pending`, based on current `main`. Create your task branch from `origin/main` inside it.
+If no design worktree is listed, create one and do not block on it:
+
+```bash
+git fetch origin
+git worktree add ../rankkernel-design -b design/<short-task-name> origin/main
+cd ../rankkernel-design
+```
+
+If a design worktree already exists, use it and create your task branch inside it from current `main`:
+
+```bash
+cd ../rankkernel-design
+git fetch origin
+git checkout -b design/<short-task-name> origin/main
+```
+
+Then install the dev toolchain in that worktree, because a linked worktree gets its own empty working tree and **no `vendor/`**:
+
+```bash
+composer install
+```
+
+`vendor/` is gitignored and must never be committed, but every gate in section 12 needs it. The plugin has **no Composer runtime dependency** — it autoloads itself via `rankkernel.php` — so `vendor/` is only for the test and static-analysis tools.
 
 The engineering worktree and the design worktree must **never** be edited by the same agent at the same time. If you are unsure whether an engineering worktree is active, do not touch it.
 
@@ -356,7 +415,7 @@ These are real, verified, and **not yours to fix** unless engineering asks. Do n
 ## 18. First Three Actions
 
 1. Read `docs/RANKKERNEL-CURRENT-STATE.md` end to end.
-2. Read `docs/DESIGN-TODO.md` and confirm the board matches the repository.
-3. Start `design/design-system` in the design worktree.
+2. Confirm `docs/designcode/` contains all five reference files, then read the one for the page you are about to design.
+3. Create your design worktree (section 6) if it does not exist, run `composer install`, then start `design/design-system` from `origin/main`.
 
 Then continue autonomously per section 15.

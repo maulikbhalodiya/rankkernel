@@ -12,24 +12,32 @@ Everything below was verified against `origin/main` and the live GitHub API on *
 
 | Item | Value | How verified |
 | --- | --- | --- |
-| `main` HEAD | `c2ec6df` | `git rev-parse origin/main` |
+| `main` HEAD | `b02862a` | `git rev-parse origin/main` |
 | Date of this snapshot | 2026-09-28 | session date |
 | Plugin version | `0.1.0` | `rankkernel.php` `RANKKERNEL_VERSION` and plugin header |
 | PHP tests | **1644 tests / 6842 assertions** | `composer test` on a clean `origin/main` worktree |
 | JS tests | **142 / 142 pass** | `composer test:js` |
 | PHPCS | **exit 0**, no violations | `composer lint` |
 | PHPStan | **[OK] No errors**, level 6 | `composer stan` |
-| `node --check` | clean across `assets/js` | `find assets/js -name '*.js' -print0 \| xargs -0 -n1 node --check` |
+| `node --check` | clean across **32** JS files (all non-vendor JS, including `src/Modules/*/blocks/`) | `find . -name '*.js' -not -path './vendor/*' -print0 \| xargs -0 -n1 node --check` |
 | Open PRs | **0** | `gh pr list --state open` |
-| Open issues | **2**: #111, #82 | `gh issue list --state open` |
+| Open issues | **3**: #118, #111, #82 | `gh issue list --state open` |
 | Recently closed | **#104** (owner, 2026-09-28T10:32:47Z, two seconds after #115 merged), #112, #91, #90, #88 | GitHub API timeline |
 | Active workers | **0** (all complete) | background task notifications |
-| Tracked tree cleanliness | clean in every worktree | `git status --porcelain` |
-| Worktrees | 4 (see section 3) | `git worktree list` |
+| Tracked tree cleanliness | clean in the design worktree; the shared `GH-88` checkout has 3 untracked local paths (see note) | `git status --porcelain` |
+| Worktrees | 2 (see section 3) | `git worktree list` |
 
 ### Environment note
 
 The shared checkout is on branch `GH-88` at `2ee0c5d`. That is an **old** branch, so any path-based inspection inside it reflects stale content. All state in this document was read from `origin/main` via `git show origin/main:<path>` or from a clean `origin/main` worktree. Reproduce with `git worktree add --detach /tmp/x origin/main`.
+
+The shared checkout additionally carries three untracked local paths, none of which is on `main` and none of which any canonical document depends on:
+
+* `docs/competitor-analysis/` — competitive research and audits, including `indexnow-behavioral-spec.md`
+* `docs/designcode/` — **superseded.** These five files are now committed on `main`; they only still appear untracked in this stale branch
+* `docs/superpowers/` — working plan material
+
+They were deliberately left uncommitted. Do not assume they exist on another machine.
 
 ---
 
@@ -85,9 +93,9 @@ Verified by searching for a module class or directory for each, not by grepping 
 | Path | Branch | HEAD | Owner | Purpose |
 | --- | --- | --- | --- | --- |
 | `…/plugins/rankkernel` | `GH-88` | `2ee0c5d` | shared checkout | Stale branch. Not `main`. Do not treat its files as current |
-| `…/plugins/rankkernel-design` | `design/pending` | `c2ec6df` | **design agent** | Dedicated design worktree, based on current `main` |
-| `/tmp/opencode/docs` | `docs/state-baseline` | `c2ec6df` | coordinator | This document |
-| `/tmp/opencode/vmain` | detached | `a564ecb` | coordinator | Scratch verification worktree, safe to remove |
+| `…/plugins/rankkernel-design` | `design/pending` | `b02862a` | **design agent** | Dedicated design worktree, based on current `main` |
+
+**There is no local checkout of `main`.** Both checkouts above are verified per-row; the design worktree is the only one tracking current `main`.
 
 **Rule:** the engineering worktree and the design worktree must never be edited by the same agent at the same time.
 
@@ -97,7 +105,7 @@ Verified against the GitHub API. Only verified rows are listed.
 
 | Branch | Issue | PR | Status | Owner/Worker | Purpose | Safe to merge? |
 | --- | --- | --- | --- | --- | --- | --- |
-| `main` | — | — | `c2ec6df` | — | Trunk | n/a |
+| `main` | — | #116, #117, #119 | **MERGED** `b02862a` | coordinator | Trunk. Latest is the design-references merge | n/a |
 | `GH-112` | #112 | #113 | **MERGED** `b20c929` | coordinator | Autoload without Composer | Done |
 | `GH-104` | #104 | #114 | **MERGED** `a564ecb` | coordinator | Critical error handling | Done |
 | `GH-104-importants` | #104 | #115 | **MERGED** `c2ec6df` | coordinator | Important resilience fixes | Done |
@@ -105,8 +113,9 @@ Verified against the GitHub API. Only verified rows are listed.
 | `GH-91` | #91 | #110 | **MERGED** `7170449` | coordinator | Security and privacy | Done |
 | `GH-88` | #88 | #99 | **MERGED** `b72be63` | coordinator | Instant Indexing log | Done |
 | Bot branches (7) | none | #100–#107 | **MERGED** | bots | Auditor/Sentinel/Palette/Bolt fixes | Done |
-| `docs/state-baseline` | — | — | in progress | coordinator | This document | After review |
-| `design/pending` | — | — | idle | design agent | Design worktree placeholder | Never merge as is |
+| `docs/state-baseline` | — | #116, #117 | **MERGED** | coordinator | Canonical state document | Done |
+| `docs/design-references` | — | #119 | **MERGED** `b02862a` | coordinator | Approved design references + #111 overlap rule | Done |
+| `design/pending` | — | — | idle | design agent | Design worktree placeholder. Not on remote | Never merge as is |
 
 ### Closed without merge
 
@@ -276,11 +285,11 @@ Verified from `src/Admin/AdminMenu.php`, `src/Admin/Views/`, and the page classe
 | Artifact | Location | Status |
 | --- | --- | --- |
 | Design handoff brief | `docs/design-task.md` on `main` | Tracked, 16 sections |
-| Redirects approved design | `docs/designcode/redirection-page.html` | **Untracked locally only** |
-| Instant Indexing approved design | `docs/designcode/instant-indexing.html` | **Untracked locally only** |
-| Instant Indexing Stitch prompts (3) | `docs/designcode/*.txt` | **Untracked locally only** |
+| Redirects approved design | `docs/designcode/redirection-page.html` | **On `main`** (`b02862a`, PR #119) |
+| Instant Indexing approved design | `docs/designcode/instant-indexing.html` | **On `main`** (`b02862a`, PR #119) |
+| Instant Indexing Stitch prompts (3) | `docs/designcode/*.txt` | **On `main`** (`b02862a`, PR #119) |
 
-**Important:** the `docs/designcode/` artifacts are **not on `main`**. A design agent on another machine will not see them. They must be committed before the design work starts, or the design agent must be given them directly.
+**Resolved:** these five files were previously untracked local-only material. They are committed on `main` as of `b02862a` (PR #119), byte-identical to the approved originals. Any clone of `main` has them. A design agent on a different machine **can** see them.
 
 ### Stitch reference status
 
