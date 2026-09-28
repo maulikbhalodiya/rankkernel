@@ -80,6 +80,29 @@ Only where the change does not alter backend behaviour:
 
 **Also never:** weaken a sanitizer, remove an escape call, drop a nonce field, change a capability check, or remove a `function_exists` guard to make markup simpler.
 
+### Active engineering work — do not collide with it
+
+**Issue #111** is live engineering work (user-facing JavaScript strings that do not pass through translation). It is **not** a design defect, and design must not absorb it.
+
+The seven files under active #111 scope:
+
+* `assets/js/analysis-editor.js`
+* `assets/js/analysis/analyzer.js`
+* `assets/js/instant-indexing-admin.js`
+* `assets/js/redirects-admin.js`
+* `assets/js/schema-metabox.js`
+* `assets/js/schema-settings.js`
+* `assets/js/settings-admin.js`
+
+Rules:
+
+1. **Do not fix #111 as part of a design change.** Do not wrap those strings, do not restructure their JavaScript, do not redesign the module architecture because a file appears in the list.
+2. **Do not let #111 block design.** Design proceeds independently. The pages that use these files are not frozen.
+3. **If a design change must touch one of these files**, keep it to layout, markup hooks, class names, or CSS hooks. **Leave the existing string literals exactly as they are.**
+4. **If the overlap is genuine and unavoidable**, stop, inspect the exact lines, and coordinate through the engineering branch or PR. **Never overwrite or revert another branch's work**, and never resolve a conflict by discarding engineering changes.
+
+Translation is an engineering fix. Layout is a design fix. Keep them separate.
+
 ---
 
 ## 5. Stitch Safety Rule
