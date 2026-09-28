@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\HtaccessFile;
 
@@ -116,6 +118,72 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertFalse( $result['saved'] );
 		$this->assertSame( 'unsupported', $result['reason'] );
 		$this->assertFalse( $file->isSupported() );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_MODS constant blocks saving and writability.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_mods_blocks_writability_and_saving(): void {
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path      = $temp;
+		$this->supported = true;
+
+		$file = new HtaccessFile();
+
+		$this->assertFalse( $file->isWritable() );
+
+		$result = $file->save( "# attempt\n" );
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertSame( '', $result['backup'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_EDIT constant blocks saving and writability.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_edit_blocks_writability_and_saving(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path      = $temp;
+		$this->supported = true;
+
+		$file = new HtaccessFile();
+
+		$this->assertFalse( $file->isWritable() );
+
+		$result = $file->save( "# attempt\n" );
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertSame( '', $result['backup'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}

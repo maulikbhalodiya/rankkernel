@@ -88,6 +88,13 @@ final class HtaccessFile {
 	 * @return bool The result.
 	 */
 	public function isWritable(): bool {
+		if (
+			( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT )
+			|| ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS )
+		) {
+			return false;
+		}
+
 		$path = $this->path();
 
 		if ( '' === $path ) {
@@ -127,6 +134,14 @@ final class HtaccessFile {
 			return [
 				'saved'  => false,
 				'reason' => 'unsupported',
+				'backup' => '',
+			];
+		}
+
+		if ( ! $this->isWritable() ) {
+			return [
+				'saved'  => false,
+				'reason' => 'not_writable',
 				'backup' => '',
 			];
 		}
