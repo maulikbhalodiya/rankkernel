@@ -108,6 +108,12 @@ final class SettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
+		// Read only failure flag, sanitized below. It rides the rk_notice
+		// query argument shared with the section notices.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
+		$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
+
 		$allSettings = $this->store->all();
 
 		$titleTemplate        = (string) ( $allSettings['title_template'] ?? '' );
@@ -355,6 +361,12 @@ final class SettingsPage {
 		$partial = ( null !== $this->partial && in_array( $this->partial, $sectionIds, true ) ) ? $this->partial : null;
 
 		if ( null !== $partial ) {
+			if ( $settingsSaveFailed ) {
+				?>
+				<div class="notice notice-error"><p><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
+				<?php
+			}
+
 			require __DIR__ . '/Views/sections/' . $partial . '.php';
 
 			submit_button( __( 'Save Settings', 'rankkernel' ), 'primary', 'rankkernel_save' );
@@ -411,8 +423,10 @@ final class SettingsPage {
 	 * Field names carry an rk_robots_ prefix so they never collide with the
 	 * other sections. The override is only written when the editor posted
 	 * it, so saving from the preview tab keeps the stored override.
+	 *
+	 * @return bool Whether the robots settings were stored.
 	 */
-	private function saveRobots(): void {
+	private function saveRobots(): bool {
 		$settings = $this->robots ?? new RobotsSettings();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
@@ -429,7 +443,7 @@ final class SettingsPage {
 			$partial['override'] = is_string( $rawOverride ) ? $rawOverride : '';
 		}
 
-		$settings->set( $partial );
+		return $settings->set( $partial );
 	}
 
 	/**
@@ -469,8 +483,10 @@ final class SettingsPage {
 	 *
 	 * Field names carry an rk_llms_ prefix. Values sanitize through the
 	 * llms settings store, then the cached document is invalidated.
+	 *
+	 * @return bool Whether the llms settings were stored.
 	 */
-	private function saveLlms(): void {
+	private function saveLlms(): bool {
 		$settings = $this->llms ?? new LlmsSettings();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
@@ -478,7 +494,7 @@ final class SettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
 		$rawContent = isset( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';
 
-		$settings->set(
+		$saved = $settings->set(
 			[
 				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
 				'enabled'  => isset( $_POST['rk_llms_enabled'] ),
@@ -490,6 +506,8 @@ final class SettingsPage {
 		);
 
 		LlmsRouter::invalidate();
+
+		return $saved;
 	}
 
 	/**
@@ -623,19 +641,23 @@ final class SettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified.
 		$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );
 
-		$this->store->set( $partial );
+		$saved = $this->store->set( $partial );
 
-		$this->saveBreadcrumbs();
+		$saved = $this->saveBreadcrumbs() && $saved;
 
 		if ( $this->enableMap->isEnabled( 'robots' ) ) {
-			$this->saveRobots();
-			$this->saveLlms();
+			$saved = $this->saveRobots() && $saved;
+			$saved = $this->saveLlms() && $saved;
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
 		$section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
-		$redirect = admin_url( 'admin.php?page=rankkernel-general' . ( '' !== $section ? '&section=' . $section : '' ) . '&settings-updated=1' );
+		// A failed write is reported on the same rk_notice channel the section
+		// notices use, so the redirect never claims a write that did not happen.
+		$notice = $saved ? 'settings-updated=1' : 'rk_notice=save_failed';
+
+		$redirect = admin_url( 'admin.php?page=rankkernel-general' . ( '' !== $section ? '&section=' . $section : '' ) . '&' . $notice );
 		$this->redirectTo( $redirect );
 	}
 
@@ -722,8 +744,10 @@ final class SettingsPage {
 	 * post types that render a select (two or more usable public
 	 * taxonomies); hidden controls post nothing, so their stored values
 	 * are preserved and never deleted.
+	 *
+	 * @return bool Whether the breadcrumbs settings were stored.
 	 */
-	private function saveBreadcrumbs(): void {
+	private function saveBreadcrumbs(): bool {
 		$partial = [];
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in handleSave.
@@ -781,7 +805,7 @@ final class SettingsPage {
 			$partial[ $key ] = is_string( $raw ) ? $raw : '';
 		}
 
-		$this->breadcrumbsSettings()->set( $partial );
+		return $this->breadcrumbsSettings()->set( $partial );
 	}
 
 	/**

@@ -382,6 +382,27 @@ final class MonitorAdminTest extends TestCase {
 	}
 
 	/**
+	 * A clear that leaves rows behind reports a partial clear, not a full one.
+	 *
+	 * The clear loop is bounded at 20 passes of 500, so a log above 10000 rows
+	 * keeps the remainder and the notice must say so.
+	 */
+	public function test_clear_with_rows_remaining_reports_a_partial_clear(): void {
+		$this->seedMany( 10001 );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postClear();
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertStringContainsString( 'rk_notice=cleared_partial', $this->lastRedirect );
+		$this->assertNotSame( [], $this->db->rows, 'the bounded loop must leave the overflow rows in place' );
+	}
+
+	/**
 	 * Bulk delete removes the chosen rows.
 	 */
 	public function test_bulk_delete_removes_chosen_rows(): void {
@@ -1042,6 +1063,20 @@ final class MonitorAdminTest extends TestCase {
 		$html = $this->renderPage( $page );
 
 		$this->assertStringContainsString( 'Redirect saved.', $html );
+	}
+
+	/**
+	 * A partial clear renders the partial notice, never the full clear one.
+	 */
+	public function test_cleared_partial_notice_renders(): void {
+		$page = $this->makePage();
+
+		$_GET = [ 'rk_notice' => 'cleared_partial' ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'partially cleared', $html );
+		$this->assertStringNotContainsString( '404 log cleared.', $html );
 	}
 
 	/**

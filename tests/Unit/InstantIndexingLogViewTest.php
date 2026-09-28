@@ -366,6 +366,7 @@ final class InstantIndexingLogViewTest extends TestCase {
 		$this->assertSame( 'error', (string) ( InstantIndexingLogView::noticeFor( 'empty' )['type'] ?? '' ) );
 		$this->assertSame( 'error', (string) ( InstantIndexingLogView::noticeFor( 'disabled' )['type'] ?? '' ) );
 		$this->assertSame( 'error', (string) ( InstantIndexingLogView::noticeFor( 'unvalidated' )['type'] ?? '' ) );
+		$this->assertSame( 'error', (string) ( InstantIndexingLogView::noticeFor( 'storage_failed' )['type'] ?? '' ) );
 		$this->assertSame( 'info', (string) ( InstantIndexingLogView::noticeFor( 'cleared' )['type'] ?? '' ) );
 		$this->assertNull( InstantIndexingLogView::noticeFor( 'nope' ) );
 		$this->assertNull( InstantIndexingLogView::noticeFor( '' ) );

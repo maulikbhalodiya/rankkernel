@@ -132,6 +132,59 @@ final class SchemaGeneratorTest extends TestCase {
 	}
 
 	/**
+	 * Stub Piece whose build throws.
+	 *
+	 * @param string $id Id.
+	 * @return PieceInterface The result.
+	 */
+	private function throwingPiece( string $id ): PieceInterface {
+		return new class($id) implements PieceInterface {
+			/**
+			 * Create a new instance.
+			 *
+			 * @param privatereadonlystring $id Id.
+			 */
+			public function __construct( private readonly string $id ) {
+			}
+
+			/**
+			 * Get Id.
+			 *
+			 * @return string The result.
+			 */
+			public function getId(): string {
+				return $this->id;
+			}
+
+			/**
+			 * Is Needed.
+			 *
+			 * @param Context $ctx Ctx.
+			 * @return bool The result.
+			 */
+			public function isNeeded( Context $ctx ): bool {
+				return true;
+			}
+
+			/**
+			 * Build.
+			 *
+			 * @param Context $ctx Ctx.
+			 * @return array The result.
+			 * @throws \RuntimeException Always, to exercise the drop path.
+			 */
+			public function build( Context $ctx ): array {
+				unset( $ctx );
+
+				throw new \RuntimeException( 'piece build failure' );
+
+				// phpcs:ignore Squiz.PHP.NonExecutableCode.Unreachable -- keeps the declared return contract explicit for the throwing seam.
+				return [];
+			}
+		};
+	}
+
+	/**
 	 * Test only needed pieces build.
 	 */
 	public function test_only_needed_pieces_build(): void {
@@ -260,5 +313,87 @@ final class SchemaGeneratorTest extends TestCase {
 		$doc = $generator->generate( $this->makeContext() );
 
 		$this->assertSame( [], $doc['@graph'] );
+	}
+
+	/**
+	 * A throwing piece is dropped and never escapes the generator.
+	 *
+	 * The graph is not load bearing, so the good piece still renders and the
+	 * failure is logged instead of bubbling out of generate().
+	 */
+	public function test_throwing_piece_is_dropped_without_escaping(): void {
+		$ctx       = $this->makeContext();
+		$generator = new Generator();
+		$generator->register( $this->throwingPiece( 'broken' ) );
+		$generator->register( $this->stubPiece( 'site', true, [ '@type' => 'WebSite' ] ) );
+
+		$failures = [];
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$failures ): void {
+				$failures[] = $hook;
+			}
+		);
+
+		$doc = $generator->generate( $ctx );
+
+		$this->assertCount( 1, $doc['@graph'], 'The failing piece must be dropped, the good piece kept' );
+		$this->assertSame( 'WebSite', $doc['@graph'][0]['@type'] );
+		$this->assertContains( 'rankkernel/schema/failed', $failures, 'The piece failure must be logged' );
+	}
+
+	/**
+	 * A throwing needs filter drops only the affected piece.
+	 */
+	public function test_throwing_needs_filter_drops_only_that_piece(): void {
+		$ctx       = $this->makeContext();
+		$generator = new Generator();
+		$generator->register( $this->stubPiece( 'alpha', true, [ '@type' => 'Alpha' ] ) );
+		$generator->register( $this->stubPiece( 'beta', true, [ '@type' => 'Beta' ] ) );
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/schema/needs_beta' === $hook ) {
+					throw new \RuntimeException( 'needs failure' );
+				}
+
+				return $value;
+			}
+		);
+
+		$doc = $generator->generate( $ctx );
+
+		$this->assertCount( 1, $doc['@graph'] );
+		$this->assertSame( 'Alpha', $doc['@graph'][0]['@type'] );
+	}
+
+	/**
+	 * A throwing graph filter falls back to the assembled graph.
+	 */
+	public function test_throwing_graph_filter_falls_back_to_the_assembled_graph(): void {
+		$ctx       = $this->makeContext();
+		$generator = new Generator();
+		$generator->register( $this->stubPiece( 'site', true, [ '@type' => 'WebSite' ] ) );
+
+		$failures = [];
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/schema/graph' === $hook ) {
+					throw new \RuntimeException( 'graph failure' );
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$failures ): void {
+				$failures[] = $hook;
+			}
+		);
+
+		$doc = $generator->generate( $ctx );
+
+		$this->assertCount( 1, $doc['@graph'], 'The pre filter graph must survive a throwing graph filter' );
+		$this->assertSame( 'WebSite', $doc['@graph'][0]['@type'] );
+		$this->assertContains( 'rankkernel/schema/failed', $failures, 'The graph filter failure must be logged' );
 	}
 }

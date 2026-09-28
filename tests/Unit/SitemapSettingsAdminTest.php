@@ -228,6 +228,60 @@ final class SitemapSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * A save that stores nothing redirects with the failure flag.
+	 *
+	 * The post types tab collects one key per public post type, so with no
+	 * public types the partial is empty and the store saves nothing. The
+	 * redirect must not claim settings were updated.
+	 */
+	public function test_save_with_nothing_to_store_redirects_with_failure(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_types' )->justReturn( [] );
+
+		$redirect = null;
+
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['tab']               = 'post-types';
+		$_POST                     = [
+			'rankkernel_sitemap_save' => '1',
+			'_wpnonce'                => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertStringContainsString( 'rk_notice=save_failed', (string) $redirect );
+		$this->assertStringNotContainsString( 'settings-updated=1', (string) $redirect );
+	}
+
+	/**
+	 * The page renders the save failed notice from the failure flag.
+	 */
+	public function test_render_shows_the_save_failed_notice(): void {
+		$page = $this->makePage();
+
+		$_GET['rk_notice'] = 'save_failed';
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings could not be saved', $html );
+	}
+
+	/**
 	 * Test save post types checkbox semantics.
 	 */
 	public function test_save_post_types_checkbox_semantics(): void {

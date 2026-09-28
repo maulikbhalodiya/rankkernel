@@ -60,6 +60,7 @@
  * @var string $schemaExportUrl          Schema export URL.
  * @var bool   $analysisEnabled          Whether the analysis module is enabled.
  * @var string[] $focusKeywords          Stored focus keywords, primary first.
+ * @var string $metaNoticeMessage        Sanitized notice key from the redirect query arg.
  */
 
 declare(strict_types=1);
@@ -104,6 +105,10 @@ if ( $schemaDisabled ) {
 <?php wp_nonce_field( 'rankkernel_meta_save', 'rankkernel_meta_nonce' ); ?>
 <?php wp_nonce_field( 'rankkernel_schema_save', 'rankkernel_schema_nonce' ); ?>
 <input type="hidden" name="rankkernel_meta_fields" value="1" />
+
+<?php if ( 'save-failed' === $metaNoticeMessage ) : ?>
+	<div class="notice notice-error is-dismissible"><p><?php echo esc_html__( 'The SEO fields could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
+<?php endif; ?>
 
 <div class="rankkernel-meta-editor" data-rankkernel-meta-editor="1">
 	<div class="rk-classic-tabs" role="tablist" aria-label="<?php echo esc_attr( __( 'SEO settings sections', 'rankkernel' ) ); ?>" data-rankkernel-tabs="1">

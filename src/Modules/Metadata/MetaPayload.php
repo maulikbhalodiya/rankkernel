@@ -147,12 +147,21 @@ final class MetaPayload {
 	 *
 	 * Unknown top-level keys are dropped; missing keys are filled from defaults.
 	 *
-	 * @param array<string, mixed> $payload Raw payload.
+	 * @param mixed $payload Raw payload.
 	 * @return array<string, mixed>
 	 */
-	public static function sanitize( array $payload ): array {
+	public static function sanitize( mixed $payload ): array {
 		$defaults = self::defaults();
-		$out      = $defaults;
+
+		// WordPress can call a registered meta sanitize callback with a scalar,
+		// for example a form field value or a write from other code. A strict
+		// array parameter would throw a type error, so non array input is
+		// mapped to the same shape an empty array produces instead.
+		if ( ! is_array( $payload ) ) {
+			return $defaults;
+		}
+
+		$out = $defaults;
 
 		if ( isset( $payload['title'] ) ) {
 			$out['title'] = sanitize_text_field( (string) $payload['title'] );

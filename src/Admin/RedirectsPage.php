@@ -1561,9 +1561,39 @@ final class RedirectsPage {
 		}
 
 		$result   = $this->repository->bulk( $action, $ids );
-		$affected = 'delete' === $action ? (int) $result['deleted'] : (int) $result['updated'];
+		$affected = $this->bulkAffectedCount( $result, $action );
+
+		// A result missing the expected count key is never read directly, so a
+		// database error that changes the shape reports a failure instead of a
+		// wrong affected count.
+		if ( null === $affected ) {
+			$this->redirect( '&rk_error=save_failed' );
+
+			return;
+		}
 
 		$this->redirect( '&rk_notice=bulk&rk_bulk=' . $action . '&rk_count=' . $affected );
+	}
+
+	/**
+	 * Affected row count from a repository bulk result.
+	 *
+	 * The expected key is validated before it is read, so a result that does
+	 * not carry the count returns null and the caller reports a failure rather
+	 * than reading a missing key.
+	 *
+	 * @param array<string, mixed> $result Repository bulk result.
+	 * @param string               $action Bulk action, one of activate, deactivate, delete.
+	 * @return int|null Affected count, or null when the expected key is absent.
+	 */
+	public function bulkAffectedCount( array $result, string $action ): ?int {
+		$key = 'delete' === $action ? 'deleted' : 'updated';
+
+		if ( ! isset( $result[ $key ] ) ) {
+			return null;
+		}
+
+		return (int) $result[ $key ];
 	}
 
 	/**

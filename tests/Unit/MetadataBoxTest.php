@@ -110,6 +110,13 @@ final class MetadataBoxTest extends TestCase {
 		};
 
 		Functions\when( 'wp_unslash' )->alias( $unslash );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( string $key, string $value, string $url ): string {
+				$separator = str_contains( $url, '?' ) ? '&' : '?';
+
+				return $url . $separator . $key . '=' . $value;
+			}
+		);
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
 		Functions\when( 'get_option' )->alias(
@@ -387,6 +394,47 @@ final class MetadataBoxTest extends TestCase {
 		$this->newBox()->handleSave( 11, (object) [ 'ID' => 11 ] );
 
 		$this->assertNull( $this->savedMeta );
+	}
+
+	/**
+	 * A failed metadata write is surfaced on the redirect as a failure status.
+	 */
+	public function test_save_reports_a_failed_write_on_the_redirect(): void {
+		Functions\when( 'update_post_meta' )->justReturn( false );
+
+		$_POST = $this->classicPost();
+
+		$box = $this->newBox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php?post=11&action=edit' );
+
+		$this->assertStringContainsString( 'rankkernel_meta_msg=save-failed', $redirect );
+	}
+
+	/**
+	 * A successful metadata write leaves the redirect untouched.
+	 */
+	public function test_save_leaves_the_redirect_untouched_on_success(): void {
+		$_POST = $this->classicPost();
+
+		$box      = $this->newBox();
+		$location = 'https://example.com/wp-admin/post.php?post=11&action=edit';
+
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertSame( $location, $box->filterRedirect( $location ) );
+	}
+
+	/**
+	 * The metabox renders an error notice when the save reported a failure.
+	 */
+	public function test_render_shows_the_save_failed_notice(): void {
+		$_GET['rankkernel_meta_msg'] = 'save-failed';
+
+		$out = $this->renderBox();
+
+		$this->assertStringContainsString( 'The SEO fields could not be saved', $out );
 	}
 
 	/**

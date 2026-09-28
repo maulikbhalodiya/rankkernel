@@ -473,6 +473,19 @@ final class SchemaSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test the page renders the save failed notice from the failure flag.
+	 */
+	public function test_render_shows_the_save_failed_notice(): void {
+		$_GET['rk_notice'] = 'save_failed';
+
+		ob_start();
+		$this->makePage()->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings could not be saved', $html );
+	}
+
+	/**
 	 * Test save persists and redirects.
 	 */
 	public function test_save_persists_and_redirects(): void {

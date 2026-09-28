@@ -167,6 +167,13 @@ final class InstantIndexingLogView {
 			];
 		}
 
+		if ( 'storage_failed' === $code ) {
+			return [
+				'type'    => 'error',
+				'message' => __( 'Could not record the outcome. The log could not be written, so the rejected URLs are not listed below. Please check the database and try again.', 'rankkernel' ),
+			];
+		}
+
 		return null;
 	}
 

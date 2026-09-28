@@ -1247,6 +1247,28 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * The bulk count helper rejects a result missing the expected key.
+	 */
+	public function test_bulk_affected_count_rejects_an_unexpected_shape(): void {
+		$page = $this->makePage();
+
+		$this->assertNull( $page->bulkAffectedCount( [ 'updated' => 2 ], 'delete' ) );
+		$this->assertNull( $page->bulkAffectedCount( [ 'deleted' => 2 ], 'activate' ) );
+
+		$deletedResult = [
+			'deleted' => 2,
+			'updated' => 0,
+		];
+		$updatedResult = [
+			'deleted' => 0,
+			'updated' => 3,
+		];
+
+		$this->assertSame( 2, $page->bulkAffectedCount( $deletedResult, 'delete' ) );
+		$this->assertSame( 3, $page->bulkAffectedCount( $updatedResult, 'activate' ) );
+	}
+
+	/**
 	 * Bulk without rows or action reports an error flag.
 	 */
 	public function test_bulk_without_selection_reports_error(): void {

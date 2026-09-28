@@ -16,6 +16,7 @@ use RankKernel\Admin\InstantIndexingPage;
 use RankKernel\Modules\InstantIndexing\IndexNowSettings;
 use RankKernel\Modules\InstantIndexing\LogFilters;
 use RankKernel\Modules\InstantIndexing\LogQuery;
+use RankKernel\Modules\InstantIndexing\LogTable;
 use RankKernel\Modules\ModuleEnableMap;
 
 /**
@@ -510,6 +511,39 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( 0, $entries[0]['code'] );
 		$this->assertSame( 'manual', $entries[0]['source'] );
 		$this->assertSame( 'Rejected: the URL host does not match this site.', $entries[0]['message'] );
+	}
+
+	/**
+	 * A rejection whose log write fails surfaces the storage failure.
+	 */
+	public function test_a_rejection_that_cannot_be_logged_reports_storage_failure(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+
+		$redirect = null;
+
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		// The log table probe fails, so the rejection can never be recorded.
+		$this->db->tableExists = false;
+		LogTable::resetCache();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://evil.test/a',
+		];
+
+		$this->page()->maybeHandleSave();
+
+		$this->assertStringContainsString( 'rk_indexnow_notice=storage_failed', (string) $redirect );
+		$this->assertSame( [], $this->logRows(), 'a rejected URL must never reach the log when the write fails' );
 	}
 
 	/**

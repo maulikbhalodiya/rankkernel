@@ -154,14 +154,23 @@ final class Redirector {
 			return;
 		}
 
-		$rule = $this->cache->get( $path );
+		try {
+			$rule = $this->cache->get( $path );
 
-		if ( null === $rule ) {
-			$rule = $this->matcher->match( $path );
+			if ( null === $rule ) {
+				$rule = $this->matcher->match( $path );
 
-			if ( null !== $rule ) {
-				$this->cache->set( $path, $rule );
+				if ( null !== $rule ) {
+					$this->cache->set( $path, $rule );
+				}
 			}
+		} catch ( \Throwable $throwable ) {
+			// A redirect is never load bearing. A failed cache read or matcher
+			// lookup must fail open so the page renders normally, with the
+			// failure logged rather than swallowed.
+			$this->logFailure( 'match', $throwable );
+
+			return;
 		}
 
 		if ( null === $rule || ! $this->isUsable( $rule ) ) {
@@ -194,6 +203,26 @@ final class Redirector {
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;
+		}
+	}
+
+	/**
+	 * Log a lookup failure without letting logging become a second failure.
+	 *
+	 * Follows the plugin failure convention: a diagnostic action plus a
+	 * warning, both guarded so they never run when WordPress is absent.
+	 *
+	 * @param string     $stage     Failing stage identifier.
+	 * @param \Throwable $throwable Captured failure.
+	 */
+	private function logFailure( string $stage, \Throwable $throwable ): void {
+		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			do_action( 'rankkernel/redirect/failed', $stage, $throwable );
+		}
+
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
 		}
 	}
 

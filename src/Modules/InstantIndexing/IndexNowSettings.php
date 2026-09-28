@@ -318,18 +318,18 @@ final class IndexNowSettings {
 	 * @param int    $code    HTTP status code.
 	 * @param string $source  Submitting surface, auto or manual.
 	 * @param string $message Human readable outcome.
-	 * @return void
+	 * @return bool Whether the row was written.
 	 */
-	public function logEntry( string $url, int $code, string $source, string $message ): void {
+	public function logEntry( string $url, int $code, string $source, string $message ): bool {
 		$db = $this->connection();
 
 		if ( null === $db || ! LogTable::exists() ) {
-			return;
+			return false;
 		}
 
 		// Custom log table has no core API, typed insert with a format list.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$db->insert(
+		$result = $db->insert(
 			LogTable::name(),
 			[
 				'url'     => $this->clamp( $url, 65535 ),
@@ -341,6 +341,8 @@ final class IndexNowSettings {
 			],
 			[ '%s', '%s', '%d', '%s', '%s', '%s' ]
 		);
+
+		return false !== $result;
 	}
 
 	/**

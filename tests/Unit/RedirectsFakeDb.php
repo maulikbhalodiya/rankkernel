@@ -85,6 +85,13 @@ final class RedirectsFakeDb {
 	public int $schemaProbes = 0;
 
 	/**
+	 * Throw from the schema probe instead of answering.
+	 *
+	 * @var bool
+	 */
+	public bool $throwOnProbe = false;
+
+	/**
 	 * Reset the redirect table existence cache so each test starts clean.
 	 */
 	public function __construct() {
@@ -131,6 +138,7 @@ final class RedirectsFakeDb {
 	 *
 	 * @param string $query Query.
 	 * @return mixed The result.
+	 * @throws \RuntimeException When the schema probe is configured to fail.
 	 */
 	public function get_var( string $query ): mixed {
 		++$this->reads;
@@ -138,6 +146,10 @@ final class RedirectsFakeDb {
 
 		if ( false !== strpos( $query, 'SHOW TABLES LIKE' ) ) {
 			++$this->schemaProbes;
+
+			if ( $this->throwOnProbe ) {
+				throw new \RuntimeException( 'schema probe failed' );
+			}
 
 			return $this->tableExists ? $this->table() : null;
 		}

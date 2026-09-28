@@ -300,4 +300,24 @@ final class RedirectsTableTest extends TestCase {
 		$this->assertTrue( RedirectTable::ensureTables() );
 		$this->assertSame( true, end( $values ), 'The last persistent write must record the table as present' );
 	}
+
+	/**
+	 * Test a throwing schema probe fails open and is logged.
+	 */
+	public function test_throwing_probe_reports_the_table_absent(): void {
+		$actions = array();
+
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$actions ): void {
+				$actions[] = $hook;
+			}
+		);
+
+		$this->db->throwOnProbe = true;
+
+		RedirectTable::resetCache();
+
+		$this->assertFalse( RedirectTable::exists(), 'A throwing probe must report the table as absent' );
+		$this->assertContains( 'rankkernel/redirect/failed', $actions, 'The probe failure must be logged' );
+	}
 }

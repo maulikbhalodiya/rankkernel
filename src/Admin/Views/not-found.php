@@ -10,6 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var string $noticeSuccess       Success notice text, empty when none renders.
+ * @var string $noticeWarning       Warning notice text, empty when none renders.
  * @var string $noticeError         Error notice text, empty when none renders.
  * @var string $carriedChain        Redirect chain path carried back from a redirect save.
  * @var bool   $carriedChainUnknown Whether the carried chain analysis was inconclusive.
@@ -53,6 +54,12 @@ defined( 'ABSPATH' ) || exit;
 if ( '' !== $noticeSuccess ) :
 	?>
 	<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $noticeSuccess ); ?></p></div>
+	<?php
+endif;
+
+if ( '' !== $noticeWarning ) :
+	?>
+	<div class="notice notice-warning is-dismissible"><p><?php echo esc_html( $noticeWarning ); ?></p></div>
 	<?php
 endif;
 
