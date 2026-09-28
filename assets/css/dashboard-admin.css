@@ -9,6 +9,13 @@
  * registered dependency.
  */
 
+/* The card grid needs no narrow width override. The auto-fill track already
+   collapses to one column as soon as two 280 pixel tracks no longer fit, and
+   it clamps to the container when even one does not fit, so this grid is a
+   single column at every width below about 576 pixels. The card actions row
+   below already wraps at any width, and the page header stacks itself in the
+   shared layer at 782 pixels, so there was no work left for a page media
+   query to do. */
 .rk-dashboard .rk-cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -64,12 +71,6 @@ reads as one block rather than a divided panel. */
 .rk-dashboard :focus-visible {
 	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
-}
-
-@media screen and (max-width: 782px) {
-	.rk-dashboard .rk-cards {
-		grid-template-columns: 1fr;
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
