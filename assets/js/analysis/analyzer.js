@@ -44,6 +44,7 @@
 	var TRANSITION_WORDS = [ 'also', 'although', 'because', 'but', 'consequently', 'finally', 'first', 'for example', 'however', 'instead', 'meanwhile', 'moreover', 'next', 'since', 'therefore', 'though', 'thus', 'while', 'additionally', 'as a result' ];
 	var GENERIC_ANCHORS = [ 'click here', 'read more', 'this', 'here', 'link', 'website' ];
 	var PASSIVE_PATTERN = /\b(is|are|was|were|be|been|being)[ \t\n\r\f\v]+(\w+ed|done|made|given|taken|seen|known|shown|held|built|sent|found|kept|left|written|read)\b/i;
+	var TRANSITION_PATTERN = new RegExp( ' (?:' + TRANSITION_WORDS.join( '|' ) + ') ' );
 
 	function identity( text ) {
 		return text;
@@ -550,11 +551,8 @@
 		var found = 0;
 		for ( var i = 0; i < ctx.sentences.length; i++ ) {
 			var padded = ' ' + KeywordMatcher.normalize( ctx.sentences[ i ], ctx.stripAccents ) + ' ';
-			for ( var j = 0; j < TRANSITION_WORDS.length; j++ ) {
-				if ( padded.indexOf( ' ' + TRANSITION_WORDS[ j ] + ' ' ) !== -1 ) {
-					found++;
-					break;
-				}
+			if ( TRANSITION_PATTERN.test( padded ) ) {
+				found++;
 			}
 		}
 		var ratio = found / ctx.sentences.length;
@@ -698,22 +696,27 @@
 	function analyze( input, options ) {
 		var data = input || {};
 		var opts = options || {};
-		var keywords = normalizeKeywords( data.keywords, opts.stripAccents );
-		if ( 0 === keywords.length ) {
-			return { score: 0, band: BAND_PROBLEM, checks: [], keywords: [] };
+		KeywordMatcher.beginNormalizeCache();
+		try {
+			var keywords = normalizeKeywords( data.keywords, opts.stripAccents );
+			if ( 0 === keywords.length ) {
+				return { score: 0, band: BAND_PROBLEM, checks: [], keywords: [] };
+			}
+			var extracted = extract( data );
+			var ctx = contextFor( data, extracted, opts, keywords[ 0 ] );
+			var primaryChecks = sharedChecks( ctx ).concat( keywordChecks( ctx ) ).concat( contentChecks( ctx ) );
+			var primaryScore = scoreOf( primaryChecks );
+			var entries = [ { keyword: keywords[ 0 ], primary: true, score: primaryScore, band: bandOf( primaryScore ), checks: primaryChecks } ];
+			for ( var i = 1; i < keywords.length; i++ ) {
+				var sharedCtx = contextFor( data, extracted, opts, keywords[ i ] );
+				var list = sharedChecks( sharedCtx );
+				var value = scoreOf( list );
+				entries.push( { keyword: keywords[ i ], primary: false, score: value, band: bandOf( value ), checks: list } );
+			}
+			return { score: primaryScore, band: bandOf( primaryScore ), checks: primaryChecks, keywords: entries };
+		} finally {
+			KeywordMatcher.endNormalizeCache();
 		}
-		var extracted = extract( data );
-		var ctx = contextFor( data, extracted, opts, keywords[ 0 ] );
-		var primaryChecks = sharedChecks( ctx ).concat( keywordChecks( ctx ) ).concat( contentChecks( ctx ) );
-		var primaryScore = scoreOf( primaryChecks );
-		var entries = [ { keyword: keywords[ 0 ], primary: true, score: primaryScore, band: bandOf( primaryScore ), checks: primaryChecks } ];
-		for ( var i = 1; i < keywords.length; i++ ) {
-			var sharedCtx = contextFor( data, extracted, opts, keywords[ i ] );
-			var list = sharedChecks( sharedCtx );
-			var value = scoreOf( list );
-			entries.push( { keyword: keywords[ i ], primary: false, score: value, band: bandOf( value ), checks: list } );
-		}
-		return { score: primaryScore, band: bandOf( primaryScore ), checks: primaryChecks, keywords: entries };
 	}
 
 	return {

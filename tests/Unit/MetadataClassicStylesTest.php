@@ -37,12 +37,16 @@ final class MetadataClassicStylesTest extends TestCase {
 	}
 
 	/**
-	 * The stylesheet imports the shared token layer.
+	 * The stylesheet no longer imports the token layer over CSS.
+	 *
+	 * The token layer is a registered dependency now, so the browser fetches
+	 * both sheets in parallel instead of chaining a second request.
 	 */
-	public function test_imports_the_shared_token_layer(): void {
-		$this->assertStringContainsString(
-			'@import url("rankkernel-admin.css")',
-			$this->css( 'metadata-classic.css' )
+	public function test_does_not_import_the_shared_token_layer(): void {
+		$this->assertStringNotContainsString(
+			'@import',
+			$this->css( 'metadata-classic.css' ),
+			'metadata-classic.css must depend on the token handle, not import it.'
 		);
 	}
 

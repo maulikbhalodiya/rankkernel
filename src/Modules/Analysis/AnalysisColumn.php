@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Analysis;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Admin\AdminStyles;
 use RankKernel\Plugin;
 use WP_Query;
 
@@ -261,13 +262,17 @@ final class AnalysisColumn {
 		}
 
 		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
-		$src        = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/analysis-column.css', $pluginFile ) : '';
 
-		if ( function_exists( 'wp_register_style' ) ) {
-			wp_register_style( self::STYLE_HANDLE, $src, [], Plugin::version() );
+		AdminStyles::enqueueTokenLayer( $pluginFile );
+
+		if ( function_exists( 'plugins_url' ) && function_exists( 'wp_register_style' ) ) {
+			$src = plugins_url( 'assets/css/analysis-column.css', $pluginFile );
+			wp_register_style( self::STYLE_HANDLE, $src, [ AdminStyles::TOKEN_HANDLE ], Plugin::version() );
 		}
 
-		wp_enqueue_style( self::STYLE_HANDLE );
+		if ( function_exists( 'wp_enqueue_style' ) ) {
+			wp_enqueue_style( self::STYLE_HANDLE );
+		}
 	}
 
 	/**

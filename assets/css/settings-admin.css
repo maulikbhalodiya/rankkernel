@@ -3,10 +3,9 @@
  *
  * Loaded only on the RankKernel General Settings screen. Every rule is
  * scoped under .rk-settings. All colour, spacing, type, radius and shadow
- * values come from the --rk-* tokens in rankkernel-admin.css.
+ * values come from the --rk-* tokens in the shared token layer, which loads
+ * as a registered dependency before this sheet.
  */
-
-@import url("rankkernel-admin.css");
 
 .rk-settings {
 	display: grid;

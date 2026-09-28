@@ -1055,12 +1055,14 @@ final class MetadataBoxTest extends TestCase {
 
 		$scripts   = [];
 		$styles    = [];
+		$styleDeps = [];
 		$enqueued  = [];
 		$localized = [];
 
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $h, string $src, array $deps = [], string $ver = '' ) use ( &$styles ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
-				$styles[ $h ] = $src;
+			static function ( string $h, string $src, array $deps = [], string $ver = '' ) use ( &$styles, &$styleDeps ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$styles[ $h ]    = $src;
+				$styleDeps[ $h ] = $deps;
 			}
 		);
 		Functions\when( 'wp_enqueue_style' )->alias(
@@ -1090,6 +1092,10 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertStringContainsString( 'metadata-editor.js', $scripts['rankkernel-metadata-editor'] );
 		$this->assertArrayHasKey( 'rankkernel-metadata-editor', $styles );
 		$this->assertStringContainsString( 'metadata-editor.css', $styles['rankkernel-metadata-editor'] );
+		$this->assertArrayHasKey( 'rankkernel-admin', $styles );
+		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-metadata-editor'] );
+		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-metadata-classic'] );
+		$this->assertContains( 'style:rankkernel-admin', $enqueued );
 		$this->assertContains( 'script:rankkernel-metadata-editor', $enqueued );
 		$this->assertArrayHasKey( 'rankkernel-analysis-text-stats', $scripts );
 		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );

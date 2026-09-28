@@ -1,12 +1,11 @@
-@import url("rankkernel-admin.css");
-
 /**
  * RankKernel metadata editor styles (block editor sidebar and shared panels).
  *
  * Loaded only on editor screens for the metadata feature. Every rule is
  * scoped under .rk-meta so nothing leaks onto other admin screens. All
  * colour, spacing, type, radius and shadow values come from var(--rk-*)
- * tokens defined in rankkernel-admin.css.
+ * tokens defined in the shared token layer, which loads as a registered
+ * dependency before this sheet.
  */
 
 .rk-meta {

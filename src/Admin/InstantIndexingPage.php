@@ -191,9 +191,12 @@ final class InstantIndexingPage {
 		$version = Plugin::version();
 
 		if ( function_exists( 'wp_register_style' ) && function_exists( 'wp_enqueue_style' ) ) {
+			AdminStyles::enqueueTokenLayer( (string) RANKKERNEL_FILE );
+			AdminStyles::enqueueUiLayer( (string) RANKKERNEL_FILE );
+
 			$css = plugins_url( 'assets/css/instant-indexing-admin.css', (string) RANKKERNEL_FILE );
 
-			wp_register_style( 'rankkernel-instant-indexing-admin', $css, [], $version );
+			wp_register_style( 'rankkernel-instant-indexing-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
 			wp_enqueue_style( 'rankkernel-instant-indexing-admin' );
 		}
 

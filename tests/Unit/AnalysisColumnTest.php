@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Analysis\AnalysisColumn;
 use RankKernel\Modules\Analysis\AnalysisScore;
@@ -55,6 +56,13 @@ final class AnalysisColumnTest extends TestCase {
 	private array $enqueuedStyles = [];
 
 	/**
+	 * Captured dependency arrays keyed by registered style handle.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private array $registeredStyles = [];
+
+	/**
 	 * Whether the request under test runs in the admin.
 	 *
 	 * @var bool
@@ -76,11 +84,12 @@ final class AnalysisColumnTest extends TestCase {
 			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
 		}
 
-		$this->meta           = [];
-		$this->hooks          = [];
-		$this->metaCaches     = [];
-		$this->enqueuedStyles = [];
-		$this->isAdmin        = true;
+		$this->meta             = [];
+		$this->hooks            = [];
+		$this->metaCaches       = [];
+		$this->enqueuedStyles   = [];
+		$this->registeredStyles = [];
+		$this->isAdmin          = true;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'esc_html' )->alias( static fn ( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
@@ -518,6 +527,28 @@ final class AnalysisColumnTest extends TestCase {
 		( new AnalysisColumn() )->enqueueAssets( 'edit.php' );
 
 		$this->assertSame( [ 'rankkernel-analysis-column' ], $this->enqueuedStyles );
+	}
+
+	/**
+	 * The column stylesheet depends on the shared token handle.
+	 *
+	 * The test runs in a separate process because stubbing plugins_url defines
+	 * a process wide Brain Monkey function that would otherwise make later
+	 * tests see plugins_url as available.
+	 */
+	#[RunInSeparateProcess]
+	public function test_column_stylesheet_depends_on_the_token_layer(): void {
+		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
+		Functions\when( 'wp_register_style' )->alias(
+			function ( string $handle, string $src, array $deps = [], string $ver = '' ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$this->registeredStyles[ $handle ] = $deps;
+			}
+		);
+
+		( new AnalysisColumn() )->enqueueAssets( 'edit.php' );
+
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-analysis-column' ], $this->enqueuedStyles );
+		$this->assertSame( [ 'rankkernel-admin' ], $this->registeredStyles['rankkernel-analysis-column'] );
 	}
 
 	/**

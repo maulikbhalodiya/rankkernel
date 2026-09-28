@@ -66,6 +66,7 @@
 		}
 
 		var mediaFrame = null;
+		var loadGeneration = 0;
 
 		function openSocialMedia() {
 			if ( 'undefined' === typeof wp || ! wp.media ) {
@@ -194,6 +195,10 @@
 			target.searchParams.set( 'rk_partial', section || 'general' );
 			busy( true );
 
+			// A newer navigation must win, so an earlier response is dropped.
+			loadGeneration++;
+			var token = loadGeneration;
+
 			window.fetch( target.toString(), {
 				credentials: 'same-origin',
 				headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -204,12 +209,20 @@
 
 				return response.text();
 			} ).then( function ( html ) {
+				if ( token !== loadGeneration ) {
+					return;
+				}
+
 				swap( html );
 				busy( false );
 				markActive( section );
 				window.history.pushState( {}, '', url );
 				rankkernelAnnounce( __( 'Settings section loaded.', 'rankkernel' ) );
 			} ).catch( function () {
+				if ( token !== loadGeneration ) {
+					return;
+				}
+
 				window.location.href = url;
 			} );
 		}
