@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RankKernel - Sitemap Settings Admin V3 (Modern WP Palette)</title>
+<!-- Load Tailwind CSS v3 with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          colors: {
+            wpblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-scrollbars-and-resets">
+    /* Subtle polish for clean WP admin appearance */
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16 antialiased selection:bg-blue-100 selection:text-blue-700">
+<!-- BEGIN: TopBar Container -->
+<header class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-2" data-purpose="page-alerts-and-meta">
+<!-- Notice / Alert Banner -->
+<div class="mb-5 flex items-center justify-between rounded-lg border-l-4 border-emerald-500 bg-emerald-50/80 px-4 py-3 text-emerald-800 shadow-sm border border-emerald-100" data-purpose="success-notification" role="alert">
+<div class="flex items-center gap-2.5 text-sm font-medium">
+<svg class="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span><strong class="font-semibold text-emerald-900">Settings saved.</strong> Sitemap cache has been cleared automatically.</span>
+</div>
+<button aria-label="Dismiss alert" class="text-emerald-700 hover:text-emerald-900 p-1 rounded transition-colors" type="button">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Main Header Card -->
+<div class="bg-white rounded-xl border border-slate-200 px-5 py-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4" data-purpose="header-toolbar">
+<div class="flex items-center gap-3">
+<!-- Sitemap Icon -->
+<div class="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM9 20a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M7 10v4a1 1 0 001 1h8a1 1 0 001-1v-4M12 15v3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h1 class="text-xl font-bold tracking-tight text-slate-900">Sitemap Settings</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">v3.0</span>
+<a class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium bg-blue-50 text-blue-600 hover:text-blue-700 border border-blue-100 hover:border-blue-200 transition-colors" href="#">
+<span>sitemap_index.xml</span>
+<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2.5">
+<a class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium shadow-sm transition-colors" href="#">
+<span>View Sitemap</span>
+<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Save Settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- END: TopBar Container -->
+<!-- BEGIN: Main Tabbed Interface -->
+<main class="max-w-6xl mx-auto px-4 sm:px-6 pt-5" data-purpose="sitemap-management-container">
+<!-- Tab Navigation Row (Folder-tab style connected directly to card) -->
+<nav aria-label="Sitemap tabs" class="flex items-end gap-1 px-2 border-b-0 -mb-[1px] relative z-10 select-none">
+<!-- Active Tab: General -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg bg-white border-t border-l border-r border-slate-200 text-blue-600 border-b-transparent shadow-[-1px_-1px_2px_rgba(0,0,0,0.02)]" type="button">
+<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>General</span>
+</button>
+<!-- Tab: Post Types -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border-t border-l border-r border-transparent transition-colors" type="button">
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Post Types</span>
+</button>
+<!-- Tab: Taxonomies -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border-t border-l border-r border-transparent transition-colors" type="button">
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Taxonomies</span>
+</button>
+<!-- Tab: Authors -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border-t border-l border-r border-transparent transition-colors" type="button">
+<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Authors</span>
+</button>
+</nav>
+<!-- BEGIN: Primary Connected Card (Tab 1: General Settings) -->
+<div class="bg-white rounded-b-xl rounded-tr-xl border border-slate-200 shadow-sm relative z-0 p-6 md:p-8" data-purpose="tab-panel-general">
+<!-- Subheader with Engine & Active Pills -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-200 gap-3">
+<div>
+<div class="flex items-center gap-2.5">
+<h2 class="text-lg font-bold text-slate-900">General Settings</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Tab 1 Active State</span>
+</div>
+<p class="text-sm text-slate-500 mt-1">Core XML generator parameters and global sitemap configuration.</p>
+</div>
+<div>
+<span class="inline-flex items-center font-mono text-xs px-2.5 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+            engine: v2.4-fast
+          </span>
+</div>
+</div>
+<!-- Sitemap Index Highlight Box -->
+<div class="mt-6 rounded-lg border border-blue-200 bg-blue-50/50 p-4 border-l-4 border-l-blue-600 flex flex-col md:flex-row md:items-center justify-between gap-4" data-purpose="sitemap-index-banner">
+<div class="space-y-1.5">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</span>
+<span class="text-sm font-semibold text-slate-800">Sitemap Index URL:</span>
+<code class="font-mono text-xs font-semibold text-blue-700 bg-white px-2.5 py-1 rounded border border-blue-200 shadow-2xs">
+              https://example.com/sitemap_index.xml
+            </code>
+<button aria-label="Copy Sitemap Index URL" class="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Copy sitemap URL" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<p class="text-xs text-slate-600 pl-8">Your primary index sitemap. Submit this exact URL to Google Search Console and Bing Webmaster Tools.</p>
+</div>
+<button class="inline-flex items-center gap-1.5 self-start md:self-auto px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 shadow-xs transition-colors whitespace-nowrap" type="button">
+<span>Submit to Google</span>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Settings Rows Form -->
+<form class="divide-y divide-slate-100 text-sm mt-4" data-purpose="general-form-fields" onsubmit="event.preventDefault();">
+<!-- Row 1: Links per sitemap -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<label class="block font-semibold text-slate-900" for="links_per_sitemap">Links per sitemap</label>
+<p class="text-xs text-slate-500 mt-0.5">Pagination threshold</p>
+</div>
+<div class="md:col-span-2 space-y-1.5">
+<div class="flex items-center gap-2">
+<input class="w-32 rounded-lg border-slate-200 text-slate-900 font-mono text-sm px-3.5 py-2 shadow-xs focus:border-blue-600 focus:ring-1 focus:ring-blue-600" id="links_per_sitemap" max="50000" min="10" name="links_per_sitemap" type="number" value="1000"/>
+<span class="text-xs text-slate-500 font-medium">entries per file</span>
+</div>
+<p class="text-xs text-slate-500">Maximum number of links on each sitemap page. Default is 1,000. Maximum allowed by search protocol is 50,000.</p>
+</div>
+</div>
+<!-- Row 2: Images in sitemaps -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Images in sitemaps</span>
+<p class="text-xs text-slate-500 mt-0.5">Image search indexing</p>
+</div>
+<div class="md:col-span-2 space-y-1">
+<div class="flex items-center gap-3">
+<!-- Switch ON -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+<span class="text-sm font-medium text-slate-800">Include references to images from post content in sitemaps.</span>
+</div>
+<p class="text-xs text-slate-500 pl-14 md:pl-0">Helps Google Images and media crawlers discover embedded artwork and infographics.</p>
+</div>
+</div>
+<!-- Row 3: Featured images -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Featured images</span>
+<p class="text-xs text-slate-500 mt-0.5">Header thumbnail indexing</p>
+</div>
+<div class="md:col-span-2 space-y-1">
+<div class="flex items-center gap-3">
+<!-- Switch ON -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+<span class="text-sm font-medium text-slate-800">Include the featured image even if it does not appear in the post content.</span>
+</div>
+<p class="text-xs text-slate-500 pl-14 md:pl-0">Ensures hero banners and social preview image assets are explicitly parsed.</p>
+</div>
+</div>
+<!-- Row 4: Exclude posts -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<label class="block font-semibold text-slate-900" for="exclude_posts">Exclude posts</label>
+<p class="text-xs text-slate-500 mt-0.5">Custom exclusions</p>
+</div>
+<div class="md:col-span-2 space-y-1.5">
+<input class="w-full rounded-lg border-slate-200 text-slate-900 font-mono text-sm px-3.5 py-2 shadow-xs focus:border-blue-600 focus:ring-1 focus:ring-blue-600" id="exclude_posts" name="exclude_posts" type="text" value="42, 187, 304"/>
+<p class="text-xs text-slate-500">Post IDs to exclude from the sitemap, comma-separated. Applies to all post types.</p>
+</div>
+</div>
+<!-- Row 5: Exclude terms -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<label class="block font-semibold text-slate-900" for="exclude_terms">Exclude terms</label>
+<p class="text-xs text-slate-500 mt-0.5">Taxonomy blacklist</p>
+</div>
+<div class="md:col-span-2 space-y-1.5">
+<input class="w-full rounded-lg border-slate-200 text-slate-900 font-mono text-sm px-3.5 py-2 shadow-xs focus:border-blue-600 focus:ring-1 focus:ring-blue-600" id="exclude_terms" name="exclude_terms" type="text" value="15, 28"/>
+<p class="text-xs text-slate-500">Term IDs to exclude, comma-separated. Applies to categories, tags, and product groups.</p>
+</div>
+</div>
+<!-- Row 6: Empty terms -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Empty terms</span>
+<p class="text-xs text-slate-500 mt-0.5">Zero-post archives</p>
+</div>
+<div class="md:col-span-2 space-y-1">
+<div class="flex items-center gap-3">
+<!-- Switch OFF -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+<span class="text-sm font-medium text-slate-800">List terms that have no published posts.</span>
+</div>
+<p class="text-xs text-slate-500 pl-14 md:pl-0">Disabled by default to prevent thin/empty duplicate archives from indexing.</p>
+</div>
+</div>
+<!-- Footer Control Strip -->
+<div class="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-center gap-2 font-mono text-xs text-slate-600">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+<span>Sitemap index regenerate hook: <strong class="text-slate-800">active</strong></span>
+</div>
+<div class="flex items-center gap-3 self-end sm:self-auto">
+<button class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" type="button">
+              Discard Changes
+            </button>
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition-colors" type="submit">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Save Sitemap Settings</span>
+</button>
+</div>
+</div>
+</form>
+</div>
+<!-- END: Primary Connected Card -->
+<!-- BEGIN: Connected Sub-Sections (Full Page Design Spec Coverage) -->
+<div class="mt-12 space-y-10" data-purpose="extended-sitemap-sections">
+<!-- Section Divider 2 -->
+<div class="relative text-center">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-200 border-dashed"></div>
+</div>
+<div class="relative inline-flex">
+<span class="bg-slate-50 px-3 font-mono text-xs font-medium uppercase tracking-wider text-slate-400">
+            Tab Section 2 • Post Types
+          </span>
+</div>
+</div>
+<!-- Post Types Panel -->
+<section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 md:p-8" data-purpose="post-types-panel">
+<div class="pb-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div>
+<h3 class="text-base font-bold text-slate-900">Post Types</h3>
+<p class="text-xs text-slate-500 mt-0.5">Choose which post types are included in the XML sitemap. Each post type gets its own sitemap file.</p>
+</div>
+<span class="text-xs font-mono text-slate-400">4 post types registered</span>
+</div>
+<div class="divide-y divide-slate-100 text-sm">
+<!-- Post Row 1: Posts -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Posts</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">post</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/post-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Post Row 2: Pages -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Pages</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">page</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/page-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Post Row 3: Products -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Products</span>
+<span class="text-xs text-slate-500">(WooCommerce)</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">product</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/product-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Post Row 4: Portfolio (Excluded) -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-80">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-700">Portfolio</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-500 rounded">portfolio</span>
+</div>
+<div class="text-xs text-slate-400 font-mono">
+<span>Sitemap: https://example.com/portfolio-sitemap.xml (excluded)</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Excluded from sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+<div class="flex items-center gap-1.5">
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Attachments are never included in XML sitemaps to prevent zero-value asset indexing.</span>
+</div>
+<button class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors shadow-xs" type="button">
+            Save Post Types Settings
+          </button>
+</div>
+</section>
+<!-- Section Divider 3 -->
+<div class="relative text-center">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-200 border-dashed"></div>
+</div>
+<div class="relative inline-flex">
+<span class="bg-slate-50 px-3 font-mono text-xs font-medium uppercase tracking-wider text-slate-400">
+            Tab Section 3 • Taxonomies
+          </span>
+</div>
+</div>
+<!-- Taxonomies Panel -->
+<section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 md:p-8" data-purpose="taxonomies-panel">
+<div class="pb-5 border-b border-slate-100">
+<h3 class="text-base font-bold text-slate-900">Taxonomies</h3>
+<p class="text-xs text-slate-500 mt-0.5">Choose which taxonomies are included. Each taxonomy gets its own sitemap file.</p>
+</div>
+<div class="divide-y divide-slate-100 text-sm">
+<!-- Taxonomy: Categories -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Categories</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">category</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/category-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Taxonomy: Tags -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Tags</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">post_tag</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/post_tag-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Taxonomy: Product Categories -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-900">Product Categories</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-600 rounded">product_cat</span>
+</div>
+<div class="text-xs text-slate-500 flex items-center gap-1 font-mono">
+<span>Sitemap:</span>
+<a class="text-blue-600 hover:underline flex items-center gap-0.5" href="#">
+                  https://example.com/product_cat-sitemap.xml
+                  <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Included in sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<!-- Taxonomy: Product Tags (Excluded) -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-80">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-slate-700">Product Tags</span>
+<span class="px-2 py-0.5 font-mono text-xs bg-slate-100 text-slate-500 rounded">product_tag</span>
+</div>
+<div class="text-xs text-slate-400 font-mono">
+<span>Sitemap: https://example.com/product_tag-sitemap.xml (excluded)</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Excluded from sitemap</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+<div class="flex items-center gap-1.5">
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Empty terms are listed only when 'Include Empty Terms' is active on the General tab.</span>
+</div>
+<button class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors shadow-xs" type="button">
+            Save Taxonomy Settings
+          </button>
+</div>
+</section>
+<!-- Section Divider 4 -->
+<div class="relative text-center">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-200 border-dashed"></div>
+</div>
+<div class="relative inline-flex">
+<span class="bg-slate-50 px-3 font-mono text-xs font-medium uppercase tracking-wider text-slate-400">
+            Tab Section 4 • Authors
+          </span>
+</div>
+</div>
+<!-- Authors Panel -->
+<section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 md:p-8" data-purpose="authors-panel">
+<div class="pb-5 border-b border-slate-100">
+<h3 class="text-base font-bold text-slate-900">Authors</h3>
+<p class="text-xs text-slate-500 mt-0.5">Control whether author archive pages appear in the sitemap and which users are excluded.</p>
+</div>
+<div class="divide-y divide-slate-100 text-sm">
+<!-- Authors Sitemap Enabled -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Authors Sitemap</span>
+<p class="text-xs text-slate-500 mt-0.5">Author archives</p>
+</div>
+<div class="md:col-span-2 space-y-1">
+<div class="flex items-center gap-3">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+<span class="text-sm font-medium text-slate-800">List authors in the sitemap index.</span>
+</div>
+<p class="text-xs text-slate-500">Off by default. Enable to add author archive URLs to the sitemap index.</p>
+</div>
+</div>
+<!-- Include Empty Authors -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Include empty authors</span>
+<p class="text-xs text-slate-500 mt-0.5">Zero-post authors</p>
+</div>
+<div class="md:col-span-2 space-y-1">
+<div class="flex items-center gap-3">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+<span class="text-sm font-medium text-slate-800">List every user, not just authors with published posts.</span>
+</div>
+</div>
+</div>
+<!-- Exclude Roles Checkbox Group -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<span class="block font-semibold text-slate-900">Exclude Roles</span>
+<p class="text-xs text-slate-500 mt-0.5">Role exclusions</p>
+</div>
+<div class="md:col-span-2 space-y-3">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-slate-50/70 p-4 rounded-lg border border-slate-200">
+<label class="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+<input class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" type="checkbox"/>
+<span>Administrator</span>
+</label>
+<label class="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+<input class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" type="checkbox"/>
+<span>Editor</span>
+</label>
+<label class="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+<input checked="" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" type="checkbox"/>
+<span>Subscriber <span class="text-slate-400 font-normal">(excluded)</span></span>
+</label>
+<label class="flex items-center gap-2.5 text-xs font-medium text-slate-800 cursor-pointer">
+<input checked="" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" type="checkbox"/>
+<span>Contributor <span class="text-slate-400 font-normal">(excluded)</span></span>
+</label>
+</div>
+<p class="text-xs text-slate-500">Authors with these user roles are filtered out from the sitemap files.</p>
+</div>
+</div>
+<!-- Exclude Specific Users Input -->
+<div class="py-5 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 items-start">
+<div>
+<label class="block font-semibold text-slate-900" for="exclude_users">Exclude Users</label>
+<p class="text-xs text-slate-500 mt-0.5">Custom ID blacklist</p>
+</div>
+<div class="md:col-span-2 space-y-1.5">
+<input class="w-full rounded-lg border-slate-200 text-slate-900 font-mono text-sm px-3.5 py-2 shadow-xs focus:border-blue-600 focus:ring-1 focus:ring-blue-600" id="exclude_users" name="exclude_users" type="text" value="1, 5, 12"/>
+<p class="text-xs text-slate-500">Comma-separated user IDs to exclude from the authors sitemap.</p>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end">
+<button class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors shadow-xs" type="button">
+            Save Author Settings
+          </button>
+</div>
+</section>
+</div>
+<!-- END: Connected Sub-Sections -->
+</main>
+<!-- END: Main Tabbed Interface -->
+<!-- BEGIN: Footer -->
+<footer class="mt-14 max-w-6xl mx-auto px-4 text-center" data-purpose="page-footer">
+<p class="text-xs text-slate-400 font-mono">
+      RankKernel SEO Suite • XML Sitemap Module v3.0 (Modern WP Admin) • Zero runtime overhead dynamic caching
+    </p>
+</footer>
+<!-- END: Footer -->
+</body></html>

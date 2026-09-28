@@ -57,8 +57,10 @@ Every page below was verified to exist with working backend functionality. Desig
 
 Branch: `design/dashboard`
 
+**Approved design artifact exists:** `docs/designcode/dashboard-page.html`. This page has a real reference, so fidelity matters.
+
 * [ ] Inventory (verify module cards and toggle actions against code)
-* [ ] Stitch reference (none found)
+* [ ] Stitch reference (approved artifact above)
 * [ ] Implementation
 * [ ] Visual QA
 * [ ] Accessibility QA (cards already carry per-module `aria-label`s, verify and extend)
@@ -71,8 +73,10 @@ Branch: `design/dashboard`
 
 Branch: `design/sitemaps`
 
+**Approved design artifact exists:** `docs/designcode/sitemap-settings-page.html`. This page has a real reference, so fidelity matters.
+
 * [ ] Inventory (per post type, per taxonomy, author sitemap, include-empty toggle)
-* [ ] Stitch reference (none found)
+* [ ] Stitch reference (approved artifact above)
 * [ ] Implementation
 * [ ] Visual QA
 * [ ] Accessibility QA
@@ -101,8 +105,10 @@ Sections verified present: general, webmaster, social, breadcrumbs, robots, htac
 
 Branch: `design/schema`
 
+**Approved design artifact exists:** `docs/designcode/Schema-settings-page.html`. This page has a real reference, so fidelity matters.
+
 * [ ] Inventory (organization logo, schema defaults)
-* [ ] Stitch reference (none found)
+* [ ] Stitch reference (approved artifact above)
 * [ ] Implementation
 * [ ] Visual QA
 * [ ] Accessibility QA (media frame labels)
@@ -131,8 +137,10 @@ Branch: `design/redirects`
 
 Branch: `design/404-monitor`
 
+**Approved design artifact exists:** `docs/designcode/404-monitor-page.html`. This page has a real reference, so fidelity matters.
+
 * [ ] Inventory (log table, retention, flood guard, clear log, advanced fields toggle)
-* [ ] Stitch reference (none found)
+* [ ] Stitch reference (approved artifact above)
 * [ ] Implementation
 * [ ] Visual QA
 * [ ] Accessibility QA

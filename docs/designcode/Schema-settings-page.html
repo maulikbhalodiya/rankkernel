@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RankKernel - Schema Settings Admin V2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            brand: {
+              purple: '#7C3AED',
+              purpleLight: '#F5F3FF',
+              purpleHover: '#6D28D9',
+              blue: '#2563EB',
+              blueHover: '#1D4ED8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    .purple-top-border {
+      border-top: 3px solid #7C3AED;
+    }
+  </style>
+</head>
+<body class="bg-[#F0F2F5] font-sans text-slate-800 antialiased min-h-screen pb-16">
+<!-- Main Container (Plugin content area only, no WP topbar, no WP sidebar) -->
+<div class="max-w-[1240px] mx-auto px-4 sm:px-6 pt-6">
+<!-- ==================== NOTICES STACK ==================== -->
+<div class="flex flex-col gap-2.5 mb-6">
+<!-- Success Notice -->
+<div class="flex items-center justify-between px-4 py-3 bg-[#F0FDFA] border-l-4 border-[#0F766E] rounded-r-md border-y border-r border-[#CCFBF1] shadow-xs">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#0F766E] text-xl fill-1">check_circle</span>
+<span class="text-sm font-medium text-[#115E59]">Settings saved.</span>
+</div>
+<button class="text-[#0F766E] hover:text-[#115E59] transition-colors p-1 rounded" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<!-- Info Notice -->
+<div class="flex items-center justify-between px-4 py-3 bg-[#EFF6FF] border-l-4 border-[#2563EB] rounded-r-md border-y border-r border-[#DBEAFE] shadow-xs">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#2563EB] text-xl fill-1">info</span>
+<span class="text-sm font-medium text-[#1E40AF]">Schema output is active. One JSON-LD graph is printed per page.</span>
+</div>
+<button class="text-[#2563EB] hover:text-[#1E40AF] transition-colors p-1 rounded" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<!-- ==================== PAGE HEADER ==================== -->
+<header class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs p-5 sm:px-6 mb-6 purple-top-border">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<!-- Title & Badges -->
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#2563EB]"><span class="material-symbols-outlined text-2xl">schema</span></div>
+<div>
+<div class="flex items-center gap-2.5">
+<h1 class="text-xl font-bold text-slate-900 tracking-tight">Schema Settings</h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Schema</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                v2.0
+              </span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">Configure structured data graph output for search engines.</p>
+</div>
+</div>
+<!-- Header Actions -->
+<div class="flex flex-wrap items-center gap-2.5">
+<a class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs" href="#section-testing">
+<span class="material-symbols-outlined text-base text-slate-500">search_check</span>
+            Rich Results Test
+            <span class="material-symbols-outlined text-xs text-slate-400">open_in_new</span>
+</a>
+<a class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs" href="#section-testing">
+<span class="material-symbols-outlined text-base text-slate-500">verified</span>
+            Schema Validator
+            <span class="material-symbols-outlined text-xs text-slate-400">open_in_new</span>
+</a>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors shadow-xs" type="button">
+<span class="material-symbols-outlined text-base">save</span>
+            Save Settings
+          </button>
+</div>
+</div>
+</header>
+<!-- ==================== MAIN 2-COLUMN LAYOUT ==================== -->
+<div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-start">
+<!-- LEFT SIDEBAR (Sticky Navigation & Status Widget) -->
+<aside class="sticky top-6 flex flex-col gap-4">
+<!-- Sidebar Navigation Card -->
+<nav class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs overflow-hidden">
+<!-- Sidebar Header -->
+<div class="px-4 py-3 border-b border-[#E2E8F0] bg-slate-50/75">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Settings</span>
+</div>
+<!-- Nav Items -->
+<div class="p-2 space-y-1">
+<!-- 1. Identity (Active) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-blue-50 text-[#2563EB] font-semibold text-xs border-l-[3px] border-[#2563EB] transition-colors" href="#section-identity"><span class="material-symbols-outlined text-lg text-[#2563EB]">apartment</span><span>Identity</span></a>
+<!-- 2. Schema Defaults -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-md text-[#64748B] hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition-colors border-l-[3px] border-transparent" href="#section-defaults">
+<span class="material-symbols-outlined text-lg text-slate-400">data_object</span>
+<span>Schema Defaults</span>
+</a>
+<!-- 3. Output Options -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-md text-[#64748B] hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition-colors border-l-[3px] border-transparent" href="#section-output">
+<span class="material-symbols-outlined text-lg text-slate-400">tune</span>
+<span>Output Options</span>
+</a>
+<!-- 4. Live JSON-LD Preview (Highlight Badge) -->
+<a class="flex items-center justify-between px-3 py-2.5 rounded-md text-[#64748B] hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition-colors border-l-[3px] border-transparent" href="#section-preview">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-lg text-slate-400">code_blocks</span>
+<span>JSON-LD Preview</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
+</a>
+<!-- 5. Testing Tools -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-md text-[#64748B] hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition-colors border-l-[3px] border-transparent" href="#section-testing">
+<span class="material-symbols-outlined text-lg text-slate-400">science</span>
+<span>Testing Tools</span>
+</a>
+</div>
+<!-- Divider -->
+<div class="border-t border-[#E2E8F0]"></div>
+<!-- SCHEMA STATUS Mini-Widget -->
+<div class="p-4 bg-slate-50/50">
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Schema Status</span>
+<span class="text-[10px] font-semibold text-slate-400">JSON Graph</span>
+</div>
+<div class="space-y-2 text-xs">
+<div class="flex items-center justify-between text-slate-600">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span>WebSite entity</span>
+</div>
+<span class="text-[11px] font-medium text-slate-500">Active</span>
+</div>
+<div class="flex items-center justify-between text-slate-600">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span>Organization</span>
+</div>
+<span class="text-[11px] font-medium text-slate-500">Active</span>
+</div>
+<div class="flex items-center justify-between text-slate-600">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span>Breadcrumbs</span>
+</div>
+<span class="text-[11px] font-medium text-slate-500">On</span>
+</div>
+<div class="flex items-center justify-between text-slate-600">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span>Author entity</span>
+</div>
+<span class="text-[11px] font-medium text-slate-500">On</span>
+</div>
+<div class="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/80"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="font-medium text-slate-700">JSON-LD</span></div><span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Printing</span></div>
+</div>
+</div>
+</nav>
+<!-- Quick Hint Box -->
+<div class="p-3.5 bg-white border border-[#E2E8F0] rounded-lg shadow-2xs text-xs text-slate-500 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-base text-[#2563EB] shrink-0 mt-0.5">auto_awesome</span>
+<span>RankKernel compiles all entities into a single unified JSON-LD graph to eliminate markup bloat.</span>
+</div>
+</aside>
+<!-- RIGHT MAIN CONTENT (Stacked Settings Sections) -->
+<main class="space-y-6">
+<!-- ==================== SECTION 1: IDENTITY ==================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs purple-top-border overflow-hidden" id="section-identity">
+<div class="p-5 sm:p-6 border-b border-[#E2E8F0]">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-bold text-slate-900">Identity</h2>
+<p class="text-xs text-slate-500 mt-0.5">Define who owns this site for the WebSite and Organization schema entities.</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-2xl">apartment</span>
+</div>
+</div>
+<div class="p-5 sm:p-6 space-y-6">
+<!-- 2-column form rows -->
+<!-- Site Represents -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 items-start">
+<div class="sm:col-span-4">
+<label class="block text-xs font-semibold text-slate-700">Represents</label>
+<span class="text-[11px] text-slate-400 block mt-0.5">Affects which entity type is used in the WebSite schema.</span>
+</div>
+<div class="sm:col-span-8">
+<div class="grid grid-cols-2 gap-3 max-w-[280px]"><!-- Option 1: Organization (Selected) -->
+<label class="cursor-pointer border-2 border-[#2563EB] bg-blue-50/50 rounded-lg p-3 flex flex-col items-center text-center shadow-2xs transition-all relative">
+<span class="material-symbols-outlined text-[#2563EB] text-xl mb-1">corporate_fare</span>
+<span class="text-xs font-bold text-[#2563EB]">Organization</span>
+<span class="text-[10px] text-slate-500 mt-0.5">Business or group</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]"></span>
+</label>
+<!-- Option 2: Person (Unselected) -->
+<label class="cursor-pointer border border-[#CBD5E1] bg-white hover:border-slate-400 rounded-lg p-3 flex flex-col items-center text-center shadow-2xs transition-all">
+<span class="material-symbols-outlined text-slate-400 text-xl mb-1">person</span>
+<span class="text-xs font-semibold text-slate-700">Person</span>
+<span class="text-[10px] text-slate-400 mt-0.5">Personal site</span>
+</label></div>
+</div>
+</div>
+<div class="border-t border-slate-100"></div>
+<!-- Organization Name -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 items-center">
+<div class="sm:col-span-4">
+<label class="block text-xs font-semibold text-slate-700" for="org-name">Name</label>
+<span class="text-[11px] text-slate-400 block mt-0.5">The official entity name output in schema.</span>
+</div>
+<div class="sm:col-span-8">
+<input class="w-full text-xs px-3 py-2.5 rounded-md border border-[#CBD5E1] bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-colors" id="org-name" type="text" value="Acme Corp"/>
+</div>
+</div>
+<div class="border-t border-slate-100"></div>
+<!-- Logo -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 items-start">
+<div class="sm:col-span-4">
+<label class="block text-xs font-semibold text-slate-700">Logo</label>
+<span class="text-[11px] text-slate-400 block mt-0.5">PNG recommended. Min 112x112px.</span>
+</div>
+<div class="sm:col-span-8">
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+<!-- Upload Box / Preview -->
+<div class="w-40 h-24 rounded-lg border-2 border-dashed border-[#CBD5E1] bg-slate-50 flex flex-col items-center justify-center p-2 text-center relative group">
+<div class="w-8 h-8 rounded-md bg-blue-50 border border-blue-200 flex items-center justify-center text-[#2563EB] mb-1"><span class="material-symbols-outlined text-lg">image</span></div>
+<span class="text-[11px] font-semibold text-slate-700 truncate max-w-[140px]">acme-logo.png</span>
+<span class="text-[10px] text-slate-400">2.1 KB</span>
+</div>
+<!-- Actions -->
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 shadow-2xs transition-colors" type="button">
+                        Change
+                      </button>
+<button class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors" type="button">
+                        Remove
+                      </button>
+</div>
+<p class="text-[11px] text-slate-400">Displays in Google Knowledge Graph and Search snippets.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="border-t border-slate-100"></div>
+<!-- Social Profiles (Same As) -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 items-start">
+<div class="sm:col-span-4">
+<label class="block text-xs font-semibold text-slate-700">Social profiles</label>
+<span class="text-[11px] text-slate-400 block mt-0.5">Links your site to these profiles in structured data.</span>
+</div>
+<div class="sm:col-span-8 space-y-2.5">
+<!-- Tag pills -->
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-slate-100 text-slate-700 border border-slate-200">
+<span class="text-slate-400 text-[10px]">twitter.com/</span><span class="font-medium">acmecorp</span>
+<button class="text-slate-400 hover:text-slate-600 ml-0.5" type="button"><span class="material-symbols-outlined text-xs">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-slate-100 text-slate-700 border border-slate-200">
+<span class="text-slate-400 text-[10px]">linkedin.com/company/</span><span class="font-medium">acmecorp</span>
+<button class="text-slate-400 hover:text-slate-600 ml-0.5" type="button"><span class="material-symbols-outlined text-xs">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-slate-100 text-slate-700 border border-slate-200">
+<span class="text-slate-400 text-[10px]">facebook.com/</span><span class="font-medium">acmecorp</span>
+<button class="text-slate-400 hover:text-slate-600 ml-0.5" type="button"><span class="material-symbols-outlined text-xs">close</span></button>
+</span>
+</div>
+<!-- Add Input -->
+<div class="flex items-center gap-2">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-base">link</span>
+<input class="w-full text-xs pl-9 pr-3 py-2 rounded-md border border-[#CBD5E1] bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-colors" placeholder="Add profile URL (e.g., https://instagram.com/acmecorp)..." type="text"/>
+</div>
+<button class="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md border border-slate-200 transition-colors" type="button">
+                    Add
+                  </button>
+</div>
+</div>
+</div>
+<div class="border-t border-slate-100"></div>
+<!-- Search Action Toggle -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-6 items-center">
+<div class="sm:col-span-4">
+<label class="block text-xs font-semibold text-slate-700">Search box</label>
+<span class="text-[11px] text-slate-400 block mt-0.5">Sitelinks SearchBox integration.</span>
+</div>
+<div class="sm:col-span-8">
+<div class="flex items-center gap-3">
+<!-- Toggle ON -->
+<button aria-checked="true" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-[#2563EB] transition-colors duration-200 ease-in-out focus:outline-hidden" role="switch" type="button">
+<span class="translate-x-5 pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"></span>
+</button>
+<span class="text-xs text-slate-700 font-medium">Enable Google Sitelinks Search Box for this site.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section Footer -->
+<div class="px-6 py-3.5 bg-slate-50 border-t border-[#E2E8F0] flex justify-end">
+<button class="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors shadow-xs" type="button">
+              Save Identity
+            </button>
+</div>
+</section>
+<!-- ==================== SECTION 2: SCHEMA DEFAULTS ==================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs purple-top-border overflow-visible" id="section-defaults">
+<div class="p-5 sm:p-6 border-b border-[#E2E8F0]">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-bold text-slate-900">Schema Defaults</h2>
+<p class="text-xs text-slate-500 mt-0.5">The default schema type applied to each post type when no per-post override exists.</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-2xl">rule_settings</span>
+</div>
+</div>
+<div class="p-5 sm:p-6 space-y-4">
+<!-- Blue Info Banner -->
+<div class="flex items-center gap-2.5 p-3 rounded-md bg-[#EFF6FF] border border-[#DBEAFE] text-xs text-[#1E40AF]">
+<span class="material-symbols-outlined text-base text-[#2563EB] shrink-0">info</span>
+<span>Automatic falls back to BlogPosting for posts and Article for all other types.</span>
+</div>
+<!-- Table Container (Clean rows, no outer border, dividers) -->
+<div class="relative overflow-visible">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="border-b border-[#F1F5F9] text-[#64748B] font-semibold">
+<th class="py-2.5 px-3 font-semibold">Post type</th>
+<th class="py-2.5 px-3 font-semibold">Schema Type</th>
+<th class="py-2.5 px-3 font-semibold text-right">Preview tag</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#F1F5F9]">
+<!-- Row 1: Posts -->
+<tr class="hover:bg-slate-50/50">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="font-medium text-slate-900">Posts</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-500 border border-slate-200">post</span>
+</div>
+</td>
+<td class="py-3 px-3">
+<div class="relative max-w-[200px]">
+<select class="w-full appearance-none text-xs px-2.5 py-1.5 pr-7 rounded border border-slate-300 bg-white text-slate-700 focus:outline-hidden focus:border-[#7C3AED]">
+<option selected="">Automatic</option>
+<option>BlogPosting</option>
+<option>Article</option>
+<option>NewsArticle</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-slate-400 text-xs pointer-events-none">expand_more</span>
+</div>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">BlogPosting</span>
+</td>
+</tr>
+<!-- Row 2: Pages (With Open Dropdown Mockup) -->
+<tr class="bg-blue-50/20 relative">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="font-medium text-slate-900">Pages</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-500 border border-slate-200">page</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Overridden</span>
+</div>
+</td>
+<td class="py-3 px-3 relative">
+<!-- Trigger button -->
+<div class="relative max-w-[200px]">
+<button class="w-full flex items-center justify-between text-xs px-2.5 py-1.5 rounded border-2 border-[#2563EB] bg-white text-slate-900 font-medium shadow-xs" type="button">
+<span>Web Page</span>
+<span class="material-symbols-outlined text-xs text-[#2563EB]">expand_less</span>
+</button>
+<!-- DROPDOWN PANEL OVERLAPPING (220px wide, grouped list) -->
+<div class="absolute left-0 top-full mt-1 w-[240px] bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden">
+<!-- Search Header -->
+<div class="p-2 border-b border-slate-100 bg-slate-50">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1.5 text-slate-400 text-sm">search</span>
+<input class="w-full pl-7 pr-2 py-1 text-[11px] rounded border border-slate-200 bg-white focus:outline-hidden focus:border-[#2563EB]" placeholder="Search types..." type="text"/>
+</div>
+</div>
+<!-- Grouped Scrollable Items -->
+<div class="max-h-56 overflow-y-auto p-1.5 space-y-2 text-left">
+<!-- Article Types -->
+<div>
+<div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">Article types</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Article</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Blog Posting</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">News Article</div>
+</div>
+<!-- Page Types (Highlighted) -->
+<div class="pt-1 border-t border-slate-100">
+<div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">Page types</div>
+<div class="text-[11px] px-2 py-1 rounded bg-blue-50 text-[#2563EB] font-semibold flex items-center justify-between">
+<span>Web Page</span>
+<span class="material-symbols-outlined text-xs text-[#2563EB]">check</span>
+</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">FAQ Page</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">How To</div>
+</div>
+<!-- Commerce -->
+<div class="pt-1 border-t border-slate-100">
+<div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">Commerce</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Product</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Review</div>
+</div>
+<!-- Events -->
+<div class="pt-1 border-t border-slate-100">
+<div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">Events</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Event</div>
+<div class="text-[11px] px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700">Job Posting</div>
+</div>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+      WebPage
+    </span>
+</td>
+</tr>
+<!-- Row 3: Products -->
+<tr class="hover:bg-slate-50/50">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="font-medium text-slate-900">Products</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-500 border border-slate-200">product</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">WooCommerce</span>
+</div>
+</td>
+<td class="py-3 px-3">
+<div class="relative max-w-[200px]">
+<select class="w-full appearance-none text-xs px-2.5 py-1.5 pr-7 rounded border border-slate-300 bg-white text-slate-700 focus:outline-hidden focus:border-[#2563EB]">
+<option>Automatic</option>
+<option selected="">Product</option>
+<option>Review</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-slate-400 text-xs pointer-events-none">expand_more</span>
+</div>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+      Product
+    </span>
+</td>
+</tr>
+<!-- Row 4: Portfolio -->
+<tr class="hover:bg-slate-50/50">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="font-medium text-slate-900">Portfolio</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-500 border border-slate-200">portfolio</span>
+</div>
+</td>
+<td class="py-3 px-3">
+<div class="relative max-w-[200px]">
+<select class="w-full appearance-none text-xs px-2.5 py-1.5 pr-7 rounded border border-slate-300 bg-white text-slate-700 focus:outline-hidden focus:border-[#7C3AED]">
+<option selected="">Automatic</option>
+<option>CreativeWork</option>
+<option>VisualArtwork</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-slate-400 text-xs pointer-events-none">expand_more</span>
+</div>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Article</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Section Footer -->
+<div class="px-6 py-3.5 bg-slate-50 border-t border-[#E2E8F0] flex justify-end">
+<button class="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors shadow-xs" type="button">
+              Save Defaults
+            </button>
+</div>
+</section>
+<!-- ==================== SECTION 3: OUTPUT OPTIONS ==================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs overflow-hidden" id="section-output">
+<div class="p-5 sm:p-6 border-b border-[#E2E8F0]">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-bold text-slate-900">Output Options</h2>
+<p class="text-xs text-slate-500 mt-0.5">Control which optional schema pieces are included in the JSON-LD graph.</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-2xl">tune</span>
+</div>
+</div>
+<div class="p-5 sm:p-6 space-y-4">
+<!-- Row 1: Breadcrumbs -->
+<div class="flex items-start justify-between gap-4 p-3.5 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#2563EB] shrink-0 mt-0.5"><span class="material-symbols-outlined text-lg">alt_route</span></div>
+<div>
+<div class="text-xs font-bold text-slate-900">BreadcrumbList</div>
+<div class="text-xs text-[#64748B] mt-0.5">Shows the page trail in Google search results as breadcrumb links.</div>
+<div class="text-[11px] text-slate-400 mt-1">Requires the Breadcrumbs module. Disable that module to stop outputting breadcrumb schema.</div>
+</div>
+</div>
+<!-- Toggle ON -->
+<button aria-checked="true" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-[#2563EB] transition-colors duration-200 ease-in-out focus:outline-hidden mt-1" role="switch" type="button">
+<span class="translate-x-5 pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<!-- Row 2: Author Entity -->
+<div class="flex items-start justify-between gap-4 p-3.5 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#2563EB] shrink-0 mt-0.5"><span class="material-symbols-outlined text-lg">person_pin</span></div>
+<div>
+<div class="text-xs font-bold text-slate-900">Author Entity</div>
+<div class="text-xs text-[#64748B] mt-0.5">Adds the post author as a Person entity in the schema graph.</div>
+<div class="text-[11px] text-slate-400 mt-1">Enables rich author attribution and Google E-E-A-T signals.</div>
+</div>
+</div>
+<!-- Toggle ON -->
+<button aria-checked="true" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-[#2563EB] transition-colors duration-200 ease-in-out focus:outline-hidden mt-1" role="switch" type="button">
+<span class="translate-x-5 pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+<!-- Section Footer -->
+<div class="px-6 py-3.5 bg-slate-50 border-t border-[#E2E8F0] flex justify-end">
+<button class="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors shadow-xs" type="button">
+              Save Output Options
+            </button>
+</div>
+</section>
+<!-- ==================== SECTION 4: LIVE JSON-LD PREVIEW (V2 KILLER FEATURE) ==================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs purple-top-border overflow-hidden" id="section-preview">
+<div class="p-5 sm:p-6 border-b border-[#E2E8F0]">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<!-- Left Heading & Pulse Badge -->
+<div class="flex items-center gap-3">
+<h2 class="text-base font-bold text-slate-900">JSON-LD Preview</h2>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Live
+                </span>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2">
+<button class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 shadow-2xs transition-colors" type="button">
+<span class="material-symbols-outlined text-sm text-slate-500">content_copy</span>
+                  Copy JSON
+                </button>
+<button class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 shadow-2xs transition-colors" type="button">
+<span class="material-symbols-outlined text-sm text-slate-500">download</span>
+                  Export JSON
+                </button>
+<button class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#2563EB] bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 shadow-2xs transition-colors" type="button"><span class="material-symbols-outlined text-sm">verified</span>Open in Validator</button>
+</div>
+</div>
+</div>
+<div class="p-5 sm:p-6 space-y-4">
+<!-- Blue Info Banner -->
+<div class="flex items-center gap-2.5 p-3 rounded-md bg-[#EFF6FF] border border-[#DBEAFE] text-xs text-[#1E40AF]">
+<span class="material-symbols-outlined text-base text-[#2563EB] shrink-0">info</span>
+<span>This preview shows the schema graph that would be output for your homepage. Individual posts may override the type.</span>
+</div>
+<!-- Code Preview Area (#0F172A dark background, rounded-lg, syntax-highlighted) -->
+<div class="bg-[#0F172A] rounded-lg p-5 font-mono text-[13px] leading-relaxed shadow-inner overflow-x-auto text-slate-300 border border-slate-800">
+<pre><code><span class="text-[#94A3B8]">{</span>
+  <span class="text-[#7C9EFF]">"@context"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://schema.org"</span><span class="text-[#94A3B8]">,</span>
+  <span class="text-[#7C9EFF]">"@graph"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#94A3B8]">[</span>
+    <span class="text-[#94A3B8]">{</span>
+      <span class="text-[#7C9EFF]">"@type"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"WebSite"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"@id"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/#website"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"url"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"name"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"Acme Corp"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"potentialAction"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#94A3B8]">{</span>
+        <span class="text-[#7C9EFF]">"@type"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"SearchAction"</span><span class="text-[#94A3B8]">,</span>
+        <span class="text-[#7C9EFF]">"target"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/?s={search_term_string}"</span><span class="text-[#94A3B8]">,</span>
+        <span class="text-[#7C9EFF]">"query-input"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"required name=search_term_string"</span>
+      <span class="text-[#94A3B8]">}</span>
+    <span class="text-[#94A3B8]">}</span><span class="text-[#94A3B8]">,</span>
+    <span class="text-[#94A3B8]">{</span>
+      <span class="text-[#7C9EFF]">"@type"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"Organization"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"@id"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/#organization"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"name"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"Acme Corp"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"url"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"logo"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#86EFAC]">"https://acmecorp.com/logo.png"</span><span class="text-[#94A3B8]">,</span>
+      <span class="text-[#7C9EFF]">"sameAs"</span><span class="text-[#94A3B8]">:</span> <span class="text-[#94A3B8]">[</span>
+        <span class="text-[#86EFAC]">"https://twitter.com/acmecorp"</span><span class="text-[#94A3B8]">,</span>
+        <span class="text-[#86EFAC]">"https://linkedin.com/company/acmecorp"</span>
+      <span class="text-[#94A3B8]">]</span>
+    <span class="text-[#94A3B8]">}</span>
+  <span class="text-[#94A3B8]">]</span>
+<span class="text-[#94A3B8]">}</span></code></pre>
+</div>
+<!-- Footer Meta -->
+<div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+<span>2 entities in graph: WebSite, Organization</span>
+<span class="text-[11px] text-slate-400">Assembled in 0.4 ms</span>
+</div>
+</div>
+</section>
+<!-- ==================== SECTION 5: TESTING TOOLS ==================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg shadow-xs overflow-hidden" id="section-testing">
+<div class="p-5 sm:p-6 border-b border-[#E2E8F0]">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-bold text-slate-900">Testing Tools</h2>
+<p class="text-xs text-slate-500 mt-0.5">Validate your structured data against official search engine testing tools.</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-2xl">biotech</span>
+</div>
+</div>
+<div class="p-5 sm:p-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Tool 1: Rich Results Test -->
+<div class="border border-slate-200 rounded-lg p-4 bg-white hover:border-[#7C3AED]/40 transition-colors flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#2563EB]"><span class="material-symbols-outlined text-lg">star_rate</span></div>
+<h3 class="text-sm font-bold text-slate-900">Rich Results Test</h3>
+</div>
+<p class="text-xs text-[#64748B] mb-4">Opens with your home URL. Test which rich results your schema enables in Google search.</p>
+</div>
+<div>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs" type="button">
+                    Open Tool
+                    <span class="material-symbols-outlined text-xs text-slate-400">open_in_new</span>
+</button>
+</div>
+</div>
+<!-- Tool 2: Schema Validator -->
+<div class="border border-slate-200 rounded-lg p-4 bg-white hover:border-[#7C3AED]/40 transition-colors flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#2563EB]"><span class="material-symbols-outlined text-lg">task_alt</span></div>
+<h3 class="text-sm font-bold text-slate-900">Schema Validator</h3>
+</div>
+<p class="text-xs text-[#64748B] mb-4">Paste your JSON-LD output to validate against schema.org specifications and guidelines.</p>
+</div>
+<div>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs" type="button">
+                    Open Tool
+                    <span class="material-symbols-outlined text-xs text-slate-400">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Plugin Footer Note -->
+<div class="mt-8 text-center text-xs text-slate-400">
+      RankKernel SEO Suite • Schema &amp; Structured Data Module v2.0 • Real-time JSON-LD graph generation
+    </div>
+</div>
+</body>
+</html>
+

@@ -34,7 +34,7 @@ The shared checkout is on branch `GH-88` at `2ee0c5d`. That is an **old** branch
 The shared checkout additionally carries three untracked local paths, none of which is on `main` and none of which any canonical document depends on:
 
 * `docs/competitor-analysis/` — competitive research and audits, including `indexnow-behavioral-spec.md`
-* `docs/designcode/` — **superseded.** These five files are now committed on `main`; they only still appear untracked in this stale branch
+* `docs/designcode/` — **superseded.** These files are now committed on `main`; they only still appear untracked in this stale branch
 * `docs/superpowers/` — working plan material
 
 They were deliberately left uncommitted. Do not assume they exist on another machine.
@@ -288,8 +288,14 @@ Verified from `src/Admin/AdminMenu.php`, `src/Admin/Views/`, and the page classe
 | Redirects approved design | `docs/designcode/redirection-page.html` | **On `main`** (`b02862a`, PR #119) |
 | Instant Indexing approved design | `docs/designcode/instant-indexing.html` | **On `main`** (`b02862a`, PR #119) |
 | Instant Indexing Stitch prompts (3) | `docs/designcode/*.txt` | **On `main`** (`b02862a`, PR #119) |
+| Dashboard approved design | `docs/designcode/dashboard-page.html` | **On `main`** (this PR) |
+| Sitemaps approved design | `docs/designcode/sitemap-settings-page.html` | **On `main`** (this PR) |
+| Schema approved design | `docs/designcode/Schema-settings-page.html` | **On `main`** (this PR) |
+| 404 Monitor approved design | `docs/designcode/404-monitor-page.html` | **On `main`** (this PR) |
 
-**Resolved:** these five files were previously untracked local-only material. They are committed on `main` as of `b02862a` (PR #119), byte-identical to the approved originals. Any clone of `main` has them. A design agent on a different machine **can** see them.
+**Coverage:** six of the designable pages now have an approved reference — Redirects, Sitemaps, Schema, 404 Monitor, Dashboard, Instant Indexing. **No approved reference exists** for Settings, Content Analysis panel, Metadata editor panel, or Schema metabox, so those are designed from the existing code and the shared design system.
+
+**Resolved:** the first five files were previously untracked local-only material, committed in `b02862a` (PR #119) byte-identical to the approved originals. The four page designs were added afterwards. All nine are now on `main`, so any clone has them and a design agent on a different machine **can** see them.
 
 ### Stitch reference status
 

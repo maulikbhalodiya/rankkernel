@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+
+<html lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RankKernel - 404 Monitor Admin V3 (Modern WP Palette)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          page: '#F0F2F5',
+          brand: {
+            50: '#EFF6FF',
+            100: '#DBEAFE',
+            500: '#3B82F6',
+            600: '#2563EB',
+            700: '#1D4ED8',
+          },
+          border: '#E2E8F0',
+          dark: '#1E293B',
+          muted: '#64748B',
+          subtle: '#94A3B8',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    background-color: #F0F2F5;
+    font-family: 'Inter', sans-serif;
+    color: #1E293B;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  /* Pulse animation for green status indicator */
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.15); }
+  }
+  .pulse-dot {
+    animation: statusPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+</style>
+</head>
+<body class="min-h-screen text-[#1E293B] pb-24 bg-[#F8FAFC]">
+<!-- Single Column Scroll Layout, max-w-6xl centered -->
+<main class="max-w-[1140px] mx-auto px-4 sm:px-6 py-6 space-y-4">
+<!-- ========================================== -->
+<!-- PART 1: ALL NOTICE TYPES (STACKED REVIEW) -->
+<!-- ========================================== -->
+<section aria-label="System Notifications" class="space-y-2.5"><!-- Notice 1: Success (Green) -->
+<div class="flex items-center justify-between bg-[#F0FDFA] border-l-4 border-[#0F766E] px-4 py-3 rounded-r-lg shadow-sm">
+<div class="flex items-center gap-3">
+<span class="flex-shrink-0 text-[#0F766E]">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<div class="text-sm text-[#1E293B]">
+<span class="font-medium">404 log cleared.</span>
+</div>
+</div>
+<button class="text-[#94A3B8] hover:text-[#475569] p-1 transition-colors" title="Dismiss notice" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- Notice 2: Error (Red) -->
+<div class="flex items-center justify-between bg-[#FEF2F2] border-l-4 border-[#DC2626] px-4 py-3 rounded-r-lg shadow-sm">
+<div class="flex items-center gap-3">
+<span class="flex-shrink-0 text-[#DC2626]">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<div class="text-sm text-[#1E293B]">
+<span class="font-medium">That 404 entry no longer exists.</span>
+</div>
+</div>
+<button class="text-[#94A3B8] hover:text-[#475569] p-1 transition-colors" title="Dismiss notice" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- Notice 3: Warning / Redirect Chain (Amber) -->
+<div class="flex items-center justify-between bg-[#FFF7ED] border-l-4 border-[#EA580C] px-4 py-3 rounded-r-lg shadow-sm flex-wrap gap-2">
+<div class="flex items-center gap-3 flex-wrap">
+<span class="flex-shrink-0 text-[#EA580C]">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<div class="text-sm text-[#1E293B] flex items-center gap-1.5 flex-wrap font-medium">
+<span class="">Redirect chain detected:</span>
+<span class="mono-code bg-[#FFEDD5] text-[#EA580C] px-1.5 py-0.5 rounded text-xs">/old-page</span>
+<span class="text-[#64748B]">→</span>
+<span class="mono-code bg-[#FFEDD5] text-[#EA580C] px-1.5 py-0.5 rounded text-xs">/about</span>
+<span class="text-[#64748B]">→</span>
+<span class="mono-code bg-[#FFEDD5] text-[#EA580C] px-1.5 py-0.5 rounded text-xs">/about-us</span>
+<span class="">. Consider pointing the source directly to</span>
+<span class="mono-code bg-[#FFEDD5] text-[#EA580C] px-1.5 py-0.5 rounded text-xs">/about-us</span>
+<span class="">.</span>
+</div>
+</div>
+<button class="text-[#94A3B8] hover:text-[#475569] p-1 transition-colors" title="Dismiss notice" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- Notice 4: Limit Alert (Orange/Amber) -->
+<div class="flex items-center justify-between bg-[#FFF7ED] border-l-4 border-[#EA580C] px-4 py-3 rounded-r-lg shadow-sm">
+<div class="flex items-center gap-3">
+<span class="flex-shrink-0 text-[#EA580C]">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<div class="text-sm text-[#1E293B] font-medium">
+<span class="">Your 404 log is nearly at its configured limit of 1,000 entries. Oldest entries are removed automatically when the limit is reached.</span>
+</div>
+</div>
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#EA580C] bg-[#FFEDD5] px-2.5 py-1 rounded">
+    PERSISTENT LIMIT ALERT
+  </span>
+</div>
+<!-- Notice 5: Info / Module Required (Blue) -->
+<div class="flex items-center justify-between bg-[#EFF6FF] border-l-4 border-[#2563EB] px-4 py-3 rounded-r-lg shadow-sm">
+<div class="flex items-center gap-3">
+<span class="flex-shrink-0 text-[#2563EB]">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<div class="text-sm text-[#1E293B] font-medium">
+<span class="">Redirects module required. Enable the Redirects module from the Dashboard to use the Create Redirect action on any row.</span>
+</div>
+</div>
+<button class="text-[#94A3B8] hover:text-[#475569] p-1 transition-colors" title="Dismiss notice" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div></section>
+<!-- ========================================== -->
+<!-- PART 2: PAGE HEADER (WHITE CARD) -->
+<!-- ========================================== -->
+<header class="bg-white border border-[#E2E8F0] rounded-lg px-6 py-5 shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-3">
+<h1 class="text-[22px] font-bold text-[#1E293B] leading-tight">404 Monitor</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]">v3.0</span>
+</div>
+<p class="text-[13px] text-[#64748B] mt-1">
+            See which missing pages visitors hit, then turn the busy ones into redirects. Oldest entries prune automatically.
+          </p>
+</div>
+<div class="flex items-center gap-2.5 flex-shrink-0">
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#DC2626] bg-white border border-[#FCA5A5] rounded-md hover:bg-[#FEF2F2] transition-colors focus:ring-2 focus:ring-[#FCA5A5] focus:outline-none" title="Confirm-before-action required" type="button">
+<svg class="w-4 h-4 text-[#DC2626]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+            Clear Log
+          </button>
+<a class="inline-flex items-center justify-center w-9 h-9 text-[#475569] bg-white border border-[#CBD5E1] rounded-md hover:bg-[#F8FAFC] hover:text-[#1E293B] transition-colors focus:ring-2 focus:ring-[#CBD5E1] focus:outline-none" href="#monitor-settings" title="Toggle Monitor Settings">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</a>
+</div>
+</div>
+</header>
+<!-- ========================================== -->
+<!-- PART 3: LOG STATUS CARD (ENHANCED V2-1.0)  -->
+<!-- ========================================== -->
+<section class="bg-white border border-[#E2E8F0] rounded-lg p-5 sm:p-6 shadow-sm">
+<!-- Card header row -->
+<div class="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
+<div class="flex items-center gap-3">
+<h2 class="text-[15px] font-bold text-[#1E293B]">Log Status</h2>
+<div class="flex items-center gap-1.5 text-xs font-semibold text-[#0F766E] bg-[#F0FDFA] px-2.5 py-1 rounded-full border border-[#CCFBF1]">
+<span class="w-2 h-2 rounded-full bg-[#0F766E] pulse-dot"></span>
+            Monitoring active
+          </div>
+</div>
+<div class="text-xs text-[#64748B]">
+          Real-time HTTP 404 listener
+        </div>
+</div>
+<!-- 4-Stat Responsive Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 mt-5">
+<!-- Stat 1: TRACKED (col-span-3) -->
+<div class="lg:col-span-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">TRACKED</span>
+<div class="w-7 h-7 rounded-md bg-[#EFF6FF] flex items-center justify-center text-[#2563EB]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div class="text-[28px] font-bold text-[#1E293B] leading-none tracking-tight">247</div>
+<div class="text-xs text-[#64748B] mt-1.5 font-medium">tracked addresses</div>
+</div>
+<div class="mt-4 flex items-center gap-1 text-xs font-semibold text-[#0F766E]">
+<span class="">↑</span>
+<span class="">+14 logged today</span>
+</div>
+</div>
+<!-- Stat 2: CAPACITY (col-span-5) -->
+<div class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4 flex flex-col justify-between lg:col-span-4">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">CAPACITY</span>
+<span class="text-[11px] font-medium px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] rounded-md">
+                Normal (0-79% Blue)
+              </span>
+</div>
+<!-- Progress bar: 10px pill, 25% blue fill -->
+<div class="w-full h-2.5 bg-[#E2E8F0] rounded-full overflow-hidden mb-2.5">
+<div class="h-full bg-[#2563EB] rounded-full" style="width: 25%;"></div>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span class="font-semibold text-[#1E293B]">247 / 1,000 entries (25%)</span>
+<span class="text-[#64748B]">753 slots available</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-1.5 text-[11px] text-[#64748B]">
+<svg class="w-3.5 h-3.5 text-[#94A3B8] flex-shrink-0" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="">Thresholds: Blue 0-79%, Amber 80-89%, Red 90%+</span>
+</div>
+</div>
+<!-- Stat 3: RETENTION (col-span-2) -->
+<div class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4 flex flex-col justify-between lg:col-span-2">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">RETENTION</span>
+<div class="w-7 h-7 rounded-md bg-[#EFF6FF] flex items-center justify-center text-[#64748B]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div class="text-[28px] font-bold text-[#1E293B] leading-none tracking-tight">30</div>
+<div class="text-xs text-[#64748B] mt-1.5 font-medium">days retention</div>
+</div>
+<div class="mt-4 text-[11px] text-[#94A3B8] leading-tight">
+            Entries older than 30 days removed automatically.
+          </div>
+</div>
+<!-- Stat 4: MOST RECENT HIT (col-span-2) -->
+<div class="bg-[#FFF7ED] border border-[#FFEDD5] rounded-lg p-4 flex flex-col justify-between lg:col-span-3">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">MOST RECENT HIT</span>
+<div class="w-7 h-7 rounded-md bg-[#FFEDD5] flex items-center justify-center text-[#EA580C]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div class="text-[20px] font-bold text-[#EA580C] leading-none">2 min ago</div>
+<div class="text-xs text-[#64748B] mt-1.5 font-medium">most recent 404</div>
+</div>
+<div class="mt-4 text-xs mono-code text-[#475569] truncate bg-white px-2 py-1 rounded border border-[#E2E8F0]" title="/missing-product-page">
+            /missing-product-page
+          </div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- PART 4: TRACKED 404s TABLE SECTION        -->
+<!-- ========================================== -->
+<section aria-label="Tracked 404 Errors" class="space-y-3">
+<!-- Section Heading Row -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<h2 class="text-base font-bold text-[#1E293B]">Tracked 404s</h2>
+<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E2E8F0] text-[#475569]">
+            247 entries
+          </span>
+</div>
+<!-- Search Input -->
+<div class="relative w-full sm:w-[220px]">
+<span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-[#94A3B8]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</span>
+<input class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-md focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] text-[#1E293B] placeholder-[#94A3B8]" placeholder="Search addresses..." type="text"/>
+</div>
+</div>
+<!-- IN-SECTION INFO BANNER -->
+<div class="flex items-center justify-between bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg px-4 py-3 shadow-xs">
+<div class="flex items-center gap-2.5 text-sm text-[#1E293B]">
+<svg class="w-4 h-4 text-[#2563EB] flex-shrink-0" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" fill-rule="evenodd"></path>
+</svg>
+<span class="font-medium">Enable the Redirects module from the Dashboard to use the Create Redirect action.</span>
+</div>
+<a class="text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8] hover:underline flex items-center gap-1 transition-colors" href="#monitor-settings">
+    Module Settings →
+  </a>
+</div>
+<!-- BULK ACTIONS BAR (When rows selected) -->
+<div class="bg-white border border-[#E2E8F0] rounded-t-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+<div class="flex items-center gap-3">
+<label class="inline-flex items-center gap-2 cursor-pointer select-none">
+<input checked="" class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+<span class="font-medium text-[#475569]">Select all</span>
+</label>
+<div class="h-4 w-px bg-[#E2E8F0]"></div>
+<div class="flex items-center gap-1.5">
+<select class="px-2.5 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#475569] focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+<option value="delete">Bulk actions: Delete</option>
+</select>
+<button class="px-2.5 py-1 text-xs font-medium text-[#475569] bg-[#F1F5F9] border border-[#CBD5E1] rounded hover:bg-[#E2E8F0] transition-colors" type="button">
+              Apply
+            </button>
+</div>
+<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
+            3 selected
+          </span>
+</div>
+<div class="flex items-center gap-2 text-[#64748B]">
+<span class="">Page 1 of 13</span>
+<div class="inline-flex rounded-md shadow-xs" role="group">
+<button class="px-2.5 py-1 text-xs font-medium text-[#94A3B8] bg-white border border-[#E2E8F0] rounded-l hover:bg-[#F8FAFC] disabled:opacity-50" disabled="" type="button">Prev</button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#475569] bg-white border-t border-b border-r border-[#E2E8F0] rounded-r hover:bg-[#F8FAFC]" type="button">Next</button>
+</div>
+</div>
+</div>
+<!-- TABLE (WHITE CARD, FULL WIDTH) -->
+<div class="bg-white border-x border-b border-[#E2E8F0] rounded-b-lg shadow-sm overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+<th class="w-10 px-4 py-3 text-center" scope="col">
+<input checked="" class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</th>
+<th class="px-4 py-3 cursor-pointer select-none group" scope="col">
+<div class="flex items-center gap-1">
+<span class="">URL</span>
+<svg class="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#475569]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</th>
+<th class="px-4 py-3 cursor-pointer select-none group w-24" scope="col">
+<div class="flex items-center gap-1">
+<span class="">Hits</span>
+<svg class="w-3.5 h-3.5 text-[#2563EB]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</th>
+<th class="px-4 py-3 cursor-pointer select-none group w-32" scope="col">
+<div class="flex items-center gap-1">
+<span class="">First Seen</span>
+<svg class="w-3.5 h-3.5 text-[#94A3B8]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</th>
+<th class="px-4 py-3 cursor-pointer select-none group w-32" scope="col">
+<div class="flex items-center gap-1">
+<span class="">Last Seen</span>
+<svg class="w-3.5 h-3.5 text-[#94A3B8]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</th>
+<th class="px-4 py-3 text-right w-44" scope="col">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#E2E8F0] text-xs">
+<!-- ROW 1 (CHECKED & EXPANDED) -->
+<tr class="bg-[#EFF6FF] border-b border-[#DBEAFE] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input checked="" class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5 font-medium">
+<div class="flex items-center gap-2">
+<span class="mono-code text-[13px] text-[#1E293B] font-semibold">/missing-product-page</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">50+ Hits</span>
+</div>
+</td>
+<td class="px-4 py-3.5 font-bold text-[#DC2626] text-sm">89</td>
+<td class="px-4 py-3.5 text-[#64748B]">Sep 5, 2026</td>
+<td class="px-4 py-3.5 font-semibold text-[#EA580C]">2 min ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- EXPANDED DETAIL SECTION FOR ROW 1 -->
+<tr class="bg-[#F8FAFC]">
+<td class="p-0" colspan="6">
+<div class="border-y border-[#E2E8F0] p-4 bg-[#F8FAFC] shadow-inner space-y-3">
+<div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-[#475569]">Detailed Log Payload</span>
+<span class="text-[11px] text-[#0F766E] bg-[#F0FDFA] border border-[#CCFBF1] px-2 py-0.5 rounded">
+                        Advanced fields enabled · Full trace captured
+                      </span>
+</div>
+<span class="text-[11px] text-[#94A3B8]">IP masking applied (zero storage policy)</span>
+</div>
+<!-- 2-Column Definition List -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+<div class="space-y-1.5">
+<div class="flex">
+<span class="w-28 text-[#64748B] flex-shrink-0">Full address:</span>
+<span class="mono-code text-[#1E293B] font-semibold">/missing-product-page</span>
+</div>
+<div class="flex">
+<span class="w-28 text-[#64748B] flex-shrink-0">First seen:</span>
+<span class="text-[#1E293B]">Sep 5, 2026 14:23 UTC</span>
+</div>
+<div class="flex">
+<span class="w-28 text-[#64748B] flex-shrink-0">Referer:</span>
+<a class="text-[#2563EB] hover:underline truncate" href="https://www.google.com/" target="_blank">https://www.google.com/</a>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex">
+<span class="w-24 text-[#64748B] flex-shrink-0">Total hits:</span>
+<span class="font-bold text-[#DC2626]">89 total occurrences</span>
+</div>
+<div class="flex">
+<span class="w-24 text-[#64748B] flex-shrink-0">Last seen:</span>
+<span class="text-[#1E293B] font-medium">Sep 21, 2026 11:52 UTC</span>
+</div>
+<div class="flex items-start">
+<span class="w-24 text-[#64748B] flex-shrink-0">User agent:</span>
+<span class="mono-code text-[#475569] text-[11px] truncate" title="Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15">
+                          Mozilla/5.0 (iPhone; CPU iPhone OS 17...
+                        </span>
+</div>
+</div>
+</div>
+<p class="text-[11px] text-[#94A3B8] italic">
+                    Advanced fields enabled — referer and user agent are recorded.
+                  </p>
+<!-- Action Row Inside Expanded Detail -->
+<div class="pt-2 border-t border-[#E2E8F0] flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs flex items-center gap-1.5" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Create Redirect from this URL
+                      </button>
+<button class="px-3 py-1.5 text-xs font-medium text-[#475569] bg-white border border-[#CBD5E1] hover:bg-[#F8FAFC] rounded transition-colors flex items-center gap-1.5" type="button">
+<svg class="w-3.5 h-3.5 text-[#64748B]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        Copy URL
+                      </button>
+<button class="text-xs text-[#DC2626] hover:underline font-medium px-2 py-1" type="button">
+                        Delete entry
+                      </button>
+</div>
+<span class="text-[11px] text-[#64748B]">Click row or checkbox to collapse</span>
+</div>
+</div>
+</td>
+</tr>
+<!-- ROW 2: /old-blog-post-2023 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input checked="" class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/old-blog-post-2023</span>
+</td>
+<td class="px-4 py-3.5 font-bold text-[#EA580C]">45</td>
+<td class="px-4 py-3.5 text-[#64748B]">Aug 20, 2026</td>
+<td class="px-4 py-3.5 font-medium text-[#D97706]">1 hr ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 3 (HOVER STATE / CHECKED): /wp-content/uploads/file.pdf -->
+<tr class="bg-[#F8FAFC] border-b border-[#E2E8F0]">
+<td class="px-4 py-3.5 text-center">
+<input checked="" class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/wp-content/uploads/file.pdf</span>
+</td>
+<td class="px-4 py-3.5 font-medium text-[#D97706]">34</td>
+<td class="px-4 py-3.5 text-[#64748B]">Sep 1, 2026</td>
+<td class="px-4 py-3.5 font-medium text-[#D97706]">3 hrs ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 4: /products/deleted-item -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/products/deleted-item</span>
+</td>
+<td class="px-4 py-3.5 font-medium text-[#D97706]">28</td>
+<td class="px-4 py-3.5 text-[#64748B]">Aug 15, 2026</td>
+<td class="px-4 py-3.5 text-[#64748B]">Yesterday</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 5: /contact-old -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/contact-old</span>
+</td>
+<td class="px-4 py-3.5 text-[#64748B]">22</td>
+<td class="px-4 py-3.5 text-[#64748B]">Jul 30, 2026</td>
+<td class="px-4 py-3.5 text-[#64748B]">2 days ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 6: /sitemap-old.xml -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/sitemap-old.xml</span>
+</td>
+<td class="px-4 py-3.5 text-[#64748B]">17</td>
+<td class="px-4 py-3.5 text-[#64748B]">Jul 22, 2026</td>
+<td class="px-4 py-3.5 text-[#64748B]">3 days ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 7: /author/admin -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/author/admin</span>
+</td>
+<td class="px-4 py-3.5 text-[#64748B]">12</td>
+<td class="px-4 py-3.5 text-[#64748B]">Jul 10, 2026</td>
+<td class="px-4 py-3.5 text-[#64748B]">5 days ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+<!-- ROW 8: /category/uncategorized/page/2 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors">
+<td class="px-4 py-3.5 text-center">
+<input class="w-4 h-4 text-[#2563EB] rounded border-[#CBD5E1] focus:ring-[#2563EB]" type="checkbox"/>
+</td>
+<td class="px-4 py-3.5">
+<span class="mono-code text-[13px] text-[#1E293B]">/category/uncategorized/page/2</span>
+</td>
+<td class="px-4 py-3.5 text-[#94A3B8] font-medium">8</td>
+<td class="px-4 py-3.5 text-[#64748B]">Jun 30, 2026</td>
+<td class="px-4 py-3.5 text-[#94A3B8]">1 week ago</td>
+<td class="px-4 py-3.5 text-right">
+<div class="flex items-center justify-end gap-1.5">
+<button class="px-3 py-1 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded transition-colors shadow-xs" type="button">
+                    Create Redirect
+                  </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] hover:bg-[#FEE2E2] rounded transition-colors" type="button">
+                    Delete
+                  </button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Table bottom navigation -->
+<div class="px-4 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 text-xs">
+<div class="text-[#64748B]">
+            Showing <span class="font-semibold text-[#1E293B]">1–8</span> of <span class="font-semibold text-[#1E293B]">247 items</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[#64748B]">Page 1 of 13</span>
+<div class="inline-flex rounded-md shadow-xs">
+<button class="px-2.5 py-1 text-xs font-medium text-[#94A3B8] bg-white border border-[#E2E8F0] rounded-l hover:bg-[#F8FAFC] disabled:opacity-50" disabled="" type="button">
+                Prev
+              </button>
+<button class="px-2.5 py-1 text-xs font-medium text-[#475569] bg-white border-t border-b border-r border-[#E2E8F0] rounded-r hover:bg-[#F8FAFC]" type="button">
+                Next
+              </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- EMPTY STATES (STANDALONE CLEAN SHOWCASE)   -->
+<!-- ========================================== -->
+<section aria-label="Component States Showcase" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- EMPTY STATE: NO 404s TRACKED YET (From V2) -->
+<div class="bg-white border-2 border-dashed border-[#CBD5E1] rounded-lg p-10 text-center flex flex-col items-center justify-center shadow-xs">
+<div aria-hidden="true" class="text-[72px] font-light leading-none text-[#E2E8F0] select-none tracking-tighter">
+          404
+        </div>
+<h3 class="text-base font-bold text-[#1E293B] mt-3">
+          No 404 errors tracked yet.
+        </h3>
+<p class="text-sm text-[#64748B] max-w-sm mt-1.5 leading-relaxed">
+          When visitors hit a missing page, the URL appears here with hit counts and timestamps.
+        </p>
+<span class="mt-4 inline-block text-[10px] uppercase font-semibold text-[#94A3B8] tracking-wider">
+          State: Initial Empty Log
+        </span>
+</div>
+<!-- FILTER EMPTY STATE: NO MATCHES FOUND -->
+<div class="bg-white border-2 border-dashed border-[#CBD5E1] rounded-lg p-10 text-center flex flex-col items-center justify-center shadow-xs">
+<div class="w-12 h-12 rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center mb-3">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<h3 class="text-base font-bold text-[#1E293B]">
+          No entries match your search.
+        </h3>
+<p class="text-sm text-[#64748B] max-w-sm mt-1.5 leading-relaxed">
+          Try a different term or clear the search to see all tracked addresses.
+        </p>
+<button class="mt-4 px-3.5 py-1.5 text-xs font-semibold text-[#475569] bg-white border border-[#CBD5E1] hover:bg-[#F8FAFC] rounded-md transition-colors shadow-xs" type="button">
+          Clear search
+        </button>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- PART 5: MONITOR SETTINGS PANEL            -->
+<!-- ========================================== -->
+<section class="bg-white border border-[#E2E8F0] border-t-4 border-t-[#2563EB] rounded-lg p-5 sm:p-6 shadow-sm" id="monitor-settings">
+<!-- Settings Header -->
+<div class="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
+<div class="flex items-center gap-2">
+<svg class="w-4 h-4 text-[#2563EB]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<h2 class="text-[15px] font-bold text-[#1E293B]">Monitor Settings</h2>
+<span class="text-xs text-[#94A3B8] font-normal">Configured in WordPress database</span>
+</div>
+<button class="text-xs font-semibold text-[#64748B] hover:text-[#1E293B]" type="button">
+          Hide
+        </button>
+</div>
+<!-- Settings Form: 2-Column Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 pt-5">
+<!-- LEFT COLUMN -->
+<div class="space-y-5">
+<!-- Row A: ADVANCED FIELDS -->
+<div class="flex items-start justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]">
+                Advanced Fields
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Store referer and user agent with each entry.
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                Off by default. Truncated to 255 chars. IP addresses are never stored.
+              </p>
+</div>
+<!-- Toggle switch OFF (grey #CBD5E1) -->
+<button aria-checked="false" class="flex-shrink-0 w-9 h-5 bg-[#CBD5E1] rounded-full relative p-0.5 transition-colors focus:outline-none" role="switch" type="button">
+<span class="block w-4 h-4 bg-white rounded-full shadow-sm transition-transform"></span>
+</button>
+</div>
+<!-- Row B: RETENTION DAYS -->
+<div class="flex items-start justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]" for="retention-input">
+                Retention
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Log rotation threshold in days
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                Days before old entries are removed automatically.
+              </p>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<input class="w-20 px-2.5 py-1.5 text-xs text-right bg-white border border-[#CBD5E1] rounded focus:outline-none focus:ring-1 focus:ring-[#2563EB]" id="retention-input" max="365" min="1" type="number" value="30"/>
+<span class="text-xs text-[#64748B]">days</span>
+</div>
+</div>
+<!-- Row C: MAXIMUM ENTRIES -->
+<div class="flex items-start justify-between gap-4">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]" for="max-entries-input">
+                Max Entries
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Database table limit guard
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                Oldest entries removed first when limit is reached.
+              </p>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<input class="w-20 px-2.5 py-1.5 text-xs text-right bg-white border border-[#CBD5E1] rounded focus:outline-none focus:ring-1 focus:ring-[#2563EB]" id="max-entries-input" max="10000" min="100" type="number" value="1000"/>
+<span class="text-xs text-[#64748B]">entries</span>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN -->
+<div class="space-y-5">
+<!-- Row D: FLOOD BUDGET -->
+<div class="flex items-start justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]" for="flood-budget-input">
+                Flood Budget
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Rate limiting protection against bot scans
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                New addresses per time window. Repeat hits on known addresses always count.
+              </p>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<input class="w-20 px-2.5 py-1.5 text-xs text-right bg-white border border-[#CBD5E1] rounded focus:outline-none focus:ring-1 focus:ring-[#2563EB]" id="flood-budget-input" max="1000" min="1" type="number" value="50"/>
+<span class="text-xs text-[#64748B]">addrs</span>
+</div>
+</div>
+<!-- Row E: FLOOD WINDOW -->
+<div class="flex items-start justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]" for="flood-window-input">
+                Flood Window
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Rolling window duration
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                Seconds. The window resets after this duration.
+              </p>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<input class="w-20 px-2.5 py-1.5 text-xs text-right bg-white border border-[#CBD5E1] rounded focus:outline-none focus:ring-1 focus:ring-[#2563EB]" id="flood-window-input" max="3600" min="60" type="number" value="300"/>
+<span class="text-xs text-[#64748B]">sec</span>
+</div>
+</div>
+<!-- Row F: QUERY STRINGS -->
+<div class="flex items-start justify-between gap-4">
+<div>
+<label class="block text-xs font-semibold uppercase tracking-wider text-[#475569]">
+                Query Strings
+              </label>
+<div class="text-xs text-[#1E293B] font-medium mt-0.5">
+                Ignore query strings when logging.
+              </div>
+<p class="text-[11px] text-[#94A3B8] mt-1">
+                On by default. Turn off to track each query string as a separate entry.
+              </p>
+</div>
+<!-- Toggle switch ON (blue #2563EB) -->
+<button aria-checked="true" class="flex-shrink-0 w-9 h-5 bg-[#2563EB] rounded-full relative p-0.5 transition-colors focus:outline-none" role="switch" type="button">
+<span class="block w-4 h-4 bg-white rounded-full shadow-sm translate-x-4 transition-transform"></span>
+</button>
+</div>
+</div>
+</div>
+<!-- DIVIDER LINE -->
+<div class="h-px bg-[#E2E8F0] my-6"></div>
+<!-- EXCLUSIONS SUB-SECTION -->
+<div class="space-y-3">
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+<h3 class="text-sm font-bold text-[#1E293B]">URL Exclusions</h3>
+<p class="text-[13px] text-[#64748B]">
+            Skip logging for addresses that match a rule. Case-sensitive. Examples: Prefix /wp-admin/, Contains utm_
+          </p>
+</div>
+<!-- Exclusions Clean Table -->
+<div class="border border-[#E2E8F0] rounded-md overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+<th class="w-44 px-4 py-2.5">Compare</th>
+<th class="px-4 py-2.5">Value</th>
+<th class="w-24 px-4 py-2.5 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#E2E8F0] text-xs">
+<!-- Exclusions Row 1 -->
+<tr class="hover:bg-[#F8FAFC]">
+<td class="px-4 py-2">
+<select class="w-full px-2 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+<option selected="" value="prefix">Prefix</option>
+<option value="exact">Exact</option>
+<option value="contains">Contains</option>
+<option value="suffix">Suffix</option>
+<option value="wildcard">Wildcard</option>
+</select>
+</td>
+<td class="px-4 py-2">
+<input class="mono-code w-full px-2.5 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]" type="text" value="/wp-admin/"/>
+</td>
+<td class="px-4 py-2 text-right">
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FCA5A5] rounded transition-colors" type="button">
+                    Remove
+                  </button>
+</td>
+</tr>
+<!-- Exclusions Row 2 -->
+<tr class="hover:bg-[#F8FAFC]">
+<td class="px-4 py-2">
+<select class="w-full px-2 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+<option value="prefix">Prefix</option>
+<option value="exact">Exact</option>
+<option selected="" value="contains">Contains</option>
+<option value="suffix">Suffix</option>
+<option value="wildcard">Wildcard</option>
+</select>
+</td>
+<td class="px-4 py-2">
+<input class="mono-code w-full px-2.5 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]" type="text" value="utm_"/>
+</td>
+<td class="px-4 py-2 text-right">
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FCA5A5] rounded transition-colors" type="button">
+                    Remove
+                  </button>
+</td>
+</tr>
+<!-- Exclusions Row 3 -->
+<tr class="hover:bg-[#F8FAFC]">
+<td class="px-4 py-2">
+<select class="w-full px-2 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+<option selected="" value="prefix">Prefix</option>
+<option value="exact">Exact</option>
+<option value="contains">Contains</option>
+<option value="suffix">Suffix</option>
+<option value="wildcard">Wildcard</option>
+</select>
+</td>
+<td class="px-4 py-2">
+<input class="mono-code w-full px-2.5 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]" type="text" value="/wp-includes/"/>
+</td>
+<td class="px-4 py-2 text-right">
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FCA5A5] rounded transition-colors" type="button">
+                    Remove
+                  </button>
+</td>
+</tr>
+<!-- Exclusions Row 4 -->
+<tr class="hover:bg-[#F8FAFC]">
+<td class="px-4 py-2">
+<select class="w-full px-2 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]">
+<option value="prefix">Prefix</option>
+<option selected="" value="exact">Exact</option>
+<option value="contains">Contains</option>
+<option value="suffix">Suffix</option>
+<option value="wildcard">Wildcard</option>
+</select>
+</td>
+<td class="px-4 py-2">
+<input class="mono-code w-full px-2.5 py-1 text-xs bg-white border border-[#CBD5E1] rounded text-[#1E293B] focus:outline-none focus:ring-1 focus:ring-[#2563EB]" type="text" value="/favicon.ico"/>
+</td>
+<td class="px-4 py-2 text-right">
+<button class="px-2.5 py-1 text-xs font-medium text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FCA5A5] rounded transition-colors" type="button">
+                    Remove
+                  </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Controls Below Exclusions -->
+<div class="pt-3 flex flex-wrap items-center justify-between gap-3">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#475569] bg-white border border-[#CBD5E1] rounded hover:bg-[#F8FAFC] transition-colors" type="button">
+<svg class="w-3.5 h-3.5 text-[#64748B]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            + Add Exclusion
+          </button>
+<button class="px-4 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-md transition-colors shadow-xs" type="button">
+            Save Monitor Settings
+          </button>
+</div>
+</div>
+</section>
+<!-- Footer meta caption -->
+<footer class="text-center pt-4 text-xs text-[#94A3B8]">RankKernel SEO Suite · 404 Monitor Module v3.0 (Modern WP Admin) · Zero runtime overhead background logging</footer>
+</main>
+</body></html>

@@ -35,14 +35,18 @@ Reference material that must be present before you design, and is on `main`:
 | `docs/DESIGN-TODO.md` | Task board. |
 | `docs/design-task.md` | Earlier design brief. |
 | `docs/designcode/redirection-page.html` | **Approved** Redirects design. |
+| `docs/designcode/sitemap-settings-page.html` | **Approved** Sitemaps design. |
+| `docs/designcode/Schema-settings-page.html` | **Approved** Schema design. |
+| `docs/designcode/404-monitor-page.html` | **Approved** 404 Monitor design. |
+| `docs/designcode/dashboard-page.html` | **Approved** Dashboard design. |
 | `docs/designcode/instant-indexing.html` | **Approved** Instant Indexing design. |
 | `docs/designcode/instant-indexing-stitch-prompt-spec.txt` | Full Instant Indexing spec. |
 | `docs/designcode/instant-indexing-stitch-prompt-v4.txt` | Prompts, v4. |
 | `docs/designcode/instant-indexing-stitch-prompt.txt` | Prompts, early. |
 
-**If `docs/designcode/` is missing, stop and report it.** Those five files are the approved fidelity targets for Redirects and Instant Indexing. Do not design those two pages from imagination if they are absent, and do not claim they were missing if you simply did not pull `main`.
+**If `docs/designcode/` is missing or short, stop and report it.** Those files are the approved fidelity targets for six pages: Redirects, Sitemaps, Schema, 404 Monitor, Dashboard and Instant Indexing. Do not design those pages from imagination if their artifact is absent, and do not claim one was missing if you simply did not pull `main`.
 
-The five `docs/designcode/` files are **visual references, never specifications.** If a mockup and the code disagree, the code wins.
+The `docs/designcode/` files are **visual references, never specifications.** If a mockup and the code disagree, the code wins.
 
 ---
 
@@ -415,7 +419,7 @@ These are real, verified, and **not yours to fix** unless engineering asks. Do n
 ## 18. First Three Actions
 
 1. Read `docs/RANKKERNEL-CURRENT-STATE.md` end to end.
-2. Confirm `docs/designcode/` contains all five reference files, then read the one for the page you are about to design.
+2. Confirm `docs/designcode/` holds the reference for the page you are about to design, then read it. Six of the pages have one: Redirects, Sitemaps, Schema, 404 Monitor, Dashboard, Instant Indexing.
 3. Create your design worktree (section 6) if it does not exist, run `composer install`, then start `design/design-system` from `origin/main`.
 
 Then continue autonomously per section 15.
