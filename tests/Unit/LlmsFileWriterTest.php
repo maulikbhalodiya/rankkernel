@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Robots\LlmsFileWriter;
 
@@ -150,5 +152,30 @@ final class LlmsFileWriterTest extends TestCase {
 
 		chmod( $dir, 0755 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- test fixture restores permission so it can clean up.
 		rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp directory.
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_EDIT constant blocks writing.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_edit_blocks_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileDoesNotExist( $temp );
 	}
 }
