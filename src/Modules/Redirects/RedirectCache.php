@@ -147,8 +147,9 @@ final class RedirectCache {
 	/**
 	 * Reset static request-level memoization (primarily for unit tests).
 	 *
-	 * Clears static validator memoization so test suites can maintain
-	 * complete test isolation across runs.
+	 * Clears static validator memoization so test suites can maintain complete test isolation
+	 * across runs. Callers reusing a RedirectCache instance should call $cache->invalidate() to
+	 * clear per-instance memory maps as well.
 	 */
 	public static function resetCache(): void {
 		self::$cachedValidator = null;

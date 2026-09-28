@@ -118,7 +118,7 @@ final class Matcher {
 				continue;
 			}
 
-			$type = (string) ( $rule['match_type'] ?? 'exact' );
+			$type = (string) ( $rule['match_type'] ?? '' );
 
 			if ( isset( $byType[ $type ] ) ) {
 				$byType[ $type ][] = $rule;
