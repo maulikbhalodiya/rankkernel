@@ -128,6 +128,41 @@ final class RestControllersTest extends TestCase {
 	}
 
 	/**
+	 * Test modules controller register routes schema.
+	 */
+	public function test_modules_controller_register_routes(): void {
+		$registered = [];
+
+		Functions\when( 'register_rest_route' )->alias(
+			static function ( string $restNamespace, string $route, array $args ) use ( &$registered ): bool {
+				$registered = [
+					'namespace' => $restNamespace,
+					'route'     => $route,
+					'args'      => $args,
+				];
+				return true;
+			}
+		);
+
+		$ctrl = new ModulesController();
+		$ctrl->registerRoutes();
+
+		$this->assertSame( 'rankkernel/v1', $registered['namespace'] );
+		$this->assertSame( '/modules/(?P<id>[a-z0-9-]+)', $registered['route'] );
+
+		$args = $registered['args']['args'] ?? [];
+		$this->assertArrayHasKey( 'id', $args );
+		$this->assertTrue( $args['id']['required'] );
+		$this->assertSame( 'string', $args['id']['type'] );
+
+		$this->assertArrayHasKey( 'enabled', $args );
+		$this->assertTrue( $args['enabled']['required'] );
+		$this->assertSame( 'boolean', $args['enabled']['type'] );
+		$this->assertSame( 'rest_sanitize_request_arg', $args['enabled']['sanitize_callback'] );
+		$this->assertSame( 'rest_validate_request_arg', $args['enabled']['validate_callback'] );
+	}
+
+	/**
 	 * Test settings controller purge boolean false accepted.
 	 */
 	public function test_settings_controller_purge_boolean_false_accepted(): void {

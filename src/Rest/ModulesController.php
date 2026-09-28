@@ -67,11 +67,17 @@ final class ModulesController {
 				'callback'            => [ $this, 'toggleModule' ],
 				'permission_callback' => [ $this, 'checkPermission' ],
 				'args'                => [
-					'id' => [
+					'id'      => [
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ $this, 'validateModuleId' ],
+					],
+					'enabled' => [
+						'required'          => true,
+						'type'              => 'boolean',
+						'sanitize_callback' => 'rest_sanitize_request_arg',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
 			]
