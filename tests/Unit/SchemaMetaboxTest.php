@@ -413,6 +413,79 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * A failed normal save reports the failure instead of claiming saved.
+	 */
+	public function test_save_reports_a_failed_write(): void {
+		$stored = $this->storedPayload();
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->justReturn( false );
+
+		$_POST = $this->validPost();
+
+		$box = new SchemaMetabox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php?post=11&action=edit' );
+		$this->assertStringContainsString( 'rankkernel_schema_msg=save-failed', $redirect );
+	}
+
+	/**
+	 * A failed import write reports the failure instead of claiming saved.
+	 */
+	public function test_save_import_reports_a_failed_write(): void {
+		$stored = $this->storedPayload();
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->justReturn( false );
+		Functions\when( 'wp_check_filetype_and_ext' )->alias(
+			static fn ( string $path, string $filename, ?array $mimes = null ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_filetype_and_ext signature.
+				'ext'             => 'json',
+				'type'            => 'application/json',
+				'proper_filename' => false,
+			]
+		);
+		Functions\when( 'wp_check_filetype' )->alias(
+			static fn ( string $f, array $m ): array => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_filetype signature.
+				'ext'  => 'json',
+				'type' => 'application/json',
+			]
+		);
+
+		$tmp = $this->writeImportTmp( '{"type":"Product","fields":{"headline":"Imported"}}' );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => 'post-schema.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 99,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=save-failed', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
 	 * Test save disabled flag stored.
 	 */
 	public function test_save_disabled_flag_stored(): void {
@@ -1412,5 +1485,22 @@ final class SchemaMetaboxTest extends TestCase {
 		}
 
 		$this->assertStringContainsString( 'Schema saved.', $out );
+	}
+
+	/**
+	 * Test the failed save message arg renders its error notice.
+	 */
+	public function test_save_failed_message_arg_renders_its_notice(): void {
+		$this->stubRenderCommon( $this->renderPayload() );
+
+		$_GET['rankkernel_schema_msg'] = 'save-failed';
+
+		try {
+			$out = $this->renderBox();
+		} finally {
+			unset( $_GET['rankkernel_schema_msg'] );
+		}
+
+		$this->assertStringContainsString( 'The schema could not be saved', $out );
 	}
 }

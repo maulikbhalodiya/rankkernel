@@ -10,6 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var bool     $settingsUpdated     Whether the settings saved notice renders.
+ * @var bool     $settingsSaveFailed  Whether the save failed notice renders.
  * @var string   $represents          Selected site represents value.
  * @var string   $orgName             Organization name.
  * @var string   $orgLogo             Organization logo URL.
@@ -30,6 +31,12 @@ defined( 'ABSPATH' ) || exit;
 if ( $settingsUpdated ) :
 	?>
 	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
+	<?php
+endif;
+
+if ( $settingsSaveFailed ) :
+	?>
+	<div class="notice notice-error"><p><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
 	<?php
 endif;
 ?>

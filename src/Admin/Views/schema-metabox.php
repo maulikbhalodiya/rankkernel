@@ -41,6 +41,10 @@ elseif ( 'invalid-import' === $noticeMessage ) :
 	?>
 	<div class="notice notice-error is-dismissible"><p><?php echo esc_html__( 'Import file was invalid, nothing was saved.', 'rankkernel' ); ?></p></div>
 	<?php
+elseif ( 'save-failed' === $noticeMessage ) :
+	?>
+	<div class="notice notice-error is-dismissible"><p><?php echo esc_html__( 'The schema could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
+	<?php
 endif;
 ?>
 <?php wp_nonce_field( 'rankkernel_schema_save', 'rankkernel_schema_nonce' ); ?>

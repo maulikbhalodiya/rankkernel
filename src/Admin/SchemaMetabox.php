@@ -649,9 +649,12 @@ final class SchemaMetabox {
 
 			$existing           = $this->readPayload( $postId );
 			$existing['schema'] = $import['schema'];
-			$this->saveStatus   = 'saved';
 
-			update_post_meta( $postId, self::META_KEY, $existing );
+			$saved = update_post_meta( $postId, self::META_KEY, $existing );
+
+			// A strict false means the write failed, so the status must report
+			// the failure rather than claiming the import was saved.
+			$this->saveStatus = ( false === $saved ) ? 'save-failed' : 'saved';
 
 			return;
 		}
@@ -727,9 +730,11 @@ final class SchemaMetabox {
 		}
 
 		$existing['schema'] = $newSchema;
-		$this->saveStatus   = $status;
 
-		update_post_meta( $postId, self::META_KEY, $existing );
+		$saved = update_post_meta( $postId, self::META_KEY, $existing );
+
+		// A failed write outranks the form status, because nothing persisted.
+		$this->saveStatus = ( false === $saved ) ? 'save-failed' : $status;
 	}
 
 	/**

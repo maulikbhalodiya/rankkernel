@@ -10,6 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var bool   $settingsUpdated      Whether the settings saved notice renders.
+ * @var bool   $settingsSaveFailed   Whether the settings save failed notice renders.
  * @var array<int, array{id: string, label: string}> $settingsSections Settings left-nav sections.
  * @var string $currentSection       Active settings section id.
  * @var string $titleTemplate        Title template value.
@@ -51,6 +52,12 @@ defined( 'ABSPATH' ) || exit;
 if ( $settingsUpdated ) :
 	?>
 	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
+	<?php
+endif;
+
+if ( $settingsSaveFailed ) :
+	?>
+	<div class="notice notice-error"><p><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
 	<?php
 endif;
 ?>

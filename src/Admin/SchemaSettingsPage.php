@@ -81,6 +81,12 @@ final class SchemaSettingsPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, compared strictly against a literal, never stored or output.
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
+		// Read only failure flag, sanitized below. It rides the same rk_notice
+		// query argument the other admin screens use for a failed save.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, sanitized below.
+		$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawNotice ) ? (string) $rawNotice : '' );
+
 		$represents = 'organization';
 
 		if ( isset( $all['site_represents'] ) && is_string( $all['site_represents'] ) ) {
@@ -160,9 +166,13 @@ final class SchemaSettingsPage {
 			);
 		}
 
-		$this->store->set( $this->collect() );
+		$saved = $this->store->set( $this->collect() );
 
-		$redirect = admin_url( 'admin.php?page=rankkernel-schema&settings-updated=1' );
+		// The failure flag follows the plugin wide rk_notice convention, so a
+		// write that stored nothing never redirects as if it succeeded.
+		$query = $saved ? 'settings-updated=1' : 'rk_notice=save_failed';
+
+		$redirect = admin_url( 'admin.php?page=rankkernel-schema&' . $query );
 		wp_safe_redirect( $redirect );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {

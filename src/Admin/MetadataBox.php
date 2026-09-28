@@ -316,6 +316,14 @@ final class MetadataBox {
 	private ?ModuleEnableMap $enableMap;
 
 	/**
+	 * Save status from the last save in this request, consumed by the redirect
+	 * filter so a failed metadata write reaches the editor instead of vanishing.
+	 *
+	 * @var string|null
+	 */
+	private ?string $saveStatus = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore|null          $store          Settings store override, test double seam.
@@ -340,6 +348,7 @@ final class MetadataBox {
 		add_action( 'save_post', [ $this, 'handleSave' ], 10, 2 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
 		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueueEditorAssets' ] );
+		add_filter( 'redirect_post_location', [ $this, 'filterRedirect' ] );
 	}
 
 	/**
@@ -605,6 +614,12 @@ final class MetadataBox {
 			}
 		}
 
+		// Read only notice key from the redirect filter, compared strictly
+		// against a literal and sanitized before it reaches the view.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only notice key, sanitized below.
+		$rawMetaMsg        = isset( $_GET['rankkernel_meta_msg'] ) ? wp_unslash( $_GET['rankkernel_meta_msg'] ) : '';
+		$metaNoticeMessage = is_scalar( $rawMetaMsg ) ? sanitize_key( (string) $rawMetaMsg ) : '';
+
 		require __DIR__ . '/Views/metadata-box.php';
 	}
 
@@ -661,7 +676,36 @@ final class MetadataBox {
 		$existing = $this->readPayload( $postId );
 		$merged   = $this->mergePosted( $existing );
 
-		update_post_meta( $postId, self::META_KEY, $merged );
+		$saved = update_post_meta( $postId, self::META_KEY, $merged );
+
+		// A strict false means the write failed. update_post_meta returns the
+		// new meta id on insert and true on update, so only false is a failure.
+		if ( false === $saved ) {
+			$this->saveStatus = 'save-failed';
+		}
+	}
+
+	/**
+	 * Append the save status to the post redirect URL.
+	 *
+	 * Mirrors the schema metabox so a failed write surfaces on the editor
+	 * screen rather than reporting success while the payload is lost.
+	 *
+	 * @param string $location Redirect URL.
+	 * @return string The result.
+	 */
+	public function filterRedirect( string $location ): string {
+		if ( null === $this->saveStatus ) {
+			return $location;
+		}
+
+		if ( function_exists( 'add_query_arg' ) ) {
+			return add_query_arg( 'rankkernel_meta_msg', $this->saveStatus, $location );
+		}
+
+		$separator = str_contains( $location, '?' ) ? '&' : '?';
+
+		return $location . $separator . 'rankkernel_meta_msg=' . $this->saveStatus;
 	}
 
 	/**

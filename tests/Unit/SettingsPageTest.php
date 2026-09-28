@@ -334,6 +334,46 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the full page renders the save failed notice from the failure flag.
+	 */
+	public function test_full_page_render_shows_the_save_failed_notice(): void {
+		$this->stubSettingsPageRender();
+
+		$_GET['rk_notice'] = 'save_failed';
+
+		ob_start();
+		$this->makePage()->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings could not be saved', $output );
+	}
+
+	/**
+	 * Test the partial render also surfaces the save failed notice.
+	 */
+	public function test_partial_render_shows_the_save_failed_notice(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['rk_partial'] = 'breadcrumbs';
+		$_GET['section']    = 'breadcrumbs';
+		$_GET['rk_notice']  = 'save_failed';
+
+		$page = $this->makePage();
+
+		ob_start();
+		$page->maybeHandleSave();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings could not be saved', $output );
+		$this->assertStringContainsString( 'id="rk-section-breadcrumbs"', $output );
+	}
+
+	/**
 	 * Test media assets load only on the settings screen with the picker dependency.
 	 */
 	public function test_enqueue_assets_loads_media_only_on_settings_screen(): void {
@@ -1145,12 +1185,10 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$called = false;
-		Functions\when( 'update_user_meta' )->alias(
-			static function () use ( &$called ): bool {
-				$called = true;
-
-				return true;
+		Functions\expect( 'update_user_meta' )->never();
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
 			}
 		);
 
@@ -1159,9 +1197,10 @@ final class SettingsPageTest extends TestCase {
 			'rankkernel_twitter_handle' => 'authorhandle',
 		];
 
-		call_user_func( $hooks['edit_user_profile_update'][0], 42 );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
 
-		$this->assertFalse( $called );
+		call_user_func( $hooks['edit_user_profile_update'][0], 42 );
 	}
 
 	/**
@@ -1202,6 +1241,68 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\expect( 'update_user_meta' )->never();
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'invalid',
+			'rankkernel_twitter_handle' => 'authorhandle',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+	}
+
+	/**
+	 * Test the profile field surfaces a failed handle write.
+	 *
+	 * A strict false from update_user_meta means nothing was stored, so the
+	 * handler stops with a visible error instead of letting core show its own
+	 * success notice.
+	 */
+	public function test_user_profile_field_reports_a_failed_write(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'update_user_meta' )->justReturn( false );
+		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => 'authorhandle',
+		];
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+	}
+
+	/**
+	 * Test an array shaped handle is ignored instead of fatalling the sanitiser.
+	 */
+	public function test_user_profile_field_ignores_an_array_shaped_handle(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		$this->makePage();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
 		$called = false;
 		Functions\when( 'update_user_meta' )->alias(
 			static function () use ( &$called ): bool {
@@ -1212,12 +1313,12 @@ final class SettingsPageTest extends TestCase {
 		);
 
 		$_POST = [
-			'_wpnonce'                  => 'invalid',
-			'rankkernel_twitter_handle' => 'authorhandle',
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => [ 'nested' => 'value' ],
 		];
 
 		call_user_func( $hooks['personal_options_update'][0], 42 );
 
-		$this->assertFalse( $called );
+		$this->assertFalse( $called, 'an array shaped handle must be ignored, not passed to the sanitiser' );
 	}
 }

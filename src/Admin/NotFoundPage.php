@@ -213,10 +213,14 @@ final class NotFoundPage {
 		$notice = isset( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';
 
 		$noticeSuccess = '';
+		$noticeWarning = '';
 
 		switch ( $notice ) {
 			case 'cleared':
 				$noticeSuccess = __( '404 log cleared.', 'rankkernel' );
+				break;
+			case 'cleared_partial':
+				$noticeWarning = __( 'The 404 log was partially cleared because the clear loop is bounded. Some entries remain, run Clear Log again to remove them.', 'rankkernel' );
 				break;
 			case 'deleted':
 				$noticeSuccess = __( '404 entry deleted.', 'rankkernel' );
@@ -552,6 +556,14 @@ final class NotFoundPage {
 			if ( $deleted <= 0 ) {
 				break;
 			}
+		}
+
+		// The loop is bounded by design, so rows can remain after the pass cap
+		// or a storage failure. A full clear is only claimed when none remain.
+		if ( $this->repository->count() > 0 ) {
+			$this->redirect( '&rk_notice=cleared_partial' );
+
+			return;
 		}
 
 		$this->redirect( '&rk_notice=cleared' );

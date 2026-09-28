@@ -66,18 +66,49 @@ final class UserProfileField {
 	/**
 	 * Save the X handle after the core profile form is verified.
 	 *
+	 * A refused capability or nonce stops the request with a 403 instead of
+	 * returning silently, because core would otherwise show its own success
+	 * notice while the handle was never written. A non string field is
+	 * ignored, and a failed write stops with a visible error.
+	 *
 	 * @param int $userId User being edited.
 	 */
 	public function saveField( int $userId ): void {
-		$verified = check_admin_referer( 'update-user_' . $userId );
+		if ( ! current_user_can( 'edit_user', $userId ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you are not allowed to edit this user.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
 
-		if ( false === $verified || ! current_user_can( 'edit_user', $userId ) || ! isset( $_POST[ self::META_KEY ] ) ) {
+		if ( false === check_admin_referer( 'update-user_' . $userId ) ) {
+			wp_die(
+				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		// The value is only read when it is a string, so an array shaped field
+		// can never reach the sanitiser with the wrong type.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified above, the value is a string that is unslashed then sanitised below.
+		$rawHandle = $_POST[ self::META_KEY ] ?? null;
+
+		if ( ! is_string( $rawHandle ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$rawHandle = wp_unslash( $_POST[ self::META_KEY ] );
+		$saved = update_user_meta( $userId, self::META_KEY, MetaPayload::sanitizeTwitterHandle( wp_unslash( $rawHandle ) ) );
 
-		update_user_meta( $userId, self::META_KEY, MetaPayload::sanitizeTwitterHandle( $rawHandle ) );
+		// A strict false means the write failed, so the editor sees an error
+		// instead of core's success notice while the handle was lost.
+		if ( false === $saved ) {
+			wp_die(
+				esc_html__( 'The X handle could not be saved. Please try again.', 'rankkernel' ),
+				'',
+				[ 'response' => 500 ]
+			);
+		}
 	}
 }

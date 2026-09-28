@@ -10,6 +10,7 @@
  * @license GPL-2.0-or-later
  *
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
+ * @var bool   $settingsSaveFailed    Whether the save failed notice renders.
  * @var array<int, array{url: string, class: string, current: bool, label: string}> $tabItems Tab links.
  * @var bool   $showGeneral           Whether the General tab section renders.
  * @var bool   $showPostTypes         Whether the Post Types tab section renders.
@@ -33,6 +34,12 @@ defined( 'ABSPATH' ) || exit;
 if ( $settingsUpdated ) :
 	?>
 	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
+	<?php
+endif;
+
+if ( $settingsSaveFailed ) :
+	?>
+	<div class="notice notice-error"><p><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
 	<?php
 endif;
 ?>

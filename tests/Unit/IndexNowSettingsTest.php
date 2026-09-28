@@ -284,6 +284,23 @@ final class IndexNowSettingsTest extends TestCase {
 	}
 
 	/**
+	 * Test log entry reports whether the row was written.
+	 */
+	public function test_log_entry_returns_whether_the_row_was_written(): void {
+		$settings = new IndexNowSettings();
+
+		$this->assertTrue( $settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' ) );
+
+		$this->db->tableExists = false;
+		LogTable::resetCache();
+
+		$this->assertFalse(
+			$settings->logEntry( 'https://example.com/b', 200, 'manual', 'Accepted.' ),
+			'a missing log table must report the write as failed'
+		);
+	}
+
+	/**
 	 * Test values are clamped to the column widths and the page size is capped.
 	 */
 	public function test_values_are_clamped_to_the_column_widths_and_page_size_is_capped(): void {
@@ -344,7 +361,10 @@ final class IndexNowSettingsTest extends TestCase {
 
 		$settings = new IndexNowSettings();
 
-		$settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' );
+		$this->assertFalse(
+			$settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' ),
+			'a write with no database handle must report failure'
+		);
 
 		$query = LogQuery::fromInput( [] );
 

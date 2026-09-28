@@ -382,7 +382,9 @@ final class InstantIndexingPage {
 	 * and dropped, every valid line is submitted in one call, and no
 	 * request is ever made to a submitted URL. A submit with any invalid
 	 * line redirects with an outcome code, so the screen can render an
-	 * error notice that names the reason.
+	 * error notice that names the reason. When a rejection cannot be
+	 * written to the log, the code reports the storage failure instead
+	 * of implying the rejection was recorded.
 	 *
 	 * @return void
 	 */
@@ -390,8 +392,8 @@ final class InstantIndexingPage {
 		$this->requireAccess( self::NONCE_SUBMIT );
 
 		if ( ! $this->isModuleEnabled() ) {
-			$this->reject( '', __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
-			$this->redirectTo( false, 'disabled' );
+			$recorded = $this->reject( '', __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
+			$this->redirectTo( false, $recorded ? 'disabled' : 'storage_failed' );
 
 			return;
 		}
@@ -399,8 +401,8 @@ final class InstantIndexingPage {
 		$urls = $this->postedUrls();
 
 		if ( [] === $urls ) {
-			$this->reject( '', __( 'Rejected: no URLs were provided.', 'rankkernel' ) );
-			$this->redirectTo( false, 'empty' );
+			$recorded = $this->reject( '', __( 'Rejected: no URLs were provided.', 'rankkernel' ) );
+			$this->redirectTo( false, $recorded ? 'empty' : 'storage_failed' );
 
 			return;
 		}
@@ -409,19 +411,24 @@ final class InstantIndexingPage {
 		$invalid        = 0;
 		$reasonsInvalid = false;
 		$reasonsHost    = false;
+		$storageFailed  = false;
 
 		foreach ( $urls as $url ) {
 			$validated = $this->validateUrl( $url );
 
 			if ( '' === $validated ) {
-				$this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) );
+				if ( ! $this->reject( $url, __( 'Rejected: the URL could not be validated.', 'rankkernel' ) ) ) {
+					$storageFailed = true;
+				}
 				++$invalid;
 				$reasonsInvalid = true;
 				continue;
 			}
 
 			if ( ! $this->isSiteHost( $validated ) ) {
-				$this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) );
+				if ( ! $this->reject( $url, __( 'Rejected: the URL host does not match this site.', 'rankkernel' ) ) ) {
+					$storageFailed = true;
+				}
 				++$invalid;
 				$reasonsHost = true;
 				continue;
@@ -436,6 +443,15 @@ final class InstantIndexingPage {
 
 		if ( 0 === $invalid ) {
 			$this->redirectTo( true );
+
+			return;
+		}
+
+		// A rejected URL whose outcome could not be written is never reported as
+		// recorded, so the operator is told the log failed instead of being sent
+		// to a table that holds nothing.
+		if ( $storageFailed ) {
+			$this->redirectTo( false, 'storage_failed' );
 
 			return;
 		}
@@ -551,10 +567,10 @@ final class InstantIndexingPage {
 	 *
 	 * @param string $url    Submitted URL, logged for the operator.
 	 * @param string $reason Human readable rejection reason.
-	 * @return void
+	 * @return bool Whether the rejection was recorded.
 	 */
-	private function reject( string $url, string $reason ): void {
-		$this->settings->logEntry( $url, 0, 'manual', $reason );
+	private function reject( string $url, string $reason ): bool {
+		return $this->settings->logEntry( $url, 0, 'manual', $reason );
 	}
 
 	/**
