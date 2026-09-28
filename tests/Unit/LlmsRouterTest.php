@@ -150,6 +150,17 @@ final class LlmsRouterTest extends TestCase {
 	}
 
 	/**
+	 * Test the markdown response headers include nosniff.
+	 */
+	public function test_response_headers_include_nosniff(): void {
+		$headers = LlmsRouter::responseHeaders();
+
+		$this->assertContains( 'Content-Type: text/markdown; charset=UTF-8', $headers );
+		$this->assertContains( 'X-Robots-Tag: noindex, follow', $headers );
+		$this->assertContains( 'X-Content-Type-Options: nosniff', $headers );
+	}
+
+	/**
 	 * Test invalidate bumps the validator option.
 	 */
 	public function test_invalidate_bumps_validator(): void {

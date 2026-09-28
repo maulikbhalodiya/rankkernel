@@ -71,20 +71,30 @@ final class CsvHandler {
 	private DestinationValidator $destinationValidator;
 
 	/**
+	 * Upload probe callable, is_uploaded_file by default.
+	 *
+	 * @var callable(string): bool
+	 */
+	private $isUploadedFile;
+
+	/**
 	 * Constructor, dependencies are injectable for tests.
 	 *
-	 * @param RedirectRepository|null   $repository           Rule repository, fresh one when null.
-	 * @param Validator|null            $validator            Safety analyzer, fresh one when null.
-	 * @param DestinationValidator|null $destinationValidator Destination checker, fresh one when null.
+	 * @param RedirectRepository|null     $repository           Rule repository, fresh one when null.
+	 * @param Validator|null              $validator            Safety analyzer, fresh one when null.
+	 * @param DestinationValidator|null   $destinationValidator Destination checker, fresh one when null.
+	 * @param callable(string): bool|null $isUploadedFile     Upload probe override, test double seam.
 	 */
 	public function __construct(
 		?RedirectRepository $repository = null,
 		?Validator $validator = null,
-		?DestinationValidator $destinationValidator = null
+		?DestinationValidator $destinationValidator = null,
+		?callable $isUploadedFile = null
 	) {
 		$this->repository           = $repository ?? new RedirectRepository();
 		$this->validator            = $validator ?? new Validator();
 		$this->destinationValidator = $destinationValidator ?? new DestinationValidator();
+		$this->isUploadedFile       = $isUploadedFile ?? ( function_exists( 'is_uploaded_file' ) ? 'is_uploaded_file' : null );
 	}
 
 	/**
@@ -96,6 +106,11 @@ final class CsvHandler {
 	 * bounded batches so a large file stays within memory. Each row is
 	 * validated before its own write, so a malformed row can never corrupt
 	 * the rows around it and a partial duplicate is never left behind.
+	 *
+	 * The path must also pass the upload probe, an is_uploaded_file check by
+	 * default. The admin caller already probes before it calls here, this is
+	 * defence in depth so a future caller cannot stream an arbitrary server
+	 * path into the importer.
 	 *
 	 * @param string $path           Absolute path to the uploaded CSV file.
 	 * @param bool   $updateExisting Whether an identical rule is updated instead of skipped.
@@ -110,6 +125,17 @@ final class CsvHandler {
 			'errors'   => [],
 			'warnings' => [],
 		];
+
+		$probe = $this->isUploadedFile;
+
+		if ( is_callable( $probe ) && ! (bool) $probe( $path ) ) {
+			$summary['errors'][] = [
+				'row'    => 0,
+				'reason' => __( 'The uploaded file could not be read.', 'rankkernel' ),
+			];
+
+			return $summary;
+		}
 
 		if ( '' === $path || ! is_readable( $path ) ) {
 			$summary['errors'][] = [

@@ -16,10 +16,11 @@ defined( 'ABSPATH' ) || exit;
  * Manages the rankkernel_instant_indexing_settings option plus the
  * wp_rankkernel_indexnow_log table.
  *
- * The API key is generated server side, stored with the autoloaded
- * settings, and never leaves PHP. The log records every outcome in its
- * own table until an admin clears it, so the row count is a record
- * rather than a rolling window, and no log row ever carries the key.
+ * The API key is generated server side, stored with autoload disabled so
+ * the secret never lands in the alloptions cache, and never leaves PHP.
+ * The log records every outcome in its own table until an admin clears it,
+ * so the row count is a record rather than a rolling window, and no log
+ * row ever carries the key.
  */
 final class IndexNowSettings {
 	/**
@@ -155,12 +156,34 @@ final class IndexNowSettings {
 		$merged = array_merge( $this->all(), $sanitized );
 
 		if ( function_exists( 'update_option' ) ) {
-			update_option( self::OPTION, $merged, true );
+			update_option( self::OPTION, $merged, false );
 		}
+
+		$this->disableAutoload();
 
 		$this->cache = $merged;
 
 		return true;
+	}
+
+	/**
+	 * Force the option autoload flag off, including a legacy autoloaded row.
+	 *
+	 * The update_option call no-ops when the value is unchanged, so a site
+	 * that stored the key with autoload on would keep the secret in
+	 * alloptions after a same value save. The wp_set_option_autoload call
+	 * rewrites just the flag, so the migration happens on the settings save
+	 * path without changing the option name or value. The call is guarded because the
+	 * function only exists on WordPress 6.4 and newer.
+	 *
+	 * @return void
+	 */
+	private function disableAutoload(): void {
+		if ( ! function_exists( 'wp_set_option_autoload' ) ) {
+			return;
+		}
+
+		wp_set_option_autoload( self::OPTION, false );
 	}
 
 	/**

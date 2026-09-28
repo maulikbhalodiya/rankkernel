@@ -275,7 +275,12 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		file_put_contents( $path, "source,target,code,match_type,active,hits,last_accessed\n/a,/old-123,301,exact,yes,,\n" );
 
-		$handler = new CsvHandler( $repo );
+		$handler = new CsvHandler(
+			$repo,
+			null,
+			null,
+			static fn ( string $path ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+		);
 		$result  = $handler->import_csv( $path );
 
 		$this->assertSame( 1, $result['created'] );

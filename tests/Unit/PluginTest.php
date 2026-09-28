@@ -97,6 +97,22 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Test an unknown service throws a raw, unescaped message.
+	 *
+	 * The message is exception text, not HTML output, so esc_html must not
+	 * touch it. Escaping here would double escape if a display site ever
+	 * renders the message.
+	 */
+	public function test_unknown_service_throws_a_raw_message(): void {
+		$plugin = Plugin::getInstance();
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'RankKernel service not found: alpha & beta' );
+
+		$plugin->get( 'alpha & beta' );
+	}
+
+	/**
 	 * Test the Instant Indexing log route is wired on rest_api_init.
 	 */
 	public function test_instant_indexing_log_route_is_wired_on_rest_api_init(): void {

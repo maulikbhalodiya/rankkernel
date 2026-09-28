@@ -1687,7 +1687,7 @@ final class RedirectsPage {
 			return;
 		}
 
-		$handler = new CsvHandler( $this->repository, $this->validator, $this->destinationValidator );
+		$handler = new CsvHandler( $this->repository, $this->validator, $this->destinationValidator, $this->isUploadedFile );
 
 		$this->importResult = $handler->import_csv( $tmp, $updateExisting );
 	}

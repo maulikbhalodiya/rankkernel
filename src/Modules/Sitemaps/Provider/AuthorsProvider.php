@@ -18,8 +18,10 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  * Provides sitemap entries for authors with published posts.
  *
  * Noindex authors are deferred until author prefs land (no author level
- * robots data model exists yet). Post less authors list with their
- * registration date as lastmod when the include empty setting is on.
+ * robots data model exists yet). When the include empty setting is on,
+ * post less authors list with their registration date as lastmod, but
+ * only accounts that hold a publishing capability are listed, so a
+ * subscriber with no posts can never be enumerated in the public sitemap.
  */
 class AuthorsProvider {
 	/**
@@ -56,8 +58,9 @@ class AuthorsProvider {
 	/**
 	 * Get count of authors with published posts.
 	 *
-	 * When the include empty setting is on, counts every user instead,
-	 * minus role and user exclusions.
+	 * When the include empty setting is on, counts every user that can
+	 * contribute public content, meaning a publishing capability, minus
+	 * role and user exclusions.
 	 *
 	 * @param string $set Set name, expected authors.
 	 * @return int The result.
@@ -106,7 +109,11 @@ class AuthorsProvider {
 	}
 
 	/**
-	 * Count every user, minus exclusions.
+	 * Count users that can contribute public content, minus exclusions.
+	 *
+	 * The count is scoped to accounts holding a publishing capability, so
+	 * it matches the scoped entries query and sitemap pagination stays
+	 * consistent.
 	 *
 	 * @return int The result.
 	 */
@@ -120,6 +127,7 @@ class AuthorsProvider {
 		$params = [];
 		$sql    = "SELECT COUNT(*) FROM {$wpdb->users} u WHERE 1=1";
 		$sql   .= $this->authorExclusionClauses( 'u.ID', $params );
+		$sql   .= $this->publishingCapabilityClause( 'u.ID', $params );
 
 		$args = array_merge( [ $sql ], $params );
 
@@ -132,8 +140,10 @@ class AuthorsProvider {
 	/**
 	 * Get entries for authors page.
 	 *
-	 * When the include empty setting is on, every user is listed and
-	 * post less authors use their registration date as lastmod.
+	 * When the include empty setting is on, every publishing capable user
+	 * is listed and post less authors use their registration date as
+	 * lastmod. The scope matches getCountIncludingEmpty, so a page never
+	 * advertises more entries than the count promised.
 	 *
 	 * @param string $set     Set name.
 	 * @param int    $page    Page number, 1 based.
@@ -257,10 +267,11 @@ class AuthorsProvider {
 	}
 
 	/**
-	 * Query every user left joined to posts, minus exclusions.
+	 * Query publishing capable users left joined to posts, minus exclusions.
 	 *
-	 * Authors with posts use their latest post date, post less
-	 * authors fall back to their registration date in the caller.
+	 * Authors with posts use their latest post date, post less authors
+	 * fall back to their registration date in the caller. The capability
+	 * scope matches getCountIncludingEmpty, so count and entries agree.
 	 *
 	 * @param int $perPage Entries per page.
 	 * @param int $offset  Result offset.
@@ -293,6 +304,7 @@ class AuthorsProvider {
 
 		$params = array_merge( [ 'publish' ], $types );
 		$sql   .= $this->authorExclusionClauses( 'u.ID', $params );
+		$sql   .= $this->publishingCapabilityClause( 'u.ID', $params );
 		$sql   .= ' GROUP BY u.ID ORDER BY u.ID ASC LIMIT %d OFFSET %d';
 
 		$params[] = $perPage;
@@ -302,6 +314,82 @@ class AuthorsProvider {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
 		return $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );
+	}
+
+	/**
+	 * Role slugs that can contribute public content.
+	 *
+	 * A role qualifies when it grants edit_posts or publish_posts, the
+	 * capability pair that implies authoring public content. Subscribers
+	 * grant neither, so they never enter the authors sitemap through the
+	 * include empty path even when that setting is on.
+	 *
+	 * @return string[] The result.
+	 */
+	private function publishingRoleSlugs(): array {
+		if ( ! function_exists( 'wp_roles' ) ) {
+			return [];
+		}
+
+		$wpRoles = wp_roles();
+		$slugs   = [];
+
+		foreach ( $wpRoles->roles as $slug => $data ) {
+			if ( ! is_string( $slug ) || '' === $slug ) {
+				continue;
+			}
+
+			$caps = isset( $data['capabilities'] ) && is_array( $data['capabilities'] ) ? $data['capabilities'] : [];
+
+			if ( ! empty( $caps['edit_posts'] ) || ! empty( $caps['publish_posts'] ) ) {
+				$slugs[] = $slug;
+			}
+		}
+
+		return array_values( array_unique( $slugs ) );
+	}
+
+	/**
+	 * Append a clause requiring a publishing capability.
+	 *
+	 * Without this the include empty path lists every row in wp_users,
+	 * subscribers with zero posts included, which is user enumeration in
+	 * a public sitemap. Capabilities live in the capabilities user meta
+	 * and roles hold them by reference, so the clause matches each
+	 * publishing role slug plus the edit_posts and publish_posts fragment
+	 * a directly granted capability would store. It is one EXISTS
+	 * subquery, never a query per user and never a load of every user.
+	 *
+	 * @param string            $userColumn Qualified user id column.
+	 * @param array<int, mixed> $params     Prepare params, values appended in order.
+	 * @return string The result.
+	 */
+	private function publishingCapabilityClause( string $userColumn, array &$params ): string {
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return '';
+		}
+
+		$fragments = [ 'edit_posts', 'publish_posts' ];
+
+		foreach ( $this->publishingRoleSlugs() as $role ) {
+			$fragments[] = $role;
+		}
+
+		$fragments = array_values( array_unique( $fragments ) );
+
+		$params[] = $wpdb->prefix . 'capabilities';
+
+		$likes = [];
+
+		foreach ( $fragments as $fragment ) {
+			$likes[]  = 'cap.meta_value LIKE %s';
+			$params[] = '%"' . $wpdb->esc_like( $fragment ) . '"%';
+		}
+
+		return " AND EXISTS (SELECT 1 FROM {$wpdb->usermeta} cap WHERE cap.user_id = {$userColumn}"
+			. ' AND cap.meta_key = %s AND (' . implode( ' OR ', $likes ) . '))';
 	}
 
 	/**

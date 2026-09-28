@@ -752,7 +752,12 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 			"/plain,/target,301,exact,yes,,\n"
 		);
 
-		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$handler = new CsvHandler(
+			new RedirectRepository( $this->db ),
+			null,
+			null,
+			static fn ( string $path ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+		);
 		$summary = $handler->import_csv( $path );
 
 		$this->assertSame( 3, $summary['created'] );

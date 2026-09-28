@@ -151,6 +151,99 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 	}
 
 	/**
+	 * A default uninstall still drops the tables and transients, keeps config.
+	 */
+	public function test_uninstall_drops_tables_and_transients_when_purge_is_off(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', true );
+		}
+
+		$db             = new RedirectsMonitorUninstallStubDb();
+		$db->optionRows = [
+			'rankkernel_settings'                   => [ 'purge_on_uninstall' => false ],
+			'rankkernel_404_settings'               => [ 'max_rows' => 1000 ],
+			'rankkernel_404_suppressed'             => 123,
+			'_transient_rk404_flood_site'           => 'data',
+			'_transient_timeout_rk404_flood_site'   => 123456,
+			'_transient_rkredir_match'              => 'data',
+			'_transient_timeout_rkredir_match'      => 123456,
+			'_transient_rankkernel_sitemap'         => 'xml',
+			'_transient_timeout_rankkernel_sitemap' => 123456,
+			'other_plugin_option'                   => 'keep',
+			'_transient_other_plugin'               => 'keep',
+		];
+		$db->tables     = [
+			'wp_rankkernel_redirects',
+			'wp_rankkernel_404_log',
+			'wp_posts',
+		];
+
+		// Test installs the stub wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $db;
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_settings' === $key ) {
+					return [ 'purge_on_uninstall' => false ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		require dirname( __DIR__, 2 ) . '/uninstall.php';
+
+		$this->assertSame( [ 'wp_posts' ], array_values( $db->tables ), 'the 404 log table must be dropped even when the purge setting is off' );
+		$this->assertArrayNotHasKey( '_transient_rk404_flood_site', $db->optionRows );
+		$this->assertArrayNotHasKey( '_transient_rkredir_match', $db->optionRows );
+		$this->assertArrayNotHasKey( '_transient_rankkernel_sitemap', $db->optionRows );
+
+		$this->assertArrayHasKey( 'rankkernel_404_settings', $db->optionRows, 'configuration options must survive a default uninstall' );
+		$this->assertArrayHasKey( 'rankkernel_404_suppressed', $db->optionRows );
+		$this->assertArrayHasKey( 'other_plugin_option', $db->optionRows );
+		$this->assertArrayHasKey( '_transient_other_plugin', $db->optionRows );
+	}
+
+	/**
+	 * An unexpected table name is skipped before it reaches a DROP statement.
+	 */
+	public function test_uninstall_skips_an_invalid_table_name_in_the_drop(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', true );
+		}
+
+		$db         = new RedirectsMonitorUninstallStubDb();
+		$db->tables = [
+			'wp_rankkernel_404_log',
+			'wp_rankkernel_bad;name',
+			'wp_rankkernel_ok',
+		];
+
+		// Test installs the stub wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $db;
+
+		Functions\when( 'get_option' )->alias(
+			static fn ( string $key, mixed $fallback = false ): mixed => $fallback
+		);
+
+		require dirname( __DIR__, 2 ) . '/uninstall.php';
+
+		$drops = array_values(
+			array_filter(
+				$db->queries,
+				static fn ( string $q ): bool => str_starts_with( $q, 'DROP TABLE IF EXISTS' )
+			)
+		);
+
+		$this->assertCount( 2, $drops, 'only valid identifiers may be dropped' );
+		$this->assertContains( 'wp_rankkernel_bad;name', $db->tables, 'the invalid name must not be dropped' );
+		$this->assertNotContains( 'wp_rankkernel_404_log', $db->tables );
+		$this->assertNotContains( 'wp_rankkernel_ok', $db->tables );
+	}
+
+	/**
 	 * Test the uninstall retires the cached existence flag for every dropped table.
 	 *
 	 * Without this a stale true would survive in a persistent object cache and
