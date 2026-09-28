@@ -144,14 +144,17 @@ defined( 'ABSPATH' ) || exit;
 						<?php if ( 'checkbox' === $generalRow['kind'] ) : ?>
 							<?php
 							/*
-							 * The row title names the group and is not
-							 * associated with the box, so it renders as a
-							 * styled span. The sentence beside the box stays
-							 * the real label and keeps its association.
+							 * The row title names the group, so it carries a real
+							 * id and the row becomes a labelled group rather than
+							 * a bare div. The sentence beside the box is the real
+							 * label and is already different on every row, so the
+							 * box keeps that name untouched and the title reaches
+							 * assistive technology as the name of the group.
 							 */
+							$rkGeneralTitleId = 'rk-sitemap-general-' . $generalRow['name'] . '-title';
 							?>
-							<div class="rk-ui-form-row">
-								<span class="rk-ui-form-label"><?php echo esc_html( $generalRow['title'] ); ?></span>
+							<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkGeneralTitleId ); ?>">
+								<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkGeneralTitleId ); ?>"><?php echo esc_html( $generalRow['title'] ); ?></span>
 								<label><input type="checkbox" name="<?php echo esc_attr( $generalRow['name'] ); ?>" value="1" <?php echo checked( $generalRow['checked'], true, false ); ?> /> <?php echo esc_html( $generalRow['hint'] ); ?></label>
 							</div>
 						<?php else : ?>
@@ -172,9 +175,23 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rk-ui-card-body">
 					<p class="rk-ui-sub"><?php echo esc_html__( 'Each post type you include gets its own sitemap file.', 'rankkernel' ); ?></p>
 					<?php foreach ( $postTypeRows as $postTypeRow ) : ?>
-						<div class="rk-ui-form-row">
-							<span class="rk-ui-form-label"><?php echo esc_html( $postTypeRow['label'] ); ?></span>
-							<label><input type="checkbox" name="<?php echo esc_attr( $postTypeRow['key'] ); ?>" value="1" <?php echo checked( $postTypeRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
+						<?php
+						/*
+						 * Every row on this tab repeats the same sentence in its
+						 * label, so a box named by that sentence alone answers to
+						 * the same accessible name as every other box on the
+						 * screen. The row title carries a real id, the row is a
+						 * labelled group, and the box takes its name from the
+						 * title and from its own visible label together, so the
+						 * post type is part of the name and the visible words
+						 * are still spoken. Nothing on screen changes.
+						 */
+						$rkPostTypeTitleId = 'rk-sitemap-post-type-' . $postTypeRow['key'] . '-title';
+						$rkPostTypeLabelId = 'rk-sitemap-post-type-' . $postTypeRow['key'] . '-label';
+						?>
+						<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkPostTypeTitleId ); ?>">
+							<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkPostTypeTitleId ); ?>"><?php echo esc_html( $postTypeRow['label'] ); ?></span>
+							<label id="<?php echo esc_attr( $rkPostTypeLabelId ); ?>"><input type="checkbox" name="<?php echo esc_attr( $postTypeRow['key'] ); ?>" value="1" <?php echo checked( $postTypeRow['enabled'], true, false ); ?> aria-labelledby="<?php echo esc_attr( $rkPostTypeTitleId . ' ' . $rkPostTypeLabelId ); ?>" /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="rk-ui-hint"><?php echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' ); ?></p>
 							<p class="rk-ui-hint">
 								<?php
@@ -204,9 +221,19 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rk-ui-card-body">
 					<p class="rk-ui-sub"><?php echo esc_html__( 'Each taxonomy you include gets its own sitemap file.', 'rankkernel' ); ?></p>
 					<?php foreach ( $taxonomyRows as $taxonomyRow ) : ?>
-						<div class="rk-ui-form-row">
-							<span class="rk-ui-form-label"><?php echo esc_html( $taxonomyRow['label'] ); ?></span>
-							<label><input type="checkbox" name="<?php echo esc_attr( $taxonomyRow['key'] ); ?>" value="1" <?php echo checked( $taxonomyRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
+						<?php
+						/*
+						 * The same reasoning as the post type rows above: the
+						 * label sentence repeats on every row, so the title id
+						 * and the label id together name each box after the
+						 * taxonomy it belongs to.
+						 */
+						$rkTaxonomyTitleId = 'rk-sitemap-taxonomy-' . $taxonomyRow['key'] . '-title';
+						$rkTaxonomyLabelId = 'rk-sitemap-taxonomy-' . $taxonomyRow['key'] . '-label';
+						?>
+						<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkTaxonomyTitleId ); ?>">
+							<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkTaxonomyTitleId ); ?>"><?php echo esc_html( $taxonomyRow['label'] ); ?></span>
+							<label id="<?php echo esc_attr( $rkTaxonomyLabelId ); ?>"><input type="checkbox" name="<?php echo esc_attr( $taxonomyRow['key'] ); ?>" value="1" <?php echo checked( $taxonomyRow['enabled'], true, false ); ?> aria-labelledby="<?php echo esc_attr( $rkTaxonomyTitleId . ' ' . $rkTaxonomyLabelId ); ?>" /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="rk-ui-hint"><?php echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' ); ?></p>
 							<p class="rk-ui-hint">
 								<?php
@@ -237,13 +264,29 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rk-ui-card-body">
 					<p class="rk-ui-sub"><?php echo esc_html__( 'Decide whether author archives are listed, and which users are left out.', 'rankkernel' ); ?></p>
 					<?php foreach ( $authorsRows as $authorsRow ) : ?>
-						<div class="rk-ui-form-row">
-							<span class="rk-ui-form-label"><?php echo esc_html( $authorsRow['title'] ); ?></span>
+						<?php
+						/*
+						 * As on the General tab: the title names the group and
+						 * the sentence is already a different real label on
+						 * every row, so only the group needs the id.
+						 */
+						$rkAuthorsTitleId = 'rk-sitemap-authors-' . $authorsRow['name'] . '-title';
+						?>
+						<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkAuthorsTitleId ); ?>">
+							<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkAuthorsTitleId ); ?>"><?php echo esc_html( $authorsRow['title'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $authorsRow['name'] ); ?>" value="1" <?php echo checked( $authorsRow['checked'], true, false ); ?> /> <?php echo esc_html( $authorsRow['hint'] ); ?></label>
 						</div>
 					<?php endforeach; ?>
-					<div class="rk-ui-form-row">
-						<span class="rk-ui-form-label"><?php echo esc_html__( 'Exclude roles', 'rankkernel' ); ?></span>
+					<?php
+					/*
+					 * The title names a set of role boxes rather than one
+					 * control, so the row is a labelled group. Each box keeps
+					 * its own real label, the role name, so no name is
+					 * repeated and the group carries the heading.
+					 */
+					?>
+					<div class="rk-ui-form-row" role="group" aria-labelledby="rk-sitemap-exclude-roles-label">
+						<span class="rk-ui-form-label" id="rk-sitemap-exclude-roles-label"><?php echo esc_html__( 'Exclude roles', 'rankkernel' ); ?></span>
 						<?php if ( ! $hasEditableRoles ) : ?>
 							<p class="rk-ui-hint"><?php echo esc_html__( 'No editable roles found.', 'rankkernel' ); ?></p>
 						<?php else : ?>
