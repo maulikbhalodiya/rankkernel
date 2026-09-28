@@ -700,6 +700,18 @@
 	outline-offset: 2px;
 }
 
+/* Long unbroken strings, such as a sitemap URL or an option key, are a single
+   unbreakable token to the layout engine. Inside the padded card insets they
+can overrun the container on a narrow admin column, so break them wherever the
+   card can be squeezed rather than forcing a horizontal scrollbar. */
+.rk-ui .rk-ui-card,
+.rk-ui .rk-ui-card-body,
+.rk-ui .rk-ui-form-row,
+.rk-ui .rk-ui-notice,
+.rk-ui .rk-ui-page-header-text {
+	overflow-wrap: anywhere;
+}
+
 /* ==========================================================================
    Focus management
    ========================================================================== */
