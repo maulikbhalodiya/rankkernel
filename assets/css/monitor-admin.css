@@ -49,26 +49,15 @@
 	border-radius: var(--rk-radius-md);
 }
 
-/* Compact submit buttons, used by every WordPress submit_button on the screen. */
-.rk-monitor .rk-compact-submit {
-	padding: 6px 14px;
-	font-size: var(--rk-font-size-xs);
-}
-
-/* Secondary body text, the shared rk-ui-sub is muted, this is one step darker. */
-.rk-monitor .rk-sub {
-	margin: 0;
-	color: var(--rk-color-text-secondary);
-	font-size: var(--rk-font-size-sm);
-	max-width: 72ch;
-}
-
 /* ==========================================================================
    Log status card
    ========================================================================== */
 
+/* The summary body is the same padded column the shared card body gives every
+   other screen, so the inset under a card header is one value in the product
+   rather than a second one that only this page uses. */
 .rk-monitor .rk-summary-body {
-	padding: var(--rk-space-5) var(--rk-space-6) var(--rk-space-6);
+	padding: var(--rk-space-6);
 }
 
 .rk-monitor .rk-stat-grid {
@@ -351,9 +340,10 @@
 	overflow-wrap: anywhere;
 }
 
-.rk-monitor .rk-details .rk-sub {
-	margin-top: var(--rk-space-2);
-	font-size: var(--rk-font-size-xs);
+/* The hint inside the row disclosure only needs room above it now, because the
+   shared helper text class already carries the size and the colour. */
+.rk-monitor .rk-details .rk-ui-hint {
+	margin-block-start: var(--rk-space-2);
 }
 
 /* Footer row under the table. */
@@ -505,12 +495,6 @@
 	vertical-align: top;
 }
 
-.rk-monitor .rk-form-table .description {
-	margin: var(--rk-space-1) 0 0;
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
-}
-
 .rk-monitor .rk-form-table input[type="number"] {
 	width: 90px;
 	padding: 4px 8px;
@@ -616,11 +600,16 @@
 	.rk-monitor .rk-log-toolbar,
 	.rk-monitor .rk-log-actions,
 	.rk-monitor .rk-log-footer,
-	.rk-monitor .rk-summary-body,
 	.rk-monitor .rk-monitor-settings-form,
 	.rk-monitor .rk-monitor-settings-summary,
 	.rk-monitor .rk-log-info {
 		padding-inline: var(--rk-space-4);
+	}
+
+	/* The summary body is a shared card body inset, so it steps down all four
+	   sides at this width, exactly as the shared layer does. */
+	.rk-monitor .rk-summary-body {
+		padding: var(--rk-space-4);
 	}
 
 	.rk-monitor .rk-log-filters .rk-ui-search-wrap {

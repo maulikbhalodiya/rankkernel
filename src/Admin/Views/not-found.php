@@ -66,7 +66,39 @@ defined( 'ABSPATH' ) || exit;
 	<?php /* Section 1: the page h1 WordPress expects, kept for screen readers only. */ ?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( '404 Monitor', 'rankkernel' ); ?></h1>
 
-	<?php /* Section 2: notice row. No dismiss control renders, because no script on this screen wires one. */ ?>
+	<?php
+	/*
+	 * The capacity state arrives from the controller as a three step enum. The
+	 * pill spells the state out in words and the fill colour follows the same
+	 * enum, so neither the badge nor the bar relies on colour alone.
+	 */
+	if ( 'high' === $nearState ) :
+		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-danger';
+		$rkCapacityLabel = __( 'Nearly at the entry limit', 'rankkernel' );
+		$rkFillModifier  = 'rk-fill-high';
+	elseif ( 'warn' === $nearState ) :
+		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-warning';
+		$rkCapacityLabel = __( 'Approaching the entry limit', 'rankkernel' );
+		$rkFillModifier  = 'rk-fill-warn';
+	else :
+		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-success';
+		$rkCapacityLabel = __( 'Within the entry limit', 'rankkernel' );
+		$rkFillModifier  = 'rk-fill-normal';
+	endif;
+	?>
+
+	<?php /* Section 2: page header card. The capacity pill is the only thing beside the title. */ ?>
+	<header class="rk-ui-card rk-ui-page-header">
+		<div class="rk-ui-page-header-text">
+			<div class="rk-ui-page-header-title-row">
+				<h2 class="rk-ui-page-title"><?php echo esc_html__( '404 Monitor', 'rankkernel' ); ?></h2>
+				<span class="<?php echo esc_attr( $rkCapacityPill ); ?>"><?php echo esc_html( $rkCapacityLabel ); ?></span>
+			</div>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'See which missing pages visitors hit, then turn the busy ones into redirects. Oldest entries prune automatically, and you can clear the log at any time.', 'rankkernel' ); ?></p>
+		</div>
+	</header>
+
+	<?php /* Section 3: notice row. It sits directly under the page header card, the order the Dashboard, the Sitemap screen, the Schema screen and the reference page all use, so the four screens open the same way. No dismiss control renders, because no script on this screen wires one. */ ?>
 	<?php if ( '' !== $noticeSuccess ) : ?>
 		<div class="rk-ui-notice rk-ui-notice-success" role="status">
 			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
@@ -134,47 +166,25 @@ defined( 'ABSPATH' ) || exit;
 		<?php endif; ?>
 	<?php endif; ?>
 
-	<?php
-	/*
-	 * The capacity state arrives from the controller as a three step enum. The
-	 * pill spells the state out in words and the fill colour follows the same
-	 * enum, so neither the badge nor the bar relies on colour alone.
-	 */
-	if ( 'high' === $nearState ) :
-		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-danger';
-		$rkCapacityLabel = __( 'Nearly at the entry limit', 'rankkernel' );
-		$rkFillModifier  = 'rk-fill-high';
-	elseif ( 'warn' === $nearState ) :
-		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-warning';
-		$rkCapacityLabel = __( 'Approaching the entry limit', 'rankkernel' );
-		$rkFillModifier  = 'rk-fill-warn';
-	else :
-		$rkCapacityPill  = 'rk-ui-pill rk-ui-pill-success';
-		$rkCapacityLabel = __( 'Within the entry limit', 'rankkernel' );
-		$rkFillModifier  = 'rk-fill-normal';
-	endif;
-	?>
-
-	<?php /* Section 3: page header card. The capacity pill is the only thing beside the title. */ ?>
-	<header class="rk-ui-card rk-ui-page-header">
-		<div class="rk-ui-page-header-text">
-			<div class="rk-ui-page-header-title-row">
-				<h2 class="rk-ui-page-title"><?php echo esc_html__( '404 Monitor', 'rankkernel' ); ?></h2>
-				<span class="<?php echo esc_attr( $rkCapacityPill ); ?>"><?php echo esc_html( $rkCapacityLabel ); ?></span>
-			</div>
-			<p class="rk-ui-sub"><?php echo esc_html__( 'See which missing pages visitors hit, then turn the busy ones into redirects. Oldest entries prune automatically, and you can clear the log at any time.', 'rankkernel' ); ?></p>
-		</div>
-	</header>
-
 	<?php /* Section 4: log status card. The figures come from the controller, never from a mockup. */ ?>
 	<div class="rk-ui-card rk-summary">
 		<div class="rk-ui-card-header">
 			<div class="rk-ui-card-header-left">
 				<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Log Status', 'rankkernel' ); ?></h3>
 			</div>
+			<?php
+			/*
+			 * Clearing the log destroys every entry, so this control carries
+			 * the shared destructive button, the same treatment the per row
+			 * Delete and the exclusion Remove get. It is a real button rather
+			 * than a core submit input, because the shared destructive style
+			 * is defined for rk-ui-btn, and the marker name the controller
+			 * reads plus the form id the script confirms are unchanged.
+			 */
+			?>
 			<form method="post" action="<?php echo esc_url( $baseScreenUrl ); ?>" id="rk-clear-form" data-rk-confirm="<?php echo esc_attr__( 'Clear the whole 404 log? This cannot be undone.', 'rankkernel' ); ?>">
 				<?php wp_nonce_field( 'rankkernel_404_clear' ); ?>
-				<?php submit_button( __( 'Clear Log', 'rankkernel' ), 'secondary rk-compact-submit', 'rankkernel_404_clear', false ); ?>
+				<button type="submit" name="rankkernel_404_clear" id="rankkernel_404_clear" value="1" class="rk-ui-btn rk-ui-btn-danger"><?php echo esc_html__( 'Clear Log', 'rankkernel' ); ?></button>
 			</form>
 		</div>
 
@@ -206,7 +216,7 @@ defined( 'ABSPATH' ) || exit;
 				<?php endif; ?>
 			</div>
 
-			<p class="rk-sub rk-summary-note"><?php echo esc_html__( 'Manual clearing is separate from automatic pruning and removes entries in bounded batches.', 'rankkernel' ); ?></p>
+			<p class="rk-ui-hint rk-ui-hint-strong rk-summary-note"><?php echo esc_html__( 'Manual clearing is separate from automatic pruning and removes entries in bounded batches.', 'rankkernel' ); ?></p>
 		</div>
 	</div>
 
@@ -235,13 +245,23 @@ defined( 'ABSPATH' ) || exit;
 						class="rk-ui-search-input"
 					/>
 				</div>
-				<?php submit_button( __( 'Search', 'rankkernel' ), 'secondary rk-compact-submit', '', false ); ?>
+				<?php submit_button( __( 'Search', 'rankkernel' ), 'secondary', '', false ); ?>
 			</form>
 		</div>
 
 		<?php if ( ! $redirectsEnabled ) : ?>
 			<div class="rk-log-info">
-				<div class="rk-ui-notice rk-ui-notice-info" role="status">
+				<?php
+				/*
+				 * A static callout rather than a status message, so it
+				 * deliberately carries no live region role. One rule covers
+				 * every static callout in the product: no role, and the info
+				 * glyph the shared notice variants map it to. The Sitemap
+				 * index callout and the Schema defaults callout use the
+				 * identical markup.
+				 */
+				?>
+				<div class="rk-ui-notice rk-ui-notice-info">
 					<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 					<p class="rk-ui-notice-text"><?php echo esc_html__( 'Redirect creation needs the Redirects module. Enable Redirects to turn a 404 entry into a redirect.', 'rankkernel' ); ?></p>
 				</div>
@@ -275,7 +295,7 @@ defined( 'ABSPATH' ) || exit;
 							</select>
 							<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
-						<?php submit_button( __( 'Apply', 'rankkernel' ), 'secondary rk-compact-submit', 'rankkernel_404_bulk', false ); ?>
+						<?php submit_button( __( 'Apply', 'rankkernel' ), 'secondary', 'rankkernel_404_bulk', false ); ?>
 					</div>
 
 					<?php if ( $pagination['has'] ) : ?>
@@ -337,7 +357,7 @@ defined( 'ABSPATH' ) || exit;
 												<?php endif; ?>
 											</dl>
 											<?php if ( ! $advancedFields ) : ?>
-												<p class="rk-sub"><?php echo esc_html__( 'Referer and user agent logging is off. Turn on Advanced fields in Monitor Settings below to capture them.', 'rankkernel' ); ?></p>
+												<p class="rk-ui-hint"><?php echo esc_html__( 'Referer and user agent logging is off. Turn on Advanced fields in Monitor Settings below to capture them.', 'rankkernel' ); ?></p>
 											<?php endif; ?>
 										</details>
 									</td>
@@ -394,31 +414,31 @@ defined( 'ABSPATH' ) || exit;
 			<table class="form-table rk-form-table" role="presentation"><tbody>
 				<tr><th scope="row"><?php echo esc_html__( 'Advanced fields', 'rankkernel' ); ?></th><td>
 					<label><input type="checkbox" name="rk_advanced_fields" value="1" <?php echo checked( $settingsAdvanced, true, false ); ?> /> <?php echo esc_html__( 'Store the referer and user agent with each entry.', 'rankkernel' ); ?></label>
-					<p class="description"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p></td></tr>
 
 				<tr><th scope="row"><label for="rk-retention"><?php echo esc_html__( 'Retention days', 'rankkernel' ); ?></label></th><td>
 					<input type="number" id="rk-retention" name="rk_retention_days" value="<?php echo esc_attr( (string) $settingsRetention ); ?>" class="small-text" min="1" max="365" />
-					<p class="description"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p></td></tr>
 
 				<tr><th scope="row"><label for="rk-max-rows"><?php echo esc_html__( 'Maximum entries', 'rankkernel' ); ?></label></th><td>
 					<input type="number" id="rk-max-rows" name="rk_max_rows" value="<?php echo esc_attr( (string) $settingsMaxRows ); ?>" class="small-text" min="100" max="10000" />
-					<p class="description"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p></td></tr>
 
 				<tr><th scope="row"><label for="rk-flood-budget"><?php echo esc_html__( 'Flood budget', 'rankkernel' ); ?></label></th><td>
 					<input type="number" id="rk-flood-budget" name="rk_flood_budget" value="<?php echo esc_attr( (string) $settingsFloodBudget ); ?>" class="small-text" min="1" max="1000" />
-					<p class="description"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p></td></tr>
 
 				<tr><th scope="row"><label for="rk-flood-window"><?php echo esc_html__( 'Flood window', 'rankkernel' ); ?></label></th><td>
 					<input type="number" id="rk-flood-window" name="rk_flood_window" value="<?php echo esc_attr( (string) $settingsFloodWindow ); ?>" class="small-text" min="60" max="3600" />
-					<p class="description"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p></td></tr>
 
 				<tr><th scope="row"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></th><td>
 					<label><input type="checkbox" name="rk_ignore_query" value="1" <?php echo checked( $settingsIgnoreQuery, true, false ); ?> /> <?php echo esc_html__( 'Ignore the query string when logging.', 'rankkernel' ); ?></label>
-					<p class="description"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p></td></tr>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p></td></tr>
 			</tbody></table>
 
 			<h4 class="rk-subheading"><?php echo esc_html__( 'Exclusions', 'rankkernel' ); ?></h4>
-			<p class="rk-sub"><?php echo esc_html__( 'Skip logging for addresses that match a rule. Add as many rows as needed. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' ); ?></p>
+			<p class="rk-ui-hint rk-ui-hint-strong"><?php echo esc_html__( 'Skip logging for addresses that match a rule. Add as many rows as needed. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' ); ?></p>
 
 			<div class="rk-ui-table-wrap rk-exclusions-wrap">
 				<table class="rk-ui-table rk-exclusions">
@@ -466,11 +486,11 @@ defined( 'ABSPATH' ) || exit;
 
 			<div class="rk-exclusion-controls">
 				<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-exclusion-add"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add Exclusion', 'rankkernel' ); ?></button>
-				<span class="rk-sub"><?php echo esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ); ?></span>
+				<span class="rk-ui-hint"><?php echo esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ); ?></span>
 			</div>
 
 			<div class="rk-monitor-settings-actions">
-				<?php submit_button( __( 'Save Monitor Settings', 'rankkernel' ), 'primary rk-compact-submit', 'rankkernel_404_settings_save' ); ?>
+				<?php submit_button( __( 'Save Monitor Settings', 'rankkernel' ), 'primary', 'rankkernel_404_settings_save' ); ?>
 			</div>
 		</form>
 	</details>
