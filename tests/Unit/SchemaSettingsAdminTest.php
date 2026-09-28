@@ -429,15 +429,19 @@ final class SchemaSettingsAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'Schema Settings', $html );
 		$this->assertStringContainsString( 'name="site_represents"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-site-represents-desc"', $html );
 		$this->assertStringContainsString( 'name="org_name"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-name-desc"', $html );
 		$this->assertStringContainsString( 'name="org_logo"', $html );
 		$this->assertStringContainsString( 'rk-org-logo-preview', $html );
 		$this->assertStringContainsString( 'rk-org-logo-select', $html );
 		$this->assertStringContainsString( 'rk-org-logo-remove', $html );
 		$this->assertStringContainsString( 'Select image', $html );
 		$this->assertStringContainsString( 'name="org_sameas"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-sameas-desc"', $html );
 		$this->assertStringContainsString( 'name="website_search_action"', $html );
 		$this->assertStringContainsString( 'name="schema_default_post"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-schema_default_post-desc"', $html );
 		$this->assertStringContainsString( 'name="schema_default_page"', $html );
 		$this->assertStringContainsString( 'Posts', $html );
 		$this->assertStringContainsString( 'Automatic', $html );
