@@ -107,9 +107,13 @@
 	font-size: var(--rk-font-size-xs);
 }
 
+/* The hover state paints the soft background, and the base step on that
+   background measured 4.42:1, so the hover text takes the strong step, 5.92:1.
+   At rest the button sits on the plain surface, where the base step measures
+   4.83:1 and is left alone. */
 .rk-ui .rk-ui-btn-danger:hover {
 	background: var(--rk-color-secondary-4-soft);
-	color: var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4-strong);
 	text-decoration: underline;
 }
 
@@ -422,16 +426,21 @@
 	color: var(--rk-color-primary);
 }
 
+/* Pill text is 11px, so WCAG 1.4.3 asks for 4.5:1 against the soft background
+   behind it. The two semantic base steps measured 4.42:1 and 3.35:1 there, so
+   the pills use the strong step of the same hue, 5.92:1 and 4.88:1. The base
+   steps keep their meaning as borders, fills and icon colours. The tint
+   behind the border is a border, not text, and 1.4.11 asks 3:1 of it. */
 .rk-ui .rk-ui-pill-danger {
 	background: var(--rk-color-secondary-4-soft);
 	border: 1px solid var(--rk-tint-error-border);
-	color: var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4-strong);
 }
 
 .rk-ui .rk-ui-pill-warning {
 	background: var(--rk-color-secondary-3-soft);
 	border: 1px solid var(--rk-tint-warning-border);
-	color: var(--rk-color-secondary-3);
+	color: var(--rk-color-secondary-3-strong);
 }
 
 .rk-ui .rk-ui-pill-neutral {
@@ -608,9 +617,11 @@
 	color: var(--rk-color-text-secondary);
 }
 
+/* The gap is 12px text, not a decoration, so it takes the muted step,
+   4.76:1. The hint step measured 2.56:1 here. */
 .rk-ui .rk-ui-page-gap {
 	padding: 4px;
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
 }
 
@@ -624,12 +635,16 @@
 	max-width: 420px;
 }
 
+/* The glyph is decorative, because the field beside it is labelled and the
+   form has a Search button, but it still has to be perceivable as the
+   affordance it draws, so it takes the muted step, 4.76:1, rather than the
+   hint step, which measured 2.56:1 against the white field. */
 .rk-ui .rk-ui-search-icon {
 	position: absolute;
 	inset-inline-start: 12px;
 	inset-block-start: 50%;
 	transform: translateY(-50%);
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 	font-size: 18px;
 	pointer-events: none;
 }
@@ -646,8 +661,12 @@
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+/* The placeholder is the only text in this field, so WCAG 1.4.3 asks 4.5:1
+   against the white field. The hint step measured 2.56:1 there, so the
+   placeholder takes the muted step, 4.76:1, which is still visibly lighter
+   than the typed text colour. */
 .rk-ui .rk-ui-search-input::placeholder {
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 }
 
 .rk-ui .rk-ui-search-input:focus {
@@ -797,9 +816,16 @@ can overrun the container on a narrow admin column, so break them wherever the
 	}
 }
 
+/* Every selector in this list declares a transition above it, and every
+   component in this file that declares one is in this list: the button, the
+   core button, the notice dismiss, the search input, the select, the switch
+   track, the switch knob, the table row, the tab and the page link. */
 @media screen and (prefers-reduced-motion: reduce) {
 	.rk-ui .rk-ui-btn,
 	.rk-ui .button,
+	.rk-ui .rk-ui-notice-dismiss,
+	.rk-ui .rk-ui-search-input,
+	.rk-ui .rk-ui-select,
 	.rk-ui .rk-ui-switch-track,
 	.rk-ui .rk-ui-switch-knob,
 	.rk-ui .rk-ui-table tbody tr,

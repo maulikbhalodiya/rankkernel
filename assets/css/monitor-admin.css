@@ -123,9 +123,14 @@
 
 /* Capacity bar. The fill colour follows the controller supplied near limit
    state, and the page header pill plus the notice row always state the same
-   thing in words, so the colour is never the only signal. */
+   thing in words, so the colour is never the only signal. The track and the
+   fill are two separate boundaries, so they take the meter tokens from the
+   token layer rather than the border and semantic tokens. The old pair
+   measured 1.18:1 for the track against this card surface and 2.89:1 for the
+   warning fill against the track, so the bar could be neither seen nor read.
+   The new pair measures 9.90:1 and 4.58:1. */
 .rk-monitor .rk-progress {
-	background: var(--rk-color-border);
+	background: var(--rk-meter-track);
 	border-radius: 999px;
 	height: 8px;
 	margin-top: var(--rk-space-2);
@@ -140,15 +145,15 @@
 }
 
 .rk-monitor .rk-fill-normal {
-	background: var(--rk-color-primary);
+	background: var(--rk-meter-fill-normal);
 }
 
 .rk-monitor .rk-fill-warn {
-	background: var(--rk-color-secondary-3);
+	background: var(--rk-meter-fill-warn);
 }
 
 .rk-monitor .rk-fill-high {
-	background: var(--rk-color-secondary-4);
+	background: var(--rk-meter-fill-high);
 }
 
 /* ==========================================================================
@@ -644,12 +649,14 @@
 	}
 }
 
+/* The sort link and the icon utility were listed here and neither one
+   declares a transition anywhere in the plugin, so a reduced motion
+   preference was given two rules that could never do anything. Both are
+   gone. The three selectors left are the three that do transition. */
 @media screen and (prefers-reduced-motion: reduce) {
 	.rk-monitor .rk-progress-fill,
 	.rk-monitor .rk-details > summary .rk-icon,
-	.rk-monitor .rk-monitor-settings-chevron,
-	.rk-monitor .rk-sort-link,
-	.rk-monitor .rk-icon {
+	.rk-monitor .rk-monitor-settings-chevron {
 		transition: none;
 	}
 }

@@ -72,10 +72,3 @@ reads as one block rather than a divided panel. */
 	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
 }
-
-@media (prefers-reduced-motion: reduce) {
-	.rk-dashboard .rk-card,
-	.rk-dashboard .rk-card-actions {
-		transition: none;
-	}
-}
