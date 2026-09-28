@@ -40,6 +40,9 @@ defined( 'ABSPATH' ) || exit;
 	);
 	?>
 
+	<?php /* WordPress prints no h1 for a plugin admin screen, so supply one for assistive tech. */ ?>
+	<h1 class="screen-reader-text"><?php echo esc_html__( 'RankKernel', 'rankkernel' ); ?></h1>
+
 	<?php /* Section 1: page header card. */ ?>
 	<header class="rk-ui-card rk-ui-page-header">
 		<div class="rk-ui-page-header-text">
