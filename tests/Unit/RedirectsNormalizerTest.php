@@ -31,6 +31,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Normalizer::resetCache();
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
@@ -48,6 +49,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		Normalizer::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -139,6 +141,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 */
 	public function test_subdirectory_home_stripped(): void {
 		$this->homeUrl = 'https://example.com/blog';
+		Normalizer::resetCache();
 
 		$this->assertSame( '/old', Normalizer::normalize( '/blog/old' ) );
 		$this->assertSame( '/old', Normalizer::normalize( 'https://example.com/blog/old/' ) );
@@ -186,5 +189,44 @@ final class RedirectsNormalizerTest extends TestCase {
 		$this->assertFalse( Normalizer::isMatchType( 'fuzzy' ) );
 		$this->assertTrue( Normalizer::isCode( '451' ) );
 		$this->assertFalse( Normalizer::isCode( '308' ) );
+	}
+
+	/**
+	 * Test homePath memoization across repeated calls and multisite blog switches.
+	 */
+	public function test_home_path_memoized_and_multisite_aware(): void {
+		$callCount = 0;
+		Functions\when( 'home_url' )->alias(
+			function ( string $path = '/' ) use ( &$callCount ): string {
+				++$callCount;
+				return rtrim( $this->homeUrl, '/' ) . '/' . ltrim( $path, '/' );
+			}
+		);
+
+		Normalizer::resetCache();
+
+		$this->homeUrl = 'https://example.com/blog';
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 1, $callCount );
+
+		// Subsequent call uses static memory without re-evaluating home_url.
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 1, $callCount );
+
+		// Simulate multisite switch_to_blog.
+		Functions\when( 'get_current_blog_id' )->justReturn( 2 );
+		$this->homeUrl = 'https://example.com/shop';
+
+		$this->assertSame( '/shop', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
+
+		// Repeated call on blog 2 is memoized.
+		$this->assertSame( '/shop', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
+
+		// Switch back to blog 1 and verify original entry is retained from memory without new home_url calls.
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
+		$this->assertSame( '/blog', Normalizer::homePath() );
+		$this->assertSame( 2, $callCount );
 	}
 }

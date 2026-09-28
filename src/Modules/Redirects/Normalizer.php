@@ -177,32 +177,77 @@ final class Normalizer {
 	}
 
 	/**
+	 * Request-level static cache for the subdirectory home path, keyed by blog ID.
+	 *
+	 * @var array<int, string>
+	 */
+	private static array $homePathCache = [];
+
+	/**
+	 * Reset the static home path cache (primarily for unit tests or blog switches).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$homePathCache = [];
+	}
+
+	/**
 	 * Subdirectory home path, derived from home_url parsing.
+	 *
+	 * Performance optimization: memoizes the parsed subdirectory path in static memory per blog ID
+	 * for the duration of the current request execution thread so repeated normalization calls do
+	 * not repeatedly invoke home_url('/') or wp_parse_url(). If the home option is modified mid-request,
+	 * callers should invoke Normalizer::resetCache().
 	 *
 	 * Returns an empty string for root installs and for unparseable values.
 	 *
 	 * @return string Home path like /blog, or empty when none applies.
 	 */
 	public static function homePath(): string {
+		$blogId = 1;
+
+		if ( function_exists( 'get_current_blog_id' ) ) {
+			try {
+				$blogId = (int) get_current_blog_id();
+			} catch ( \Throwable ) {
+				$blogId = 1;
+			}
+		}
+
+		if ( array_key_exists( $blogId, self::$homePathCache ) ) {
+			return self::$homePathCache[ $blogId ];
+		}
+
 		if ( ! function_exists( 'home_url' ) ) {
+			self::$homePathCache[ $blogId ] = '';
+
 			return '';
 		}
 
 		$home = home_url( '/' );
 
 		if ( ! is_string( $home ) || '' === $home ) {
+			self::$homePathCache[ $blogId ] = '';
+
 			return '';
 		}
 
 		$parts = wp_parse_url( $home );
 
 		if ( ! is_array( $parts ) || ! isset( $parts['path'] ) ) {
+			self::$homePathCache[ $blogId ] = '';
+
 			return '';
 		}
 
 		$base = '/' . trim( $parts['path'], '/' );
 
-		return '/' === $base ? '' : $base;
+		$path = '/' === $base ? '' : $base;
+
+		self::$homePathCache[ $blogId ] = $path;
+
+		return $path;
 	}
 
 	/**
