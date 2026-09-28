@@ -72,8 +72,8 @@ endif;
 						<img id="rk-org-logo-preview" src="<?php echo esc_url( $orgLogo ); ?>" alt="" style="max-width:150px;height:auto;<?php echo '' === $orgLogo ? 'display:none;' : ''; ?>" />
 						<input type="hidden" id="rk-org-logo" name="org_logo" value="<?php echo esc_attr( $orgLogo ); ?>" />
 						<p>
-							<button type="button" class="button" id="rk-org-logo-select"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
-							<button type="button" class="button" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?>><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
+							<button type="button" class="button" id="rk-org-logo-select" aria-describedby="rk-org-logo-desc"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
+							<button type="button" class="button" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?> aria-describedby="rk-org-logo-desc"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
 						</p>
 					</div>
 					<p id="rk-org-logo-desc" class="description"><?php echo esc_html__( 'Logo image shown with your site name in search results. Pick from the media library or upload a new image.', 'rankkernel' ); ?></p>

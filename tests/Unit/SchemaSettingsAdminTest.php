@@ -435,6 +435,7 @@ final class SchemaSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'name="org_logo"', $html );
 		$this->assertStringContainsString( 'rk-org-logo-preview', $html );
 		$this->assertStringContainsString( 'rk-org-logo-select', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-logo-desc"', $html );
 		$this->assertStringContainsString( 'rk-org-logo-remove', $html );
 		$this->assertStringContainsString( 'Select image', $html );
 		$this->assertStringContainsString( 'name="org_sameas"', $html );
