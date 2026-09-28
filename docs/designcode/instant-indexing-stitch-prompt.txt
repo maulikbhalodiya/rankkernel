@@ -1,0 +1,88 @@
+Design the "Instant Indexing" admin page for RankKernel, a free WordPress SEO plugin. It controls the IndexNow feature, which tells participating search engines that a specific URL changed. It must look like the same product as the existing Redirects and 404 Monitor admin pages.
+
+SECTION A: ABSOLUTE PROHIBITIONS. A previous generation of this page violated these, so read them as hard rules.
+
+A1. NEVER render the IndexNow API key in any form. Forbidden and must not appear anywhere on the page: a key input field, a masked or blurred or partially hidden key, a read only key box, a copy key button, a show or reveal key toggle, a key length, a key prefix or suffix, a key file name, and a key file URL. The key file URL is forbidden because it literally contains the key. The page may state only whether a key is configured. Do not design any control whose purpose is to display, reveal, copy, or store the key in the browser.
+
+A2. Do NOT invent a "Key in Meta" versus "Key in File" toggle or tabs. There is exactly one storage mode: the key lives server side in an option, and the verification file is served virtually. No alternative modes exist.
+
+A3. Show exactly ONE state of the submissions log. Do not render a populated table and an empty state on the same page. This screen shows the POPULATED state with about six realistic rows. The empty state is not part of this screen.
+
+A4. Do not invent features. There is no retry queue, no scheduling, no cron, no bulk submission, no per post type or per taxonomy selection, no "engine attribution" line, no sitemap submission, and no third party branding. Specifically do NOT add a "Powered by" line, a vendor or company name, a version string in the footer, or a link to an external SEO brand.
+
+A5. Automatic submission is a SINGLE on or off toggle for the whole site. Do not design separate checkboxes for posts, pages, categories, or tags.
+
+A6. Engines are plural. Do not write copy naming only Bing. Say "participating search engines" or name the group generally.
+
+SECTION B: DESIGN SYSTEM, MATCH THE EXISTING PAGES EXACTLY.
+- Fonts: Inter for UI text. JetBrains Mono for URLs, HTTP status codes, and timestamps.
+- Icons: Material Symbols Outlined, outlined, weight 450, optical size 20.
+- Page background #F0F2F5. Cards #FFFFFF. Borders #E2E8F0, stronger #CBD5E1.
+- Primary #2563EB, hover #1D4ED8, active #1E40AF, soft tint #EFF6FF.
+- Positive #0F766E, soft #F0FDFA. Warning #EA580C, soft #FFF7ED. Error #DC2626, soft #FEF2F2.
+- Text #1E293B primary, #475569 secondary, #64748B muted, #94A3B8 hint.
+- Radius 4px small, 6px medium, 8px large. Shadow 0 1px 3px rgba(15,23,42,.05).
+- Content capped at 1240px, centered, 32px page padding, 8px vertical rhythm.
+- Card: white, 1px #E2E8F0 border, 8px radius, soft shadow, 24px padding, bold 15px title.
+- Buttons: primary solid #2563EB white semibold 6px radius. Secondary white with #CBD5E1 border. Destructive text button #DC2626.
+- Pills: rounded full, 12px semibold, soft background with a matching darker foreground and a 1px border of the same hue.
+- Table: 12px text, muted uppercase headers, 1px #E2E8F0 row separators, subtle #F8FAFC row hover, URLs always in JetBrains Mono.
+- Notice banner: 4px left border in the semantic color, soft tinted background, leading Material icon, 14px medium text, dismiss close icon on the right.
+
+SECTION C: LAYOUT, TOP TO BOTTOM. Use full width rows so nothing is cramped.
+
+1. PAGE HEADER CARD, full width.
+- h1 "Instant Indexing" at 22px bold, tight tracking, #1E293B.
+- Immediately right of the title, a status pill: "Automatic submission on" in teal, since this screen shows the enabled state.
+- Under the title, one muted line: "Notify participating search engines when a URL changes, using the IndexNow protocol."
+- Right side: primary button "Submit a URL" with a send icon, and a secondary icon button for settings.
+
+2. ONE NOTICE BANNER only.
+- Success style, teal left border: "Settings saved."
+
+3. ROW ONE, two columns, left 60 percent and right 40 percent.
+LEFT, card "Automatic submission":
+- A single toggle row, currently ON, labelled "Submit URLs automatically when a post or term changes."
+- Supporting muted line: "Runs when a post is published, updated, or trashed. Autosaves and revisions are skipped."
+- A small muted note with a lock icon: "Off by default. Nothing is sent until you turn this on."
+- Footer, right aligned: secondary "Cancel" and primary "Save settings".
+RIGHT, card "Verification key":
+- A status row: shield or vpn_key icon plus a teal pill "Key configured".
+- Explanation: "The key is generated on the server and is never shown here, so it cannot leak into your browser."
+- A secondary button "Regenerate key" with a refresh icon.
+- Muted helper line: "Regenerating replaces the key and its verification file. Search engines recheck it automatically."
+- Final muted line with a lock icon: "The verification file is served virtually from your site root. No file is written to disk."
+- This card contains NO key field, NO key value, NO copy control, and NO key file URL.
+
+4. ROW TWO, two columns, left 60 percent and right 40 percent.
+LEFT, card "Submit a URL":
+- Label "URL".
+- Full width text input in JetBrains Mono, placeholder "https://example.com/page".
+- Primary button "Submit" with a send icon, placed to the right of the input on one line.
+- Muted helper line: "Must be a URL on this site. Deleted pages and redirect sources can be submitted too."
+RIGHT, card "How IndexNow works":
+- Three short factual lines, each with a small leading icon: "Signals changed pages only, never a full site dump.", "Sitemaps still provide complete coverage.", "Only the IndexNow endpoint is contacted. No data goes anywhere else."
+
+5. FULL WIDTH card "Recent submissions".
+- Because this is full width, the five columns have room to breathe.
+- Header row: bold title left, muted "Showing the last 50" next to it, and a destructive text button "Clear log" with a delete icon on the right.
+- Table columns: URL, Status, Source, Time (UTC), Message.
+- URL: JetBrains Mono, #475569, truncated with an ellipsis only when genuinely long.
+- Status: a pill. 200 and 202 teal, labelled "Accepted" and "Key pending". 400, 403 and 422 red, labelled "Rejected". 429 orange, labelled "Rate limited".
+- Source: a pill, "Auto" in slate and "Manual" in blue.
+- Time: JetBrains Mono, muted, format "2026-09-24 06:58".
+- Message: #475569, one short factual line, kept to a single line per row so row heights stay even.
+- Use about six realistic rows, mixing 200, 202, a 422 and a 429 so all three pill colors are visible.
+
+6. FOOTER STRIP, full width, quiet.
+- One card with three compact facts, each a small icon plus one line: "Only changed URLs are sent", "Sitemaps still handle full coverage", "No data is sent anywhere else".
+
+SECTION D: VISUAL NOTES.
+- Calm, dense but breathable, modern SaaS admin that still belongs in WordPress admin.
+- Use whitespace and alignment for separation, not heavy fills or borders.
+- Status is always a pill with a label, never color alone.
+- All URLs and status codes are monospace.
+- Copy is factual and concise, sentence case, no marketing language, no exclamation marks.
+- Even row heights in the table. No ragged wrapping in the Message column.
+
+DELIVER one desktop page at 1440px wide, full page top to bottom, populated state, key configured, automatic submission on, six rows in the submissions table.

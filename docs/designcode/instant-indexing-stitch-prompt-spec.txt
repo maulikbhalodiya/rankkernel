@@ -1,0 +1,229 @@
+# RankKernel Instant Indexing admin page. Complete design specification for Stitch.
+
+Design the FINAL "Instant Indexing" admin page for RankKernel, a free WordPress SEO plugin. This is the last page of the admin suite and must match the existing Redirects, 404 Monitor, Schema Settings and Sitemap Settings pages. This brief is exhaustive on purpose. Design every item in it. Do not add anything it does not list.
+
+---
+
+## 1. WHAT THIS PAGE IS
+
+RankKernel has an optional module called Instant Indexing. It uses the IndexNow protocol to tell participating search engines that a URL has changed, so they can recrawl it sooner. The module is off by default. When an admin turns it on, automatic submission is still off, so there are two deliberate opt-ins before anything is ever sent.
+
+This page is where an admin controls that module: it shows whether the verification key is set up, lets the admin turn automatic submission on or off, lets the admin submit one URL by hand, and lists the recent submission outcomes.
+
+---
+
+## 2. HARD RULES
+
+An earlier iteration of this page broke these. They are not negotiable.
+
+**2.1 Never render the API key in any form.** Forbidden anywhere on the page: a key input, a masked or blurred or partially hidden key, a read only key box, a copy key button, a show or reveal key toggle, a key length, a key prefix, a key suffix, a key file name, a key file URL, and any string that describes where the key file lives. The key file is named after the key, so even a truncated name such as /rk_7e93f6b4d...txt discloses part of the secret. The page states only whether a key is configured.
+
+**2.2 Do not invent functionality or metrics.** None of these exist and none may appear: a remaining daily quota, a quota counter or bar, a success rate percentage, a historical index rate, a bulk batch submission mode, a recent modified pages picker, a per engine destination column, per engine names such as Bing, Yandex or Naver in a destination field, an export logs action, a paste clipboard action, a detailed view toggle, an instances counter, a protocol version string, a cryptographic token claim, a scheduling control, a retry queue control, and per post type or per taxonomy controls. A submission means the engine was notified. It never means a page was indexed, so no metric may imply indexing.
+
+**2.3 The page must never claim more than it knows.** A URL that was accepted is not a URL that was indexed. Use the words accepted, rejected and rate limited, never indexed, ranked or improved.
+
+---
+
+## 3. COMPLETE FUNCTIONALITY INVENTORY
+
+This is everything the page can do. Design a control or a state for each, and nothing beyond.
+
+**3.1 See whether a key is configured.** Two states: configured, or not configured. The key value is never shown in either state.
+
+**3.2 Generate or regenerate the key.** One button. It replaces the key and its verification file. There is no separate clear key action.
+
+**3.3 Turn automatic submission on or off.** A single site wide toggle. Off by default. Turning it on means the plugin will submit URLs by itself when content changes.
+
+**3.4 Save the settings.** One button that persists the toggle.
+
+**3.5 Submit one URL by hand.** An input plus a submit button. The URL must be on this site. A URL on another host is refused, and the server never fetches the submitted URL.
+
+**3.6 See the recent submissions.** A list of the most recent outcomes. At most fifty are kept. Newest first.
+
+**3.7 Clear the log.** One button that deletes every logged outcome.
+
+**3.8 See a result notice.** After a save, after a regeneration, and after a submission attempt.
+
+That is the entire page. There is no other action.
+
+---
+
+## 4. EXACT DATA VOCABULARY
+
+Every log row has five fields: the URL, the HTTP status code, the source, the UTC time, and a message.
+
+**4.1 Status outcomes.** These are the only outcomes, with the exact message text and the exact pill label and color:
+
+| Code | Message shown in the row | Pill label | Pill color |
+|---|---|---|---|
+| 200 | Accepted. | Accepted | teal |
+| 202 | Accepted, the key is pending verification. | Key pending | blue |
+| 400 | Rejected permanently, retrying will not help. | Rejected | red |
+| 403 | Rejected permanently, retrying will not help. | Rejected | red |
+| 405 | Rejected permanently, retrying will not help. | Rejected | red |
+| 422 | Rejected permanently, retrying will not help. | Rejected | red |
+| 429 | Temporary failure, retry later. | Rate limited | orange |
+| 5xx | Temporary failure, retry later. | Retry later | orange |
+| 0 | any refusal message below | Rejected | red |
+
+Code 0 means the plugin refused to send at all. Its message is one of the three refusal reasons in 4.3.
+
+**4.2 Source.** Either "Auto", meaning the plugin submitted it on its own, or "Manual", meaning an admin submitted it. Render Auto as a slate pill and Manual as a blue pill.
+
+**4.3 The three refusal reasons.** The log can contain these exact strings, and the error notice echoes them:
+* "Rejected: the Instant Indexing module is disabled."
+* "Rejected: the URL could not be validated."
+* "Rejected: the URL host does not match this site."
+
+**4.4 The only success notice.** "Settings saved."
+
+**4.5 Time format.** UTC, rendered as YYYY-MM-DD HH:MM, for example 2026-09-24 06:58. Always in monospace.
+
+**4.6 Log cap.** Fifty entries. When the cap is reached the oldest falls off. The UI may say "Showing the last 50".
+
+---
+
+## 5. DESIGN SYSTEM
+
+Match the existing RankKernel admin pages exactly.
+
+**5.1 Fonts.** Inter for all UI text. JetBrains Mono for every URL, every status code and every timestamp.
+
+**5.2 Icons.** Material Symbols Outlined, outlined, weight 450, optical size 20.
+
+**5.3 Color tokens.**
+* Page background #F0F2F5. Card surface #FFFFFF. Border #E2E8F0. Stronger border #CBD5E1.
+* Primary #2563EB, hover #1D4ED8, active #1E40AF, soft tint #EFF6FF.
+* Positive #0F766E, soft #F0FDFA.
+* Warning #EA580C, soft #FFF7ED.
+* Error #DC2626, soft #FEF2F2.
+* Text primary #1E293B, secondary #475569, muted #64748B, hint #94A3B8.
+* Subtle surface #F8FAFC.
+
+**5.4 Shape and depth.** Radius 4px small, 6px medium, 8px large. Shadow 0 1px 3px rgba(15,23,42,.05).
+
+**5.5 Spacing.** 4, 8, 12, 16, 20 and 24px steps only. Page padding 32px. Vertical rhythm on an 8px grid. Content capped at 1240px and centered.
+
+**5.6 Card anatomy.** White surface, 1px #E2E8F0 border, 8px radius, soft shadow, 24px internal padding, a bold 15px title in #1E293B, and a 1px bottom border under a card header row.
+
+**5.7 Buttons.**
+* Primary: solid #2563EB, white semibold 14px text, 6px radius, soft shadow, hover #1D4ED8.
+* Secondary: white background, 1px #CBD5E1 border, #1E293B medium text, 6px radius.
+* Icon button: a 36px square, white, 1px #CBD5E1 border, 6px radius, a centered Material icon.
+* Destructive text button: #DC2626 text, no border, no fill.
+* Disabled: 50 percent opacity, not clickable.
+
+**5.8 Pills.** Rounded full, 12px semibold text, a soft background with a matching darker foreground, and a 1px border of the same hue.
+
+**5.9 Table.** 12px text. Muted uppercase column headers with a bottom border. 1px #E2E8F0 row separators. A subtle #F8FAFC row hover. URLs always in JetBrains Mono. Even row heights, no wrapping in the message column.
+
+**5.10 Notice banner.** A 4px left border in the semantic color, a soft tinted background, a leading Material icon, 14px medium text, and a dismiss close icon on the right.
+
+**5.11 Toggle.** A 40px wide pill switch. #2563EB when on, #CBD5E1 when off, with a white knob.
+
+---
+
+## 6. PART ONE. THE FINAL PAGE
+
+Deliver this as the first section, top to bottom.
+
+**6.1 Page header card, full width.**
+* Left: an h1 "Instant Indexing" at 22px bold with tight tracking in #1E293B. Immediately right of the title, a status pill reading "Automatic submission on" in teal, or "Automatic submission off" in slate.
+* Under the title, one muted line: "Notify participating search engines when a URL changes, using the IndexNow protocol."
+* Right side: a primary button "Submit a URL" with a send icon, and a secondary icon button using the settings gear icon with the accessible label "Settings".
+
+**6.2 Notice row.** Show the success notice here: "Settings saved." The other three notice types appear in the component sheet.
+
+**6.3 Stats strip. Four equal cards in one row.** Every number is a count of log rows, which is honest and derivable. No invented metric appears.
+* "Total submissions", the total count.
+* "Accepted", the count of 200 and 202, teal.
+* "Rejected", the count of 400, 403, 405 and 422, red.
+* "Rate limited", the count of 429, orange.
+Each card: a small muted uppercase label, a large 24px bold number, and a small muted line reading "since the log was last cleared".
+
+**6.4 Submit URL card, full width and compact.**
+* Bold title "Submit a URL".
+* A label "URL".
+* A full width input in JetBrains Mono with the placeholder "https://example.com/page".
+* A primary "Submit" button with a send icon, on the same line to the right of the input.
+* A muted helper line: "Must be a URL on this site. Deleted pages and redirect sources can be submitted too."
+* Do not add tabs, a bulk mode, a pages picker or a clipboard action.
+
+**6.5 Submissions card, full width. This is the dominant element.**
+* Header row: a bold title "Recent submissions" with a muted count reading "48 entries", and on the right a destructive text button "Clear log" with a delete icon.
+* Toolbar row: a search input on the left with a leading search icon and the placeholder "Search URL or message", and a compact select on the right reading "All sources", with options All sources, Auto, Manual.
+* Status filter as segmented tabs with counts, directly above the table: "All 48", "Accepted 41", "Key pending 4", "Rejected 2", "Rate limited 1". The active tab is blue text with a 2px blue underline.
+* Table columns: URL, Status, Source, Time (UTC), Message. About eight rows, mixing every status so every pill color is visible. Keep every row a single line at the same height. The Message cell shows the exact message text from section 4.1.
+* Footer row: muted "Showing 1 to 8 of 48 entries" on the left, and compact pagination on the right with a previous button, numbered pages with the current page in blue, and a next button.
+
+**6.6 Settings and key card, full width, one single container** because all settings live together here.
+* Header: bold title "Settings and key".
+* Group one, "Verification key": a shield icon with a teal pill "Key configured". The line "The key is generated on the server and is never shown here, so it cannot leak into your browser." A secondary button "Regenerate key" with a refresh icon. A muted line with a lock icon: "The verification file is served virtually from your site root. No file is written to disk."
+* A thin divider.
+* Group two, "Automatic submission": a toggle row, currently on, labelled "Submit URLs automatically when a post or term changes." A muted line "Runs when a post is published, updated or trashed. Autosaves and revisions are skipped." A muted note "Off by default. Nothing is sent until you turn this on." A right aligned footer with a secondary "Cancel" and a primary "Save settings".
+* This card contains no key field, no key value, no key file name and no key file URL.
+
+---
+
+## 7. PART TWO. THE COMPLETE COMPONENT SHEET
+
+Below the page, in a clearly labelled section titled "Component sheet, every state", using the same showcase style the Redirects design used for its notice banners. Give every item a small caption naming the state. The build team implements from this section.
+
+**7.1 Notice banners, all four types, stacked and dismissible.**
+* Success, teal, leading check icon: "Settings saved."
+* Error, red, leading cancel icon: "Could not submit. The URL host does not match this site."
+* Warning, orange, leading warning icon: "Automatic submission is off. Nothing is sent when your content changes."
+* Info, blue, leading info icon: "The key was regenerated. Search engines recheck it automatically."
+
+**7.2 Log table states, three of them.**
+* Populated: eight rows exactly as on the page.
+* Empty, nothing has ever been submitted: a centered inbox icon, a bold line "Nothing has been submitted yet.", a muted line "Published and updated URLs will appear here once automatic submission is on.", and a primary button "Submit a URL".
+* No results, filters matched nothing: a centered search icon, a bold line "No submissions match your filters.", a muted line "Try a different search term or clear the filters.", and a secondary button "Clear filters".
+
+**7.3 Status pills, all five, in a row with captions:** Accepted, Key pending, Rejected, Rate limited, Retry later.
+
+**7.4 Source pills, both:** Auto and Manual.
+
+**7.5 Verification key states, both.**
+* Configured: as on the page, with the teal pill "Key configured".
+* Not configured: an amber pill "No key configured", the line "A key is generated automatically the first time the module is enabled.", and a primary button "Generate key".
+Never show a key value in either state.
+
+**7.6 Automatic submission toggle states, both.** On, with the blue switch and the save button enabled. Off, with the grey switch and the warning note visible.
+
+**7.7 Submit URL states, two.**
+* Default: as on the page.
+* Validation error: the input in an error state with a red border, a red inline message "This URL is not on this site.", and the submit button still enabled.
+
+**7.8 Button row with captions:** primary, secondary, icon only, destructive text, disabled.
+
+**7.9 Input and control row with captions:** text input default, text input with a leading icon, text input in error state, select, toggle on, toggle off.
+
+**7.10 Pagination states:** first page, a middle page, and the last page with the next button disabled.
+
+**7.11 Empty page state.** The whole page when the module has just been enabled and nothing has happened yet: the stats strip all showing zero, the empty log state, and the key card in the not configured state. This is the first run experience and must be designed, not left to chance.
+
+---
+
+## 8. INTERACTION RULES
+
+* The header's "Submit a URL" button scrolls to and focuses the submit card. The header's settings icon button scrolls to and focuses the settings card.
+* The search input, the source select and the status tabs all narrow the same table, and combine.
+* When a filter matches nothing, the no results state replaces the table.
+* Clear log asks for confirmation before deleting.
+* After any action, a notice appears at the top of the page.
+* The submit input is cleared after a successful submission.
+
+---
+
+## 9. DELIVERABLE AND QUALITY BAR
+
+Deliver one desktop page at 1440px wide, full length top to bottom: PART ONE the final page, then PART TWO the complete component sheet, then the empty page state.
+
+* Calm, dense but breathable, modern SaaS admin that still belongs inside WordPress admin.
+* The submissions table is the visual anchor: full width, even row heights, generous cell padding.
+* Status is always a pill with a text label, never color alone.
+* All URLs, status codes and timestamps are monospace.
+* Copy is factual and concise, sentence case, no marketing language, no exclamation marks.
+* Do not add a footer credit line, a vendor name, a version string or a protocol claim.
+* Do not add any feature, metric or control that section 3 does not list.
