@@ -495,6 +495,13 @@
 	vertical-align: top;
 }
 
+/* The settings table is block flow rather than a shared flex form row, so the
+   hint needs its own room under the control. Size and colour still come from
+   the shared helper text class. */
+.rk-monitor .rk-form-table .rk-ui-hint {
+	margin-block-start: var(--rk-space-1);
+}
+
 .rk-monitor .rk-form-table input[type="number"] {
 	width: 90px;
 	padding: 4px 8px;
