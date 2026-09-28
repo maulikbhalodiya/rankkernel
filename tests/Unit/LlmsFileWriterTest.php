@@ -178,4 +178,29 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertSame( 'not_writable', $result['reason'] );
 		$this->assertFileDoesNotExist( $temp );
 	}
+
+	/**
+	 * Test that DISALLOW_FILE_MODS constant blocks writing.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_mods_blocks_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileDoesNotExist( $temp );
+	}
 }
