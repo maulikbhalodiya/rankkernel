@@ -4,14 +4,21 @@
  *
  * Presentation only. SitemapSettingsPage prepares every variable used below,
  * and owns capability checks, nonce verification, request handling,
- * validation and redirects.
+ * validation and redirects. The markup adopts the shared rk-ui component
+ * layer, so every class here comes from assets/css/rankkernel-ui.css and
+ * nothing on this page redefines a component.
+ *
+ * Every checkbox on this screen sits inside a label that carries visible
+ * sentence text, so each one stays a normal checkbox in a real label rather
+ * than becoming a switch. A switch has no visible text of its own, so using
+ * one here would drop the sentence that names what the box turns on.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
  * @var bool   $settingsSaveFailed    Whether the save failed notice renders.
- * @var array<int, array{url: string, class: string, current: bool, label: string}> $tabItems Tab links.
+ * @var array<int, array{url: string, class: string, current: bool, label: string}> $tabItems Tab links. The class key holds a core nav-tab string and is deliberately not emitted.
  * @var bool   $showGeneral           Whether the General tab section renders.
  * @var bool   $showPostTypes         Whether the Post Types tab section renders.
  * @var bool   $showTaxonomies        Whether the Taxonomies tab section renders.
@@ -30,25 +37,59 @@
 declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
-
-if ( $settingsUpdated ) :
-	?>
-	<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p></div>
-	<?php
-endif;
-
-if ( $settingsSaveFailed ) :
-	?>
-	<div class="notice notice-error"><p><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p></div>
-	<?php
-endif;
 ?>
-<div class="wrap">
-	<h1><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h1>
+<div class="wrap rk-sitemap-settings rk-ui">
 
-	<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">
+	<?php
+	/*
+	 * WordPress injects third party plugin notices directly into .wrap before
+	 * our rendered content, so we output a screen-reader heading here for the
+	 * h1 it expects, then carry the visual title in the page header card.
+	 */
+	?>
+	<h1 class="screen-reader-text"><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h1>
+
+	<?php
+	/*
+	 * Save outcome notices. They live inside the page root so the shared
+	 * notice component applies, and they carry no dismiss button because this
+	 * screen ships no JavaScript to wire one.
+	 */
+	?>
+	<?php if ( $settingsUpdated ) : ?>
+		<div class="rk-ui-notice rk-ui-notice-success" role="status">
+			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php if ( $settingsSaveFailed ) : ?>
+		<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php /* Page header. No actions block, because this screen has no header control the controller supplies. */ ?>
+	<header class="rk-ui-card rk-ui-page-header">
+		<div class="rk-ui-page-header-text">
+			<div class="rk-ui-page-header-title-row">
+				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Sitemap Settings', 'rankkernel' ); ?></h2>
+			</div>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'Choose which post types, taxonomies and author archives are listed in your XML sitemap.', 'rankkernel' ); ?></p>
+		</div>
+	</header>
+
+	<?php
+	/*
+	 * Tabs are links between separate pages, so they stay outside the form.
+	 * The controller still builds a core nav-tab class per tab, so the shared
+	 * modifier comes from the current flag and the core class is dropped.
+	 */
+	?>
+	<nav class="rk-ui-tabs" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">
 		<?php foreach ( $tabItems as $tabItem ) : ?>
-			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="<?php echo esc_attr( $tabItem['class'] ); ?>"<?php echo ! empty( $tabItem['current'] ) ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tabItem['label'] ); ?></a>
+			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="rk-ui-tab<?php echo ! empty( $tabItem['current'] ) ? ' is-current' : ''; ?>"<?php echo ! empty( $tabItem['current'] ) ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $tabItem['label'] ); ?></a>
 		<?php endforeach; ?>
 	</nav>
 
@@ -56,97 +97,147 @@ endif;
 		<?php wp_nonce_field( 'rankkernel_sitemap_settings' ); ?>
 
 		<?php if ( $showGeneral ) : ?>
-			<h2><?php echo esc_html__( 'General', 'rankkernel' ); ?></h2>
-			<p>
-				<?php
-				echo wp_kses(
-					sprintf(
-						/* translators: %s: sitemap index URL link */
-						__( 'Your sitemap index can be found here: %s', 'rankkernel' ),
-						'<a href="' . esc_url( $indexUrl ) . '">' . esc_html( $indexUrl ) . '</a>'
-					),
-					[
-						'a' => [
-							'href' => [],
-						],
-					]
-				);
-				?>
-			</p>
-			<table class="form-table" role="presentation"><tbody>
-				<tr>
-					<th scope="row"><label for="rk-items-per-page"><?php echo esc_html__( 'Links Per Sitemap', 'rankkernel' ); ?></label></th>
-					<td>
+			<div class="rk-ui-card">
+				<div class="rk-ui-card-header">
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'General', 'rankkernel' ); ?></h3>
+				</div>
+				<div class="rk-ui-card-body">
+					<?php
+					/*
+					 * A static callout rather than a status message, so it
+					 * deliberately carries no live region role. The two real
+					 * outcome notices above keep role status and role alert.
+					 */
+					?>
+					<div class="rk-ui-notice rk-ui-notice-info">
+						<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">link</span>
+						<p class="rk-ui-notice-text">
+							<?php
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: sitemap index URL link */
+									__( 'Your sitemap index can be found here: %s', 'rankkernel' ),
+									'<a href="' . esc_url( $indexUrl ) . '">' . esc_html( $indexUrl ) . '</a>'
+								),
+								[
+									'a' => [
+										'href' => [],
+									],
+								]
+							);
+							?>
+						</p>
+					</div>
+
+					<div class="rk-ui-form-row">
+						<label class="rk-ui-form-label" for="rk-items-per-page"><?php echo esc_html__( 'Links Per Sitemap', 'rankkernel' ); ?></label>
 						<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="small-text" min="1" max="50000" />
 						<p class="description"><?php echo esc_html__( 'Max number of links on each sitemap page.', 'rankkernel' ); ?></p>
-					</td>
-				</tr>
-				<?php foreach ( $generalRows as $generalRow ) : ?>
-					<?php if ( 'checkbox' === $generalRow['kind'] ) : ?>
-						<tr>
-							<th scope="row"><?php echo esc_html( $generalRow['title'] ); ?></th>
-							<td>
+					</div>
+					<?php foreach ( $generalRows as $generalRow ) : ?>
+						<?php if ( 'checkbox' === $generalRow['kind'] ) : ?>
+							<?php
+							/*
+							 * The row title names the group and is not
+							 * associated with the box, so it renders as a
+							 * styled span. The sentence beside the box stays
+							 * the real label and keeps its association.
+							 */
+							?>
+							<div class="rk-ui-form-row">
+								<span class="rk-ui-form-label"><?php echo esc_html( $generalRow['title'] ); ?></span>
 								<label><input type="checkbox" name="<?php echo esc_attr( $generalRow['name'] ); ?>" value="1" <?php echo checked( $generalRow['checked'], true, false ); ?> /> <?php echo esc_html( $generalRow['hint'] ); ?></label>
-							</td>
-						</tr>
-					<?php else : ?>
-						<tr>
-							<th scope="row"><label for="rk-<?php echo esc_attr( $generalRow['name'] ); ?>"><?php echo esc_html( $generalRow['title'] ); ?></label></th>
-							<td>
+							</div>
+						<?php else : ?>
+							<div class="rk-ui-form-row">
+								<label class="rk-ui-form-label" for="rk-<?php echo esc_attr( $generalRow['name'] ); ?>"><?php echo esc_html( $generalRow['title'] ); ?></label>
 								<textarea id="rk-<?php echo esc_attr( $generalRow['name'] ); ?>" name="<?php echo esc_attr( $generalRow['name'] ); ?>" rows="2" cols="40"><?php echo esc_textarea( $generalRow['value'] ); ?></textarea>
 								<p class="description"><?php echo esc_html( $generalRow['hint'] ); ?></p>
-							</td>
-						</tr>
-					<?php endif; ?>
-				<?php endforeach; ?>
-			</tbody></table>
+							</div>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</div>
+			</div>
 		<?php elseif ( $showPostTypes ) : ?>
-			<h2><?php echo esc_html__( 'Post Types', 'rankkernel' ); ?></h2>
-			<table class="form-table" role="presentation"><tbody>
-				<?php foreach ( $postTypeRows as $postTypeRow ) : ?>
-					<tr>
-						<th scope="row"><?php echo esc_html( $postTypeRow['label'] ); ?></th>
-						<td>
+			<div class="rk-ui-card">
+				<div class="rk-ui-card-header">
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Post Types', 'rankkernel' ); ?></h3>
+				</div>
+				<div class="rk-ui-card-body">
+					<p class="rk-ui-sub"><?php echo esc_html__( 'Each post type you include gets its own sitemap file.', 'rankkernel' ); ?></p>
+					<?php foreach ( $postTypeRows as $postTypeRow ) : ?>
+						<div class="rk-ui-form-row">
+							<span class="rk-ui-form-label"><?php echo esc_html( $postTypeRow['label'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $postTypeRow['key'] ); ?>" value="1" <?php echo checked( $postTypeRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="description"><?php echo esc_html__( 'Include archive pages for posts of this type in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description"><?php printf( /* translators: %s: sitemap URL */ esc_html__( 'Sitemap URL: %s', 'rankkernel' ), esc_html( $postTypeRow['url'] ) ); ?></p>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-			</tbody></table>
+							<p class="description">
+								<?php
+								echo wp_kses(
+									sprintf(
+										/* translators: %s: sitemap URL link */
+										__( 'Sitemap URL: %s', 'rankkernel' ),
+										'<a href="' . esc_url( $postTypeRow['url'] ) . '">' . esc_html( $postTypeRow['url'] ) . '</a>'
+									),
+									[
+										'a' => [
+											'href' => [],
+										],
+									]
+								);
+								?>
+							</p>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
 		<?php elseif ( $showTaxonomies ) : ?>
-			<h2><?php echo esc_html__( 'Taxonomies', 'rankkernel' ); ?></h2>
-			<table class="form-table" role="presentation"><tbody>
-				<?php foreach ( $taxonomyRows as $taxonomyRow ) : ?>
-					<tr>
-						<th scope="row"><?php echo esc_html( $taxonomyRow['label'] ); ?></th>
-						<td>
+			<div class="rk-ui-card">
+				<div class="rk-ui-card-header">
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Taxonomies', 'rankkernel' ); ?></h3>
+				</div>
+				<div class="rk-ui-card-body">
+					<p class="rk-ui-sub"><?php echo esc_html__( 'Each taxonomy you include gets its own sitemap file.', 'rankkernel' ); ?></p>
+					<?php foreach ( $taxonomyRows as $taxonomyRow ) : ?>
+						<div class="rk-ui-form-row">
+							<span class="rk-ui-form-label"><?php echo esc_html( $taxonomyRow['label'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $taxonomyRow['key'] ); ?>" value="1" <?php echo checked( $taxonomyRow['enabled'], true, false ); ?> /> <?php echo esc_html__( 'Include in Sitemap', 'rankkernel' ); ?></label>
 							<p class="description"><?php echo esc_html__( 'Include archive pages for terms of this taxonomy in the XML sitemap.', 'rankkernel' ); ?></p>
-							<p class="description"><?php printf( /* translators: %s: sitemap URL */ esc_html__( 'Sitemap URL: %s', 'rankkernel' ), esc_html( $taxonomyRow['url'] ) ); ?></p>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				<tr>
-					<td colspan="2">
-						<p class="description"><?php echo esc_html__( 'Empty terms are listed only when the general include empty terms setting is on.', 'rankkernel' ); ?></p>
-					</td>
-				</tr>
-			</tbody></table>
+							<p class="description">
+								<?php
+								echo wp_kses(
+									sprintf(
+										/* translators: %s: sitemap URL link */
+										__( 'Sitemap URL: %s', 'rankkernel' ),
+										'<a href="' . esc_url( $taxonomyRow['url'] ) . '">' . esc_html( $taxonomyRow['url'] ) . '</a>'
+									),
+									[
+										'a' => [
+											'href' => [],
+										],
+									]
+								);
+								?>
+							</p>
+						</div>
+					<?php endforeach; ?>
+					<p class="description"><?php echo esc_html__( 'Empty terms are listed only when the general include empty terms setting is on.', 'rankkernel' ); ?></p>
+				</div>
+			</div>
 		<?php elseif ( $showAuthors ) : ?>
-			<h2><?php echo esc_html__( 'Authors', 'rankkernel' ); ?></h2>
-			<table class="form-table" role="presentation"><tbody>
-				<?php foreach ( $authorsRows as $authorsRow ) : ?>
-					<tr>
-						<th scope="row"><?php echo esc_html( $authorsRow['title'] ); ?></th>
-						<td>
+			<div class="rk-ui-card">
+				<div class="rk-ui-card-header">
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Authors', 'rankkernel' ); ?></h3>
+				</div>
+				<div class="rk-ui-card-body">
+					<p class="rk-ui-sub"><?php echo esc_html__( 'Decide whether author archives are listed, and which users are left out.', 'rankkernel' ); ?></p>
+					<?php foreach ( $authorsRows as $authorsRow ) : ?>
+						<div class="rk-ui-form-row">
+							<span class="rk-ui-form-label"><?php echo esc_html( $authorsRow['title'] ); ?></span>
 							<label><input type="checkbox" name="<?php echo esc_attr( $authorsRow['name'] ); ?>" value="1" <?php echo checked( $authorsRow['checked'], true, false ); ?> /> <?php echo esc_html( $authorsRow['hint'] ); ?></label>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				<tr>
-					<th scope="row"><?php echo esc_html__( 'Exclude roles', 'rankkernel' ); ?></th>
-					<td>
+						</div>
+					<?php endforeach; ?>
+					<div class="rk-ui-form-row">
+						<span class="rk-ui-form-label"><?php echo esc_html__( 'Exclude roles', 'rankkernel' ); ?></span>
 						<?php if ( ! $hasEditableRoles ) : ?>
 							<p class="description"><?php echo esc_html__( 'No editable roles found.', 'rankkernel' ); ?></p>
 						<?php else : ?>
@@ -154,16 +245,14 @@ endif;
 								<label><input type="checkbox" name="authors_exclude_roles[]" value="<?php echo esc_attr( $roleRow['slug'] ); ?>" <?php echo checked( $roleRow['excluded'], true, false ); ?> /> <?php echo esc_html( $roleRow['name'] ); ?></label><br />
 							<?php endforeach; ?>
 						<?php endif; ?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>"><?php echo esc_html( $authorsExcludeUsers['title'] ); ?></label></th>
-					<td>
+					</div>
+					<div class="rk-ui-form-row">
+						<label class="rk-ui-form-label" for="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>"><?php echo esc_html( $authorsExcludeUsers['title'] ); ?></label>
 						<textarea id="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" name="<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" rows="2" cols="40"><?php echo esc_textarea( $authorsExcludeUsers['value'] ); ?></textarea>
 						<p class="description"><?php echo esc_html( $authorsExcludeUsers['hint'] ); ?></p>
-					</td>
-				</tr>
-			</tbody></table>
+					</div>
+				</div>
+			</div>
 		<?php endif; ?>
 
 		<?php submit_button( __( 'Save Sitemap Settings', 'rankkernel' ), 'primary', 'rankkernel_sitemap_save' ); ?>

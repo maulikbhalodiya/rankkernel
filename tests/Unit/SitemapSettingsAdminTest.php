@@ -163,7 +163,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Sitemap Settings', $html );
-		$this->assertStringContainsString( '<nav class="nav-tab-wrapper"', $html );
+		$this->assertStringContainsString( '<nav class="rk-ui-tabs"', $html );
 		$this->assertStringContainsString( 'aria-label="Sitemap settings tabs"', $html );
 		$this->assertStringContainsString( 'aria-current="page"', $html );
 		$this->assertSame( 1, substr_count( $html, 'aria-current="page"' ), 'Exactly one tab may be marked as current' );
@@ -431,7 +431,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'General', $html );
-		$this->assertStringContainsString( 'tab=general" class="nav-tab nav-tab-active" aria-current="page"', $html );
+		$this->assertStringContainsString( 'tab=general" class="rk-ui-tab is-current" aria-current="page"', $html );
 	}
 
 	/**
@@ -446,7 +446,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'tab=authors" class="nav-tab nav-tab-active" aria-current="page"', $html );
+		$this->assertStringContainsString( 'tab=authors" class="rk-ui-tab is-current" aria-current="page"', $html );
 		$this->assertStringContainsString( 'Administrator', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_roles[]"', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_users"', $html );
