@@ -443,6 +443,26 @@ final class SchemaBatch4Test extends TestCase {
 	}
 
 	/**
+	 * Test dataset drops a distribution URL that is not http or https.
+	 */
+	public function test_dataset_drops_non_http_distribution_url(): void {
+		$build = ( new DatasetPiece() )->build(
+			$this->schemaContext(
+				[
+					'type'   => 'Dataset',
+					'fields' => [
+						'headline'        => 'Climate Records',
+						'distributionUrl' => 'data:text/plain,hello',
+					],
+				]
+			)
+		);
+
+		$this->assertSame( 'Dataset', $build['@type'] );
+		$this->assertArrayNotHasKey( 'distribution', $build );
+	}
+
+	/**
 	 * Test podcast not needed for wrong type or empty name.
 	 */
 	public function test_podcast_not_needed_for_wrong_type_or_empty_name(): void {
@@ -504,6 +524,26 @@ final class SchemaBatch4Test extends TestCase {
 		$this->assertArrayNotHasKey( 'partOfSeries', $build );
 		$this->assertArrayNotHasKey( 'associatedMedia', $build );
 		$this->assertArrayNotHasKey( 'duration', $build );
+	}
+
+	/**
+	 * Test podcast drops a media URL that is not http or https.
+	 */
+	public function test_podcast_drops_non_http_media_url(): void {
+		$build = ( new PodcastEpisodePiece() )->build(
+			$this->schemaContext(
+				[
+					'type'   => 'PodcastEpisode',
+					'fields' => [
+						'headline'   => 'Episode One',
+						'contentUrl' => 'javascript:alert(1)',
+					],
+				]
+			)
+		);
+
+		$this->assertSame( 'PodcastEpisode', $build['@type'] );
+		$this->assertArrayNotHasKey( 'associatedMedia', $build );
 	}
 
 	/**

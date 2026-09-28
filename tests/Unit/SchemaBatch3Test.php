@@ -602,6 +602,25 @@ final class SchemaBatch3Test extends TestCase {
 	}
 
 	/**
+	 * Test video drops a content URL that is not http or https.
+	 */
+	public function test_video_drops_non_http_content_url(): void {
+		$this->stubFeaturedImage( 'https://example.com/frame.jpg' );
+
+		$ctx = $this->schemaContext(
+			[
+				'type'   => 'VideoObject',
+				'fields' => [ 'contentUrl' => 'javascript:alert(1)' ],
+			]
+		);
+
+		$build = ( new VideoPiece() )->build( $ctx );
+
+		$this->assertSame( 'VideoObject', $build['@type'] );
+		$this->assertArrayNotHasKey( 'contentUrl', $build );
+	}
+
+	/**
 	 * Test book builds author isbn publisher.
 	 */
 	public function test_book_builds_author_isbn_publisher(): void {

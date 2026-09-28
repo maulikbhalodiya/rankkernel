@@ -127,7 +127,7 @@ final class PodcastEpisodePiece implements PieceInterface {
 			];
 		}
 
-		$media = trim( $fields['contentUrl'] ?? '' );
+		$media = SchemaHelpers::httpUrl( $fields['contentUrl'] ?? '' );
 
 		if ( '' !== $media ) {
 			$node['associatedMedia'] = [

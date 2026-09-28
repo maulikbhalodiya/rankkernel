@@ -106,7 +106,7 @@ final class VideoPiece implements PieceInterface {
 			$node['duration'] = $duration;
 		}
 
-		$content = trim( $fields['contentUrl'] ?? '' );
+		$content = SchemaHelpers::httpUrl( $fields['contentUrl'] ?? '' );
 
 		if ( '' !== $content ) {
 			$node['contentUrl'] = $content;

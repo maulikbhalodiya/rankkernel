@@ -144,7 +144,7 @@ final class DatasetPiece implements PieceInterface {
 	 * @return array<string, mixed>
 	 */
 	private function distribution( array $fields ): array {
-		$url = trim( $fields['distributionUrl'] ?? '' );
+		$url = SchemaHelpers::httpUrl( $fields['distributionUrl'] ?? '' );
 
 		if ( '' === $url ) {
 			return [];

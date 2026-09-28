@@ -92,4 +92,26 @@ final class LlmsSettingsTest extends TestCase {
 		$this->assertStringNotContainsString( "\r", $stored['content'] );
 		$this->assertArrayNotHasKey( 'evil', $stored );
 	}
+
+	/**
+	 * Test a summary containing markup is sanitised.
+	 */
+	public function test_summary_markup_is_sanitised(): void {
+		$settings = new LlmsSettings();
+
+		$this->assertTrue(
+			$settings->set(
+				[
+					'summary' => "Hello <b>world</b>\n<script>alert(1)</script>",
+				]
+			)
+		);
+
+		$stored = $this->options[ LlmsSettings::OPTION ];
+
+		$this->assertStringContainsString( 'Hello', $stored['summary'] );
+		$this->assertStringNotContainsString( '<b>', $stored['summary'] );
+		$this->assertStringNotContainsString( '<script>', $stored['summary'] );
+		$this->assertStringNotContainsString( '<', $stored['summary'] );
+	}
 }

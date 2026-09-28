@@ -128,7 +128,13 @@ final class LlmsSettings {
 				return (bool) $value;
 
 			case 'summary':
-				return trim( is_string( $value ) ? $value : '' );
+				$summary = is_string( $value ) ? $value : '';
+
+				if ( function_exists( 'sanitize_textarea_field' ) ) {
+					return sanitize_textarea_field( $summary );
+				}
+
+				return trim( $summary );
 
 			case 'content':
 				return RobotsDirectives::normalize( is_string( $value ) ? $value : '' );

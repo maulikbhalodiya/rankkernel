@@ -40,6 +40,31 @@ if (! function_exists('plugin_basename')) {
     }
 }
 
+// The llms.txt writer resolves a filterable path against ABSPATH through the
+// WordPress path normaliser. WordPress is not loaded in unit tests, so this
+// mirrors the core helper so the containment check can be exercised.
+if (! function_exists('wp_normalize_path')) {
+    function wp_normalize_path( string $path ): string {
+        $path = str_replace('\\', '/', $path);
+        $path = (string) preg_replace('|(?<=.)/+|', '/', $path);
+
+        if (':' === substr($path, 1, 1)) {
+            $path = ucfirst($path);
+        }
+
+        return $path;
+    }
+}
+
+// The llms.txt summary is sanitised through the WordPress textarea helper.
+// WordPress is not loaded in unit tests, so this mirrors the core behavior of
+// removing tags while keeping the text.
+if (! function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field( string $text ): string {
+        return trim(strip_tags($text));
+    }
+}
+
 if (! function_exists('plugin_dir_path')) {
     function plugin_dir_path( string $file ): string {
         return rtrim(dirname($file), '/\\') . '/';

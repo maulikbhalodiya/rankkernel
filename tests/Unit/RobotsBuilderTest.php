@@ -12,6 +12,7 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Robots\CrawlerPolicy;
 use RankKernel\Modules\Robots\RobotsBuilder;
 
 /**
@@ -98,5 +99,69 @@ final class RobotsBuilderTest extends TestCase {
 		$out = ( new RobotsBuilder() )->build( $this->core, false, [ 'gptbot' => 'block' ], "User-agent: *\nDisallow: /\n" );
 
 		$this->assertSame( $this->core, $out );
+	}
+
+	/**
+	 * Test a filter provided token cannot inject a robots.txt line.
+	 *
+	 * The token is a well formed entry for an unknown slug, so CrawlerPolicy
+	 * keeps it and the builder sink is the only line of defence. The CR and LF
+	 * are stripped and the slash is removed by the safe character class, so the
+	 * injected directive can never start a new line.
+	 */
+	public function test_filtered_token_cannot_inject_a_line(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/robots/crawlers' === $hook ) {
+					$value['evil'] = [
+						'label'   => 'Evil',
+						'token'   => "EvilBot\r\nDisallow: /pwned",
+						'purpose' => 'training',
+						'default' => 'block',
+						'note'    => 'Injection attempt.',
+					];
+				}
+
+				return $value;
+			}
+		);
+
+		$out = ( new RobotsBuilder() )->build( $this->core, true, [ 'evil' => 'block' ], '' );
+
+		$this->assertStringNotContainsString( "\r", $out );
+		$this->assertStringNotContainsString( 'Disallow: /pwned', $out );
+		$this->assertStringNotContainsString( '/pwned', $out );
+		$this->assertStringContainsString( 'User-agent: EvilBotDisallow pwned', $out );
+	}
+
+	/**
+	 * Test the unfiltered output is byte identical to the catalogued order.
+	 */
+	public function test_unfiltered_output_is_byte_identical(): void {
+		$out = ( new RobotsBuilder() )->build( $this->core, true, CrawlerPolicy::defaults(), '' );
+
+		$block = implode(
+			"\n\n",
+			[
+				"User-agent: GPTBot\nDisallow: /",
+				"User-agent: ClaudeBot\nDisallow: /",
+				"User-agent: Google-Extended\nDisallow: /",
+				"User-agent: Applebot-Extended\nDisallow: /",
+				"User-agent: meta-externalagent\nDisallow: /",
+				"User-agent: Amazonbot\nDisallow: /",
+				"User-agent: Bytespider\nDisallow: /",
+				"User-agent: CCBot\nDisallow: /",
+				"User-agent: OAI-SearchBot\nAllow: /",
+				"User-agent: Claude-SearchBot\nAllow: /",
+				"User-agent: PerplexityBot\nAllow: /",
+				"User-agent: ChatGPT-User\nAllow: /",
+				"User-agent: Claude-User\nAllow: /",
+				"User-agent: Perplexity-User\nAllow: /",
+			]
+		);
+
+		$expected = $block . "\n\n" . rtrim( $this->core ) . "\n";
+
+		$this->assertSame( $expected, $out );
 	}
 }

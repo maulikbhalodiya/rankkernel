@@ -98,4 +98,57 @@ final class LlmsFileWriterTest extends TestCase {
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
+
+	/**
+	 * Test an out of tree filter path falls back to the default path.
+	 */
+	public function test_out_of_tree_filter_path_falls_back_to_default(): void {
+		$this->path = '/etc/passwd';
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
+	 * Test a climbed out path falls back to the default path.
+	 */
+	public function test_climbed_out_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . '../etc/passwd';
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
+	 * Test write reports a failure when the target directory is not writable.
+	 */
+	public function test_write_reports_failure_when_directory_not_writable(): void {
+		$dir = sys_get_temp_dir() . '/rkllms-' . uniqid();
+
+		$this->assertTrue( mkdir( $dir, 0755 ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own temp directory.
+		chmod( $dir, 0555 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- test fixture removes write permission to exercise the guard.
+
+		$this->path = $dir . '/llms.txt';
+
+		$warned = false;
+
+		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- the test turns a write warning into an assertion so the is_writable guard is proven.
+			static function () use ( &$warned ): bool {
+				$warned = true;
+
+				return true;
+			}
+		);
+
+		try {
+			$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+		} finally {
+			restore_error_handler();
+		}
+
+		$this->assertFalse( $warned );
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'write_failed', $result['reason'] );
+
+		chmod( $dir, 0755 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- test fixture restores permission so it can clean up.
+		rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp directory.
+	}
 }

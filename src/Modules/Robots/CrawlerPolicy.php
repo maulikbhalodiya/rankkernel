@@ -157,6 +157,13 @@ final class CrawlerPolicy {
 	/**
 	 * Crawler catalogue, filterable for new bots.
 	 *
+	 * The filter is a public hook, so its result is treated as untrusted. Every
+	 * entry must be an array carrying string label, token, purpose, default and
+	 * note values. A malformed entry for a catalogued slug falls back to the
+	 * built in entry, a malformed entry for an unknown slug is dropped, and only
+	 * well formed entries survive. This keeps a malformed token, including one
+	 * with a line break, from ever reaching the robots.txt builder.
+	 *
 	 * @return array<string, array{label: string, token: string, purpose: string, default: string, note: string}>
 	 */
 	public static function all(): array {
@@ -167,7 +174,51 @@ final class CrawlerPolicy {
 		 */
 		$filtered = apply_filters( 'rankkernel/robots/crawlers', self::CRAWLERS ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_array( $filtered ) && [] !== $filtered ) ? $filtered : self::CRAWLERS;
+		if ( ! is_array( $filtered ) ) {
+			return self::CRAWLERS;
+		}
+
+		$out = [];
+
+		foreach ( $filtered as $slug => $crawler ) {
+			if ( ! is_string( $slug ) ) {
+				continue;
+			}
+
+			if ( self::isWellFormed( $crawler ) ) {
+				$out[ $slug ] = $crawler;
+				continue;
+			}
+
+			if ( isset( self::CRAWLERS[ $slug ] ) ) {
+				$out[ $slug ] = self::CRAWLERS[ $slug ];
+			}
+		}
+
+		return ( [] !== $out ) ? $out : self::CRAWLERS;
+	}
+
+	/**
+	 * Whether a filtered crawler entry carries every required field.
+	 *
+	 * Four fields must be present strings. The token must also be a non empty
+	 * string, because it lands on the User-agent line of robots.txt.
+	 *
+	 * @param mixed $crawler Raw entry from the filter.
+	 * @return bool The result.
+	 */
+	private static function isWellFormed( mixed $crawler ): bool {
+		if ( ! is_array( $crawler ) ) {
+			return false;
+		}
+
+		foreach ( [ 'label', 'purpose', 'default', 'note' ] as $field ) {
+			if ( ! isset( $crawler[ $field ] ) || ! is_string( $crawler[ $field ] ) ) {
+				return false;
+			}
+		}
+
+		return isset( $crawler['token'] ) && is_string( $crawler['token'] ) && '' !== $crawler['token'];
 	}
 
 	/**
