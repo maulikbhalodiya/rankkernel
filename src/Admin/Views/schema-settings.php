@@ -147,11 +147,14 @@ defined( 'ABSPATH' ) || exit;
 				 * A switch is only correct for a checkbox with no visible text
 				 * of its own. Every checkbox on this screen sits inside a full
 				 * sentence inside a real label, so all three stay normal
-				 * checkboxes and the row titles above them stay spans.
+				 * checkboxes. Each row title above one of them now carries a
+				 * real id and names a labelled group, the same treatment the
+				 * Organization Logo row above uses, so the visible heading is
+				 * no longer a span that assistive technology cannot reach.
 				 */
 				?>
-				<div class="rk-ui-form-row">
-					<span class="rk-ui-form-label"><?php echo esc_html__( 'Search Action', 'rankkernel' ); ?></span>
+				<div class="rk-ui-form-row" role="group" aria-labelledby="rk-search-action-label">
+					<span class="rk-ui-form-label" id="rk-search-action-label"><?php echo esc_html__( 'Search Action', 'rankkernel' ); ?></span>
 					<label class="rk-schema-check">
 						<input type="checkbox" name="website_search_action" value="1" <?php echo checked( $websiteSearchAction, true, false ); ?> /> <?php echo esc_html__( 'Adds a search box under your home page in search results. Only useful if your site has search.', 'rankkernel' ); ?>
 					</label>
@@ -197,15 +200,15 @@ defined( 'ABSPATH' ) || exit;
 					</div>
 				<?php endforeach; ?>
 
-				<div class="rk-ui-form-row">
-					<span class="rk-ui-form-label"><?php echo esc_html__( 'Breadcrumbs', 'rankkernel' ); ?></span>
+				<div class="rk-ui-form-row" role="group" aria-labelledby="rk-breadcrumbs-label">
+					<span class="rk-ui-form-label" id="rk-breadcrumbs-label"><?php echo esc_html__( 'Breadcrumbs', 'rankkernel' ); ?></span>
 					<label class="rk-schema-check">
 						<input type="checkbox" name="schema_breadcrumbs" value="1" <?php echo checked( $schemaBreadcrumbs, true, false ); ?> /> <?php echo esc_html__( 'Shows the page trail in search results. Turn off to hide it.', 'rankkernel' ); ?>
 					</label>
 				</div>
 
-				<div class="rk-ui-form-row">
-					<span class="rk-ui-form-label"><?php echo esc_html__( 'Author', 'rankkernel' ); ?></span>
+				<div class="rk-ui-form-row" role="group" aria-labelledby="rk-schema-author-label">
+					<span class="rk-ui-form-label" id="rk-schema-author-label"><?php echo esc_html__( 'Author', 'rankkernel' ); ?></span>
 					<label class="rk-schema-check">
 						<input type="checkbox" name="schema_author" value="1" <?php echo checked( $schemaAuthor, true, false ); ?> /> <?php echo esc_html__( 'Shows the article author in search results. Turn off to hide it.', 'rankkernel' ); ?>
 					</label>
