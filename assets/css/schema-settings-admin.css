@@ -1,0 +1,179 @@
+/**
+ * Schema settings screen styles.
+ *
+ * Page scoped rules for the Schema Settings admin screen only. Every shared
+ * component (buttons, cards, card header, page header, notices in all four
+ * semantic colours, pills, form rows, form labels, select and its chevron,
+ * and the focus ring) comes from rankkernel-ui.css under the rk-ui scope.
+ * The token layer loads as a registered dependency before this sheet, so
+ * every colour, spacing, radius and shadow value below is a var(--rk-*)
+ * token and no raw hex appears here.
+ *
+ * The Schema accent uses the reserved secondary 2 pair, the violet hue the
+ * token layer sets aside for Schema and structured data only. It is the
+ * page accent, the badge and the card highlight. No other hue is introduced
+ * here, and the primary blue is not used as an accent.
+ *
+ * @package RankKernel
+ */
+
+/* ==========================================================================
+   Page shell, a single column of cards with the shared spacing rhythm
+   ========================================================================== */
+
+.rk-schema-settings {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	margin: 0;
+	padding: var(--rk-space-4) var(--rk-space-6) var(--rk-space-6) 0;
+	box-sizing: border-box;
+}
+
+/* The form is a plain block element in the flow, so it repeats the column
+   gap to keep one rhythm between the cards and the save bar. */
+.rk-schema-settings > form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	margin: 0;
+}
+
+/* ==========================================================================
+   Schema accent, the reserved secondary 2 pair on the header and the two
+   cards the mockup marks, never on the tools card
+   ========================================================================== */
+
+.rk-schema-settings .rk-ui-page-header,
+.rk-schema-settings .rk-identity-card,
+.rk-schema-settings .rk-defaults-card {
+	border-block-start: 3px solid var(--rk-color-secondary-2);
+}
+
+/* Decorative identity mark, the structured data glyph in the reserved hue. */
+.rk-schema-settings .rk-schema-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-secondary-2-soft);
+	border: 1px solid var(--rk-tint-schema-border);
+	color: var(--rk-color-secondary-2);
+}
+
+.rk-schema-settings .rk-schema-mark .rk-icon {
+	font-size: 24px;
+}
+
+/* The badge carries the word Schema, so the state never rests on colour. */
+.rk-schema-settings .rk-pill-schema {
+	background: var(--rk-color-secondary-2-soft);
+	border: 1px solid var(--rk-tint-schema-border);
+	color: var(--rk-color-secondary-2);
+}
+
+/* ==========================================================================
+   Card body, the row stack that replaces the core form-table
+   ========================================================================== */
+
+.rk-schema-settings .rk-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+	padding: var(--rk-space-5) var(--rk-space-6);
+}
+
+/* Field hint, sized like the shared page sub text. */
+.rk-schema-settings .rk-schema-hint {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	color: var(--rk-color-text-muted);
+}
+
+/* A checkbox that sits inside a labelled sentence. The sentence is the
+   label, so the row title above it is a span and not a second label. */
+.rk-schema-settings .rk-schema-check {
+	display: block;
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+	color: var(--rk-color-text);
+}
+
+/* ==========================================================================
+   Logo picker, the preview and its two buttons
+   ========================================================================== */
+
+.rk-schema-settings .rk-schema-logo-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	margin: var(--rk-space-3) 0 0;
+}
+
+/* ==========================================================================
+   Testing tools, a wrapping row of link buttons
+   ========================================================================== */
+
+.rk-schema-settings .rk-schema-tools {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-3);
+}
+
+/* ==========================================================================
+   Save bar, one control for the single form
+   ========================================================================== */
+
+.rk-schema-settings .rk-schema-form-foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-3) var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-sizing: border-box;
+}
+
+.rk-schema-settings .rk-schema-form-foot .submit {
+	margin: 0;
+}
+
+/* ==========================================================================
+   Field widths, so no control can overflow a narrow admin content area
+   ========================================================================== */
+
+.rk-schema-settings .rk-ui-form-row input[type="text"],
+.rk-schema-settings .rk-ui-form-row textarea {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.rk-schema-settings .rk-ui-form-row textarea {
+	width: 100%;
+	max-width: 40em;
+}
+
+/* ==========================================================================
+   Responsive stacking, on the same 782 pixel breakpoint as the shared layer
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+	.rk-schema-settings {
+		padding-inline-end: var(--rk-space-3);
+	}
+
+	.rk-schema-settings .rk-card-body {
+		padding: var(--rk-space-4);
+	}
+
+	.rk-schema-settings .rk-schema-form-foot {
+		justify-content: flex-start;
+	}
+}
