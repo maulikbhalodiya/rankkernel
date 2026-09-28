@@ -201,6 +201,20 @@
 	line-height: var(--rk-line-height-tight);
 }
 
+/*
+ * The card shell itself carries no padding, so a page that has no stylesheet
+ * of its own had no way to give card content an inset. The reference page
+ * supplies one locally, which no adopting page without its own sheet could
+ * do. This is the shared equivalent: a padded column with even vertical
+ * rhythm between its children.
+ */
+.rk-ui .rk-ui-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+	padding: var(--rk-space-6);
+}
+
 /* ==========================================================================
    Page header card
    ========================================================================== */
@@ -703,6 +717,10 @@
 	.rk-ui .rk-ui-page-header {
 		flex-direction: column;
 		align-items: flex-start;
+	}
+
+	.rk-ui .rk-ui-card-body {
+		padding: var(--rk-space-4);
 	}
 
 	.rk-ui .rk-ui-search-wrap {
