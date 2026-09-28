@@ -39,8 +39,11 @@
 		return 'function' === typeof value ? '' : String( value == null ? '' : value );
 	}
 
-	function normalize( text, stripAccents ) {
-		var value = strip( text );
+	var normalizeCache = null;
+	var normalizeCacheSize = 0;
+	var NORMALIZE_CACHE_LIMIT = 20000;
+
+	function computeNormalize( value, stripAccents ) {
 		if ( false !== stripAccents ) {
 			value = Accents.removeAccents( value );
 		}
@@ -48,6 +51,40 @@
 		value = value.replace( /[^\p{L}\p{N}]+/gu, ' ' );
 		value = value.replace( /[ \t\n\r\f\v\u0085\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/gu, ' ' );
 		return TextStats.phpTrim( value );
+	}
+
+	function normalize( text, stripAccents ) {
+		var value = strip( text );
+
+		if ( null === normalizeCache ) {
+			return computeNormalize( value, stripAccents );
+		}
+
+		var key = ( false !== stripAccents ? 'a\u0000' : 'b\u0000' ) + value;
+
+		if ( Object.prototype.hasOwnProperty.call( normalizeCache, key ) ) {
+			return normalizeCache[ key ];
+		}
+
+		if ( normalizeCacheSize >= NORMALIZE_CACHE_LIMIT ) {
+			normalizeCache = Object.create( null );
+			normalizeCacheSize = 0;
+		}
+
+		var computed = computeNormalize( value, stripAccents );
+		normalizeCache[ key ] = computed;
+		normalizeCacheSize++;
+		return computed;
+	}
+
+	function beginNormalizeCache() {
+		normalizeCache = Object.create( null );
+		normalizeCacheSize = 0;
+	}
+
+	function endNormalizeCache() {
+		normalizeCache = null;
+		normalizeCacheSize = 0;
 	}
 
 	function words( text, stripAccents ) {
@@ -139,6 +176,8 @@
 
 	return {
 		normalize: normalize,
+		beginNormalizeCache: beginNormalizeCache,
+		endNormalizeCache: endNormalizeCache,
 		words: words,
 		contentWords: contentWords,
 		contains: contains,

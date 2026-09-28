@@ -2,9 +2,11 @@
  * RankKernel admin design tokens.
  *
  * The authoritative global token layer for every RankKernel admin surface.
- * Loaded (via @import from each feature stylesheet) only on RankKernel
- * screens. Every rule below is scoped to a RankKernel root class so these
- * custom properties can never leak onto unrelated admin screens.
+ * Registered as its own versioned handle and enqueued only on RankKernel
+ * screens, with every feature stylesheet depending on it so WordPress loads
+ * all sheets in parallel. Every rule below is scoped to a RankKernel root
+ * class so these custom properties can never leak onto unrelated admin
+ * screens.
  *
  * Feature stylesheets (metadata, redirects, monitor, future modules) must
  * consume these tokens via var(--rk-*) and must not define their own

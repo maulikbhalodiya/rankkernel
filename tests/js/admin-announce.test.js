@@ -139,6 +139,16 @@ function httpErrorReply() {
 	return () => Promise.resolve( { ok: false, text: () => Promise.resolve( '' ) } );
 }
 
+function deferred() {
+	let resolve;
+
+	const promise = new Promise( ( settle ) => {
+		resolve = settle;
+	} );
+
+	return { promise, resolve };
+}
+
 function settingsFixture() {
 	const fetchCalls = [];
 	const replies = [];
@@ -206,10 +216,15 @@ function settingsFixture() {
 	document.querySelector = ( selector ) => ( '.rk-settings' === selector ? shell : null );
 
 	const location = { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=robots' };
+	const pushStates = [];
 	const globals = {
 		URL,
 		location,
-		history: { pushState() {} },
+		history: {
+			pushState( state, title, url ) {
+				pushStates.push( url );
+			}
+		},
 		addEventListener() {},
 		FormData: class {
 			constructor() {
@@ -250,11 +265,13 @@ function settingsFixture() {
 		boot,
 		click,
 		flush,
+		body,
 		document,
 		form,
 		formData,
 		location,
 		nav,
+		pushStates,
 		save,
 		reset,
 		llmsReset,
@@ -387,6 +404,34 @@ test( 'settings-admin announces a section load under a private prefixed helper',
 
 	assert.equal( fixture.fetchCalls.length, 1 );
 	assert.deepEqual( spoken, [ 'rankkernel:Settings section loaded.' ] );
+} );
+
+test( 'settings-admin ignores a stale section response when a newer navigation supersedes it', async () => {
+	const fixture = settingsFixture();
+	fixture.boot( translatingWp( [] ) );
+
+	const first = deferred();
+	const second = deferred();
+	fixture.replies.push( () => first.promise );
+	fixture.replies.push( () => second.promise );
+
+	fixture.click( fixture.nav );
+	fixture.nav.href = 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general';
+	fixture.click( fixture.nav );
+
+	assert.equal( fixture.fetchCalls.length, 2 );
+
+	second.resolve( { ok: true, text: () => Promise.resolve( '<div>newer</div>' ) } );
+	await fixture.flush();
+
+	assert.equal( fixture.body.innerHTML, '<div>newer</div>' );
+	assert.deepEqual( fixture.pushStates, [ 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' ] );
+
+	first.resolve( { ok: true, text: () => Promise.resolve( '<div>older</div>' ) } );
+	await fixture.flush();
+
+	assert.equal( fixture.body.innerHTML, '<div>newer</div>' );
+	assert.equal( fixture.pushStates.length, 1 );
 } );
 
 test( 'settings-admin announces Settings updated for a save and Settings reset for a reset', async () => {

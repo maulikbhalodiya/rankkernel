@@ -5,15 +5,14 @@
  * Loaded only on the Redirects admin screen via RedirectsPage::enqueueAssets.
  * Every rule is scoped under .rk-redirects so nothing leaks elsewhere.
  * All colour, spacing, radius, and shadow values come from var(--rk-*) tokens
- * defined in rankkernel-admin.css. No raw hex is permitted here.
+ * defined in the shared token layer, which loads as a registered dependency
+ * before this sheet. No raw hex is permitted here.
  *
  * @package RankKernel
  */
 
-@import url("rankkernel-admin.css");
-
 /* ==========================================================================
-   Wrap shell — suppress WP native notices that bleed from other plugins
+   Wrap shell, suppress WP native notices that bleed from other plugins
    inside our styled page area. Our own notices use .rk-notice classes.
    ========================================================================== */
 
@@ -610,7 +609,7 @@
 }
 
 /* ==========================================================================
-   Status filter tabs — All / Active / Inactive
+   Status filter tabs, All / Active / Inactive
    ========================================================================== */
 
 .rk-redirects .rk-tabs {
@@ -1238,7 +1237,7 @@
 }
 
 .rk-redirects .rk-file-input {
-	/* Visually hidden — the label triggers it */
+	/* Visually hidden, the label triggers it */
 	position: absolute;
 	width: 1px;
 	height: 1px;

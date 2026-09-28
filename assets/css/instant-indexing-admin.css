@@ -6,10 +6,12 @@
  * Indexing admin screen via InstantIndexingPage::enqueueAssets. Shared
  * components (buttons, cards, header, notices, pills, table, tabs,
  * pagination, search, select, form rows and the switch) live in
- * rankkernel-ui.css under the rk-ui scope, imported below, and this file
- * holds only page scoped rules under .rk-instant-indexing. All colour,
- * spacing, radius and shadow values come from var(--rk-*) tokens defined
- * in rankkernel-admin.css. No raw hex is permitted here.
+ * rankkernel-ui.css under the rk-ui scope, which loads as a registered
+ * dependency before this sheet, and this file holds only page scoped rules
+ * under .rk-instant-indexing. All colour, spacing, radius and shadow values
+ * come from var(--rk-*) tokens defined in the shared token layer, which also
+ * loads as a registered dependency before this sheet. No raw hex is
+ * permitted here.
  *
  * The file covers every state from the design component sheet, including
  * states the page renders only conditionally: notices in all four semantic
@@ -20,9 +22,6 @@
  *
  * @package RankKernel
  */
-
-@import url("rankkernel-admin.css");
-@import url("rankkernel-ui.css");
 
 /* ==========================================================================
    Wrap shell, suppress WP native notices that bleed from other plugins

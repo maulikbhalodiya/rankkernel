@@ -1012,6 +1012,12 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertArrayHasKey( $handle, $registeredStyles, 'the stylesheet must register on this screen' );
 		$this->assertContains( $handle, $enqueuedStyles, 'the stylesheet must enqueue on this screen' );
 		$this->assertStringContainsString( 'instant-indexing-admin.css', $registeredStyles[ $handle ]['src'] );
+		$this->assertArrayHasKey( 'rankkernel-admin', $registeredStyles, 'the token layer must register on this screen' );
+		$this->assertArrayHasKey( 'rankkernel-ui', $registeredStyles, 'the UI layer must register on this screen' );
+		$this->assertSame( [ 'rankkernel-admin' ], $registeredStyles['rankkernel-ui']['deps'] );
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $registeredStyles[ $handle ]['deps'] );
+		$this->assertContains( 'rankkernel-admin', $enqueuedStyles );
+		$this->assertContains( 'rankkernel-ui', $enqueuedStyles );
 
 		$this->assertArrayHasKey( 'rankkernelInstantIndexing', $localizedScripts );
 		$this->assertSame(

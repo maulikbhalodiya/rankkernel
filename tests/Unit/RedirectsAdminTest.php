@@ -1307,13 +1307,15 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/p/' . $path );
 
 		$registeredStyles  = [];
+		$styleDeps         = [];
 		$registeredScripts = [];
 		$enqueuedStyles    = [];
 		$enqueuedScripts   = [];
 
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles ): void {
+			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles, &$styleDeps ): void {
 				$registeredStyles[ $handle ] = $ver . '|' . $src;
+				$styleDeps[ $handle ]        = $deps;
 			}
 		);
 		Functions\when( 'wp_enqueue_style' )->alias(
@@ -1350,6 +1352,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredStyles );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedStyles );
 		$this->assertStringContainsString( 'redirects-admin.css', (string) $registeredStyles['rankkernel-redirects-admin'] );
+		$this->assertArrayHasKey( 'rankkernel-admin', $registeredStyles );
+		$this->assertContains( 'rankkernel-admin', $enqueuedStyles );
+		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-redirects-admin'] );
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredScripts );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedScripts );

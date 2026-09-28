@@ -691,13 +691,20 @@ final class SettingsPage {
 
 		wp_enqueue_script( 'rankkernel-settings-admin' );
 
-		wp_register_style(
-			'rankkernel-settings-admin',
-			plugins_url( 'assets/css/settings-admin.css', (string) RANKKERNEL_FILE ),
-			[],
-			$version
-		);
-		wp_enqueue_style( 'rankkernel-settings-admin' );
+		AdminStyles::enqueueTokenLayer( (string) RANKKERNEL_FILE );
+
+		if ( function_exists( 'wp_register_style' ) ) {
+			wp_register_style(
+				'rankkernel-settings-admin',
+				plugins_url( 'assets/css/settings-admin.css', (string) RANKKERNEL_FILE ),
+				[ AdminStyles::TOKEN_HANDLE ],
+				$version
+			);
+		}
+
+		if ( function_exists( 'wp_enqueue_style' ) ) {
+			wp_enqueue_style( 'rankkernel-settings-admin' );
+		}
 	}
 
 	/**

@@ -185,22 +185,28 @@ final class DashboardPageTest extends TestCase {
 	 * Test asset enqueue is gated to the dashboard screen.
 	 */
 	public function test_enqueue_is_gated(): void {
-		$enqueued = 0;
+		$registered = [];
+		$enqueued   = [];
 
-		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->alias(
+			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registered ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$registered[ $handle ] = $deps;
+			}
+		);
 		Functions\when( 'wp_enqueue_style' )->alias(
-			function () use ( &$enqueued ): void {
-				++$enqueued;
+			function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
 			}
 		);
 
 		$page = new DashboardPage();
 
 		$page->enqueueAssets( 'other_page' );
-		$this->assertSame( 0, $enqueued );
+		$this->assertSame( [], $enqueued );
 
 		$page->enqueueAssets( DashboardPage::HOOK_SUFFIX );
-		$this->assertSame( 1, $enqueued );
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-dashboard-admin' ], $enqueued );
+		$this->assertSame( [ 'rankkernel-admin' ], $registered['rankkernel-dashboard-admin'] );
 	}
 
 	/**

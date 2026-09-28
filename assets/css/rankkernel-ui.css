@@ -3,15 +3,14 @@
  *
  * Opt in component layer for RankKernel admin screens. A page adopts it by
  * adding the rk-ui class to its root element alongside its own page class,
- * and by importing this file from its feature stylesheet after the base
- * token file. Every selector below is scoped under .rk-ui so nothing here
- * applies unless the page opts in.
+ * and only after the base token layer is enqueued. Every selector below is
+ * scoped under .rk-ui so nothing here applies unless the page opts in.
  *
- * This file requires rankkernel-admin.css. It declares no @import of its
- * own because the adopting feature stylesheet already imports the base.
+ * This file requires the rankkernel-admin.css token layer and declares the
+ * token handle as its own dependency, so WordPress loads the base first.
  * It consumes only var(--rk-*) tokens and contains no raw hex. It is
- * imported after the base ONLY by adopting feature stylesheets, and it is
- * never loaded by a frozen sheet.
+ * enqueued ONLY by adopting feature screens, and it is never loaded by a
+ * frozen sheet.
  *
  * The rk-ui-* namespace is new on purpose, and existing component names
  * were deliberately not promoted. A promoted top level selector still

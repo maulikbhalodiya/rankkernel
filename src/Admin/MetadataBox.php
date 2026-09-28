@@ -399,11 +399,17 @@ final class MetadataBox {
 		$classicSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-classic.css', $pluginFile ) : '';
 		$version    = Plugin::version();
 
-		wp_register_style( self::EDITOR_STYLE, $styleSrc, [], $version );
-		wp_enqueue_style( self::EDITOR_STYLE );
+		AdminStyles::enqueueTokenLayer( $pluginFile );
 
-		wp_register_style( self::CLASSIC_STYLE, $classicSrc, [], $version );
-		wp_enqueue_style( self::CLASSIC_STYLE );
+		if ( function_exists( 'wp_register_style' ) ) {
+			wp_register_style( self::EDITOR_STYLE, $styleSrc, [ AdminStyles::TOKEN_HANDLE ], $version );
+			wp_register_style( self::CLASSIC_STYLE, $classicSrc, [ AdminStyles::TOKEN_HANDLE ], $version );
+		}
+
+		if ( function_exists( 'wp_enqueue_style' ) ) {
+			wp_enqueue_style( self::EDITOR_STYLE );
+			wp_enqueue_style( self::CLASSIC_STYLE );
+		}
 
 		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [], $version, true );
 

@@ -387,14 +387,16 @@ final class SettingsPageTest extends TestCase {
 		}
 
 		$registered = [];
+		$styleDeps  = [];
 
 		Functions\when( 'wp_enqueue_media' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_register_style' )->alias(
-			static function ( string $handle, string $src = '', array $deps = [], mixed $ver = false ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
-				$registered[] = $handle;
+			static function ( string $handle, string $src = '', array $deps = [], mixed $ver = false ) use ( &$registered, &$styleDeps ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
+				$registered[]         = $handle;
+				$styleDeps[ $handle ] = $deps;
 
 				return true;
 			}
@@ -413,6 +415,8 @@ final class SettingsPageTest extends TestCase {
 
 		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 		$this->assertContains( 'rankkernel-settings-admin', $registered );
+		$this->assertContains( 'rankkernel-admin', $registered );
+		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-settings-admin'] );
 	}
 
 	/**

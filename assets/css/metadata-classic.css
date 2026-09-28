@@ -1,12 +1,11 @@
-@import url("rankkernel-admin.css");
-
 /**
  * RankKernel Classic metadata box styles.
  *
  * Loaded only on post edit screens alongside the editor script. Every rule
  * is scoped under .rankkernel-meta-editor so nothing leaks onto other admin
  * screens or the frontend. All colour, spacing, type, radius and shadow
- * values come from var(--rk-*) tokens defined in rankkernel-admin.css.
+ * values come from var(--rk-*) tokens defined in the shared token layer,
+ * which loads as a registered dependency before this sheet.
  */
 
 .rankkernel-meta-editor {

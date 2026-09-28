@@ -1,10 +1,9 @@
-@import url("rankkernel-admin.css");
-
 /**
  * RankKernel analysis score column.
  *
  * Loaded only on the list screens that render the column. Every value comes
- * from the shared tokens, which carry the WordPress admin palette.
+ * from the shared tokens, which carry the WordPress admin palette and load
+ * as a registered dependency before this sheet.
  */
 
 .rk-analysis-col {
