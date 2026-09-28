@@ -185,22 +185,49 @@ final class AnalysisColumn {
 
 		$order = 'ASC' === strtoupper( (string) $query->get( 'order' ) ) ? 'ASC' : 'DESC';
 
-		$query->set(
-			'meta_query',
-			[
-				'relation'                     => 'OR',
-				self::SORT_CLAUSE              => [
-					'key'     => AnalysisScore::SCORE_VALUE_KEY,
-					'compare' => 'EXISTS',
-					'type'    => 'NUMERIC',
-				],
-				self::SORT_CLAUSE . '_missing' => [
-					'key'     => AnalysisScore::SCORE_VALUE_KEY,
-					'compare' => 'NOT EXISTS',
-				],
-			]
-		);
+		$query->set( 'meta_query', $this->mergeMetaQuery( $query->get( 'meta_query' ) ) );
 		$query->set( 'orderby', [ self::SORT_CLAUSE => $order ] );
+	}
+
+	/**
+	 * Merge the score sort clause with any meta query already on the query.
+	 *
+	 * The score sort must never replace a meta query that core or another
+	 * plugin set, because replacing it silently drops their filter and the
+	 * list then shows the wrong rows. When one already exists it is preserved
+	 * as one sub clause inside a new AND group, so both filters have to match.
+	 * The nesting is required: a flat array_merge would let the two relation
+	 * keys collide and change the meaning of the existing clause, while a
+	 * nested group keeps its own relation and so still means exactly what it
+	 * meant before. An absent, empty, or malformed value is treated as no
+	 * filter at all, which keeps the common case byte identical.
+	 *
+	 * @param mixed $existing Existing meta query, as read from the query.
+	 * @return array<int|string, mixed> The meta query to set.
+	 */
+	private function mergeMetaQuery( mixed $existing ): array {
+		$sortClause = [
+			'relation'                     => 'OR',
+			self::SORT_CLAUSE              => [
+				'key'     => AnalysisScore::SCORE_VALUE_KEY,
+				'compare' => 'EXISTS',
+				'type'    => 'NUMERIC',
+			],
+			self::SORT_CLAUSE . '_missing' => [
+				'key'     => AnalysisScore::SCORE_VALUE_KEY,
+				'compare' => 'NOT EXISTS',
+			],
+		];
+
+		if ( ! is_array( $existing ) || [] === $existing ) {
+			return $sortClause;
+		}
+
+		return [
+			'relation' => 'AND',
+			$existing,
+			$sortClause,
+		];
 	}
 
 	/**

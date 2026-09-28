@@ -345,4 +345,40 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertNull( $this->repo->findByHash( hash( 'sha256', '/oldest' ) ) );
 		$this->assertIsArray( $this->repo->findByHash( hash( 'sha256', '/new-b' ) ) );
 	}
+
+	/**
+	 * A failed query must be distinguishable from a genuine zero count.
+	 */
+	public function test_a_failed_delete_query_is_distinguishable_from_a_zero_count(): void {
+		$id = $this->db->seed(
+			[
+				'uri_hash'      => hash( 'sha256', '/fail' ),
+				'uri'           => '/fail',
+				'last_accessed' => '2026-01-01 00:00:00',
+			]
+		);
+		$this->db->seed(
+			[
+				'uri_hash'      => hash( 'sha256', '/fail-two' ),
+				'uri'           => '/fail-two',
+				'last_accessed' => '2026-01-02 00:00:00',
+			]
+		);
+
+		$this->db->failQueries = true;
+
+		$this->assertSame( MonitorRepository::QUERY_FAILED, $this->repo->deleteMany( [ $id ] ) );
+		$this->assertSame( MonitorRepository::QUERY_FAILED, $this->repo->clearAllBounded( 2 ) );
+		$this->assertSame( MonitorRepository::QUERY_FAILED, $this->repo->deleteOlderThan( '2026-06-01 00:00:00', 500 ) );
+		$this->assertSame( MonitorRepository::QUERY_FAILED, $this->repo->deleteOldestOver( 1, 500 ) );
+	}
+
+	/**
+	 * A genuine zero delete stays zero, never the failure sentinel.
+	 */
+	public function test_a_genuine_zero_delete_is_not_a_failure(): void {
+		$this->assertSame( 0, $this->repo->deleteMany( [] ) );
+		$this->assertSame( 0, $this->repo->clearAllBounded( 2 ) );
+		$this->assertSame( 0, $this->repo->deleteOlderThan( '2026-06-01 00:00:00', 500 ) );
+	}
 }

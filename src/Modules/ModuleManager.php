@@ -157,8 +157,35 @@ final class ModuleManager {
 				continue;
 			}
 
-			$module->register();
-			$module->boot();
+			// One module throwing must not take out the rest of the plugin,
+			// so each module registers and boots inside its own guard and a
+			// failure is reported and then skipped.
+			try {
+				$module->register();
+				$module->boot();
+			} catch ( \Throwable $throwable ) {
+				$this->reportFailure( $key, $throwable );
+			}
+		}
+	}
+
+	/**
+	 * Report a module that threw during register or boot.
+	 *
+	 * No module failure hook exists in the plugin, so the failure is surfaced
+	 * through wp_trigger_error, the same diagnostic the migration runner uses.
+	 * The failure is never swallowed silently.
+	 *
+	 * @param string     $moduleId  Module id.
+	 * @param \Throwable $throwable Caught throwable.
+	 */
+	private function reportFailure( string $moduleId, \Throwable $throwable ): void {
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				sprintf( 'Module %1$s failed to register or boot: %2$s', $moduleId, $throwable->getMessage() ),
+				E_USER_WARNING
+			);
 		}
 	}
 

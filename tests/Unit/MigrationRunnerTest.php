@@ -70,11 +70,17 @@ final class MigrationRunnerTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( '0.0.0' );
 
 		$order = [];
+		$saved = [];
 
-		Functions\expect( 'update_option' )
-			->once()
-			->with( MigrationRunner::LEDGER, '0.2.0', false )
-			->andReturn( true );
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$saved ): bool {
+				unset( $option, $autoload );
+
+				$saved[] = $value;
+
+				return true;
+			}
+		);
 
 		$runner = new MigrationRunner();
 		// Register out of order to verify sorting.
@@ -94,6 +100,122 @@ final class MigrationRunnerTest extends TestCase {
 		$runner->maybeRun();
 
 		$this->assertSame( [ '0.1.0', '0.2.0' ], $order );
+		// Each success is persisted before the next migration runs.
+		$this->assertSame( [ '0.1.0', '0.2.0' ], $saved );
+	}
+
+	/**
+	 * A success before a failure is persisted, and only the failure onward retries.
+	 */
+	public function test_failure_at_version_n_persists_the_versions_before_n(): void {
+		$store = '0.0.0';
+		$saved = [];
+
+		Functions\when( 'get_option' )->alias(
+			static function () use ( &$store ): string {
+				return (string) $store;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$saved ): bool {
+				unset( $option, $autoload );
+
+				$store   = $value;
+				$saved[] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_trigger_error' )->justReturn( null );
+
+		$fail      = true;
+		$firstRuns = [];
+
+		$first = new MigrationRunner();
+		$first->register(
+			'0.1.0',
+			static function () use ( &$firstRuns ): void {
+				$firstRuns[] = '0.1.0';
+			}
+		);
+		$first->register(
+			'0.2.0',
+			static function () use ( &$fail ): void {
+				if ( $fail ) {
+					throw new \RuntimeException( 'boom' );
+				}
+			}
+		);
+		$first->register(
+			'0.3.0',
+			static function () use ( &$firstRuns ): void {
+				$firstRuns[] = '0.3.0';
+			}
+		);
+
+		$first->maybeRun();
+
+		$this->assertSame( [ '0.1.0' ], $firstRuns, 'Migrations after the failure must not run' );
+		$this->assertSame( [ '0.1.0' ], $saved, 'The success before the failure must be persisted' );
+		$this->assertSame( '0.1.0', $store, 'Storage holds the version before the failure' );
+		$this->assertSame( '0.1.0', $first->currentVersion(), 'The in memory version matches storage' );
+
+		// The next request starts from the persisted ledger and retries from the failure.
+		$fail       = false;
+		$secondRuns = [];
+
+		$second = new MigrationRunner();
+		$second->register(
+			'0.1.0',
+			static function () use ( &$secondRuns ): void {
+				$secondRuns[] = '0.1.0';
+			}
+		);
+		$second->register(
+			'0.2.0',
+			static function () use ( &$secondRuns ): void {
+				$secondRuns[] = '0.2.0';
+			}
+		);
+		$second->register(
+			'0.3.0',
+			static function () use ( &$secondRuns ): void {
+				$secondRuns[] = '0.3.0';
+			}
+		);
+
+		$second->maybeRun();
+
+		$this->assertSame( [ '0.2.0', '0.3.0' ], $secondRuns, 'Only the failed version and later must retry' );
+		$this->assertSame( '0.3.0', $store );
+	}
+
+	/**
+	 * A failed ledger write must not advance the in memory version.
+	 */
+	public function test_ledger_does_not_advance_in_memory_when_the_write_fails(): void {
+		Functions\when( 'get_option' )->justReturn( '0.0.0' );
+
+		Functions\expect( 'update_option' )
+			->once()
+			->with( MigrationRunner::LEDGER, '0.1.0', false )
+			->andReturn( false );
+
+		$ran = false;
+
+		$runner = new MigrationRunner();
+		$runner->register(
+			'0.1.0',
+			static function () use ( &$ran ): void {
+				$ran = true;
+			}
+		);
+
+		$runner->maybeRun();
+
+		$this->assertTrue( $ran, 'The migration itself still runs' );
+		$this->assertSame( '0.0.0', $runner->currentVersion(), 'A write that did not land must not be claimed in memory' );
 	}
 
 	/**

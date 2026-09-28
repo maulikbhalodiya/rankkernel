@@ -404,4 +404,120 @@ final class ModuleManagerTest extends TestCase {
 		// Priority order: high (10) before mid (15).
 		$this->assertSame( [ 'high', 'mid' ], array_keys( $enabled ) );
 	}
+
+	/**
+	 * Capture the messages reported through wp_trigger_error.
+	 *
+	 * @param array<int, array{0: string, 1: int}> $reported Captured reports.
+	 * @return void
+	 */
+	private function captureTriggerErrors( array &$reported ): void {
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function ( string $functionName, string $message, int $type ) use ( &$reported ): void {
+				unset( $functionName );
+
+				$reported[] = [ $message, $type ];
+			}
+		);
+	}
+
+	/**
+	 * A module throwing in register must not stop later modules from booting.
+	 */
+	public function test_a_module_throwing_in_register_does_not_stop_later_modules(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$reported = [];
+		$this->captureTriggerErrors( $reported );
+
+		$booted = [];
+
+		$broken = Mockery::mock( ModuleInterface::class );
+		$broken->shouldReceive( 'getId' )->andReturn( 'broken' );
+		$broken->shouldReceive( 'getName' )->andReturn( 'Broken' );
+		$broken->shouldReceive( 'isEnabled' )->once()->andReturn( true );
+		$broken->shouldReceive( 'getPriority' )->andReturn( 10 );
+		$broken->shouldReceive( 'dependsOn' )->andReturn( [] );
+		$broken->shouldReceive( 'register' )->once()->andThrow( new \RuntimeException( 'register boom' ) );
+		$broken->shouldReceive( 'boot' )->never();
+
+		$later = Mockery::mock( ModuleInterface::class );
+		$later->shouldReceive( 'getId' )->andReturn( 'later' );
+		$later->shouldReceive( 'getName' )->andReturn( 'Later' );
+		$later->shouldReceive( 'isEnabled' )->once()->andReturn( true );
+		$later->shouldReceive( 'getPriority' )->andReturn( 20 );
+		$later->shouldReceive( 'dependsOn' )->andReturn( [] );
+		$later->shouldReceive( 'register' )->once()->andReturnUsing(
+			static function () use ( &$booted ): void {
+				$booted[] = 'register';
+			}
+		);
+		$later->shouldReceive( 'boot' )->once()->andReturnUsing(
+			static function () use ( &$booted ): void {
+				$booted[] = 'boot';
+			}
+		);
+
+		$manager = new ModuleManager();
+		$manager->register( $broken );
+		$manager->register( $later );
+		$manager->evaluateAll();
+		$manager->bootEnabled();
+
+		$this->assertSame( [ 'register', 'boot' ], $booted, 'A later module must still register and boot' );
+		$this->assertNotEmpty( $reported, 'The failure must be reported, never silent' );
+		$this->assertStringContainsString( 'broken', $reported[0][0] );
+		$this->assertSame( E_USER_WARNING, $reported[0][1] );
+	}
+
+	/**
+	 * A module throwing in boot must not stop later modules from booting.
+	 */
+	public function test_a_module_throwing_in_boot_does_not_stop_later_modules(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$reported = [];
+		$this->captureTriggerErrors( $reported );
+
+		$booted = [];
+
+		$broken = Mockery::mock( ModuleInterface::class );
+		$broken->shouldReceive( 'getId' )->andReturn( 'broken' );
+		$broken->shouldReceive( 'getName' )->andReturn( 'Broken' );
+		$broken->shouldReceive( 'isEnabled' )->once()->andReturn( true );
+		$broken->shouldReceive( 'getPriority' )->andReturn( 10 );
+		$broken->shouldReceive( 'dependsOn' )->andReturn( [] );
+		$broken->shouldReceive( 'register' )->once()->andReturnNull();
+		$broken->shouldReceive( 'boot' )->once()->andThrow( new \RuntimeException( 'boot boom' ) );
+
+		$later = Mockery::mock( ModuleInterface::class );
+		$later->shouldReceive( 'getId' )->andReturn( 'later' );
+		$later->shouldReceive( 'getName' )->andReturn( 'Later' );
+		$later->shouldReceive( 'isEnabled' )->once()->andReturn( true );
+		$later->shouldReceive( 'getPriority' )->andReturn( 20 );
+		$later->shouldReceive( 'dependsOn' )->andReturn( [] );
+		$later->shouldReceive( 'register' )->once()->andReturnUsing(
+			static function () use ( &$booted ): void {
+				$booted[] = 'register';
+			}
+		);
+		$later->shouldReceive( 'boot' )->once()->andReturnUsing(
+			static function () use ( &$booted ): void {
+				$booted[] = 'boot';
+			}
+		);
+
+		$manager = new ModuleManager();
+		$manager->register( $broken );
+		$manager->register( $later );
+		$manager->evaluateAll();
+		$manager->bootEnabled();
+
+		$this->assertSame( [ 'register', 'boot' ], $booted, 'A later module must still register and boot' );
+		$this->assertNotEmpty( $reported, 'The failure must be reported, never silent' );
+		$this->assertStringContainsString( 'broken', $reported[0][0] );
+		$this->assertSame( E_USER_WARNING, $reported[0][1] );
+	}
 }

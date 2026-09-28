@@ -22,6 +22,15 @@ defined( 'ABSPATH' ) || exit;
  */
 final class MonitorRepository {
 	/**
+	 * Sentinel returned by a delete method when the query itself failed.
+	 *
+	 * A failed query and a genuine zero affected row count are not the same
+	 * thing, so the failure is reported as a distinct negative value instead
+	 * of being flattened to zero by an is_int check.
+	 */
+	public const QUERY_FAILED = -1;
+
+	/**
 	 * Sortable columns for paginated lists.
 	 *
 	 * @var string[]
@@ -316,7 +325,7 @@ final class MonitorRepository {
 	 * Delete a list of ids, for admin bulk actions.
 	 *
 	 * @param int[] $ids Row ids.
-	 * @return int Deleted row count.
+	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
 	public function deleteMany( array $ids ): int {
 		$db = $this->connection();
@@ -348,7 +357,7 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( "DELETE FROM `{$table}` WHERE id IN ({$list})" );
 
-		return is_int( $affected ) ? $affected : 0;
+		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
 	}
 
 	/**
@@ -358,7 +367,7 @@ final class MonitorRepository {
 	 * a pass cap is hit. Never TRUNCATE, always one LIMIT batch per call.
 	 *
 	 * @param int $limit Rows per batch, capped at 500.
-	 * @return int Deleted row count.
+	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
 	public function clearAllBounded( int $limit = 500 ): int {
 		$db = $this->connection();
@@ -374,7 +383,7 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY id ASC LIMIT %d", $batch ) );
 
-		return is_int( $affected ) ? $affected : 0;
+		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
 	}
 
 	/**
@@ -382,7 +391,7 @@ final class MonitorRepository {
 	 *
 	 * @param string $cutoff MySQL datetime, rows older than this are removed.
 	 * @param int    $limit  Rows per pass, capped at 500.
-	 * @return int Deleted row count.
+	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
 	public function deleteOlderThan( string $cutoff, int $limit = 500 ): int {
 		$db = $this->connection();
@@ -398,7 +407,7 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` WHERE last_accessed < %s ORDER BY last_accessed ASC, id ASC LIMIT %d", $cutoff, $batch ) );
 
-		return is_int( $affected ) ? $affected : 0;
+		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
 	}
 
 	/**
@@ -409,7 +418,7 @@ final class MonitorRepository {
 	 *
 	 * @param int $maxRows Configured row limit.
 	 * @param int $limit   Rows per pass, capped at 500.
-	 * @return int Deleted row count.
+	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
 	public function deleteOldestOver( int $maxRows, int $limit ): int {
 		$db = $this->connection();
@@ -432,7 +441,7 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY last_accessed ASC, id ASC LIMIT %d", $batch ) );
 
-		return is_int( $affected ) ? $affected : 0;
+		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
 	}
 
 	/**
