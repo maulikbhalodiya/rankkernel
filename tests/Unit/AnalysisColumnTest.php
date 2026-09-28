@@ -378,17 +378,39 @@ final class AnalysisColumnTest extends TestCase {
 	}
 
 	/**
+	 * The meta query the score sort applies when no other filter is set.
+	 *
+	 * @return array<string, mixed> Expected clause.
+	 */
+	private function expectedSortMetaQuery(): array {
+		return [
+			'relation'                          => 'OR',
+			'rankkernel_analysis_score'         => [
+				'key'     => AnalysisScore::SCORE_VALUE_KEY,
+				'compare' => 'EXISTS',
+				'type'    => 'NUMERIC',
+			],
+			'rankkernel_analysis_score_missing' => [
+				'key'     => AnalysisScore::SCORE_VALUE_KEY,
+				'compare' => 'NOT EXISTS',
+			],
+		];
+	}
+
+	/**
 	 * Run orderBy against a query double and return the vars it set.
 	 *
-	 * @param string $order Order value as the list table sends it.
+	 * @param string $order            Order value as the list table sends it.
+	 * @param mixed  $existingMetaQuery Existing meta_query the query reports.
 	 * @return array<string, mixed> The query vars our code set.
 	 */
-	private function sortedVars( string $order ): array {
+	private function sortedVars( string $order, mixed $existingMetaQuery = '' ): array {
 		$vars  = [];
 		$query = Mockery::mock( WP_Query::class );
 		$query->shouldReceive( 'is_main_query' )->andReturn( true );
 		$query->shouldReceive( 'get' )->with( 'orderby' )->andReturn( 'rankkernel_analysis' );
 		$query->shouldReceive( 'get' )->with( 'order' )->andReturn( $order );
+		$query->shouldReceive( 'get' )->with( 'meta_query' )->andReturn( $existingMetaQuery );
 		$query->shouldReceive( 'set' )->andReturnUsing(
 			static function ( string $key, mixed $value ) use ( &$vars ): void {
 				$vars[ $key ] = $value;
@@ -398,6 +420,85 @@ final class AnalysisColumnTest extends TestCase {
 		( new AnalysisColumn() )->orderBy( $query );
 
 		return $vars;
+	}
+
+	/**
+	 * The common case with no existing meta_query stays byte identical.
+	 */
+	public function test_orderby_without_an_existing_meta_query_is_unchanged(): void {
+		$vars = $this->sortedVars( 'DESC' );
+
+		$this->assertSame( $this->expectedSortMetaQuery(), $vars['meta_query'] );
+	}
+
+	/**
+	 * A malformed non array meta_query is treated as absent.
+	 */
+	public function test_orderby_treats_a_malformed_meta_query_as_absent(): void {
+		$vars = $this->sortedVars( 'DESC', 'not-an-array' );
+
+		$this->assertSame( $this->expectedSortMetaQuery(), $vars['meta_query'] );
+	}
+
+	/**
+	 * An empty meta_query is treated as absent.
+	 */
+	public function test_orderby_treats_an_empty_meta_query_as_absent(): void {
+		$vars = $this->sortedVars( 'DESC', [] );
+
+		$this->assertSame( $this->expectedSortMetaQuery(), $vars['meta_query'] );
+	}
+
+	/**
+	 * An existing meta_query from another plugin survives the score sort and
+	 * still constrains the query, its own relation intact.
+	 */
+	public function test_orderby_preserves_an_existing_meta_query_with_its_relation(): void {
+		$existing = [
+			'relation'        => 'OR',
+			'plugin_clause'   => [
+				'key'     => 'seo_score',
+				'value'   => '10',
+				'compare' => '>',
+			],
+			'plugin_fallback' => [
+				'key'     => 'seo_score',
+				'compare' => 'NOT EXISTS',
+			],
+		];
+
+		$vars = $this->sortedVars( 'DESC', $existing );
+		$mq   = $vars['meta_query'];
+
+		$this->assertIsArray( $mq );
+		// The two groups are combined with AND, so the existing filter and the
+		// score sort both have to match.
+		$this->assertSame( 'AND', $mq['relation'] );
+		// The existing clauses keep their own relation as one nested group.
+		$this->assertSame( $existing, $mq[0] );
+		// The score sort is the other group, unchanged.
+		$this->assertSame( $this->expectedSortMetaQuery(), $mq[1] );
+	}
+
+	/**
+	 * An existing meta_query without its own relation keeps its flat meaning.
+	 */
+	public function test_orderby_preserves_a_flat_existing_meta_query(): void {
+		$existing = [
+			'plugin_clause' => [
+				'key'     => 'seo_score',
+				'value'   => '10',
+				'compare' => '>',
+			],
+		];
+
+		$vars = $this->sortedVars( 'DESC', $existing );
+		$mq   = $vars['meta_query'];
+
+		$this->assertIsArray( $mq );
+		$this->assertSame( 'AND', $mq['relation'] );
+		$this->assertSame( $existing, $mq[0] );
+		$this->assertSame( $this->expectedSortMetaQuery(), $mq[1] );
 	}
 
 	/**

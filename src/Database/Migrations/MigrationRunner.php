@@ -16,9 +16,10 @@ defined( 'ABSPATH' ) || exit;
  * Runs versioned migrations against the rankkernel_db_version ledger.
  *
  * Idempotency is the migration author's duty, each closure must tolerate
- * being skipped when already applied. Failures do not advance the ledger so
- * subsequent requests retry pending migrations. Sufficient for the v1 core
- * which is schema-less (blueprint §D.4).
+ * being skipped when already applied. The ledger is persisted after each
+ * success, so a failure only leaves the failed migration and the ones after
+ * it pending for the next request. Sufficient for the v1 core which is
+ * schema-less (blueprint §D.4).
  *
  * Extension contract: later modules (e.g. redirects/404 tables per
  * blueprint §D.4) register their table-creation migration by calling
@@ -79,8 +80,9 @@ final class MigrationRunner {
 	/**
 	 * Run pending migrations in ascending version order.
 	 *
-	 * Fires on `init` priority 10. Ledger is updated once to the highest
-	 * executed version on success. On failure the ledger is not advanced
+	 * Fires on `init` priority 10. The ledger is persisted after each
+	 * successful migration, so a later failure never causes an already
+	 * applied migration to run again. On failure the ledger is not advanced
 	 * past the failed version, an action is fired, and a warning is
 	 * triggered, the site never goes down. With no registered migrations
 	 * but a stale ledger, the ledger is synced to RANKKERNEL_VERSION.
@@ -91,8 +93,11 @@ final class MigrationRunner {
 		// No migrations registered: sync ledger to plugin version if behind.
 		if ( [] === $this->migrations ) {
 			if ( defined( 'RANKKERNEL_VERSION' ) && version_compare( $current, RANKKERNEL_VERSION, '<' ) ) {
-				update_option( self::LEDGER, \RankKernel\Plugin::version(), false );
-				$this->cachedVersion = \RankKernel\Plugin::version();
+				$version = \RankKernel\Plugin::version();
+
+				if ( true === update_option( self::LEDGER, $version, false ) ) {
+					$this->cachedVersion = $version;
+				}
 			}
 
 			return;
@@ -113,23 +118,24 @@ final class MigrationRunner {
 
 		uksort( $pending, 'version_compare' );
 
-		$highest = null;
-
 		foreach ( $pending as $version => $migration ) {
 			try {
 				$migration();
-				$highest = $version;
 			} catch ( \Throwable $throwable ) {
 				do_action( 'rankkernel/migration/failed', $version, $throwable ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 				wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
 				return;
 			}
-		}
 
-		// All pending succeeded, advance ledger once.
-		if ( null !== $highest ) {
-			update_option( self::LEDGER, $highest, false );
-			$this->cachedVersion = $highest;
+			// Persist after each success, so a failure later in the run cannot
+			// leave an earlier success unrecorded. Without this the next
+			// request would re-run every migration in the run, and any that is
+			// not idempotent would write twice. Only trust storage: the cached
+			// version advances only when the write actually landed, otherwise
+			// the in memory state would claim progress storage does not have.
+			if ( true === update_option( self::LEDGER, $version, false ) ) {
+				$this->cachedVersion = $version;
+			}
 		}
 	}
 }

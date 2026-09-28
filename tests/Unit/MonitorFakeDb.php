@@ -78,6 +78,13 @@ final class MonitorFakeDb {
 	public int $schemaProbes = 0;
 
 	/**
+	 * When true, raw queries fail the way wpdb does on a database error.
+	 *
+	 * @var bool
+	 */
+	public bool $failQueries = false;
+
+	/**
 	 * Reset the 404 log table existence cache so each test starts clean.
 	 */
 	public function __construct() {
@@ -279,6 +286,10 @@ final class MonitorFakeDb {
 	 */
 	public function query( string $query ): mixed {
 		++$this->writes;
+
+		if ( $this->failQueries ) {
+			return false;
+		}
 
 		if ( 0 === strpos( $query, 'CREATE TABLE' ) ) {
 			$this->tableExists = true;

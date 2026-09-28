@@ -79,7 +79,7 @@ final class RecalculateCommand {
 	 *
 	 * @param array<string, mixed> $options  Options.
 	 * @param callable|null        $progress Optional progress callback (int $postId, array $record, int $seen).
-	 * @return array{scanned: int, stored: int, skipped: int, dry_run: bool} The result.
+	 * @return array{scanned: int, stored: int, skipped: int, failed: int, dry_run: bool} The result.
 	 */
 	public function batch( array $options, ?callable $progress = null ): array {
 		$postType = [];
@@ -101,6 +101,7 @@ final class RecalculateCommand {
 		$scanned = 0;
 		$stored  = 0;
 		$skipped = 0;
+		$failed  = 0;
 		$paged   = 1;
 
 		do {
@@ -109,7 +110,17 @@ final class RecalculateCommand {
 			foreach ( $ids as $id ) {
 				++$scanned;
 
-				$record = $dryRun ? $this->score->compute( $id ) : $this->score->store( $id );
+				// One bad post must not abort the batch, so each post is
+				// scored inside its own guard. A failure is counted and
+				// reported, then the batch moves on to the next post.
+				try {
+					$record = $dryRun ? $this->score->compute( $id ) : $this->score->store( $id );
+				} catch ( \Throwable $throwable ) {
+					++$failed;
+					$this->reportFailure( $id, $throwable );
+					continue;
+				}
+
 				$record = $record ?? [];
 
 				if ( [] === $record ) {
@@ -130,8 +141,45 @@ final class RecalculateCommand {
 			'scanned' => $scanned,
 			'stored'  => $stored,
 			'skipped' => $skipped,
+			'failed'  => $failed,
 			'dry_run' => $dryRun,
 		];
+	}
+
+	/**
+	 * Report one post that threw during scoring.
+	 *
+	 * The batch keeps going, so the failure is surfaced through
+	 * wp_trigger_error and counted in the summary, never swallowed silently.
+	 *
+	 * @param int        $postId    Post id.
+	 * @param \Throwable $throwable Caught throwable.
+	 */
+	private function reportFailure( int $postId, \Throwable $throwable ): void {
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				sprintf( 'Analysis recalculation failed for post %1$d: %2$s', $postId, $throwable->getMessage() ),
+				E_USER_WARNING
+			);
+		}
+	}
+
+	/**
+	 * Build the final summary line from a batch result.
+	 *
+	 * @param array{scanned: int, stored: int, skipped: int, failed: int, dry_run: bool} $result Batch result.
+	 * @return string Summary line.
+	 */
+	public function summary( array $result ): string {
+		return sprintf(
+			'Scanned %1$d, stored %2$d, skipped %3$d, failed %4$d%5$s.',
+			(int) $result['scanned'],
+			(int) $result['stored'],
+			(int) $result['skipped'],
+			(int) $result['failed'],
+			! empty( $result['dry_run'] ) ? ' (dry run)' : ''
+		);
 	}
 
 	/**
@@ -205,15 +253,7 @@ final class RecalculateCommand {
 			}
 		);
 
-		$this->success(
-			sprintf(
-				'Scanned %1$d, stored %2$d, skipped %3$d%4$s.',
-				$result['scanned'],
-				$result['stored'],
-				$result['skipped'],
-				$result['dry_run'] ? ' (dry run)' : ''
-			)
-		);
+		$this->success( $this->summary( $result ) );
 	}
 
 	/**

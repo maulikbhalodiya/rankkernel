@@ -49,6 +49,20 @@ final class RecalculateCommandTest extends TestCase {
 	private bool $updated = false;
 
 	/**
+	 * Post ids that were stored, in order.
+	 *
+	 * @var int[]
+	 */
+	private array $storedIds = [];
+
+	/**
+	 * Post id whose meta read throws, zero for none.
+	 *
+	 * @var int
+	 */
+	private int $throwOnMetaId = 0;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -59,10 +73,12 @@ final class RecalculateCommandTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->posts   = [];
-		$this->meta    = [];
-		$this->queried = [];
-		$this->updated = false;
+		$this->posts         = [];
+		$this->meta          = [];
+		$this->queried       = [];
+		$this->updated       = false;
+		$this->storedIds     = [];
+		$this->throwOnMetaId = 0;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $value ): string => strtolower( (string) preg_replace( '/[^a-z0-9_-]/i', '', $value ) ) );
@@ -95,20 +111,26 @@ final class RecalculateCommandTest extends TestCase {
 			function ( int $id, string $key, bool $single ): mixed {
 				unset( $single );
 
+				if ( $this->throwOnMetaId === $id ) {
+					throw new \RuntimeException( 'meta boom' );
+				}
+
 				return $this->meta[ $id ][ $key ] ?? '';
 			}
 		);
 		Functions\when( 'update_post_meta' )->alias(
 			function ( int $id, string $key, mixed $value ): bool {
-				unset( $id, $key, $value );
+				unset( $key, $value );
 
-				$this->updated = true;
+				$this->updated     = true;
+				$this->storedIds[] = $id;
 
 				return true;
 			}
 		);
 		Functions\when( 'delete_post_meta' )->justReturn( true );
 		Functions\when( 'get_posts' )->justReturn( [] );
+		Functions\when( 'wp_trigger_error' )->justReturn( null );
 	}
 
 	/**
@@ -255,5 +277,55 @@ final class RecalculateCommandTest extends TestCase {
 		$command->recalculate( [], [] );
 
 		$this->assertFalse( $this->updated );
+	}
+
+	/**
+	 * One post throwing must not stop the remaining posts in the batch.
+	 */
+	public function test_one_throwing_post_does_not_stop_the_batch(): void {
+		$this->addPost( 1, [ 'red apples' ] );
+		$this->addPost( 2, [ 'red apples' ] );
+		$this->addPost( 3, [ 'red apples' ] );
+		$this->queuePages( [ [ 1, 2, 3 ], [] ] );
+
+		$this->throwOnMetaId = 2;
+
+		$reported = [];
+
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function ( string $functionName, string $message, int $type ) use ( &$reported ): void {
+				unset( $functionName );
+
+				$reported[] = [ $message, $type ];
+			}
+		);
+
+		$result = ( new RecalculateCommand() )->batch( [ 'batch' => 3 ] );
+
+		$this->assertSame( 3, $result['scanned'] );
+		$this->assertSame( 2, $result['stored'] );
+		$this->assertSame( 0, $result['skipped'] );
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( [ 1, 3 ], array_values( array_unique( $this->storedIds ) ), 'The posts after the failure must still be processed' );
+		$this->assertNotEmpty( $reported, 'The failure must be reported, never silent' );
+		$this->assertStringContainsString( '2', $reported[0][0] );
+		$this->assertSame( E_USER_WARNING, $reported[0][1] );
+	}
+
+	/**
+	 * The summary reports the failed count so the operator sees skipped posts.
+	 */
+	public function test_summary_reports_the_failed_count(): void {
+		$summary = ( new RecalculateCommand() )->summary(
+			[
+				'scanned' => 5,
+				'stored'  => 3,
+				'skipped' => 1,
+				'failed'  => 1,
+				'dry_run' => false,
+			]
+		);
+
+		$this->assertStringContainsString( 'failed 1', $summary );
 	}
 }
