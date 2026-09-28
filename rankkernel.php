@@ -53,9 +53,53 @@ define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RANKKERNEL_URL', plugin_dir_url( __FILE__ ) );
 
 // Autoload.
+//
+// The plugin ships no Composer runtime dependencies. The composer.json require
+// block lists only the PHP version, and every other entry is a development tool
+// that is never deployed. Composer's autoloader therefore exists for one reason:
+// to map the plugin's own RankKernel namespace onto src/.
+//
+// Registering that mapping here as well means the plugin loads on a site where
+// the files were deployed without running composer install, which is the normal
+// case for a copy, a zip or a git clone. Composer's autoloader is still loaded
+// when it is present, so development tooling and any future runtime dependency
+// keep working exactly as before.
+spl_autoload_register(
+	static function ( string $class_name ): void {
+		$prefix = 'RankKernel\\';
+
+		if ( ! str_starts_with( $class_name, $prefix ) ) {
+			return;
+		}
+
+		$file = RANKKERNEL_DIR . 'src/' . str_replace( '\\', '/', substr( $class_name, strlen( $prefix ) ) ) . '.php';
+
+		if ( is_readable( $file ) ) {
+			require_once $file;
+		}
+	}
+);
+
 $rankkernel_autoloader = RANKKERNEL_DIR . 'vendor/autoload.php';
 if ( file_exists( $rankkernel_autoloader ) ) {
 	require_once $rankkernel_autoloader;
+}
+
+// Defence in depth. The fallback above should always resolve the plugin's own
+// classes, so this only fires when something is genuinely wrong, such as an
+// incomplete copy of the plugin. Say so plainly rather than letting the first
+// class reference die later with a bare class not found the operator cannot act on.
+if ( ! class_exists( \RankKernel\Plugin::class ) ) {
+	add_action(
+		'admin_notices',
+		static function () {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'RankKernel could not load its own classes, so the plugin files look incomplete. Please reinstall RankKernel.', 'rankkernel' );
+			echo '</p></div>';
+		}
+	);
+
+	return;
 }
 
 /**
