@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RankKernel - Plugin Admin Content</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#EFF6FF',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+            },
+            slate: {
+              750: '#293548',
+              850: '#172033',
+              900: '#0F172A',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F0F2F5;
+      color: #1E293B;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-8 min-h-screen">
+
+  <!-- WordPress .wrap Container inner content -->
+  <div class="max-w-[1240px] mx-auto space-y-4">
+
+    <!-- HEADER AREA -->
+    <header class="bg-white rounded-lg border border-[#E2E8F0] shadow-sm px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
+            <span class="material-symbols-outlined text-[20px]">troubleshoot</span>
+          </div>
+          <h1 class="text-[24px] font-bold text-[#1E293B] tracking-tight leading-tight">RankKernel</h1>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-[#2563EB] border border-blue-100">v2-1.0</span>
+        </div>
+        <p class="text-[13px] text-[#64748B] mt-1">SEO plugin for WordPress. Modules you disable cost nothing.</p>
+      </div>
+
+      <div class="flex items-center gap-2 self-start sm:self-center">
+        <a href="#view-site" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-[#334155] bg-white border border-[#CBD5E1] rounded-md hover:bg-slate-50 hover:text-[#0F172A] transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[16px] text-[#64748B]">open_in_new</span>
+          View Site
+        </a>
+        <a href="#docs" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] hover:bg-slate-100/80 rounded-md transition-colors">
+          <span class="material-symbols-outlined text-[16px]">menu_book</span>
+          Docs
+        </a>
+      </div>
+    </header>
+
+    <!-- SEO STATUS ROW -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Card 1: Modules Active -->
+      <div class="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm flex items-center justify-between">
+        <div>
+          <div class="text-[32px] font-bold text-[#1E293B] leading-none">8</div>
+          <div class="text-[13px] text-[#64748B] mt-1.5 font-medium">of 13 modules active</div>
+        </div>
+        <div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-[#2563EB]">
+          <span class="material-symbols-outlined text-[26px]">grid_view</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Sitemap Status -->
+      <div class="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[28px] font-bold text-[#1E293B] leading-none">Live</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-[#0F766E] border border-emerald-100">
+              <span class="w-2 h-2 rounded-full bg-[#0F766E] animate-pulse"></span>
+              Healthy
+            </span>
+          </div>
+          <div class="text-[13px] text-[#64748B] mt-1.5 font-mono">sitemap_index.xml serving</div>
+        </div>
+        <div class="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center text-[#0F766E]">
+          <span class="material-symbols-outlined text-[26px]">lan</span>
+        </div>
+      </div>
+
+      <!-- Card 3: 404 Errors -->
+      <div class="bg-white rounded-lg border border-[#E2E8F0] p-5 shadow-sm flex items-center justify-between">
+        <div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-[32px] font-bold text-[#EA580C] leading-none">3</span>
+            <span class="text-xs font-semibold text-[#EA580C] bg-orange-50 px-2 py-0.5 rounded border border-orange-100">Attention</span>
+          </div>
+          <div class="text-[13px] text-[#64748B] mt-1 font-medium">new missing URLs logged</div>
+          <a href="#404-log" class="inline-flex items-center gap-1 text-[12px] font-medium text-[#2563EB] hover:text-[#1D4ED8] mt-1 group">
+            View Log
+            <span class="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+          </a>
+        </div>
+        <div class="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center text-[#EA580C]">
+          <span class="material-symbols-outlined text-[26px]">warning</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEALTH ALERTS AREA -->
+    <div class="bg-amber-50/90 border border-amber-200 rounded-lg p-3.5 shadow-sm">
+      <div class="flex items-center justify-between gap-2 cursor-pointer" onclick="document.getElementById('alert-details').classList.toggle('hidden')">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-amber-600 text-[20px]">error</span>
+          <span class="text-[13px] font-semibold text-amber-900">1 attention item</span>
+          <span class="text-[12px] text-amber-700 hidden sm:inline">&bull; 404 Monitor detected recent broken URLs</span>
+        </div>
+        <div class="flex items-center gap-1 text-amber-700">
+          <span class="text-[12px] font-medium">Details</span>
+          <span class="material-symbols-outlined text-[18px]">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Expanded content -->
+      <div id="alert-details" class="mt-2.5 pt-2.5 border-t border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[13px] text-amber-900">
+        <p class="leading-relaxed">3 new 404 errors logged in the last 7 days. Review the 404 Monitor to create redirects.</p>
+        <div class="flex items-center gap-3 shrink-0">
+          <a href="#404-monitor" class="inline-flex items-center gap-1 text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">
+            Go to 404 Monitor
+            <span class="material-symbols-outlined text-[14px]">arrow_outward</span>
+          </a>
+          <button type="button" onclick="this.closest('.bg-amber-50\\/90').remove()" class="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-amber-100/60 transition-colors" title="Dismiss">
+            <span class="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN 2-COLUMN LAYOUT -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+      <!-- LEFT COLUMN (~65% width): Module Management -->
+      <section class="lg:col-span-8 bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+        
+        <!-- Card Header -->
+        <div class="px-5 py-4 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-[16px] font-bold text-[#1E293B]">Modules</h2>
+            <span class="text-xs text-[#64748B] font-medium px-2 py-0.5 rounded-full bg-slate-100">8 active / 5 planned</span>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-[200px]">
+            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-slate-400 pointer-events-none">search</span>
+            <input 
+              type="text" 
+              placeholder="Search modules..." 
+              class="w-full pl-8 pr-3 py-1.5 text-[13px] bg-slate-50 border border-[#CBD5E1] rounded-md placeholder-slate-400 text-[#1E293B] focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-colors"
+            >
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="px-5 pt-3 border-b border-[#F1F5F9] flex items-center gap-6 text-[13px]">
+          <button class="pb-2.5 font-semibold text-[#2563EB] border-b-2 border-[#2563EB] flex items-center gap-1.5">
+            <span>Active</span>
+            <span class="bg-blue-50 text-[#2563EB] text-[11px] px-1.5 py-0.2 rounded-full font-bold">8</span>
+          </button>
+          <button class="pb-2.5 font-medium text-[#64748B] hover:text-[#1E293B] flex items-center gap-1.5 transition-colors">
+            <span>Planned</span>
+            <span class="bg-slate-100 text-slate-600 text-[11px] px-1.5 py-0.2 rounded-full font-medium">5</span>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-6">
+
+          <!-- ACTIVE MODULES SECTION -->
+          <div>
+            <div class="flex items-center gap-1.5 mb-3">
+              <span class="w-2 h-2 rounded-full bg-[#0F766E]"></span>
+              <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#0F766E]">Active</h3>
+            </div>
+
+            <div class="divide-y divide-[#F1F5F9] border border-[#F1F5F9] rounded-lg">
+              
+              <!-- 1. Metadata -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-blue-100 text-[#2563EB] flex items-center justify-center font-bold text-xs">
+                    T
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Metadata</div>
+                    <div class="text-[13px] text-[#64748B]">Automated titles, meta descriptions, and OpenGraph social tags.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-metadata" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <!-- Toggle ON -->
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 2. Sitemaps -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">account_tree</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Sitemaps</div>
+                    <div class="text-[13px] text-[#64748B]">Multi-part XML index with auto-pinging to Google and Bing.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-sitemaps" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 3. Schema -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-purple-100 text-purple-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">code_blocks</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Schema</div>
+                    <div class="text-[13px] text-[#64748B]">JSON-LD structured data for Article, Organization, and FAQ.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-schema" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 4. Breadcrumbs -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-teal-100 text-teal-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">linear_scale</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Breadcrumbs</div>
+                    <div class="text-[13px] text-[#64748B]">Configurable schema navigation trails via Gutenberg block or theme hooks.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-breadcrumbs" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 5. Redirects -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-sky-100 text-sky-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">call_split</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Redirects</div>
+                    <div class="text-[13px] text-[#64748B]">Fast 301, 302, and 307 redirect manager with regex rule support.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-redirects" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 6. 404 Monitor -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-rose-100 text-rose-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">find_in_page</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">404 Monitor</div>
+                    <div class="text-[13px] text-[#64748B]">Real-time broken URL capture to quickly turn dead links into 301 redirects.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-404" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 7. Robots -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-cyan-100 text-cyan-700 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">smart_toy</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Robots</div>
+                    <div class="text-[13px] text-[#64748B]">Manage virtual robots.txt rules, crawling directive logic, and headers.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-robots" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 8. Analysis -->
+              <div class="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">query_stats</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-[#1E293B] leading-snug">Analysis</div>
+                    <div class="text-[13px] text-[#64748B]">In-editor readability scoring and instant SERP preview for posts.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <a href="#settings-analysis" class="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] hover:underline">Settings</a>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-[#2563EB] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- PLANNED MODULES SECTION -->
+          <div class="pt-2">
+            <div class="flex items-center gap-1.5 mb-3">
+              <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Coming Soon</h3>
+            </div>
+
+            <div class="divide-y divide-[#F1F5F9] border border-[#F1F5F9] rounded-lg bg-slate-50/40">
+              
+              <!-- 1. Importer -->
+              <div class="p-3.5 flex items-center justify-between opacity-75">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">download</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-slate-700 leading-snug">Importer</div>
+                    <div class="text-[13px] text-slate-500">One-click metadata import from Yoast, Rank Math, and AIOSEO.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <span class="text-xs font-medium text-slate-400">Planned</span>
+                  <!-- Toggle OFF (grey) -->
+                  <div class="w-9 h-5 bg-slate-200 rounded-full cursor-not-allowed relative">
+                    <div class="absolute top-[2px] left-[2px] bg-white border border-slate-300 rounded-full h-4 w-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Instant Indexing -->
+              <div class="p-3.5 flex items-center justify-between opacity-75">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">bolt</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-slate-700 leading-snug">Instant Indexing</div>
+                    <div class="text-[13px] text-slate-500">Direct submit via Google Indexing API and IndexNow protocol.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <span class="text-xs font-medium text-slate-400">Planned</span>
+                  <div class="w-9 h-5 bg-slate-200 rounded-full cursor-not-allowed relative">
+                    <div class="absolute top-[2px] left-[2px] bg-white border border-slate-300 rounded-full h-4 w-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Image SEO -->
+              <div class="p-3.5 flex items-center justify-between opacity-75">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">image</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-slate-700 leading-snug">Image SEO</div>
+                    <div class="text-[13px] text-slate-500">Auto alt-attribute generation and dynamic image sitemaps.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <span class="text-xs font-medium text-slate-400">Planned</span>
+                  <div class="w-9 h-5 bg-slate-200 rounded-full cursor-not-allowed relative">
+                    <div class="absolute top-[2px] left-[2px] bg-white border border-slate-300 rounded-full h-4 w-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Gutenberg -->
+              <div class="p-3.5 flex items-center justify-between opacity-75">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">view_quilt</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-slate-700 leading-snug">Gutenberg</div>
+                    <div class="text-[13px] text-slate-500">Native block integration for FAQ Schema, How-To, and breadcrumbs.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <span class="text-xs font-medium text-slate-400">Planned</span>
+                  <div class="w-9 h-5 bg-slate-200 rounded-full cursor-not-allowed relative">
+                    <div class="absolute top-[2px] left-[2px] bg-white border border-slate-300 rounded-full h-4 w-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. AI -->
+              <div class="p-3.5 flex items-center justify-between opacity-75">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+                  </div>
+                  <div>
+                    <div class="text-[14px] font-semibold text-slate-700 leading-snug">AI</div>
+                    <div class="text-[13px] text-slate-500">Generate high-CTR titles and meta descriptions using LLMs.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 pl-3">
+                  <span class="text-xs font-medium text-slate-400">Planned</span>
+                  <div class="w-9 h-5 bg-slate-200 rounded-full cursor-not-allowed relative">
+                    <div class="absolute top-[2px] left-[2px] bg-white border border-slate-300 rounded-full h-4 w-4"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN (~35% width): Quick Actions + SEO Health -->
+      <aside class="lg:col-span-4 space-y-4">
+        
+        <!-- Quick Actions Card -->
+        <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-5">
+          <div class="flex items-center justify-between pb-3 border-b border-[#F1F5F9] mb-3">
+            <h2 class="text-[14px] font-semibold text-[#1E293B]">Quick Actions</h2>
+            <span class="text-[11px] text-slate-400 uppercase tracking-wider font-medium">Tools</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <!-- 1. Flush Sitemap Cache -->
+            <button type="button" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-md text-[13px] font-medium text-slate-700 hover:bg-blue-50 hover:text-[#2563EB] border border-transparent hover:border-blue-100 transition-all text-left group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-[#2563EB] group-hover:rotate-180 transition-transform duration-300">refresh</span>
+                <span>Flush Sitemap Cache</span>
+              </div>
+              <span class="text-[11px] text-slate-400 group-hover:text-blue-500 font-mono">POST</span>
+            </button>
+
+            <!-- 2. Export Redirects CSV -->
+            <button type="button" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-md text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-[#0F766E] border border-transparent hover:border-emerald-100 transition-all text-left group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-[#0F766E]">download</span>
+                <span>Export Redirects CSV</span>
+              </div>
+              <span class="text-[11px] text-slate-400 group-hover:text-emerald-600 font-mono">.csv</span>
+            </button>
+
+            <!-- 3. View robots.txt -->
+            <a href="#view-robots" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-md text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-transparent hover:border-slate-200 transition-all text-left group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-slate-500">description</span>
+                <span>View robots.txt</span>
+              </div>
+              <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:translate-x-0.5 transition-transform">launch</span>
+            </a>
+
+            <!-- 4. Clear 404 Log -->
+            <button type="button" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-md text-[13px] font-medium text-[#DC2626] hover:bg-red-50 border border-transparent hover:border-red-100 transition-all text-left group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-[#DC2626]">delete</span>
+                <span>Clear 404 Log</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-[#DC2626]">3</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SEO Health Card -->
+        <div class="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-5">
+          <div class="flex items-center justify-between pb-3 border-b border-[#F1F5F9] mb-3">
+            <h2 class="text-[14px] font-semibold text-[#1E293B]">SEO Health</h2>
+            <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Live Status
+            </span>
+          </div>
+
+          <ul class="space-y-3">
+            <!-- Item 1 -->
+            <li class="flex items-center gap-2.5 text-[13px] text-slate-700">
+              <span class="material-symbols-outlined text-[18px] text-[#0F766E] shrink-0">check_circle</span>
+              <span><strong class="font-semibold text-[#1E293B]">XML Sitemaps:</strong> Live and serving</span>
+            </li>
+
+            <!-- Item 2 -->
+            <li class="flex items-center gap-2.5 text-[13px] text-slate-700">
+              <span class="material-symbols-outlined text-[18px] text-[#0F766E] shrink-0">check_circle</span>
+              <span><strong class="font-semibold text-[#1E293B]">robots.txt:</strong> Valid</span>
+            </li>
+
+            <!-- Item 3 -->
+            <li class="flex items-center gap-2.5 text-[13px] text-slate-700">
+              <span class="material-symbols-outlined text-[18px] text-[#0F766E] shrink-0">check_circle</span>
+              <span><strong class="font-semibold text-[#1E293B]">Schema:</strong> JSON-LD output active</span>
+            </li>
+
+            <!-- Item 4 (Warning) -->
+            <li class="flex items-center gap-2.5 text-[13px] text-orange-800 bg-orange-50/70 px-2 py-1.5 rounded border border-orange-100">
+              <span class="material-symbols-outlined text-[18px] text-[#EA580C] shrink-0">warning</span>
+              <span><strong class="font-semibold text-orange-900">404 Monitor:</strong> 3 new errors this week</span>
+            </li>
+          </ul>
+        </div>
+
+      </aside>
+    </main>
+
+  </div>
+
+</body>
+</html>
+

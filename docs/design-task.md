@@ -233,6 +233,10 @@ All paths verified in the repository.
 | Artifact | Path |
 |---|---|
 | Redirects design | `docs/designcode/redirection-page.html` |
+| Sitemaps design | `docs/designcode/sitemap-settings-page.html` |
+| Schema design | `docs/designcode/Schema-settings-page.html` |
+| 404 Monitor design | `docs/designcode/404-monitor-page.html` |
+| Dashboard design | `docs/designcode/dashboard-page.html` |
 | Instant Indexing design | `docs/designcode/instant-indexing.html` |
 | Instant Indexing prompts, early | `docs/designcode/instant-indexing-stitch-prompt.txt` |
 | Instant Indexing prompts, v4 | `docs/designcode/instant-indexing-stitch-prompt-v4.txt` |
