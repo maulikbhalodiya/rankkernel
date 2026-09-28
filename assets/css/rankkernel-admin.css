@@ -48,7 +48,8 @@ may fetch a font from an external host. */
 .rk-settings,
 .rk-analysis-col,
 .rk-dashboard,
-.rk-instant-indexing {
+.rk-instant-indexing,
+.rk-schema-settings {
 	/* One global UI face for every RankKernel surface. */
 	font-family: var(--rk-font-sans);
 
@@ -92,6 +93,7 @@ may fetch a font from an external host. */
 	--rk-tint-positive-border: rgba(15, 118, 110, 0.25);
 	--rk-tint-warning-border: rgba(234, 88, 12, 0.25);
 	--rk-tint-error-border: rgba(220, 38, 38, 0.25);
+	--rk-tint-schema-border: rgba(124, 58, 237, 0.25);
 	--rk-ring-primary: rgba(37, 99, 235, 0.2);
 	--rk-color-surface: #FFFFFF;
 	--rk-color-surface-subtle: #F8FAFC;
