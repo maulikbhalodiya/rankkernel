@@ -242,7 +242,7 @@ final class RobotsModuleTest extends TestCase {
 		ob_start();
 		$module->renderPhysicalFileNotice();
 		$out = ob_get_clean();
-		$this->assertStringContainsString( 'notice notice-warning', $out );
+		$this->assertStringContainsString( 'notice notice-warning is-dismissible', $out );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
@@ -274,7 +274,7 @@ final class RobotsModuleTest extends TestCase {
 		ob_start();
 		$module->renderLlmsPhysicalNotice();
 		$out = ob_get_clean();
-		$this->assertStringContainsString( 'notice notice-warning', $out );
+		$this->assertStringContainsString( 'notice notice-warning is-dismissible', $out );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
