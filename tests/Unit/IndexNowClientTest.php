@@ -315,6 +315,34 @@ final class IndexNowClientTest extends TestCase {
 	}
 
 	/**
+	 * Test default transport never falls back to wp_remote_post.
+	 */
+	public function test_default_transport_never_calls_wp_remote_post(): void {
+		Functions\when( 'wp_safe_remote_post' )->alias(
+			function ( string $url, array $args ): array {
+				unset( $url, $args );
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => '',
+				];
+			}
+		);
+
+		Functions\when( 'wp_remote_post' )->alias(
+			function ( string $url, array $args ): array {
+				unset( $url, $args );
+				$this->fail( 'wp_remote_post must never be called as a fallback' );
+			}
+		);
+
+		$client = new IndexNowClient( $this->settings );
+		$result = $client->submit( [ 'https://example.com/a' ] );
+
+		$this->assertSame( 1, $result['accepted'] );
+	}
+
+	/**
 	 * Test default transport returns WP_Error when transport fails.
 	 */
 	public function test_default_transport_returns_wp_error_on_failure(): void {
