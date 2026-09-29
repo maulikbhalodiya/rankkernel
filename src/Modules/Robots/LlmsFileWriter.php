@@ -116,12 +116,25 @@ final class LlmsFileWriter {
 	}
 
 	/**
-	 * Write the physical llms.txt unless one exists.
+	 * Write the physical llms.txt unless one exists or file edits are disabled.
+	 *
+	 * Refuses to write when DISALLOW_FILE_EDIT or DISALLOW_FILE_MODS is active,
+	 * or when a file already exists at the target path.
 	 *
 	 * @param string $content Markdown content.
 	 * @return array{written: bool, reason: string} Result and reason code.
 	 */
 	public function write( string $content ): array {
+		if (
+			( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT )
+			|| ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS )
+		) {
+			return [
+				'written' => false,
+				'reason'  => 'not_writable',
+			];
+		}
+
 		$path = $this->path();
 
 		if ( '' === $path ) {

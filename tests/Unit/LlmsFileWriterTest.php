@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Robots\LlmsFileWriter;
 
@@ -150,5 +152,116 @@ final class LlmsFileWriterTest extends TestCase {
 
 		chmod( $dir, 0755 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- test fixture restores permission so it can clean up.
 		rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp directory.
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_EDIT constant blocks writing.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_edit_blocks_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileDoesNotExist( $temp );
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_MODS constant blocks writing.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_mods_blocks_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileDoesNotExist( $temp );
+	}
+
+	/**
+	 * Test that both constants together still block writing.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_both_constants_together_block_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertFalse( $result['written'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileDoesNotExist( $temp );
+	}
+
+	/**
+	 * Test that a constant defined but false does not block writing.
+	 *
+	 * The guard tests the value, not merely the definition, matching the wording
+	 * WordPress uses for these constants. A site that defines the constant as false is
+	 * explicitly allowing file edits, so the write must still succeed.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_constant_defined_as_false_does_not_block_writing(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', false );
+		}
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', false );
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$result = ( new LlmsFileWriter() )->write( "# Site\n" );
+
+		$this->assertTrue( $result['written'] );
+		$this->assertFileExists( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 }
