@@ -1,0 +1,713 @@
+/**
+ * Sitemap Settings screen styles.
+ *
+ * Hand written match of the RankKernel Sitemap Settings design export, built
+ * without Tailwind and without a build step. Loaded only on the Sitemap
+ * Settings admin screen via SitemapSettingsPage::enqueueAssets. Shared
+ * components (buttons, cards, header, notices, pills, tabs, form rows and the
+ * switch) live in rankkernel-ui.css under the rk-ui scope, which loads as a
+ * registered dependency before this sheet, and this file holds only page
+ * scoped rules under .rk-sitemap-settings. All colour, spacing, radius and
+ * shadow values come from var(--rk-*) tokens defined in the shared token
+ * layer, which also loads as a registered dependency before this sheet. No raw
+ * hex is permitted here.
+ *
+ * The design is a spec sheet that stacks all four tab sections on one page.
+ * The product keeps its working tabs, one section visible at a time, so the
+ * rules below style one section card at a time and every state the real page
+ * renders: the folder tab bar with the current tab open into the card, the
+ * rows with a label column and a control column, the sitemap index callout,
+ * the toggle rows, the role checkbox grid, the per tab footer with its save
+ * button, and the excluded post type and taxonomy row treatment.
+ *
+ * @package RankKernel
+ */
+
+/* ==========================================================================
+   Wrap shell, suppress WP native notices that bleed from other plugins
+   inside our styled page area. Our own notices use .rk-ui-notice classes.
+   ========================================================================== */
+
+.rk-sitemap-settings > .notice,
+.rk-sitemap-settings > .updated,
+.rk-sitemap-settings > .error,
+.rk-sitemap-settings > .update-nag {
+	display: none;
+}
+
+/* ==========================================================================
+   Page shell
+   ========================================================================== */
+
+.rk-sitemap-settings {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+	box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Page header card, icon tile plus version chip plus sitemap URL chip
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-header {
+	padding: var(--rk-space-4) var(--rk-space-5);
+}
+
+.rk-sitemap-settings .rk-ui-page-header-actions {
+	flex-wrap: wrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-title-row {
+	gap: 10px;
+}
+
+.rk-sitemap-settings .rk-sitemap-header-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	border: 1px solid var(--rk-tint-primary-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-sitemap-settings .rk-sitemap-header-icon .rk-icon {
+	font-size: 22px;
+}
+
+/* Static metadata chip. The design uses it for an unbacked engine label, so
+   this page carries the real plugin version here instead. */
+.rk-sitemap-settings .rk-sitemap-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+/* The sitemap index URL chip in the header, a link to the live index. */
+.rk-sitemap-settings .rk-sitemap-url-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 320px;
+	padding: 2px 10px;
+	border: 1px solid var(--rk-tint-primary-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+	transition: border-color 0.15s, background 0.15s;
+}
+
+.rk-sitemap-settings .rk-sitemap-url-chip:hover {
+	border-color: var(--rk-color-primary);
+	background: var(--rk-color-surface);
+}
+
+.rk-sitemap-settings .rk-sitemap-url-chip-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-url-chip .rk-icon {
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Folder tab bar, the current tab opens into the card below it
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-ui-tabs {
+	align-items: flex-end;
+	gap: var(--rk-space-1);
+	padding: 0 var(--rk-space-2);
+	border-block-end: 0;
+	margin-block-end: -1px;
+	position: relative;
+	z-index: 1;
+}
+
+.rk-sitemap-settings .rk-ui-tab {
+	gap: 6px;
+	padding: 10px var(--rk-space-4);
+	margin-block-end: 0;
+	border: 1px solid transparent;
+	border-block-end: 0;
+	border-radius: var(--rk-radius-lg) var(--rk-radius-lg) 0 0;
+	color: var(--rk-color-text-secondary);
+	background: transparent;
+	font-size: var(--rk-font-size-md);
+	font-weight: 500;
+}
+
+.rk-sitemap-settings .rk-ui-tab:hover {
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text);
+}
+
+.rk-sitemap-settings .rk-ui-tab .rk-icon {
+	font-size: 18px;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-sitemap-settings .rk-ui-tab.is-current {
+	border-color: var(--rk-color-border);
+	border-block-end-color: var(--rk-color-surface);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-sitemap-settings .rk-ui-tab.is-current .rk-icon {
+	color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Section card, head plus rows plus footer
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-panel {
+	position: relative;
+	z-index: 0;
+	overflow: hidden;
+}
+
+.rk-sitemap-settings .rk-sitemap-panel-head {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-6);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-sitemap-settings .rk-sitemap-panel-head-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-panel-title {
+	margin: 0;
+	padding: 0;
+	font-size: var(--rk-font-size-xl);
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-sitemap-settings .rk-sitemap-panel-desc {
+	margin: 0;
+	font-size: var(--rk-font-size-md);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* Right side metadata chip, the real registered count on the tabs that have
+   one. It is a fact, never a control. */
+.rk-sitemap-settings .rk-sitemap-meta-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-panel-body {
+	padding: 0 var(--rk-space-6);
+}
+
+/* ==========================================================================
+   Sitemap index callout
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-callout {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	margin-block-start: var(--rk-space-6);
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-tint-primary-border);
+	border-inline-start: 4px solid var(--rk-color-primary);
+	border-radius: 0 var(--rk-radius-lg) var(--rk-radius-lg) 0;
+	background: var(--rk-color-primary-soft);
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-main {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-line {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-icon .rk-icon {
+	font-size: 16px;
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-label {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	color: var(--rk-color-text);
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-url {
+	padding: 3px 10px;
+	border: 1px solid var(--rk-tint-primary-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-primary);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	text-decoration: none;
+	overflow-wrap: anywhere;
+	transition: border-color 0.15s;
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-url:hover {
+	border-color: var(--rk-color-primary);
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-note {
+	margin: var(--rk-space-2) 0 0;
+	padding-inline-start: 32px;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-callout-action {
+	align-self: flex-start;
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   Setting rows, label column plus control column
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-row {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-5) 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-row + .rk-sitemap-row {
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-sitemap-settings .rk-sitemap-row-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-row-title {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-row-note {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-row-control {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-row-hint {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* Toggle row, the switch sits beside the sentence it turns on. */
+.rk-sitemap-settings .rk-sitemap-toggle {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+}
+
+.rk-sitemap-settings .rk-sitemap-toggle-text {
+	font-size: var(--rk-font-size-md);
+	font-weight: 500;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* The switch keeps its shared shape, and the row title plus the visible
+   sentence together name the box through aria-labelledby. */
+
+/* ==========================================================================
+   Text and number inputs, retargeted over the core admin field styles
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-input {
+	width: 100%;
+	padding: 8px 14px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-md);
+	line-height: var(--rk-line-height-normal);
+	box-shadow: none;
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-sitemap-settings .rk-sitemap-input::placeholder {
+	color: var(--rk-color-text-hint);
+}
+
+.rk-sitemap-settings .rk-sitemap-input:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-sitemap-settings .rk-sitemap-input-small {
+	width: 128px;
+}
+
+.rk-sitemap-settings .rk-sitemap-input-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-input-suffix {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text-muted);
+}
+
+/* Native checkboxes take the brand colour without a repaint. */
+.rk-sitemap-settings input[type="checkbox"] {
+	accent-color: var(--rk-color-primary);
+}
+
+/* ==========================================================================
+   Post type and taxonomy rows plus their state pills
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-list-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4) 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-row + .rk-sitemap-list-row {
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-sitemap-settings .rk-sitemap-list-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-name {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-title {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	color: var(--rk-color-text);
+}
+
+.rk-sitemap-settings .rk-sitemap-slug-chip {
+	padding: 2px 8px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-list-url {
+	margin: 0;
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-list-url-label {
+	color: var(--rk-color-text-muted);
+}
+
+.rk-sitemap-settings .rk-sitemap-list-url a {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	color: var(--rk-color-primary);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-url a:hover {
+	text-decoration: underline;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-url .rk-icon {
+	font-size: 12px;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-state {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-shrink: 0;
+}
+
+/* An excluded row is visibly quieter, exactly as the design shows it. */
+.rk-sitemap-settings .rk-sitemap-list-row.is-excluded {
+	opacity: 0.8;
+}
+
+.rk-sitemap-settings .rk-sitemap-list-row.is-excluded .rk-sitemap-list-title {
+	color: var(--rk-color-text-secondary);
+}
+
+/* ==========================================================================
+   Role checkbox grid on the Authors tab
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-role-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-sitemap-settings .rk-sitemap-role {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text);
+	cursor: pointer;
+}
+
+.rk-sitemap-settings .rk-sitemap-role input[type="checkbox"] {
+	margin: 0;
+}
+
+/* ==========================================================================
+   Panel footer, a static status note plus the save control
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-panel-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--rk-space-4);
+	padding: var(--rk-space-5) var(--rk-space-6);
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+}
+
+/* The Authors footer carries one control, so it sits against the end edge. */
+.rk-sitemap-settings .rk-sitemap-panel-footer-end {
+	align-items: flex-end;
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-status {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0;
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-dot {
+	display: inline-block;
+	flex-shrink: 0;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-note {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-note .rk-icon {
+	font-size: 16px;
+	color: var(--rk-color-text-muted);
+	flex-shrink: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-shrink: 0;
+}
+
+.rk-sitemap-settings .rk-sitemap-footer-actions .rk-ui-btn {
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   Page footer line
+   ========================================================================== */
+
+.rk-sitemap-settings .rk-sitemap-page-footer {
+	padding-block-start: var(--rk-space-2);
+	text-align: center;
+}
+
+.rk-sitemap-settings .rk-sitemap-page-footer-text {
+	margin: 0;
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-hint);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (min-width: 783px) {
+	.rk-sitemap-settings .rk-sitemap-panel-head {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-callout {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-callout-action {
+		align-self: center;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-row {
+		grid-template-columns: 1fr 2fr;
+		gap: var(--rk-space-6);
+		align-items: start;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-list-row {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--rk-space-4);
+	}
+
+	.rk-sitemap-settings .rk-sitemap-role-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.rk-sitemap-settings .rk-sitemap-panel-footer {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-panel-footer-end {
+		justify-content: flex-end;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.rk-sitemap-settings .rk-sitemap-url-chip {
+		max-width: 100%;
+	}
+
+	.rk-sitemap-settings .rk-sitemap-footer-actions {
+		align-self: flex-end;
+	}
+}
+
+/* Every selector in this list declares a transition above it: the tab, the
+   header URL chip, the callout URL and the text input. */
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-sitemap-settings .rk-ui-tab,
+	.rk-sitemap-settings .rk-sitemap-url-chip,
+	.rk-sitemap-settings .rk-sitemap-callout-url,
+	.rk-sitemap-settings .rk-sitemap-input {
+		transition: none;
+	}
+}

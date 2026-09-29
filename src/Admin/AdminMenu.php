@@ -92,6 +92,10 @@ final class AdminMenu {
 		$this->instantIndexingPage = new InstantIndexingPage( null, $this->enableMap );
 
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSharedStyles' ] );
+
+		// The sitemap screen owns a page scoped feature stylesheet, so its
+		// enqueue runs on the same hook and gates itself by hook suffix.
+		add_action( 'admin_enqueue_scripts', [ $this->sitemapPage, 'enqueueAssets' ] );
 	}
 
 	/**
