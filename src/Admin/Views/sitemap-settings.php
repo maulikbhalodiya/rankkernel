@@ -18,7 +18,7 @@
  *
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
  * @var bool   $settingsSaveFailed    Whether the save failed notice renders.
- * @var array<int, array{url: string, class: string, current: bool, label: string}> $tabItems Tab links. The class key holds a core nav-tab string and is deliberately not emitted.
+ * @var array<int, array{url: string, current: bool, label: string}> $tabItems Tab links.
  * @var bool   $showGeneral           Whether the General tab section renders.
  * @var bool   $showPostTypes         Whether the Post Types tab section renders.
  * @var bool   $showTaxonomies        Whether the Taxonomies tab section renders.
@@ -85,8 +85,8 @@ defined( 'ABSPATH' ) || exit;
 	<?php
 	/*
 	 * Tabs are links between separate pages, so they stay outside the form.
-	 * The controller still builds a core nav-tab class per tab, so the shared
-	 * modifier comes from the current flag and the core class is dropped.
+	 * The current flag selects the shared modifier, so no core nav-tab class is
+	 * built for the view to drop.
 	 */
 	?>
 	<nav class="rk-ui-tabs" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">

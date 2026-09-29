@@ -219,7 +219,8 @@ final class DashboardPageTest extends TestCase {
 
 		$page->enqueueAssets( DashboardPage::HOOK_SUFFIX );
 		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-dashboard-admin' ], $enqueued );
-		$this->assertSame( [ 'rankkernel-admin' ], $registered['rankkernel-dashboard-admin'] );
+		// The sheet styles rk-ui components, so the UI layer must print first.
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $registered['rankkernel-dashboard-admin'] );
 	}
 
 	/**

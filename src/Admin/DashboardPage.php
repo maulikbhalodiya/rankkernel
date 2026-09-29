@@ -102,7 +102,7 @@ final class DashboardPage {
 		wp_register_style(
 			'rankkernel-dashboard-admin',
 			plugins_url( 'assets/css/dashboard-admin.css', RANKKERNEL_FILE ),
-			[ AdminStyles::TOKEN_HANDLE ],
+			[ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ],
 			\RankKernel\Plugin::version()
 		);
 

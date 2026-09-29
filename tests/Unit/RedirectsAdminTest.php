@@ -1376,7 +1376,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'redirects-admin.css', (string) $registeredStyles['rankkernel-redirects-admin'] );
 		$this->assertArrayHasKey( 'rankkernel-admin', $registeredStyles );
 		$this->assertContains( 'rankkernel-admin', $enqueuedStyles );
-		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-redirects-admin'] );
+		// The sheet styles rk-ui components and its notice margin rule competes with the
+		// shared one at equal specificity, so the UI layer must print first.
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $styleDeps['rankkernel-redirects-admin'] );
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredScripts );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedScripts );

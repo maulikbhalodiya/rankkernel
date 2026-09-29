@@ -456,7 +456,9 @@ final class SettingsPageTest extends TestCase {
 		$page->enqueueAssets( 'rankkernel_page_rankkernel-general' );
 		$this->assertContains( 'rankkernel-settings-admin', $registered );
 		$this->assertContains( 'rankkernel-admin', $registered );
-		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-settings-admin'] );
+		// The sheet styles rk-ui components and its notice margin rule competes with the
+		// shared one at equal specificity, so the UI layer must print first.
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $styleDeps['rankkernel-settings-admin'] );
 	}
 
 	/**
