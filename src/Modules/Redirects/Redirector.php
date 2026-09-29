@@ -150,14 +150,16 @@ final class Redirector {
 			return;
 		}
 
-		if ( ! RedirectTable::exists() ) {
-			return;
-		}
-
 		try {
+			// Check match cache first to avoid probing table existence or running SQL/transient lookups on cache hits.
 			$rule = $this->cache->get( $path );
 
 			if ( null === $rule ) {
+				// Defer table existence check until a cold cache miss occurs.
+				if ( ! RedirectTable::exists() ) {
+					return;
+				}
+
 				$rule = $this->matcher->match( $path );
 
 				if ( null !== $rule ) {
