@@ -456,7 +456,11 @@ defined( 'ABSPATH' ) || exit;
 													<?php wp_nonce_field( $nonceRetry ); ?>
 													<input type="hidden" name="rankkernel_indexnow_action" value="retry" />
 													<input type="hidden" name="rankkernel_indexnow_id" value="<?php echo esc_attr( (string) $pageRow['id'] ); ?>" />
-													<?php submit_button( __( 'Retry', 'rankkernel' ), 'secondary rk-retry-submit', '', false ); ?>
+													<?php
+													/* translators: %s: submitted URL being retried */
+													$rkRetryAria = sprintf( __( 'Retry submission for %s', 'rankkernel' ), $pageRow['url'] );
+													submit_button( __( 'Retry', 'rankkernel' ), 'secondary rk-retry-submit', '', false, [ 'aria-label' => $rkRetryAria ] );
+													?>
 												</form>
 											<?php endif; ?>
 										</td>
