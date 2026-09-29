@@ -107,9 +107,13 @@
 	font-size: var(--rk-font-size-xs);
 }
 
+/* The hover state paints the soft background, and the base step on that
+   background measured 4.42:1, so the hover text takes the strong step, 5.92:1.
+   At rest the button sits on the plain surface, where the base step measures
+   4.83:1 and is left alone. */
 .rk-ui .rk-ui-btn-danger:hover {
 	background: var(--rk-color-secondary-4-soft);
-	color: var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4-strong);
 	text-decoration: underline;
 }
 
@@ -201,6 +205,20 @@
 	line-height: var(--rk-line-height-tight);
 }
 
+/*
+ * The card shell itself carries no padding, so a page that has no stylesheet
+ * of its own had no way to give card content an inset. The reference page
+ * supplies one locally, which no adopting page without its own sheet could
+ * do. This is the shared equivalent: a padded column with even vertical
+ * rhythm between its children.
+ */
+.rk-ui .rk-ui-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+	padding: var(--rk-space-6);
+}
+
 /* ==========================================================================
    Page header card
    ========================================================================== */
@@ -237,6 +255,9 @@
 	letter-spacing: -0.015em;
 }
 
+/* The page header wants the quieter step, so it overrides the base rather than
+   replacing it. The header selector is the more specific of the two, so this
+   holds wherever the two rules are read. */
 .rk-ui .rk-ui-page-header .rk-ui-sub {
 	margin: 4px 0 0;
 	font-size: var(--rk-font-size-sm);
@@ -249,6 +270,41 @@
 	align-items: center;
 	gap: var(--rk-space-3);
 	flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Supporting text, one notation for the line that explains something
+   ========================================================================== */
+
+/* rk-ui-sub is the one line that explains a card, a section or a form row. The
+   base treatment lives here rather than in the page header block, because a
+   page may use it inside a card body as well as under a page title, and the
+   header only overrides it. One size and one colour everywhere, so the class
+   never renders two different things. */
+.rk-ui .rk-ui-sub {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* rk-ui-hint is the one helper text notation. A field hint, a table
+   description and an inline note all use it, so no page reaches for a core
+   class or a private copy to say the same thing. */
+.rk-ui .rk-ui-hint {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* A standalone paragraph of prose rather than a hint about one control. It is
+   the same class one step darker and held to a comfortable measure, which
+   keeps long sentences readable without inventing a second convention. */
+.rk-ui .rk-ui-hint-strong {
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	max-width: 72ch;
 }
 
 /* ==========================================================================
@@ -282,6 +338,22 @@
 	margin: 0;
 	font-weight: 500;
 	color: var(--rk-color-text);
+}
+
+/* A notice that carries more than one line stacks them in a single body, so
+   the icon, the message and the dismiss control stay on one flex row however
+   many lines the message needs. The single line form above needs no wrapper
+   and is the default; this is the shape for a notice with a bold lead in and
+   a detail line under it. The lead in is a strong inside the first
+   rk-ui-notice-text and the detail lines are rk-ui-sub, so a notice never
+   introduces a private notation for either. */
+.rk-ui .rk-ui-notice-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-ui .rk-ui-notice-body > * + * {
+	margin-block-start: 2px;
 }
 
 .rk-ui .rk-ui-notice-dismiss {
@@ -344,7 +416,7 @@
 }
 
 /* ==========================================================================
-   Status pills in the shared semantic set
+   Status pills in the shared semantic set, plus the reserved Schema accent
    ========================================================================== */
 
 .rk-ui .rk-ui-pill {
@@ -370,22 +442,38 @@
 	color: var(--rk-color-primary);
 }
 
+/* Pill text is 11px, so WCAG 1.4.3 asks for 4.5:1 against the soft background
+   behind it. The two semantic base steps measured 4.42:1 and 3.35:1 there, so
+   the pills use the strong step of the same hue, 5.92:1 and 4.88:1. The base
+   steps keep their meaning as borders, fills and icon colours. The tint
+   behind the border is a border, not text, and 1.4.11 asks 3:1 of it. */
 .rk-ui .rk-ui-pill-danger {
 	background: var(--rk-color-secondary-4-soft);
 	border: 1px solid var(--rk-tint-error-border);
-	color: var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4-strong);
 }
 
 .rk-ui .rk-ui-pill-warning {
 	background: var(--rk-color-secondary-3-soft);
 	border: 1px solid var(--rk-tint-warning-border);
-	color: var(--rk-color-secondary-3);
+	color: var(--rk-color-secondary-3-strong);
 }
 
 .rk-ui .rk-ui-pill-neutral {
 	background: var(--rk-color-surface-muted);
 	border: 1px solid var(--rk-color-border-strong);
 	color: var(--rk-color-text-secondary);
+}
+
+/* The Schema accent, a reserved token pair for structured data only. It is a
+   pill variant here rather than a page private class, so any screen that needs
+   to badge Schema gets the same treatment the five variants above give the
+   shared semantic set. The pill always carries the word Schema, so the state
+   never rests on the colour. */
+.rk-ui .rk-ui-pill-schema {
+	background: var(--rk-color-secondary-2-soft);
+	border: 1px solid var(--rk-tint-schema-border);
+	color: var(--rk-color-secondary-2);
 }
 
 /* ==========================================================================
@@ -537,10 +625,72 @@
 	cursor: not-allowed;
 }
 
+/* A disabled page link is an anchor kept in the focus order so its
+   aria-disabled state is announced. It has no destination, so it must not
+   look alive under the pointer either. */
+.rk-ui a.rk-ui-page-link.is-disabled:hover {
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text-secondary);
+}
+
+/* The gap is 12px text, not a decoration, so it takes the muted step,
+   4.76:1. The hint step measured 2.56:1 here. */
 .rk-ui .rk-ui-page-gap {
 	padding: 4px;
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
+}
+
+/* ==========================================================================
+   Empty state, the placeholder a list shows instead of rows
+   ========================================================================== */
+
+.rk-ui .rk-ui-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	text-align: center;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+/* The badge is a decorative frame for the glyph, so it carries no wording and
+   the glyph beside it is the one that is hidden from assistive technology.
+   The glyph sets its own size, because the .rk-icon utility declares one. */
+.rk-ui .rk-ui-empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-size: 22px;
+	line-height: 1;
+}
+
+.rk-ui .rk-ui-empty-icon .rk-icon {
+	font-size: 24px;
+}
+
+.rk-ui .rk-ui-empty-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-empty-body {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	max-width: 320px;
 }
 
 /* ==========================================================================
@@ -553,12 +703,16 @@
 	max-width: 420px;
 }
 
+/* The glyph is decorative, because the field beside it is labelled and the
+   form has a Search button, but it still has to be perceivable as the
+   affordance it draws, so it takes the muted step, 4.76:1, rather than the
+   hint step, which measured 2.56:1 against the white field. */
 .rk-ui .rk-ui-search-icon {
 	position: absolute;
 	inset-inline-start: 12px;
 	inset-block-start: 50%;
 	transform: translateY(-50%);
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 	font-size: 18px;
 	pointer-events: none;
 }
@@ -575,8 +729,12 @@
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+/* The placeholder is the only text in this field, so WCAG 1.4.3 asks 4.5:1
+   against the white field. The hint step measured 2.56:1 there, so the
+   placeholder takes the muted step, 4.76:1, which is still visibly lighter
+   than the typed text colour. */
 .rk-ui .rk-ui-search-input::placeholder {
-	color: var(--rk-color-text-hint);
+	color: var(--rk-color-text-muted);
 }
 
 .rk-ui .rk-ui-search-input:focus {
@@ -686,6 +844,20 @@
 	outline-offset: 2px;
 }
 
+/* Long unbroken strings, such as a sitemap URL or an option key, are a single
+   unbreakable token to the layout engine. Inside the padded card insets they
+can overrun the container on a narrow admin column, so break them wherever the
+   card can be squeezed rather than forcing a horizontal scrollbar. */
+.rk-ui .rk-ui-card,
+.rk-ui .rk-ui-card-body,
+.rk-ui .rk-ui-form-row,
+.rk-ui .rk-ui-notice,
+.rk-ui .rk-ui-notice-body,
+.rk-ui .rk-ui-empty,
+.rk-ui .rk-ui-page-header-text {
+	overflow-wrap: anywhere;
+}
+
 /* ==========================================================================
    Focus management
    ========================================================================== */
@@ -705,14 +877,25 @@
 		align-items: flex-start;
 	}
 
+	.rk-ui .rk-ui-card-body {
+		padding: var(--rk-space-4);
+	}
+
 	.rk-ui .rk-ui-search-wrap {
 		max-width: none;
 	}
 }
 
+/* Every selector in this list declares a transition above it, and every
+   component in this file that declares one is in this list: the button, the
+   core button, the notice dismiss, the search input, the select, the switch
+   track, the switch knob, the table row, the tab and the page link. */
 @media screen and (prefers-reduced-motion: reduce) {
 	.rk-ui .rk-ui-btn,
 	.rk-ui .button,
+	.rk-ui .rk-ui-notice-dismiss,
+	.rk-ui .rk-ui-search-input,
+	.rk-ui .rk-ui-select,
 	.rk-ui .rk-ui-switch-track,
 	.rk-ui .rk-ui-switch-knob,
 	.rk-ui .rk-ui-table tbody tr,

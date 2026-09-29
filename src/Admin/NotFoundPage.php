@@ -196,7 +196,7 @@ final class NotFoundPage {
 		$version = Plugin::version();
 
 		$css = plugins_url( 'assets/css/monitor-admin.css', (string) RANKKERNEL_FILE );
-		wp_register_style( 'rankkernel-monitor-admin', $css, [], $version );
+		wp_register_style( 'rankkernel-monitor-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
 		wp_enqueue_style( 'rankkernel-monitor-admin' );
 
 		$js = plugins_url( 'assets/js/monitor-admin.js', (string) RANKKERNEL_FILE );

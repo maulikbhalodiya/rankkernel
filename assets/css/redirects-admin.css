@@ -1,19 +1,28 @@
 /**
  * Redirect Manager screen styles.
  *
- * Pixel-matched to the RankKernel Redirects Admin V2-1.0 Stitch design.
- * Loaded only on the Redirects admin screen via RedirectsPage::enqueueAssets.
- * Every rule is scoped under .rk-redirects so nothing leaks elsewhere.
- * All colour, spacing, radius, and shadow values come from var(--rk-*) tokens
- * defined in the shared token layer, which loads as a registered dependency
- * before this sheet. No raw hex is permitted here.
+ * Loads only on the Redirects admin screen via RedirectsPage::enqueueAssets,
+ * as a page sheet that depends on the shared token layer and the shared
+ * rk-ui component layer. Every rule is scoped under .rk-redirects so nothing
+ * leaks elsewhere.
+ *
+ * The shared rk-ui components (the page header, the notice family, the
+ * status tabs, the search and select controls, the buttons, the empty state,
+ * the pagination links and the card shell) are consumed from
+ * assets/css/rankkernel-ui.css and are not restated here. What remains below
+ * is only what is genuinely page specific: the editor form, the table, the
+ * badges, the import and export card, the settings card and the panel
+ * accents. All colour, spacing, radius and shadow values come from the
+ * var(--rk-*) tokens defined in the shared token layer. No raw hex and no raw
+ * rgba tint belongs here.
  *
  * @package RankKernel
  */
 
 /* ==========================================================================
    Wrap shell, suppress WP native notices that bleed from other plugins
-   inside our styled page area. Our own notices use .rk-notice classes.
+   inside our styled page area. Our own notices use the shared rk-ui-notice
+   components.
    ========================================================================== */
 
 /*
@@ -29,232 +38,38 @@
 	display: none;
 }
 
-/* ==========================================================================
-   Page container
-   ========================================================================== */
-
-
-/* ==========================================================================
-   RankKernel notice banners
-   Matches the Stitch design: left-border-4, soft bg, icon + text + dismiss.
-   ========================================================================== */
-
-.rk-redirects .rk-notice {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--rk-space-3);
-	margin: 0 0 var(--rk-space-3);
-	padding: 14px var(--rk-space-4);
-	border: 1px solid transparent;
-	border-inline-start: 4px solid transparent;
-	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
-	font-size: var(--rk-font-size-sm);
-	line-height: var(--rk-line-height-normal);
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-redirects .rk-notice-icon {
-	flex-shrink: 0;
-	font-size: 18px;
-	line-height: 1;
-	margin-block-start: 1px;
-}
-
-.rk-redirects .rk-notice-body {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.rk-redirects .rk-notice-title {
-	font-weight: 600;
-	margin: 0;
-	color: var(--rk-color-text);
-}
-
-.rk-redirects .rk-notice-text {
-	margin: 2px 0 0;
-	color: var(--rk-color-text-secondary);
-}
-
-.rk-redirects .rk-notice-dismiss {
-	flex-shrink: 0;
-	background: none;
-	border: none;
-	cursor: pointer;
-	color: var(--rk-color-text-muted);
-	font-size: 18px;
-	line-height: 1;
-	padding: 2px 4px;
-	margin-block-start: -1px;
-	transition: color 0.15s;
-}
-
-.rk-redirects .rk-notice-dismiss:hover {
-	color: var(--rk-color-text);
-}
-
-/* Success */
-.rk-redirects .rk-notice-success {
-	background: var(--rk-color-secondary-1-soft);
-	border-color: rgba(15, 118, 110, 0.2);
-	border-inline-start-color: var(--rk-color-secondary-1);
-}
-
-.rk-redirects .rk-notice-success .rk-notice-icon {
-	color: var(--rk-color-secondary-1);
-}
-
-/* Error / blocked */
-.rk-redirects .rk-notice-error {
-	background: var(--rk-color-secondary-4-soft);
-	border-color: rgba(220, 38, 38, 0.2);
-	border-inline-start-color: var(--rk-color-secondary-4);
-}
-
-.rk-redirects .rk-notice-error .rk-notice-icon {
-	color: var(--rk-color-secondary-4);
-}
-
-/* Warning / chain */
-.rk-redirects .rk-notice-warning {
-	background: var(--rk-color-secondary-3-soft);
-	border-color: rgba(234, 88, 12, 0.2);
-	border-inline-start-color: var(--rk-color-secondary-3);
-}
-
-.rk-redirects .rk-notice-warning .rk-notice-icon {
-	color: var(--rk-color-secondary-3);
-}
-
-/* Info */
-.rk-redirects .rk-notice-info {
-	background: var(--rk-color-primary-soft);
-	border-color: rgba(37, 99, 235, 0.2);
-	border-inline-start-color: var(--rk-color-primary);
-}
-
-.rk-redirects .rk-notice-info .rk-notice-icon {
-	color: var(--rk-color-primary);
-}
-
-/* Inline action button inside a notice (chain recommendation) */
-.rk-redirects .rk-notice-action {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-1);
-	margin-block-start: var(--rk-space-2);
-	padding: 4px 10px;
-	background: var(--rk-color-primary);
-	border: none;
-	border-radius: var(--rk-radius-sm);
-	color: var(--rk-color-surface);
-	cursor: pointer;
-	font-size: var(--rk-font-size-xs);
-	font-weight: 600;
-	line-height: 1.5;
-	text-decoration: none;
-	transition: background 0.15s;
-}
-
-.rk-redirects .rk-notice-action:hover {
-	background: var(--rk-color-primary-hover);
-	color: var(--rk-color-surface);
+/* The shared notice carries no outside margin, so the rhythm between the
+   notices this page stacks above its header, and the gap to that header,
+   belong to the page. */
+.rk-redirects .rk-ui-notice {
+	margin-block-end: var(--rk-space-3);
 }
 
 /* ==========================================================================
-   Page header card
+   Card shell.
+
+   The shell itself is the shared rk-ui-card, the header is the shared
+   rk-ui-card-header, the header row is the shared rk-ui-card-header-left and
+   the heading is the shared rk-ui-card-title. Only the three things the
+   shared card does not cover live here: the vertical rhythm between the
+   stacked panels, the square clipping that keeps the header background inside
+   the rounded corners, and the accent that marks the active panel.
    ========================================================================== */
 
-.rk-redirects .rk-page-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--rk-space-4);
-	margin: 0 0 var(--rk-space-4);
-	padding: var(--rk-space-5) var(--rk-space-6);
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-lg);
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-redirects .rk-page-header-title-row {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-3);
-	flex-wrap: wrap;
-}
-
-.rk-redirects .rk-page-title {
-	margin: 0;
-	font-size: 22px;
-	font-weight: 700;
-	color: var(--rk-color-text);
-	line-height: var(--rk-line-height-tight);
-	letter-spacing: -0.015em;
-}
-
-.rk-redirects .rk-page-header .rk-sub {
-	margin: 4px 0 0;
-	font-size: var(--rk-font-size-sm);
-	color: var(--rk-color-text-muted);
-	line-height: var(--rk-line-height-normal);
-}
-
-.rk-redirects .rk-page-header-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-2);
-	flex-shrink: 0;
-}
-
-/* Primary "Add Redirect" button */
-.rk-redirects .rk-btn-add {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-1);
-	font-weight: 600;
-}
-
-/* Gear settings toggle */
-.rk-redirects .rk-btn-settings-toggle {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 36px;
-	height: 34px;
-	padding: 0;
-	font-size: 18px;
-	line-height: 1;
-}
-
-/* ==========================================================================
-   Generic card shell
-   ========================================================================== */
-
-.rk-redirects .rk-card {
+.rk-redirects .rk-editor,
+.rk-redirects .rk-csv-card,
+.rk-redirects .rk-settings-card {
 	margin-block: var(--rk-space-4);
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-lg);
-	box-shadow: var(--rk-shadow-sm);
 	overflow: hidden;
 }
 
-.rk-redirects .rk-card-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--rk-space-3);
-	padding: var(--rk-space-4) var(--rk-space-6);
-	background: var(--rk-color-surface);
-	border-block-end: 1px solid var(--rk-color-border);
+/* Editor card: blue left border */
+.rk-redirects .rk-editor {
+	border-inline-start: 3px solid var(--rk-color-primary);
 }
 
-.rk-redirects .rk-card-header-left {
-	display: flex;
-	align-items: center;
-	gap: var(--rk-space-2);
+.rk-redirects .rk-editor[hidden] {
+	display: none;
 }
 
 .rk-redirects .rk-card-header-icon {
@@ -270,14 +85,6 @@
 	border-radius: 50%;
 	background: var(--rk-color-primary);
 	flex-shrink: 0;
-}
-
-.rk-redirects .rk-card-title {
-	margin: 0;
-	font-size: 15px;
-	font-weight: 700;
-	color: var(--rk-color-text);
-	line-height: var(--rk-line-height-tight);
 }
 
 .rk-redirects .rk-card-cancel,
@@ -306,15 +113,6 @@
 	padding: 2px 4px;
 }
 
-/* Editor card: blue left border */
-.rk-redirects .rk-editor {
-	border-inline-start: 3px solid var(--rk-color-primary);
-}
-
-.rk-redirects .rk-editor[hidden] {
-	display: none;
-}
-
 /* ==========================================================================
    Prefill info banner (sourced from 404 monitor)
    ========================================================================== */
@@ -326,7 +124,7 @@
 	margin: var(--rk-space-5) var(--rk-space-6);
 	padding: 14px var(--rk-space-4);
 	background: var(--rk-color-primary-soft);
-	border: 1px solid rgba(37, 99, 235, 0.2);
+	border: 1px solid var(--rk-tint-primary-border);
 	border-inline-start: 4px solid var(--rk-color-primary);
 	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
 	color: var(--rk-color-text);
@@ -423,10 +221,12 @@
 	transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+/* The focus ring is the shared one, so every control on this page shows the
+   same ring. The search and the two filter selects carry the shared classes
+   and are styled by the shared layer, so only the page's own controls are
+   listed here. */
 .rk-redirects .rk-form-input:focus,
 .rk-redirects .rk-form-select:focus,
-.rk-redirects .rk-search-input:focus,
-.rk-redirects .rk-filter-select:focus,
 .rk-redirects .rk-settings-number:focus,
 .rk-redirects .rk-perpage-select:focus {
 	border-color: var(--rk-color-primary);
@@ -435,7 +235,7 @@
 
 .rk-redirects .rk-form-input:focus,
 .rk-redirects .rk-form-select:focus {
-	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
 }
 
 .rk-redirects .rk-form-input.code {
@@ -452,7 +252,7 @@
 
 .rk-redirects .rk-has-error .rk-form-input:focus,
 .rk-redirects .rk-form-input.rk-input-error:focus {
-	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+	box-shadow: 0 0 0 2px var(--rk-tint-error-border);
 }
 
 .rk-redirects .rk-field-error {
@@ -472,28 +272,14 @@
 	line-height: 1.5;
 }
 
-/* Select wrapper */
-.rk-redirects .rk-select-wrap {
-	position: relative;
-}
-
-.rk-redirects .rk-select-wrap .rk-form-select {
+/* The wrapper and the chevron are the shared rk-ui-select-wrap and
+   rk-ui-select-chevron. The editor select keeps the page form field size, so
+   only the two declarations the shared compact select does not carry are
+   restated here: the native arrow is suppressed and the right inset is
+   widened for the shared chevron. */
+.rk-redirects .rk-form-select {
 	appearance: none;
 	padding-inline-end: 40px;
-}
-
-.rk-redirects .rk-select-chevron {
-	position: absolute;
-	inset-block-start: 50%;
-	inset-inline-end: 0;
-	transform: translateY(-50%);
-	display: flex;
-	align-items: center;
-	padding-inline: var(--rk-space-3);
-	color: var(--rk-color-text-muted);
-	font-size: 18px;
-	line-height: 1;
-	pointer-events: none;
 }
 
 /* Active checkbox */
@@ -609,64 +395,12 @@
 }
 
 /* ==========================================================================
-   Status filter tabs, All / Active / Inactive
-   ========================================================================== */
-
-.rk-redirects .rk-tabs {
-	display: flex;
-	align-items: flex-end;
-	gap: 0;
-	margin-block-end: 0;
-	border-block-end: 2px solid var(--rk-color-border);
-	padding-block-end: 0;
-}
-
-.rk-redirects .rk-tab {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-1);
-	padding: var(--rk-space-2) var(--rk-space-3);
-	margin-block-end: -2px;
-	border-block-end: 2px solid transparent;
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	text-decoration: none;
-	transition: color 0.15s, border-color 0.15s;
-	white-space: nowrap;
-}
-
-.rk-redirects .rk-tab:hover {
-	color: var(--rk-color-text);
-}
-
-.rk-redirects .rk-tab.current {
-	border-block-end-color: var(--rk-color-primary);
-	color: var(--rk-color-primary);
-	font-weight: 600;
-}
-
-.rk-redirects .rk-tab .count {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 20px;
-	padding: 0 6px;
-	height: 18px;
-	border-radius: 999px;
-	font-size: 11px;
-	font-weight: 700;
-	background: var(--rk-color-surface-muted);
-	color: var(--rk-color-text-muted);
-}
-
-.rk-redirects .rk-tab.current .count {
-	background: var(--rk-color-primary-soft);
-	color: var(--rk-color-primary);
-}
-
-/* ==========================================================================
    Filter bar
+
+   The status tabs, the search field and the two selects are the shared
+   rk-ui-tabs, rk-ui-search-wrap and rk-ui-select-wrap components. What is
+   left here is the bar this page draws around them and the two columns the
+   controls sit in.
    ========================================================================== */
 
 .rk-redirects .rk-filter-bar-wrap {
@@ -701,53 +435,6 @@
 	flex-wrap: wrap;
 }
 
-.rk-redirects .rk-search-wrap {
-	position: relative;
-	flex: 1 1 auto;
-}
-
-.rk-redirects .rk-search-input {
-	width: 100%;
-	padding: 6px 12px 6px 36px;
-	background: var(--rk-color-surface-subtle);
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-md);
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-xs);
-	box-sizing: border-box;
-	transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.rk-redirects .rk-search-input:focus {
-	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-	background: var(--rk-color-surface);
-}
-
-.rk-redirects .rk-filter-select {
-	padding: 6px 10px;
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-md);
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-xs);
-	transition: border-color 0.15s;
-}
-
-.rk-redirects .rk-filter-select:focus {
-	box-shadow: 0 0 0 1px var(--rk-color-primary);
-}
-
-.rk-redirects .rk-filter-clear {
-	color: var(--rk-color-text-hint);
-	font-size: var(--rk-font-size-xs);
-	text-decoration: none;
-	transition: color 0.15s;
-}
-
-.rk-redirects .rk-filter-clear:hover {
-	color: var(--rk-color-text-secondary);
-	text-decoration: underline;
-}
-
 /* ==========================================================================
    Table nav bars (bulk actions + pagination)
    ========================================================================== */
@@ -761,8 +448,8 @@
 }
 
 .rk-redirects .rk-tablenav-top {
-	background: rgba(239, 246, 255, 0.7);
-	border: 1px solid rgba(37, 99, 235, 0.2);
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
 	border-radius: var(--rk-radius-md);
 	padding: 10px var(--rk-space-4);
 	margin-block-end: var(--rk-space-2);
@@ -1017,25 +704,25 @@
 .rk-redirects .rk-badge-301 {
 	background: var(--rk-badge-301-bg);
 	color: var(--rk-badge-301-fg);
-	border: 1px solid rgba(37, 99, 235, 0.25);
+	border: 1px solid var(--rk-tint-primary-border);
 }
 
 .rk-redirects .rk-badge-302 {
 	background: var(--rk-badge-302-bg);
 	color: var(--rk-badge-302-fg);
-	border: 1px solid rgba(15, 118, 110, 0.25);
+	border: 1px solid var(--rk-tint-positive-border);
 }
 
 .rk-redirects .rk-badge-307 {
 	background: var(--rk-badge-307-bg);
 	color: var(--rk-badge-307-fg);
-	border: 1px solid rgba(124, 58, 237, 0.25);
+	border: 1px solid var(--rk-tint-schema-border);
 }
 
 .rk-redirects .rk-badge-410 {
 	background: var(--rk-badge-410-bg);
 	color: var(--rk-badge-410-fg);
-	border: 1px solid rgba(220, 38, 38, 0.25);
+	border: 1px solid var(--rk-tint-error-border);
 }
 
 .rk-redirects .rk-badge-451 {
@@ -1052,13 +739,13 @@
 .rk-redirects .rk-badge-prefix {
 	background: var(--rk-badge-prefix-bg);
 	color: var(--rk-badge-prefix-fg);
-	border: 1px solid rgba(124, 58, 237, 0.2);
+	border: 1px solid var(--rk-tint-schema-border);
 }
 
 .rk-redirects .rk-badge-regex {
 	background: var(--rk-badge-regex-bg);
 	color: var(--rk-badge-regex-fg);
-	border: 1px solid rgba(234, 88, 12, 0.2);
+	border: 1px solid var(--rk-tint-warning-border);
 }
 
 /* Status pills (kept as rk-pill-* for PHP backward compat) */
@@ -1070,7 +757,7 @@
 .rk-redirects .rk-pill-active {
 	background: var(--rk-badge-active-bg);
 	color: var(--rk-badge-active-fg);
-	border: 1px solid rgba(15, 118, 110, 0.2);
+	border: 1px solid var(--rk-tint-positive-border);
 }
 
 .rk-redirects .rk-pill-inactive {
@@ -1080,62 +767,21 @@
 }
 
 /* ==========================================================================
-   Empty states
+   Empty state
+
+   The box, the badge, the title and the body are the shared rk-ui-empty
+   components. Only the one page specific variant left here: the tinted badge
+   the first run state uses instead of the neutral one.
    ========================================================================== */
 
-.rk-redirects .rk-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--rk-space-3);
-	padding: var(--rk-space-6) var(--rk-space-6);
-	background: var(--rk-color-surface);
-	border: 2px dashed var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-lg);
-	text-align: center;
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-redirects .rk-empty-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	background: var(--rk-color-surface-muted);
-	color: var(--rk-color-text-muted);
-	font-size: 22px;
-	line-height: 1;
-}
-
-.rk-redirects .rk-empty-icon-primary {
+.rk-redirects .rk-ui-empty-icon.rk-empty-icon-primary {
 	background: var(--rk-color-primary-soft);
 	color: var(--rk-color-primary);
-}
-
-.rk-redirects .rk-empty-title {
-	margin: 0;
-	font-size: var(--rk-font-size-sm);
-	font-weight: 700;
-	color: var(--rk-color-text);
-}
-
-.rk-redirects .rk-empty-body {
-	margin: 0;
-	font-size: var(--rk-font-size-xs);
-	color: var(--rk-color-text-muted);
-	max-width: 320px;
 }
 
 /* ==========================================================================
    Import and Export card
    ========================================================================== */
-
-.rk-redirects .rk-csv-card {
-	margin-block: var(--rk-space-4);
-}
 
 .rk-redirects .rk-csv-card[hidden] {
 	display: none;
@@ -1206,7 +852,7 @@
 	justify-content: center;
 	gap: var(--rk-space-2);
 	padding: var(--rk-space-5);
-	background: rgba(248, 250, 252, 0.5);
+	background: var(--rk-color-surface-subtle);
 	border: 2px dashed var(--rk-color-border-strong);
 	border-radius: var(--rk-radius-md);
 	text-align: center;
@@ -1292,7 +938,7 @@
 	margin: var(--rk-space-2) 0;
 	padding: var(--rk-space-2) var(--rk-space-3);
 	background: var(--rk-color-secondary-4-soft);
-	border: 1px solid rgba(220, 38, 38, 0.2);
+	border: 1px solid var(--rk-tint-error-border);
 	border-radius: var(--rk-radius-md);
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-secondary-4);
@@ -1308,7 +954,7 @@
 	margin: var(--rk-space-2) 0;
 	padding: var(--rk-space-2) var(--rk-space-3);
 	background: var(--rk-color-secondary-3-soft);
-	border: 1px solid rgba(234, 88, 12, 0.2);
+	border: 1px solid var(--rk-tint-warning-border);
 	border-radius: var(--rk-radius-md);
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-secondary-3);
@@ -1316,17 +962,14 @@
 }
 
 /* ==========================================================================
-   Redirect Settings card (hidden until gear icon is clicked)
+   Redirect Settings card (hidden until the gear control is clicked)
+
+   The shell is the shared rk-ui-card, so only the accent that marks this
+   panel and the spacing stay here.
    ========================================================================== */
 
 .rk-redirects .rk-settings-card {
-	margin-block: var(--rk-space-4);
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
 	border-block-start: 3px solid var(--rk-color-primary);
-	border-radius: var(--rk-radius-lg);
-	box-shadow: var(--rk-shadow-sm);
-	overflow: hidden;
 }
 
 .rk-redirects .rk-settings-card[hidden] {
@@ -1381,7 +1024,7 @@
 }
 
 .rk-redirects .rk-settings-number:focus {
-	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
 }
 
 .rk-redirects .rk-settings-footer {
@@ -1393,12 +1036,10 @@
 
 /* ==========================================================================
    Focus management
-   ========================================================================== */
 
-.rk-redirects :focus-visible {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 2px;
-}
+   The shared rk-ui :focus-visible rule covers the whole page root now, so
+   there is nothing left to declare here.
+   ========================================================================== */
 
 /* ==========================================================================
    AJAX list loading state
@@ -1411,69 +1052,13 @@
 }
 
 /* ==========================================================================
-   Design parity additions
-   Components matched to the Stitch redirection page: count pill, header
-   action icons, search icon, editor character counters, advanced
-   disclosure, selected chip, numbered pagination, actions column.
+   Page specific detail
+   The header count pill, the header action buttons, the search icon and the
+   numbered pagination are all shared rk-ui components now, so nothing is
+   restated for them here. What remains is the editor instrumentation: the
+   character counters, the advanced disclosure, the bulk bar chip, the rows
+   per page control and the actions column.
    ========================================================================== */
-
-/* Header count pill ("24 Total Rules" in the design) */
-.rk-redirects .rk-count-pill {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px 10px;
-	border-radius: 999px;
-	background: var(--rk-color-primary-soft);
-	color: var(--rk-color-primary);
-	border: 1px solid rgba(37, 99, 235, 0.25);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 600;
-	line-height: var(--rk-line-height-normal);
-	white-space: nowrap;
-}
-
-/* Header and card action buttons render their ligature icons inline */
-.rk-redirects .rk-page-header-actions .rk-icon {
-	font-size: 18px;
-}
-
-.rk-redirects .rk-btn-add .rk-icon {
-	margin-inline-start: -2px;
-}
-
-.rk-redirects .rk-btn-export {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-1);
-}
-
-.rk-redirects .rk-btn-export-full {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-2);
-}
-
-/* Empty state actions pair the button label with its icon */
-.rk-redirects .rk-empty .button {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--rk-space-2);
-}
-
-.rk-redirects .rk-empty-icon .rk-icon {
-	font-size: 24px;
-}
-
-/* Search field icon sits inside the input, decorative only */
-.rk-redirects .rk-search-icon {
-	position: absolute;
-	inset-inline-start: 12px;
-	inset-block-start: 50%;
-	transform: translateY(-50%);
-	color: var(--rk-color-text-hint);
-	font-size: 18px;
-	pointer-events: none;
-}
 
 /* Editor label rows pair the label with a live character counter */
 .rk-redirects .rk-form-label-row {
@@ -1590,67 +1175,12 @@
 /* WordPress core draws the dropdown arrow on plain selects through a
    background image, so these rules use background color only and keep
    right side clearance for that arrow. A background shorthand here
-   would erase the arrow entirely. */
-.rk-redirects .rk-filter-select,
+   would erase the arrow entirely. The two filter selects are the shared
+   rk-ui-select, which draws its own arrow through a glyph instead. */
 .rk-redirects .rk-bulk-select select,
 .rk-redirects .rk-perpage-select {
 	background-color: var(--rk-color-surface);
 	padding-inline-end: 24px;
-}
-
-.rk-redirects .rk-page-nums {
-	display: inline-flex;
-	align-items: stretch;
-	gap: 0;
-	border-radius: var(--rk-radius-md);
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-redirects .rk-page-nums .button {
-	margin: 0;
-	padding: 6px 12px;
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: 0;
-	color: var(--rk-color-text-secondary);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-	line-height: var(--rk-line-height-normal);
-}
-
-.rk-redirects .rk-page-nums > :not(:first-child) {
-	margin-inline-start: -1px;
-}
-
-.rk-redirects .rk-page-nums > :first-child {
-	border-start-start-radius: var(--rk-radius-md);
-	border-end-start-radius: var(--rk-radius-md);
-}
-
-.rk-redirects .rk-page-nums > :last-child {
-	border-start-end-radius: var(--rk-radius-md);
-	border-end-end-radius: var(--rk-radius-md);
-}
-
-.rk-redirects .rk-page-nums .button:hover {
-	background: var(--rk-color-surface-subtle);
-}
-
-.rk-redirects .rk-page-num.rk-page-current {
-	background: var(--rk-color-primary-soft);
-	color: var(--rk-color-primary);
-	font-weight: 700;
-	cursor: default;
-	text-decoration: none;
-}
-
-.rk-redirects .rk-page-gap {
-	display: inline-flex;
-	align-items: center;
-	padding: 6px 4px;
-	background: var(--rk-color-surface);
-	border-block: 1px solid var(--rk-color-border-strong);
-	color: var(--rk-color-text-hint);
 }
 
 /* Actions column: row actions live in their own right aligned cell */
@@ -1689,12 +1219,6 @@
 	.rk-redirects .rk-table .rk-col-match,
 	.rk-redirects .rk-table .rk-col-accessed {
 		display: none;
-	}
-
-	.rk-redirects .rk-page-header {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--rk-space-3);
 	}
 
 	.rk-redirects .rk-filter-bar {

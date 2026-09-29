@@ -46,9 +46,12 @@ may fetch a font from an external host. */
 .rk-redirects,
 .rk-monitor,
 .rk-settings,
+.rk-settings-wrap,
 .rk-analysis-col,
 .rk-dashboard,
-.rk-instant-indexing {
+.rk-instant-indexing,
+.rk-schema-settings,
+.rk-sitemap-settings {
 	/* One global UI face for every RankKernel surface. */
 	font-family: var(--rk-font-sans);
 
@@ -71,10 +74,23 @@ may fetch a font from an external host. */
 	--rk-color-secondary-3: #EA580C;
 	--rk-color-secondary-3-soft: #FFF7ED;
 
+	/* Secondary 3 strong: the same hue one step down the ramp, for text that
+	sits on the soft background. The base step measures 3.35:1 on
+	--rk-color-secondary-3-soft, which fails the 4.5:1 that WCAG 1.4.3 asks
+	of 11px text, and the base token is also a border, a fill and an icon
+	colour elsewhere, so it keeps its value. This one measures 4.88:1. */
+	--rk-color-secondary-3-strong: #C2410C;
+
 	/* Secondary 4: errors, invalid values and destructive actions ONLY.
 	Never used merely because a value is not optimal. */
 	--rk-color-secondary-4: #DC2626;
 	--rk-color-secondary-4-soft: #FEF2F2;
+
+	/* Secondary 4 strong: the same reasoning as secondary 3 strong. The base
+	step measures 4.42:1 on --rk-color-secondary-4-soft and misses 4.5:1 by
+	0.08, this one measures 5.92:1. It also carries the destructive text that
+	sits on the soft background, such as the shared danger button on hover. */
+	--rk-color-secondary-4-strong: #B91C1C;
 
 	/* Text and chrome. */
 	--rk-color-text: #1E293B;
@@ -92,6 +108,7 @@ may fetch a font from an external host. */
 	--rk-tint-positive-border: rgba(15, 118, 110, 0.25);
 	--rk-tint-warning-border: rgba(234, 88, 12, 0.25);
 	--rk-tint-error-border: rgba(220, 38, 38, 0.25);
+	--rk-tint-schema-border: rgba(124, 58, 237, 0.25);
 	--rk-ring-primary: rgba(37, 99, 235, 0.2);
 	--rk-color-surface: #FFFFFF;
 	--rk-color-surface-subtle: #F8FAFC;
@@ -154,6 +171,23 @@ may fetch a font from an external host. */
 	--rk-badge-active-fg: #0F766E;
 	--rk-badge-inactive-bg: #F1F5F9;
 	--rk-badge-inactive-fg: #64748B;
+
+	/* Capacity meter. A meter is two boundaries, not one: the track has to be
+	visible against the surface it is drawn on, and the filled part has to be
+	visible against the track. The old track was the border token, which
+	measures 1.18:1 against the subtle surface and read as no bar at all, and
+	the warning fill measured 2.89:1 against that track. This track measures
+	9.90:1 against --rk-color-surface-subtle, the 3:1 that WCAG 1.4.11 asks
+	of a user interface boundary, and the three fills measure 4.07:1, 4.58:1
+	and 3.74:1 against it, each one clearing the same 3:1. The fills are the
+	light step of each hue because a dark fill cannot clear 3:1 against a
+	track that has to be dark enough to clear 3:1 itself. The semantic
+	600 step of each hue keeps its meaning for borders, icons and soft
+	backgrounds, so nothing else on any screen moves. */
+	--rk-meter-track: #334155;
+	--rk-meter-fill-normal: #60A5FA;
+	--rk-meter-fill-warn: #FB923C;
+	--rk-meter-fill-high: #F87171;
 
 	/* Content analysis score bands, WordPress admin palette. */
 	--rk-score-good: #008a20;

@@ -1376,7 +1376,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'redirects-admin.css', (string) $registeredStyles['rankkernel-redirects-admin'] );
 		$this->assertArrayHasKey( 'rankkernel-admin', $registeredStyles );
 		$this->assertContains( 'rankkernel-admin', $enqueuedStyles );
-		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-redirects-admin'] );
+		// The sheet styles rk-ui components and its notice margin rule competes with the
+		// shared one at equal specificity, so the UI layer must print first.
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $styleDeps['rankkernel-redirects-admin'] );
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredScripts );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedScripts );
@@ -1968,7 +1970,7 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-search-input"', $html );
 		// The status filter is a labeled tab nav now, one tab per status view.
 		$this->assertStringContainsString( 'aria-label="Filter redirects by status"', $html );
-		$this->assertSame( 3, preg_match_all( '/class="rk-tab(?:\s|")/', $html ), 'One status tab per All, Active and Inactive view' );
+		$this->assertSame( 3, preg_match_all( '/class="rk-ui-tab(?:\s|")/', $html ), 'One status tab per All, Active and Inactive view' );
 		$this->assertStringContainsString( '<label for="rk-filter-match"', $html );
 		$this->assertStringContainsString( 'id="rk-filter-match"', $html );
 		$this->assertStringContainsString( '<label for="rk-filter-code"', $html );
@@ -1977,9 +1979,9 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Select bulk action', $html );
 		$this->assertStringContainsString( 'Select All', $html );
 		$this->assertStringContainsString( 'Search redirects', $html );
-		$this->assertStringContainsString( '>All <span class="count">', $html );
-		$this->assertStringContainsString( '>Active <span class="count">', $html );
-		$this->assertStringContainsString( '>Inactive <span class="count">', $html );
+		$this->assertStringContainsString( '>All <span class="rk-ui-count">', $html );
+		$this->assertStringContainsString( '>Active <span class="rk-ui-count">', $html );
+		$this->assertStringContainsString( '>Inactive <span class="rk-ui-count">', $html );
 		$this->assertSame( 1, substr_count( $html, 'aria-current="page"' ), 'Exactly one status tab may be marked as current' );
 		$this->assertStringContainsString( 'Filter by match type', $html );
 		$this->assertStringContainsString( 'Filter by redirect type', $html );
@@ -2075,7 +2077,7 @@ final class RedirectsAdminTest extends TestCase {
 
 		$html = $this->renderPage( $page );
 
-		$this->assertStringContainsString( 'rk-count-pill', $html );
+		$this->assertStringContainsString( 'rk-ui-pill-info', $html );
 		$this->assertStringContainsString( '25 Total Rules', $html );
 		$this->assertStringContainsString( 'Export CSV', $html );
 		$this->assertStringNotContainsString( 'Import / Export', $html );
@@ -2087,14 +2089,14 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( '25 redirects', $html );
 		$this->assertStringContainsString( 'Page 1 of 2', $html );
 		$this->assertStringContainsString( 'Rows per page:', $html );
-		$this->assertStringContainsString( 'rk-page-num', $html );
+		$this->assertStringContainsString( 'rk-ui-page-link', $html );
 		$this->assertStringContainsString( 'rk-selected-chip', $html );
 		$this->assertStringContainsString( 'rk-source-count', $html );
 		$this->assertStringContainsString( 'rk-target-count', $html );
 		$this->assertStringContainsString( '0 chars', $html );
 		$this->assertStringContainsString( 'Advanced options', $html );
 		$this->assertStringContainsString( 'rk-advanced-arrow', $html );
-		$this->assertStringContainsString( '<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>', $html );
+		$this->assertStringContainsString( '<span class="rk-icon rk-ui-search-icon" aria-hidden="true">search</span>', $html );
 		$this->assertStringNotContainsString( '&#10007;', $html );
 		$this->assertStringNotContainsString( '&#10003;', $html );
 		$this->assertStringNotContainsString( '&#9881;', $html );
@@ -2214,9 +2216,9 @@ final class RedirectsAdminTest extends TestCase {
 
 		// The All tab excludes the status filter itself, so it must not shrink
 		// to the filtered status total.
-		$this->assertStringContainsString( '>All <span class="count">3</span>', $html );
-		$this->assertStringContainsString( '>Active <span class="count">2</span>', $html );
-		$this->assertStringContainsString( '>Inactive <span class="count">1</span>', $html );
+		$this->assertStringContainsString( '>All <span class="rk-ui-count">3</span>', $html );
+		$this->assertStringContainsString( '>Active <span class="rk-ui-count">2</span>', $html );
+		$this->assertStringContainsString( '>Inactive <span class="rk-ui-count">1</span>', $html );
 
 		// Pagination and the item count keep reflecting the filtered total.
 		$this->assertStringContainsString( 'Showing <strong>1 to 1</strong> of <strong>1</strong> redirects', $html );

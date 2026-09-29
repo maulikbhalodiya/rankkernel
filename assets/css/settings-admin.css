@@ -1,19 +1,49 @@
 /**
- * General Settings shell layout.
+ * General Settings screen styles.
  *
- * Loaded only on the RankKernel General Settings screen. Every rule is
- * scoped under .rk-settings. All colour, spacing, type, radius and shadow
- * values come from the --rk-* tokens in the shared token layer, which loads
- * as a registered dependency before this sheet.
+ * Loaded only on the RankKernel General Settings screen. Shared components
+ * (buttons, cards, card headers, card bodies, page header, notices, form rows,
+ * form labels, helper text and focus rings) live in
+ * assets/css/rankkernel-ui.css under the rk-ui scope, which AdminMenu
+ * enqueues on every RankKernel screen, so this sheet holds only what is
+ * genuinely this screen: the two column shell, the left rail, the section
+ * subheadings, the collapsible taxonomy block, the multi line callouts the one
+ * line shared notice cannot carry, and the crawler policy grid.
+ *
+ * Every colour, spacing, type, radius and shadow value comes from the --rk-*
+ * tokens in the shared token layer, which loads as a registered dependency
+ * before this sheet. No raw hex is permitted here.
+ *
+ * @package RankKernel
  */
+
+/* ==========================================================================
+   Page shell. The shared components carry no outer margin, so the rhythm
+   between the top level blocks is stated once here rather than restated on
+   each one. Third party plugin notices land inside .wrap ahead of this
+   content and are left alone.
+   ========================================================================== */
+
+.rk-settings-wrap > .rk-ui-notice,
+.rk-settings-wrap > form {
+	margin-block-start: var(--rk-space-4);
+}
 
 .rk-settings {
 	display: grid;
 	grid-template-columns: 240px minmax(0, 1fr);
 	align-items: start;
 	gap: var(--rk-space-5);
-	margin-block-start: var(--rk-space-5);
 }
+
+/* ==========================================================================
+   Left rail. The rail is a sticky nav over the sections of one form, not a
+   scrolling panel, so the shared card surface does not fit it: the design
+   system has no sticky component, and SettingsPageTest pins the nav class
+   attribute exactly, so the surface stays page scoped here. Every value is a
+   token, and the active link keeps the is-active class that
+   settings-admin.js toggles.
+   ========================================================================== */
 
 .rk-settings-nav {
 	position: sticky;
@@ -26,19 +56,26 @@
 }
 
 .rk-settings-nav-title {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
 	margin: 0;
 	padding: var(--rk-space-3) var(--rk-space-4);
 	border-block-end: 1px solid var(--rk-color-border);
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
 	font-weight: 600;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-settings-nav-title .rk-icon {
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
 }
 
 .rk-settings-nav ul {
 	margin: 0;
-	padding: var(--rk-space-2);
+	padding: var(--rk-space-3);
 	list-style: none;
 }
 
@@ -55,14 +92,17 @@
 	font-size: var(--rk-font-size-md);
 	line-height: var(--rk-line-height-normal);
 	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
 }
 
+/* The active marker is a shape as well as a colour, so the current section is
+   never signalled by the fill alone. */
 .rk-settings-nav a::before {
 	position: absolute;
-	inset-block: 6px;
+	inset-block: 0;
 	inset-inline-start: 0;
 	width: 3px;
-	border-radius: 2px;
+	border-radius: var(--rk-radius-sm) 0 0 var(--rk-radius-sm);
 	background: transparent;
 	content: "";
 }
@@ -82,37 +122,92 @@
 	background: var(--rk-color-primary);
 }
 
-.rk-settings-nav a:focus-visible {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 2px;
+/* ==========================================================================
+   Section card and the subheadings inside it
+   ========================================================================== */
+
+/* Each section file renders itself as the shared card, because the section
+   loader replaces the body column with a single section on every navigation.
+   A card owned by the shell would keep the first section's chrome forever. */
+.rk-settings-section {
+	display: flex;
+	flex-direction: column;
+}
+
+/* A grouping heading inside a card body. The card title is the h3, so this is
+   the next level down and sits one step quieter than the card title. */
+.rk-settings-subhead {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	line-height: var(--rk-line-height-tight);
 }
 
 .rk-settings-body {
 	min-width: 0;
 }
 
-.rk-settings-section > h2 {
-	margin-block-start: 0;
-	padding-block-end: var(--rk-space-2);
-	border-block-end: 1px solid var(--rk-color-border);
-	font-size: var(--rk-font-size-xl);
+/* submit_button() wraps its input in a p.submit, and it sits at the end of
+   the body column rather than inside the section card, so it gets the same
+   gap the card body would otherwise have given it. */
+.rk-settings-body > p.submit {
+	margin-block-start: var(--rk-space-5);
 }
 
-.rk-settings-section > h3 {
-	margin-block: var(--rk-space-5) var(--rk-space-2);
-	font-size: var(--rk-font-size-lg);
+/* The taxonomy block is a native details element, so the marker and the
+   closed state come from the browser. Only the summary is themed, and the
+   rotate affordance uses a shipped ligature rather than a drawn chevron. */
+.rk-settings-section details {
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-subtle);
 }
 
-.rk-settings-section > h4 {
-	margin-block: var(--rk-space-4) var(--rk-space-2);
-	font-size: var(--rk-font-size-md);
+.rk-settings-section details > summary {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	cursor: pointer;
+	list-style: none;
 }
+
+.rk-settings-section details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-settings-section details > summary .rk-icon {
+	font-size: 18px;
+	transition: transform 0.15s;
+}
+
+.rk-settings-section details[open] > summary .rk-icon {
+	transform: rotate(180deg);
+}
+
+.rk-settings-section details > summary:hover {
+	color: var(--rk-color-primary);
+}
+
+.rk-settings-section details > * + * {
+	margin-block-start: var(--rk-space-4);
+}
+
+/* ==========================================================================
+   Multi line callouts. The shared notice is a single line flex row, so a
+   block that carries two or three sentences keeps the page banner notation
+   rather than being forced into it.
+   ========================================================================== */
 
 .rk-banner {
 	display: flex;
 	flex-direction: column;
 	gap: var(--rk-space-1);
-	margin-block: var(--rk-space-3);
+	margin: 0;
 	padding: var(--rk-space-3) var(--rk-space-4);
 	border: 1px solid var(--rk-color-border);
 	border-inline-start-width: 4px;
@@ -123,8 +218,15 @@
 }
 
 .rk-banner-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	margin: 0;
 	font-weight: 600;
+}
+
+.rk-banner-title .rk-icon {
+	font-size: 18px;
 }
 
 .rk-banner p {
@@ -158,13 +260,17 @@
 	color: var(--rk-color-primary);
 }
 
+/* ==========================================================================
+   Robots crawler policy grid
+   ========================================================================== */
+
 .rk-crawlers {
 	display: grid;
 	gap: var(--rk-space-4);
-	margin-block: var(--rk-space-4);
 }
 
 .rk-crawler-group-title {
+	display: block;
 	margin: 0 0 var(--rk-space-2);
 	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
@@ -180,6 +286,9 @@
 }
 
 .rk-crawler-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
 	padding: var(--rk-space-3);
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-md);
@@ -187,23 +296,20 @@
 	box-shadow: var(--rk-shadow-sm);
 }
 
-.rk-crawler-card label {
-	display: block;
-	font-weight: 600;
-}
-
-.rk-crawler-card .description {
-	margin: var(--rk-space-1) 0 var(--rk-space-2);
-}
-
 .rk-crawler-card select {
 	width: 100%;
+	margin-block-start: auto;
 }
+
+/* ==========================================================================
+   Robots preview and edit strip. The class names and the is-active modifier
+   are the contract settings-admin.js matches on, so this block keeps its own
+   names rather than taking the shared tab strip.
+   ========================================================================== */
 
 .rk-robots-tabs {
 	display: flex;
 	gap: var(--rk-space-1);
-	margin-block: var(--rk-space-3);
 	border-block-end: 1px solid var(--rk-color-border);
 }
 
@@ -246,16 +352,45 @@
 	font-size: var(--rk-font-size-sm);
 }
 
-.rk-robots-actions {
+/* The row of in section action buttons: save, cancel and reset. The buttons
+   themselves are the shared restyle of the core button. */
+.rk-form-actions {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: var(--rk-space-2);
-	margin-block-start: var(--rk-space-3);
+	margin: 0;
 }
 
+/* ==========================================================================
+   Social media picker. Only the size lives here, because the picker reveals
+   and hides the preview by writing element.style.display directly, so the
+   visibility toggle has to stay on the element.
+   ========================================================================== */
+
+.rk-social-preview {
+	display: block;
+	max-width: 150px;
+	height: auto;
+	margin-block-end: var(--rk-space-2);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+}
+
+/* The loader dims the body column while a section is in flight. */
 .rk-settings-is-busy {
 	opacity: 0.6;
 	pointer-events: none;
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-settings-nav a {
+		transition: none;
+	}
+
+	.rk-settings-section details > summary .rk-icon {
+		transition: none;
+	}
 }
 
 @media screen and (max-width: 782px) {
@@ -265,5 +400,9 @@
 
 	.rk-settings-nav {
 		position: static;
+	}
+
+	.rk-crawler-cards {
+		grid-template-columns: 1fr;
 	}
 }

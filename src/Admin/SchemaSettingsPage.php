@@ -49,7 +49,10 @@ final class SchemaSettingsPage {
 	}
 
 	/**
-	 * Enqueue the media picker script on the schema settings screen only.
+	 * Enqueue the media picker script and the page stylesheet on this screen.
+	 *
+	 * The shared token and UI layers are loaded for every RankKernel screen by
+	 * AdminMenu::enqueueSharedStyles, so this screen only owns its own sheet.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
@@ -58,14 +61,21 @@ final class SchemaSettingsPage {
 			return;
 		}
 
+		$version = \RankKernel\Plugin::version();
+
+		if ( function_exists( 'plugins_url' ) && function_exists( 'wp_register_style' ) && function_exists( 'wp_enqueue_style' ) ) {
+			$css = plugins_url( 'assets/css/schema-settings-admin.css', (string) RANKKERNEL_FILE );
+			wp_register_style( 'rankkernel-schema-settings-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
+			wp_enqueue_style( 'rankkernel-schema-settings-admin' );
+		}
+
 		if ( ! function_exists( 'wp_enqueue_media' ) || ! function_exists( 'plugins_url' ) ) {
 			return;
 		}
 
 		wp_enqueue_media();
 
-		$src     = plugins_url( 'assets/js/schema-settings.js', (string) RANKKERNEL_FILE );
-		$version = \RankKernel\Plugin::version();
+		$src = plugins_url( 'assets/js/schema-settings.js', (string) RANKKERNEL_FILE );
 
 		wp_register_script( 'rankkernel-schema-settings', $src, [ 'media-editor' ], $version, true );
 		wp_enqueue_script( 'rankkernel-schema-settings' );

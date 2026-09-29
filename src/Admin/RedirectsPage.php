@@ -252,7 +252,7 @@ final class RedirectsPage {
 		$css = plugins_url( 'assets/css/redirects-admin.css', (string) RANKKERNEL_FILE );
 
 		if ( function_exists( 'wp_register_style' ) ) {
-			wp_register_style( 'rankkernel-redirects-admin', $css, [ AdminStyles::TOKEN_HANDLE ], $version );
+			wp_register_style( 'rankkernel-redirects-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
 		}
 
 		if ( function_exists( 'wp_enqueue_style' ) ) {

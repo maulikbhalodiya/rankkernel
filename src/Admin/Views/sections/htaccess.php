@@ -4,6 +4,11 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
+ * The section is the shared card. Its callouts can carry two or three
+ * sentences each, so they keep the page banner notation rather than the one
+ * line shared notice, and each banner title carries a glyph from the icon set
+ * so the severity never rests on the accent colour alone.
+ *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
@@ -44,37 +49,48 @@
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<section id="rk-section-htaccess" class="rk-settings-section" aria-labelledby="rk-section-htaccess-title">
-					<h2 id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h2>
+<section id="rk-section-htaccess" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-htaccess-title">
+	<div class="rk-ui-card-header">
+		<h3 class="rk-ui-card-title" id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h3>
+	</div>
+	<div class="rk-ui-card-body">
+		<?php if ( 'saved' === $htaccessNotice ) : ?>
+			<div class="rk-banner rk-banner-info"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved. A backup was written next to the file.', 'rankkernel' ); ?></p></div>
+		<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
+			<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
+		<?php elseif ( 'failed' === $htaccessNotice ) : ?>
+			<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'The file could not be written.', 'rankkernel' ); ?></p></div>
+		<?php endif; ?>
 
-					<?php if ( 'saved' === $htaccessNotice ) : ?>
-						<div class="rk-banner rk-banner-info"><p class="rk-banner-title"><?php echo esc_html__( 'Saved. A backup was written next to the file.', 'rankkernel' ); ?></p></div>
-					<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
-						<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
-					<?php elseif ( 'failed' === $htaccessNotice ) : ?>
-						<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'The file could not be written.', 'rankkernel' ); ?></p></div>
-					<?php endif; ?>
+		<div class="rk-banner rk-banner-danger">
+			<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Danger', 'rankkernel' ); ?></p>
+			<p><?php echo esc_html__( 'A mistake here can take the whole site down, including wp-admin, with no way back into the dashboard. Have file or server access ready before you save. RankKernel writes a timestamped backup next to the file first.', 'rankkernel' ); ?></p>
+		</div>
 
-					<div class="rk-banner rk-banner-danger">
-						<p class="rk-banner-title"><?php echo esc_html__( 'Danger', 'rankkernel' ); ?></p>
-						<p><?php echo esc_html__( 'A mistake here can take the whole site down, including wp-admin, with no way back into the dashboard. Have file or server access ready before you save. RankKernel writes a timestamped backup next to the file first.', 'rankkernel' ); ?></p>
-					</div>
-
-					<?php if ( ! $htaccessSupported ) : ?>
-						<div class="rk-banner rk-banner-warning">
-							<p class="rk-banner-title"><?php echo esc_html__( 'Not available on this server', 'rankkernel' ); ?></p>
-							<p><?php echo esc_html__( 'Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the editor is disabled here.', 'rankkernel' ); ?></p>
-						</div>
-					<?php elseif ( ! $htaccessWritable ) : ?>
-						<div class="rk-banner rk-banner-warning">
-							<p class="rk-banner-title"><?php echo esc_html__( 'File not writable', 'rankkernel' ); ?></p>
-							<p><?php echo esc_html__( 'WordPress cannot write the .htaccess file. Ask your host, or edit it over SFTP.', 'rankkernel' ); ?></p>
-						</div>
-					<?php else : ?>
-						<p class="description"><?php echo esc_html( $htaccessPath ); ?></p>
-						<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="large-text code rk-code-editor"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
-						<p class="rk-robots-actions">
-							<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>
-						</p>
-					<?php endif; ?>
-				</section>
+		<?php if ( ! $htaccessSupported ) : ?>
+			<div class="rk-banner rk-banner-warning">
+				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not available on this server', 'rankkernel' ); ?></p>
+				<p><?php echo esc_html__( 'Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the editor is disabled here.', 'rankkernel' ); ?></p>
+			</div>
+		<?php elseif ( ! $htaccessWritable ) : ?>
+			<div class="rk-banner rk-banner-warning">
+				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'File not writable', 'rankkernel' ); ?></p>
+				<p><?php echo esc_html__( 'WordPress cannot write the .htaccess file. Ask your host, or edit it over SFTP.', 'rankkernel' ); ?></p>
+			</div>
+		<?php else : ?>
+			<?php
+			/*
+			 * The path is shown as a copyable value rather than bare prose,
+			 * the way the approved sheet presents it. The chip is page
+			 * styling, so the string itself stays the raw path the
+			 * controller read from disk.
+			 */
+			?>
+			<p class="rk-ui-hint"><code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code></p>
+			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="large-text code rk-code-editor"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
+			<p class="rk-form-actions">
+				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>
+			</p>
+		<?php endif; ?>
+	</div>
+</section>

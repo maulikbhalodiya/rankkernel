@@ -15,6 +15,16 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\DashboardPage;
 use RankKernel\Modules\ModuleRegistry;
 
+/*
+ * The dashboard view prints the plugin version from RANKKERNEL_VERSION, which
+ * rankkernel.php defines as the single version source. The bootstrap does not
+ * load the plugin file, so the constant is declared here the same way the
+ * metadata and schema metabox tests already do it.
+ */
+if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
+	define( 'RANKKERNEL_VERSION', '0.1.0-test' );
+}
+
 /**
  * Dashboard Page Test.
  */
@@ -44,9 +54,12 @@ final class DashboardPageTest extends TestCase {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
-		if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
-			define( 'RANKKERNEL_VERSION', '0.1.0' );
-		}
+		/*
+		 * RANKKERNEL_VERSION is declared once at file scope above, so the value
+		 * is fixed for the whole run. Do not redeclare it here with a different
+		 * value, because the file scope guard always wins and the two values
+		 * would silently disagree.
+		 */
 
 		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
 			define( 'RANKKERNEL_FILE', __FILE__ );
@@ -206,7 +219,8 @@ final class DashboardPageTest extends TestCase {
 
 		$page->enqueueAssets( DashboardPage::HOOK_SUFFIX );
 		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-dashboard-admin' ], $enqueued );
-		$this->assertSame( [ 'rankkernel-admin' ], $registered['rankkernel-dashboard-admin'] );
+		// The sheet styles rk-ui components, so the UI layer must print first.
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $registered['rankkernel-dashboard-admin'] );
 	}
 
 	/**

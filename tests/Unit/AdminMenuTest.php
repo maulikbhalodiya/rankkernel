@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Modules\ModuleEnableMap;
@@ -169,5 +170,117 @@ final class AdminMenuTest extends TestCase {
 			->andReturn( true );
 
 		$menu->register();
+	}
+
+	/**
+	 * Screen detection must accept every RankKernel admin screen.
+	 *
+	 * The regression this guards is real: the shared design layers loaded on
+	 * one screen out of seven, because each page owned its own enqueue and
+	 * most of them forgot. See issue #127.
+	 *
+	 * @dataProvider provide_rankkernel_screens
+	 *
+	 * @param string $hookSuffix Admin page hook suffix.
+	 */
+	public function test_is_rank_kernel_screen_matches_our_hooks( string $hookSuffix ): void {
+		$this->assertTrue( AdminMenu::isRankKernelScreen( $hookSuffix ) );
+	}
+
+	/**
+	 * Screen detection must reject screens that belong to WordPress.
+	 *
+	 * Metabox and column screens live on these hooks and enqueue their own
+	 * assets, so treating them as RankKernel screens would double load.
+	 *
+	 * @dataProvider provide_foreign_screens
+	 *
+	 * @param string $hookSuffix Admin page hook suffix.
+	 */
+	public function test_is_rank_kernel_screen_rejects_foreign_hooks( string $hookSuffix ): void {
+		$this->assertFalse( AdminMenu::isRankKernelScreen( $hookSuffix ) );
+	}
+
+	/**
+	 * Our screen hooks.
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	public static function provide_rankkernel_screens(): array {
+		return array(
+			'top level dashboard' => array( 'toplevel_page_rankkernel' ),
+			'sitemaps'            => array( 'rankkernel_page_rankkernel-sitemap' ),
+			'general settings'    => array( 'rankkernel_page_rankkernel-general' ),
+			'schema'              => array( 'rankkernel_page_rankkernel-schema' ),
+			'redirects'           => array( 'rankkernel_page_rankkernel-redirects' ),
+			'404 monitor'         => array( 'rankkernel_page_rankkernel-404' ),
+			'instant indexing'    => array( 'rankkernel_page_rankkernel-instant-indexing' ),
+		);
+	}
+
+	/**
+	 * Screens that must not be treated as ours.
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	public static function provide_foreign_screens(): array {
+		return array(
+			'post editor'    => array( 'post.php' ),
+			'post list'      => array( 'edit.php' ),
+			'term editor'    => array( 'term.php' ),
+			'dashboard'      => array( 'index.php' ),
+			'plugins screen' => array( 'plugins.php' ),
+			'empty hook'     => array( '' ),
+			'near miss'      => array( 'rankkernel_page_other-plugin' ),
+		);
+	}
+
+	/**
+	 * The shared layers must reach a RankKernel screen.
+	 *
+	 * The test runs in a separate process because stubbing plugins_url defines
+	 * a process wide Brain Monkey function, and AnalysisColumn::enqueueAssets
+	 * consults function_exists() on it afterwards.
+	 */
+	#[RunInSeparateProcess]
+	public function test_enqueue_shared_styles_loads_both_layers_on_our_screen(): void {
+		$enqueued = array();
+
+		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/asset.css' );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
+			}
+		);
+
+		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
+		$menu->enqueueSharedStyles( 'rankkernel_page_rankkernel-sitemap' );
+
+		$this->assertContains( 'rankkernel-admin', $enqueued );
+		$this->assertContains( 'rankkernel-ui', $enqueued );
+	}
+
+	/**
+	 * The shared layers must stay off a screen that is not ours.
+	 *
+	 * Runs in its own process for the same reason as the test above.
+	 */
+	#[RunInSeparateProcess]
+	public function test_enqueue_shared_styles_stays_quiet_on_foreign_screen(): void {
+		$enqueued = array();
+
+		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/asset.css' );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
+			}
+		);
+
+		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
+		$menu->enqueueSharedStyles( 'edit.php' );
+
+		$this->assertSame( array(), $enqueued );
 	}
 }

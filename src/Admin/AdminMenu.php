@@ -90,6 +90,49 @@ final class AdminMenu {
 		$this->monitorPage         = new NotFoundPage();
 		$this->dashboardPage       = new DashboardPage();
 		$this->instantIndexingPage = new InstantIndexingPage( null, $this->enableMap );
+
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSharedStyles' ] );
+	}
+
+	/**
+	 * Is the current screen one of the RankKernel admin screens?
+	 *
+	 * The dashboard registers as a top level page and every submenu registers
+	 * under admin.php, so the top level hook is `toplevel_page_rankkernel` and
+	 * each submenu hook is `rankkernel_page_rankkernel-` followed by its slug.
+	 * Metabox and column screens sit on post.php, edit.php and term.php and are
+	 * deliberately not matched here, because those enqueue their own assets.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 *
+	 * @return bool True when the screen belongs to RankKernel.
+	 */
+	public static function isRankKernelScreen( string $hookSuffix ): bool {
+		return 'toplevel_page_rankkernel' === $hookSuffix
+			|| str_starts_with( $hookSuffix, 'rankkernel_page_rankkernel' );
+	}
+
+	/**
+	 * Enqueue the shared design layers on every RankKernel admin screen.
+	 *
+	 * The token layer defines the --rk-* custom properties and the UI layer
+	 * defines the rk-ui-* components. Both are scoped under a RankKernel root
+	 * class, so loading them on every RankKernel screen is inert on a screen
+	 * that does not opt in, and it means a new screen cannot silently ship
+	 * without them. Feature stylesheets keep registering their own handle and
+	 * enqueue that from their own page class.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueSharedStyles( string $hookSuffix = '' ): void {
+		if ( ! self::isRankKernelScreen( $hookSuffix ) ) {
+			return;
+		}
+
+		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
+
+		AdminStyles::enqueueTokenLayer( $pluginFile );
+		AdminStyles::enqueueUiLayer( $pluginFile );
 	}
 
 	/**

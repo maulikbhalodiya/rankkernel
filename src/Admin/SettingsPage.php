@@ -719,7 +719,7 @@ final class SettingsPage {
 			wp_register_style(
 				'rankkernel-settings-admin',
 				plugins_url( 'assets/css/settings-admin.css', (string) RANKKERNEL_FILE ),
-				[ AdminStyles::TOKEN_HANDLE ],
+				[ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ],
 				$version
 			);
 		}
