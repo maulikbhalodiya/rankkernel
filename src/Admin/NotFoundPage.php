@@ -286,7 +286,16 @@ final class NotFoundPage {
 		$nearMax   = max( 1, (int) $nearUsage['max'] );
 
 		$redirectsEnabled = $this->isRedirectsEnabled();
-		$advancedFields   = $this->monitorSettings->isAdvancedFields();
+
+		/*
+		 * The listener status chip on the Log Status card states whether the
+		 * 404 module is switched on. The menu page renders whichever way the
+		 * module is set, so this is the one real signal the view has for that
+		 * chip, and it is added as view state only. No request handling, save
+		 * or redirect path reads it.
+		 */
+		$monitorActive  = $this->enableMap->isEnabled( '404' );
+		$advancedFields = $this->monitorSettings->isAdvancedFields();
 
 		$listFilters = $this->listFilters();
 
