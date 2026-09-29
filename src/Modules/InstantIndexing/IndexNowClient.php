@@ -245,10 +245,6 @@ final class IndexNowClient {
 			return wp_safe_remote_post( $url, $args );
 		}
 
-		if ( function_exists( 'wp_remote_post' ) ) {
-			return wp_remote_post( $url, $args );
-		}
-
 		return new \WP_Error( 'rankkernel_indexnow_http', 'The WordPress HTTP API is unavailable.' );
 	}
 

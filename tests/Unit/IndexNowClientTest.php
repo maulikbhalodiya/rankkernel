@@ -292,4 +292,45 @@ final class IndexNowClientTest extends TestCase {
 		$this->assertCount( 0, $this->calls );
 		$this->assertSame( 0, $result['accepted'] );
 	}
+
+	/**
+	 * Test default transport strictly delegates to wp_safe_remote_post for SSRF protection.
+	 */
+	public function test_default_transport_uses_wp_safe_remote_post(): void {
+		Functions\when( 'wp_safe_remote_post' )->alias(
+			function ( string $url, array $args ): array {
+				unset( $url, $args );
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => '',
+				];
+			}
+		);
+
+		$client = new IndexNowClient( $this->settings );
+		$result = $client->submit( [ 'https://example.com/a' ] );
+
+		$this->assertSame( 1, $result['accepted'] );
+	}
+
+	/**
+	 * Test default transport returns WP_Error when transport fails.
+	 */
+	public function test_default_transport_returns_wp_error_on_failure(): void {
+		Functions\when( 'wp_safe_remote_post' )->alias(
+			function ( string $url, array $args ): WP_Error {
+				unset( $url, $args );
+
+				return new WP_Error( 'rankkernel_indexnow_http', 'The WordPress HTTP API is unavailable.' );
+			}
+		);
+
+		$client = new IndexNowClient( $this->settings );
+		$result = $client->submit( [ 'https://example.com/a' ] );
+
+		$this->assertSame( 0, $result['accepted'] );
+		$this->assertSame( 1, $result['transient'] );
+		$this->assertStringContainsString( 'WordPress HTTP API is unavailable', $result['results'][0]['message'] );
+	}
 }
