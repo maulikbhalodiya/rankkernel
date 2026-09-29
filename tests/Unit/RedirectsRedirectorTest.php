@@ -309,7 +309,7 @@ final class RedirectsRedirectorTest extends TestCase {
 	}
 
 	/**
-	 * Test cache hit runs zero rule queries.
+	 * Test cache hit runs zero rule queries and bypasses table existence probe.
 	 */
 	public function test_cache_hit_runs_zero_rule_queries(): void {
 		$this->seedExact();
@@ -319,13 +319,32 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->dispatcher()->maybeRedirect();
 
 		Redirector::resetSent();
+		RedirectTable::resetCache();
 
-		$readsAfterFirst = $this->db->ruleReads;
+		$readsAfterFirst  = $this->db->ruleReads;
+		$probesAfterFirst = $this->db->schemaProbes;
 
 		$this->dispatcher()->maybeRedirect();
 
 		$this->assertCount( 2, $this->redirects );
 		$this->assertSame( $readsAfterFirst, $this->db->ruleReads, 'Cache hit must run zero rule queries' );
+		$this->assertSame( $probesAfterFirst, $this->db->schemaProbes, 'Cache hit must bypass table existence probe' );
+	}
+
+	/**
+	 * Test table existence probe runs on cold cache miss.
+	 */
+	public function test_table_exists_probed_on_cache_miss(): void {
+		$this->seedExact();
+
+		RedirectTable::resetCache();
+		$this->db->schemaProbes = 0;
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertSame( 1, $this->db->schemaProbes, 'Cold cache miss must probe table existence' );
 	}
 
 	/**
