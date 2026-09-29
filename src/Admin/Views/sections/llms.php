@@ -4,6 +4,17 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
+ * The section is the shared card. Rows that name one control keep a real
+ * label. The two checkbox rows name a group, so their titles stay spans
+ * carrying a real id and the row becomes a labelled group. Neither box
+ * becomes a switch: each one already sits inside a real label with a visible
+ * sentence, which a switch would replace.
+ *
+ * The write outcome notices are one line each, so they take the shared notice
+ * component. They carry no dismiss button, because nothing on this screen
+ * wires one: the only dismiss handlers in the plugin are scoped to the Instant
+ * Indexing and Redirects screens.
+ *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
@@ -45,84 +56,100 @@
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<section id="rk-section-llms" class="rk-settings-section" aria-labelledby="rk-section-llms-title">
-						<h2 id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h2>
-						<p class="description"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional.', 'rankkernel' ); ?></p>
+<section id="rk-section-llms" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-llms-title">
+	<div class="rk-ui-card-header">
+		<h3 class="rk-ui-card-title" id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h3>
+	</div>
+	<div class="rk-ui-card-body">
+		<p class="rk-ui-sub"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional.', 'rankkernel' ); ?></p>
 
-						<?php if ( [] !== $consistencyWarnings ) : ?>
-							<div class="rk-banner rk-banner-warning">
-								<p class="rk-banner-title"><?php echo esc_html__( 'Consistency check', 'rankkernel' ); ?></p>
-								<?php foreach ( $consistencyWarnings as $consistencyWarning ) : ?>
-									<p><?php echo esc_html( $consistencyWarning ); ?></p>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
+		<?php if ( [] !== $consistencyWarnings ) : ?>
+			<div class="rk-banner rk-banner-warning">
+				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Consistency check', 'rankkernel' ); ?></p>
+				<?php foreach ( $consistencyWarnings as $consistencyWarning ) : ?>
+					<p><?php echo esc_html( $consistencyWarning ); ?></p>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
 
-						<div class="rk-banner rk-banner-info">
-							<p class="rk-banner-title"><?php echo esc_html__( 'How to make llms.txt', 'rankkernel' ); ?></p>
-							<p><?php echo esc_html__( 'Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post.', 'rankkernel' ); ?></p>
-							<p><?php echo esc_html__( 'llms.txt is a community proposal, not a standard. See', 'rankkernel' ); ?> <a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'the official llms.txt site', 'rankkernel' ); ?></a>.</p>
-						</div>
+		<div class="rk-banner rk-banner-info">
+			<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">info</span><?php echo esc_html__( 'How to make llms.txt', 'rankkernel' ); ?></p>
+			<p><?php echo esc_html__( 'Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post.', 'rankkernel' ); ?></p>
+			<p><?php echo esc_html__( 'llms.txt is a community proposal, not a standard. See', 'rankkernel' ); ?> <a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'the official llms.txt site', 'rankkernel' ); ?></a>.</p>
+		</div>
 
-						<?php if ( 'written' === $llmsNotice ) : ?>
-							<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'A physical llms.txt was written.', 'rankkernel' ); ?></p></div>
-						<?php elseif ( 'exists' === $llmsNotice ) : ?>
-							<div class="notice notice-warning is-dismissible"><p><?php echo esc_html__( 'A physical llms.txt already exists, so RankKernel did not overwrite it.', 'rankkernel' ); ?></p></div>
-						<?php elseif ( 'failed' === $llmsNotice ) : ?>
-							<div class="notice notice-error"><p><?php echo esc_html__( 'The physical llms.txt could not be written.', 'rankkernel' ); ?></p></div>
-						<?php endif; ?>
+		<?php if ( 'written' === $llmsNotice ) : ?>
+			<div class="rk-ui-notice rk-ui-notice-success" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+				<p class="rk-ui-notice-text"><?php echo esc_html__( 'A physical llms.txt was written.', 'rankkernel' ); ?></p>
+			</div>
+		<?php elseif ( 'exists' === $llmsNotice ) : ?>
+			<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
+				<p class="rk-ui-notice-text"><?php echo esc_html__( 'A physical llms.txt already exists, so RankKernel did not overwrite it.', 'rankkernel' ); ?></p>
+			</div>
+		<?php elseif ( 'failed' === $llmsNotice ) : ?>
+			<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+				<p class="rk-ui-notice-text"><?php echo esc_html__( 'The physical llms.txt could not be written.', 'rankkernel' ); ?></p>
+			</div>
+		<?php endif; ?>
 
-						<table class="form-table" role="presentation"><tbody>
-							<tr>
-								<th scope="row"><?php echo esc_html__( 'Enable', 'rankkernel' ); ?></th>
-								<td>
-									<label><input type="checkbox" name="rk_llms_enabled" value="1" <?php echo checked( true, $llmsEnabled, false ); ?> /> <?php echo esc_html__( 'Serve the virtual llms.txt route', 'rankkernel' ); ?></label>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label></th>
-								<td>
-									<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
-									<p class="description"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="rk-llms-content"><?php echo esc_html__( 'Sections', 'rankkernel' ); ?></label></th>
-								<td>
-									<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="large-text code"><?php echo esc_textarea( $llmsContent ); ?></textarea>
-									<p class="description"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></th>
-								<td>
-									<label><input type="checkbox" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> /> <?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></label>
-									<p class="description"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>
-									<p class="rk-robots-actions">
-										<button type="submit" class="button button-primary" name="rk_llms_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
-										<button type="submit" class="button" name="rk_llms_write" value="1"><?php echo esc_html__( 'Write physical llms.txt', 'rankkernel' ); ?></button>
-										<button type="submit" class="button" name="rk_llms_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset llms.txt to defaults? Your summary and sections will be cleared.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
-									</p>
-								</td>
-							</tr>
-						</tbody></table>
+		<?php
+		/*
+		 * The enable row names the one box it holds, so the title is a group
+		 * heading rather than a label for a control, and the sentence inside
+		 * the label is what names the box.
+		 */
+		?>
+		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-llms-enabled-label">
+			<span class="rk-ui-form-label" id="rk-llms-enabled-label"><?php echo esc_html__( 'Enable', 'rankkernel' ); ?></span>
+			<label><input type="checkbox" name="rk_llms_enabled" value="1" <?php echo checked( true, $llmsEnabled, false ); ?> /> <?php echo esc_html__( 'Serve the virtual llms.txt route', 'rankkernel' ); ?></label>
+		</div>
 
-						<?php if ( [] !== $llmsValidation['errors'] ) : ?>
-							<div class="notice notice-error inline">
-								<?php foreach ( $llmsValidation['errors'] as $llmsError ) : ?>
-									<p><?php echo esc_html( $llmsError ); ?></p>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
+		<div class="rk-ui-form-row">
+			<label class="rk-ui-form-label" for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label>
+			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
+			<p class="rk-ui-hint"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
+		</div>
 
-						<?php if ( [] !== $llmsValidation['warnings'] ) : ?>
-							<div class="notice notice-warning inline">
-								<?php foreach ( $llmsValidation['warnings'] as $llmsWarning ) : ?>
-									<p><?php echo esc_html( $llmsWarning ); ?></p>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
+		<div class="rk-ui-form-row">
+			<label class="rk-ui-form-label" for="rk-llms-content"><?php echo esc_html__( 'Sections', 'rankkernel' ); ?></label>
+			<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="large-text code"><?php echo esc_textarea( $llmsContent ); ?></textarea>
+			<p class="rk-ui-hint"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
+		</div>
 
-						<h3><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h3>
-						<pre class="code" style="padding:12px;background:#fff;border:1px solid #c3c4c7;max-height:360px;overflow:auto;"><?php echo esc_html( $llmsPreview ); ?></pre>
-					</section>
+		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-llms-physical-label">
+			<span class="rk-ui-form-label" id="rk-llms-physical-label"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></span>
+			<label><input type="checkbox" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> /> <?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></label>
+			<p class="rk-ui-hint"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>
+			<p class="rk-form-actions">
+				<button type="submit" class="button button-primary" name="rk_llms_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
+				<button type="submit" class="button" name="rk_llms_write" value="1"><?php echo esc_html__( 'Write physical llms.txt', 'rankkernel' ); ?></button>
+				<button type="submit" class="button" name="rk_llms_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset llms.txt to defaults? Your summary and sections will be cleared.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+			</p>
+		</div>
+
+		<?php if ( [] !== $llmsValidation['errors'] ) : ?>
+			<div class="rk-banner rk-banner-danger">
+				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Validation', 'rankkernel' ); ?></p>
+				<?php foreach ( $llmsValidation['errors'] as $llmsError ) : ?>
+					<p><?php echo esc_html( $llmsError ); ?></p>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( [] !== $llmsValidation['warnings'] ) : ?>
+			<div class="rk-banner rk-banner-warning">
+				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Validation', 'rankkernel' ); ?></p>
+				<?php foreach ( $llmsValidation['warnings'] as $llmsWarning ) : ?>
+					<p><?php echo esc_html( $llmsWarning ); ?></p>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+
+		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h4>
+		<?php /* The surface is the shared page preview block, so the raw inline colours are gone. */ ?>
+		<pre class="code rk-preview"><?php echo esc_html( $llmsPreview ); ?></pre>
+	</div>
+</section>
