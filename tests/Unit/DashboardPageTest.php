@@ -96,6 +96,7 @@ final class DashboardPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'admin_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $value ): string => trim( $value ) );
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );

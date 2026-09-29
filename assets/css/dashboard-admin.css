@@ -1,74 +1,845 @@
 /**
- * Dashboard layout.
+ * Dashboard screen styles.
  *
- * Loaded only on the RankKernel dashboard. The card surface, header, pills and
- * buttons all come from the shared component layer in rankkernel-ui.css. This
- * sheet only owns what is genuinely page specific: the card grid and the
- * internals of one module card. No raw hex appears here, every value resolves
- * from the --rk-* tokens in rankkernel-admin.css, which loads first as a
- * registered dependency.
+ * Hand written match of the approved Dashboard design, built without Tailwind
+ * and without a build step. Loaded only on the RankKernel dashboard via
+ * DashboardPage::enqueueAssets. Shared components (buttons, cards, the page
+ * header, notices, pills, tabs, the search field) live in rankkernel-ui.css
+ * under the rk-ui scope, which loads as a registered dependency before this
+ * sheet, and this file holds only page scoped rules under .rk-dashboard. All
+ * colour, spacing, radius and shadow values come from var(--rk-*) tokens
+ * defined in the shared token layer, which also loads as a registered
+ * dependency before this sheet. No raw hex is permitted here.
+ *
+ * The file covers the states the screen actually renders: the stat row in its
+ * healthy and attention forms, the attention bar with its native disclosure,
+ * module rows with the toggle on and off, the planned rows, the disabled tool
+ * rows and the health rows in their active and switched off forms, plus the
+ * responsive collapses.
+ *
+ * Two deliberate departures from the design, both recorded in the pull
+ * request: the planned rows keep the token text colours instead of the
+ * design's 75 percent opacity wash, because a wash drops 13 pixel text under
+ * the 4.5:1 that WCAG 1.4.3 asks, and the module tiles use the shared
+ * semantic tints instead of the design's per module indigo, sky, rose and
+ * cyan, because the token layer is the only place colour lives and those
+ * hues have no tokens.
+ *
+ * @package RankKernel
  */
 
-/* The card grid needs no narrow width override. The auto-fill track already
-   collapses to one column as soon as two 280 pixel tracks no longer fit, and
-   it clamps to the container when even one does not fit, so this grid is a
-   single column at every width below about 576 pixels. The card actions row
-   below already wraps at any width, and the page header stacks itself in the
-   shared layer at 782 pixels, so there was no work left for a page media
-   query to do. */
-.rk-dashboard .rk-cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-	gap: var(--rk-space-4);
-	margin-block-start: var(--rk-space-4);
-}
+/* ==========================================================================
+   Page shell
+   ========================================================================== */
 
-/* One module card. The surface, border, radius and shadow are already set by
-.rk-ui-card, so this only stacks the contents and owns the inner padding. No
-overflow clipping is set here, because a clip would cut the focus ring painted
-outside the card edge on the Settings link and the toggle button. Nothing in
-this card overflows its own box, so the clip bought nothing. */
-.rk-dashboard .rk-card {
+/* The WordPress .wrap margin already indents the page. The inner shell owns
+   the vertical rhythm, one 16 pixel step between blocks, matching the design's
+   stack. The 1240 pixel cap is the design's container width; below it the
+   shell fills the column. The right padding mirrors the Instant Indexing
+   shell, so both screens end at the same edge. */
+.rk-dashboard .rk-dashboard-inner {
 	display: flex;
 	flex-direction: column;
+	gap: var(--rk-space-4);
+	max-width: 1240px;
+	margin-inline: auto;
+	padding: var(--rk-space-4) var(--rk-space-6) var(--rk-space-6) 0;
+	box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Header card, brand tile and version pill
+   ========================================================================== */
+
+/* The 32 pixel brand tile at the start of the title row. The shadow is the
+   primary ring token, which is the same translucent blue the design paints
+   under the tile. */
+.rk-dashboard .rk-dashboard-logo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-primary);
+	color: var(--rk-color-surface);
+	box-shadow: 0 1px 2px var(--rk-ring-primary);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-logo .rk-icon {
+	font-size: 20px;
+}
+
+/* The design sets the page title one step above the shared 22 pixel default. */
+.rk-dashboard .rk-ui-page-title {
+	font-size: 24px;
+}
+
+/* ==========================================================================
+   Stat row
+   ========================================================================== */
+
+.rk-dashboard .rk-dashboard-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--rk-space-4);
+}
+
+.rk-dashboard .rk-dashboard-stat {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding: var(--rk-space-5);
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-stat-text {
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-stat-value-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+}
+
+.rk-dashboard .rk-dashboard-stat-value {
+	font-size: 32px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--rk-color-text);
+	letter-spacing: -0.015em;
+}
+
+/* A word reads a touch smaller than a number at the same optical weight. */
+.rk-dashboard .rk-dashboard-stat-value-text {
+	font-size: 28px;
+}
+
+.rk-dashboard .rk-dashboard-stat-value-warning {
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-dashboard .rk-dashboard-stat-label,
+.rk-dashboard .rk-dashboard-stat-caption {
+	margin-block-start: 6px;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-dashboard .rk-dashboard-stat-label {
+	font-weight: 500;
+}
+
+.rk-dashboard .rk-dashboard-stat-caption {
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* The pill in the healthy card carries a live dot that inherits the pill
+   foreground, so the dot can never disagree with the pill it sits in. */
+.rk-dashboard .rk-dashboard-status-dot {
+	width: 8px;
+	height: 8px;
+	margin-inline-end: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	flex-shrink: 0;
+}
+
+/* The attention chip beside the count. Its foreground is the strong warning
+   step, the one token that clears 4.5:1 on the soft warning background. */
+.rk-dashboard .rk-dashboard-attention-tag {
+	padding: 2px 8px;
+	border: 1px solid var(--rk-tint-warning-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3-strong);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-dashboard .rk-dashboard-stat-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	margin-block-start: var(--rk-space-1);
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.rk-dashboard .rk-dashboard-stat-link:hover {
+	color: var(--rk-color-primary-hover);
+	text-decoration: underline;
+}
+
+.rk-dashboard .rk-dashboard-stat-link .rk-icon {
+	font-size: 14px;
+}
+
+/* The stat glyph sits in a 48 pixel soft tile, one tint per state. */
+.rk-dashboard .rk-dashboard-stat-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: var(--rk-radius-lg);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-stat-icon .rk-icon {
+	font-size: 26px;
+}
+
+.rk-dashboard .rk-dashboard-stat-icon-info {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-dashboard .rk-dashboard-stat-icon-positive {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-dashboard .rk-dashboard-stat-icon-warning {
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-dashboard .rk-dashboard-stat-icon-neutral {
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+}
+
+/* ==========================================================================
+   Attention bar, a native details disclosure so it works without JavaScript
+   ========================================================================== */
+
+.rk-dashboard .rk-dashboard-alert {
+	background: var(--rk-color-secondary-3-soft);
+	border: 1px solid var(--rk-tint-warning-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	overflow: hidden;
+}
+
+.rk-dashboard .rk-dashboard-alert-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	padding: 14px;
+	cursor: pointer;
+	list-style: none;
+}
+
+/* The native disclosure triangle is replaced by the Details label and the
+   expand glyph, so the marker is hidden in both engines. */
+.rk-dashboard .rk-dashboard-alert-summary::-webkit-details-marker {
+	display: none;
+}
+
+.rk-dashboard .rk-dashboard-alert-lead {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.rk-dashboard .rk-dashboard-alert-icon {
+	color: var(--rk-color-secondary-3);
+	font-size: 20px;
+}
+
+.rk-dashboard .rk-dashboard-alert-count {
+	color: var(--rk-color-secondary-3-strong);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+}
+
+.rk-dashboard .rk-dashboard-alert-names {
+	color: var(--rk-color-secondary-3-strong);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-dashboard .rk-dashboard-alert-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	flex-shrink: 0;
+	color: var(--rk-color-secondary-3-strong);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+}
+
+.rk-dashboard .rk-dashboard-alert-body {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	margin-inline: 14px;
+	padding-block: 10px 14px;
+	border-block-start: 1px solid var(--rk-tint-warning-border);
+}
+
+.rk-dashboard .rk-dashboard-alert-text {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-secondary-3-strong);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-dashboard .rk-dashboard-alert-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	flex-shrink: 0;
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.rk-dashboard .rk-dashboard-alert-link:hover {
+	color: var(--rk-color-primary-hover);
+	text-decoration: underline;
+}
+
+.rk-dashboard .rk-dashboard-alert-link .rk-icon {
+	font-size: 14px;
+}
+
+/* ==========================================================================
+   Main grid, modules on the left, side cards on the right
+   ========================================================================== */
+
+.rk-dashboard .rk-dashboard-main {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+	gap: var(--rk-space-4);
+	align-items: start;
+}
+
+/* ==========================================================================
+   Modules card
+   ========================================================================== */
+
+.rk-dashboard .rk-dashboard-modules-header {
+	flex-wrap: wrap;
+	padding: var(--rk-space-4) var(--rk-space-5);
+}
+
+.rk-dashboard .rk-dashboard-count-pill {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+/* The module search has no filter behind it on this screen, so it renders
+   disabled. The muted step keeps the placeholder readable while the reduced
+   opacity marks the field as inert. */
+.rk-dashboard .rk-dashboard-search {
+	position: relative;
+	width: 200px;
+	max-width: 100%;
+}
+
+.rk-dashboard .rk-dashboard-search-icon {
+	position: absolute;
+	inset-inline-start: 10px;
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-muted);
+	font-size: 16px;
+	pointer-events: none;
+}
+
+.rk-dashboard .rk-dashboard-search-input {
+	width: 100%;
+	padding: 6px 12px 6px 32px;
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	box-sizing: border-box;
+}
+
+.rk-dashboard .rk-dashboard-search-input::placeholder {
+	color: var(--rk-color-text-muted);
+}
+
+.rk-dashboard .rk-dashboard-search-input:disabled {
+	opacity: 0.72;
+	cursor: not-allowed;
+}
+
+/* The shared tab row supplies the underline, the counts and the hover. This
+   screen only aligns it to the card's 20 pixel inset and one step larger
+   text, matching the design. */
+.rk-dashboard .rk-dashboard-tabs {
+	padding-inline: var(--rk-space-5);
+}
+
+.rk-dashboard .rk-dashboard-tabs .rk-ui-tab {
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-dashboard .rk-dashboard-modules-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-6);
+	padding: var(--rk-space-5);
+}
+
+.rk-dashboard .rk-dashboard-module-group {
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-group-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-block-end: var(--rk-space-3);
+}
+
+.rk-dashboard .rk-dashboard-group-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-text-muted);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-group-dot-active {
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-dashboard .rk-dashboard-group-title {
+	margin: 0;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-dashboard .rk-dashboard-group-title-active {
+	color: var(--rk-color-secondary-1);
+}
+
+/* One bordered list per group, with hairline separators between rows. The
+   border is the muted surface step, the design's #F1F5F9 hairline. */
+.rk-dashboard .rk-dashboard-module-list {
+	border: 1px solid var(--rk-color-surface-muted);
+	border-radius: var(--rk-radius-lg);
+	overflow: hidden;
+}
+
+/* The tab and stat card links land on these targets, so each one clears the
+   fixed admin bar instead of tucking its heading under it. */
+.rk-dashboard .rk-dashboard-modules,
+.rk-dashboard .rk-dashboard-module-group {
+	scroll-margin-block-start: 50px;
+}
+
+.rk-dashboard .rk-dashboard-module-list-planned {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-dashboard .rk-dashboard-module + .rk-dashboard-module {
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-dashboard .rk-dashboard-module {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: 14px;
+	transition: background 0.15s;
+}
+
+/* The planned list already sits on the subtle surface, so only available rows
+   take the hover. */
+.rk-dashboard .rk-dashboard-module:not(.rk-dashboard-module-planned):hover {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-dashboard .rk-dashboard-module-main {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-module-tile {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-module-tile .rk-icon {
+	font-size: 16px;
+}
+
+/* Schema keeps its reserved accent pair, the one token set the design system
+   sets aside for structured data. */
+.rk-dashboard .rk-dashboard-module-tile-schema {
+	background: var(--rk-color-secondary-2-soft);
+	color: var(--rk-color-secondary-2);
+}
+
+.rk-dashboard .rk-dashboard-module-letter {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 700;
+	line-height: 1;
+}
+
+.rk-dashboard .rk-dashboard-module-text {
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-module-title {
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	line-height: 1.375;
+}
+
+.rk-dashboard .rk-dashboard-module-desc {
+	margin-block-start: 2px;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* A planned row keeps token text colours rather than an opacity wash, so its
+   text still measures above 4.5:1 on the row surface. */
+.rk-dashboard .rk-dashboard-module-planned .rk-dashboard-module-title {
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-dashboard .rk-dashboard-module-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-4);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-module-link {
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.rk-dashboard .rk-dashboard-module-link:hover {
+	color: var(--rk-color-primary-hover);
+	text-decoration: underline;
+}
+
+.rk-dashboard .rk-dashboard-module-planned-tag {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.rk-dashboard .rk-dashboard-module-toggle {
+	margin: 0;
+}
+
+/* The toggle is a real submit button wearing the design's 36 by 20 switch,
+   so the form keeps submitting the module id exactly as before. */
+.rk-dashboard .rk-dashboard-switch {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 36px;
+	height: 20px;
+	padding: 2px;
+	margin: 0;
+	border: none;
+	border-radius: 999px;
+	background: var(--rk-color-border-strong);
+	cursor: pointer;
+	transition: background 0.15s;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	appearance: none;
+}
+
+.rk-dashboard .rk-dashboard-switch-knob {
+	display: block;
+	width: 16px;
+	height: 16px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 50%;
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+	transition: transform 0.15s;
+	/* The knob's border is part of the 16 pixel square, so the travel below
+	   lands the knob flush with the track's inner edge. */
+	box-sizing: border-box;
+}
+
+.rk-dashboard .rk-dashboard-switch.is-on {
+	background: var(--rk-color-primary);
+}
+
+.rk-dashboard .rk-dashboard-switch.is-on .rk-dashboard-switch-knob {
+	transform: translateX(16px);
+	border-color: var(--rk-color-surface);
+}
+
+/* ==========================================================================
+   Side cards
+   ========================================================================== */
+
+.rk-dashboard .rk-dashboard-side {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-side-card {
+	padding: var(--rk-space-5);
+}
+
+.rk-dashboard .rk-dashboard-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-end: var(--rk-space-3);
+	padding-block-end: var(--rk-space-3);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-dashboard .rk-dashboard-card-title {
+	margin: 0;
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-dashboard .rk-dashboard-card-tag {
+	color: var(--rk-color-text-muted);
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	white-space: nowrap;
+}
+
+/* Quick Actions. Every control in the card is disabled: no handler exists for
+   any of them on this screen. The reduced opacity is the disabled affordance,
+   and disabled controls are exempt from the text contrast rule. */
+.rk-dashboard .rk-dashboard-tool-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.rk-dashboard .rk-dashboard-tool {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	width: 100%;
+	padding: 10px 14px;
+	background: none;
+	border: 1px solid transparent;
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	text-align: start;
+	box-sizing: border-box;
+	opacity: 0.58;
+	cursor: not-allowed;
+}
+
+.rk-dashboard .rk-dashboard-tool .rk-icon {
+	font-size: 18px;
+}
+
+.rk-dashboard .rk-dashboard-tool-main {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.rk-dashboard .rk-dashboard-tool-icon-primary {
+	color: var(--rk-color-primary);
+}
+
+.rk-dashboard .rk-dashboard-tool-icon-positive {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-dashboard .rk-dashboard-tool-icon-muted {
+	color: var(--rk-color-text-muted);
+}
+
+.rk-dashboard .rk-dashboard-tool-icon-danger {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-dashboard .rk-dashboard-tool-danger {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-dashboard .rk-dashboard-tool-tag {
+	color: var(--rk-color-text-muted);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+/* SEO Health. */
+.rk-dashboard .rk-dashboard-live {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--rk-color-secondary-1);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.rk-dashboard .rk-dashboard-live-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--rk-color-secondary-1);
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-health-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	margin: 0;
 	padding: 0;
+	list-style: none;
 }
 
-/* Inside a grid card the shared card header drops its divider, so the card
-reads as one block rather than a divided panel. */
-.rk-dashboard .rk-card .rk-ui-card-header {
-	padding: var(--rk-space-4);
-	border-block-end: 0;
-}
-
-.rk-dashboard .rk-card .rk-ui-card-title {
-	font-size: var(--rk-font-size-lg);
-}
-
-.rk-dashboard .rk-card-desc {
-	flex: 1 1 auto;
-	margin: var(--rk-space-2) var(--rk-space-4) var(--rk-space-4);
+.rk-dashboard .rk-dashboard-health-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
 	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-sm);
 	line-height: var(--rk-line-height-normal);
 }
 
-.rk-dashboard .rk-card-actions {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
+.rk-dashboard .rk-dashboard-health-icon {
+	color: var(--rk-color-secondary-1);
+	font-size: 18px;
+	flex-shrink: 0;
+}
+
+.rk-dashboard .rk-dashboard-health-text strong {
+	color: var(--rk-color-text);
+	font-weight: 600;
+}
+
+/* A switched off module takes the design's warning treatment. */
+.rk-dashboard .rk-dashboard-health-item.is-off {
 	gap: var(--rk-space-2);
-	padding: 0 var(--rk-space-4) var(--rk-space-4);
-
-	/* A card carrying no description still keeps its actions on the baseline. */
-	margin-block-start: auto;
+	padding: 6px 8px;
+	border: 1px solid var(--rk-tint-warning-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3-strong);
 }
 
-.rk-dashboard .rk-card-toggle {
-	margin: 0;
+.rk-dashboard .rk-dashboard-health-item.is-off .rk-dashboard-health-icon {
+	color: var(--rk-color-secondary-3);
 }
 
-.rk-dashboard :focus-visible {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 2px;
+.rk-dashboard .rk-dashboard-health-item.is-off .rk-dashboard-health-text strong {
+	color: var(--rk-color-secondary-3-strong);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (max-width: 1024px) {
+	.rk-dashboard .rk-dashboard-main {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media screen and (max-width: 960px) {
+	.rk-dashboard .rk-dashboard-stats {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.rk-dashboard .rk-dashboard-inner {
+		padding-inline-end: 0;
+	}
+
+	.rk-dashboard .rk-dashboard-search {
+		width: 100%;
+	}
+
+	.rk-dashboard .rk-dashboard-alert-names {
+		display: none;
+	}
+
+	.rk-dashboard .rk-dashboard-alert-body {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.rk-dashboard .rk-dashboard-module {
+		flex-wrap: wrap;
+	}
+
+	/* The wrapped actions line up under the module text, one tile width plus
+	   the row gap, the same alignment the design keeps on one line. */
+	.rk-dashboard .rk-dashboard-module-actions {
+		padding-inline-start: 40px;
+	}
+}
+
+/* Every selector in this file that declares a transition is in this list:
+   the module row, the switch and the switch knob. */
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-dashboard .rk-dashboard-module,
+	.rk-dashboard .rk-dashboard-switch,
+	.rk-dashboard .rk-dashboard-switch-knob {
+		transition: none;
+	}
 }
