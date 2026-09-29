@@ -51,18 +51,18 @@ endif;
 			<tr>
 				<th scope="row"><label for="rk-site-represents"><?php echo esc_html__( 'Site Represents', 'rankkernel' ); ?></label></th>
 				<td>
-					<select id="rk-site-represents" name="site_represents">
+					<select id="rk-site-represents" name="site_represents" aria-describedby="rk-site-represents-desc">
 						<option value="organization"<?php echo selected( $represents, 'organization', false ); ?>><?php echo esc_html__( 'Organization', 'rankkernel' ); ?></option>
 						<option value="person"<?php echo selected( $represents, 'person', false ); ?>><?php echo esc_html__( 'Person', 'rankkernel' ); ?></option>
 					</select>
-					<p class="description"><?php echo esc_html__( 'Choose Organization for a business or group site, Person for a personal site.', 'rankkernel' ); ?></p>
+					<p id="rk-site-represents-desc" class="description"><?php echo esc_html__( 'Choose Organization for a business or group site, Person for a personal site.', 'rankkernel' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="rk-org-name"><?php echo esc_html__( 'Organization Name', 'rankkernel' ); ?></label></th>
 				<td>
-					<input type="text" id="rk-org-name" name="org_name" value="<?php echo esc_attr( $orgName ); ?>" class="regular-text" />
-					<p class="description"><?php echo esc_html__( 'Shown as the site owner name in search results. Leave empty to use the site name.', 'rankkernel' ); ?></p>
+					<input type="text" id="rk-org-name" name="org_name" value="<?php echo esc_attr( $orgName ); ?>" class="regular-text" aria-describedby="rk-org-name-desc" />
+					<p id="rk-org-name-desc" class="description"><?php echo esc_html__( 'Shown as the site owner name in search results. Leave empty to use the site name.', 'rankkernel' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -72,18 +72,18 @@ endif;
 						<img id="rk-org-logo-preview" src="<?php echo esc_url( $orgLogo ); ?>" alt="" style="max-width:150px;height:auto;<?php echo '' === $orgLogo ? 'display:none;' : ''; ?>" />
 						<input type="hidden" id="rk-org-logo" name="org_logo" value="<?php echo esc_attr( $orgLogo ); ?>" />
 						<p>
-							<button type="button" class="button" id="rk-org-logo-select"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
-							<button type="button" class="button" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?>><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
+							<button type="button" class="button" id="rk-org-logo-select" aria-describedby="rk-org-logo-desc"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
+							<button type="button" class="button" id="rk-org-logo-remove"<?php echo '' === $orgLogo ? ' style="display:none;"' : ''; ?> aria-describedby="rk-org-logo-desc"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
 						</p>
 					</div>
-					<p class="description"><?php echo esc_html__( 'Logo image shown with your site name in search results. Pick from the media library or upload a new image.', 'rankkernel' ); ?></p>
+					<p id="rk-org-logo-desc" class="description"><?php echo esc_html__( 'Logo image shown with your site name in search results. Pick from the media library or upload a new image.', 'rankkernel' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="rk-org-sameas"><?php echo esc_html__( 'Same As', 'rankkernel' ); ?></label></th>
 				<td>
-					<textarea id="rk-org-sameas" name="org_sameas" rows="4" cols="50"><?php echo esc_textarea( implode( "\n", $sameAsLines ) ); ?></textarea>
-					<p class="description"><?php echo esc_html__( 'One profile address per line, for example social profiles. Tells search engines which profiles are yours.', 'rankkernel' ); ?></p>
+					<textarea id="rk-org-sameas" name="org_sameas" rows="4" cols="50" aria-describedby="rk-org-sameas-desc"><?php echo esc_textarea( implode( "\n", $sameAsLines ) ); ?></textarea>
+					<p id="rk-org-sameas-desc" class="description"><?php echo esc_html__( 'One profile address per line, for example social profiles. Tells search engines which profiles are yours.', 'rankkernel' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -100,13 +100,13 @@ endif;
 				<tr>
 					<th scope="row"><label for="rk-<?php echo esc_attr( $row['key'] ); ?>"><?php echo esc_html( $row['label'] ); ?></label></th>
 					<td>
-						<select id="rk-<?php echo esc_attr( $row['key'] ); ?>" name="<?php echo esc_attr( $row['key'] ); ?>">
+						<select id="rk-<?php echo esc_attr( $row['key'] ); ?>" name="<?php echo esc_attr( $row['key'] ); ?>" aria-describedby="rk-<?php echo esc_attr( $row['key'] ); ?>-desc">
 							<option value=""<?php echo selected( $row['current'], '', false ); ?>><?php echo esc_html__( 'Automatic', 'rankkernel' ); ?></option>
 							<?php foreach ( $schemaTypes as $schemaType ) : ?>
 								<option value="<?php echo esc_attr( $schemaType['value'] ); ?>"<?php echo selected( $row['current'], $schemaType['value'], false ); ?>><?php echo esc_html( $schemaType['label'] ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php echo esc_html__( 'Default schema type for this post type.', 'rankkernel' ); ?> <?php echo esc_html__( 'Automatic means posts use BlogPosting, other types use Article.', 'rankkernel' ); ?></p>
+						<p id="rk-<?php echo esc_attr( $row['key'] ); ?>-desc" class="description"><?php echo esc_html__( 'Default schema type for this post type.', 'rankkernel' ); ?> <?php echo esc_html__( 'Automatic means posts use BlogPosting, other types use Article.', 'rankkernel' ); ?></p>
 					</td>
 				</tr>
 			<?php endforeach; ?>
