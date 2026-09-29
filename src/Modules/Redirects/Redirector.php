@@ -15,11 +15,11 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Dispatches redirects on template_redirect priority 1.
  *
- * Flow per request: guard admin, AJAX, REST, cron, and sitemap requests, fail
- * open when the table is missing, normalize the request path through the
- * shared normalizer, read the match cache first, run at most one indexed
- * lookup plus one bounded pattern list read on a cold miss, warm the cache on
- * a hit, send exactly one redirect per request through the reentry guard,
+ * Flow per request: guard admin, AJAX, REST, cron, and sitemap requests,
+ * normalize the request path through the shared normalizer, read the match cache
+ * first, fail open on a cold miss when the table is missing, run at most one
+ * indexed lookup plus one bounded pattern list read on a cold miss, warm the
+ * cache on a hit, send exactly one redirect per request through the reentry guard,
  * validate the destination before sending, then exit. Terminal codes 410 and
  * 451 send a status plus a minimal body with no Location header. The hit
  * counter flushes at shutdown, never before the response.
