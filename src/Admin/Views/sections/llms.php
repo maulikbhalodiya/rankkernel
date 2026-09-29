@@ -109,7 +109,7 @@ defined( 'ABSPATH' ) || exit;
 
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label>
-			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
+			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text rk-code-editor"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
 		</div>
 
@@ -119,7 +119,16 @@ defined( 'ABSPATH' ) || exit;
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
 		</div>
 
-		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-llms-physical-label">
+		<?php
+		/*
+		 * The physical file row is the one block on this screen the approved
+		 * sheet draws as its own bordered group, because its three actions
+		 * belong to that one toggle. The group class comes from the page
+		 * sheet and only paints the surface, so the row keeps the group role
+		 * and the id the label points at.
+		 */
+		?>
+		<div class="rk-ui-form-row rk-settings-group" role="group" aria-labelledby="rk-llms-physical-label">
 			<span class="rk-ui-form-label" id="rk-llms-physical-label"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></span>
 			<label><input type="checkbox" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> /> <?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></label>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>

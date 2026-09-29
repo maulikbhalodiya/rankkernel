@@ -53,6 +53,15 @@ defined( 'ABSPATH' ) || exit;
 <section id="rk-section-advanced" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-advanced-title">
 	<div class="rk-ui-card-header">
 		<h3 class="rk-ui-card-title" id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h3>
+		<?php
+		/*
+		 * The approved sheet flags the whole panel as dangerous in its header,
+		 * and the shared pill carries the word so the state never rests on the
+		 * colour alone. Destructive is the one string this pass adds; every
+		 * other label was already on the screen.
+		 */
+		?>
+		<span class="rk-ui-pill rk-ui-pill-danger"><?php echo esc_html__( 'Destructive', 'rankkernel' ); ?></span>
 	</div>
 	<div class="rk-ui-card-body">
 		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Uninstall', 'rankkernel' ); ?></h4>

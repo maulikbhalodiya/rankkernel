@@ -429,15 +429,20 @@ final class SchemaSettingsAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'Schema Settings', $html );
 		$this->assertStringContainsString( 'name="site_represents"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-site-represents-desc"', $html );
 		$this->assertStringContainsString( 'name="org_name"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-name-desc"', $html );
 		$this->assertStringContainsString( 'name="org_logo"', $html );
 		$this->assertStringContainsString( 'rk-org-logo-preview', $html );
 		$this->assertStringContainsString( 'rk-org-logo-select', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-logo-desc"', $html );
 		$this->assertStringContainsString( 'rk-org-logo-remove', $html );
 		$this->assertStringContainsString( 'Select image', $html );
 		$this->assertStringContainsString( 'name="org_sameas"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-org-sameas-desc"', $html );
 		$this->assertStringContainsString( 'name="website_search_action"', $html );
 		$this->assertStringContainsString( 'name="schema_default_post"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-schema_default_post-desc"', $html );
 		$this->assertStringContainsString( 'name="schema_default_page"', $html );
 		$this->assertStringContainsString( 'Posts', $html );
 		$this->assertStringContainsString( 'Automatic', $html );
@@ -448,6 +453,150 @@ final class SchemaSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'target="_blank"', $html );
 		$this->assertStringContainsString( 'rel="noopener"', $html );
 		$this->assertStringContainsString( 'test/rich-results?url=https%3A%2F%2Fexample.com', $html );
+	}
+
+	/**
+	 * Every described control must carry its own association, and every target must exist.
+	 *
+	 * Asserting that an aria-describedby value appears somewhere in the markup is not
+	 * enough, because the attribute could sit on an unrelated element. Each case below
+	 * pins the attribute to the control that owns the field and then confirms the
+	 * referenced description id is actually present in the rendered page.
+	 *
+	 * @dataProvider provide_described_controls
+	 *
+	 * @param string $control_id    Id of the control that must be described.
+	 * @param string $expected_desc Expected aria-describedby value.
+	 */
+	public function test_control_carries_its_own_description_association( string $control_id, string $expected_desc ): void {
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$pattern = '/<(?P<tag>[a-z]+)(?P<attrs>[^>]*\bid="' . preg_quote( $control_id, '/' ) . '"[^>]*)>/i';
+
+		$this->assertSame(
+			1,
+			preg_match( $pattern, $html, $matches ),
+			sprintf( 'Expected exactly one control with id="%s".', $control_id )
+		);
+
+		$this->assertStringContainsString(
+			sprintf( 'aria-describedby="%s"', $expected_desc ),
+			$matches['attrs'],
+			sprintf( 'Control "%s" is not associated with its description.', $control_id )
+		);
+
+		$this->assertStringContainsString(
+			sprintf( 'id="%s"', $expected_desc ),
+			$html,
+			sprintf( 'Description target "%s" is missing from the rendered page.', $expected_desc )
+		);
+	}
+
+	/**
+	 * Controls that must be associated with their visible description text.
+	 *
+	 * Both logo actions are listed because the description belongs to the field as a
+	 * whole, so neither the select nor the remove button may be left undescribed.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function provide_described_controls(): array {
+		return [
+			'site representation'        => [
+				'rk-site-represents',
+				'rk-site-represents-desc',
+			],
+			'organization name'          => [
+				'rk-org-name',
+				'rk-org-name-desc',
+			],
+			'organization logo select'   => [
+				'rk-org-logo-select',
+				'rk-org-logo-desc',
+			],
+			'organization logo remove'   => [
+				'rk-org-logo-remove',
+				'rk-org-logo-desc',
+			],
+			'same as'                    => [
+				'rk-org-sameas',
+				'rk-org-sameas-desc',
+			],
+			'post type default for post' => [
+				'rk-schema_default_post',
+				'rk-schema_default_post-desc',
+			],
+			'post type default for page' => [
+				'rk-schema_default_page',
+				'rk-schema_default_page-desc',
+			],
+		];
+	}
+
+	/**
+	 * No aria-describedby may point at an id the page never renders.
+	 *
+	 * An orphaned reference is worse than no association at all, because assistive
+	 * technology announces nothing while the markup implies the field is described.
+	 */
+	public function test_no_aria_describedby_points_at_a_missing_id(): void {
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$ids = preg_match_all( '/\bid="([^"]+)"/', $html, $id_matches )
+			? $id_matches[1]
+			: array();
+
+		$this->assertNotEmpty( $ids, 'The rendered page exposed no ids to check against.' );
+
+		preg_match_all( '/aria-describedby="([^"]+)"/', $html, $ref_matches );
+
+		$referenced = array();
+		foreach ( $ref_matches[1] as $token_list ) {
+			foreach ( preg_split( '/\s+/', trim( $token_list ) ) as $token ) {
+				$referenced[] = $token;
+			}
+		}
+
+		$this->assertNotEmpty( $referenced, 'No aria-describedby attribute was rendered.' );
+
+		foreach ( array_unique( $referenced ) as $token ) {
+			$this->assertContains(
+				$token,
+				$ids,
+				sprintf( 'aria-describedby points at "%s", which is not rendered.', $token )
+			);
+		}
+	}
+
+	/**
+	 * The descriptions are unique, so each reference resolves to one element.
+	 */
+	public function test_description_ids_are_unique(): void {
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		preg_match_all( '/\bid="([^"]+)"/', $html, $id_matches );
+
+		$counts = array_count_values( $id_matches[1] );
+		$dupe   = array_keys(
+			array_filter(
+				$counts,
+				static fn ( int $count ): bool => $count > 1
+			)
+		);
+
+		$this->assertSame( array(), $dupe, 'Duplicate ids found: ' . implode( ', ', $dupe ) );
 	}
 
 	/**

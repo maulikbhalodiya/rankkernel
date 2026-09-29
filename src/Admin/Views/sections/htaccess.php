@@ -78,7 +78,15 @@ defined( 'ABSPATH' ) || exit;
 				<p><?php echo esc_html__( 'WordPress cannot write the .htaccess file. Ask your host, or edit it over SFTP.', 'rankkernel' ); ?></p>
 			</div>
 		<?php else : ?>
-			<p class="rk-ui-hint"><?php echo esc_html( $htaccessPath ); ?></p>
+			<?php
+			/*
+			 * The path is shown as a copyable value rather than bare prose,
+			 * the way the approved sheet presents it. The chip is page
+			 * styling, so the string itself stays the raw path the
+			 * controller read from disk.
+			 */
+			?>
+			<p class="rk-ui-hint"><code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code></p>
 			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="large-text code rk-code-editor"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
 			<p class="rk-form-actions">
 				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>

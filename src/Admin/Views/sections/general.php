@@ -57,12 +57,12 @@ defined( 'ABSPATH' ) || exit;
 		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Title and description templates', 'rankkernel' ); ?></h4>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-title-template"><?php echo esc_html__( 'Title template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="regular-text" />
+			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="regular-text rk-code-editor" />
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 		</div>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-desc-template"><?php echo esc_html__( 'Description template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="regular-text" />
+			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="regular-text rk-code-editor" />
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 		</div>
 		<div class="rk-ui-form-row">

@@ -1994,6 +1994,74 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Row action aria-labels escape a hostile source exactly once.
+	 *
+	 * The action labels interpolate the redirect source into a translated string, so
+	 * the interpolated value has to be escaped at output. A source containing a double
+	 * quote, a tag or an ampersand proves three separate things: the attribute cannot be
+	 * broken out of, no markup is injected, and the value is not escaped twice, which
+	 * would render as visible &amp;quot; to an administrator.
+	 */
+	public function test_row_action_aria_labels_escape_a_hostile_source_once(): void {
+		$this->seedRule( '/a"><script>x</script>&y', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		// The attribute stays intact: the quote is encoded, not emitted raw.
+		$this->assertStringContainsString( 'aria-label="Edit redirect for /a&quot;&gt;&lt;script&gt;x&lt;/script&gt;&amp;y"', $html );
+
+		// Escaped exactly once. A double pass would show the encoded form of an entity.
+		$this->assertStringNotContainsString( '&amp;quot;', $html );
+		$this->assertStringNotContainsString( '&amp;amp;', $html );
+		$this->assertStringNotContainsString( '&amp;lt;', $html );
+
+		// No raw tag from the source reaches the document.
+		$this->assertStringNotContainsString( '<script>x</script>', $html );
+
+		// Every row action carries the escaped source, so none lost its label. The four
+		// are the row select, edit, toggle and delete actions.
+		$this->assertSame( 4, substr_count( $html, '/a&quot;&gt;&lt;script&gt;x&lt;/script&gt;&amp;y"' ) );
+	}
+
+	/**
+	 * The action URLs, nonce and visible labels are untouched by the i18n refactor.
+	 *
+	 * The refactor moved the translated strings out of the markup and into the PHP
+	 * block above it. This pins that the surrounding behaviour, which the refactor must
+	 * not alter, still renders.
+	 */
+	public function test_row_actions_keep_their_urls_labels_and_toggle_text(): void {
+		$this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		// Visible labels are unchanged.
+		$this->assertStringContainsString( '>Edit</a>', $html );
+		$this->assertStringContainsString( '>Trash</a>', $html );
+		$this->assertStringContainsString( '>Deactivate</a>', $html );
+
+		// The delete confirmation copy and its escaping are unchanged.
+		$this->assertStringContainsString( 'data-rk-confirm="Delete this redirect? This cannot be undone."', $html );
+		$this->assertStringContainsString( 'class="rk-confirm"', $html );
+
+		// Each action keeps its own URL and its own label, so the refactor into the PHP
+		// block did not cross the wires between the three aria-labels.
+		$this->assertSame( 1, preg_match( '#<span class="edit"><a href="[^"]*rk_edit=1[^"]*" aria-label="Edit redirect for /a">#', $html ) );
+		$this->assertSame( 1, preg_match( '#<span class="toggle"><a href="[^"]*rk_action=deactivate[^"]*" aria-label="Deactivate redirect for /a">#', $html ) );
+		$this->assertSame( 1, preg_match( '#<span class="trash"><a href="[^"]*rk_action=delete[^"]*"[^>]*aria-label="Delete redirect for /a">#', $html ) );
+
+		// Nonce handling is untouched: both state changing actions still carry one.
+		$this->assertSame( 1, preg_match( '#rk_action=deactivate[^"]*_wpnonce=valid#', $html ) );
+		$this->assertSame( 1, preg_match( '#rk_action=delete[^"]*_wpnonce=valid#', $html ) );
+	}
+
+	/**
 	 * The header pill, action labels, table columns, pagination copy, empty
 	 * state icons, editor counters, and icon font match the design system.
 	 */

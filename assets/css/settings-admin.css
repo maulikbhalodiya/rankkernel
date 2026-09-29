@@ -56,19 +56,26 @@
 }
 
 .rk-settings-nav-title {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
 	margin: 0;
 	padding: var(--rk-space-3) var(--rk-space-4);
 	border-block-end: 1px solid var(--rk-color-border);
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
 	font-weight: 600;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-settings-nav-title .rk-icon {
+	color: var(--rk-color-text-muted);
+	font-size: 18px;
 }
 
 .rk-settings-nav ul {
 	margin: 0;
-	padding: var(--rk-space-2);
+	padding: var(--rk-space-3);
 	list-style: none;
 }
 
@@ -92,10 +99,10 @@
    never signalled by the fill alone. */
 .rk-settings-nav a::before {
 	position: absolute;
-	inset-block: 6px;
+	inset-block: 0;
 	inset-inline-start: 0;
 	width: 3px;
-	border-radius: 2px;
+	border-radius: var(--rk-radius-sm) 0 0 var(--rk-radius-sm);
 	background: transparent;
 	content: "";
 }

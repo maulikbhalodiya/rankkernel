@@ -84,11 +84,14 @@ defined( 'ABSPATH' ) || exit;
 							<div class="rk-crawler-card">
 								<label class="rk-ui-form-label" for="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>"><?php echo esc_html( $robotCrawler['label'] ); ?></label>
 								<p class="rk-ui-hint"><?php echo esc_html( $robotCrawler['note'] ); ?></p>
-								<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]">
-									<option value="allow"<?php echo 'allow' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Allow', 'rankkernel' ); ?></option>
-									<option value="block"<?php echo 'block' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Block', 'rankkernel' ); ?></option>
-									<option value="custom"<?php echo 'custom' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></option>
-								</select>
+								<div class="rk-ui-select-wrap">
+									<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]" class="rk-ui-select">
+										<option value="allow"<?php echo 'allow' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Allow', 'rankkernel' ); ?></option>
+										<option value="block"<?php echo 'block' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Block', 'rankkernel' ); ?></option>
+										<option value="custom"<?php echo 'custom' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></option>
+									</select>
+									<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
+								</div>
 							</div>
 						<?php endforeach; ?>
 					</div>
@@ -106,6 +109,20 @@ defined( 'ABSPATH' ) || exit;
 		<?php if ( 'edit' === $robotTab ) : ?>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>
 			<textarea id="rk-robots-override" name="rk_robots_override" rows="16" cols="70" class="large-text code rk-code-editor"><?php echo esc_textarea( $robotEditValue ); ?></textarea>
+
+			<?php
+			/*
+			 * The action row follows the editor and the banners follow the
+			 * action row, which is the order the approved sheet lays them out
+			 * in. Each banner keeps the conditional it had, so nothing new
+			 * renders and nothing that used to render disappears.
+			 */
+			?>
+			<p class="rk-form-actions">
+				<button type="submit" class="button button-primary" name="rk_robots_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
+				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
+				<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+			</p>
 
 			<?php if ( [] !== $robotValidation['errors'] ) : ?>
 				<?php /* Multi line by nature, so this keeps the banner notation rather than the one line notice. */ ?>
@@ -125,12 +142,6 @@ defined( 'ABSPATH' ) || exit;
 					<?php endforeach; ?>
 				</div>
 			<?php endif; ?>
-
-			<p class="rk-form-actions">
-				<button type="submit" class="button button-primary" name="rk_robots_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=rankkernel-general&section=robots&robots_tab=preview' ) ); ?>"><?php echo esc_html__( 'Cancel', 'rankkernel' ); ?></a>
-				<button type="submit" class="button" name="rk_robots_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset robots.txt to the generated version? Your custom edits will be removed.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
-			</p>
 		<?php else : ?>
 			<pre class="rk-preview"><?php echo esc_html( $robotEffective ); ?></pre>
 			<p class="rk-form-actions">

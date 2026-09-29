@@ -37,14 +37,35 @@ defined( 'ABSPATH' ) || exit;
 				<input type="hidden" id="rk-social-default-image-id" name="social_default_image_id" value="<?php echo esc_attr( (string) $socialDefaultImageId ); ?>" />
 				<p>
 					<button type="button" class="button" id="rk-social-default-image-select"><?php echo esc_html__( 'Select image', 'rankkernel' ); ?></button>
-					<button type="button" class="button" id="rk-social-default-image-remove"<?php echo '' === $socialDefaultImage ? ' style="display:none;"' : ''; ?>><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
+					<?php
+					/*
+					 * Removing the stored image discards data, so that control
+					 * takes the shared destructive button, the same treatment
+					 * the Schema logo row and the 404 exclusion rows give
+					 * theirs. Both picker ids are untouched, because
+					 * settings-admin.js looks them up by id.
+					 */
+					?>
+					<button type="button" class="rk-ui-btn rk-ui-btn-danger" id="rk-social-default-image-remove"<?php echo '' === $socialDefaultImage ? ' style="display:none;"' : ''; ?>><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button>
 				</p>
 			</div>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Image used when a page has no featured or social image.', 'rankkernel' ); ?></p>
 		</div>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-twitter-site"><?php echo esc_html__( 'X site handle', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-twitter-site" name="twitter_site" value="<?php echo esc_attr( $twitterSite ); ?>" class="regular-text" maxlength="15" />
+			<?php
+			/*
+			 * The sheet draws the handle field with an at sign sitting inside
+			 * the input. It is decoration, so it is hidden from assistive
+			 * technology and the hint below still says to leave it out. The
+			 * label keeps pointing straight at the input, which keeps the id,
+			 * the name and the maxlength exactly as they were.
+			 */
+			?>
+			<div class="rk-input-prefix">
+				<span class="rk-input-prefix-mark" aria-hidden="true"><?php echo esc_html( '@' ); ?></span>
+				<input type="text" id="rk-twitter-site" name="twitter_site" value="<?php echo esc_attr( $twitterSite ); ?>" class="regular-text" maxlength="15" />
+			</div>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Enter the handle without the at sign. RankKernel adds it when rendering metadata.', 'rankkernel' ); ?></p>
 		</div>
 	</div>

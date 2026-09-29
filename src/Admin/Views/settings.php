@@ -127,7 +127,7 @@ defined( 'ABSPATH' ) || exit;
 		?>
 		<div class="rk-settings">
 			<nav class="rk-settings-nav" aria-label="<?php echo esc_attr( __( 'Settings sections', 'rankkernel' ) ); ?>">
-				<p class="rk-settings-nav-title"><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></p>
+				<p class="rk-settings-nav-title"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Settings', 'rankkernel' ); ?></p>
 				<ul>
 					<?php foreach ( $settingsSections as $section ) : ?>
 						<li>
