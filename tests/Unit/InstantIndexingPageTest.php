@@ -2188,9 +2188,11 @@ final class InstantIndexingPageTest extends TestCase {
 			}
 		);
 
+		$payloadUrl = 'https://example.com/failed?a=1&b="test"<script>';
+
 		$this->db->seed(
 			[
-				'url'     => 'https://example.com/failed-page',
+				'url'     => $payloadUrl,
 				'code'    => 503,
 				'message' => 'Temporary failure, retry later.',
 			]
@@ -2210,11 +2212,18 @@ final class InstantIndexingPageTest extends TestCase {
 			}
 		}
 
+		$expectedUnescapedLabel = 'Retry submission for ' . $payloadUrl;
+
 		$this->assertContains(
-			'Retry submission for https://example.com/failed-page',
+			$expectedUnescapedLabel,
 			$retryAriaLabels,
-			'the rendered retry submit button must carry an accessible aria-label specifying the target URL'
+			'submit_button must receive the expected aria-label attribute specifying the target URL'
 		);
+
+		// Core submit_button() applies esc_attr() to attribute values when rendering HTML attributes.
+		$escapedAttribute = esc_attr( $expectedUnescapedLabel );
+		$this->assertStringContainsString( '&quot;', $escapedAttribute );
+		$this->assertStringNotContainsString( '<script>', $escapedAttribute );
 	}
 
 	/**
