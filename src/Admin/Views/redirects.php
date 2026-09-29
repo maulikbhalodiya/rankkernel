@@ -120,98 +120,98 @@ $rkMatchBadgeMap = [
 	?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( 'Redirects', 'rankkernel' ); ?></h1>
 
-	<div class="rk-redirects">
+	<div class="rk-redirects rk-ui">
 
 		<?php /* ---- RankKernel styled notices ---------------------------------- */ ?>
 
 		<?php if ( '' !== $blockedNotice ) : ?>
-			<div class="rk-notice rk-notice-error" role="alert">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">cancel</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html__( 'Action blocked.', 'rankkernel' ); ?></p>
-					<p class="rk-notice-text"><?php echo esc_html( $blockedNotice ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html__( 'Action blocked.', 'rankkernel' ); ?></strong></p>
+					<p class="rk-ui-sub"><?php echo esc_html( $blockedNotice ); ?></p>
 				</div>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( '' !== $successNotice ) : ?>
-			<div class="rk-notice rk-notice-success" role="status">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">check_circle</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html( $successNotice ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-success" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html( $successNotice ); ?></strong></p>
 				</div>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( '' !== $errorNotice ) : ?>
-			<div class="rk-notice rk-notice-error" role="alert">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">cancel</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html__( 'Action failed.', 'rankkernel' ); ?></p>
-					<p class="rk-notice-text"><?php echo esc_html( $errorNotice ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html__( 'Action failed.', 'rankkernel' ); ?></strong></p>
+					<p class="rk-ui-sub"><?php echo esc_html( $errorNotice ); ?></p>
 				</div>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( '' !== $chainSummary ) : ?>
-			<div class="rk-notice rk-notice-warning" role="status">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">warning</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html__( 'Redirect chain detected.', 'rankkernel' ); ?></p>
-					<p class="rk-notice-text"><?php echo esc_html( $chainSummary ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html__( 'Redirect chain detected.', 'rankkernel' ); ?></strong></p>
+					<p class="rk-ui-sub"><?php echo esc_html( $chainSummary ); ?></p>
 					<?php if ( '' !== $chainRecommendation ) : ?>
-						<p class="rk-notice-text"><?php echo esc_html( $chainRecommendation ); ?></p>
+						<p class="rk-ui-sub"><?php echo esc_html( $chainRecommendation ); ?></p>
 						<button
 							type="button"
-							class="rk-notice-action"
+							class="rk-ui-btn rk-ui-btn-primary"
 							data-rk-use-destination="<?php echo esc_attr( $chainFinal ); ?>"
 						><?php echo esc_html__( 'Use recommended destination', 'rankkernel' ); ?></button>
 					<?php else : ?>
-						<p class="rk-notice-text"><?php echo esc_html__( 'RankKernel could not determine the final destination, so please verify the chain manually. Saved as entered.', 'rankkernel' ); ?></p>
+						<p class="rk-ui-sub"><?php echo esc_html__( 'RankKernel could not determine the final destination, so please verify the chain manually. Saved as entered.', 'rankkernel' ); ?></p>
 					<?php endif; ?>
 				</div>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( $mayLoop ) : ?>
-			<div class="rk-notice rk-notice-warning" role="status">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">error</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html__( 'Loop check inconclusive.', 'rankkernel' ); ?></p>
-					<p class="rk-notice-text"><?php echo esc_html__( 'The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually.', 'rankkernel' ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-warning" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">warning</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html__( 'Loop check inconclusive.', 'rankkernel' ); ?></strong></p>
+					<p class="rk-ui-sub"><?php echo esc_html__( 'The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually.', 'rankkernel' ); ?></p>
 				</div>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( $chainUnknown && '' === $chainPath ) : ?>
-			<div class="rk-notice rk-notice-info" role="status">
-				<span class="rk-icon rk-notice-icon" aria-hidden="true">info</span>
-				<div class="rk-notice-body">
-					<p class="rk-notice-title"><?php echo esc_html__( 'Chain analysis incomplete.', 'rankkernel' ); ?></p>
-					<p class="rk-notice-text"><?php echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' ); ?></p>
+			<div class="rk-ui-notice rk-ui-notice-info" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
+				<div class="rk-ui-notice-body">
+					<p class="rk-ui-notice-text"><strong><?php echo esc_html__( 'Chain analysis incomplete.', 'rankkernel' ); ?></strong></p>
+					<p class="rk-ui-sub"><?php echo esc_html__( 'Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered.', 'rankkernel' ); ?></p>
 				</div>
-				<button type="button" class="rk-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
+				<button type="button" class="rk-ui-notice-dismiss" aria-label="<?php echo esc_attr__( 'Dismiss this notice', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">close</span></button>
 			</div>
 		<?php endif; ?>
 
 		<?php /* ---- Page header card ------------------------------------------ */ ?>
 
-		<div class="rk-page-header">
-			<div class="rk-page-header-left">
-				<div class="rk-page-header-title-row">
-					<h2 class="rk-page-title"><?php echo esc_html__( 'Redirects', 'rankkernel' ); ?></h2>
-					<span class="rk-count-pill"><?php echo esc_html( $countPill ); ?></span>
+		<header class="rk-ui-card rk-ui-page-header">
+			<div class="rk-ui-page-header-text">
+				<div class="rk-ui-page-header-title-row">
+					<h2 class="rk-ui-page-title"><?php echo esc_html__( 'Redirects', 'rankkernel' ); ?></h2>
+					<span class="rk-ui-pill rk-ui-pill-info"><?php echo esc_html( $countPill ); ?></span>
 				</div>
-				<p class="rk-sub"><?php echo esc_html__( 'Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-sub"><?php echo esc_html__( 'Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning.', 'rankkernel' ); ?></p>
 			</div>
-			<div class="rk-page-header-actions">
+			<div class="rk-ui-page-header-actions">
 				<button
 					type="button"
-					class="button button-primary rk-btn-add"
+					class="rk-ui-btn rk-ui-btn-primary"
 					id="rk-add-toggle"
 					aria-expanded="<?php echo esc_attr( $editorOpen ? 'true' : 'false' ); ?>"
 					aria-controls="rk-redirect-editor"
@@ -220,7 +220,7 @@ $rkMatchBadgeMap = [
 				><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add Redirect', 'rankkernel' ); ?></button>
 				<button
 					type="button"
-					class="button rk-btn-export"
+					class="rk-ui-btn rk-ui-btn-secondary"
 					id="rk-csv-toggle"
 					aria-expanded="false"
 					aria-controls="rk-redirect-csv"
@@ -228,7 +228,7 @@ $rkMatchBadgeMap = [
 				><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Export CSV', 'rankkernel' ); ?></button>
 				<button
 					type="button"
-					class="button rk-btn-settings-toggle"
+					class="rk-ui-btn rk-ui-btn-icon"
 					id="rk-settings-toggle"
 					aria-expanded="false"
 					aria-controls="rk-redirect-settings"
@@ -237,19 +237,19 @@ $rkMatchBadgeMap = [
 					aria-label="<?php echo esc_attr__( 'Redirect Settings', 'rankkernel' ); ?>"
 				><span class="rk-icon" aria-hidden="true">settings</span></button>
 			</div>
-		</div>
+		</header>
 
 		<?php /* ---- Editor card ------------------------------------------------ */ ?>
 
 		<div
-			class="rk-card rk-editor"
+			class="rk-ui-card rk-editor"
 			id="rk-redirect-editor"
 			<?php echo $editorOpen ? '' : ' hidden'; ?>
 		>
-			<div class="rk-card-header">
-				<div class="rk-card-header-left">
+			<div class="rk-ui-card-header">
+				<div class="rk-ui-card-header-left">
 					<span class="rk-card-header-dot" aria-hidden="true"></span>
-					<h3 class="rk-card-title" id="rk-editor-heading"><?php echo esc_html( $editorHeading ); ?></h3>
+					<h3 class="rk-ui-card-title" id="rk-editor-heading"><?php echo esc_html( $editorHeading ); ?></h3>
 				</div>
 				<?php // Cancel is a JS-only action: hides the editor without a page reload. ?>
 				<button
@@ -317,7 +317,7 @@ $rkMatchBadgeMap = [
 					<?php /* Left col: Match type --------------------------------- */ ?>
 					<div class="rk-form-row">
 						<label class="rk-form-label" for="rk-match"><?php echo esc_html__( 'Match Type', 'rankkernel' ); ?></label>
-						<div class="rk-select-wrap">
+						<div class="rk-ui-select-wrap">
 							<select
 								id="rk-match"
 								name="rk_match_type"
@@ -332,7 +332,7 @@ $rkMatchBadgeMap = [
 									><?php echo esc_html( $matchRow['label'] ); ?></option>
 								<?php endforeach; ?>
 							</select>
-							<span class="rk-icon rk-select-chevron" aria-hidden="true">expand_more</span>
+							<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
 						<?php if ( '' !== $matchError ) : ?>
 							<p class="rk-field-error" id="rk-match_type-error" role="alert"><?php echo esc_html( $matchError ); ?></p>
@@ -374,7 +374,7 @@ $rkMatchBadgeMap = [
 					<?php /* Right col: Redirect type ----------------------------- */ ?>
 					<div class="rk-form-row">
 						<label class="rk-form-label" for="rk-code"><?php echo esc_html__( 'Redirect Type', 'rankkernel' ); ?></label>
-						<div class="rk-select-wrap">
+						<div class="rk-ui-select-wrap">
 							<select
 								id="rk-code"
 								name="rk_code"
@@ -389,7 +389,7 @@ $rkMatchBadgeMap = [
 									><?php echo esc_html( $codeRow['label'] ); ?></option>
 								<?php endforeach; ?>
 							</select>
-							<span class="rk-icon rk-select-chevron" aria-hidden="true">expand_more</span>
+							<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 						</div>
 						<?php if ( '' !== $codeError ) : ?>
 							<p class="rk-field-error" id="rk-code-error" role="alert"><?php echo esc_html( $codeError ); ?></p>
@@ -489,11 +489,11 @@ $rkMatchBadgeMap = [
 
 		<?php /* ---- Import and Export card -------------------------------------- */ ?>
 
-		<div class="rk-card rk-csv-card" id="rk-redirect-csv" hidden>
-			<div class="rk-card-header">
-				<div class="rk-card-header-left">
+		<div class="rk-ui-card rk-csv-card" id="rk-redirect-csv" hidden>
+			<div class="rk-ui-card-header">
+				<div class="rk-ui-card-header-left">
 					<span class="rk-icon rk-card-header-icon" aria-hidden="true">swap_vert</span>
-					<h3 class="rk-card-title"><?php echo esc_html__( 'Import and Export', 'rankkernel' ); ?></h3>
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Import and Export', 'rankkernel' ); ?></h3>
 				</div>
 				<button
 					type="button"
@@ -523,7 +523,7 @@ $rkMatchBadgeMap = [
 							<h4 class="rk-csv-col-title"><?php echo esc_html__( 'Export', 'rankkernel' ); ?></h4>
 						</div>
 						<p class="rk-form-hint"><?php echo esc_html__( 'Download all redirects in UTF-8 formatted CSV for backups or external editing.', 'rankkernel' ); ?></p>
-						<a class="button rk-btn-export-full" href="<?php echo esc_url( $exportUrl ); ?>"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Export Redirects', 'rankkernel' ); ?></a>
+						<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $exportUrl ); ?>"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Export Redirects', 'rankkernel' ); ?></a>
 					</div>
 
 					<?php /* Import column */ ?>
@@ -592,14 +592,14 @@ $rkMatchBadgeMap = [
 		<?php /* ---- Redirect Settings card (hidden by default, gear toggles it) - */ ?>
 
 		<div
-			class="rk-settings-card"
+			class="rk-ui-card rk-settings-card"
 			id="rk-redirect-settings"
 			hidden
 		>
-			<div class="rk-card-header">
-				<div class="rk-card-header-left">
+			<div class="rk-ui-card-header">
+				<div class="rk-ui-card-header-left">
 					<span class="rk-icon rk-card-header-icon" aria-hidden="true">tune</span>
-					<h3 class="rk-card-title"><?php echo esc_html__( 'Redirect Settings', 'rankkernel' ); ?></h3>
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Redirect Settings', 'rankkernel' ); ?></h3>
 				</div>
 				<button
 					type="button"

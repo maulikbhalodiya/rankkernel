@@ -542,9 +542,9 @@ function rankkernelAnnounce( text ) {
 	 * Notice dismiss
 	 * ------------------------------------------------------------------ */
 
-	document.querySelectorAll( '.rk-redirects .rk-notice-dismiss' ).forEach( function ( btn ) {
+	document.querySelectorAll( '.rk-redirects .rk-ui-notice-dismiss' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
-			var notice = btn.closest( '.rk-notice' );
+			var notice = btn.closest( '.rk-ui-notice' );
 
 			if ( notice ) {
 				notice.style.transition = 'opacity 0.2s';

@@ -59,16 +59,16 @@ $rkListMatchBadgeMap = [
 
 	<?php /* Status tabs */ ?>
 	<nav
-		class="rk-tabs"
+		class="rk-ui-tabs"
 		aria-label="<?php echo esc_attr__( 'Filter redirects by status', 'rankkernel' ); ?>"
 	>
 		<?php foreach ( $statusViews as $statusView ) : ?>
 			<a
 				href="<?php echo esc_url( $statusView['url'] ); ?>"
-				class="rk-tab<?php echo $statusView['current'] ? ' current' : ''; ?>"
+				class="rk-ui-tab<?php echo $statusView['current'] ? ' is-current' : ''; ?>"
 				data-rk-filter-url="<?php echo esc_url( $statusView['url'] ); ?>"
 				<?php echo $statusView['current'] ? ' aria-current="page"' : ''; ?>
-			><?php echo esc_html( $statusView['label'] ); ?> <span class="count"><?php echo esc_html( $statusView['count'] ); ?></span></a>
+			><?php echo esc_html( $statusView['label'] ); ?> <span class="rk-ui-count"><?php echo esc_html( $statusView['count'] ); ?></span></a>
 		<?php endforeach; ?>
 	</nav>
 
@@ -83,16 +83,16 @@ $rkListMatchBadgeMap = [
 			<input type="hidden" name="page" value="<?php echo esc_attr( $screenSlug ); ?>" />
 
 			<div class="rk-filter-left">
-				<div class="rk-search-wrap">
+				<div class="rk-ui-search-wrap">
 					<label for="rk-search-input" class="screen-reader-text"><?php echo esc_html__( 'Search redirects', 'rankkernel' ); ?></label>
-					<span class="rk-icon rk-search-icon" aria-hidden="true">search</span>
+					<span class="rk-icon rk-ui-search-icon" aria-hidden="true">search</span>
 					<input
 						type="search"
 						id="rk-search-input"
 						name="s"
 						value="<?php echo esc_attr( $filterSearch ); ?>"
 						placeholder="<?php echo esc_attr__( 'Search redirects...', 'rankkernel' ); ?>"
-						class="rk-search-input"
+						class="rk-ui-search-input"
 					/>
 				</div>
 				<?php submit_button( __( 'Filter', 'rankkernel' ), 'secondary rk-filter-submit', 'rk_filter', false ); ?>
@@ -100,33 +100,39 @@ $rkListMatchBadgeMap = [
 
 			<div class="rk-filter-right">
 				<label for="rk-filter-match" class="screen-reader-text"><?php echo esc_html__( 'Filter by match type', 'rankkernel' ); ?></label>
-				<select name="rk_match" id="rk-filter-match" class="rk-filter-select">
-					<option value=""><?php echo esc_html__( 'All match types', 'rankkernel' ); ?></option>
-					<?php foreach ( $matchOptions as $matchRow ) : ?>
-						<option
-							value="<?php echo esc_attr( $matchRow['value'] ); ?>"
-							<?php echo selected( (string) $filterMatch, $matchRow['value'], false ); ?>
-						><?php echo esc_html( $matchRow['label'] ); ?></option>
-					<?php endforeach; ?>
-				</select>
+				<div class="rk-ui-select-wrap">
+					<select name="rk_match" id="rk-filter-match" class="rk-ui-select">
+						<option value=""><?php echo esc_html__( 'All match types', 'rankkernel' ); ?></option>
+						<?php foreach ( $matchOptions as $matchRow ) : ?>
+							<option
+								value="<?php echo esc_attr( $matchRow['value'] ); ?>"
+								<?php echo selected( (string) $filterMatch, $matchRow['value'], false ); ?>
+							><?php echo esc_html( $matchRow['label'] ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
+				</div>
 
 				<label for="rk-filter-code" class="screen-reader-text"><?php echo esc_html__( 'Filter by redirect type', 'rankkernel' ); ?></label>
-				<select name="rk_code" id="rk-filter-code" class="rk-filter-select">
-					<option value=""><?php echo esc_html__( 'All codes', 'rankkernel' ); ?></option>
-					<?php foreach ( $codeOptions as $codeRow ) : ?>
-						<option
-							value="<?php echo esc_attr( $codeRow['value'] ); ?>"
-							<?php echo selected( (string) $filterCode, $codeRow['value'], false ); ?>
-						><?php echo esc_html( $codeRow['label'] ); ?></option>
-					<?php endforeach; ?>
-				</select>
+				<div class="rk-ui-select-wrap">
+					<select name="rk_code" id="rk-filter-code" class="rk-ui-select">
+						<option value=""><?php echo esc_html__( 'All codes', 'rankkernel' ); ?></option>
+						<?php foreach ( $codeOptions as $codeRow ) : ?>
+							<option
+								value="<?php echo esc_attr( $codeRow['value'] ); ?>"
+								<?php echo selected( (string) $filterCode, $codeRow['value'], false ); ?>
+							><?php echo esc_html( $codeRow['label'] ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
+				</div>
 
 				<?php if ( $hasFilter ) : ?>
 					<a
 						href="<?php echo esc_url( $clearFiltersUrl ); ?>"
-						class="rk-filter-clear"
+						class="rk-ui-btn rk-ui-btn-secondary"
 						data-rk-filter-url="<?php echo esc_url( $clearFiltersUrl ); ?>"
-					><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
+					><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
 				<?php endif; ?>
 			</div>
 		</form>
@@ -136,17 +142,17 @@ $rkListMatchBadgeMap = [
 
 	<?php if ( ! $listHasRows ) : ?>
 
-		<div class="rk-empty">
+		<div class="rk-ui-empty">
 			<?php if ( $hasFilter ) : ?>
-				<div class="rk-empty-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search_off</span></div>
-				<p class="rk-empty-title"><?php echo esc_html__( 'No redirects match your search.', 'rankkernel' ); ?></p>
-				<p class="rk-empty-body"><?php echo esc_html__( 'Try a different search or clear the active filter controls.', 'rankkernel' ); ?></p>
-				<a class="button" href="<?php echo esc_url( $clearFiltersUrl ); ?>"><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
+				<div class="rk-ui-empty-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search_off</span></div>
+				<p class="rk-ui-empty-title"><?php echo esc_html__( 'No redirects match your search.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-empty-body"><?php echo esc_html__( 'Try a different search or clear the active filter controls.', 'rankkernel' ); ?></p>
+				<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $clearFiltersUrl ); ?>"><span class="rk-icon" aria-hidden="true">filter_alt_off</span><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>
 			<?php else : ?>
-				<div class="rk-empty-icon rk-empty-icon-primary" aria-hidden="true"><span class="rk-icon" aria-hidden="true">alt_route</span></div>
-				<p class="rk-empty-title"><?php echo esc_html__( 'No redirects yet.', 'rankkernel' ); ?></p>
-				<p class="rk-empty-body"><?php echo esc_html__( 'Add your first redirect to send visitors from an old address to a new one.', 'rankkernel' ); ?></p>
-				<a class="button button-primary" href="<?php echo esc_url( $addFirstUrl ); ?>"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add your first redirect', 'rankkernel' ); ?></a>
+				<div class="rk-ui-empty-icon rk-empty-icon-primary" aria-hidden="true"><span class="rk-icon" aria-hidden="true">alt_route</span></div>
+				<p class="rk-ui-empty-title"><?php echo esc_html__( 'No redirects yet.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-empty-body"><?php echo esc_html__( 'Add your first redirect to send visitors from an old address to a new one.', 'rankkernel' ); ?></p>
+				<a class="rk-ui-btn rk-ui-btn-primary" href="<?php echo esc_url( $addFirstUrl ); ?>"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add your first redirect', 'rankkernel' ); ?></a>
 			<?php endif; ?>
 		</div>
 
@@ -311,21 +317,21 @@ $rkListMatchBadgeMap = [
 						<noscript><button type="submit" class="button"><?php echo esc_html__( 'Apply', 'rankkernel' ); ?></button></noscript>
 					</form>
 					<?php if ( $pagination['show'] ) : ?>
-						<div class="rk-page-nums" role="navigation" aria-label="<?php echo esc_attr__( 'Redirect list pages', 'rankkernel' ); ?>">
+						<div class="rk-ui-page-nums" role="navigation" aria-label="<?php echo esc_attr__( 'Redirect list pages', 'rankkernel' ); ?>">
 							<?php if ( '' !== $pagination['prevUrl'] ) : ?>
-								<a class="button rk-page-prev" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 							<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
 								<?php if ( '' === $pageEntry['url'] ) : ?>
-									<span class="rk-page-gap" aria-hidden="true"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+									<span class="rk-ui-page-gap" aria-hidden="true"><?php echo esc_html( $pageEntry['label'] ); ?></span>
 								<?php elseif ( $pageEntry['current'] ) : ?>
-									<span class="button rk-page-num rk-page-current" aria-current="page"><?php echo esc_html( $pageEntry['label'] ); ?></span>
+									<span class="rk-ui-page-link is-current" aria-current="page"><?php echo esc_html( $pageEntry['label'] ); ?></span>
 								<?php else : ?>
-									<a class="button rk-page-num" href="<?php echo esc_url( $pageEntry['url'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pageEntry['url'] ); ?>"><?php echo esc_html( $pageEntry['label'] ); ?></a>
+									<a class="rk-ui-page-link" href="<?php echo esc_url( $pageEntry['url'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pageEntry['url'] ); ?>"><?php echo esc_html( $pageEntry['label'] ); ?></a>
 								<?php endif; ?>
 							<?php endforeach; ?>
 							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
-								<a class="button rk-page-next" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php endif; ?>
 						</div>
 					<?php endif; ?>

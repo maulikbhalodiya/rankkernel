@@ -340,6 +340,22 @@
 	color: var(--rk-color-text);
 }
 
+/* A notice that carries more than one line stacks them in a single body, so
+   the icon, the message and the dismiss control stay on one flex row however
+   many lines the message needs. The single line form above needs no wrapper
+   and is the default; this is the shape for a notice with a bold lead in and
+   a detail line under it. The lead in is a strong inside the first
+   rk-ui-notice-text and the detail lines are rk-ui-sub, so a notice never
+   introduces a private notation for either. */
+.rk-ui .rk-ui-notice-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.rk-ui .rk-ui-notice-body > * + * {
+	margin-block-start: 2px;
+}
+
 .rk-ui .rk-ui-notice-dismiss {
 	flex-shrink: 0;
 	background: none;
@@ -626,6 +642,58 @@
 }
 
 /* ==========================================================================
+   Empty state, the placeholder a list shows instead of rows
+   ========================================================================== */
+
+.rk-ui .rk-ui-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	text-align: center;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+/* The badge is a decorative frame for the glyph, so it carries no wording and
+   the glyph beside it is the one that is hidden from assistive technology.
+   The glyph sets its own size, because the .rk-icon utility declares one. */
+.rk-ui .rk-ui-empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	font-size: 22px;
+	line-height: 1;
+}
+
+.rk-ui .rk-ui-empty-icon .rk-icon {
+	font-size: 24px;
+}
+
+.rk-ui .rk-ui-empty-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-ui .rk-ui-empty-body {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	max-width: 320px;
+}
+
+/* ==========================================================================
    Search plus select
    ========================================================================== */
 
@@ -784,6 +852,8 @@ can overrun the container on a narrow admin column, so break them wherever the
 .rk-ui .rk-ui-card-body,
 .rk-ui .rk-ui-form-row,
 .rk-ui .rk-ui-notice,
+.rk-ui .rk-ui-notice-body,
+.rk-ui .rk-ui-empty,
 .rk-ui .rk-ui-page-header-text {
 	overflow-wrap: anywhere;
 }

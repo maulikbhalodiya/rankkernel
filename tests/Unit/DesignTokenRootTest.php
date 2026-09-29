@@ -127,8 +127,15 @@ final class DesignTokenRootTest extends TestCase {
 			foreach ( explode( ' ', $match[1] ) as $class ) {
 				$class = trim( $class );
 
-				// Only page scope classes matter. wrap and rk-ui are not scopes.
-				if ( 1 !== preg_match( '/^rk-[a-z0-9-]+$/', $class ) || in_array( $class, array( 'rk-ui' ), true ) ) {
+				/*
+				 * Only page scope classes matter. wrap is not a scope, and
+				 * neither is anything in the rk-ui component namespace, because
+				 * those classes live in the shared component layer and can
+				 * never be a token root. A partial such as the Redirects list
+				 * section inherits the rk-ui root of the view that includes
+				 * it, so its first rk-ui class is a component, not a scope.
+				 */
+				if ( 1 !== preg_match( '/^rk-[a-z0-9-]+$/', $class ) || 0 === strpos( $class, 'rk-ui' ) ) {
 					continue;
 				}
 
