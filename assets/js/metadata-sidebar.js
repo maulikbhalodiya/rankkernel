@@ -231,17 +231,18 @@
 
 	var ANALYSIS_HONESTY = __( 'This score measures your content against a checklist. It does not predict rankings.', 'rankkernel' );
 
-	// The toolbar element beside the plugin mark. No score means the mark alone,
-	// so it never implies a number it does not have.
+	// The toolbar element shows the live score in its band colour, RankMath
+	// style, once analysis has produced one. With no score there is no number
+	// to show, so only the mark renders and nothing is implied.
 	function ToolbarScore( props ) {
-		var children = [
-			el( 'span', { key: 'mark', className: 'dashicons dashicons-chart-bar', 'aria-hidden': 'true' } )
-		];
+		var hasScore = null !== props.score && undefined !== props.score;
+		var children = [];
 
-		if ( null !== props.score && undefined !== props.score ) {
+		if ( hasScore ) {
 			children.push( el( 'span', { key: 'value', className: 'rk-toolbar-score-value ' + props.tone, 'aria-hidden': 'true' }, String( props.score ) ) );
 			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis score', 'rankkernel' ) + ': ' + props.score + ' / 100, ' + props.bandLabel ) );
 		} else {
+			children.push( el( 'span', { key: 'mark', className: 'dashicons dashicons-chart-bar', 'aria-hidden': 'true' } ) );
 			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis: no score yet', 'rankkernel' ) ) );
 		}
 
