@@ -2177,6 +2177,56 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the retry submit button carries an accessible aria-label naming the target URL.
+	 */
+	public function test_render_passes_accessible_aria_label_to_retry_submit_button(): void {
+		$buttonCalls = [];
+
+		Functions\when( 'submit_button' )->alias(
+			static function ( ...$args ) use ( &$buttonCalls ): void {
+				$buttonCalls[] = $args;
+			}
+		);
+
+		$payloadUrl = 'https://example.com/failed?a=1&b="test"<script>';
+
+		$this->db->seed(
+			[
+				'url'     => $payloadUrl,
+				'code'    => 503,
+				'message' => 'Temporary failure, retry later.',
+			]
+		);
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		ob_get_clean();
+
+		$retryAriaLabels = [];
+
+		foreach ( $buttonCalls as $args ) {
+			if ( 'Retry' === ( $args[0] ?? '' ) ) {
+				$attributes        = is_array( $args[4] ?? null ) ? $args[4] : [];
+				$retryAriaLabels[] = (string) ( $attributes['aria-label'] ?? '' );
+			}
+		}
+
+		$expectedUnescapedLabel = 'Retry submission for ' . $payloadUrl;
+
+		$this->assertContains(
+			$expectedUnescapedLabel,
+			$retryAriaLabels,
+			'submit_button must receive the expected aria-label attribute specifying the target URL'
+		);
+
+		// Core submit_button() applies esc_attr() to attribute values when rendering HTML attributes.
+		$escapedAttribute = esc_attr( $expectedUnescapedLabel );
+		$this->assertStringContainsString( '&quot;', $escapedAttribute );
+		$this->assertStringNotContainsString( '<script>', $escapedAttribute );
+	}
+
+	/**
 	 * Test the retry form carries the id alone and never the stored URL.
 	 *
 	 * The stored URL is attacker influenced, so the form must post the row
