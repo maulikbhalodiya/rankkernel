@@ -1143,10 +1143,20 @@
 			var cancelled = false;
 			setCheck( { status: 'checking', width: 0, height: 0 } );
 			var probe = new Image();
+			var probeTimer = window.setTimeout( function () {
+				if ( cancelled ) {
+					return;
+				}
+				cancelled = true;
+				probe.src = '';
+				setCheck( { status: 'error', width: 0, height: 0 } );
+			}, 10000 );
 			probe.onload = function () {
 				if ( cancelled ) {
 					return;
 				}
+				cancelled = true;
+				window.clearTimeout( probeTimer );
 				var w = probe.naturalWidth || 0;
 				var h = probe.naturalHeight || 0;
 				if ( w > 0 && ( w < SOCIAL_MIN_W || h < SOCIAL_MIN_H ) ) {
@@ -1159,11 +1169,14 @@
 				if ( cancelled ) {
 					return;
 				}
+				cancelled = true;
+				window.clearTimeout( probeTimer );
 				setCheck( { status: 'error', width: 0, height: 0 } );
 			};
 			probe.src = current.image;
 			return function () {
 				cancelled = true;
+				window.clearTimeout( probeTimer );
 			};
 		}, [ current.image ] );
 
@@ -1382,8 +1395,10 @@
 			document.body.removeChild( link );
 			window.URL.revokeObjectURL( url );
 		} catch ( e ) {
-			return;
+			return false;
 		}
+
+		return true;
 	}
 
 	// Preview snippet editor modal: an alternate editing surface over the
@@ -2760,7 +2775,9 @@
 								className: 'button button-small rk-schema-export',
 								disabled: disabled,
 								onClick: function () {
-									downloadJson( 'schema.json', schemaObject( schema ) );
+									if ( ! downloadJson( 'schema.json', schemaObject( schema ) ) ) {
+										setError( 'schema.customText', __( 'Export failed, nothing was downloaded.', 'rankkernel' ) );
+									}
 								}
 							}, __( 'Export JSON', 'rankkernel' ) )
 						),
@@ -2799,6 +2816,12 @@
 										setError( 'schema.customText', '' );
 										clearDraft( 'schema.customText' );
 										saveSchema( parsed );
+									};
+									reader.onerror = function () {
+										setError( 'schema.customText', __( 'Import file could not be read, nothing was saved.', 'rankkernel' ) );
+									};
+									reader.onabort = function () {
+										setError( 'schema.customText', __( 'Import file could not be read, nothing was saved.', 'rankkernel' ) );
 									};
 									reader.readAsText( file );
 								}

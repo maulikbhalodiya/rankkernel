@@ -255,7 +255,12 @@ function rankkernelAnnounce( text ) {
 			}
 
 			var kv = part.split( '=' );
-			params[ decodeURIComponent( kv[ 0 ] ) ] = decodeURIComponent( kv[ 1 ] || '' );
+
+			try {
+				params[ decodeURIComponent( kv[ 0 ] ) ] = decodeURIComponent( kv[ 1 ] || '' );
+			} catch ( error ) {
+				params[ kv[ 0 ] ] = kv[ 1 ] || '';
+			}
 		} );
 
 		Object.keys( overrides ).forEach( function ( key ) {
@@ -306,11 +311,23 @@ function rankkernelAnnounce( text ) {
 		listWrap.classList.add( 'rk-list-loading' );
 		listWrap.setAttribute( 'aria-busy', 'true' );
 
+		/* Bound the request so a slow host cannot wedge the list UI: the abort
+		flows into the catch fallback below, which clears the loading state. */
+		var controller = ( typeof window.AbortController === 'function' ) ? new window.AbortController() : null;
+		var fetchTimer = null;
+
+		if ( controller ) {
+			fetchTimer = window.setTimeout( function () {
+				controller.abort();
+			}, 15000 );
+		}
+
 		fetch( cfg.ajaxUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: body.toString(),
+			signal: controller ? controller.signal : undefined,
 		} )
 			.then( function ( response ) {
 				if ( ! response.ok ) {
@@ -320,8 +337,11 @@ function rankkernelAnnounce( text ) {
 				return response.json();
 			} )
 			.then( function ( data ) {
-				if ( data.success && typeof data.data.html === 'string' ) {
-					listWrap.outerHTML = data.data.html;
+				if ( ! data || 'object' !== typeof data || ! data.success || ! data.data || 'object' !== typeof data.data || 'string' !== typeof data.data.html ) {
+					throw new Error( 'Unexpected response' );
+				}
+
+				listWrap.outerHTML = data.data.html;
 
 					/* Re-acquire the reference after innerHTML swap. */
 					listWrap = document.getElementById( 'rk-list-section' );
@@ -340,9 +360,6 @@ function rankkernelAnnounce( text ) {
 					}
 
 					rankkernelAnnounce( __( 'Redirect list updated.', 'rankkernel' ) );
-				} else {
-					throw new Error( 'Unexpected response' );
-				}
 			} )
 			.catch( function () {
 				/* Silent fallback: let the normal link navigate. */
@@ -354,6 +371,10 @@ function rankkernelAnnounce( text ) {
 				window.location.href = filterUrl;
 			} )
 			.finally( function () {
+				if ( fetchTimer ) {
+					window.clearTimeout( fetchTimer );
+				}
+
 				ajaxActive = false;
 			} );
 	}

@@ -81,7 +81,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	var exclusionAdd = document.getElementById( 'rk-exclusion-add' );
 	var exclusionTemplate = document.getElementById( 'rk-exclusion-template' );
 
-	if ( exclusionAdd && exclusionBody && exclusionTemplate ) {
+	if ( exclusionAdd && exclusionBody && exclusionTemplate && exclusionTemplate.content ) {
 		exclusionAdd.addEventListener( 'click', function () {
 			var clone = exclusionTemplate.content.cloneNode( true );
 

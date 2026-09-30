@@ -213,6 +213,7 @@ function settingsFixture() {
 	};
 
 	const fetchCalls = [];
+	const location = { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' };
 	const sandbox = {
 		document,
 		FormData: class {
@@ -221,7 +222,7 @@ function settingsFixture() {
 		},
 		URL,
 		history: { pushState() {} },
-		location: { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' },
+		location,
 		confirm: () => true,
 		addEventListener() {},
 		wp,
@@ -250,7 +251,7 @@ function settingsFixture() {
 		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
 	}
 
-	return { body, current, document, frame, general, social, click, swap, fetchCalls };
+	return { body, current, document, frame, general, social, click, swap, fetchCalls, location };
 }
 
 test( 'media picker remains bound after a settings section swap and a second interaction', async () => {
@@ -281,4 +282,17 @@ test( 'media picker remains bound after a settings section swap and a second int
 	assert.equal( fixture.current.id.value, '202' );
 	assert.equal( fixture.frame.opened, 2 );
 	assert.equal( fixture.fetchCalls.length, 3 );
+} );
+
+test( 'a nav link with a malformed href falls back to normal navigation', () => {
+	const fixture = settingsFixture();
+	const badHref = 'http://[invalid';
+
+	const badLink = element( { attrs: { href: badHref } } );
+
+	assert.doesNotThrow( () => {
+		fixture.click( badLink );
+	}, 'a malformed href must not kill the click handler' );
+
+	assert.equal( fixture.location.href, badHref, 'the guard falls back to navigation instead of dying silently' );
 } );
