@@ -25,77 +25,86 @@ final class AdminMenu {
 	/**
 	 * Settings page instance.
 	 *
-	 * @var SettingsPage
+	 * @var SettingsPage|null
 	 */
-	private readonly SettingsPage $page;
+	private ?SettingsPage $page = null;
 
 	/**
 	 * Sitemap settings page instance.
 	 *
-	 * @var SitemapSettingsPage
+	 * @var SitemapSettingsPage|null
 	 */
-	private readonly SitemapSettingsPage $sitemapPage;
+	private ?SitemapSettingsPage $sitemapPage = null;
 
 	/**
 	 * Schema settings page instance.
 	 *
-	 * @var SchemaSettingsPage
+	 * @var SchemaSettingsPage|null
 	 */
-	private readonly SchemaSettingsPage $schemaPage;
+	private ?SchemaSettingsPage $schemaPage = null;
 
 	/**
 	 * Redirects page instance.
 	 *
-	 * @var RedirectsPage
+	 * @var RedirectsPage|null
 	 */
-	private readonly RedirectsPage $redirectsPage;
+	private ?RedirectsPage $redirectsPage = null;
 
 	/**
 	 * 404 Monitor page instance.
 	 *
-	 * @var NotFoundPage
+	 * @var NotFoundPage|null
 	 */
-	private readonly NotFoundPage $monitorPage;
+	private ?NotFoundPage $monitorPage = null;
 
 	/**
 	 * Dashboard page instance.
 	 *
-	 * @var DashboardPage
+	 * @var DashboardPage|null
 	 */
-	private readonly DashboardPage $dashboardPage;
+	private ?DashboardPage $dashboardPage = null;
 
 	/**
 	 * Instant Indexing page instance.
 	 *
-	 * @var InstantIndexingPage
+	 * @var InstantIndexingPage|null
 	 */
-	private readonly InstantIndexingPage $instantIndexingPage;
+	private ?InstantIndexingPage $instantIndexingPage = null;
 
 	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore        $store     Settings store.
 	 * @param ModuleEnableMap      $enableMap Module enable map.
-	 * @param SitemapSettings|null $sitemap Sitemap settings store, fresh one when null.
+	 * @param SitemapSettings|null $sitemap   Sitemap settings store, fresh one when null.
 	 */
 	public function __construct(
 		private readonly SettingsStore $store,
 		private readonly ModuleEnableMap $enableMap,
-		?SitemapSettings $sitemap = null
+		private readonly ?SitemapSettings $sitemap = null
 	) {
-		$this->page                = new SettingsPage( $this->store, $this->enableMap );
-		$this->sitemapPage         = new SitemapSettingsPage( $sitemap ?? new SitemapSettings() );
-		$this->schemaPage          = new SchemaSettingsPage( $this->store );
-		$this->redirectsPage       = new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
-		$this->monitorPage         = new NotFoundPage();
-		$this->dashboardPage       = new DashboardPage();
-		$this->instantIndexingPage = new InstantIndexingPage( null, $this->enableMap );
-
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSharedStyles' ] );
 
 		// The sitemap screen owns a page scoped feature stylesheet, so its
 		// enqueue runs on the same hook and gates itself by hook suffix.
-		add_action( 'admin_enqueue_scripts', [ $this->sitemapPage, 'enqueueAssets' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSitemapAssets' ] );
+	}
+
+	/**
+	 * Enqueue sitemap page assets, gated by hook suffix.
+	 *
+	 * Performance optimization: checks the current screen hook suffix before
+	 * instantiating the SitemapSettingsPage controller to avoid eager object creation
+	 * on unrelated admin requests.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueSitemapAssets( string $hookSuffix = '' ): void {
+		if ( SitemapSettingsPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getSitemapPage()->enqueueAssets( $hookSuffix );
 	}
 
 	/**
@@ -140,57 +149,87 @@ final class AdminMenu {
 	}
 
 	/**
-	 * Get the settings page (for testing).
+	 * Get the settings page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return SettingsPage The result.
 	 */
 	public function getPage(): SettingsPage {
-		return $this->page;
+		return $this->page ??= new SettingsPage( $this->store, $this->enableMap );
 	}
 
 	/**
-	 * Get the sitemap settings page (for testing).
+	 * Get the sitemap settings page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return SitemapSettingsPage The result.
 	 */
 	public function getSitemapPage(): SitemapSettingsPage {
-		return $this->sitemapPage;
+		return $this->sitemapPage ??= new SitemapSettingsPage( $this->sitemap ?? new SitemapSettings() );
 	}
 
 	/**
-	 * Get the schema settings page (for testing).
+	 * Get the schema settings page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return SchemaSettingsPage The result.
 	 */
 	public function getSchemaPage(): SchemaSettingsPage {
-		return $this->schemaPage;
+		return $this->schemaPage ??= new SchemaSettingsPage( $this->store );
 	}
 
 	/**
-	 * Get the redirects page (for testing).
+	 * Get the redirects page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return RedirectsPage The result.
 	 */
 	public function getRedirectsPage(): RedirectsPage {
-		return $this->redirectsPage;
+		return $this->redirectsPage ??= new RedirectsPage( new RedirectRepository(), new RedirectsSettings() );
 	}
 
 	/**
-	 * Get the 404 Monitor page (for testing).
+	 * Get the 404 Monitor page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return NotFoundPage The result.
 	 */
 	public function getMonitorPage(): NotFoundPage {
-		return $this->monitorPage;
+		return $this->monitorPage ??= new NotFoundPage();
 	}
 
 	/**
-	 * Get the Instant Indexing page (for testing).
+	 * Get the Instant Indexing page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
 	 *
 	 * @return InstantIndexingPage The result.
 	 */
 	public function getInstantIndexingPage(): InstantIndexingPage {
-		return $this->instantIndexingPage;
+		return $this->instantIndexingPage ??= new InstantIndexingPage( null, $this->enableMap );
+	}
+
+	/**
+	 * Get the dashboard page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller and repository construction
+	 * until the page is explicitly accessed or rendered.
+	 *
+	 * @return DashboardPage The result.
+	 */
+	public function getDashboardPage(): DashboardPage {
+		return $this->dashboardPage ??= new DashboardPage();
 	}
 
 	/**
@@ -229,7 +268,7 @@ final class AdminMenu {
 			'RankKernel',
 			'manage_options',
 			DashboardPage::SLUG,
-			[ $this->dashboardPage, 'render' ],
+			[ $this, 'renderDashboard' ],
 			'dashicons-search',
 			80
 		);
@@ -243,13 +282,13 @@ final class AdminMenu {
 			'Dashboard',
 			'manage_options',
 			DashboardPage::SLUG,
-			[ $this->dashboardPage, 'render' ]
+			[ $this, 'renderDashboard' ]
 		);
 
 		// Save handling runs on the load hook, before ANY output, so the
 		// post-redirect-get pattern can send its Location header.
-		add_action( 'load-' . $hook, [ $this->dashboardPage, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->dashboardPage, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleDashboardSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueDashboardAssets' ] );
 
 		$sitemapHook = add_submenu_page(
 			'rankkernel',
@@ -257,11 +296,52 @@ final class AdminMenu {
 			'Sitemap',
 			'manage_options',
 			'rankkernel-sitemap',
-			[ $this->sitemapPage, 'render' ]
+			[ $this, 'renderSitemap' ]
 		);
 
 		// Same load hook save pattern, so the tab redirect stays header safe.
-		add_action( 'load-' . $sitemapHook, [ $this->sitemapPage, 'maybeHandleSave' ] );
+		add_action( 'load-' . $sitemapHook, [ $this, 'handleSitemapSave' ] );
+	}
+
+	/**
+	 * Render dashboard page callback.
+	 */
+	public function renderDashboard(): void {
+		$this->getDashboardPage()->render();
+	}
+
+	/**
+	 * Handle dashboard save callback.
+	 */
+	public function handleDashboardSave(): void {
+		$this->getDashboardPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue dashboard page assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueDashboardAssets( string $hookSuffix ): void {
+		if ( DashboardPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getDashboardPage()->enqueueAssets( $hookSuffix );
+	}
+
+	/**
+	 * Render sitemap page callback.
+	 */
+	public function renderSitemap(): void {
+		$this->getSitemapPage()->render();
+	}
+
+	/**
+	 * Handle sitemap save callback.
+	 */
+	public function handleSitemapSave(): void {
+		$this->getSitemapPage()->maybeHandleSave();
 	}
 
 	/**
@@ -277,20 +357,38 @@ final class AdminMenu {
 			'General Settings',
 			'manage_options',
 			'rankkernel-general',
-			[ $this->page, 'render' ]
+			[ $this, 'renderGeneral' ]
 		);
 
-		add_action( 'load-' . $hook, [ $this->page, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->page, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleGeneralSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueGeneralAssets' ] );
 	}
 
 	/**
-	 * Get the dashboard page (for testing).
-	 *
-	 * @return DashboardPage The result.
+	 * Render general settings callback.
 	 */
-	public function getDashboardPage(): DashboardPage {
-		return $this->dashboardPage;
+	public function renderGeneral(): void {
+		$this->getPage()->render();
+	}
+
+	/**
+	 * Handle general settings save callback.
+	 */
+	public function handleGeneralSave(): void {
+		$this->getPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue general settings assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueGeneralAssets( string $hookSuffix ): void {
+		if ( 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getPage()->enqueueAssets( $hookSuffix );
 	}
 
 	/**
@@ -307,11 +405,38 @@ final class AdminMenu {
 			'Schema',
 			'manage_options',
 			'rankkernel-schema',
-			[ $this->schemaPage, 'render' ]
+			[ $this, 'renderSchema' ]
 		);
 
-		add_action( 'load-' . $hook, [ $this->schemaPage, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->schemaPage, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleSchemaSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSchemaAssets' ] );
+	}
+
+	/**
+	 * Render schema settings callback.
+	 */
+	public function renderSchema(): void {
+		$this->getSchemaPage()->render();
+	}
+
+	/**
+	 * Handle schema settings save callback.
+	 */
+	public function handleSchemaSave(): void {
+		$this->getSchemaPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue schema settings assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueSchemaAssets( string $hookSuffix ): void {
+		if ( 'rankkernel_page_rankkernel-schema' !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getSchemaPage()->enqueueAssets( $hookSuffix );
 	}
 
 	/**
@@ -328,11 +453,38 @@ final class AdminMenu {
 			'Redirects',
 			'manage_options',
 			'rankkernel-redirects',
-			[ $this->redirectsPage, 'render' ]
+			[ $this, 'renderRedirects' ]
 		);
 
-		add_action( 'load-' . $hook, [ $this->redirectsPage, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->redirectsPage, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleRedirectsSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueRedirectsAssets' ] );
+	}
+
+	/**
+	 * Render redirects page callback.
+	 */
+	public function renderRedirects(): void {
+		$this->getRedirectsPage()->render();
+	}
+
+	/**
+	 * Handle redirects save callback.
+	 */
+	public function handleRedirectsSave(): void {
+		$this->getRedirectsPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue redirects assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueRedirectsAssets( string $hookSuffix ): void {
+		if ( RedirectsPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getRedirectsPage()->enqueueAssets( $hookSuffix );
 	}
 
 	/**
@@ -349,11 +501,38 @@ final class AdminMenu {
 			'404 Monitor',
 			'manage_options',
 			'rankkernel-404',
-			[ $this->monitorPage, 'render' ]
+			[ $this, 'renderMonitor' ]
 		);
 
-		add_action( 'load-' . $hook, [ $this->monitorPage, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->monitorPage, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleMonitorSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueMonitorAssets' ] );
+	}
+
+	/**
+	 * Render monitor page callback.
+	 */
+	public function renderMonitor(): void {
+		$this->getMonitorPage()->render();
+	}
+
+	/**
+	 * Handle monitor save callback.
+	 */
+	public function handleMonitorSave(): void {
+		$this->getMonitorPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue monitor assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueMonitorAssets( string $hookSuffix ): void {
+		if ( NotFoundPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getMonitorPage()->enqueueAssets( $hookSuffix );
 	}
 
 	/**
@@ -370,10 +549,37 @@ final class AdminMenu {
 			'Instant Indexing',
 			'manage_options',
 			InstantIndexingPage::SLUG,
-			[ $this->instantIndexingPage, 'render' ]
+			[ $this, 'renderInstantIndexing' ]
 		);
 
-		add_action( 'load-' . $hook, [ $this->instantIndexingPage, 'maybeHandleSave' ] );
-		add_action( 'admin_enqueue_scripts', [ $this->instantIndexingPage, 'enqueueAssets' ] );
+		add_action( 'load-' . $hook, [ $this, 'handleInstantIndexingSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueInstantIndexingAssets' ] );
+	}
+
+	/**
+	 * Render instant indexing page callback.
+	 */
+	public function renderInstantIndexing(): void {
+		$this->getInstantIndexingPage()->render();
+	}
+
+	/**
+	 * Handle instant indexing save callback.
+	 */
+	public function handleInstantIndexingSave(): void {
+		$this->getInstantIndexingPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue instant indexing assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueInstantIndexingAssets( string $hookSuffix ): void {
+		if ( InstantIndexingPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getInstantIndexingPage()->enqueueAssets( $hookSuffix );
 	}
 }
