@@ -4,10 +4,15 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card, so the card header carries the section name
- * and the card body carries the form rows. Every row here has exactly one
- * control, so each row title is a real label for its field and takes the
- * shared rk-ui-form-label treatment.
+ * The section is a page scoped card: an 18px section title over a hairline
+ * rule, then the rows. Every row here has exactly one control, so each row
+ * title is a real label for its field and takes the shared rk-ui-form-label
+ * treatment, which the page stylesheet retargets to the 14px sentence case
+ * notation the approved sheet draws on this screen.
+ *
+ * The separator row carries the sheet's right aligned character limit beside
+ * the label, so the label and the caption share one head row while the label
+ * still points straight at its input.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -50,24 +55,34 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-general" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-general-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-general-title"><?php echo esc_html__( 'General', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head">
+		<h3 class="rk-settings-section-title" id="rk-section-general-title"><?php echo esc_html__( 'General', 'rankkernel' ); ?></h3>
 	</div>
-	<div class="rk-ui-card-body">
+	<div class="rk-settings-section-body">
 		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Title and description templates', 'rankkernel' ); ?></h4>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-title-template"><?php echo esc_html__( 'Title template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="regular-text rk-code-editor" />
+			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" />
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 		</div>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-desc-template"><?php echo esc_html__( 'Description template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="regular-text rk-code-editor" />
+			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" />
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 		</div>
 		<div class="rk-ui-form-row">
-			<label class="rk-ui-form-label" for="rk-separator"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-separator" name="separator" value="<?php echo esc_attr( $titleSeparator ); ?>" class="regular-text" maxlength="10" />
+			<?php
+			/*
+			 * The sheet puts the character limit on the same line as the label
+			 * and holds the field to a narrow measure, so the separator never
+			 * stretches across the card the way the templates do.
+			 */
+			?>
+			<div class="rk-settings-row-head">
+				<label class="rk-ui-form-label" for="rk-separator"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></label>
+				<span class="rk-settings-meta"><?php echo esc_html__( '10 characters max', 'rankkernel' ); ?></span>
+			</div>
+			<input type="text" id="rk-separator" name="separator" value="<?php echo esc_attr( $titleSeparator ); ?>" class="rk-settings-input rk-settings-input--narrow" maxlength="10" />
 		</div>
 	</div>
 </section>

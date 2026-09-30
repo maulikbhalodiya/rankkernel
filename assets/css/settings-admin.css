@@ -1,54 +1,104 @@
 /**
  * General Settings screen styles.
  *
- * Loaded only on the RankKernel General Settings screen. Shared components
- * (buttons, cards, card headers, card bodies, page header, notices, form rows,
- * form labels, helper text and focus rings) live in
- * assets/css/rankkernel-ui.css under the rk-ui scope, which AdminMenu
- * enqueues on every RankKernel screen, so this sheet holds only what is
- * genuinely this screen: the two column shell, the left rail, the section
- * subheadings, the collapsible taxonomy block, the multi line callouts the one
- * line shared notice cannot carry, and the crawler policy grid.
+ * Hand written match of the RankKernel General Settings design export, built
+ * without Tailwind and without a build step. Loaded only on the RankKernel
+ * General Settings screen via SettingsPage::enqueueAssets. Shared components
+ * (buttons, cards, page title, notices, pills, select wrappers, form rows,
+ * switch, icons) live in assets/css/rankkernel-ui.css under the rk-ui scope,
+ * which loads as a registered dependency before this sheet, so this file holds
+ * the page scoped shell, the left rail, the section cards, the field notation
+ * and the few blocks the shared layer has no equivalent for.
  *
- * Every colour, spacing, type, radius and shadow value comes from the --rk-*
- * tokens in the shared token layer, which loads as a registered dependency
- * before this sheet. No raw hex is permitted here.
+ * Two shared notations are deliberately retargeted inside this page's scope.
+ * The approved sheet draws every field label as 14px sentence case, where the
+ * shared label is a 12px uppercase micro label, and it draws helper text at
+ * 13px, where the shared hint is 12px. Both overrides are scoped under
+ * .rk-settings-wrap, named in one place, and change only size, case and
+ * colour, so the shared components keep their behaviour everywhere else.
+ *
+ * Every colour, spacing, radius and shadow value comes from the --rk-* tokens
+ * in the shared token layer. No raw hex is permitted here, which
+ * DesignTokenRootTest enforces.
  *
  * @package RankKernel
  */
 
 /* ==========================================================================
-   Page shell. The shared components carry no outer margin, so the rhythm
-   between the top level blocks is stated once here rather than restated on
-   each one. Third party plugin notices land inside .wrap ahead of this
-   content and are left alone.
+   Page shell. The header card carries the title, the description and the
+   notice row, the way the approved sheet draws it. Third party plugin
+   notices land inside .wrap ahead of this content and are left alone.
    ========================================================================== */
 
-.rk-settings-wrap > .rk-ui-notice,
-.rk-settings-wrap > form {
-	margin-block-start: var(--rk-space-4);
+.rk-settings-wrap {
+	padding-block-end: var(--rk-space-6);
 }
+
+.rk-settings-wrap > .rk-settings-header {
+	padding: var(--rk-space-6);
+	margin-block-end: var(--rk-space-6);
+}
+
+.rk-settings-wrap .rk-settings-header .rk-ui-sub {
+	margin-block-start: var(--rk-space-1);
+	color: var(--rk-color-text-muted);
+}
+
+/* The notice row. At most one notice is set on a real request, so auto-fit
+   lets a lone notice take the full measure instead of half of a two column
+   grid with an empty column beside it, and both sit side by side when a
+   request ever carries two. */
+.rk-settings-notices {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--rk-space-4);
+	margin-block-start: var(--rk-space-6);
+}
+
+/* The sheet paints the notice message in the semantic colour, so the notice
+   root carries it and the shared text inherits it. The icon colour already
+   comes from the shared variants. */
+.rk-settings-notices .rk-ui-notice-success {
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-settings-notices .rk-ui-notice-error {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-settings-notices .rk-ui-notice-text {
+	color: inherit;
+}
+
+/* ==========================================================================
+   Two column workspace. The rail is a sticky nav over the sections of one
+   form, not a scrolling panel, so it keeps its own page scoped surface.
+   ========================================================================== */
 
 .rk-settings {
 	display: grid;
 	grid-template-columns: 240px minmax(0, 1fr);
 	align-items: start;
-	gap: var(--rk-space-5);
+	gap: calc(var(--rk-space-4) * 2);
+}
+
+.rk-settings-body {
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--rk-space-4) * 2);
+	min-width: 0;
 }
 
 /* ==========================================================================
-   Left rail. The rail is a sticky nav over the sections of one form, not a
-   scrolling panel, so the shared card surface does not fit it: the design
-   system has no sticky component, and SettingsPageTest pins the nav class
-   attribute exactly, so the surface stays page scoped here. Every value is a
-   token, and the active link keeps the is-active class that
-   settings-admin.js toggles.
+   Left rail. Every value is a token, and the active link keeps the is-active
+   class that settings-admin.js toggles, plus the 3px start border the sheet
+   draws, so the current section is signalled by a shape as well as a colour.
    ========================================================================== */
 
 .rk-settings-nav {
 	position: sticky;
 	inset-block-start: 48px;
-	overflow: hidden;
+	padding: var(--rk-space-6);
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-lg);
 	background: var(--rk-color-surface);
@@ -59,9 +109,9 @@
 	display: flex;
 	align-items: center;
 	gap: var(--rk-space-2);
-	margin: 0;
-	padding: var(--rk-space-3) var(--rk-space-4);
-	border-block-end: 1px solid var(--rk-color-border);
+	margin: 0 0 var(--rk-space-4);
+	padding-block-end: var(--rk-space-3);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
 	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-md);
 	font-weight: 600;
@@ -74,19 +124,17 @@
 }
 
 .rk-settings-nav ul {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
 	margin: 0;
-	padding: var(--rk-space-3);
+	padding: 0;
 	list-style: none;
 }
 
-.rk-settings-nav li + li {
-	margin-block-start: 2px;
-}
-
 .rk-settings-nav a {
-	position: relative;
 	display: block;
-	padding: var(--rk-space-2) var(--rk-space-3) var(--rk-space-2) var(--rk-space-4);
+	padding: var(--rk-space-2) var(--rk-space-3);
 	border-radius: var(--rk-radius-md);
 	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-md);
@@ -95,112 +143,693 @@
 	transition: background 0.15s, color 0.15s;
 }
 
-/* The active marker is a shape as well as a colour, so the current section is
-   never signalled by the fill alone. */
-.rk-settings-nav a::before {
-	position: absolute;
-	inset-block: 0;
-	inset-inline-start: 0;
-	width: 3px;
-	border-radius: var(--rk-radius-sm) 0 0 var(--rk-radius-sm);
-	background: transparent;
-	content: "";
-}
-
 .rk-settings-nav a:hover {
 	color: var(--rk-color-text);
-	background: var(--rk-color-surface-muted);
-}
-
-.rk-settings-nav a.is-active {
-	color: var(--rk-color-primary);
-	background: var(--rk-color-primary-soft);
-	font-weight: 600;
-}
-
-.rk-settings-nav a.is-active::before {
-	background: var(--rk-color-primary);
-}
-
-/* ==========================================================================
-   Section card and the subheadings inside it
-   ========================================================================== */
-
-/* Each section file renders itself as the shared card, because the section
-   loader replaces the body column with a single section on every navigation.
-   A card owned by the shell would keep the first section's chrome forever. */
-.rk-settings-section {
-	display: flex;
-	flex-direction: column;
-}
-
-/* A grouping heading inside a card body. The card title is the h3, so this is
-   the next level down and sits one step quieter than the card title. */
-.rk-settings-subhead {
-	margin: 0;
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-md);
-	font-weight: 600;
-	line-height: var(--rk-line-height-tight);
-}
-
-.rk-settings-body {
-	min-width: 0;
-}
-
-/* submit_button() wraps its input in a p.submit, and it sits at the end of
-   the body column rather than inside the section card, so it gets the same
-   gap the card body would otherwise have given it. */
-.rk-settings-body > p.submit {
-	margin-block-start: var(--rk-space-5);
-}
-
-/* The taxonomy block is a native details element, so the marker and the
-   closed state come from the browser. Only the summary is themed, and the
-   rotate affordance uses a shipped ligature rather than a drawn chevron. */
-.rk-settings-section details {
-	padding: var(--rk-space-4);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
 	background: var(--rk-color-surface-subtle);
 }
 
-.rk-settings-section details > summary {
+.rk-settings-nav a.is-active {
+	border-inline-start: 3px solid var(--rk-color-primary);
+	border-start-start-radius: 0;
+	border-end-start-radius: 0;
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Section cards. Each section file renders its own card, because the section
+   loader replaces the body column with a single section on every navigation.
+   ========================================================================== */
+
+.rk-settings-section {
+	padding: var(--rk-space-6);
+}
+
+.rk-settings-section-head {
 	display: flex;
 	align-items: center;
-	gap: var(--rk-space-2);
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	margin: 0 0 var(--rk-space-5);
+	padding-block-end: var(--rk-space-3);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+/* Sections whose intro paragraph follows the title rule need the title rule
+   closer to that paragraph than to the rows below it. */
+.rk-settings-section-head--tight {
+	margin-block-end: var(--rk-space-2);
+}
+
+.rk-settings-section-head--snug {
+	margin-block-end: var(--rk-space-4);
+}
+
+.rk-settings-section-title {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xl);
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+	letter-spacing: -0.01em;
+}
+
+.rk-settings-section-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-6);
+}
+
+/* The destructive badge keeps the shared pill semantics and takes the square
+   corner treatment the sheet draws beside the Advanced title. */
+.rk-settings-wrap .rk-settings-badge {
+	padding: 2px 10px;
+	border-radius: var(--rk-radius-sm);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* ==========================================================================
+   Shared notation retargeted for this screen, named once. See the file
+   header for why these two exist.
+   ========================================================================== */
+
+.rk-settings-wrap .rk-ui-form-label {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.rk-settings-wrap .rk-ui-hint {
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-settings-wrap .rk-ui-sub {
+	color: var(--rk-color-text-muted);
+}
+
+/* ==========================================================================
+   Stack helpers inside a section body
+   ========================================================================== */
+
+/* A group of rows inside a section body. */
+.rk-settings-rows {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+}
+
+/* A section body block: heading, description and the controls that follow. */
+.rk-settings-block {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+}
+
+/* A block separated from the one above by a hairline rule, which is how the
+   sheet separates Appearance from Trail behavior and the crawler policy from
+   the robots.txt editor. */
+.rk-settings-block--ruled {
+	gap: var(--rk-space-4);
+	padding-block-start: var(--rk-space-4);
+	border-block-start: 1px solid var(--rk-color-surface-muted);
+}
+
+/* A grouping heading inside a card body. The card title is the h3, so this is
+   the next level down and takes the sheet's 13px bold step. */
+.rk-settings-subhead {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+}
+
+/* A sentence that leads a section, drawn one step stronger than the helper
+   notation the sheet uses under a control. */
+.rk-settings-lead {
+	margin: 0;
 	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+}
+
+/* Label and a right aligned note on one head row, for the rows whose sheet
+   drawing puts a limit or caption beside the label. */
+.rk-settings-row-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+}
+
+.rk-settings-row-head--measure {
+	max-width: 448px;
+}
+
+.rk-settings-meta {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+	white-space: nowrap;
+}
+
+/* The sheet draws one sentence under a label at full text colour rather than
+   the helper grey, because it describes the box itself. */
+.rk-settings-hint-strong {
+	color: var(--rk-color-text);
+}
+
+/* ==========================================================================
+   Fields. Single line inputs and the monospace editors share one surface,
+   the height and radius the sheet draws for each.
+   ========================================================================== */
+
+.rk-settings-input {
+	box-sizing: border-box;
+	width: 100%;
+	height: 40px;
+	padding: 0 var(--rk-space-3);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-sans);
+	font-size: var(--rk-font-size-md);
+	line-height: var(--rk-line-height-normal);
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-settings-input:focus,
+.rk-settings-input:focus-visible {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-settings-input--mono {
+	font-family: var(--rk-font-mono);
+}
+
+.rk-settings-input--narrow {
+	max-width: 320px;
+}
+
+.rk-settings-input--medium {
+	max-width: 384px;
+}
+
+.rk-settings-input--wide {
+	max-width: 448px;
+}
+
+.rk-settings-input--prefixed {
+	padding-inline-start: 28px;
+}
+
+/* The monospace editor: robots.txt, llms.txt and .htaccess all use it. The
+   height comes from the rows attribute the view sets. */
+.rk-code-editor {
+	box-sizing: border-box;
+	width: 100%;
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-loose);
+	resize: vertical;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-code-editor--roomy {
+	padding: var(--rk-space-4);
+}
+
+.rk-code-editor:focus,
+.rk-code-editor:focus-visible {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+/* The tall select the sheet draws for the taxonomy rows, laid over the shared
+   select control so the chevron stays the shared one. */
+.rk-settings-select-wrap {
+	max-width: 448px;
+}
+
+.rk-settings-wrap .rk-settings-select {
+	width: 100%;
+	height: 40px;
+	padding: 0 32px 0 var(--rk-space-3);
+	border-radius: var(--rk-radius-sm);
+	font-size: var(--rk-font-size-md);
+}
+
+/* A prefix mark sitting inside a field, such as the at sign on the X handle. */
+.rk-input-prefix {
+	position: relative;
+}
+
+.rk-input-prefix-mark {
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-start: var(--rk-space-3);
+	transform: translateY(-50%);
+	color: var(--rk-color-text-muted);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-md);
+	line-height: 1;
+	pointer-events: none;
+}
+
+/* ==========================================================================
+   Checkbox rows. The box first, then its bold label and the sentences the box
+   points at through aria-describedby.
+   ========================================================================== */
+
+.rk-settings-checks {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+}
+
+.rk-settings-check {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+}
+
+.rk-settings-check input[type="checkbox"] {
+	flex-shrink: 0;
+	width: 16px;
+	height: 16px;
+	margin: 4px 0 0;
+	accent-color: var(--rk-color-primary);
+}
+
+.rk-settings-check-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-settings-check-title {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	line-height: var(--rk-line-height-normal);
+	cursor: pointer;
+}
+
+/* ==========================================================================
+   Separator chooser. The real radios stay in the fieldset and the tab order;
+   the pill is the visible surface, and :has() carries the checked and focus
+   states onto it.
+   ========================================================================== */
+
+/* The fieldset element itself stays bare, because BreadcrumbsOutputTest pins
+   the literal opening tag, so the flex layout is stated through the wrapper
+   class the view puts around it. */
+.rk-settings-separator fieldset {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-inline-size: 0;
+}
+
+.rk-settings-pill {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 32px;
+	padding: 0 14px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 999px;
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-md);
+	font-weight: 500;
+	line-height: 1;
+	cursor: pointer;
+	transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.rk-settings-pill:hover {
+	border-color: var(--rk-color-text-hint);
+}
+
+.rk-settings-pill input[type="radio"] {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+}
+
+.rk-settings-pill:has(input:checked) {
+	border: 2px solid var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+.rk-settings-pill:has(input:focus-visible) {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+/* The sheet draws the Custom pill one step quieter while it is not chosen. */
+.rk-settings-pill--custom:not(:has(input:checked)) {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text-muted);
+}
+
+/* The custom separator field sits on its own line under the pill row. The
+   hidden attribute wins over the flex display, because the browser default
+   for [hidden] cannot beat a class selector on its own. */
+.rk-settings-custom-sep {
+	display: flex;
+	flex-basis: 100%;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	padding-block-start: var(--rk-space-1);
+}
+
+.rk-settings-custom-sep[hidden] {
+	display: none;
+}
+
+/* The custom separator label keeps no class, because BreadcrumbsOutputTest
+   pins its opening tag, so it takes the page label notation through its
+   placement inside the wrap, one step muted as the sheet draws it. */
+.rk-settings-custom-sep > label {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-md);
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Social media picker. The size lives here, because the picker reveals and
+   hides the preview by writing element.style.display directly, so the
+   visibility toggle has to stay on the element.
+   ========================================================================== */
+
+.rk-settings-media {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--rk-space-4);
+}
+
+.rk-social-preview {
+	display: block;
+	flex-shrink: 0;
+	width: 150px;
+	height: 75px;
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+	object-fit: cover;
+}
+
+.rk-settings-media-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+/* Two button treatments the sheet draws that the shared set does not carry:
+   a secondary button with primary text, and a destructive action on the
+   bordered secondary surface. */
+.rk-settings-wrap .rk-settings-btn-accent {
+	color: var(--rk-color-primary);
+}
+
+.rk-settings-wrap .rk-settings-btn-remove {
+	color: var(--rk-color-secondary-4);
+}
+
+.rk-settings-wrap .rk-settings-btn-remove:hover {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: var(--rk-color-border-strong);
+	color: var(--rk-color-secondary-4-strong);
+}
+
+/* ==========================================================================
+   Crawler policy grid
+   ========================================================================== */
+
+.rk-crawlers {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+}
+
+.rk-crawler-group {
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-crawler-group-title {
+	display: block;
+	margin: 0 0 var(--rk-space-3);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-crawler-cards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--rk-space-3);
+}
+
+.rk-crawler-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+}
+
+/* The crawler name is the sheet's 13px step, one below the 14px field label
+   the rest of the page uses, and the note holds a fixed two line block so
+   every select in a row lines up. */
+.rk-crawler-card .rk-ui-form-label {
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-crawler-note {
+	min-height: 32px;
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-crawler-card .rk-ui-select-wrap {
+	width: 100%;
+	margin-block-start: auto;
+}
+
+.rk-crawler-card .rk-ui-select {
+	width: 100%;
+	border-radius: var(--rk-radius-sm);
+}
+
+/* ==========================================================================
+   Robots preview and edit strip. The class names and the is-active modifier
+   are the contract settings-admin.js matches on, so this block keeps its own
+   names rather than taking the shared tab strip.
+   ========================================================================== */
+
+.rk-settings-robots-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+}
+
+.rk-robots-tabs {
+	display: flex;
+	align-items: center;
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-robots-tabs .rk-tab {
+	padding: var(--rk-space-2) var(--rk-space-4);
+	border-block-end: 2px solid transparent;
+	margin-block-end: -1px;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-md);
+	font-weight: 400;
+	text-decoration: none;
+	transition: color 0.15s, border-color 0.15s;
+}
+
+.rk-robots-tabs .rk-tab:hover {
+	color: var(--rk-color-text);
+}
+
+.rk-robots-tabs .rk-tab.is-active {
+	border-block-end-color: var(--rk-color-primary);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Monospace preview block, shared by the robots and llms previews
+   ========================================================================== */
+
+.rk-preview {
+	margin: 0;
+	padding: var(--rk-space-4);
+	overflow: auto;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-loose);
+}
+
+/* ==========================================================================
+   Breadcrumbs code block: the two placement idioms a site owner copies
+   ========================================================================== */
+
+.rk-code-block {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+	margin: 0;
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-code-line {
+	margin: 0;
+}
+
+.rk-code-label {
+	color: var(--rk-color-text-muted);
+	font-family: var(--rk-font-sans);
+	font-weight: 500;
+}
+
+.rk-code-block code {
+	color: var(--rk-color-primary-active);
+	font-family: var(--rk-font-mono);
+}
+
+/* ==========================================================================
+   Collapsible taxonomy block. A native details element, so the closed state
+   comes from the browser. Only the summary is themed.
+   ========================================================================== */
+
+.rk-settings-disclosure {
+	padding: var(--rk-space-5);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-settings-disclosure > summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin: 0;
 	cursor: pointer;
 	list-style: none;
 }
 
-.rk-settings-section details > summary::-webkit-details-marker {
+.rk-settings-disclosure > summary::-webkit-details-marker {
 	display: none;
 }
 
-.rk-settings-section details > summary .rk-icon {
+.rk-settings-disclosure-title {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-settings-disclosure > summary .rk-icon {
+	color: var(--rk-color-text-muted);
 	font-size: 18px;
 	transition: transform 0.15s;
 }
 
-.rk-settings-section details[open] > summary .rk-icon {
+.rk-settings-disclosure[open] > summary .rk-icon {
 	transform: rotate(180deg);
 }
 
-.rk-settings-section details > summary:hover {
+.rk-settings-disclosure > summary:hover .rk-settings-disclosure-title {
 	color: var(--rk-color-primary);
 }
 
-.rk-settings-section details > * + * {
+.rk-settings-disclosure > * + * {
 	margin-block-start: var(--rk-space-4);
+}
+
+/* One taxonomy preference row, on the white inset the sheet draws inside the
+   subtle disclosure surface. */
+.rk-settings-tax-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	padding: 14px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+}
+
+/* ==========================================================================
+   The physical llms.txt file block, the one section body group the sheet
+   draws as its own bordered surface because three actions belong to it.
+   ========================================================================== */
+
+.rk-settings-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface-subtle);
 }
 
 /* ==========================================================================
    Multi line callouts. The shared notice is a single line flex row, so a
    block that carries two or three sentences keeps the page banner notation
-   rather than being forced into it.
+   rather than being forced into it. The accent bar plus the glyph in the
+   title carry severity, and the text steps to the strong value of each hue
+   so every line clears 4.5:1 on its soft background.
    ========================================================================== */
 
 .rk-banner {
@@ -208,10 +837,10 @@
 	flex-direction: column;
 	gap: var(--rk-space-1);
 	margin: 0;
-	padding: var(--rk-space-3) var(--rk-space-4);
+	padding: var(--rk-space-4);
 	border: 1px solid var(--rk-color-border);
 	border-inline-start-width: 4px;
-	border-radius: var(--rk-radius-md);
+	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
 	background: var(--rk-color-surface-subtle);
 	font-size: var(--rk-font-size-sm);
 	line-height: var(--rk-line-height-normal);
@@ -222,7 +851,7 @@
 	align-items: center;
 	gap: 6px;
 	margin: 0;
-	font-weight: 600;
+	font-weight: 700;
 }
 
 .rk-banner-title .rk-icon {
@@ -233,128 +862,82 @@
 	margin: 0;
 }
 
+.rk-banner a {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.rk-banner-success {
+	border-color: var(--rk-tint-positive-border);
+	border-inline-start-color: var(--rk-color-secondary-1);
+	background: var(--rk-color-secondary-1-soft);
+}
+
+.rk-banner-success .rk-banner-title,
+.rk-banner-success p {
+	color: var(--rk-color-secondary-1);
+}
+
 .rk-banner-warning {
+	border-color: var(--rk-tint-warning-border);
 	border-inline-start-color: var(--rk-color-secondary-3);
 	background: var(--rk-color-secondary-3-soft);
 }
 
-.rk-banner-warning .rk-banner-title {
-	color: var(--rk-color-secondary-3);
+.rk-banner-warning .rk-banner-title,
+.rk-banner-warning p {
+	color: var(--rk-color-secondary-3-strong);
 }
 
 .rk-banner-danger {
+	border-color: var(--rk-tint-error-border);
 	border-inline-start-color: var(--rk-color-secondary-4);
 	background: var(--rk-color-secondary-4-soft);
 }
 
-.rk-banner-danger .rk-banner-title {
-	color: var(--rk-color-secondary-4);
+.rk-banner-danger .rk-banner-title,
+.rk-banner-danger p {
+	color: var(--rk-color-secondary-4-strong);
 }
 
 .rk-banner-info {
+	border-color: var(--rk-tint-primary-border);
 	border-inline-start-color: var(--rk-color-primary);
 	background: var(--rk-color-primary-soft);
 }
 
-.rk-banner-info .rk-banner-title {
-	color: var(--rk-color-primary);
+.rk-banner-info .rk-banner-title,
+.rk-banner-info p {
+	color: var(--rk-color-primary-active);
 }
 
 /* ==========================================================================
-   Robots crawler policy grid
+   In section action rows: save, cancel and reset, with the sheet's
+   confirmation sentence beside the control it belongs to.
    ========================================================================== */
 
-.rk-crawlers {
-	display: grid;
-	gap: var(--rk-space-4);
-}
-
-.rk-crawler-group-title {
-	display: block;
-	margin: 0 0 var(--rk-space-2);
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 600;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-}
-
-.rk-crawler-cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-	gap: var(--rk-space-3);
-}
-
-.rk-crawler-card {
-	display: flex;
-	flex-direction: column;
-	gap: var(--rk-space-2);
-	padding: var(--rk-space-3);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
-	background: var(--rk-color-surface);
-	box-shadow: var(--rk-shadow-sm);
-}
-
-.rk-crawler-card select {
-	width: 100%;
-	margin-block-start: auto;
-}
-
-/* ==========================================================================
-   Robots preview and edit strip. The class names and the is-active modifier
-   are the contract settings-admin.js matches on, so this block keeps its own
-   names rather than taking the shared tab strip.
-   ========================================================================== */
-
-.rk-robots-tabs {
-	display: flex;
-	gap: var(--rk-space-1);
-	border-block-end: 1px solid var(--rk-color-border);
-}
-
-.rk-robots-tabs .rk-tab {
-	padding: var(--rk-space-2) var(--rk-space-4);
-	border: 1px solid transparent;
-	border-block-end: 0;
-	border-start-start-radius: var(--rk-radius-md);
-	border-start-end-radius: var(--rk-radius-md);
-	color: var(--rk-color-text-secondary);
-	font-size: var(--rk-font-size-md);
-	text-decoration: none;
-}
-
-.rk-robots-tabs .rk-tab:hover {
-	color: var(--rk-color-text);
-	background: var(--rk-color-surface-muted);
-}
-
-.rk-robots-tabs .rk-tab.is-active {
-	border-color: var(--rk-color-border);
-	background: var(--rk-color-surface);
-	color: var(--rk-color-primary);
-	font-weight: 600;
-}
-
-.rk-code-editor {
-	width: 100%;
-	font-family: var(--rk-font-mono);
-}
-
-.rk-preview {
-	max-height: 420px;
-	overflow: auto;
-	margin: 0;
-	padding: var(--rk-space-3);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
-	background: var(--rk-color-surface-subtle);
-	font-size: var(--rk-font-size-sm);
-}
-
-/* The row of in section action buttons: save, cancel and reset. The buttons
-   themselves are the shared restyle of the core button. */
 .rk-form-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-3);
+	margin: 0;
+}
+
+/* The sheet shows most buttons at 36px, which the shared button already
+   draws, and the global save control at 40px, which is set below. */
+
+.rk-settings-action-note {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+/* ==========================================================================
+   .htaccess path chip
+   ========================================================================== */
+
+.rk-settings-path {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
@@ -362,19 +945,45 @@
 	margin: 0;
 }
 
+.rk-settings-path-label {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+}
+
+.rk-path-chip {
+	display: inline-block;
+	padding: 2px var(--rk-space-2);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-sm);
+}
+
 /* ==========================================================================
-   Social media picker. Only the size lives here, because the picker reveals
-   and hides the preview by writing element.style.display directly, so the
-   visibility toggle has to stay on the element.
+   Global save control. submit_button() wraps its input in p.submit, and the
+   partial request path in SettingsPage renders the same pair, so the card
+   surface is drawn on that paragraph rather than wrapped around it, which
+   keeps the full page and the loader swapped section byte identical.
    ========================================================================== */
 
-.rk-social-preview {
-	display: block;
-	max-width: 150px;
-	height: auto;
-	margin-block-end: var(--rk-space-2);
+.rk-settings-body > p.submit {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	margin: 0;
+	padding: var(--rk-space-6);
 	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-settings-body > p.submit .button-primary {
+	height: 40px;
+	padding: 0 var(--rk-space-5);
 }
 
 /* The loader dims the body column while a section is in flight. */
@@ -383,13 +992,13 @@
 	pointer-events: none;
 }
 
-@media screen and (prefers-reduced-motion: reduce) {
-	.rk-settings-nav a {
-		transition: none;
-	}
+/* ==========================================================================
+   Responsive stacking
+   ========================================================================== */
 
-	.rk-settings-section details > summary .rk-icon {
-		transition: none;
+@media screen and (max-width: 1100px) {
+	.rk-crawler-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
@@ -404,5 +1013,34 @@
 
 	.rk-crawler-cards {
 		grid-template-columns: 1fr;
+	}
+
+	.rk-settings-row-head--measure,
+	.rk-settings-input--narrow,
+	.rk-settings-input--medium,
+	.rk-settings-input--wide,
+	.rk-settings-select-wrap {
+		max-width: none;
+	}
+
+	.rk-settings-body > p.submit {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* ==========================================================================
+   Reduced motion. Every selector in this file that declares a transition is
+   listed here.
+   ========================================================================== */
+
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-settings-nav a,
+	.rk-settings-input,
+	.rk-code-editor,
+	.rk-settings-pill,
+	.rk-robots-tabs .rk-tab,
+	.rk-settings-disclosure > summary .rk-icon {
+		transition: none;
 	}
 }

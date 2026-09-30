@@ -4,7 +4,7 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card. Each row has exactly one control, so each
+ * The section is a page scoped card. Each row has exactly one control, so each
  * row title is a real label for its field. The per engine helper keeps the
  * id the input points at through aria-describedby, because the shared hint
  * class is presentation only and does not change that association.
@@ -50,35 +50,37 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-webmaster" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-webmaster-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-webmaster-title"><?php echo esc_html__( 'Webmaster Tools', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head rk-settings-section-head--tight">
+		<h3 class="rk-settings-section-title" id="rk-section-webmaster-title"><?php echo esc_html__( 'Webmaster Tools', 'rankkernel' ); ?></h3>
 	</div>
-	<div class="rk-ui-card-body">
+	<div class="rk-settings-section-body">
 		<p class="rk-ui-sub"><?php echo esc_html__( 'Paste the verification codes from each search engine.', 'rankkernel' ); ?></p>
-		<?php foreach ( $webmasters as $webmaster ) : ?>
-			<?php $rk_desc_id = $webmaster['fieldId'] . '-desc'; ?>
-			<div class="rk-ui-form-row">
-				<label class="rk-ui-form-label" for="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"><?php echo esc_html( $webmaster['label'] ); ?></label>
-				<input
-					type="text"
-					id="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"
-					name="<?php echo esc_attr( $webmaster['key'] ); ?>"
-					value="<?php echo esc_attr( $webmaster['value'] ); ?>"
-					class="regular-text"
-					aria-describedby="<?php echo esc_attr( $rk_desc_id ); ?>"
-				/>
-				<p class="rk-ui-hint" id="<?php echo esc_attr( $rk_desc_id ); ?>">
-					<?php
-					echo esc_html(
-						sprintf(
-							/* translators: %s: Search engine / webmaster service name */
-							__( 'Enter your %s verification meta tag or meta content code.', 'rankkernel' ),
-							$webmaster['label']
-						)
-					);
-					?>
-				</p>
-			</div>
-		<?php endforeach; ?>
+		<div class="rk-settings-rows">
+			<?php foreach ( $webmasters as $webmaster ) : ?>
+				<?php $rk_desc_id = $webmaster['fieldId'] . '-desc'; ?>
+				<div class="rk-ui-form-row">
+					<label class="rk-ui-form-label" for="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"><?php echo esc_html( $webmaster['label'] ); ?></label>
+					<input
+						type="text"
+						id="<?php echo esc_attr( $webmaster['fieldId'] ); ?>"
+						name="<?php echo esc_attr( $webmaster['key'] ); ?>"
+						value="<?php echo esc_attr( $webmaster['value'] ); ?>"
+						class="rk-settings-input"
+						aria-describedby="<?php echo esc_attr( $rk_desc_id ); ?>"
+					/>
+					<p class="rk-ui-hint" id="<?php echo esc_attr( $rk_desc_id ); ?>">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %s: Search engine / webmaster service name */
+								__( 'Enter your %s verification meta tag or meta content code.', 'rankkernel' ),
+								$webmaster['label']
+							)
+						);
+						?>
+					</p>
+				</div>
+			<?php endforeach; ?>
+		</div>
 	</div>
 </section>

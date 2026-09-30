@@ -4,11 +4,11 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card. The uninstall row names a group rather than
- * one control, so its title stays a span carrying a real id and the row
- * becomes a labelled group. The box keeps the real label it already had, the
- * sentence that names what deleting the plugin removes, so it does not become
- * a switch: a switch has no visible text of its own and would drop it.
+ * The section is a page scoped card. The uninstall row names its own box, so
+ * the box is the label target and the sentence that says what deleting the
+ * plugin removes is pointed at through aria-describedby. The box keeps the
+ * real label it already had and does not become a switch: a switch has no
+ * visible text of its own and would drop the sentence.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -51,8 +51,8 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-advanced" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-advanced-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head rk-settings-section-head--snug">
+		<h3 class="rk-settings-section-title" id="rk-section-advanced-title"><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></h3>
 		<?php
 		/*
 		 * The approved sheet flags the whole panel as dangerous in its header,
@@ -61,13 +61,16 @@ defined( 'ABSPATH' ) || exit;
 		 * other label was already on the screen.
 		 */
 		?>
-		<span class="rk-ui-pill rk-ui-pill-danger"><?php echo esc_html__( 'Destructive', 'rankkernel' ); ?></span>
+		<span class="rk-ui-pill rk-ui-pill-danger rk-settings-badge"><?php echo esc_html__( 'Destructive', 'rankkernel' ); ?></span>
 	</div>
-	<div class="rk-ui-card-body">
+	<div class="rk-settings-section-body">
 		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Uninstall', 'rankkernel' ); ?></h4>
-		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-advanced-purge-label">
-			<span class="rk-ui-form-label" id="rk-advanced-purge-label"><?php echo esc_html__( 'Data removal', 'rankkernel' ); ?></span>
-			<label><input type="checkbox" name="purge_on_uninstall" value="1" <?php echo checked( $purgeChecked, true, false ); ?> /> <?php echo esc_html__( 'Delete all RankKernel data (options, metadata) when the plugin is deleted.', 'rankkernel' ); ?></label>
+		<div class="rk-settings-check">
+			<input type="checkbox" id="rk_advanced_purge" name="purge_on_uninstall" value="1" <?php echo checked( $purgeChecked, true, false ); ?> aria-describedby="rk_advanced_purge-hint" />
+			<div class="rk-settings-check-text">
+				<label class="rk-settings-check-title" for="rk_advanced_purge"><?php echo esc_html__( 'Data removal', 'rankkernel' ); ?></label>
+				<p class="rk-ui-hint rk-settings-hint-strong" id="rk_advanced_purge-hint"><?php echo esc_html__( 'Delete all RankKernel data (options, metadata) when the plugin is deleted.', 'rankkernel' ); ?></p>
+			</div>
 		</div>
 	</div>
 </section>

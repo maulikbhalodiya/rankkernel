@@ -4,12 +4,17 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card. Rows that name one control keep a real label
- * pointing at that control. Rows that name a set of boxes or radios are group
- * headings instead, so they stay a span carrying a real id and the row becomes
- * a labelled group, which is the same treatment the Sitemap screen gives its
- * checkbox groups. No row invents a for attribute to turn a heading into a
- * label.
+ * The section is a page scoped card. Rows that name one control keep a real
+ * label pointing at that control. Each checkbox row follows the approved
+ * sheet: the box, then a bold label that names the option, then the sentence
+ * that explains it, which the box points at through aria-describedby. The row
+ * title is no longer a separate group heading, because the sheet draws the
+ * option name as the box's own label.
+ *
+ * The separator chooser keeps its real radios, fieldset and names. The sheet
+ * draws the choices as pills, so the radio itself is visually replaced by the
+ * pill surface while staying in the tab order, and the Custom field keeps the
+ * id breadcrumbs-admin.js reads to show and hide it.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -52,11 +57,11 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-breadcrumbs" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-breadcrumbs-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-breadcrumbs-title"><?php echo esc_html__( 'Breadcrumbs', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head rk-settings-section-head--snug">
+		<h3 class="rk-settings-section-title" id="rk-section-breadcrumbs-title"><?php echo esc_html__( 'Breadcrumbs', 'rankkernel' ); ?></h3>
 	</div>
-	<div class="rk-ui-card-body">
-		<p class="rk-ui-hint-strong"><?php echo esc_html__( 'Visible trail and breadcrumb schema share one trail. Place it with the block, shortcode, or template tag. Disabling the module in the module list disables breadcrumb integration.', 'rankkernel' ); ?></p>
+	<div class="rk-settings-section-body">
+		<p class="rk-settings-lead"><?php echo esc_html__( 'Visible trail and breadcrumb schema share one trail. Place it with the block, shortcode, or template tag. Disabling the module in the module list disables breadcrumb integration.', 'rankkernel' ); ?></p>
 
 		<?php
 		/*
@@ -70,69 +75,82 @@ defined( 'ABSPATH' ) || exit;
 			<p class="rk-code-line"><span class="rk-code-label"><?php echo esc_html__( 'Shortcode:', 'rankkernel' ); ?></span> <code><?php echo esc_html( '[rankkernel_breadcrumbs]' ); ?></code></p>
 		</div>
 
-		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Appearance', 'rankkernel' ); ?></h4>
-		<p class="rk-ui-sub"><?php echo esc_html__( 'How the trail looks.', 'rankkernel' ); ?></p>
+		<div class="rk-settings-block">
+			<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Appearance', 'rankkernel' ); ?></h4>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'How the trail looks.', 'rankkernel' ); ?></p>
 
-		<?php
-		/*
-		 * The separator row names a set of radios rather than one field, so
-		 * the title is a span naming the group. The native fieldset and its
-		 * legend are left exactly as they were, because they group the radios
-		 * for the form itself and are not a design decision. Each choice label
-		 * carries the pill treatment the page sheet defines, so the row wraps
-		 * inline and needs no line break between the choices.
-		 */
-		?>
-		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-breadcrumbs-separator-label">
-			<span class="rk-ui-form-label" id="rk-breadcrumbs-separator-label"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></span>
-			<fieldset>
-				<legend class="screen-reader-text"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></legend>
-				<?php foreach ( $separatorChoices as $choice ) : ?>
-					<label for="<?php echo esc_attr( $choice['id'] ); ?>"><input type="radio" id="<?php echo esc_attr( $choice['id'] ); ?>" name="rk_breadcrumbs_separator_choice" value="<?php echo esc_attr( $choice['value'] ); ?>" <?php echo checked( $choice['checked'], true, false ); ?> /> <span><?php echo esc_html( $choice['value'] ); ?></span></label>
-				<?php endforeach; ?>
-				<label for="rk-breadcrumbs-separator-choice-custom"><input type="radio" id="rk-breadcrumbs-separator-choice-custom" name="rk_breadcrumbs_separator_choice" value="custom" <?php echo checked( $isCustomSeparator, true, false ); ?> /> <?php echo esc_html__( 'Custom', 'rankkernel' ); ?></label>
-				<div id="rk-breadcrumbs-separator-custom-wrap">
-					<label for="rk-breadcrumbs-separator-custom"><?php echo esc_html__( 'Custom separator', 'rankkernel' ); ?></label> <input type="text" id="rk-breadcrumbs-separator-custom" name="rk_breadcrumbs_separator_custom" value="<?php echo esc_attr( $isCustomSeparator ? $breadcrumbSeparator : '' ); ?>" class="small-text" maxlength="10" />
+			<?php
+			/*
+			 * The separator row names a set of radios rather than one field, so
+			 * the title is a span naming the group. The native fieldset and its
+			 * legend are left exactly as they were, because they group the
+			 * radios for the form itself and are not a design decision. Each
+			 * choice label carries the pill treatment the page sheet defines,
+			 * so the row wraps inline and needs no line break between the
+			 * choices.
+			 */
+			?>
+			<div class="rk-ui-form-row" role="group" aria-labelledby="rk-breadcrumbs-separator-label">
+				<span class="rk-ui-form-label" id="rk-breadcrumbs-separator-label"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></span>
+				<div class="rk-settings-separator">
+					<fieldset>
+						<legend class="screen-reader-text"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></legend>
+						<?php foreach ( $separatorChoices as $choice ) : ?>
+							<label class="rk-settings-pill" for="<?php echo esc_attr( $choice['id'] ); ?>"><input type="radio" id="<?php echo esc_attr( $choice['id'] ); ?>" name="rk_breadcrumbs_separator_choice" value="<?php echo esc_attr( $choice['value'] ); ?>" <?php echo checked( $choice['checked'], true, false ); ?> /> <span class="rk-settings-pill-text"><?php echo esc_html( $choice['value'] ); ?></span></label>
+						<?php endforeach; ?>
+						<label class="rk-settings-pill rk-settings-pill--custom" for="rk-breadcrumbs-separator-choice-custom"><input type="radio" id="rk-breadcrumbs-separator-choice-custom" name="rk_breadcrumbs_separator_choice" value="custom" <?php echo checked( $isCustomSeparator, true, false ); ?> /> <span class="rk-settings-pill-text"><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></span></label>
+						<div id="rk-breadcrumbs-separator-custom-wrap" class="rk-settings-custom-sep">
+							<label for="rk-breadcrumbs-separator-custom"><?php echo esc_html__( 'Custom separator', 'rankkernel' ); ?></label>
+							<input type="text" id="rk-breadcrumbs-separator-custom" name="rk_breadcrumbs_separator_custom" value="<?php echo esc_attr( $isCustomSeparator ? $breadcrumbSeparator : '' ); ?>" class="rk-settings-input rk-settings-input--narrow" maxlength="10" placeholder="<?php echo esc_attr( __( 'e.g. »', 'rankkernel' ) ); ?>" />
+						</div>
+					</fieldset>
 				</div>
-			</fieldset>
-			<p class="rk-ui-hint"><?php echo esc_html__( 'Character shown between crumbs.', 'rankkernel' ); ?></p>
-		</div>
+				<p class="rk-ui-hint"><?php echo esc_html__( 'Character shown between crumbs.', 'rankkernel' ); ?></p>
+			</div>
 
-		<div class="rk-ui-form-row">
-			<label class="rk-ui-form-label" for="rk-breadcrumbs-home-label"><?php echo esc_html__( 'Home label', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-breadcrumbs-home-label" name="rk_breadcrumbs_home_label" value="<?php echo esc_attr( $homeLabel ); ?>" class="regular-text" />
+			<div class="rk-ui-form-row">
+				<label class="rk-ui-form-label" for="rk-breadcrumbs-home-label"><?php echo esc_html__( 'Home label', 'rankkernel' ); ?></label>
+				<input type="text" id="rk-breadcrumbs-home-label" name="rk_breadcrumbs_home_label" value="<?php echo esc_attr( $homeLabel ); ?>" class="rk-settings-input rk-settings-input--medium" />
+			</div>
 		</div>
 
 		<?php
 		/*
-		 * Each box here carries a visible sentence of its own inside a real
-		 * label, so none of them becomes a switch: a switch has no visible
-		 * text of its own and would drop the sentence that names it. The row
-		 * title names the group and reaches assistive technology through
-		 * aria-labelledby instead.
+		 * Each box here carries a visible sentence of its own, so each row
+		 * keeps the box, the bold option label and the sentence the sheet
+		 * draws. The box points at its sentence through aria-describedby.
 		 */
 		?>
-		<?php foreach ( $appearanceToggles as $toggle ) : ?>
-			<?php $rkAppearanceTitleId = 'rk-breadcrumbs-appearance-' . $toggle['name'] . '-title'; ?>
-			<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkAppearanceTitleId ); ?>">
-				<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkAppearanceTitleId ); ?>"><?php echo esc_html( $toggle['title'] ); ?></span>
-				<label><input type="checkbox" name="<?php echo esc_attr( $toggle['name'] ); ?>" value="1" <?php echo checked( $toggle['checked'], true, false ); ?> /> <?php echo esc_html( $toggle['hint'] ); ?></label>
+		<div class="rk-settings-block rk-settings-block--ruled">
+			<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Trail behavior', 'rankkernel' ); ?></h4>
+			<p class="rk-ui-sub"><?php echo esc_html__( 'Which crumbs are included in the trail.', 'rankkernel' ); ?></p>
+
+			<div class="rk-settings-checks">
+				<?php foreach ( $appearanceToggles as $toggle ) : ?>
+					<?php $rk_toggle_hint_id = $toggle['name'] . '-hint'; ?>
+					<div class="rk-settings-check">
+						<input type="checkbox" id="<?php echo esc_attr( $toggle['name'] ); ?>" name="<?php echo esc_attr( $toggle['name'] ); ?>" value="1" <?php echo checked( $toggle['checked'], true, false ); ?> aria-describedby="<?php echo esc_attr( $rk_toggle_hint_id ); ?>" />
+						<div class="rk-settings-check-text">
+							<label class="rk-settings-check-title" for="<?php echo esc_attr( $toggle['name'] ); ?>"><?php echo esc_html( $toggle['title'] ); ?></label>
+							<p class="rk-ui-hint" id="<?php echo esc_attr( $rk_toggle_hint_id ); ?>"><?php echo esc_html( $toggle['hint'] ); ?></p>
+						</div>
+					</div>
+				<?php endforeach; ?>
+				<?php foreach ( $behaviorToggles as $toggle ) : ?>
+					<?php $rk_toggle_hint_id = $toggle['name'] . '-hint'; ?>
+					<div class="rk-settings-check">
+						<input type="checkbox" id="<?php echo esc_attr( $toggle['name'] ); ?>" name="<?php echo esc_attr( $toggle['name'] ); ?>" value="1" <?php echo checked( $toggle['checked'], true, false ); ?> aria-describedby="<?php echo esc_attr( $rk_toggle_hint_id ); ?>" />
+						<div class="rk-settings-check-text">
+							<label class="rk-settings-check-title" for="<?php echo esc_attr( $toggle['name'] ); ?>"><?php echo esc_html( $toggle['title'] ); ?></label>
+							<p class="rk-ui-hint" id="<?php echo esc_attr( $rk_toggle_hint_id ); ?>"><?php echo esc_html( $toggle['hint'] ); ?></p>
+						</div>
+					</div>
+				<?php endforeach; ?>
 			</div>
-		<?php endforeach; ?>
+		</div>
 
-		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Trail behavior', 'rankkernel' ); ?></h4>
-		<p class="rk-ui-sub"><?php echo esc_html__( 'Which crumbs are included in the trail.', 'rankkernel' ); ?></p>
-
-		<?php foreach ( $behaviorToggles as $toggle ) : ?>
-			<?php $rkBehaviorTitleId = 'rk-breadcrumbs-behavior-' . $toggle['name'] . '-title'; ?>
-			<div class="rk-ui-form-row" role="group" aria-labelledby="<?php echo esc_attr( $rkBehaviorTitleId ); ?>">
-				<span class="rk-ui-form-label" id="<?php echo esc_attr( $rkBehaviorTitleId ); ?>"><?php echo esc_html( $toggle['title'] ); ?></span>
-				<label><input type="checkbox" name="<?php echo esc_attr( $toggle['name'] ); ?>" value="1" <?php echo checked( $toggle['checked'], true, false ); ?> /> <?php echo esc_html( $toggle['hint'] ); ?></label>
-			</div>
-		<?php endforeach; ?>
-
-		<details id="rk-breadcrumbs-taxonomy-preferences">
-			<summary><span class="rk-icon" aria-hidden="true">expand_more</span><?php echo esc_html__( 'Taxonomy preferences', 'rankkernel' ); ?></summary>
+		<details id="rk-breadcrumbs-taxonomy-preferences" class="rk-settings-disclosure">
+			<summary><span class="rk-settings-disclosure-title"><?php echo esc_html__( 'Taxonomy preferences', 'rankkernel' ); ?></span><span class="rk-icon" aria-hidden="true">expand_more</span></summary>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Chooses which taxonomy supplies the term branch when a post type has several.', 'rankkernel' ); ?></p>
 			<?php foreach ( $taxonomyRows as $taxonomyRow ) : ?>
 				<?php if ( 'info' === $taxonomyRow['rowType'] ) : ?>
@@ -142,7 +160,7 @@ defined( 'ABSPATH' ) || exit;
 					 * span with no group and no invented for attribute.
 					 */
 					?>
-					<div class="rk-ui-form-row">
+					<div class="rk-settings-tax-row">
 						<span class="rk-ui-form-label"><?php echo esc_html( $taxonomyRow['title'] ); ?></span>
 						<p class="rk-ui-hint"><?php echo esc_html( $taxonomyRow['hint'] ); ?></p>
 					</div>
@@ -152,13 +170,13 @@ defined( 'ABSPATH' ) || exit;
 					 * A taxonomy row has one control, so its title is a real
 					 * label. The select is the shared control, which draws its
 					 * own chevron, so the same notation the other screens use
-					 * carries over here.
+					 * carries over here, held to the sheet's measure.
 					 */
 					?>
-					<div class="rk-ui-form-row">
+					<div class="rk-settings-tax-row">
 						<label class="rk-ui-form-label" for="<?php echo esc_attr( $taxonomyRow['fieldId'] ); ?>"><?php echo esc_html( $taxonomyRow['title'] ); ?></label>
-						<div class="rk-ui-select-wrap">
-							<select id="<?php echo esc_attr( $taxonomyRow['fieldId'] ); ?>" name="<?php echo esc_attr( $taxonomyRow['field'] ); ?>" class="rk-ui-select">
+						<div class="rk-ui-select-wrap rk-settings-select-wrap">
+							<select id="<?php echo esc_attr( $taxonomyRow['fieldId'] ); ?>" name="<?php echo esc_attr( $taxonomyRow['field'] ); ?>" class="rk-ui-select rk-settings-select">
 								<option value=""<?php echo '' === $taxonomyRow['current'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Default (first taxonomy with terms)', 'rankkernel' ); ?></option>
 								<?php foreach ( $taxonomyRow['options'] as $taxonomyOption ) : ?>
 									<option value="<?php echo esc_attr( $taxonomyOption['slug'] ); ?>"<?php echo $taxonomyRow['current'] === $taxonomyOption['slug'] ? ' selected="selected"' : ''; ?>><?php echo esc_html( $taxonomyOption['label'] ); ?></option>

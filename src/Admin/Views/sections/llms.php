@@ -4,11 +4,11 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card. Rows that name one control keep a real
- * label. The two checkbox rows name a group, so their titles stay spans
- * carrying a real id and the row becomes a labelled group. Neither box
- * becomes a switch: each one already sits inside a real label with a visible
- * sentence, which a switch would replace.
+ * The section is a page scoped card. Rows that name one control keep a real
+ * label. The two checkbox rows name their own boxes, so each box is the label
+ * target and the sentences under it are pointed at through aria-describedby.
+ * Neither box becomes a switch: each one already sits beside visible sentences
+ * that a switch would replace.
  *
  * The write outcome notices are one line each, so they take the shared notice
  * component. They carry no dismiss button, because nothing on this screen
@@ -57,10 +57,10 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-llms" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-llms-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head rk-settings-section-head--tight">
+		<h3 class="rk-settings-section-title" id="rk-section-llms-title"><?php echo esc_html__( 'llms.txt', 'rankkernel' ); ?></h3>
 	</div>
-	<div class="rk-ui-card-body">
+	<div class="rk-settings-section-body">
 		<p class="rk-ui-sub"><?php echo esc_html__( 'A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional.', 'rankkernel' ); ?></p>
 
 		<?php if ( [] !== $consistencyWarnings ) : ?>
@@ -95,27 +95,23 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		<?php endif; ?>
 
-		<?php
-		/*
-		 * The enable row names the one box it holds, so the title is a group
-		 * heading rather than a label for a control, and the sentence inside
-		 * the label is what names the box.
-		 */
-		?>
-		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-llms-enabled-label">
-			<span class="rk-ui-form-label" id="rk-llms-enabled-label"><?php echo esc_html__( 'Enable', 'rankkernel' ); ?></span>
-			<label><input type="checkbox" name="rk_llms_enabled" value="1" <?php echo checked( true, $llmsEnabled, false ); ?> /> <?php echo esc_html__( 'Serve the virtual llms.txt route', 'rankkernel' ); ?></label>
+		<div class="rk-settings-check">
+			<input type="checkbox" id="rk_llms_enabled" name="rk_llms_enabled" value="1" <?php echo checked( true, $llmsEnabled, false ); ?> aria-describedby="rk_llms_enabled-hint" />
+			<div class="rk-settings-check-text">
+				<label class="rk-settings-check-title" for="rk_llms_enabled"><?php echo esc_html__( 'Enable', 'rankkernel' ); ?></label>
+				<p class="rk-ui-hint" id="rk_llms_enabled-hint"><?php echo esc_html__( 'Serve the virtual llms.txt route', 'rankkernel' ); ?></p>
+			</div>
 		</div>
 
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label>
-			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="large-text rk-code-editor"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
+			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="rk-code-editor"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
 		</div>
 
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-llms-content"><?php echo esc_html__( 'Sections', 'rankkernel' ); ?></label>
-			<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="large-text code"><?php echo esc_textarea( $llmsContent ); ?></textarea>
+			<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="rk-code-editor"><?php echo esc_textarea( $llmsContent ); ?></textarea>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
 		</div>
 
@@ -124,18 +120,25 @@ defined( 'ABSPATH' ) || exit;
 		 * The physical file row is the one block on this screen the approved
 		 * sheet draws as its own bordered group, because its three actions
 		 * belong to that one toggle. The group class comes from the page
-		 * sheet and only paints the surface, so the row keeps the group role
-		 * and the id the label points at.
+		 * sheet and only paints the surface.
 		 */
 		?>
-		<div class="rk-ui-form-row rk-settings-group" role="group" aria-labelledby="rk-llms-physical-label">
-			<span class="rk-ui-form-label" id="rk-llms-physical-label"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></span>
-			<label><input type="checkbox" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> /> <?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></label>
-			<p class="rk-ui-hint"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>
+		<div class="rk-settings-group">
+			<div class="rk-settings-check">
+				<input type="checkbox" id="rk_llms_physical" name="rk_llms_physical" value="1" <?php echo checked( true, $llmsPhysical, false ); ?> aria-describedby="rk_llms_physical-hint rk_llms_physical-note" />
+				<div class="rk-settings-check-text">
+					<label class="rk-settings-check-title" for="rk_llms_physical"><?php echo esc_html__( 'Physical file', 'rankkernel' ); ?></label>
+					<p class="rk-ui-hint rk-settings-hint-strong" id="rk_llms_physical-hint"><?php echo esc_html__( 'Allow writing a physical llms.txt', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint" id="rk_llms_physical-note"><?php echo esc_html__( 'The virtual route stays the default. Writing never overwrites an existing file.', 'rankkernel' ); ?></p>
+				</div>
+			</div>
 			<p class="rk-form-actions">
 				<button type="submit" class="button button-primary" name="rk_llms_save" value="1"><?php echo esc_html__( 'Save', 'rankkernel' ); ?></button>
-				<button type="submit" class="button" name="rk_llms_write" value="1"><?php echo esc_html__( 'Write physical llms.txt', 'rankkernel' ); ?></button>
-				<button type="submit" class="button" name="rk_llms_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset llms.txt to defaults? Your summary and sections will be cleared.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+				<button type="submit" class="button button-secondary" name="rk_llms_write" value="1"><?php echo esc_html__( 'Write physical llms.txt', 'rankkernel' ); ?></button>
+				<span class="rk-settings-action-note">
+					<button type="submit" class="button button-secondary" name="rk_llms_reset" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Reset llms.txt to defaults? Your summary and sections will be cleared.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Reset', 'rankkernel' ); ?></button>
+					<span class="rk-ui-hint"><?php echo esc_html__( 'Asks for confirmation.', 'rankkernel' ); ?></span>
+				</span>
 			</p>
 		</div>
 
@@ -157,8 +160,9 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		<?php endif; ?>
 
-		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h4>
-		<?php /* The surface is the shared page preview block, so the raw inline colours are gone. */ ?>
-		<pre class="code rk-preview"><?php echo esc_html( $llmsPreview ); ?></pre>
+		<div class="rk-settings-block">
+			<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></h4>
+			<pre class="rk-preview"><?php echo esc_html( $llmsPreview ); ?></pre>
+		</div>
 	</div>
 </section>
