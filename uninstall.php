@@ -113,5 +113,17 @@ $wpdb->query(
 	)
 );
 
+// Purge the unprefixed user meta key. UserProfileField::META_KEY carries no
+// leading underscore, so the LIKE sweep above never matches it and an opted-in
+// purge would otherwise leave the stored X handle behind. Exact match on the
+// single known key, so no wildcard can overreach into unrelated rows.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+$wpdb->query(
+	$wpdb->prepare(
+		"DELETE FROM {$wpdb->usermeta} WHERE meta_key = %s",
+		'rankkernel_twitter_handle'
+	)
+);
+
 // Note: Multisite purge is single-site scope in v1 (ledger ruling §O3).
 // A future multisite loop would iterate over get_sites() and switch_to_blog().
