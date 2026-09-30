@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1440, initial-scale=1.0">
+  <title>RankKernel - Edit Snippet Modal Specification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0F172A;
+      color: #1E293B;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Dimmed scrim background simulating WordPress Block Editor underneath */
+    .wp-editor-scrim {
+      background-color: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(2px);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-800 p-8 antialiased">
+
+  <!-- Spec Sheet Header Banner -->
+  <div class="max-w-[1360px] mx-auto mb-8 flex items-center justify-between border-b border-slate-700/60 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+        RK
+      </div>
+      <div>
+        <h1 class="text-white text-base font-semibold tracking-tight">RankKernel SEO &bull; Edit Snippet Modal Specification</h1>
+        <p class="text-slate-400 text-xs mt-0.5">WordPress Block Editor Inspector Overlay &bull; Side-by-side General &amp; Social Tab States (1440px Canvas Spec)</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+        Live Autosave &bull; No Save / Dismiss Actions
+      </span>
+      <span class="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-medium bg-blue-950 text-blue-300 border border-blue-800">
+        Modal Width: 640px
+      </span>
+    </div>
+  </div>
+
+  <!-- Side-by-Side Modals Container -->
+  <div class="max-w-[1360px] mx-auto grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+
+    <!-- ========================================================================= -->
+    <!-- COLUMN 1: GENERAL TAB ACTIVE -->
+    <!-- ========================================================================= -->
+    <div class="flex flex-col items-center">
+      <!-- Section Tag / Caption -->
+      <div class="w-full max-w-[640px] flex items-center justify-between mb-3 px-1">
+        <span class="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">GENERAL TAB</span>
+        <span class="text-[11px] text-slate-400">Modal 1 of 2</span>
+      </div>
+
+      <!-- WordPress Mock Scrim Container -->
+      <div class="w-full max-w-[640px] rounded-xl bg-slate-800/40 p-4 border border-slate-700/40 relative">
+        
+        <!-- White Modal Centered: 640px base width, 8px radius, 20px padding -->
+        <div class="w-full bg-white rounded-lg shadow-2xl border border-slate-200 p-5 relative flex flex-col gap-0">
+          
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between pb-3">
+            <h2 class="text-[18px] font-semibold text-[#1E293B] tracking-tight">Edit Snippet</h2>
+            <button type="button" aria-label="Close" class="w-7 h-7 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Tab Bar inside the modal: 2px bottom border in #E2E8F0 -->
+          <div class="flex items-center border-b-2 border-[#E2E8F0] mb-4 gap-6">
+            <!-- Active Tab 1: General (Magnifier + label #1E40AF with 3px #2563EB underline) -->
+            <button type="button" class="flex items-center gap-2 pb-2.5 text-[13px] font-semibold text-[#1E40AF] border-b-[3px] border-[#2563EB] -mb-[2px] transition-all">
+              <svg class="w-4 h-4 text-[#1E40AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span>General</span>
+            </button>
+
+            <!-- Inactive Tab 2: Social (Share arrow icon only in #64748B) -->
+            <button type="button" title="Social" class="flex items-center pb-2.5 text-[#64748B] hover:text-slate-800 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Four Fields Stacked with 12px Gaps -->
+          <div class="flex flex-col gap-3">
+
+            <!-- FIELD 1: SEARCH PREVIEW -->
+            <div class="flex flex-col">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[14px] font-semibold text-[#1E293B]">Search Preview</span>
+                <!-- Segmented Control Pill: Desktop active, Mobile quiet -->
+                <div class="inline-flex p-0.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white text-[#2563EB] shadow-xs">Desktop</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#64748B]">Mobile</span>
+                </div>
+              </div>
+
+              <!-- Preview Card: 1px #E2E8F0 border, 8px radius, 16px padding -->
+              <div class="bg-white border border-[#E2E8F0] rounded-lg p-4 shadow-xs">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <div class="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-600">
+                    R
+                  </div>
+                  <div class="flex flex-col leading-tight">
+                    <span class="text-[12px] text-[#475569] font-medium">Acme Corp</span>
+                    <span class="text-[13px] text-[#0F766E] truncate font-mono">example.com/blog/how-to-improve-your-website-speed</span>
+                  </div>
+                </div>
+                <div class="text-[17px] font-medium text-[#1E40AF] hover:underline cursor-pointer leading-snug mt-1">
+                  How to improve your website speed
+                </div>
+                <p class="text-[13px] text-[#475569] leading-relaxed mt-1 line-clamp-2">
+                  Slow pages hurt rankings and visitors. Here is how to make yours fast. With technical web vitals and fast delivery.
+                </p>
+              </div>
+              <p class="text-[12px] text-[#64748B] mt-1.5">Preview is approximate, not exact search rendering.</p>
+            </div>
+
+            <!-- FIELD 2: PERMALINK (READ-ONLY) -->
+            <div class="flex flex-col">
+              <label class="text-[13px] font-semibold text-[#1E293B] mb-1">Permalink</label>
+              <input type="text" readonly value="https://example.com/blog/how-to-improve-your-website-speed" 
+                     class="w-full px-3 py-1.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded text-[13px] text-[#64748B] font-mono cursor-not-allowed select-all focus:outline-none">
+              <p class="text-[12px] text-[#64748B] mt-1">The address shown in the preview. Editing is not supported here.</p>
+            </div>
+
+            <!-- FIELD 3: SEO TITLE -->
+            <div class="flex flex-col relative">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[13px] font-semibold text-[#1E293B]">SEO title</label>
+                <!-- Status Badge: Inherited with hollow circle glyph in muted grey pill -->
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-[#64748B] border border-slate-200">
+                  <span class="w-1.5 h-1.5 rounded-full border border-[#64748B] bg-transparent"></span>
+                  Inherited
+                </span>
+              </div>
+
+              <!-- Input -->
+              <input type="text" value="How to improve your website speed" 
+                     class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none">
+              
+              <!-- Character meter bar: mostly filled in teal #0F766E with OK pill -->
+              <div class="mt-1.5 flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#0F766E] rounded-full" style="width: 82%;"></div>
+                </div>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-[#0F766E] border border-emerald-200">OK</span>
+              </div>
+
+              <!-- Footer row: left count 57/60 chars, right Reset and + Token buttons -->
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[12px] text-[#64748B]">57 / 60 chars</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" class="text-[11px] font-medium text-[#64748B] hover:text-[#1E293B] px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors">
+                    Reset
+                  </button>
+                  <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F8FAFC] hover:bg-slate-100 text-[#1E293B] border border-[#CBD5E1] shadow-2xs transition-colors">
+                    <span class="text-xs leading-none">+</span> Token
+                  </button>
+                </div>
+              </div>
+              <p class="text-[12px] text-[#64748B] mt-0.5">Shown as the first line of the search result. Blank uses the template.</p>
+
+              <!-- OPEN TOKEN PICKER POPUP (Shown as active reference spec) -->
+              <div class="mt-2 w-full bg-white border border-[#CBD5E1] rounded-lg shadow-lg p-3 text-xs z-10">
+                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-[#E2E8F0]">
+                  <input type="text" placeholder="Search tokens…" 
+                         class="w-full px-2.5 py-1 text-[12px] bg-[#F8FAFC] border border-[#CBD5E1] rounded focus:outline-none focus:border-[#2563EB]">
+                </div>
+                <p class="text-[11px] text-[#64748B] mb-2.5">Tokens insert at the cursor and update the preview.</p>
+
+                <!-- Token Groups -->
+                <div class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                  <!-- Post Group -->
+                  <div>
+                    <span class="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1">Post</span>
+                    <div class="grid grid-cols-2 gap-1 text-[11px]">
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%title%%</span>
+                        <span class="text-[#64748B]">Title</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%excerpt%%</span>
+                        <span class="text-[#64748B]">Excerpt</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%category%%</span>
+                        <span class="text-[#64748B]">Category</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%author%%</span>
+                        <span class="text-[#64748B]">Author</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%date%%</span>
+                        <span class="text-[#64748B]">Date</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%page%%</span>
+                        <span class="text-[#64748B]">Page</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Site Group -->
+                  <div>
+                    <span class="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1">Site</span>
+                    <div class="grid grid-cols-2 gap-1 text-[11px]">
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%sitename%%</span>
+                        <span class="text-[#64748B]">Site name</span>
+                      </div>
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%sep%%</span>
+                        <span class="text-[#64748B]">Separator</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Other Group -->
+                  <div>
+                    <span class="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1">Other</span>
+                    <div class="grid grid-cols-2 gap-1 text-[11px]">
+                      <div class="flex items-center justify-between px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <span class="font-mono font-bold text-[#1E40AF]">%%currentdate%%</span>
+                        <span class="text-[#64748B]">Current date</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FIELD 4: META DESCRIPTION -->
+            <div class="flex flex-col">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[13px] font-semibold text-[#1E293B]">Meta description</label>
+                <!-- Status Badge: Custom with filled dot glyph in teal pill -->
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-[#0F766E] border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#0F766E]"></span>
+                  Custom
+                </span>
+              </div>
+
+              <!-- 4-row Textarea -->
+              <textarea rows="4" 
+                        class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none leading-relaxed">Slow pages hurt rankings and visitors. Here is how to make yours fast.</textarea>
+
+              <!-- Meter bar: filled in orange #EA580C with Long status pill -->
+              <div class="mt-1.5 flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#EA580C] rounded-full" style="width: 71%;"></div>
+                </div>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-orange-50 text-[#EA580C] border border-orange-200">Long</span>
+              </div>
+
+              <!-- Footer row: count 113 / 160 chars on left, Token & Reset on right -->
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[12px] text-[#64748B]">113 / 160 chars</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" class="text-[11px] font-medium text-[#64748B] hover:text-[#1E293B] px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors">
+                    Reset
+                  </button>
+                  <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F8FAFC] hover:bg-slate-100 text-[#1E293B] border border-[#CBD5E1] shadow-2xs transition-colors">
+                    <span class="text-xs leading-none">+</span> Token
+                  </button>
+                </div>
+              </div>
+              <p class="text-[12px] text-[#64748B] mt-0.5">Shown under the title in the search result. Blank uses the template.</p>
+            </div>
+
+          </div>
+
+          <!-- Bottom Notice Note: Modal has NO save/cancel buttons (explicit constraint) -->
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-[#64748B]">
+            <span class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Every keystroke writes directly to post draft
+            </span>
+            <span>Dismiss via Escape or [ &times; ]</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- COLUMN 2: SOCIAL TAB ACTIVE -->
+    <!-- ========================================================================= -->
+    <div class="flex flex-col items-center">
+      <!-- Section Tag / Caption -->
+      <div class="w-full max-w-[640px] flex items-center justify-between mb-3 px-1">
+        <span class="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">SOCIAL TAB</span>
+        <span class="text-[11px] text-slate-400">Modal 2 of 2</span>
+      </div>
+
+      <!-- WordPress Mock Scrim Container -->
+      <div class="w-full max-w-[640px] rounded-xl bg-slate-800/40 p-4 border border-slate-700/40 relative">
+        
+        <!-- White Modal Centered: 640px base width, 8px radius, 20px padding -->
+        <div class="w-full bg-white rounded-lg shadow-2xl border border-slate-200 p-5 relative flex flex-col gap-0">
+          
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between pb-3">
+            <h2 class="text-[18px] font-semibold text-[#1E293B] tracking-tight">Edit Snippet</h2>
+            <button type="button" aria-label="Close" class="w-7 h-7 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Tab Bar inside the modal: 2px bottom border in #E2E8F0 -->
+          <div class="flex items-center border-b-2 border-[#E2E8F0] mb-4 gap-6">
+            <!-- Inactive Tab 1: General (Magnifier icon only in #64748B) -->
+            <button type="button" title="General" class="flex items-center pb-2.5 text-[#64748B] hover:text-slate-800 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+
+            <!-- Active Tab 2: Social (Share arrow + label #1E40AF with 3px #2563EB underline) -->
+            <button type="button" class="flex items-center gap-2 pb-2.5 text-[13px] font-semibold text-[#1E40AF] border-b-[3px] border-[#2563EB] -mb-[2px] transition-all">
+              <svg class="w-4 h-4 text-[#1E40AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>Social</span>
+            </button>
+          </div>
+
+          <!-- Five Blocks Stacked with 12px Gaps -->
+          <div class="flex flex-col gap-3">
+
+            <!-- BLOCK 1: NETWORK SWITCH & PREVIEW CARD -->
+            <div class="flex flex-col">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[13px] font-semibold text-[#1E293B]">Social Preview</span>
+                <!-- Pill segmented network switch: Facebook active on white fill with #2563EB text, Twitter inactive in #64748B -->
+                <div class="inline-flex p-0.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <span class="px-3 py-0.5 rounded-full text-[11px] font-semibold bg-white text-[#2563EB] shadow-xs">Facebook</span>
+                  <span class="px-3 py-0.5 rounded-full text-[11px] font-medium text-[#64748B]">Twitter</span>
+                </div>
+              </div>
+
+              <!-- Facebook Preview Card: 1px #E2E8F0 border, 8px radius, 16px padding -->
+              <div class="bg-white border border-[#E2E8F0] rounded-lg p-4 shadow-xs">
+                <!-- Site name in 13px semibold with a bottom border -->
+                <div class="text-[13px] font-semibold text-[#1E293B] pb-2 mb-2 border-b border-[#E2E8F0]">
+                  Acme Corp
+                </div>
+                
+                <!-- Wide image area ~300 by 140 filled #E2E8F0 with a small centred image glyph -->
+                <div class="w-full max-w-[300px] h-[140px] bg-[#E2E8F0] rounded flex items-center justify-center text-slate-400 mb-2">
+                  <svg class="w-8 h-8 stroke-slate-400" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Domain in 12px uppercase #64748B -->
+                <div class="text-[12px] font-medium uppercase tracking-wider text-[#64748B] mb-0.5">
+                  EXAMPLE.COM
+                </div>
+
+                <!-- Title in 18px #1E293B -->
+                <div class="text-[18px] font-semibold text-[#1E293B] leading-tight mb-1">
+                  How to improve your website speed
+                </div>
+
+                <!-- Two-line 14px #4B5563 description -->
+                <p class="text-[14px] text-[#4B5563] leading-snug line-clamp-2">
+                  Slow pages hurt rankings and visitors. Here is how to make yours fast with modern Core Web Vitals optimization.
+                </p>
+              </div>
+            </div>
+
+            <!-- BLOCK 2: THE IMAGE FIELD -->
+            <div class="flex flex-col">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[13px] font-semibold text-[#1E293B]">Facebook image</label>
+                <!-- Right-aligned badge reading Custom and filled dot glyph in teal pill -->
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-[#0F766E] border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#0F766E]"></span>
+                  Custom
+                </span>
+              </div>
+
+              <!-- Wide image preview about 300 by 158 with rounded border -->
+              <div class="w-full max-w-[300px] h-[140px] bg-slate-100 border border-[#CBD5E1] rounded-lg overflow-hidden flex items-center justify-center text-slate-400 relative mb-2">
+                <div class="flex flex-col items-center gap-1">
+                  <svg class="w-7 h-7 stroke-slate-400" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span class="text-[11px] font-mono text-slate-500">social-hero.png (300&times;140)</span>
+                </div>
+              </div>
+
+              <!-- Row of two small secondary buttons -->
+              <div class="flex items-center gap-2 mb-1.5">
+                <button type="button" class="px-2.5 py-1 rounded text-[12px] font-medium bg-[#F8FAFC] hover:bg-slate-100 text-[#1E293B] border border-[#CBD5E1] shadow-2xs transition-colors">
+                  Select image
+                </button>
+                <button type="button" class="px-2.5 py-1 rounded text-[12px] font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                  Remove
+                </button>
+              </div>
+              <p class="text-[12px] text-[#64748B] mb-2">Recommended 1200x630, minimum 600x315.</p>
+
+              <!-- Warning State in pale orange #FFF7ED box with orange #EA580C left border and warning glyph -->
+              <div class="bg-[#FFF7ED] border-l-4 border-[#EA580C] p-2.5 rounded-r text-[12px] text-slate-800 flex items-start gap-2">
+                <svg class="w-4 h-4 text-[#EA580C] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>This image is smaller than the minimum 600x315 (300x140).</span>
+              </div>
+            </div>
+
+            <!-- BLOCK 3: THE SOCIAL TITLE -->
+            <div class="flex flex-col">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[13px] font-semibold text-[#1E293B]">Facebook title</label>
+                <!-- Right-aligned Inherited badge in muted grey pill with hollow circle -->
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-[#64748B] border border-slate-200">
+                  <span class="w-1.5 h-1.5 rounded-full border border-[#64748B] bg-transparent"></span>
+                  Inherited
+                </span>
+              </div>
+
+              <!-- Input -->
+              <input type="text" value="How to improve your website speed" 
+                     class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none">
+
+              <!-- Teal filled meter bar -->
+              <div class="mt-1.5 flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#0F766E] rounded-full" style="width: 71%;"></div>
+                </div>
+              </div>
+
+              <!-- Footer with 43 / 60 chars, Token and Reset. No helper note on this field. -->
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[12px] text-[#64748B]">43 / 60 chars</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" class="text-[11px] font-medium text-[#64748B] hover:text-[#1E293B] px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors">
+                    Reset
+                  </button>
+                  <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F8FAFC] hover:bg-slate-100 text-[#1E293B] border border-[#CBD5E1] shadow-2xs transition-colors">
+                    <span class="text-xs leading-none">+</span> Token
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOCK 4: THE SOCIAL DESCRIPTION -->
+            <div class="flex flex-col">
+              <label class="text-[13px] font-semibold text-[#1E293B] mb-1">Facebook description</label>
+              <!-- 2-row textarea -->
+              <textarea rows="2" 
+                        class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none leading-relaxed">Slow pages hurt rankings and visitors. Here is how to make yours fast.</textarea>
+              
+              <!-- Footer with Token and Reset. Crucially NO character counter, NO meter bar and NO status pill -->
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[12px] text-transparent select-none">&nbsp;</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" class="text-[11px] font-medium text-[#64748B] hover:text-[#1E293B] px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors">
+                    Reset
+                  </button>
+                  <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#F8FAFC] hover:bg-slate-100 text-[#1E293B] border border-[#CBD5E1] shadow-2xs transition-colors">
+                    <span class="text-xs leading-none">+</span> Token
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOCK 5: COLLAPSIBLE SHOWN IN BOTH STATES (COLLAPSED & EXPANDED) -->
+            <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
+              
+              <!-- Collapsed state spec -->
+              <div>
+                <span class="text-[10px] font-semibold tracking-wider text-[#94A3B8] uppercase block mb-1">COLLAPSED</span>
+                <div class="w-full flex items-center justify-between px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                  <span class="text-[13px] font-semibold text-[#1E293B]">Network settings</span>
+                  <svg class="w-4 h-4 text-[#64748B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Expanded state spec -->
+              <div>
+                <span class="text-[10px] font-semibold tracking-wider text-[#94A3B8] uppercase block mb-1">EXPANDED</span>
+                <div class="w-full p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg flex flex-col gap-3">
+                  <div class="flex items-center justify-between pb-1.5 border-b border-[#E2E8F0]">
+                    <span class="text-[13px] font-semibold text-[#1E293B]">Network settings</span>
+                    <svg class="w-4 h-4 text-[#64748B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+
+                  <!-- Field 1: Open Graph type -->
+                  <div class="flex flex-col">
+                    <label class="text-[13px] font-semibold text-[#1E293B] mb-1">Open Graph type</label>
+                    <input type="text" placeholder="article" 
+                           class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] placeholder-slate-400 focus:border-[#2563EB] focus:outline-none">
+                    <p class="text-[12px] text-[#64748B] mt-1">Leave blank to inherit (article for posts, website for pages).</p>
+                  </div>
+
+                  <!-- Field 2: Twitter card -->
+                  <div class="flex flex-col">
+                    <label class="text-[13px] font-semibold text-[#1E293B] mb-1">Twitter card</label>
+                    <div class="relative">
+                      <select class="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded text-[13px] text-[#1E293B] appearance-none focus:border-[#2563EB] focus:outline-none pr-8 cursor-pointer">
+                        <option selected>Summary with large image</option>
+                        <option>Summary card</option>
+                        <option>App card</option>
+                        <option>Player card</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#64748B]">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Bottom Notice Note: Modal has NO save/cancel buttons (explicit constraint) -->
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-[#64748B]">
+            <span class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Live sync active &bull; Facebook &amp; Twitter tags update instantly
+            </span>
+            <span>Dismiss via Escape or [ &times; ]</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Specification Footer Note -->
+  <div class="max-w-[1360px] mx-auto mt-12 pt-4 border-t border-slate-800 text-center text-xs text-slate-500 font-mono">
+    RankKernel Design Specification &bull; Desktop 1440px &bull; Inter &amp; JetBrains Mono &bull; Primary #2563EB &bull; Teal #0F766E &bull; Orange #EA580C
+  </div>
+
+</body>
+</html>
+
