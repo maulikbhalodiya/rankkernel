@@ -287,6 +287,12 @@ contents boundary. */
 	width: 100%;
 }
 
+/* Single-line inputs match the spec h-10 height, like the permalink field. */
+.rk-preview-modal .components-text-control__input,
+.rk-preview-modal .components-base-control .components-text-control__input.components-text-control__input {
+	min-height: 40px;
+}
+
 .rk-preview-modal .components-textarea-control__input {
 	resize: vertical;
 }
