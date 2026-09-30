@@ -213,7 +213,7 @@ class RobotsModule implements ModuleInterface {
 			return;
 		}
 
-		echo '<div class="notice notice-warning"><p>';
+		echo '<div class="notice notice-warning is-dismissible"><p>';
 		echo esc_html__( 'A physical llms.txt file exists in the site root, so the virtual llms.txt route is not used. RankKernel will not overwrite it.', 'rankkernel' );
 		echo '</p></div>';
 	}
@@ -281,7 +281,7 @@ class RobotsModule implements ModuleInterface {
 			return;
 		}
 
-		echo '<div class="notice notice-warning"><p>';
+		echo '<div class="notice notice-warning is-dismissible"><p>';
 		echo esc_html__( 'A physical robots.txt file exists in the site root, so the server serves it before WordPress. The RankKernel robots settings have no effect while it is present. RankKernel will not delete it.', 'rankkernel' );
 		echo '</p></div>';
 	}
