@@ -6,11 +6,14 @@
  * capability checks, nonce verification, request handling, validation and
  * redirects.
  *
- * The markup adopts the shared rk-ui component layer, so every class on this
- * page comes from assets/css/rankkernel-ui.css and nothing here redefines a
- * component. The page stylesheet only holds what is genuinely this screen: the
- * two column shell, the left rail, and the few in section blocks the shared
- * layer has no equivalent for.
+ * The markup adopts the shared rk-ui component layer for the surfaces it can
+ * carry (cards, page title, notices, buttons, select wrappers, pills, icons)
+ * and keeps this screen's own classes under rk-settings-wrap for the two
+ * column shell, the left rail, the section cards and the page scoped field
+ * notation the approved sheet defines. The approved sheet draws 14px sentence
+ * case labels and a 13px helper notation, where the shared layer offers a
+ * 12px uppercase micro label, so the page stylesheet retargets those two
+ * shared notations inside its own scope rather than restating them per field.
  *
  * Three hooks the section loader in assets/js/settings-admin.js needs are load
  * bearing and must not be renamed: the rk-settings shell it walks into, the
@@ -26,6 +29,12 @@
  * active rail link rather than reading a tab, so the two are not
  * interchangeable.
  *
+ * The notice row lives inside the page header card, which is where the
+ * approved sheet draws the two state examples. At most one of the two flags
+ * is set on a real request, so the grid stretches a lone notice to the full
+ * measure rather than leaving a half width banner with an empty column next
+ * to it.
+ *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
@@ -36,6 +45,8 @@
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
+ * @var bool   $isCustomTitleSeparator Whether the stored general separator is not a preset.
+ * @var array<int, array{id: string, value: string, checked: bool}> $titleSeparatorChoices General separator preset radio rows.
  * @var array<int, array{fieldId: string, key: string, label: string, value: string}> $webmasters Webmaster verification rows.
  * @var bool   $purgeChecked         Whether the data removal checkbox is checked.
  * @var string $breadcrumbSeparator  Stored breadcrumb separator.
@@ -80,37 +91,36 @@ defined( 'ABSPATH' ) || exit;
 	?>
 	<h1 class="screen-reader-text"><?php echo esc_html__( 'RankKernel General Settings', 'rankkernel' ); ?></h1>
 
-	<?php /* Section 1: page header card. No actions block, because the save control belongs to the form below it. */ ?>
-	<header class="rk-ui-card rk-ui-page-header">
-		<div class="rk-ui-page-header-text">
-			<div class="rk-ui-page-header-title-row">
-				<h2 class="rk-ui-page-title"><?php echo esc_html__( 'RankKernel General Settings', 'rankkernel' ); ?></h2>
+	<?php /* Section 1: page header card, with the notice row inside it. No actions block, because the save control belongs to the form below it. */ ?>
+	<header class="rk-ui-card rk-settings-header">
+		<h2 class="rk-ui-page-title"><?php echo esc_html__( 'RankKernel General Settings', 'rankkernel' ); ?></h2>
+		<p class="rk-ui-sub"><?php echo esc_html__( 'Manage the templates, verification codes, social defaults and crawler rules RankKernel applies across this site.', 'rankkernel' ); ?></p>
+
+		<?php
+		/*
+		 * Section 2: notice row. Both notices sit inside the page header the
+		 * way the approved sheet draws them, and neither carries a dismiss
+		 * button because this screen ships no JavaScript that wires one.
+		 */
+		?>
+		<?php if ( $settingsUpdated || $settingsSaveFailed ) : ?>
+			<div class="rk-settings-notices">
+				<?php if ( $settingsUpdated ) : ?>
+					<div class="rk-ui-notice rk-ui-notice-success" role="status">
+						<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+						<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( $settingsSaveFailed ) : ?>
+					<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+						<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+						<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p>
+					</div>
+				<?php endif; ?>
 			</div>
-			<p class="rk-ui-sub"><?php echo esc_html__( 'Manage the templates, verification codes, social defaults and crawler rules RankKernel applies across this site.', 'rankkernel' ); ?></p>
-		</div>
+		<?php endif; ?>
 	</header>
-
-	<?php
-	/*
-	 * Section 2: notice row. Both notices sit inside the page root so the
-	 * shared notice component applies, and neither carries a dismiss button
-	 * because this screen ships no JavaScript that wires one. The core
-	 * markup they replace is read by nothing here.
-	 */
-	?>
-	<?php if ( $settingsUpdated ) : ?>
-		<div class="rk-ui-notice rk-ui-notice-success" role="status">
-			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
-			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings saved.', 'rankkernel' ); ?></p>
-		</div>
-	<?php endif; ?>
-
-	<?php if ( $settingsSaveFailed ) : ?>
-		<div class="rk-ui-notice rk-ui-notice-error" role="alert">
-			<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
-			<p class="rk-ui-notice-text"><?php echo esc_html__( 'Settings could not be saved. Please try again.', 'rankkernel' ); ?></p>
-		</div>
-	<?php endif; ?>
 
 	<form method="post" action="">
 		<?php wp_nonce_field( 'rankkernel_settings' ); ?>
@@ -137,7 +147,15 @@ defined( 'ABSPATH' ) || exit;
 				</ul>
 			</nav>
 
-			<?php /* The required section file loads here, and the save control follows it. */ ?>
+			<?php
+			/*
+			 * The required section file loads here, and the save control
+			 * follows it. The partial request path in SettingsPage renders the
+			 * same pair, so the save control is styled as its own card from
+			 * this stylesheet rather than being wrapped in extra markup that
+			 * the loader swap would drop.
+			 */
+			?>
 			<div class="rk-settings-body">
 
 				<?php require __DIR__ . '/sections/' . $currentSection . '.php'; ?>

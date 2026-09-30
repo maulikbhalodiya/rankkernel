@@ -4,10 +4,14 @@
  *
  * Presentation only. SettingsPage prepares every variable used below.
  *
- * The section is the shared card. Its callouts can carry two or three
+ * The section is a page scoped card. Its callouts can carry two or three
  * sentences each, so they keep the page banner notation rather than the one
  * line shared notice, and each banner title carries a glyph from the icon set
  * so the severity never rests on the accent colour alone.
+ *
+ * The save row carries the sheet's confirmation sentence beside the button, so
+ * the consequence is readable before the click as well as in the confirm
+ * dialog the button opens.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -18,6 +22,8 @@
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
+ * @var bool   $isCustomTitleSeparator Whether the stored general separator is not a preset.
+ * @var array<int, array{id: string, value: string, checked: bool}> $titleSeparatorChoices General separator preset radio rows.
  * @var array<int, array{fieldId: string, key: string, label: string, value: string}> $webmasters Webmaster verification rows.
  * @var bool   $purgeChecked         Whether the data removal checkbox is checked.
  * @var string $breadcrumbSeparator  Stored breadcrumb separator.
@@ -50,12 +56,12 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <section id="rk-section-htaccess" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-htaccess-title">
-	<div class="rk-ui-card-header">
-		<h3 class="rk-ui-card-title" id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h3>
+	<div class="rk-settings-section-head rk-settings-section-head--snug">
+		<h3 class="rk-settings-section-title" id="rk-section-htaccess-title"><?php echo esc_html__( '.htaccess', 'rankkernel' ); ?></h3>
 	</div>
-	<div class="rk-ui-card-body">
+	<div class="rk-settings-section-body">
 		<?php if ( 'saved' === $htaccessNotice ) : ?>
-			<div class="rk-banner rk-banner-info"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved. A backup was written next to the file.', 'rankkernel' ); ?></p></div>
+			<div class="rk-banner rk-banner-success"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'A backup was written next to the file.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
 			<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'failed' === $htaccessNotice ) : ?>
@@ -86,10 +92,14 @@ defined( 'ABSPATH' ) || exit;
 			 * controller read from disk.
 			 */
 			?>
-			<p class="rk-ui-hint"><code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code></p>
-			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="large-text code rk-code-editor"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
+			<p class="rk-settings-path">
+				<span class="rk-settings-path-label"><?php echo esc_html__( 'File path:', 'rankkernel' ); ?></span>
+				<code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code>
+			</p>
+			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="rk-code-editor rk-code-editor--roomy"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
 			<p class="rk-form-actions">
 				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>
+				<span class="rk-ui-hint"><?php echo esc_html__( 'Asks for confirmation: Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ); ?></span>
 			</p>
 		<?php endif; ?>
 	</div>
