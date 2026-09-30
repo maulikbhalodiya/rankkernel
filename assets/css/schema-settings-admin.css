@@ -3,61 +3,99 @@
  *
  * Page scoped rules for the Schema Settings admin screen only. Every shared
  * component (buttons, cards, card header, page header, notices in all four
- * semantic colours, pills, form rows, form labels, select and its chevron,
- * and the focus ring) comes from rankkernel-ui.css under the rk-ui scope.
- * The token layer loads as a registered dependency before this sheet, so
- * every colour, spacing, radius and shadow value below is a var(--rk-*)
- * token and no raw hex appears here.
+ * semantic colours, pills, tables, selects, switches and the focus ring)
+ * comes from rankkernel-ui.css under the rk-ui scope. The token layer loads
+ * as a registered dependency before this sheet, so every colour, spacing,
+ * radius and shadow value below is a var(--rk-*) token and no raw hex
+ * appears here.
  *
- * The Schema accent uses the reserved secondary 2 pair, the violet hue the
- * token layer sets aside for Schema and structured data only. It is the
- * page accent and the card highlight here, and the shared rk-ui-pill-schema
- * variant carries the same pair for the badge. No other hue is introduced
- * here, and the primary blue is not used as an accent.
+ * The approved design is a global palette screen: its accent is the primary
+ * blue, carried by the Schema badge, the header icon tile, the section
+ * glyphs and the selected radio card. The reserved violet secondary 2 pair
+ * appears only in focus states, as it does in the design, so the page paints
+ * it on the text fields and selects and nowhere else. No card carries a
+ * coloured top border, because the design paints none.
  *
  * @package RankKernel
  */
 
+/* It is the page scope that receives the tokens, so the custom properties
+   below are declared once on the scope and consumed by the rules that follow.
+   They name the three surfaces the design uses that the global token layer
+   does not carry as its own primitive: the dark code surface, the two code
+   token colours and the neutral decorative glyph colour. */
+.rk-schema-settings {
+	--rk-schema-code-surface: var(--rk-color-text);
+	--rk-schema-code-text: var(--rk-color-border-strong);
+	--rk-schema-code-key: var(--rk-meter-fill-normal);
+	--rk-schema-code-string: var(--rk-color-secondary-1-soft);
+	--rk-schema-glyph: var(--rk-color-border-strong);
+	--rk-schema-sticky-top: 46px;
+}
+
 /* ==========================================================================
-   Page shell, a single column of cards with the shared spacing rhythm
+   Page shell, a notice stack then the header and the two column body
    ========================================================================== */
 
 /* The .wrap margins are the WordPress ones, so only the column stack and the
-   bottom breathing room are set here. This is the same decision the 404
-   Monitor screen makes, and it is why the cards on this screen line up with
-   the cards on every other RankKernel page instead of sitting 24 pixels to
-   the right of them. */
+   bottom breathing room are set here. This is the same decision the other
+   redrawn screens make, and it is why the cards on this screen line up with
+   the cards on every other RankKernel page. */
 .rk-schema-settings {
 	display: flex;
 	flex-direction: column;
-	gap: var(--rk-space-4);
+	gap: var(--rk-space-6);
 	margin: 0;
 	padding: 0 0 var(--rk-space-6) 0;
 	box-sizing: border-box;
 }
 
-/* The form is a plain block element in the flow, so it repeats the column
-   gap to keep one rhythm between the cards and the save bar. */
-.rk-schema-settings > form {
+/* The form is the second column in the flow, so it repeats the page gap to
+   keep one rhythm between the header and the body. */
+.rk-schema-form {
 	display: flex;
 	flex-direction: column;
-	gap: var(--rk-space-4);
+	gap: var(--rk-space-6);
 	margin: 0;
 }
 
-/* ==========================================================================
-   Schema accent, the reserved secondary 2 pair on the header and the two
-   cards the mockup marks, never on the tools card
-   ========================================================================== */
-
-.rk-schema-settings .rk-ui-page-header,
-.rk-schema-settings .rk-identity-card,
-.rk-schema-settings .rk-defaults-card {
-	border-block-start: 3px solid var(--rk-color-secondary-2);
+/* Active submit buttons lose the WordPress core float, and the meta box
+   styling core adds to form tables never applies to a plain flex column. */
+.rk-schema-form p.submit {
+	margin: 0;
+	padding: 0;
 }
 
-/* Decorative identity mark, the structured data glyph in the reserved hue. */
-.rk-schema-settings .rk-schema-mark {
+/* ==========================================================================
+   Notice stack, the saved outcome, the failure outcome and one information
+   banner that describes the module rather than a runtime status
+   ========================================================================== */
+
+.rk-schema-notices {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+}
+
+.rk-schema-notices:empty {
+	display: none;
+}
+
+/* ==========================================================================
+   Page header card, icon tile plus title plus the two badges plus actions
+   ========================================================================== */
+
+.rk-schema-header {
+	flex-wrap: wrap;
+	row-gap: var(--rk-space-4);
+}
+
+.rk-schema-title-row {
+	row-gap: var(--rk-space-2);
+}
+
+/* The identity tile, the primary soft pair the design paints for Schema. */
+.rk-schema-header-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -65,96 +103,1090 @@
 	width: 40px;
 	height: 40px;
 	border-radius: var(--rk-radius-lg);
-	background: var(--rk-color-secondary-2-soft);
-	border: 1px solid var(--rk-tint-schema-border);
-	color: var(--rk-color-secondary-2);
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
+	color: var(--rk-color-primary);
 }
 
-.rk-schema-settings .rk-schema-mark .rk-icon {
+.rk-schema-header-icon .rk-icon {
 	font-size: 24px;
 }
 
-/* The Schema badge is the shared rk-ui-pill-schema variant now, beside the
-   five semantic ones in rankkernel-ui.css, so it needs no rule here. */
+/* The Schema badge. The design paints it blue, so it takes the primary
+   soft background, the tint border and the primary hover step as text,
+   which is the blue 700 step of the global palette. The reserved violet
+   secondary 2 pair is deliberately not used here. */
+.rk-schema-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
+	color: var(--rk-color-primary-hover);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+/* The version chip carries the real plugin version, not a mockup number. */
+.rk-schema-version-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	color: var(--rk-color-text-secondary);
+	font-size: 11px;
+	font-weight: 500;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-schema-header-actions {
+	flex-wrap: wrap;
+}
+
+/* The external link arrow is smaller and quieter than the leading glyph on
+   the same button, the way the design draws its open in new icon. */
+.rk-schema-settings .rk-ui-btn .rk-schema-arrow {
+	font-size: 14px;
+	color: var(--rk-color-text-hint);
+}
 
 /* ==========================================================================
-   Checkbox sentence inside a labelled row
+   Two column body, sticky sidebar plus the stacked cards
    ========================================================================== */
 
-/* A checkbox that sits inside a labelled sentence. The sentence is the
-   label, so the row title above it is a span and not a second label. */
-.rk-schema-settings .rk-schema-check {
-	display: block;
-	font-size: var(--rk-font-size-sm);
+.rk-schema-layout {
+	display: grid;
+	grid-template-columns: 240px minmax(0, 1fr);
+	gap: var(--rk-space-6);
+	align-items: start;
+}
+
+.rk-schema-sidebar {
+	position: sticky;
+	top: var(--rk-schema-sticky-top);
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-4);
+	min-width: 0;
+}
+
+.rk-schema-main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-6);
+	min-width: 0;
+}
+
+/* ==========================================================================
+   Sidebar navigation card
+   ========================================================================== */
+
+.rk-schema-nav {
+	overflow: hidden;
+}
+
+.rk-schema-nav-head {
+	padding: var(--rk-space-3) var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border-block-end: 1px solid var(--rk-color-border);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-nav-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	list-style: none;
+	margin: 0;
+	padding: var(--rk-space-2);
+}
+
+.rk-schema-nav-item {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	padding: 10px var(--rk-space-3);
+	border-inline-start: 3px solid transparent;
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
 	line-height: var(--rk-line-height-normal);
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.rk-schema-nav-item .rk-icon {
+	font-size: 18px;
+	color: var(--rk-color-text-hint);
+}
+
+.rk-schema-nav-item:hover {
+	background: var(--rk-color-surface-subtle);
 	color: var(--rk-color-text);
 }
 
-/* ==========================================================================
-   Logo picker, the preview and its two buttons
-   ========================================================================== */
+.rk-schema-nav-item.is-current {
+	background: var(--rk-color-primary-soft);
+	border-inline-start-color: var(--rk-color-primary);
+	color: var(--rk-color-primary);
+	font-weight: 600;
+}
 
-.rk-schema-settings .rk-schema-logo-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--rk-space-2);
-	margin: var(--rk-space-3) 0 0;
+.rk-schema-nav-item.is-current .rk-icon {
+	color: var(--rk-color-primary);
+}
+
+/* The preview marker. It is decorative and hidden from assistive
+   technology, so the nav text carries the only meaning. */
+.rk-schema-nav-dot {
+	flex-shrink: 0;
+	margin-inline-start: auto;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-secondary-1);
+	box-shadow: 0 0 0 4px var(--rk-color-secondary-1-soft);
 }
 
 /* ==========================================================================
-   Testing tools, a wrapping row of link buttons
+   Schema status panel. Every value is either a field the cards below carry
+   or a fixed behaviour of the generator, so nothing here is a runtime probe
    ========================================================================== */
 
-.rk-schema-settings .rk-schema-tools {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--rk-space-3);
-}
-
-/* ==========================================================================
-   Save bar, one control for the single form
-   ========================================================================== */
-
-.rk-schema-settings .rk-schema-form-foot {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: flex-end;
-	gap: var(--rk-space-3);
-	padding: var(--rk-space-3) var(--rk-space-4);
+.rk-schema-status {
+	padding: var(--rk-space-4);
 	background: var(--rk-color-surface-subtle);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-lg);
-	box-sizing: border-box;
+	border-block-start: 1px solid var(--rk-color-border);
 }
 
-.rk-schema-settings .rk-schema-form-foot .submit {
+.rk-schema-status-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-end: var(--rk-space-3);
+}
+
+.rk-schema-status-title {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-status-meta {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-status-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.rk-schema-status-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-schema-status-entity {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-schema-status-dot {
+	flex-shrink: 0;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-border-strong);
+}
+
+.rk-schema-status-dot.is-on {
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-schema-status-value {
+	flex-shrink: 0;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-status-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-start: var(--rk-space-3);
+	padding-block-start: var(--rk-space-2);
+	border-block-start: 1px solid var(--rk-color-border);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+}
+
+/* ==========================================================================
+   Sidebar hint card
+   ========================================================================== */
+
+.rk-schema-hintbox {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 14px;
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-hintbox .rk-icon {
+	flex-shrink: 0;
+	margin-block-start: 1px;
+	font-size: 16px;
+	color: var(--rk-color-primary);
+}
+
+.rk-schema-hintbox p {
 	margin: 0;
 }
 
 /* ==========================================================================
-   Field widths, so no control can overflow a narrow admin content area
+   Section shell, card header with a quiet glyph plus the row body
    ========================================================================== */
 
-.rk-schema-settings .rk-ui-form-row input[type="text"],
-.rk-schema-settings .rk-ui-form-row textarea {
-	max-width: 100%;
-	box-sizing: border-box;
+.rk-schema-section {
+	overflow: hidden;
 }
 
-.rk-schema-settings .rk-ui-form-row textarea {
-	width: 100%;
-	max-width: 40em;
+.rk-schema-section-head {
+	align-items: center;
+	padding: var(--rk-space-5) var(--rk-space-6);
+}
+
+.rk-schema-section-head-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+/* The decorative glyph the design places in the card header corner. */
+.rk-schema-section-glyph {
+	flex-shrink: 0;
+	font-size: 24px;
+	line-height: 1;
+	color: var(--rk-schema-glyph);
+}
+
+.rk-schema-section-glyph .rk-icon {
+	font-size: 24px;
+}
+
+/* The shared card body carries a 20px gap, but these rows draw their own
+   separators, so the gap moves into the rows themselves. */
+.rk-schema-rows {
+	gap: 0;
+}
+
+.rk-schema-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	gap: var(--rk-space-5);
+	align-items: start;
+	padding-block: var(--rk-space-5);
+}
+
+.rk-schema-row:first-child {
+	padding-block-start: 0;
+}
+
+.rk-schema-row:last-child {
+	padding-block-end: 0;
+}
+
+.rk-schema-row + .rk-schema-row {
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-schema-row-lead {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-schema-row-control {
+	min-width: 0;
+}
+
+/* The design carries sentence case row labels, so the shared uppercase
+   treatment is relaxed here and nowhere else. */
+.rk-schema-settings .rk-ui-form-label {
+	text-transform: none;
+	letter-spacing: 0;
+	color: var(--rk-color-text-secondary);
 }
 
 /* ==========================================================================
-   Responsive stacking, on the same 782 pixel breakpoint as the shared layer
+   Represents, two radio cards. The radio itself is visually hidden and the
+   whole card is the label, so the control stays keyboard reachable
    ========================================================================== */
 
+.rk-schema-rep-group {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--rk-space-3);
+	max-width: 280px;
+}
+
+.rk-schema-rep-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	text-align: center;
+	cursor: pointer;
+	transition: border-color 0.15s, background 0.15s;
+}
+
+.rk-schema-rep-card:hover {
+	border-color: var(--rk-color-text-hint);
+}
+
+.rk-schema-rep-card.is-selected {
+	border-color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+	box-shadow: inset 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-schema-rep-card:has(.rk-schema-rep-input:focus-visible) {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+.rk-schema-rep-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.rk-schema-rep-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.rk-schema-rep-title {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text-secondary);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-schema-rep-card.is-selected .rk-schema-rep-title {
+	color: var(--rk-color-primary);
+	font-weight: 700;
+}
+
+.rk-schema-rep-sub {
+	font-size: 10px;
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-schema-rep-dot {
+	position: absolute;
+	inset-block-start: 6px;
+	inset-inline-end: 6px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	display: none;
+}
+
+.rk-schema-rep-card.is-selected .rk-schema-rep-dot {
+	display: block;
+}
+
+/* ==========================================================================
+   Text fields. The design paints the violet secondary 2 pair on focus
+   states only, so that is the one place this sheet spends it
+   ========================================================================== */
+
+.rk-schema-input,
+.rk-schema-sameas-field {
+	width: 100%;
+	max-width: 100%;
+	padding: 10px var(--rk-space-3);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-schema-sameas-field {
+	max-width: 40em;
+	resize: vertical;
+}
+
+.rk-schema-settings .rk-schema-input:focus,
+.rk-schema-settings .rk-schema-sameas-field:focus,
+.rk-schema-settings .rk-ui-select:focus {
+	border-color: var(--rk-color-secondary-2);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-tint-schema-border);
+}
+
+/* ==========================================================================
+   Logo picker, the preview frame plus the two actions
+   ========================================================================== */
+
+.rk-schema-logo-picker {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-4);
+}
+
+.rk-schema-logo-frame {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 160px;
+	height: 96px;
+	padding: var(--rk-space-2);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface-subtle);
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.rk-schema-logo-placeholder {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--rk-color-text-hint);
+}
+
+.rk-schema-logo-placeholder .rk-icon {
+	font-size: 24px;
+}
+
+/* When no logo is stored the preview holds no source, and the placeholder
+   stands alone. Once a source exists the image covers it, and the script
+   that sets the source needs no change. */
+.rk-schema-logo-frame:has(.rk-schema-logo-preview:not([src=""])) .rk-schema-logo-placeholder {
+	display: none;
+}
+
+.rk-schema-logo-preview {
+	position: relative;
+	z-index: 1;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.rk-schema-logo-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-2);
+	min-width: 0;
+}
+
+.rk-schema-logo-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0;
+}
+
+/* ==========================================================================
+   Social profiles, the textarea control plus the chips enhancement the
+   page script reveals when JavaScript is available
+   ========================================================================== */
+
+.rk-schema-sameas {
+	display: none;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.rk-schema-sameas.is-enhanced {
+	display: flex;
+}
+
+/* While the chips are live the real textarea stays in the form and keeps
+   submitting, it is only taken out of sight. */
+.rk-schema-sameas.is-enhanced + .rk-schema-sameas-field {
+	display: none;
+}
+
+.rk-schema-profile-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+/* An empty list still costs one gap step in the flex column above it, so
+   it leaves the flow until the first chip arrives. */
+.rk-schema-profile-chips:empty {
+	display: none;
+}
+
+.rk-schema-profile-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-muted);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	max-width: 100%;
+}
+
+.rk-schema-profile-chip-url {
+	display: inline-flex;
+	align-items: baseline;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.rk-schema-profile-chip-muted {
+	font-size: 10px;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-profile-chip-strong {
+	font-weight: 500;
+	color: var(--rk-color-text);
+}
+
+.rk-schema-profile-chip-remove {
+	display: inline-flex;
+	align-items: center;
+	padding: 0;
+	margin-inline-start: 2px;
+	border: none;
+	background: none;
+	color: var(--rk-color-text-hint);
+	cursor: pointer;
+	line-height: 1;
+}
+
+.rk-schema-profile-chip-remove:hover {
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-schema-profile-chip-remove .rk-icon {
+	font-size: 14px;
+}
+
+.rk-schema-sameas-add {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+/* The Add control hugs its label, so the field beside it takes every
+   spare pixel of the row instead of sharing the squeeze. */
+.rk-schema-sameas-add .rk-ui-btn {
+	flex-shrink: 0;
+}
+
+.rk-schema-sameas-add > .rk-icon {
+	position: absolute;
+	inset-inline-start: var(--rk-space-3);
+	inset-block-start: 50%;
+	transform: translateY(-50%);
+	font-size: 16px;
+	color: var(--rk-color-text-hint);
+	pointer-events: none;
+}
+
+.rk-schema-sameas-input {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	padding: 8px var(--rk-space-3) 8px 36px;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rk-schema-settings .rk-schema-sameas-input:focus {
+	border-color: var(--rk-color-secondary-2);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-tint-schema-border);
+}
+
+/* ==========================================================================
+   Switch rows, the visible sentence sits beside the shared switch
+   ========================================================================== */
+
+.rk-schema-switch-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+}
+
+.rk-schema-switch-text {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* ==========================================================================
+   Output options, one bordered row per optional entity with the switch at
+   the end
+   ========================================================================== */
+
+.rk-schema-toggle-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding: 14px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	transition: border-color 0.15s;
+}
+
+.rk-schema-toggle-row:hover {
+	border-color: var(--rk-color-border-strong);
+}
+
+.rk-schema-toggle-text {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-3);
+	min-width: 0;
+}
+
+.rk-schema-toggle-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-schema-toggle-icon .rk-icon {
+	font-size: 18px;
+}
+
+.rk-schema-toggle-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-schema-toggle-title {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-schema-toggle-desc {
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-schema-toggle-note {
+	font-size: 11px;
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+/* The switch sits one pixel down from the row top, the way the design
+   aligns it with the title line. */
+.rk-schema-settings .rk-schema-toggle-row .rk-ui-switch {
+	margin-block-start: 1px;
+}
+
+/* ==========================================================================
+   Schema defaults, the shared table with the design's flatter header
+   treatment and the real per post type selects
+   ========================================================================== */
+
+.rk-schema-defaults-body {
+	gap: var(--rk-space-4);
+}
+
+.rk-schema-settings .rk-schema-defaults-table thead th {
+	background: none;
+	padding: var(--rk-space-3);
+	border-block-end: 1px solid var(--rk-color-border);
+	text-transform: none;
+	letter-spacing: 0;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-settings .rk-schema-defaults-table tbody tr {
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-schema-settings .rk-schema-defaults-table tbody td {
+	padding: var(--rk-space-3);
+	vertical-align: top;
+}
+
+.rk-schema-post-type {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+}
+
+.rk-schema-post-name {
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	color: var(--rk-color-text);
+}
+
+.rk-schema-slug-chip {
+	padding: 2px 6px;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	font-family: var(--rk-font-mono);
+	font-size: 10px;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-select-wrap {
+	max-width: 240px;
+}
+
+.rk-schema-settings .rk-schema-select {
+	width: 100%;
+}
+
+.rk-schema-select-desc {
+	margin-block-start: 6px;
+}
+
+/* ==========================================================================
+   JSON-LD preview, the example chip, the three controls and the dark code
+   block. The block renders a labelled example, never a claimed live graph
+   ========================================================================== */
+
+.rk-schema-preview-title-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-3);
+}
+
+.rk-schema-preview-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border: 1px solid var(--rk-tint-positive-border);
+	border-radius: 999px;
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-schema-preview-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--rk-color-secondary-1);
+}
+
+.rk-schema-preview-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+}
+
+/* Open in Validator keeps the design's soft primary tint instead of the
+   plain secondary button, because it is the one live control in the row. */
+.rk-schema-validator-link {
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
+	color: var(--rk-color-primary);
+}
+
+.rk-schema-validator-link:hover {
+	border-color: var(--rk-color-primary);
+	color: var(--rk-color-primary-hover);
+}
+
+.rk-schema-preview-body {
+	gap: var(--rk-space-4);
+}
+
+.rk-schema-preview-example {
+	font-weight: 500;
+}
+
+.rk-schema-codeblock {
+	padding: var(--rk-space-5);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-schema-code-surface);
+	overflow-x: auto;
+}
+
+.rk-schema-code {
+	margin: 0;
+	font-family: var(--rk-font-mono);
+	font-size: 13px;
+	line-height: 1.62;
+	/* The example graph indents with tabs to satisfy the PHPCS tab rule, so
+	   the code surface renders each level as the design's two columns. */
+	tab-size: 2;
+	color: var(--rk-schema-code-text);
+}
+
+.rk-tok-key {
+	color: var(--rk-schema-code-key);
+}
+
+.rk-tok-string {
+	color: var(--rk-schema-code-string);
+}
+
+.rk-schema-preview-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	margin: 0;
+	padding-block-start: var(--rk-space-1);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-schema-preview-meta span:last-child {
+	font-size: 11px;
+}
+
+/* ==========================================================================
+   Testing tools, two bordered cards each with its own open control
+   ========================================================================== */
+
+.rk-schema-tools {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--rk-space-4);
+}
+
+.rk-schema-tool-card {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	transition: border-color 0.15s;
+}
+
+.rk-schema-tool-card:hover {
+	border-color: var(--rk-color-border-strong);
+}
+
+.rk-schema-tool-head {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	margin-block-end: var(--rk-space-2);
+}
+
+.rk-schema-tool-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-schema-tool-icon .rk-icon {
+	font-size: 18px;
+}
+
+.rk-schema-tool-title {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 700;
+	color: var(--rk-color-text);
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-schema-tool-desc {
+	margin: 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-schema-tool-action {
+	margin: 0;
+}
+
+/* ==========================================================================
+   Footer line
+   ========================================================================== */
+
+.rk-schema-footer {
+	margin: 0;
+	text-align: center;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
+/* ==========================================================================
+   Responsive stacking
+   ========================================================================== */
+
+/* Below the design's own column breakpoint the sidebar moves above the
+   cards and stops being sticky. */
+@media screen and (max-width: 1024px) {
+	.rk-schema-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-schema-sidebar {
+		position: static;
+	}
+}
+
 @media screen and (max-width: 782px) {
-	/* The card body inset and the page gutter both come from the shared layer
-	   at this width now, so only the save bar alignment is left to set. */
-	.rk-schema-settings .rk-schema-form-foot {
-		justify-content: flex-start;
+	.rk-schema-settings {
+		padding-inline-end: 0;
+	}
+
+	.rk-schema-header-actions {
+		width: 100%;
+	}
+
+	/* Every two column row folds to one column, so the label sits above its
+	   control the way the design stacks on a phone. */
+	.rk-schema-row {
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--rk-space-3);
+	}
+
+	.rk-schema-rep-group {
+		max-width: none;
+	}
+
+	.rk-schema-logo-picker {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.rk-schema-toggle-row {
+		flex-direction: column;
+	}
+
+	.rk-schema-tools {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-schema-preview-actions {
+		width: 100%;
+	}
+
+	.rk-schema-sameas-add {
+		flex-wrap: wrap;
+	}
+
+	.rk-schema-sameas-input {
+		flex-basis: 100%;
+	}
+}
+
+/* Every selector in this sheet that declares a transition is listed here. */
+@media screen and (prefers-reduced-motion: reduce) {
+	.rk-schema-nav-item,
+	.rk-schema-rep-card,
+	.rk-schema-input,
+	.rk-schema-sameas-field,
+	.rk-schema-sameas-input,
+	.rk-schema-toggle-row,
+	.rk-schema-tool-card {
+		transition: none;
 	}
 }
