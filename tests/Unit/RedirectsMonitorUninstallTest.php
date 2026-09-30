@@ -102,6 +102,8 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 			'rankkernel_404_suppressed'             => 123,
 			'_transient_rankkernel_sitemap'         => 'xml',
 			'_transient_timeout_rankkernel_sitemap' => 123456,
+			'_transient_rankkernel_llms_md'         => 'markdown',
+			'_transient_timeout_rankkernel_llms_md' => 123456,
 			'_transient_rkredir_match'              => 'data',
 			'_transient_timeout_rkredir_match'      => 123456,
 			'_transient_rk404_flood_site'           => 'data',
@@ -169,6 +171,8 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 			'_transient_timeout_rkredir_match'      => 123456,
 			'_transient_rankkernel_sitemap'         => 'xml',
 			'_transient_timeout_rankkernel_sitemap' => 123456,
+			'_transient_rankkernel_llms_md'         => 'markdown',
+			'_transient_timeout_rankkernel_llms_md' => 123456,
 			'other_plugin_option'                   => 'keep',
 			'_transient_other_plugin'               => 'keep',
 		];
@@ -198,6 +202,7 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 		$this->assertArrayNotHasKey( '_transient_rk404_flood_site', $db->optionRows );
 		$this->assertArrayNotHasKey( '_transient_rkredir_match', $db->optionRows );
 		$this->assertArrayNotHasKey( '_transient_rankkernel_sitemap', $db->optionRows );
+		$this->assertArrayNotHasKey( '_transient_rankkernel_llms_md', $db->optionRows );
 
 		$this->assertArrayHasKey( 'rankkernel_404_settings', $db->optionRows, 'configuration options must survive a default uninstall' );
 		$this->assertArrayHasKey( 'rankkernel_404_suppressed', $db->optionRows );
