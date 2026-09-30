@@ -614,7 +614,7 @@ final class SchemaSettingsAdminTest extends TestCase {
 		$this->makePage()->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'value="person"selected', $html );
+		$this->assertStringContainsString( 'name="site_represents" value="person" checked', $html );
 		$this->assertStringContainsString( 'value="Acme"', $html );
 		$this->assertStringContainsString( 'value="NewsArticle"selected', $html );
 		$this->assertStringNotContainsString( 'name="schema_breadcrumbs" value="1" checked', $html );
