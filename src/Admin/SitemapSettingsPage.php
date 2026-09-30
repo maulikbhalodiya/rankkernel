@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 use RankKernel\Modules\Sitemaps\Router;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
+use RankKernel\Plugin;
 
 /**
  * Renders the RankKernel sitemap settings page and handles saves.
@@ -24,11 +25,28 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  */
 final class SitemapSettingsPage {
 	/**
+	 * Hook suffix for the screen, used to gate asset loading.
+	 */
+	public const HOOK_SUFFIX = 'rankkernel_page_rankkernel-sitemap';
+
+	/**
 	 * Tab ids in display order.
 	 *
 	 * @var string[]
 	 */
 	private const TABS = [ 'general', 'post-types', 'taxonomies', 'authors' ];
+
+	/**
+	 * Tab id to Material Symbols ligature, from the shipped icon subset.
+	 *
+	 * @var array<string, string>
+	 */
+	private const TAB_ICONS = [
+		'general'    => 'settings',
+		'post-types' => 'inbox',
+		'taxonomies' => 'link',
+		'authors'    => 'shield',
+	];
 
 	/**
 	 * Constructor.
@@ -75,6 +93,31 @@ final class SitemapSettingsPage {
 	}
 
 	/**
+	 * Enqueue screen assets, and only on this screen.
+	 *
+	 * The page scoped stylesheet is registered with the shared token layer and
+	 * the shared UI layer as its dependencies, so WordPress prints all three
+	 * in parallel and this sheet loads only on the Sitemap Settings screen.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueAssets( string $hookSuffix ): void {
+		if ( self::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		if ( ! function_exists( 'plugins_url' ) ) {
+			return;
+		}
+
+		$version = Plugin::version();
+
+		$css = plugins_url( 'assets/css/sitemap-admin.css', (string) RANKKERNEL_FILE );
+		wp_register_style( 'rankkernel-sitemap-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
+		wp_enqueue_style( 'rankkernel-sitemap-admin' );
+	}
+
+	/**
 	 * Prepare the view state and load the sitemap settings view.
 	 */
 	public function render(): void {
@@ -92,6 +135,11 @@ final class SitemapSettingsPage {
 
 		$tab = $this->currentTab();
 
+		// The header card renders on every tab, so the index URL and the
+		// version chip are prepared before the per tab branches.
+		$indexUrl      = Router::indexUrl();
+		$pluginVersion = Plugin::version();
+
 		$tabLabels = [
 			'general'    => __( 'General', 'rankkernel' ),
 			'post-types' => __( 'Post Types', 'rankkernel' ),
@@ -106,6 +154,7 @@ final class SitemapSettingsPage {
 				'url'     => admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $tabId ),
 				'current' => $tabId === $tab,
 				'label'   => $tabLabel,
+				'icon'    => self::TAB_ICONS[ $tabId ],
 			];
 		}
 
@@ -115,7 +164,6 @@ final class SitemapSettingsPage {
 		$showAuthors    = 'authors' === $tab;
 
 		if ( $showGeneral ) {
-			$indexUrl     = Router::indexUrl();
 			$itemsPerPage = (string) ( $all['items_per_page'] ?? 1000 );
 
 			$generalRows = [
@@ -164,6 +212,7 @@ final class SitemapSettingsPage {
 				$key            = 'pt_' . $slug . '_sitemap';
 				$postTypeRows[] = [
 					'key'     => $key,
+					'slug'    => $slug,
 					'label'   => $label,
 					'enabled' => (bool) ( $all[ $key ] ?? true ),
 					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
@@ -178,6 +227,7 @@ final class SitemapSettingsPage {
 				$key            = 'tax_' . $slug . '_sitemap';
 				$taxonomyRows[] = [
 					'key'     => $key,
+					'slug'    => $slug,
 					'label'   => $label,
 					'enabled' => (bool) ( $all[ $key ] ?? true ),
 					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
