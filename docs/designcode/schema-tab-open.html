@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RankKernel SEO - Block Editor Sidebar Specification</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              primary: '#2563EB',
+              primaryDark: '#1E40AF',
+              teal: '#0F766E',
+              orange: '#EA580C',
+              red: '#DC2626',
+              purple: '#7C3AED',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F0F2F5;
+      font-family: 'Inter', sans-serif;
+      color: #1E293B;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Custom styling strictly adhering to specs */
+    .sidebar-panel {
+      width: 360px;
+      background-color: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+    }
+    input[type="text"], select, textarea {
+      font-family: 'Inter', sans-serif;
+      color: #1E293B;
+      border-color: #E2E8F0;
+    }
+    input[type="text"]::placeholder, textarea::placeholder {
+      color: #94A3B8;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-8 flex flex-col items-center justify-start">
+
+  <!-- Header Context / Spec Meta Strip (WP Block Editor Top Bar Context) -->
+  <header class="w-full max-w-[1376px] mb-8 bg-white border border-[#E2E8F0] rounded-lg shadow-sm px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <!-- WP W logo minimalist -->
+        <span class="w-8 h-8 rounded bg-[#1E293B] text-white flex items-center justify-center font-bold text-sm tracking-tighter">W</span>
+        <span class="text-xs text-[#64748B] font-medium">WordPress Block Editor</span>
+        <span class="text-xs text-[#CBD5E1]">/</span>
+        <span class="text-xs font-semibold text-[#1E293B]">Post Inspector &bull; RankKernel SEO Sidebar Spec</span>
+      </div>
+    </div>
+
+    <!-- Right top bar: Bar chart icon + rounded pill with bare integer (FACTS TO HONOUR) -->
+    <div class="flex items-center space-x-4">
+      <div class="text-xs text-[#64748B]">Score Element in Editor Top Bar:</div>
+      <div class="flex items-center space-x-1.5 px-2.5 py-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full">
+        <!-- Bar chart icon SVG -->
+        <svg class="w-4 h-4 text-[#2563EB]" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 11h2v3H2v-3zm5-5h2v8H7V6zm5-4h2v12h-2V2z"/>
+        </svg>
+        <!-- Rounded pill with bare integer, no logo, no wordmark -->
+        <span class="text-xs font-semibold text-[#1E293B]">87</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Spec Canvas Container: 1440px wide context -->
+  <main class="w-full max-w-[1376px] flex flex-col lg:flex-row items-start justify-center gap-10">
+
+    <!-- ========================================================================= -->
+    <!-- SIDEBAR ONE: ADVANCED TAB ACTIVE                                          -->
+    <!-- ========================================================================= -->
+    <section class="flex flex-col items-center">
+      <div class="w-[360px] flex items-center justify-between mb-2 px-1">
+        <span class="text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">Sidebar State 1</span>
+        <span class="text-[11px] font-medium text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">ADVANCED TAB ACTIVE</span>
+      </div>
+
+      <div class="sidebar-panel shadow-sm flex flex-col overflow-hidden">
+        <!-- Sidebar Header -->
+        <div class="px-4 py-3.5 flex items-center justify-between border-b border-[#E2E8F0]">
+          <h2 class="text-sm font-bold text-[#1E293B] tracking-tight">RankKernel SEO</h2>
+          <div class="flex items-center space-x-2 text-[#64748B]">
+            <!-- Settings cog / close icons typical of WP sidebar -->
+            <button type="button" class="hover:text-[#1E293B] p-1" aria-label="Settings">
+              <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" />
+                <path d="M13.5 8c0-.3-.03-.6-.08-.9l1.45-1.13a.35.35 0 00.08-.44l-1.37-2.38a.35.35 0 00-.42-.15l-1.7.69c-.36-.28-.75-.5-1.17-.67l-.26-1.8A.35.35 0 009.68 1h-2.75a.35.35 0 00-.35.3l-.26 1.82c-.42.17-.81.39-1.17.67l-1.71-.69a.35.35 0 00-.42.15L1.65 5.53a.35.35 0 00.08.44L3.18 7.1c-.05.3-.08.6-.08.9s.03.6.08.9l-1.45 1.13a.35.35 0 00-.08.44l1.37 2.38c.1.17.3.23.49.15l1.7-.69c.36.28.75.5 1.17.67l.26 1.8c.03.2.2.35.39.35h2.75c.2 0 .36-.15.39-.35l.26-1.8c.42-.17.81-.39 1.17-.67l1.7.69c.19.08.39.02.49-.15l1.37-2.38a.35.35 0 00-.08-.44L13.42 8.9c.05-.3.08-.6.08-.9z" />
+              </svg>
+            </button>
+            <button type="button" class="hover:text-[#1E293B] p-1" aria-label="Close">
+              <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Four Tabs: General, Advanced, Schema, Social -->
+        <!-- Inactive tabs show only an icon, active tab shows icon plus label. Active tab text is #1E40AF with a 3px #2563EB underline -->
+        <nav class="flex items-center border-b border-[#E2E8F0] px-2 bg-white" aria-label="Sidebar Tabs">
+          <!-- General (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="General">
+            <!-- Magnifier icon for General -->
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5L14 14" stroke-linecap="round" />
+            </svg>
+          </button>
+
+          <!-- Advanced (ACTIVE: icon + label, #1E40AF text, 3px #2563EB underline) -->
+          <button type="button" class="flex items-center space-x-1.5 px-3 py-2.5 text-[#1E40AF] font-semibold text-xs border-b-[3px] border-[#2563EB] -mb-[1px]" title="Advanced">
+            <!-- Generic panel icon for Advanced -->
+            <svg class="w-4 h-4 text-[#1E40AF]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
+              <path d="M2.5 6.5h11M6.5 6.5v7" />
+            </svg>
+            <span>Advanced</span>
+          </button>
+
+          <!-- Schema (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="Schema">
+            <!-- Angle brackets for Schema -->
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M6 4.5L2.5 8 6 11.5M10 4.5l3.5 3.5-3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <!-- Social (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="Social">
+            <!-- Share arrow for Social -->
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="4" cy="8" r="2" />
+              <circle cx="12" cy="4" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M5.8 7l4.4-2M5.8 9l4.4 2" />
+            </svg>
+          </button>
+        </nav>
+
+        <!-- Sidebar Content: 16px padding (p-4), 4px spacing rhythm -->
+        <div class="p-4 space-y-5 text-[#1E293B]">
+
+          <!-- BLOCK 1: Radio pair - Search engine visibility -->
+          <fieldset class="space-y-2">
+            <legend class="text-[13px] font-semibold text-[#1E293B]">Search engine visibility</legend>
+            <div class="flex items-center space-x-6 pt-0.5">
+              <!-- Radio 1: Selected (Index) -->
+              <label class="flex items-center space-x-2 cursor-pointer text-xs font-normal text-[#1E293B]">
+                <span class="w-4 h-4 rounded-full border-2 border-[#2563EB] flex items-center justify-center">
+                  <span class="w-2 h-2 rounded-full bg-[#2563EB]"></span>
+                </span>
+                <span>Index</span>
+              </label>
+              <!-- Radio 2: Unselected (Noindex) -->
+              <label class="flex items-center space-x-2 cursor-pointer text-xs font-normal text-[#1E293B]">
+                <span class="w-4 h-4 rounded-full border border-[#CBD5E1] bg-white"></span>
+                <span>Noindex</span>
+              </label>
+            </div>
+            <p class="text-[12px] text-[#64748B] leading-relaxed pt-0.5">Noindex hides this post from search results.</p>
+          </fieldset>
+
+          <hr class="border-t border-[#E2E8F0] my-2" />
+
+          <!-- BLOCK 2: Radio pair - Link following -->
+          <fieldset class="space-y-2">
+            <legend class="text-[13px] font-semibold text-[#1E293B]">Link following</legend>
+            <div class="flex items-center space-x-6 pt-0.5">
+              <!-- Radio 1: Selected (Follow) -->
+              <label class="flex items-center space-x-2 cursor-pointer text-xs font-normal text-[#1E293B]">
+                <span class="w-4 h-4 rounded-full border-2 border-[#2563EB] flex items-center justify-center">
+                  <span class="w-2 h-2 rounded-full bg-[#2563EB]"></span>
+                </span>
+                <span>Follow</span>
+              </label>
+              <!-- Radio 2: Unselected (Nofollow) -->
+              <label class="flex items-center space-x-2 cursor-pointer text-xs font-normal text-[#1E293B]">
+                <span class="w-4 h-4 rounded-full border border-[#CBD5E1] bg-white"></span>
+                <span>Nofollow</span>
+              </label>
+            </div>
+            <p class="text-[12px] text-[#64748B] leading-relaxed pt-0.5">Nofollow tells crawlers not to follow links on this post.</p>
+          </fieldset>
+
+          <hr class="border-t border-[#E2E8F0] my-2" />
+
+          <!-- BLOCK 3: Additional robots settings (EXPANDED as well as COLLAPSED) -->
+          <div class="space-y-3">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">COLLAPSED</div>
+            <!-- Collapsed state -->
+            <div class="flex items-center justify-between p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded cursor-pointer hover:bg-slate-100 transition-colors">
+              <span class="text-[13px] font-medium text-[#1E293B]">Additional robots settings</span>
+              <svg class="w-4 h-4 text-[#64748B]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] pt-1">EXPANDED</div>
+            <!-- Expanded state -->
+            <div class="p-3 border border-[#E2E8F0] rounded bg-white space-y-2.5">
+              <div class="flex items-center justify-between pb-1 border-b border-[#F1F5F9]">
+                <span class="text-[13px] font-semibold text-[#1E293B]">Additional robots settings</span>
+                <svg class="w-4 h-4 text-[#64748B] transform rotate-90" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+
+              <!-- Checkbox 1: Checked (No archive) -->
+              <label class="flex items-center space-x-2.5 cursor-pointer text-xs text-[#1E293B]">
+                <span class="w-4 h-4 rounded bg-[#2563EB] border border-[#2563EB] flex items-center justify-center text-white">
+                  <svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2.5 6l2.5 2.5 4.5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span>No archive</span>
+              </label>
+
+              <!-- Checkbox 2: Checked (No snippet) -->
+              <label class="flex items-center space-x-2.5 cursor-pointer text-xs text-[#1E293B]">
+                <span class="w-4 h-4 rounded bg-[#2563EB] border border-[#2563EB] flex items-center justify-center text-white">
+                  <svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2.5 6l2.5 2.5 4.5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span>No snippet</span>
+              </label>
+
+              <!-- Checkbox 3: Unchecked (No image index) -->
+              <label class="flex items-center space-x-2.5 cursor-pointer text-xs text-[#1E293B]">
+                <span class="w-4 h-4 rounded border border-[#CBD5E1] bg-white"></span>
+                <span>No image index</span>
+              </label>
+            </div>
+          </div>
+
+          <hr class="border-t border-[#E2E8F0] my-2" />
+
+          <!-- BLOCK 4: Three fields stacked -->
+          <div class="space-y-3.5">
+            <!-- Field 1: Max snippet -->
+            <div class="space-y-1">
+              <label for="max-snippet-input" class="block text-[13px] font-semibold text-[#1E293B]">Max snippet</label>
+              <input id="max-snippet-input" type="text" placeholder="" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
+              <p class="text-[12px] text-[#64748B]">Max characters for the snippet. Blank means unlimited.</p>
+            </div>
+
+            <!-- Field 2: Max image preview -->
+            <div class="space-y-1">
+              <label for="max-image-preview-select" class="block text-[13px] font-semibold text-[#1E293B]">Max image preview</label>
+              <div class="relative">
+                <select id="max-image-preview-select" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] bg-white appearance-none focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] pr-8 cursor-pointer">
+                  <option selected>Default</option>
+                  <option>None</option>
+                  <option>Standard</option>
+                  <option>Large</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-[#64748B]">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Field 3: Max video preview -->
+            <div class="space-y-1">
+              <label for="max-video-preview-input" class="block text-[13px] font-semibold text-[#1E293B]">Max video preview</label>
+              <input id="max-video-preview-input" type="text" placeholder="" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]" />
+              <p class="text-[12px] text-[#64748B]">Max seconds for a video preview. Blank means unlimited.</p>
+            </div>
+          </div>
+
+          <!-- Divider before Canonical section -->
+          <hr class="border-t border-[#E2E8F0] my-2" />
+
+          <!-- CANONICAL SECTION: Two states documented side by side / stacked for specs -->
+          <div class="space-y-3">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">CANONICAL URL SPECIFICATION STATES</div>
+
+            <!-- State 1: Default / Permalinks state -->
+            <div class="p-2.5 border border-[#E2E8F0] rounded bg-[#F8FAFC]/50 space-y-1">
+              <div class="flex items-center justify-between">
+                <label for="canonical-url-input" class="text-[13px] font-semibold text-[#1E293B]">Canonical URL</label>
+                <span class="text-[10px] text-[#64748B] uppercase">Default</span>
+              </div>
+              <input id="canonical-url-input" type="text" placeholder="https://example.com/how-to-improve-your-website-speed/" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] bg-white focus:outline-none focus:border-[#2563EB]" />
+              <p class="text-[12px] text-[#64748B]">Leave blank to use the generated canonical. A full URL is required when set.</p>
+            </div>
+
+            <!-- State 2: ERROR State -->
+            <div class="p-2.5 border border-red-200 rounded bg-red-50/20 space-y-1">
+              <div class="flex items-center justify-between">
+                <label for="canonical-url-error-input" class="text-[13px] font-semibold text-[#1E293B]">Canonical URL</label>
+                <span class="text-[10px] text-[#DC2626] font-semibold uppercase">Error State</span>
+              </div>
+              <input id="canonical-url-error-input" type="text" value="invalid-url-path" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#DC2626] bg-white focus:outline-none focus:ring-1 focus:ring-[#DC2626]" />
+              <div class="flex items-start space-x-1.5 pt-0.5 text-[#DC2626]">
+                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.25a.75.75 0 011.5 0v3.5a.75.75 0 01-1.5 0v-3.5zm.75 6.75a.875.875 0 110-1.75.875.875 0 010 1.75z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-[12px] leading-tight font-medium">Enter a full URL starting with http:// or https://. Invalid input is not saved.</p>
+              </div>
+            </div>
+
+            <!-- Under the pair: small 12px status line -->
+            <p class="text-[12px] text-[#64748B] pt-0.5">Using the generated canonical.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SIDEBAR TWO: SCHEMA TAB ACTIVE                                            -->
+    <!-- ========================================================================= -->
+    <section class="flex flex-col items-center">
+      <div class="w-[360px] flex items-center justify-between mb-2 px-1">
+        <span class="text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">Sidebar State 2</span>
+        <span class="text-[11px] font-medium text-[#7C3AED] bg-purple-50 px-2 py-0.5 rounded border border-purple-100">SCHEMA TAB ACTIVE</span>
+      </div>
+
+      <div class="sidebar-panel shadow-sm flex flex-col overflow-hidden">
+        <!-- Sidebar Header -->
+        <div class="px-4 py-3.5 flex items-center justify-between border-b border-[#E2E8F0]">
+          <h2 class="text-sm font-bold text-[#1E293B] tracking-tight">RankKernel SEO</h2>
+          <div class="flex items-center space-x-2 text-[#64748B]">
+            <button type="button" class="hover:text-[#1E293B] p-1" aria-label="Settings">
+              <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" />
+                <path d="M13.5 8c0-.3-.03-.6-.08-.9l1.45-1.13a.35.35 0 00.08-.44l-1.37-2.38a.35.35 0 00-.42-.15l-1.7.69c-.36-.28-.75-.5-1.17-.67l-.26-1.8A.35.35 0 009.68 1h-2.75a.35.35 0 00-.35.3l-.26 1.82c-.42.17-.81.39-1.17.67l-1.71-.69a.35.35 0 00-.42.15L1.65 5.53a.35.35 0 00.08.44L3.18 7.1c-.05.3-.08.6-.08.9s.03.6.08.9l-1.45 1.13a.35.35 0 00-.08.44l1.37 2.38c.1.17.3.23.49.15l1.7-.69c.36.28.75.5 1.17.67l.26 1.8c.03.2.2.35.39.35h2.75c.2 0 .36-.15.39-.35l.26-1.8c.42-.17.81-.39 1.17-.67l1.7.69c.19.08.39.02.49-.15l1.37-2.38a.35.35 0 00-.08-.44L13.42 8.9c.05-.3.08-.6.08-.9z" />
+              </svg>
+            </button>
+            <button type="button" class="hover:text-[#1E293B] p-1" aria-label="Close">
+              <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Four Tabs: General, Advanced, Schema, Social -->
+        <!-- Inactive tabs show only an icon, active tab shows icon plus label. Active tab text is #1E40AF with a 3px #2563EB underline -->
+        <nav class="flex items-center border-b border-[#E2E8F0] px-2 bg-white" aria-label="Sidebar Tabs">
+          <!-- General (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="General">
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5L14 14" stroke-linecap="round" />
+            </svg>
+          </button>
+
+          <!-- Advanced (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="Advanced">
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" />
+              <path d="M2.5 6.5h11M6.5 6.5v7" />
+            </svg>
+          </button>
+
+          <!-- Schema (ACTIVE: icon + label, #1E40AF text, 3px #2563EB underline) -->
+          <button type="button" class="flex items-center space-x-1.5 px-3 py-2.5 text-[#1E40AF] font-semibold text-xs border-b-[3px] border-[#2563EB] -mb-[1px]" title="Schema">
+            <svg class="w-4 h-4 text-[#1E40AF]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M6 4.5L2.5 8 6 11.5M10 4.5l3.5 3.5-3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Schema</span>
+          </button>
+
+          <!-- Social (Inactive: icon only) -->
+          <button type="button" class="flex items-center justify-center p-2.5 text-[#64748B] hover:text-[#1E293B]" title="Social">
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="4" cy="8" r="2" />
+              <circle cx="12" cy="4" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M5.8 7l4.4-2M5.8 9l4.4 2" />
+            </svg>
+          </button>
+        </nav>
+
+        <!-- Sidebar Content: 16px padding (p-4), 4px spacing rhythm -->
+        <div class="p-4 space-y-4 text-[#1E293B]">
+
+          <!-- BLOCK 1: Status line with small purple diamond glyph in #7C3AED -->
+          <div class="flex items-center space-x-2 py-1">
+            <!-- Small purple diamond glyph in #7C3AED -->
+            <svg class="w-3.5 h-3.5 text-[#7C3AED] flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1l6 7-6 7-6-7 6-7z" />
+            </svg>
+            <span class="text-[13px] text-[#475569] font-medium leading-snug">Schema output is enabled for this post.</span>
+          </div>
+
+          <hr class="border-t border-[#E2E8F0]" />
+
+          <!-- BLOCK 2: Checkbox row, unchecked, labelled "Disable schema output for this post" -->
+          <div class="py-0.5">
+            <label class="flex items-center space-x-2.5 cursor-pointer text-xs font-normal text-[#1E293B]">
+              <span class="w-4 h-4 rounded border border-[#CBD5E1] bg-white flex items-center justify-center"></span>
+              <span class="text-[13px] text-[#1E293B]">Disable schema output for this post</span>
+            </label>
+          </div>
+
+          <hr class="border-t border-[#E2E8F0]" />
+
+          <!-- BLOCK 3: Select field - Schema type -->
+          <div class="space-y-1.5">
+            <label for="schema-type-select" class="block text-[13px] font-semibold text-[#1E293B]">Schema type</label>
+            <div class="relative">
+              <select id="schema-type-select" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] bg-white appearance-none focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] pr-8 cursor-pointer">
+                <option selected>Automatic (Article)</option>
+                <option>Article</option>
+                <option>BlogPosting</option>
+                <option>NewsArticle</option>
+                <option>WebPage</option>
+                <option>FAQPage</option>
+                <option>HowTo</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-[#64748B]">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <p class="text-[12px] text-[#64748B]">Automatic resolves to Article.</p>
+            <p class="text-[11px] text-[#94A3B8] italic pt-0.5">Manual type selected. Clear it to return to Automatic.</p>
+          </div>
+
+          <hr class="border-t border-[#E2E8F0]" />
+
+          <!-- BLOCK 4: Manual overrides (COLLAPSED and EXPANDED) -->
+          <div class="space-y-2.5">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">COLLAPSED</div>
+            <!-- Collapsed state -->
+            <div class="flex items-center justify-between p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded cursor-pointer hover:bg-slate-100 transition-colors">
+              <span class="text-[13px] font-medium text-[#1E293B]">Manual overrides</span>
+              <svg class="w-4 h-4 text-[#64748B]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] pt-1">EXPANDED</div>
+            <!-- Expanded state -->
+            <div class="p-3 border border-[#E2E8F0] rounded bg-white space-y-3">
+              <div class="flex items-center justify-between pb-1 border-b border-[#F1F5F9]">
+                <span class="text-[13px] font-semibold text-[#1E293B]">Manual overrides</span>
+                <svg class="w-4 h-4 text-[#64748B] transform rotate-90" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+
+              <p class="text-[12px] text-[#64748B] leading-relaxed">
+                Only needed when a value must differ from the post itself. Only fields relevant to the chosen type are shown.
+              </p>
+
+              <!-- Three stacked text fields: Headline, Description, Author -->
+              <div class="space-y-2.5 pt-1">
+                <div class="space-y-1">
+                  <label for="headline-input" class="block text-[13px] font-semibold text-[#1E293B]">Headline</label>
+                  <input id="headline-input" type="text" placeholder="" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] focus:outline-none focus:border-[#2563EB]" />
+                </div>
+                <div class="space-y-1">
+                  <label for="description-input" class="block text-[13px] font-semibold text-[#1E293B]">Description</label>
+                  <input id="description-input" type="text" placeholder="" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] focus:outline-none focus:border-[#2563EB]" />
+                </div>
+                <div class="space-y-1">
+                  <label for="author-input" class="block text-[13px] font-semibold text-[#1E293B]">Author</label>
+                  <input id="author-input" type="text" placeholder="" class="w-full text-xs px-2.5 py-1.5 rounded border border-[#E2E8F0] focus:outline-none focus:border-[#2563EB]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="border-t border-[#E2E8F0]" />
+
+          <!-- BLOCK 5: Fifth Block - The Advanced group (COLLAPSED and EXPANDED) -->
+          <div class="space-y-2.5">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">COLLAPSED</div>
+            <!-- Collapsed state -->
+            <div class="flex items-center justify-between p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded cursor-pointer hover:bg-slate-100 transition-colors">
+              <span class="text-[13px] font-medium text-[#1E293B]">Advanced</span>
+              <svg class="w-4 h-4 text-[#64748B]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] pt-1">EXPANDED</div>
+            <!-- Expanded state -->
+            <div class="p-3 border border-[#E2E8F0] rounded bg-white space-y-3">
+              <div class="flex items-center justify-between pb-1 border-b border-[#F1F5F9]">
+                <span class="text-[13px] font-semibold text-[#1E293B]">Advanced</span>
+                <svg class="w-4 h-4 text-[#64748B] transform rotate-90" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M6 3.5l4.5 4.5L6 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+
+              <!-- Custom JSON field with 6 row monospace textarea containing formatted JSON braces -->
+              <div class="space-y-1.5">
+                <label for="custom-json-textarea" class="block text-[13px] font-semibold text-[#1E293B]">Custom JSON</label>
+                <textarea id="custom-json-textarea" rows="6" class="w-full font-mono text-[11px] leading-relaxed p-2.5 rounded border border-[#E2E8F0] bg-[#F8FAFC] text-[#1E293B] focus:outline-none focus:border-[#2563EB] focus:bg-white resize-none" spellcheck="false">{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "keywords": "SEO, WordPress",
+  "inLanguage": "en-US"
+}</textarea>
+                <p class="text-[12px] text-[#64748B]">Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.</p>
+              </div>
+
+              <!-- Error State in red #DC2626 with alert icon -->
+              <div class="p-2 bg-red-50/60 border border-red-200 rounded flex items-start space-x-1.5 text-[#DC2626]">
+                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4.25a.75.75 0 011.5 0v3.5a.75.75 0 01-1.5 0v-3.5zm.75 6.75a.875.875 0 110-1.75.875.875 0 010 1.75z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-[12px] leading-tight font-medium">Custom JSON must be a valid JSON object. Nothing was saved.</p>
+              </div>
+
+              <!-- Horizontal row of three small items separated by a vertical bar: Rich Results Test, Schema Validator, Export JSON -->
+              <div class="pt-1 flex items-center justify-between text-xs border-t border-[#F1F5F9] pt-2.5">
+                <a href="#rich-results" class="text-[#2563EB] hover:underline font-medium flex items-center space-x-1">
+                  <span>Rich Results Test</span>
+                </a>
+                <span class="text-[#CBD5E1]">|</span>
+                <a href="#schema-validator" class="text-[#2563EB] hover:underline font-medium flex items-center space-x-1">
+                  <span>Schema Validator</span>
+                </a>
+                <span class="text-[#CBD5E1]">|</span>
+                <!-- Small secondary button "Export JSON" -->
+                <button type="button" class="px-2 py-1 text-xs font-medium text-[#1E293B] bg-white border border-[#CBD5E1] rounded hover:bg-[#F8FAFC] transition-colors">
+                  Export JSON
+                </button>
+              </div>
+
+              <!-- Import section: Note + small secondary button "Import JSON" -->
+              <div class="pt-2 border-t border-[#F1F5F9] space-y-1.5">
+                <p class="text-[12px] text-[#64748B] leading-snug">Import replaces the schema settings with the uploaded file.</p>
+                <button type="button" class="px-2.5 py-1 text-xs font-medium text-[#1E293B] bg-white border border-[#CBD5E1] rounded hover:bg-[#F8FAFC] transition-colors">
+                  Import JSON
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Specifications Summary Reference -->
+  <footer class="w-full max-w-[1376px] mt-10 pt-4 border-t border-[#CBD5E1] flex flex-col md:flex-row items-center justify-between text-xs text-[#64748B]">
+    <div>RankKernel SEO &bull; WordPress Block Editor Sidebar Complete Spec (Desktop 1440px context)</div>
+    <div class="flex items-center space-x-4 mt-2 md:mt-0">
+      <span>Two 360px sidebars side-by-side</span>
+      <span>&bull;</span>
+      <span>Pure Inter & JetBrains Mono</span>
+      <span>&bull;</span>
+      <span>Strictly #F0F2F5 Canvas</span>
+    </div>
+  </footer>
+
+</body>
+</html>
+
