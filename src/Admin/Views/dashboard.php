@@ -347,7 +347,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
 			<aside class="rk-dashboard-side">
 
-				<?php /* Quick Actions. No handler exists on this screen, so every control is static and disabled. */ ?>
+				<?php /* Quick Actions. Every action the design shows is present so the composition matches, and each is disabled because this screen has no handler for it yet. See docs/DESIGN-WIRING-BACKLOG.md for the logic each one would reuse. */ ?>
 				<div class="rk-ui-card rk-dashboard-side-card">
 					<div class="rk-dashboard-card-head">
 						<h2 class="rk-dashboard-card-title"><?php echo esc_html__( 'Quick Actions', 'rankkernel' ); ?></h2>
@@ -356,19 +356,18 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 					<div class="rk-dashboard-tool-list">
 						<button type="button" class="rk-dashboard-tool" disabled>
 							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-primary" aria-hidden="true">swap_vert</span><span><?php echo esc_html__( 'Flush Sitemap Cache', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'Unavailable', 'rankkernel' ); ?></span>
+							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'POST', 'rankkernel' ); ?></span>
 						</button>
 						<button type="button" class="rk-dashboard-tool" disabled>
 							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-positive" aria-hidden="true">download</span><span><?php echo esc_html__( 'Export Redirects CSV', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'Unavailable', 'rankkernel' ); ?></span>
+							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( '.csv', 'rankkernel' ); ?></span>
 						</button>
 						<button type="button" class="rk-dashboard-tool" disabled>
 							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-muted" aria-hidden="true">link</span><span><?php echo esc_html__( 'View robots.txt', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'Unavailable', 'rankkernel' ); ?></span>
+							<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
 						</button>
 						<button type="button" class="rk-dashboard-tool rk-dashboard-tool-danger" disabled>
 							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-danger" aria-hidden="true">cancel</span><span><?php echo esc_html__( 'Clear 404 Log', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'Unavailable', 'rankkernel' ); ?></span>
 						</button>
 					</div>
 				</div>

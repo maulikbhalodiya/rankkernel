@@ -843,3 +843,12 @@
 		transition: none;
 	}
 }
+
+/* Trailing affordance on a disabled quick action, matching the reference's
+   outbound-link glyph. It is decorative, the row itself is not interactive. */
+.rk-dashboard .rk-dashboard-tool-launch {
+	flex-shrink: 0;
+	font-size: 14px;
+	line-height: 1;
+	color: var(--rk-color-text-hint);
+}
