@@ -28,6 +28,7 @@
 	var MESSAGE_EMPTY = 'Enter at least one URL on this site.';
 	var MAX_VALID_SHOWN = 5;
 	var MAX_INVALID_SHOWN = 50;
+	var MAX_VALIDATE_LINES = 1000;
 
 	/**
 	 * Whether a parsed port may be submitted.
@@ -104,12 +105,20 @@
 	 * Validate every non empty line, pure and DOM free.
 	 *
 	 * Duplicates are counted once, preserving order, so the live count
-	 * matches what the server will submit. Returns the per line entries
+	 * matches what the server will submit. Inputs longer than
+	 * MAX_VALIDATE_LINES are cut short and reported as truncated, so a huge
+	 * paste cannot hold the main thread. Returns the per line entries
 	 * plus the summary line and whether the submit button must stay
 	 * disabled.
 	 */
 	function validate( text, host, sitePort ) {
 		var lines = String( text || '' ).split( /\r\n|\r|\n/ );
+		var truncated = lines.length > MAX_VALIDATE_LINES;
+
+		if ( truncated ) {
+			lines = lines.slice( 0, MAX_VALIDATE_LINES );
+		}
+
 		var seen = Object.create( null );
 		var entries = [];
 		var validCount = 0;
@@ -138,13 +147,20 @@
 			entries.push( { url: url, valid: '' === reason, reason: reason } );
 		}
 
+		var summary = summaryFor( entries.length, invalidCount );
+
+		if ( truncated ) {
+			summary = 'List exceeds ' + MAX_VALIDATE_LINES + ' lines; only the first ' + MAX_VALIDATE_LINES + ' were checked. Shorten the list to continue.';
+		}
+
 		return {
 			total: entries.length,
 			validCount: validCount,
 			invalidCount: invalidCount,
 			entries: entries,
-			summary: summaryFor( entries.length, invalidCount ),
-			disabled: 0 === entries.length || invalidCount > 0
+			summary: summary,
+			truncated: truncated,
+			disabled: truncated || 0 === entries.length || invalidCount > 0
 		};
 	}
 
@@ -1537,9 +1553,21 @@
 
 			setBusy( true );
 
+			// Bound the request so a hung host falls back to GET-URL navigation
+			// instead of holding aria-busy with disabled controls indefinitely.
+			var controller = ( typeof window.AbortController === 'function' ) ? new window.AbortController() : null;
+			var fetchTimer = null;
+
+			if ( controller ) {
+				fetchTimer = window.setTimeout( function () {
+					controller.abort();
+				}, 15000 );
+			}
+
 			window.fetch( url, {
 				credentials: 'same-origin',
-				headers: { 'X-WP-Nonce': String( cfg.restNonce ) }
+				headers: { 'X-WP-Nonce': String( cfg.restNonce ) },
+				signal: controller ? controller.signal : undefined,
 			} ).then( function ( response ) {
 				if ( ! response || ! response.ok ) {
 					throw new Error( 'log request failed' );
@@ -1570,6 +1598,10 @@
 				}
 
 				fallback( state, safePage );
+			} ).finally( function () {
+				if ( fetchTimer ) {
+					window.clearTimeout( fetchTimer );
+				}
 			} );
 		}
 

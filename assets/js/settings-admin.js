@@ -190,7 +190,14 @@
 		}
 
 		function loadSection( url, section ) {
-			var target = new URL( url, window.location.href );
+			var target;
+
+			try {
+				target = new URL( url, window.location.href );
+			} catch ( error ) {
+				window.location.href = url;
+				return;
+			}
 
 			target.searchParams.set( 'rk_partial', section || 'general' );
 			busy( true );
@@ -199,9 +206,21 @@
 			loadGeneration++;
 			var token = loadGeneration;
 
+			// Bound the request so a slow host falls back to normal navigation
+			// instead of leaving the settings body busy with no recovery.
+			var controller = ( typeof window.AbortController === 'function' ) ? new window.AbortController() : null;
+			var fetchTimer = null;
+
+			if ( controller ) {
+				fetchTimer = window.setTimeout( function () {
+					controller.abort();
+				}, 15000 );
+			}
+
 			window.fetch( target.toString(), {
 				credentials: 'same-origin',
-				headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				headers: { 'X-Requested-With': 'XMLHttpRequest' },
+				signal: controller ? controller.signal : undefined,
 			} ).then( function ( response ) {
 				if ( ! response.ok ) {
 					throw new Error( 'load failed' );
@@ -224,6 +243,10 @@
 				}
 
 				window.location.href = url;
+			} ).finally( function () {
+				if ( fetchTimer ) {
+					window.clearTimeout( fetchTimer );
+				}
 			} );
 		}
 
@@ -234,10 +257,22 @@
 			data.set( marker, '1' );
 			busy( true );
 
+			// Bound the request so a stalled save falls back to form.submit()
+			// instead of leaving the settings body busy forever.
+			var controller = ( typeof window.AbortController === 'function' ) ? new window.AbortController() : null;
+			var fetchTimer = null;
+
+			if ( controller ) {
+				fetchTimer = window.setTimeout( function () {
+					controller.abort();
+				}, 15000 );
+			}
+
 			window.fetch( window.location.href, {
 				method: 'POST',
 				credentials: 'same-origin',
-				body: data
+				body: data,
+				signal: controller ? controller.signal : undefined,
 			} ).then( function ( response ) {
 				if ( ! response.ok ) {
 					throw new Error( 'save failed' );
@@ -256,6 +291,10 @@
 			} ).catch( function () {
 				busy( false );
 				form.submit();
+			} ).finally( function () {
+				if ( fetchTimer ) {
+					window.clearTimeout( fetchTimer );
+				}
 			} );
 		}
 

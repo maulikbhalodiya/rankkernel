@@ -178,6 +178,46 @@ test( 'blank and duplicate lines are counted once', () => {
 	assert.equal( result.entries[ 1 ].url, 'https://example.com/b' );
 } );
 
+test( 'an input within the line cap reports no truncation', () => {
+	const validate = validator( 'example.com' );
+	const result = validate( 'https://example.com/a\nhttps://example.com/b' );
+
+	assert.equal( result.truncated, false );
+	assert.equal( result.disabled, false );
+	assert.equal( result.summary, '2 URLs ready to submit.' );
+} );
+
+test( 'an input beyond the line cap stops early and stays disabled', () => {
+	const validate = validator( 'example.com' );
+	const lines = [];
+
+	for ( let i = 0; i < 1005; i++ ) {
+		lines.push( 'https://example.com/p' + i );
+	}
+
+	const result = validate( lines.join( '\n' ) );
+
+	assert.equal( result.truncated, true );
+	assert.equal( result.disabled, true );
+	assert.equal( result.entries.length, 1000 );
+	assert.ok( result.summary.indexOf( '1000' ) !== -1, 'the summary names the bound' );
+} );
+
+test( 'an invalid line beyond the cap cannot slip through as submittable', () => {
+	const validate = validator( 'example.com' );
+	const lines = [ 'https://evil.test/late' ];
+
+	for ( let i = 0; i < 1005; i++ ) {
+		lines.unshift( 'https://example.com/p' + i );
+	}
+
+	const result = validate( lines.join( '\n' ) );
+
+	assert.equal( result.truncated, true );
+	assert.equal( result.invalidCount, 0, 'the unexamined tail contributes nothing' );
+	assert.equal( result.disabled, true, 'an unchecked tail must not read as clean' );
+} );
+
 function fakeNode( props ) {
 	const listeners = {};
 	let text = '';
