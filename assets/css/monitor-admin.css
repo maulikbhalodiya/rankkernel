@@ -1,31 +1,40 @@
 /**
  * 404 Monitor screen styles.
  *
- * Loaded only on the 404 Monitor admin screen via
- * NotFoundPage::enqueueAssets. Shared components (buttons, cards, page
- * header, notices, pills, table, pagination, search, select) live in
- * rankkernel-ui.css under the rk-ui scope, and the design tokens live in
- * rankkernel-admin.css, which already scopes its token block under
- * .rk-monitor. This file therefore holds only page scoped layout rules under
- * .rk-monitor.
+ * Hand written match of the RankKernel 404 Monitor design export, built
+ * without Tailwind and without a build step. Loaded only on the 404 Monitor
+ * admin screen via NotFoundPage::enqueueAssets. Shared components (buttons,
+ * cards, page header, notices, pills, table, pagination, search, select, form
+ * rows and the switch) live in rankkernel-ui.css under the rk-ui scope, which
+ * loads as a registered dependency before this sheet, and this file holds only
+ * page scoped rules under .rk-monitor.
  *
  * Every colour comes from a var(--rk-*) token, and spacing comes from the
  * token scale wherever the scale has a matching step. No raw hex and no raw
  * rgba appears here, which is what stops the screen rendering a second,
  * competing palette next to every other RankKernel admin page. The remaining
- * pixel values are hairlines, control heights and a focus ring, matching the
- * same trims the shared component layer already uses.
+ * pixel values are hairlines, control heights, control widths and a focus
+ * ring, matching the same trims the shared component layer already uses.
+ *
+ * The file covers every state from the design: notices in all four semantic
+ * colours, the persistent limit tag, the redirect chain chips, the status
+ * chip in its active and inactive states, the four stat tiles, the capacity
+ * bar in its three bands with the slots line, the bulk bar, the sortable
+ * table with its hit badge and expandable detail payload, both empty states,
+ * the collapsible settings panel in its open and closed states, and the
+ * exclusions editor.
  *
  * @package RankKernel
  */
 
 /* ==========================================================================
-   Page shell, a single column stack with a consistent gap
+   Page shell, a single column stack with a consistent gap, held to the
+   design measure and centred in the admin content column
    ========================================================================== */
 
-/* The .wrap margins are the WordPress ones, so only the column stack and the
-   bottom breathing room are set here. */
 .rk-monitor {
+	max-width: 1140px;
+	margin-inline: auto;
 	padding: 0 0 var(--rk-space-6) 0;
 	display: flex;
 	flex-direction: column;
@@ -39,32 +48,183 @@
 	margin-block-start: calc(var(--rk-space-2) * -1);
 }
 
-/* Nested notices inside a card read as part of the card, not as page chrome. */
-.rk-monitor .rk-log-info {
-	padding: var(--rk-space-4) var(--rk-space-6) 0;
+/* ==========================================================================
+   Notice details, the chain chips and the persistent limit tag
+   ========================================================================== */
+
+.rk-monitor .rk-chain-text {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
 }
 
-.rk-monitor .rk-log-info .rk-ui-notice {
-	margin: 0;
-	border-radius: var(--rk-radius-md);
+.rk-monitor .rk-chain-chip {
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	padding: 1px var(--rk-space-1);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-tint-warning-border);
+	color: var(--rk-color-secondary-3-strong);
+}
+
+.rk-monitor .rk-chain-arrow {
+	color: var(--rk-color-text-muted);
+}
+
+/* Static tag on the persistent limit notice. It is fixed chrome, not data,
+   so it never carries a figure. The tint token blends over the warning
+   notice surface to the deeper amber step. */
+.rk-monitor .rk-notice-tag {
+	flex-shrink: 0;
+	margin-inline-start: auto;
+	padding: var(--rk-space-1) 10px;
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-tint-warning-border);
+	color: var(--rk-color-secondary-3-strong);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
 }
 
 /* ==========================================================================
-   Log status card
+   Page header extras, version chip plus the destructive clear control
    ========================================================================== */
 
-/* The summary body is the same padded column the shared card body gives every
-   other screen, so the inset under a card header is one value in the product
-   rather than a second one that only this page uses. */
-.rk-monitor .rk-summary-body {
+.rk-monitor .rk-version-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px var(--rk-space-2);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-monitor .rk-clear-form {
+	margin: 0;
+}
+
+/* The destructive control in the page header is a bordered button, the shape
+   the design gives it. The border takes the base error step so the control
+   boundary measures far over the 3:1 WCAG 1.4.11 asks of a UI boundary. */
+.rk-monitor .rk-clear-btn {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4);
+	box-shadow: none;
+}
+
+.rk-monitor .rk-clear-btn:hover {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: var(--rk-color-secondary-4-strong);
+	color: var(--rk-color-secondary-4-strong);
+}
+
+.rk-monitor .rk-clear-btn .rk-icon {
+	font-size: 16px;
+}
+
+/* ==========================================================================
+   Log status card, header row plus the four stat tiles
+   ========================================================================== */
+
+.rk-monitor .rk-log-status {
 	padding: var(--rk-space-6);
 }
 
+.rk-monitor .rk-log-status-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding-block-end: var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-log-status-head-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.rk-monitor .rk-log-status-meta {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Listener status chip. The dot pulses while monitoring is on, and the chip
+   always carries the state in words, so colour is never the only signal. */
+.rk-monitor .rk-status-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: var(--rk-space-1) 10px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-monitor .rk-status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.rk-monitor .rk-status-chip-on {
+	background: var(--rk-color-secondary-1-soft);
+	border-color: var(--rk-tint-positive-border);
+	color: var(--rk-color-secondary-1);
+}
+
+.rk-monitor .rk-status-chip-on .rk-status-dot {
+	background: var(--rk-color-secondary-1);
+	animation: rk-status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.rk-monitor .rk-status-chip-off {
+	background: var(--rk-color-surface-muted);
+	border-color: var(--rk-color-border-strong);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-monitor .rk-status-chip-off .rk-status-dot {
+	background: var(--rk-color-text-hint);
+}
+
+@keyframes rk-status-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.4;
+		transform: scale(1.15);
+	}
+}
+
+/* Twelve column bed so the four tiles keep the design spans: tracked 3,
+   capacity 4, retention 2, most recent 3. */
 .rk-monitor .rk-stat-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-	gap: var(--rk-space-5);
-	margin: 0;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: var(--rk-space-4);
+	margin-block-start: var(--rk-space-5);
 }
 
 .rk-monitor .rk-stat {
@@ -75,11 +235,31 @@
 	padding: var(--rk-space-4);
 	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
+	border-radius: var(--rk-radius-lg);
 }
 
-.rk-monitor .rk-stat-wide {
+.rk-monitor .rk-stat-tracked {
+	grid-column: span 3;
+}
+
+.rk-monitor .rk-stat-capacity {
+	grid-column: span 4;
+}
+
+.rk-monitor .rk-stat-retention {
 	grid-column: span 2;
+}
+
+.rk-monitor .rk-stat-recent {
+	grid-column: span 3;
+}
+
+.rk-monitor .rk-stat-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-block-end: var(--rk-space-3);
 }
 
 .rk-monitor .rk-stat-label {
@@ -90,50 +270,66 @@
 	letter-spacing: 0.04em;
 }
 
+.rk-monitor .rk-stat-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-monitor .rk-stat-icon .rk-icon {
+	font-size: 16px;
+}
+
 .rk-monitor .rk-stat-value {
 	color: var(--rk-color-text);
-	font-family: var(--rk-font-mono);
-	font-size: 22px;
+	font-size: 28px;
 	font-weight: 700;
 	line-height: var(--rk-line-height-tight);
-	letter-spacing: -0.015em;
-}
-
-.rk-monitor .rk-stat-small {
-	font-size: var(--rk-font-size-md);
+	letter-spacing: -0.02em;
 	overflow-wrap: anywhere;
 }
 
-.rk-monitor .rk-stat-hint {
+.rk-monitor .rk-stat-caption {
 	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
-	max-width: 34ch;
+	font-weight: 500;
+	margin-block-start: 2px;
 }
 
-.rk-monitor .rk-stat-uri {
-	font-family: var(--rk-font-mono);
-	overflow-wrap: anywhere;
-	max-width: none;
-	color: var(--rk-color-text-secondary);
-}
-
-.rk-monitor .rk-summary-note {
+.rk-monitor .rk-stat-note {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	margin: var(--rk-space-4) 0 0;
+	color: var(--rk-color-text-muted);
+	font-size: 11px;
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-monitor .rk-stat-note .rk-icon {
+	font-size: 14px;
+	color: var(--rk-color-text-hint);
+	flex-shrink: 0;
 }
 
 /* Capacity bar. The fill colour follows the controller supplied near limit
-   state, and the page header pill plus the notice row always state the same
-   thing in words, so the colour is never the only signal. The track and the
-   fill are two separate boundaries, so they take the meter tokens from the
-   token layer rather than the border and semantic tokens. The old pair
-   measured 1.18:1 for the track against this card surface and 2.89:1 for the
-   warning fill against the track, so the bar could be neither seen nor read.
-   The new pair measures 9.90:1 and 4.58:1. */
+   state, and the tile tag plus the notice row always state the same thing in
+   words, so the colour is never the only signal. The track and the fill are
+   two separate boundaries, so they take the meter tokens from the token
+   layer rather than the border and semantic tokens. The old pair measured
+   1.18:1 for the track against this card surface and 2.89:1 for the warning
+   fill against the track, so the bar could be neither seen nor read. The new
+   pair measures 9.90:1 and 4.58:1. */
 .rk-monitor .rk-progress {
 	background: var(--rk-meter-track);
 	border-radius: 999px;
-	height: 8px;
-	margin-top: var(--rk-space-2);
+	height: 10px;
 	overflow: hidden;
 }
 
@@ -156,44 +352,225 @@
 	background: var(--rk-meter-fill-high);
 }
 
-/* ==========================================================================
-   Log card, toolbar plus list plus footer
-   ========================================================================== */
-
-.rk-monitor .rk-entry-count {
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-xs);
-	font-weight: 500;
-}
-
-.rk-monitor .rk-log-toolbar {
-	padding: var(--rk-space-4) var(--rk-space-6);
-	background: var(--rk-color-surface-subtle);
-	border-block-end: 1px solid var(--rk-color-border);
-}
-
-.rk-monitor .rk-log-filters {
+.rk-monitor .rk-capacity-row {
 	display: flex;
 	align-items: center;
-	gap: var(--rk-space-3);
+	justify-content: space-between;
+	gap: var(--rk-space-2);
 	flex-wrap: wrap;
-	margin: 0;
+	margin-block-start: var(--rk-space-3);
+	font-size: var(--rk-font-size-xs);
 }
 
-.rk-monitor .rk-log-filters .rk-ui-search-wrap {
-	flex: 0 1 320px;
-	min-width: 0;
+.rk-monitor .rk-capacity-value {
+	color: var(--rk-color-text);
+	font-weight: 600;
 }
 
-/* Bulk action bar above the table. */
-.rk-monitor .rk-log-actions {
+.rk-monitor .rk-capacity-slots {
+	color: var(--rk-color-text-muted);
+}
+
+/* Most recent tile, the amber variant from the design. The strong step of
+   the warning hue carries the value, because the base step misses 4.5:1 on
+   the soft surface this tile uses. */
+.rk-monitor .rk-stat-recent {
+	background: var(--rk-color-secondary-3-soft);
+	border-color: var(--rk-tint-warning-border);
+}
+
+.rk-monitor .rk-stat-icon-recent {
+	background: var(--rk-tint-warning-border);
+	color: var(--rk-color-secondary-3-strong);
+}
+
+.rk-monitor .rk-stat-value-recent {
+	font-size: 20px;
+	color: var(--rk-color-secondary-3-strong);
+}
+
+.rk-monitor .rk-stat-uri {
+	margin-block-start: var(--rk-space-4);
+	padding: var(--rk-space-1) var(--rk-space-2);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-secondary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rk-monitor .rk-summary-note {
+	margin-block-start: var(--rk-space-4);
+}
+
+/* ==========================================================================
+   Tracked 404s section, heading row, search, banner, bar, table, footer
+   ========================================================================== */
+
+.rk-monitor .rk-tracked {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-3);
+}
+
+.rk-monitor .rk-tracked-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--rk-space-3);
 	flex-wrap: wrap;
-	padding: var(--rk-space-3) var(--rk-space-6);
-	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-tracked-title-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.rk-monitor .rk-tracked-title {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: 16px;
+	font-weight: 700;
+	line-height: var(--rk-line-height-tight);
+}
+
+.rk-monitor .rk-entry-count {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
+}
+
+.rk-monitor .rk-tracked-search {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0;
+	flex: 0 1 auto;
+	max-width: 100%;
+}
+
+.rk-monitor .rk-tracked-search .rk-ui-search-wrap {
+	flex: 0 1 220px;
+	width: 220px;
+}
+
+.rk-monitor .rk-search-submit {
+	padding: 6px 12px;
+	font-size: var(--rk-font-size-xs);
+}
+
+/* The module info banner keeps the shared info notice and adds the settings
+   link on its trailing edge. */
+.rk-monitor .rk-tracked-banner {
+	margin: 0;
+}
+
+.rk-monitor .rk-banner-link {
+	flex-shrink: 0;
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.rk-monitor .rk-banner-link:hover {
+	color: var(--rk-color-primary-hover);
+	text-decoration: underline;
+}
+
+/* Empty states. The initial state carries the watermark; the search miss
+   carries the glyph badge and the clear control. Only one can be true at a
+   time, so they are alternatives rather than a pair. */
+.rk-monitor .rk-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-2);
+	padding: 40px var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 2px dashed var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	text-align: center;
+}
+
+.rk-monitor .rk-empty-watermark {
+	color: var(--rk-color-border);
+	font-size: 72px;
+	font-weight: 300;
+	line-height: 1;
+	letter-spacing: -0.05em;
+	user-select: none;
+}
+
+.rk-monitor .rk-empty-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	margin-block-end: var(--rk-space-1);
+}
+
+.rk-monitor .rk-empty-icon .rk-icon {
+	font-size: 24px;
+}
+
+.rk-monitor .rk-empty-title {
+	margin: 0;
+	color: var(--rk-color-text);
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.rk-monitor .rk-empty-body {
+	margin: 0;
+	max-width: 42ch;
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-monitor .rk-empty-state .rk-ui-btn {
+	margin-block-start: var(--rk-space-2);
+}
+
+/* Bulk bar and table card. The bar is the rounded top of the card, the table
+   body carries no top border so the two read as one block, and the footer
+   closes the bottom. */
+.rk-monitor .rk-bulk-form {
+	margin: 0;
+}
+
+.rk-monitor .rk-bulk-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding: 10px var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg) var(--rk-radius-lg) 0 0;
+	font-size: var(--rk-font-size-xs);
 }
 
 .rk-monitor .rk-bulk-controls {
@@ -202,6 +579,11 @@
 	gap: var(--rk-space-2);
 	flex-wrap: wrap;
 	min-width: 0;
+}
+
+.rk-monitor .rk-apply-submit {
+	padding: 4px 10px;
+	font-size: var(--rk-font-size-xs);
 }
 
 .rk-monitor .rk-pages-top,
@@ -218,31 +600,52 @@
 	white-space: nowrap;
 }
 
-/* Column sizing for the log table. The wrapper scrolls, so the table may be
-   wider than the content area without ever overflowing the page. */
+.rk-monitor .rk-table-card {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-block-start: 0;
+	box-shadow: var(--rk-shadow-sm);
+}
+
+/* Column sizing for the log table. The wrapper scrolls below the minimum
+   table width, the same way the design keeps every column and scrolls the
+   table rather than dropping data at narrow widths. */
+.rk-monitor .rk-table {
+	min-width: 880px;
+}
+
 .rk-monitor .rk-table .rk-col-check {
 	width: 40px;
 }
 
+/* The address column keeps a working measure. Table layout hands a breakable
+   cell only its minimum width once the other columns claim theirs, which
+   crushed the addresses to one character each before this floor. */
+.rk-monitor .rk-table .rk-col-uri {
+	min-width: 260px;
+}
+
 .rk-monitor .rk-table .rk-col-hits {
-	width: 8%;
+	width: 80px;
 }
 
-.rk-monitor .rk-table .rk-col-created {
-	width: 15%;
-}
-
+.rk-monitor .rk-table .rk-col-created,
 .rk-monitor .rk-table .rk-col-seen {
-	width: 15%;
+	width: 130px;
+	white-space: nowrap;
 }
 
 .rk-monitor .rk-table .rk-col-actions {
-	width: 22%;
+	width: 230px;
 }
 
 .rk-monitor .rk-table th.rk-col-check,
 .rk-monitor .rk-table td.rk-col-check {
 	text-align: center;
+}
+
+.rk-monitor .rk-table th.rk-col-actions {
+	text-align: end;
 }
 
 .rk-monitor .rk-table td,
@@ -252,22 +655,45 @@
 
 .rk-monitor .rk-table td.rk-col-actions {
 	text-align: end;
+	white-space: nowrap;
+}
+
+.rk-monitor .rk-uri-row {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
 }
 
 .rk-monitor .rk-uri-value {
-	display: block;
 	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
 	color: var(--rk-color-text);
+	overflow-wrap: anywhere;
+}
+
+/* The badge marks the heavily hit rows the design highlights, and the number
+   inside it is always the real hit count. */
+.rk-monitor .rk-hit-badge {
+	padding: 1px 6px;
+	border-radius: var(--rk-radius-sm);
+	border: 1px solid var(--rk-tint-error-border);
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4-strong);
+	font-size: 10px;
+	font-weight: 700;
+	line-height: var(--rk-line-height-normal);
+	white-space: nowrap;
 }
 
 /* Sortable column headers. The controller supplies the core sortable classes
    and the arrow character, so only the core padding and float are replaced
-   and the core triangle is suppressed in favour of the real arrow. */
+   and the core triangle is suppressed in favour of the real arrow. An
+   unsorted column shows a quiet decorative glyph, never a state. */
 .rk-monitor .rk-table th.sortable .rk-sort-link,
 .rk-monitor .rk-table th.sorted .rk-sort-link {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	gap: 4px;
 	overflow: visible;
@@ -288,7 +714,19 @@
 
 .rk-monitor .rk-sort-arrow {
 	color: var(--rk-color-primary);
-	font-size: var(--rk-font-size-sm);
+}
+
+.rk-monitor .rk-sort-glyph {
+	display: inline-flex;
+	color: var(--rk-color-text-hint);
+}
+
+.rk-monitor .rk-sort-glyph .rk-icon {
+	font-size: 14px;
+}
+
+.rk-monitor .rk-sort-link:hover .rk-sort-glyph {
+	color: var(--rk-color-text-secondary);
 }
 
 /* Per row actions, sized for the table rather than for a page header. */
@@ -297,13 +735,30 @@
 	font-size: var(--rk-font-size-xs);
 }
 
+/* The row destructive control is the bordered soft variant from the design
+   rather than the shared text action. The border takes the base error step so
+   the boundary clears the 3:1 WCAG 1.4.11 asks of a UI boundary. */
+.rk-monitor .rk-row-delete {
+	background: var(--rk-color-secondary-4-soft);
+	border: 1px solid var(--rk-tint-error-border);
+	color: var(--rk-color-secondary-4);
+	box-shadow: none;
+}
+
+.rk-monitor .rk-row-delete:hover {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: var(--rk-color-secondary-4);
+	color: var(--rk-color-secondary-4-strong);
+	text-decoration: none;
+}
+
 /* Row details disclosure. */
 .rk-monitor .rk-details {
-	margin-top: var(--rk-space-1);
+	margin-block-start: var(--rk-space-1);
 }
 
 .rk-monitor .rk-details > summary {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	gap: 4px;
 	width: fit-content;
@@ -326,43 +781,113 @@
 	transform: rotate(180deg);
 }
 
+/* Expanded detail payload, the full trace panel from the design. */
+.rk-monitor .rk-detail-panel {
+	margin-block-start: var(--rk-space-2);
+	padding: var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+}
+
+.rk-monitor .rk-detail-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	padding-block-end: var(--rk-space-2);
+	border-block-end: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-detail-head-left {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.rk-monitor .rk-detail-title {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.rk-monitor .rk-detail-state {
+	padding: 1px var(--rk-space-2);
+	border: 1px solid var(--rk-tint-positive-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+	font-size: 11px;
+}
+
+.rk-monitor .rk-detail-meta {
+	color: var(--rk-color-text-hint);
+	font-size: 11px;
+}
+
 .rk-monitor .rk-detail-list {
 	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: var(--rk-space-1) var(--rk-space-3);
-	margin: var(--rk-space-2) 0;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--rk-space-3) var(--rk-space-5);
+	margin: var(--rk-space-3) 0 0;
+}
+
+.rk-monitor .rk-detail-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--rk-space-2);
+	min-width: 0;
 	font-size: var(--rk-font-size-xs);
 }
 
-.rk-monitor .rk-detail-list dt {
+.rk-monitor .rk-detail-item dt {
+	flex: 0 0 88px;
 	color: var(--rk-color-text-muted);
-	font-weight: 600;
 }
 
-.rk-monitor .rk-detail-list dd {
+.rk-monitor .rk-detail-item dd {
 	margin: 0;
 	font-family: var(--rk-font-mono);
+	color: var(--rk-color-text);
 	overflow-wrap: anywhere;
 }
 
-/* The hint inside the row disclosure only needs room above it now, because the
-   shared helper text class already carries the size and the colour. */
-.rk-monitor .rk-details .rk-ui-hint {
-	margin-block-start: var(--rk-space-2);
+.rk-monitor .rk-detail-panel .rk-ui-hint {
+	margin-block-start: var(--rk-space-3);
 }
 
-/* Footer row under the table. */
+.rk-monitor .rk-detail-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	margin-block-start: var(--rk-space-3);
+	padding-block-start: var(--rk-space-3);
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+.rk-monitor .rk-detail-action {
+	padding: 6px 14px;
+	font-size: var(--rk-font-size-xs);
+}
+
+/* Footer row under the table, closing the card started by the bulk bar. */
 .rk-monitor .rk-log-footer {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--rk-space-3);
 	flex-wrap: wrap;
-	padding: var(--rk-space-3) var(--rk-space-6);
+	padding: var(--rk-space-3) var(--rk-space-4);
 	background: var(--rk-color-surface-subtle);
-	border-block-start: 1px solid var(--rk-color-border);
-	border-end-end-radius: var(--rk-radius-lg);
-	border-end-start-radius: var(--rk-radius-lg);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 0 0 var(--rk-radius-lg) var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
 }
 
 .rk-monitor .rk-showing {
@@ -371,52 +896,12 @@
 }
 
 /* ==========================================================================
-   Empty states
-   ========================================================================== */
-
-.rk-monitor .rk-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--rk-space-2);
-	margin: var(--rk-space-6);
-	padding: var(--rk-space-6) var(--rk-space-5);
-	background: var(--rk-color-surface-subtle);
-	border: 2px dashed var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-lg);
-	text-align: center;
-}
-
-.rk-monitor .rk-empty-icon {
-	color: var(--rk-color-text-hint);
-}
-
-.rk-monitor .rk-empty-icon .rk-icon {
-	font-size: 32px;
-}
-
-.rk-monitor .rk-empty-title {
-	margin: 0;
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-md);
-	font-weight: 700;
-}
-
-.rk-monitor .rk-empty-body {
-	margin: 0;
-	max-width: 46ch;
-	color: var(--rk-color-text-muted);
-	font-size: var(--rk-font-size-sm);
-}
-
-.rk-monitor .rk-empty .rk-ui-btn {
-	margin-top: var(--rk-space-2);
-}
-
-/* ==========================================================================
    Monitor settings disclosure and its form
    ========================================================================== */
+
+.rk-monitor .rk-monitor-settings {
+	border-block-start: 4px solid var(--rk-color-primary);
+}
 
 .rk-monitor .rk-monitor-settings-summary {
 	display: flex;
@@ -424,13 +909,25 @@
 	justify-content: space-between;
 	gap: var(--rk-space-3);
 	flex-wrap: wrap;
-	padding: var(--rk-space-4) var(--rk-space-6);
+	padding: var(--rk-space-5) var(--rk-space-6);
 	cursor: pointer;
 	list-style: none;
 }
 
 .rk-monitor .rk-monitor-settings-summary::-webkit-details-marker {
 	display: none;
+}
+
+/* The card title in the summary is a real h3, so the browser heading margin
+   is reset here and the name plus hint sit on one row, the shape the design
+   uses. */
+.rk-monitor .rk-monitor-settings-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
+	min-width: 0;
+	margin: 0;
 }
 
 .rk-monitor .rk-monitor-settings-name {
@@ -445,33 +942,38 @@
 
 .rk-monitor .rk-monitor-settings-name .rk-icon {
 	color: var(--rk-color-primary);
-	font-size: 20px;
-}
-
-/* The card title in the summary is a real h3, so the browser heading margin
-   is reset here and the two lines sit on the padding the summary sets. The
-   rest of the rule is the column stack that was already here. */
-.rk-monitor .rk-monitor-settings-heading {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-	margin: 0;
+	font-size: 18px;
 }
 
 .rk-monitor .rk-monitor-settings-hint {
 	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
+	font-weight: 400;
 }
 
-.rk-monitor .rk-monitor-settings-chevron {
+/* The Hide and Show wording is swapped by the open state, so the summary
+   itself is the control the design labels Hide when the panel is open. */
+.rk-monitor .rk-monitor-settings-toggle {
 	flex-shrink: 0;
 	color: var(--rk-color-text-muted);
-	transition: transform 0.15s;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
 }
 
-.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-chevron {
-	transform: rotate(180deg);
+.rk-monitor .rk-monitor-settings-summary:hover .rk-monitor-settings-toggle {
+	color: var(--rk-color-text);
+}
+
+.rk-monitor .rk-monitor-settings-hide {
+	display: none;
+}
+
+.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-show {
+	display: none;
+}
+
+.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-hide {
+	display: inline;
 }
 
 .rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-summary {
@@ -480,49 +982,125 @@
 
 .rk-monitor .rk-monitor-settings-form {
 	padding: var(--rk-space-5) var(--rk-space-6) var(--rk-space-6);
-	max-width: 780px;
 }
 
-.rk-monitor .rk-form-table {
-	margin: 0;
-	border-collapse: collapse;
-	width: 100%;
+/* Two column settings bed, the layout from the design. */
+.rk-monitor .rk-settings-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--rk-space-6) 40px;
 }
 
-.rk-monitor .rk-form-table th {
-	width: 200px;
-	padding: var(--rk-space-3) var(--rk-space-4) var(--rk-space-3) 0;
-	color: var(--rk-color-text);
-	font-size: var(--rk-font-size-sm);
+.rk-monitor .rk-settings-col {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-5);
+	min-width: 0;
+}
+
+.rk-monitor .rk-setting-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-4);
+	padding-block-end: var(--rk-space-4);
+	border-block-end: 1px solid var(--rk-color-surface-muted);
+}
+
+.rk-monitor .rk-setting-row:last-child {
+	padding-block-end: 0;
+	border-block-end: none;
+}
+
+.rk-monitor .rk-setting-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rk-monitor .rk-setting-label {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	text-align: start;
-	vertical-align: top;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
-.rk-monitor .rk-form-table td {
-	padding: var(--rk-space-3) 0;
-	vertical-align: top;
+.rk-monitor .rk-setting-desc {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
 }
 
-/* The settings table is block flow rather than a shared flex form row, so the
-   hint needs its own room under the control. Size and colour still come from
-   the shared helper text class. */
-.rk-monitor .rk-form-table .rk-ui-hint {
+/* The hint under a setting carries its own room; size and colour still come
+   from the shared helper text class. */
+.rk-monitor .rk-setting-text .rk-ui-hint {
 	margin-block-start: var(--rk-space-1);
 }
 
-.rk-monitor .rk-form-table input[type="number"] {
-	width: 90px;
-	padding: 4px 8px;
+.rk-monitor .rk-setting-control {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+.rk-monitor .rk-setting-switch {
+	flex-shrink: 0;
+}
+
+/* The switch input is the invisible hit target that sits over the track. The
+   shared layer draws the knob as a transformed element, which paints over the
+   input once it translates, so the input takes a stacking step above it. The
+   whole switch stays one click target instead of only its left half. */
+.rk-monitor .rk-setting-switch input[type="checkbox"] {
+	z-index: 1;
+}
+
+.rk-monitor .rk-setting-input {
+	width: 80px;
+	padding: 6px 10px;
 	background: var(--rk-color-surface);
 	border: 1px solid var(--rk-color-border-strong);
 	border-radius: var(--rk-radius-sm);
 	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-xs);
+	text-align: end;
+	box-sizing: border-box;
+}
+
+.rk-monitor .rk-setting-input:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-monitor .rk-setting-unit {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+}
+
+.rk-monitor .rk-settings-divider {
+	margin: var(--rk-space-6) 0;
+	border: none;
+	border-block-start: 1px solid var(--rk-color-border);
+}
+
+/* ==========================================================================
+   URL exclusions editor
+   ========================================================================== */
+
+.rk-monitor .rk-exclusions-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	flex-wrap: wrap;
 }
 
 .rk-monitor .rk-subheading {
-	margin: var(--rk-space-6) 0 var(--rk-space-2);
+	margin: 0;
 	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-md);
 	font-weight: 700;
@@ -535,7 +1113,7 @@
 }
 
 .rk-monitor .rk-exclusions .rk-col-compare {
-	width: 170px;
+	width: 176px;
 }
 
 .rk-monitor .rk-exclusions .rk-col-value {
@@ -543,11 +1121,16 @@
 }
 
 .rk-monitor .rk-exclusions .rk-col-remove {
-	width: 110px;
+	width: 96px;
+	text-align: end;
 }
 
-.rk-monitor .rk-exclusions td {
-	padding: var(--rk-space-2) var(--rk-space-3);
+.rk-monitor .rk-exclusions tbody td {
+	padding: var(--rk-space-2) var(--rk-space-4);
+}
+
+.rk-monitor .rk-exclusions tbody td:last-child {
+	text-align: end;
 }
 
 .rk-monitor .rk-exclusion-select,
@@ -575,18 +1158,34 @@
 .rk-monitor .rk-exclusion-controls {
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: var(--rk-space-3);
 	flex-wrap: wrap;
-	margin-top: var(--rk-space-4);
+	padding-block-start: var(--rk-space-3);
 }
 
-.rk-monitor .rk-monitor-settings-actions {
-	margin-top: var(--rk-space-5);
+.rk-monitor .rk-exclusion-add-wrap {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	flex-wrap: wrap;
+	min-width: 0;
 }
 
-.rk-monitor .rk-monitor-settings-actions .submit {
+.rk-monitor .rk-exclusion-controls .submit {
 	margin: 0;
 	padding: 0;
+}
+
+/* ==========================================================================
+   Footer meta caption
+   ========================================================================== */
+
+.rk-monitor .rk-monitor-footer {
+	padding-block-start: var(--rk-space-4);
+	color: var(--rk-color-text-hint);
+	font-size: var(--rk-font-size-xs);
+	text-align: center;
 }
 
 /* ==========================================================================
@@ -600,63 +1199,75 @@
 }
 
 /* ==========================================================================
-   Narrow admin content area, the admin menu takes 160 pixels before the
-   content column even starts, so the breakpoint follows the shared layer
+   Responsive. The admin menu takes 160 pixels before the content column even
+   starts, so the breakpoints follow the shared layer.
    ========================================================================== */
 
-@media screen and (max-width: 782px) {
+@media screen and (max-width: 1100px) {
 	.rk-monitor .rk-stat-grid {
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
-	.rk-monitor .rk-stat-wide {
+	.rk-monitor .rk-stat-tracked,
+	.rk-monitor .rk-stat-capacity,
+	.rk-monitor .rk-stat-retention,
+	.rk-monitor .rk-stat-recent {
 		grid-column: auto;
-	}
-
-	.rk-monitor .rk-log-toolbar,
-	.rk-monitor .rk-log-actions,
-	.rk-monitor .rk-log-footer,
-	.rk-monitor .rk-monitor-settings-form,
-	.rk-monitor .rk-monitor-settings-summary,
-	.rk-monitor .rk-log-info {
-		padding-inline: var(--rk-space-4);
-	}
-
-	/* The summary body is a shared card body inset, so it steps down all four
-	   sides at this width, exactly as the shared layer does. */
-	.rk-monitor .rk-summary-body {
-		padding: var(--rk-space-4);
-	}
-
-	.rk-monitor .rk-log-filters .rk-ui-search-wrap {
-		flex: 1 1 100%;
-		max-width: none;
-	}
-
-	.rk-monitor .rk-table .rk-col-created,
-	.rk-monitor .rk-table .rk-col-seen {
-		display: none;
-	}
-
-	.rk-monitor .rk-form-table th {
-		width: auto;
-		padding-inline-end: var(--rk-space-3);
-	}
-
-	.rk-monitor .rk-empty {
-		margin: var(--rk-space-4);
-		padding: var(--rk-space-5) var(--rk-space-4);
 	}
 }
 
-/* The sort link and the icon utility were listed here and neither one
-   declares a transition anywhere in the plugin, so a reduced motion
-   preference was given two rules that could never do anything. Both are
-   gone. The three selectors left are the three that do transition. */
+@media screen and (max-width: 767px) {
+	.rk-monitor .rk-settings-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-monitor .rk-detail-list {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.rk-monitor .rk-log-status,
+	.rk-monitor .rk-monitor-settings-form {
+		padding: var(--rk-space-4);
+	}
+
+	.rk-monitor .rk-monitor-settings-summary,
+	.rk-monitor .rk-bulk-bar,
+	.rk-monitor .rk-log-footer {
+		padding-inline: var(--rk-space-4);
+	}
+
+	.rk-monitor .rk-empty-state {
+		padding: var(--rk-space-6) var(--rk-space-4);
+	}
+}
+
+@media screen and (max-width: 640px) {
+	.rk-monitor .rk-stat-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-monitor .rk-tracked-head,
+	.rk-monitor .rk-tracked-search {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-monitor .rk-tracked-search .rk-ui-search-wrap {
+		flex: 1 1 auto;
+		width: auto;
+		max-width: none;
+	}
+}
+
+/* Every selector in this file that declares a transition or an animation,
+   plus the one shared component this page renders that pulses. */
 @media screen and (prefers-reduced-motion: reduce) {
 	.rk-monitor .rk-progress-fill,
 	.rk-monitor .rk-details > summary .rk-icon,
-	.rk-monitor .rk-monitor-settings-chevron {
+	.rk-monitor .rk-status-chip-on .rk-status-dot {
 		transition: none;
+		animation: none;
 	}
 }
