@@ -35,6 +35,11 @@ use RankKernel\Settings\SettingsStore;
  */
 final class SettingsPage {
 	/**
+	 * Hook suffix for the screen, used to gate asset loading.
+	 */
+	public const HOOK_SUFFIX = 'rankkernel_page_rankkernel-general';
+
+	/**
 	 * Representative core block used for the robots.txt preview.
 	 */
 	private const ROBOTS_PREVIEW_CORE = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: https://example.com/sitemap_index.xml\n";

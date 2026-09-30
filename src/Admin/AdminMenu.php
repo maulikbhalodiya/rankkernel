@@ -322,7 +322,7 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueDashboardAssets( string $hookSuffix ): void {
+	public function enqueueDashboardAssets( string $hookSuffix = '' ): void {
 		if ( DashboardPage::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}
@@ -383,8 +383,8 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueGeneralAssets( string $hookSuffix ): void {
-		if ( 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
+	public function enqueueGeneralAssets( string $hookSuffix = '' ): void {
+		if ( SettingsPage::HOOK_SUFFIX !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
 		}
 
@@ -431,8 +431,8 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueSchemaAssets( string $hookSuffix ): void {
-		if ( 'rankkernel_page_rankkernel-schema' !== $hookSuffix ) {
+	public function enqueueSchemaAssets( string $hookSuffix = '' ): void {
+		if ( SchemaSettingsPage::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}
 
@@ -479,7 +479,7 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueRedirectsAssets( string $hookSuffix ): void {
+	public function enqueueRedirectsAssets( string $hookSuffix = '' ): void {
 		if ( RedirectsPage::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}
@@ -527,7 +527,7 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueMonitorAssets( string $hookSuffix ): void {
+	public function enqueueMonitorAssets( string $hookSuffix = '' ): void {
 		if ( NotFoundPage::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}
@@ -575,7 +575,7 @@ final class AdminMenu {
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
 	 */
-	public function enqueueInstantIndexingAssets( string $hookSuffix ): void {
+	public function enqueueInstantIndexingAssets( string $hookSuffix = '' ): void {
 		if ( InstantIndexingPage::HOOK_SUFFIX !== $hookSuffix ) {
 			return;
 		}

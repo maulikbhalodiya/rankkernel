@@ -27,6 +27,11 @@ use RankKernel\Settings\SettingsStore;
  */
 final class SchemaSettingsPage {
 	/**
+	 * Hook suffix for the screen, used to gate asset loading.
+	 */
+	public const HOOK_SUFFIX = 'rankkernel_page_rankkernel-schema';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore $store Settings store.
