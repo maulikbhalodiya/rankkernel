@@ -24,11 +24,13 @@
 /* Tabs: one coherent navigation component. Primary marks active. */
 
 .rk-meta .rk-meta-tabs {
+	background: var(--rk-color-surface);
 	border-bottom: 1px solid var(--rk-color-border);
 	display: flex;
 	flex-wrap: nowrap;
-	gap: var(--rk-space-1);
-	margin: 0 0 var(--rk-space-4);
+	gap: 0;
+	margin: 0;
+	padding: 0 var(--rk-space-2);
 }
 
 .rk-meta .rk-meta-tab {
@@ -36,38 +38,41 @@
 	appearance: none;
 	background: transparent;
 	border: 0;
-	border-bottom: 2px solid transparent;
-	border-radius: var(--rk-radius-sm) var(--rk-radius-sm) 0 0;
-	color: var(--rk-color-text-secondary);
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	color: var(--rk-color-text-muted);
 	cursor: pointer;
 	display: inline-flex;
-	font-size: var(--rk-font-size-sm);
+	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	gap: var(--rk-space-2);
-	line-height: var(--rk-line-height-normal);
+	gap: 6px;
+	justify-content: center;
+	line-height: 1;
 	margin: 0 0 -1px;
 	max-width: 100%;
-	min-height: 36px;
-	padding: var(--rk-space-2) var(--rk-space-3);
+	min-height: 44px;
+	min-width: 0;
+	padding: var(--rk-space-2);
 }
 
 .rk-meta .rk-meta-tab:hover {
-	background: var(--rk-color-surface-subtle);
+	background: transparent;
 	color: var(--rk-color-text);
 }
 
 .rk-meta .rk-meta-tab.is-active,
 .rk-meta [role="tab"][aria-selected="true"] {
-	background: var(--rk-color-primary-soft);
+	background: transparent;
 	border-bottom-color: var(--rk-color-primary);
 	color: var(--rk-color-primary-active);
 }
 
-.rk-meta .rk-meta-tab .dashicons {
+.rk-meta .rk-meta-tab .rk-meta-tab-icon {
 	flex: 0 0 auto;
-	font-size: var(--rk-font-size-md);
-	height: var(--rk-font-size-md);
-	width: var(--rk-font-size-md);
+	font-size: 16px;
+	height: 16px;
+	line-height: 1;
+	width: 16px;
 }
 
 .rk-meta .rk-meta-tab-label {
@@ -130,6 +135,8 @@
 .rk-meta .rk-meta-field .description,
 .rk-meta .rk-field .description {
 	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
 	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
 }
@@ -364,10 +371,10 @@ visibly disabled until the field becomes custom. */
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-lg);
 	box-shadow: var(--rk-shadow-sm);
-	margin: 0 auto var(--rk-space-3);
+	margin: 0 auto var(--rk-space-2);
 	max-width: 100%;
 	min-width: 0;
-	padding: var(--rk-space-3) var(--rk-space-4);
+	padding: var(--rk-space-4);
 }
 
 .rk-meta .rk-meta-serp.rk-is-desktop,
@@ -380,7 +387,7 @@ visibly disabled until the field becomes custom. */
 .rk-meta .rk-serp.rk-is-mobile {
 	margin-inline: auto;
 	max-width: 240px;
-	padding: var(--rk-space-2) var(--rk-space-3);
+	padding: var(--rk-space-3);
 }
 
 .rk-meta .rk-meta-serp.rk-is-mobile .rk-meta-serp-title,
@@ -402,37 +409,49 @@ visibly disabled until the field becomes custom. */
 	border: 1px solid var(--rk-color-border);
 	border-radius: 999px;
 	display: flex;
-	flex: 1 1 auto;
+	flex: 0 0 auto;
 	gap: 0;
 	margin: 0;
 	max-width: 100%;
 	min-width: 0;
-	padding: var(--rk-space-1);
+	padding: 2px;
 }
 
 .rk-meta .rk-meta-serp-tools .button {
+	background: transparent;
 	border: 0;
 	border-radius: 999px;
 	box-shadow: none;
-	flex: 1 1 0;
+	color: var(--rk-color-text-muted);
+	flex: 0 0 auto;
+	font-size: 11px;
+	font-weight: 500;
+	height: auto;
+	line-height: 1;
 	margin: 0;
-	min-height: 30px;
+	min-height: 0;
+	padding: 4px 10px;
 	white-space: nowrap;
+}
+
+.rk-meta .rk-meta-serp-tools .button:hover {
+	background: transparent;
+	color: var(--rk-color-text);
 }
 
 .rk-meta .rk-meta-serp-tools .is-active,
 .rk-meta .rk-meta-serp-tools .button[aria-pressed="true"] {
 	background: var(--rk-color-surface);
 	box-shadow: var(--rk-shadow-sm);
-	color: var(--rk-color-primary-active);
+	color: var(--rk-color-primary);
 	font-weight: 600;
 }
 
 .rk-meta .rk-serp-row {
-	align-items: flex-start;
+	align-items: center;
 	display: flex;
-	gap: var(--rk-space-3);
-	margin-bottom: var(--rk-space-1);
+	gap: var(--rk-space-2);
+	margin-bottom: var(--rk-space-2);
 	min-width: 0;
 }
 
@@ -444,8 +463,8 @@ visibly disabled until the field becomes custom. */
 	color: var(--rk-color-text-secondary);
 	display: inline-flex;
 	flex: 0 0 auto;
-	font-size: var(--rk-font-size-md);
-	font-weight: 600;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 700;
 	height: 28px;
 	justify-content: center;
 	width: 28px;
@@ -458,34 +477,39 @@ visibly disabled until the field becomes custom. */
 .rk-meta .rk-meta-serp-site {
 	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
-	margin: 0 0 2px;
+	font-weight: 500;
+	line-height: var(--rk-line-height-tight);
+	margin: 0;
 	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-meta-serp-url {
+	color: var(--rk-color-secondary-1);
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-tight);
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .rk-meta .rk-meta-serp-title {
 	color: var(--rk-color-primary-active);
 	display: -webkit-box;
 	font-size: var(--rk-font-size-lg);
-	line-height: var(--rk-line-height-tight);
-	margin: 0 0 2px;
+	line-height: 22px;
+	margin: 0 0 6px;
 	overflow: hidden;
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
 }
 
-.rk-meta .rk-meta-serp-url {
-	color: var(--rk-color-secondary-1);
-	font-size: var(--rk-font-size-sm);
-	margin: 0 0 var(--rk-space-1);
-	overflow-wrap: anywhere;
-}
-
 .rk-meta .rk-meta-serp-desc {
 	color: var(--rk-color-text-secondary);
 	display: -webkit-box;
 	font-size: var(--rk-font-size-sm);
-	line-height: var(--rk-line-height-normal);
+	line-height: 18px;
 	margin: 0;
 	overflow: hidden;
 	overflow-wrap: anywhere;
@@ -517,11 +541,16 @@ visibly disabled until the field becomes custom. */
 .rk-meta .rk-social {
 	background: var(--rk-color-surface);
 	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
-	margin: var(--rk-space-3) 0;
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+	margin: 0;
 	max-width: 100%;
 	min-width: 0;
-	overflow: hidden;
+	padding: var(--rk-space-4);
+}
+
+.rk-meta .rk-meta-social.rk-social-twitter {
+	border-radius: 10px;
 }
 
 .rk-meta .rk-meta-social-image {
@@ -531,97 +560,191 @@ visibly disabled until the field becomes custom. */
 	width: 100%;
 }
 
-.rk-meta .rk-meta-social.rk-is-compact {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--rk-space-3);
+.rk-meta .rk-social-image {
+	aspect-ratio: 1200 / 630;
+	border-radius: var(--rk-radius-sm);
+	margin-bottom: var(--rk-space-3);
+	object-fit: cover;
 }
 
-.rk-meta .rk-meta-social.rk-is-compact .rk-meta-social-image {
+.rk-meta .rk-social-thumb {
+	border-radius: var(--rk-radius-sm);
 	flex: 0 1 120px;
-	max-width: 120px;
-	min-width: 0;
+	height: 64px;
+	min-width: 64px;
+	object-fit: cover;
+	width: 120px;
+}
+
+.rk-meta .rk-meta-social.rk-is-compact .rk-social-thumb {
+	height: 56px;
+	width: 56px;
 }
 
 .rk-meta .rk-meta-social-body {
 	min-width: 0;
-	padding: var(--rk-space-3);
+	padding: 0;
 }
 
 .rk-meta .rk-meta-social-title {
-	font-size: var(--rk-font-size-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xl);
 	font-weight: 600;
-	margin: 0 0 var(--rk-space-1);
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 6px;
 	overflow-wrap: anywhere;
+}
+
+.rk-meta .rk-social-twitter .rk-meta-social-title {
+	font-size: 15px;
+	line-height: var(--rk-line-height-tight);
+	margin-bottom: 2px;
 }
 
 .rk-meta .rk-meta-social-desc {
 	color: var(--rk-color-text-secondary);
-	font-size: var(--rk-font-size-sm);
-	margin: 0 0 var(--rk-space-1);
+	font-size: var(--rk-font-size-md);
+	line-height: 1.45;
+	margin: 0;
 	overflow-wrap: anywhere;
 }
 
 .rk-meta .rk-meta-social-site {
 	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
-	margin: 0;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
 	text-transform: uppercase;
 }
 
-.rk-meta.rk-side div[role="tabpanel"] {
-	padding: 0px 10px;
+.rk-meta .rk-social-twitter .rk-meta-social-site {
+	font-size: var(--rk-font-size-sm);
+	font-weight: 400;
+	letter-spacing: 0;
+	margin: 0 0 6px;
+	text-transform: none;
 }
 
-/* Advanced: positive radio controls and collapsed extras. */
+/* Sidebar panel composition: 16px padding, blocks separated by a hairline
+at the design rhythm (24px general, 20px advanced and schema, 16px social). */
+
+.rk-meta.rk-side [role="tabpanel"] {
+	padding: var(--rk-space-4);
+}
+
+.rk-meta.rk-side .rk-side-panel {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.rk-meta.rk-side .rk-panel-block + .rk-panel-block {
+	border-top: 1px solid var(--rk-color-border);
+	margin-top: var(--rk-space-5);
+	padding-top: var(--rk-space-3);
+}
+
+.rk-meta.rk-side .rk-side-panel--general .rk-panel-block + .rk-panel-block {
+	margin-top: var(--rk-space-6);
+	padding-top: var(--rk-space-2);
+}
+
+.rk-meta.rk-side .rk-side-panel--social .rk-panel-block + .rk-panel-block {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: var(--rk-space-4);
+}
+
+/* Advanced: radio controls with the design ring, then collapsed extras. */
 
 .rk-meta fieldset.rk-meta-field legend,
 .rk-meta fieldset.rk-field legend {
+	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
+	margin: 0 0 6px;
 	padding: 0;
 }
 
-.rk-meta .rk-radio-pair {
-	border: 1px solid var(--rk-color-border);
-}
-
-.rk-meta .rk-radio-pair legend {
-	font-weight: 600;
+.rk-meta .rk-radio-options {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2) var(--rk-space-5);
+	padding-top: 2px;
 }
 
 .rk-meta .rk-radio {
 	align-items: center;
-	background: var(--rk-color-surface-subtle);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
+	background: none;
+	border: 0;
+	border-radius: 0;
+	color: var(--rk-color-text);
+	cursor: pointer;
 	display: inline-flex;
+	font-size: var(--rk-font-size-xs);
 	gap: var(--rk-space-2);
-	margin: 0 var(--rk-space-2) var(--rk-space-2) 0;
+	margin: 0;
 	max-width: 100%;
-	padding: var(--rk-space-2) var(--rk-space-3);
+	padding: 0;
 }
 
-.rk-meta .rk-radio:has(input:checked) {
-	background: var(--rk-color-primary-soft);
-	border-color: var(--rk-color-primary);
-	color: var(--rk-color-primary-active);
+.rk-meta .rk-radio input[type="radio"] {
+	appearance: none;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: 50%;
+	display: grid;
+	flex: 0 0 auto;
+	height: 16px;
+	margin: 0;
+	padding: 0;
+	place-content: center;
+	width: 16px;
 }
 
-.rk-meta .rk-radio:has(input:focus-visible) {
+.rk-meta .rk-radio input[type="radio"]:checked {
+	border: 2px solid var(--rk-color-primary);
+}
+
+.rk-meta .rk-radio input[type="radio"]:checked::before {
+	background: var(--rk-color-primary);
+	border-radius: 50%;
+	content: "";
+	display: block;
+	height: 8px;
+	width: 8px;
+}
+
+.rk-meta .rk-radio input[type="radio"]:focus-visible {
 	outline: 2px solid var(--rk-color-focus);
 	outline-offset: 2px;
 }
 
 .rk-meta .rk-error {
+	align-items: flex-start;
 	color: var(--rk-color-secondary-4);
-	font-weight: 600;
+	display: flex;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	gap: 6px;
+	line-height: var(--rk-line-height-tight);
+	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
 }
 
+.rk-meta .rk-error .rk-icon {
+	flex: 0 0 auto;
+	margin-top: 1px;
+}
+
 .rk-meta .rk-status {
-	font-weight: 600;
-	margin: 0 0 var(--rk-space-2);
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	line-height: var(--rk-line-height-tight);
+	margin: 0;
 	overflow-wrap: anywhere;
 }
 
@@ -629,15 +752,19 @@ visibly disabled until the field becomes custom. */
 
 .rk-meta .rk-schema-accent::before {
 	color: var(--rk-color-secondary-2);
-	content: "◆ ";
+	content: "◆";
+	font-size: 12px;
+	margin-right: var(--rk-space-2);
 }
 
 .rk-meta .rk-notice {
 	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border);
-	border-left: 4px solid var(--rk-color-border-strong);
-	border-radius: 0 var(--rk-radius-md) var(--rk-radius-md) 0;
-	margin: var(--rk-space-2) 0;
+	border-left: 3px solid var(--rk-color-border-strong);
+	border-radius: 0 var(--rk-radius-sm) var(--rk-radius-sm) 0;
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	margin: var(--rk-space-3) 0 0;
 	max-width: 100%;
 	padding: var(--rk-space-2) var(--rk-space-3);
 }
@@ -657,24 +784,99 @@ visibly disabled until the field becomes custom. */
 }
 
 .rk-meta .rk-collapsible {
-	background: var(--rk-color-surface);
+	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-lg);
-	margin: 0 0 var(--rk-space-3);
+	border-radius: var(--rk-radius-md);
+	margin: 0;
 	max-width: 100%;
 	min-width: 0;
+	padding: 10px var(--rk-space-3);
+}
+
+.rk-meta .rk-collapsible.is-open {
+	background: var(--rk-color-surface);
 	padding: var(--rk-space-3);
 }
 
 .rk-meta .rk-collapsible-summary {
+	align-items: center;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	color: var(--rk-color-text);
 	cursor: pointer;
+	display: flex;
+	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	line-height: var(--rk-line-height-tight);
+	margin: 0;
+	max-width: 100%;
+	min-width: 0;
+	padding: 0;
+	text-align: start;
+	width: 100%;
+}
+
+.rk-meta .rk-collapsible-title {
+	flex: 1 1 auto;
+	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
+.rk-meta .rk-collapsible-chevron {
+	color: var(--rk-color-text-muted);
+	flex: 0 0 auto;
+	font-size: 16px;
+	height: 16px;
+	line-height: 1;
+	transform: rotate(-90deg);
+	transition: transform 0.15s ease-in-out;
+	width: 16px;
+}
+
+.rk-meta .rk-collapsible.is-open .rk-collapsible-summary {
+	border-bottom: 1px solid var(--rk-color-surface-muted);
+	padding-bottom: var(--rk-space-2);
+}
+
+.rk-meta .rk-collapsible.is-open .rk-collapsible-chevron {
+	transform: rotate(0deg);
+}
+
+.rk-meta .rk-collapsible-lead .rk-collapsible-chevron {
+	order: -1;
+}
+
+.rk-meta .rk-collapsible-body {
+	margin-top: var(--rk-space-3);
+	min-width: 0;
+}
+
 .rk-meta .rk-import-label {
-	align-self: center;
-	font-weight: 600;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	line-height: 1;
+	padding: 6px 10px;
+}
+
+.rk-meta .rk-import-label:hover {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-meta .rk-import-input {
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	position: absolute;
+	width: 1px;
 }
 
 .rk-meta .rk-ext-seam:empty {
@@ -740,9 +942,8 @@ accessible name and tooltip. */
 .rk-meta .rk-meta-tab {
 	flex: 1 1 0;
 	justify-content: center;
-	min-height: 40px;
+	min-height: 44px;
 	min-width: 0;
-	padding: var(--rk-space-2);
 }
 
 .rk-meta .rk-meta-tab .rk-meta-tab-label {
@@ -754,17 +955,19 @@ accessible name and tooltip. */
 /* Search preview block: heading, switch, card and fields with no gaps. */
 
 .rk-meta .rk-serp-block {
-	margin: 0 0 var(--rk-space-3);
+	margin: 0;
 	max-width: 100%;
 	min-width: 0;
 }
 
 .rk-meta .rk-serp-heading {
+	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-md);
 	font-weight: 600;
 	line-height: var(--rk-line-height-tight);
 	margin: 0 0 var(--rk-space-2);
 	overflow-wrap: anywhere;
+	text-transform: none;
 }
 
 .rk-meta .rk-serp-block .rk-meta-serp-tools {
@@ -777,22 +980,46 @@ accessible name and tooltip. */
 }
 
 .rk-meta .rk-serp-note {
-	margin: 0 0 var(--rk-space-1);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 var(--rk-space-2);
 }
 
 /* Preview modal entry point and dialog room. */
 
 .rk-meta .rk-preview-open {
-	/* align-items: center; */
+	align-items: center;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	box-shadow: none;
+	color: var(--rk-color-text);
 	display: inline-flex;
-	gap: var(--rk-space-2);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	gap: 6px;
+	height: auto;
 	justify-content: center;
-	margin: 0 0 var(--rk-space-3);
+	line-height: 1.2;
+	margin: 0;
 	max-width: 100%;
+	min-height: 0;
+	padding: 8px 12px;
 	width: 100%;
 }
 
-.rk-meta .rk-preview-open .dashicons {
+.rk-meta .rk-preview-open:hover {
+	background: var(--rk-color-surface-subtle);
+	border-color: var(--rk-color-border-strong);
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-preview-open:active {
+	transform: scale(0.99);
+}
+
+.rk-meta .rk-preview-open .rk-icon {
+	color: var(--rk-color-text-muted);
 	flex: 0 0 auto;
 }
 
@@ -829,7 +1056,9 @@ accessible name and tooltip. */
 }
 
 .rk-meta .rk-serp-edit-note {
-	margin: 0 0 var(--rk-space-1);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-tight);
+	margin: var(--rk-space-2) 0 0;
 }
 
 /* Fallback dialog when wp.components.Modal is unavailable. */
@@ -972,30 +1201,43 @@ accessible name and tooltip. */
 .rk-meta .rk-social-switch {
 	background: var(--rk-color-surface-muted);
 	border: 1px solid var(--rk-color-border);
-	border-radius: 999px;
+	border-radius: var(--rk-radius-md);
 	display: flex;
 	gap: 0;
-	margin-bottom: var(--rk-space-3);
+	margin: 0 0 var(--rk-space-3);
 	max-width: 100%;
 	padding: var(--rk-space-1);
 }
 
 .rk-meta .rk-social-switch .button {
-	border: 0;
-	border-radius: 999px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--rk-radius-sm);
 	box-shadow: none;
+	color: var(--rk-color-text-muted);
 	flex: 1 1 0;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	height: auto;
+	line-height: 1.2;
 	margin: 0;
-	min-height: 30px;
+	min-height: 0;
 	min-width: 0;
+	padding: 5px 8px;
 	white-space: nowrap;
+}
+
+.rk-meta .rk-social-switch .button:hover {
+	background: transparent;
+	color: var(--rk-color-text);
 }
 
 .rk-meta .rk-social-switch .is-active,
 .rk-meta .rk-social-switch .button[aria-pressed="true"] {
 	background: var(--rk-color-surface);
+	border-color: var(--rk-color-border);
 	box-shadow: var(--rk-shadow-sm);
-	color: var(--rk-color-primary-active);
+	color: var(--rk-color-primary);
 	font-weight: 600;
 }
 
@@ -1025,7 +1267,7 @@ the Edit Snippet action. */
 	flex-wrap: wrap;
 	gap: var(--rk-space-2);
 	justify-content: space-between;
-	margin-bottom: var(--rk-space-2);
+	margin-bottom: var(--rk-space-3);
 }
 
 .rk-meta .rk-serp-head .rk-serp-heading {
@@ -1037,7 +1279,7 @@ the Edit Snippet action. */
 }
 
 .rk-meta .rk-serp-foot {
-	margin-top: var(--rk-space-2);
+	margin-top: 0;
 }
 
 .rk-meta .rk-serp-foot .rk-preview-open {
@@ -1100,47 +1342,76 @@ the Edit Snippet action. */
 
 .rk-meta .rk-social-source {
 	border-bottom: 1px solid var(--rk-color-border);
-	color: var(--rk-color-text-secondary);
+	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
-	margin: 0;
+	margin: 0 0 var(--rk-space-3);
 	overflow-wrap: anywhere;
-	padding: var(--rk-space-2) var(--rk-space-3);
+	padding: 0 0 10px;
 }
 
 .rk-meta .rk-social-profile {
-	align-items: center;
+	align-items: flex-start;
 	border-bottom: 1px solid var(--rk-color-border);
 	display: flex;
-	gap: var(--rk-space-2);
+	gap: 10px;
+	margin-bottom: var(--rk-space-3);
 	min-width: 0;
-	padding: var(--rk-space-2) var(--rk-space-3);
+	padding: 0 0 var(--rk-space-3);
 }
 
 .rk-meta .rk-social-profile .rk-serp-mark {
+	font-size: 11px;
 	height: 24px;
 	width: 24px;
 }
 
 .rk-meta .rk-social-id {
+	flex: 1 1 auto;
 	min-width: 0;
 }
 
 .rk-meta .rk-social-name {
-	font-size: var(--rk-font-size-sm);
+	font-size: var(--rk-font-size-md);
 	font-weight: 600;
-	margin: 0;
-	overflow-wrap: anywhere;
+	line-height: var(--rk-line-height-tight);
+	margin: 0 0 2px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .rk-meta .rk-social-card {
+	font-size: var(--rk-font-size-xs);
 	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .rk-meta .rk-social-noimage {
-	margin: 0;
-	padding: var(--rk-space-3);
+	align-items: center;
+	aspect-ratio: 1200 / 630;
+	background: var(--rk-color-border);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text-hint);
+	display: flex;
+	font-size: var(--rk-font-size-xs);
+	justify-content: center;
+	margin: 0 0 var(--rk-space-3);
+	padding: 0;
 	text-align: center;
+	width: 100%;
+}
+
+.rk-meta .rk-social-twitter .rk-social-noimage {
+	aspect-ratio: auto;
+	flex: 0 1 120px;
+	height: 64px;
+	margin: 0;
+	min-width: 64px;
+	width: 120px;
 }
 
 /* Edit Snippet modal: roomy on desktop, usable small, scrolls inside. */
@@ -1181,45 +1452,52 @@ the Edit Snippet action. */
 /* Focus Keyword & Tagify style chips */
 
 .rk-meta .rk-focus-keywords-field {
-	margin-bottom: var(--rk-space-4);
+	margin-bottom: 0;
 }
 
 .rk-meta .rk-keywords-tagify {
 	align-items: center;
 	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
+	border: 1px solid var(--rk-color-border-strong);
 	border-radius: var(--rk-radius-md);
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
+	min-height: 38px;
 	padding: 6px 8px;
 	transition: border-color 0.15s ease-in-out;
 }
 
 .rk-meta .rk-keywords-tagify:focus-within {
 	border-color: var(--rk-color-primary);
-	box-shadow: 0 0 0 1px var(--rk-color-primary);
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
 }
 
 .rk-meta .rk-keyword-tag {
 	align-items: center;
-	background: var(--rk-color-primary-soft);
-	border: 1px solid var(--rk-color-primary);
-	border-radius: 4px;
-	color: var(--rk-color-primary-active);
+	background: var(--rk-color-surface-muted);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 999px;
+	color: var(--rk-color-text);
 	display: inline-flex;
-	font-size: 12px;
+	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
 	gap: 4px;
 	line-height: 1.4;
-	padding: 2px 6px;
+	padding: 3px 10px;
+}
+
+.rk-meta .rk-keyword-star {
+	color: var(--rk-color-secondary-3);
+	font-size: 12px;
+	line-height: 1;
 }
 
 .rk-meta .rk-keyword-tag-remove {
 	appearance: none;
 	background: transparent;
 	border: 0;
-	color: var(--rk-color-primary-active);
+	color: var(--rk-color-text-muted);
 	cursor: pointer;
 	font-size: 14px;
 	font-weight: bold;
@@ -1235,9 +1513,9 @@ the Edit Snippet action. */
 	background: transparent;
 	border: 0 !important;
 	box-shadow: none !important;
-	flex: 1 1 100px;
-	font-size: 13px;
-	min-width: 80px;
+	flex: 1 1 130px;
+	font-size: var(--rk-font-size-xs);
+	min-width: 130px;
 	outline: none !important;
 	padding: 2px 4px !important;
 }
@@ -1247,34 +1525,42 @@ the Edit Snippet action. */
 .rk-meta .rk-checklist-head-inner {
 	align-items: center;
 	display: inline-flex;
+	gap: var(--rk-space-2);
 	justify-content: space-between;
 	width: 100%;
 }
 
 .rk-meta .rk-checklist-badge {
-	border-radius: 10px;
+	border: 1px solid transparent;
+	border-radius: var(--rk-radius-sm);
 	font-size: 11px;
 	font-weight: 600;
+	line-height: 1.5;
 	padding: 2px 8px;
+	white-space: nowrap;
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-ok {
 	background: var(--rk-score-good-soft);
+	border-color: var(--rk-tint-positive-border);
 	color: var(--rk-score-good);
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-warn {
 	background: var(--rk-score-improve-soft);
+	border-color: var(--rk-tint-warning-border);
 	color: var(--rk-score-improve);
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-bad {
 	background: var(--rk-score-problem-soft);
+	border-color: var(--rk-tint-error-border);
 	color: var(--rk-score-problem);
 }
 
 .rk-meta .rk-checklist-badge.rk-badge-none {
 	background: var(--rk-score-neutral-soft);
+	border-color: var(--rk-color-border);
 	color: var(--rk-score-neutral);
 }
 
@@ -1334,46 +1620,76 @@ the Edit Snippet action. */
 .rk-meta .rk-checklist-filter {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--rk-space-1);
-	margin-top: var(--rk-space-2);
+	gap: 6px;
+	margin-top: 0;
 }
 
-.rk-meta .rk-keyword-primary .rk-keyword-star {
-	color: var(--rk-color-secondary-3);
-	font-size: 14px;
-	height: 14px;
-	width: 14px;
+.rk-meta .rk-checklist-filter .button {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: 999px;
+	box-shadow: none;
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	height: auto;
+	line-height: 1.4;
+	margin: 0;
+	min-height: 0;
+	padding: 5px 10px;
+}
+
+.rk-meta .rk-checklist-filter .button:hover {
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-checklist-filter .button.is-active,
+.rk-meta .rk-checklist-filter .button[aria-pressed="true"] {
+	background: var(--rk-color-primary-soft);
+	border-color: var(--rk-tint-primary-border);
+	color: var(--rk-color-primary-active);
 }
 
 .rk-meta .rk-checklist-items {
 	list-style: none;
-	margin: 8px 0 0;
+	margin: var(--rk-space-3) 0 0;
 	padding: 0;
 }
 
 .rk-meta .rk-checklist-item {
 	align-items: flex-start;
 	display: flex;
-	font-size: 12px;
-	gap: 8px;
-	line-height: 1.4;
-	margin-bottom: 6px;
+	font-size: var(--rk-font-size-sm);
+	gap: 10px;
+	line-height: 18px;
+	margin-bottom: 10px;
 }
 
-.rk-meta .rk-checklist-item .dashicons {
+.rk-meta .rk-checklist-icon {
 	flex: 0 0 auto;
 	font-size: 16px;
 	height: 16px;
+	line-height: 1;
 	margin-top: 1px;
 	width: 16px;
 }
 
-.rk-meta .rk-checklist-item.is-ok .dashicons {
+.rk-meta .rk-checklist-item.is-ok .rk-checklist-icon {
 	color: var(--rk-color-secondary-1);
 }
 
-.rk-meta .rk-checklist-item.is-fail .dashicons {
+.rk-meta .rk-checklist-item.is-fail .rk-checklist-icon {
 	color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-analysis-note {
+	border-top: 1px solid var(--rk-color-surface-muted);
+	font-size: var(--rk-font-size-xs);
+	font-style: italic;
+	line-height: var(--rk-line-height-tight);
+	margin: var(--rk-space-3) 0 0;
+	padding-top: var(--rk-space-2);
 }
 
 /* Edit Snippet modal tabs: icon plus label while active, icon only while inactive. */
@@ -1433,29 +1749,407 @@ the Edit Snippet action. */
 	background: var(--rk-color-surface-subtle);
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-lg);
+	box-shadow: none;
+	margin: 0;
 	padding: var(--rk-space-4);
 }
 
 .rk-meta .rk-social-notice-title {
-	font-size: 14px;
+	font-size: var(--rk-font-size-md);
 	font-weight: 600;
-	margin: 0 0 8px;
+	line-height: 1;
+	margin: 0 0 var(--rk-space-2);
 }
 
-.rk-meta .rk-social-notice-desc,
-.rk-meta .rk-social-notice-sub {
-	color: var(--rk-color-text-muted);
-	font-size: 12px;
-	line-height: 1.5;
+.rk-meta .rk-social-notice-card .rk-social-notice-desc,
+.rk-meta .rk-social-notice-card .rk-social-notice-sub {
+	color: var(--rk-color-text-secondary);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
 	margin: 0 0 10px;
 }
 
+.rk-meta .rk-social-notice-card .rk-social-notice-sub {
+	color: var(--rk-color-text-muted);
+	margin-bottom: var(--rk-space-4);
+}
+
 .rk-meta .rk-social-notice-card .rk-edit-snippet-btn {
-	/* align-items: center; */
-	display: inline-flex;
+	align-items: center;
+	background: var(--rk-color-primary);
+	border: 1px solid var(--rk-color-primary);
+	border-radius: var(--rk-radius-md);
+	box-shadow: none;
+	color: var(--rk-color-surface);
+	display: flex;
+	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
 	gap: 6px;
+	height: auto;
+	justify-content: center;
+	margin: 0;
+	padding: 8px 12px;
+	width: 100%;
+}
+
+.rk-meta .rk-social-notice-card .rk-edit-snippet-btn:hover {
+	background: var(--rk-color-primary-hover);
+	border-color: var(--rk-color-primary-hover);
+	color: var(--rk-color-surface);
+}
+
+.rk-meta .rk-social-notice-card .rk-edit-snippet-btn:focus {
+	box-shadow: 0 0 0 2px var(--rk-ring-primary);
+}
+
+.rk-meta .rk-social-notice-card .rk-edit-snippet-btn .rk-icon {
+	color: var(--rk-color-surface);
+	flex: 0 0 auto;
+}
+
+.rk-meta .rk-social-fallback-note {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
+	margin: 0;
+}
+
+/* Flat fields: Advanced and Schema keep their controls bare on the panel
+surface, so the shared field drops its card chrome there. */
+
+.rk-meta .rk-field-flat {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	margin: 0;
+	padding: 0;
+}
+
+.rk-meta .rk-field-flat .rk-field-head {
+	margin-bottom: 4px;
+}
+
+.rk-meta .rk-field-flat .rk-field-label {
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-meta .rk-robots-budgets > * + * {
+	margin-top: var(--rk-space-3);
+}
+
+.rk-meta .rk-collapsible-body .rk-field-flat + .rk-field-flat {
+	margin-top: var(--rk-space-2);
+}
+
+.rk-meta .rk-icon-sm {
+	font-size: 14px;
+	height: 14px;
+	line-height: 1;
+	width: 14px;
+}
+
+.rk-meta .rk-help-icon {
+	color: var(--rk-color-text-muted);
+	flex: 0 0 auto;
+}
+
+/* Shared text controls on the design contract: 12px value, hairline
+border, a single-step primary ring while focused. */
+
+.rk-meta .rk-field .components-text-control__input,
+.rk-meta .rk-field .components-textarea-control__textarea {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	box-shadow: none;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	line-height: 18px;
+	max-width: 100%;
+	min-height: 0;
+	padding: 6px 10px;
+	width: 100%;
+}
+
+.rk-meta .rk-field .components-text-control__input:focus,
+.rk-meta .rk-field .components-textarea-control__textarea:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-meta .rk-field .components-text-control__input:disabled,
+.rk-meta .rk-field .components-textarea-control__textarea:disabled {
+	opacity: 0.6;
+}
+
+/* Checkbox row: 16px square, primary fill with a white check when set. */
+
+.rk-meta .rk-check-row {
+	padding: 2px 0;
+}
+
+.rk-meta .rk-check {
+	align-items: flex-start;
+	cursor: pointer;
+	display: inline-flex;
+	gap: 10px;
+	margin: 0;
+	max-width: 100%;
+	position: relative;
+}
+
+.rk-meta .rk-check-input {
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	position: absolute;
+	width: 1px;
+}
+
+.rk-meta .rk-check-box {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	display: inline-grid;
+	flex: 0 0 auto;
+	height: 16px;
+	margin-top: 1px;
+	place-content: center;
+	transition: background 0.12s ease-in-out, border-color 0.12s ease-in-out;
+	width: 16px;
+}
+
+.rk-meta .rk-check-box::after {
+	border: solid var(--rk-color-surface);
+	border-width: 0 2px 2px 0;
+	content: "";
+	height: 8px;
+	opacity: 0;
+	transform: rotate(45deg) translate(-1px, -1px);
+	width: 4px;
+}
+
+.rk-meta .rk-check-input:checked + .rk-check-box {
+	background: var(--rk-color-primary);
+	border-color: var(--rk-color-primary);
+}
+
+.rk-meta .rk-check-input:checked + .rk-check-box::after {
+	opacity: 1;
+}
+
+.rk-meta .rk-check-input:focus-visible + .rk-check-box {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
+.rk-meta .rk-check-input:disabled + .rk-check-box {
+	opacity: 0.5;
+}
+
+.rk-meta .rk-check-label {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	line-height: 18px;
+}
+
+/* Select field: native select with the design chevron. */
+
+.rk-meta .rk-select-field {
+	min-width: 0;
+}
+
+.rk-meta .rk-select-label {
+	display: block;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.rk-meta .rk-select-wrap {
+	position: relative;
+}
+
+.rk-meta .rk-select {
+	appearance: none;
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	cursor: pointer;
+	font-size: var(--rk-font-size-xs);
+	line-height: 18px;
+	margin: 0;
+	max-width: 100%;
+	min-height: 0;
+	padding: 6px 32px 6px 10px;
+	width: 100%;
+}
+
+.rk-meta .rk-select:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-meta .rk-select:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+.rk-meta .rk-select-chevron {
+	color: var(--rk-color-text-muted);
+	font-size: 16px;
+	height: 16px;
+	line-height: 1;
+	pointer-events: none;
+	position: absolute;
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 16px;
+}
+
+.rk-meta .rk-select-field .description {
+	font-size: var(--rk-font-size-xs);
 	margin-top: 4px;
+}
+
+.rk-meta .rk-select-field .rk-select-note {
+	color: var(--rk-color-text-hint);
+	font-size: 11px;
+	font-style: italic;
+}
+
+/* Canonical URL: one bordered box that flips to the error state. */
+
+.rk-meta .rk-canonical-box {
+	background: var(--rk-color-surface-subtle);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	padding: 10px 12px;
+}
+
+.rk-meta .rk-canonical .rk-field-label {
+	display: block;
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.rk-meta .rk-canonical-input {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	line-height: 18px;
+	min-height: 0;
+	padding: 6px 10px;
+	width: 100%;
+}
+
+.rk-meta .rk-canonical-input:focus {
+	border-color: var(--rk-color-primary);
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-meta .rk-canonical.is-invalid .rk-canonical-box {
+	background: var(--rk-color-secondary-4-soft);
+	border-color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-canonical.is-invalid .rk-canonical-input {
+	border-color: var(--rk-color-secondary-4);
+}
+
+.rk-meta .rk-canonical-status {
+	font-size: var(--rk-font-size-xs);
+	margin: var(--rk-space-2) 0 0;
+}
+
+/* Schema advanced: monospace JSON, tools row, import control. */
+
+.rk-meta .rk-schema-json .components-textarea-control__textarea {
+	background: var(--rk-color-surface-subtle);
+	font-family: var(--rk-font-mono);
+	font-size: 11px;
+	line-height: var(--rk-line-height-normal);
+	min-height: 104px;
+	resize: none;
+}
+
+.rk-meta .rk-schema-json .components-textarea-control__textarea:focus {
+	background: var(--rk-color-surface);
+}
+
+.rk-meta .rk-schema-tools {
+	align-items: center;
+	border-top: 1px solid var(--rk-color-surface-muted);
+	display: flex;
+	gap: var(--rk-space-2);
+	justify-content: space-between;
+	margin-top: var(--rk-space-3);
+	padding-top: var(--rk-space-3);
+}
+
+.rk-meta .rk-schema-link {
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.rk-meta .rk-schema-link:hover {
+	color: var(--rk-color-primary-hover);
+	text-decoration: underline;
+}
+
+.rk-meta .rk-schema-sep {
+	color: var(--rk-color-border-strong);
+}
+
+.rk-meta .rk-schema-export {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-sm);
+	box-shadow: none;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-xs);
+	font-weight: 500;
+	height: auto;
+	line-height: 1;
+	min-height: 0;
+	padding: 6px 10px;
+}
+
+.rk-meta .rk-schema-export:hover {
+	background: var(--rk-color-surface-subtle);
+	border-color: var(--rk-color-border-strong);
+	color: var(--rk-color-text);
+}
+
+.rk-meta .rk-schema-export:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.rk-meta .rk-schema-import {
+	border-top: 1px solid var(--rk-color-surface-muted);
+	display: block;
+	margin-top: var(--rk-space-3);
+	padding-top: var(--rk-space-3);
+	position: relative;
+}
+
+.rk-meta .rk-schema-import .description {
+	font-size: var(--rk-font-size-xs);
+	margin: 0 0 var(--rk-space-2);
+}
+
+.rk-meta .rk-schema-import:focus-within .rk-import-label {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
 }
 
 
