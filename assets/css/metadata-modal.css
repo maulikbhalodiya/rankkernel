@@ -34,7 +34,7 @@
 	border-bottom: 0;
 	box-sizing: border-box;
 	height: auto;
-	padding: 0 0 var(--rk-space-3);
+	padding: 0;
 }
 
 .rk-preview-modal .components-modal__header-heading {
