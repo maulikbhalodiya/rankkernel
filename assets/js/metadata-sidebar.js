@@ -1328,7 +1328,7 @@
 
 		var modalTabs = [
 			{ id: 'general', label: __( 'General', 'rankkernel' ), icon: 'search' },
-			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'share' }
+			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'send' }
 		];
 
 		function onModalTabKey( event, index ) {
@@ -1359,6 +1359,7 @@
 						type: 'button',
 						role: 'tab',
 						id: 'rk-modal-tab-' + tab.id,
+						'data-rk-tab': tab.id,
 						'aria-selected': selected ? 'true' : 'false',
 						'aria-controls': 'rk-modal-panel-' + tab.id,
 						'aria-label': tab.label,
@@ -1368,17 +1369,34 @@
 						onClick: function () { setActiveModalTab( tab.id ); },
 						onKeyDown: function ( event ) { onModalTabKey( event, index ); }
 					},
-					el( 'span', { className: 'dashicons dashicons-' + tab.icon, 'aria-hidden': 'true' } ),
+					el( 'span', { className: 'rk-icon rk-modal-tab-icon', 'aria-hidden': 'true' }, tab.icon ),
 					selected ? el( 'span', { className: 'rk-modal-tab-label', 'aria-hidden': 'true' }, tab.label ) : null
 				);
 			} )
 		);
 
+		// The modal autosaves: there is no save or dismiss action, so every
+		// panel ends with the same strip naming the write path and how to
+		// leave. The strip is informational only and owns no state.
+		function autosaveNote( message ) {
+			return el(
+				'div',
+				{ className: 'rk-modal-autosave' },
+				el(
+					'span',
+					{ className: 'rk-modal-autosave-state' },
+					el( 'span', { className: 'rk-modal-autosave-dot', 'aria-hidden': 'true' } ),
+					el( 'span', null, message )
+				),
+				el( 'span', { className: 'rk-modal-autosave-dismiss' }, __( 'Dismiss via Escape or [ × ]', 'rankkernel' ) )
+			);
+		}
+
 		var modalContent = null;
 		if ( 'general' === activeModalTab ) {
 			modalContent = el(
 				'div',
-				{ className: 'rk-modal-tab-panel', role: 'tabpanel', id: 'rk-modal-panel-general', 'aria-labelledby': 'rk-modal-tab-general', tabIndex: 0 },
+				{ className: 'rk-modal-tab-panel rk-modal-panel-general', role: 'tabpanel', id: 'rk-modal-panel-general', 'aria-labelledby': 'rk-modal-tab-general', tabIndex: 0 },
 				el( SerpPreview, {
 					headingId: 'rk-modal-serp-heading',
 					title: props.titleValue,
@@ -1403,13 +1421,16 @@
 					el( 'p', { className: 'description' }, __( 'The address shown in the preview. Editing is not supported here.', 'rankkernel' ) )
 				),
 				props.titleField,
-				props.descField
+				props.descField,
+				autosaveNote( __( 'Every keystroke writes directly to post draft', 'rankkernel' ) )
 			);
 		} else {
 			modalContent = el(
 				'div',
-				{ className: 'rk-modal-tab-panel', role: 'tabpanel', id: 'rk-modal-panel-social', 'aria-labelledby': 'rk-modal-tab-social', tabIndex: 0 },
-				props.socialContent
+				{ className: 'rk-modal-tab-panel rk-modal-panel-social', role: 'tabpanel', id: 'rk-modal-panel-social', 'aria-labelledby': 'rk-modal-tab-social', tabIndex: 0 },
+				el( 'h3', { className: 'rk-modal-social-heading', id: 'rk-modal-social-heading' }, __( 'Social Preview', 'rankkernel' ) ),
+				props.socialContent,
+				autosaveNote( __( 'Live sync active • Facebook & Twitter tags update instantly', 'rankkernel' ) )
 			);
 		}
 
@@ -1423,13 +1444,13 @@
 		if ( Modal ) {
 			return el(
 				Modal,
-				{ title: titleText, onRequestClose: props.onClose, className: 'rk-preview-modal' },
+				{ title: titleText, onRequestClose: props.onClose, className: 'rk-preview-modal rk-meta' },
 				body
 			);
 		}
 		return el(
 			'div',
-			{ className: 'rk-modal-fallback-veil', role: 'presentation', onClick: props.onClose },
+			{ className: 'rk-modal-fallback-veil rk-meta', role: 'presentation', onClick: props.onClose },
 			el(
 				'div',
 				{
@@ -1443,7 +1464,11 @@
 					'div',
 					{ className: 'rk-modal-fallback-head' },
 					el( 'h2', null, titleText ),
-					el( 'button', { type: 'button', className: 'button button-small', onClick: props.onClose }, __( 'Close', 'rankkernel' ) )
+					el(
+						'button',
+						{ type: 'button', className: 'rk-modal-close', 'aria-label': __( 'Close', 'rankkernel' ), onClick: props.onClose },
+						el( 'span', { className: 'rk-icon', 'aria-hidden': 'true' }, 'close' )
+					)
 				),
 				body
 			)

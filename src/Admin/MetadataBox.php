@@ -65,6 +65,7 @@ final class MetadataBox {
 	 */
 	private const EDITOR_SCRIPT   = 'rankkernel-metadata-editor';
 	private const EDITOR_STYLE    = 'rankkernel-metadata-editor';
+	private const MODAL_STYLE     = 'rankkernel-metadata-modal';
 	private const CLASSIC_STYLE   = 'rankkernel-metadata-classic';
 	private const SIDEBAR_SCRIPT  = 'rankkernel-metadata-sidebar';
 	private const ANALYSIS_SCRIPT = 'rankkernel-analysis-editor';
@@ -405,6 +406,7 @@ final class MetadataBox {
 		$pluginFile = defined( 'RANKKERNEL_FILE' ) ? (string) RANKKERNEL_FILE : '';
 		$scriptSrc  = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/metadata-editor.js', $pluginFile ) : '';
 		$styleSrc   = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-editor.css', $pluginFile ) : '';
+		$modalSrc   = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-modal.css', $pluginFile ) : '';
 		$classicSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/css/metadata-classic.css', $pluginFile ) : '';
 		$version    = Plugin::version();
 
@@ -412,11 +414,13 @@ final class MetadataBox {
 
 		if ( function_exists( 'wp_register_style' ) ) {
 			wp_register_style( self::EDITOR_STYLE, $styleSrc, [ AdminStyles::TOKEN_HANDLE ], $version );
+			wp_register_style( self::MODAL_STYLE, $modalSrc, [ AdminStyles::TOKEN_HANDLE ], $version );
 			wp_register_style( self::CLASSIC_STYLE, $classicSrc, [ AdminStyles::TOKEN_HANDLE ], $version );
 		}
 
 		if ( function_exists( 'wp_enqueue_style' ) ) {
 			wp_enqueue_style( self::EDITOR_STYLE );
+			wp_enqueue_style( self::MODAL_STYLE );
 			wp_enqueue_style( self::CLASSIC_STYLE );
 		}
 
