@@ -176,6 +176,20 @@
 		return String( permalink || '' ).replace( /^https?:\/\//, '' ).replace( /\/$/, '' );
 	}
 
+	// Bare host for the social card footer, falling back to the short URL
+	// when the value is not parseable.
+	function hostOnly( permalink ) {
+		var text = String( permalink || '' );
+		if ( '' === text ) {
+			return '';
+		}
+		try {
+			return new URL( text, window.location.href ).host;
+		} catch ( e ) {
+			return shortUrl( text ).replace( /\/.*$/, '' );
+		}
+	}
+
 	// Approximate rendered pixel width for the length readout. Wide
 	// glyphs cost more, narrow glyphs less, the rest a middle weight.
 	// A heuristic only, announced next to the character count.
@@ -678,7 +692,7 @@
 				className: 'rk-meta-tab' + ( props.selected ? ' is-active' : '' ),
 				onClick: props.onSelect
 			},
-			el( 'span', { className: 'dashicons dashicons-' + props.icon, 'aria-hidden': 'true' } ),
+			el( 'span', { className: 'rk-icon rk-meta-tab-icon', 'aria-hidden': 'true' }, props.icon ),
 			props.selected ? el( 'span', { className: 'rk-meta-tab-label', 'aria-hidden': 'true' }, props.label ) : null
 		);
 	}
@@ -734,21 +748,19 @@
 		);
 	}
 
-	// Collapsible section, collapsed by default. Uses PanelBody when the
-	// components package provides it, otherwise a button disclosure with
-	// aria-expanded so the state is always announced.
+	// Collapsible section, collapsed by default. `leadChevron` puts the
+	// chevron before the title (content analysis); the default keeps it
+	// trailing (schema-style sections).
 	function Collapsible( props ) {
-		var PanelBody = components.PanelBody;
-		if ( PanelBody ) {
-			return el( PanelBody, { title: props.title, initialOpen: false }, el( 'div', { className: 'rk-collapsible-body' }, props.children ) );
-		}
 		var openState = useState( false );
 		var open = openState[ 0 ];
 		var setOpen = openState[ 1 ];
 		var bodyId = props.bodyId || ( 'rk-collapsible-' + Math.random().toString( 36 ).slice( 2, 8 ) );
 		return el(
 			'div',
-			{ className: 'rk-collapsible' },
+			{
+				className: 'rk-collapsible' + ( open ? ' is-open' : '' ) + ( props.leadChevron ? ' rk-collapsible-lead' : '' )
+			},
 			el(
 				'button',
 				{
@@ -758,8 +770,8 @@
 					'aria-controls': bodyId,
 					onClick: function () { setOpen( ! open ); }
 				},
-				el( 'span', { className: open ? 'dashicons dashicons-arrow-down-alt2' : 'dashicons dashicons-arrow-right-alt2', 'aria-hidden': 'true' } ),
-				props.title
+				el( 'span', { className: 'rk-collapsible-title' }, props.title ),
+				el( 'span', { className: 'rk-icon rk-collapsible-chevron', 'aria-hidden': 'true' }, 'expand_more' )
 			),
 			open ? el( 'div', { className: 'rk-collapsible-body', id: bodyId }, props.children ) : null
 		);
@@ -996,7 +1008,7 @@
 	}
 
 	// One coherent search preview: header row with the title and the
-	// device switch, the preview surface, then a footer row with the
+	// device switch, the preview surface, then the note and the
 	// Edit Snippet action. Compact for a roughly 280px sidebar.
 	function SerpPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
@@ -1041,7 +1053,7 @@
 						'aria-label': __( 'Edit Snippet', 'rankkernel' ),
 						onClick: props.onEdit
 					},
-					el( 'span', { className: 'dashicons dashicons-edit', 'aria-hidden': 'true' } ),
+					el( 'span', { className: 'rk-icon rk-icon-sm', 'aria-hidden': 'true' }, 'auto_fix_high' ),
 					el( 'span', null, __( 'Edit Snippet', 'rankkernel' ) )
 				)
 			) : null
@@ -1049,9 +1061,10 @@
 	}
 
 	// Social preview card, driven by the active network the caller picks.
-	// Each platform keeps its own chrome: Facebook shows a page source
-	// line above the image, title, description and URL; Twitter shows a
-	// profile row plus the card size, then image, title, description.
+	// Each platform keeps its own chrome: Facebook shows the page source
+	// line above a wide image, title, description and bare host; Twitter
+	// shows a profile row with a small thumbnail beside it, then title,
+	// host and description.
 	function SocialPreview( props ) {
 		var titleEff = effectiveValue( props.title, 'title' );
 		var descEff = effectiveValue( props.description, 'description' );
@@ -1064,7 +1077,8 @@
 		var card = 'summary' === props.meta.twitter.card ? 'summary' : 'summary_large_image';
 		var compact = isTwitter && 'summary' === card;
 		var site = cfg.siteName || cfg.siteUrl || '';
-		var link = shortUrl( props.url || cfg.permalink || cfg.homeUrl || '' );
+		var host = hostOnly( props.url || cfg.permalink || cfg.homeUrl || '' );
+		var noImage = el( 'p', { className: 'description rk-social-noimage' }, __( 'No image', 'rankkernel' ) );
 		if ( isTwitter ) {
 			return el(
 				'div',
@@ -1078,15 +1092,15 @@
 						{ className: 'rk-social-id' },
 						el( 'p', { className: 'rk-social-name' }, site || __( 'Site', 'rankkernel' ) ),
 						el( 'p', { className: 'description rk-social-card' }, 'summary' === card ? __( 'Small image card', 'rankkernel' ) : __( 'Large image card', 'rankkernel' ) )
-					)
+					),
+					image ? el( 'img', { className: 'rk-meta-social-image rk-social-thumb', src: image, alt: '' } ) : noImage
 				),
-				image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : el( 'p', { className: 'description rk-social-noimage' }, __( 'No image', 'rankkernel' ) ),
 				el(
 					'div',
 					{ className: 'rk-meta-social-body' },
 					el( 'p', { className: 'rk-meta-social-title' }, title || __( 'Untitled', 'rankkernel' ) ),
-					el( 'p', { className: 'rk-meta-social-desc' }, desc || '' ),
-					el( 'p', { className: 'rk-meta-social-site' }, link )
+					el( 'p', { className: 'rk-meta-social-site' }, host ),
+					el( 'p', { className: 'rk-meta-social-desc' }, desc || '' )
 				)
 			);
 		}
@@ -1094,13 +1108,13 @@
 			'div',
 			{ className: 'rk-meta-social rk-social rk-social-facebook' },
 			el( 'p', { className: 'rk-social-source' }, site || __( 'Site', 'rankkernel' ) ),
-			image ? el( 'img', { className: 'rk-meta-social-image', src: image, alt: '' } ) : el( 'p', { className: 'description rk-social-noimage' }, __( 'No image', 'rankkernel' ) ),
+			image ? el( 'img', { className: 'rk-meta-social-image rk-social-image', src: image, alt: '' } ) : noImage,
 			el(
 				'div',
 				{ className: 'rk-meta-social-body' },
 				el( 'p', { className: 'rk-meta-social-title' }, title || __( 'Untitled', 'rankkernel' ) ),
 				el( 'p', { className: 'rk-meta-social-desc' }, desc || '' ),
-				el( 'p', { className: 'rk-meta-social-site' }, link )
+				el( 'p', { className: 'rk-meta-social-site' }, host )
 			)
 		);
 	}
@@ -1233,26 +1247,84 @@
 	function RadioPair( props ) {
 		return el(
 			'fieldset',
-			{ className: 'rk-meta-field rk-field rk-radio-pair' },
+			{ className: 'rk-meta-field rk-field rk-field-flat rk-radio-pair' },
 			el( 'legend', null, props.legend ),
-			props.options.map( function ( option ) {
-				var id = props.name + '-' + option.value;
-				var checked = props.value === option.value;
-				return el(
-					'label',
-					{ key: option.value, className: 'rk-radio' + ( checked ? ' rk-is-checked' : '' ), htmlFor: id },
-					el( 'input', {
-						type: 'radio',
-						id: id,
-						name: props.name,
-						value: option.value,
-						checked: checked,
-						onChange: function () { props.onChange( option.value ); }
-					} ),
-					option.label
-				);
-			} ),
+			el(
+				'div',
+				{ className: 'rk-radio-options' },
+				props.options.map( function ( option ) {
+					var id = props.name + '-' + option.value;
+					var checked = props.value === option.value;
+					return el(
+						'label',
+						{ key: option.value, className: 'rk-radio' + ( checked ? ' rk-is-checked' : '' ), htmlFor: id },
+						el( 'input', {
+							type: 'radio',
+							id: id,
+							name: props.name,
+							value: option.value,
+							checked: checked,
+							onChange: function () { props.onChange( option.value ); }
+						} ),
+						option.label
+					);
+				} )
+			),
 			props.hint ? el( 'p', { className: 'description' }, props.hint ) : null
+		);
+	}
+
+	// Checkbox row: native input styled as the design square, label text
+	// beside it, state carried by the input itself for assistive tech.
+	function CheckRow( props ) {
+		return el(
+			'div',
+			{ className: 'rk-check-row' },
+			el(
+				'label',
+				{ className: 'rk-check', htmlFor: props.id },
+				el( 'input', {
+					type: 'checkbox',
+					id: props.id,
+					className: 'rk-check-input',
+					checked: props.checked,
+					disabled: props.disabled,
+					onChange: function ( event ) { props.onChange( event.target.checked ); }
+				} ),
+				el( 'span', { className: 'rk-check-box', 'aria-hidden': 'true' } ),
+				el( 'span', { className: 'rk-check-label' }, props.label )
+			)
+		);
+	}
+
+	// Select field: native select with the design chevron, label above and
+	// an optional help line below.
+	function SelectRow( props ) {
+		var id = props.id;
+		return el(
+			'div',
+			{ className: 'rk-select-field' },
+			el( 'label', { className: 'rk-field-label rk-select-label', htmlFor: id }, props.label ),
+			el(
+				'div',
+				{ className: 'rk-select-wrap' },
+				el(
+					'select',
+					{
+						id: id,
+						className: 'rk-select',
+						value: props.value,
+						disabled: props.disabled,
+						onChange: function ( event ) { props.onChange( event.target.value ); }
+					},
+					props.options.map( function ( option ) {
+						return el( 'option', { key: option.value, value: option.value }, option.label );
+					} )
+				),
+				el( 'span', { className: 'rk-icon rk-select-chevron', 'aria-hidden': 'true' }, 'expand_more' )
+			),
+			props.help ? el( 'p', { className: 'description' }, props.help ) : null,
+			props.note ? el( 'p', { className: 'description rk-select-note' }, props.note ) : null
 		);
 	}
 
@@ -1491,12 +1563,21 @@
 
 		return el(
 			'div',
-			{ className: 'rk-meta-field rk-field rk-focus-keywords-field' },
+			{ className: 'rk-meta-field rk-field rk-field-flat rk-focus-keywords-field' },
 			el(
 				'div',
 				{ className: 'rk-meta-field-head rk-field-head' },
 				el( 'label', { className: 'rk-meta-field-label rk-field-label', htmlFor: 'rk-focus-kw-input' }, __( 'Focus Keyword', 'rankkernel' ) ),
-				el( 'span', { className: 'dashicons dashicons-editor-help rk-help-icon', title: __( 'Insert keywords you want to rank for.', 'rankkernel' ) } )
+				el(
+					'span',
+					{
+						className: 'rk-icon rk-icon-sm rk-help-icon',
+						role: 'img',
+						'aria-label': __( 'Insert keywords you want to rank for.', 'rankkernel' ),
+						title: __( 'Insert keywords you want to rank for.', 'rankkernel' )
+					},
+					'help_outline'
+				)
 			),
 			el(
 				'div',
@@ -1506,7 +1587,7 @@
 					return el(
 						'span',
 						{ key: idx, className: 'rk-keyword-tag ' + ( isPrimary ? 'rk-keyword-primary' : 'rk-keyword-secondary' ) },
-						isPrimary ? el( 'span', { className: 'dashicons dashicons-star-filled rk-keyword-star', 'aria-hidden': 'true' } ) : null,
+						isPrimary ? el( 'span', { className: 'rk-keyword-star', 'aria-hidden': 'true' }, '★' ) : null,
 						el( 'span', { className: 'screen-reader-text' }, isPrimary ? __( 'Primary keyword: ', 'rankkernel' ) : __( 'Secondary keyword: ', 'rankkernel' ) ),
 						el( 'span', { className: 'rk-keyword-tag-text' }, kw ),
 						el(
@@ -1724,7 +1805,8 @@
 					__( 'Content analysis', 'rankkernel' ),
 					el( 'span', { className: 'rk-checklist-badge ' + tone }, score + ' / 100' )
 				),
-				bodyId: 'rk-seo-checklist-body'
+				bodyId: 'rk-seo-checklist-body',
+				leadChevron: true
 			},
 			selector,
 			el(
@@ -1734,7 +1816,7 @@
 					return el(
 						'li',
 						{ key: check.id, className: 'rk-checklist-item ' + ( check.ok ? 'is-ok' : 'is-fail' ) },
-						el( 'span', { className: 'dashicons ' + ( check.ok ? 'dashicons-yes-alt' : 'dashicons-dismiss' ), 'aria-hidden': 'true' } ),
+						el( 'span', { className: 'rk-icon rk-checklist-icon', 'aria-hidden': 'true' }, check.ok ? 'check_circle' : 'cancel' ),
 						el( 'span', { className: 'screen-reader-text' }, 'pass' === check.status ? __( 'Pass:', 'rankkernel' ) : __( 'Needs work:', 'rankkernel' ) ),
 						el( 'span', { className: 'rk-checklist-label' }, check.label )
 					);
@@ -1879,6 +1961,11 @@
 					next.schema[ key ] = obj[ key ];
 				} );
 				next.schema.fields = fields;
+			} else if ( 'schema.customText' === path ) {
+				// The raw JSON text is display state only. The parsed object
+				// is written by the field handler, so the debounced write must
+				// not push a stale snapshot back over it.
+				return;
 			}
 			writeMeta( next );
 		}
@@ -2014,7 +2101,6 @@
 		var TextControl = components.TextControl;
 		var TextareaControl = components.TextareaControl;
 		var SelectControl = components.SelectControl;
-		var CheckboxControl = components.CheckboxControl;
 
 		function tokenGroup( path, listId, fieldLabel, inputId ) {
 			return el( TokenPicker, {
@@ -2088,7 +2174,7 @@
 			var showReset = resettable && ! inherited;
 			return el(
 				'div',
-				{ className: 'rk-meta-field rk-field' + ( invalid ? ' is-invalid' : '' ) + ( disabled ? ' is-disabled' : '' ) + ( loading ? ' is-loading' : '' ) },
+				{ className: 'rk-meta-field rk-field' + ( opts.flat ? ' rk-field-flat' : '' ) + ( invalid ? ' is-invalid' : '' ) + ( disabled ? ' is-disabled' : '' ) + ( loading ? ' is-loading' : '' ) },
 				el(
 					'div',
 					{ className: 'rk-meta-field-head rk-field-head' },
@@ -2166,20 +2252,37 @@
 
 		function canonicalRow() {
 			var value = display( 'canonical', meta.canonical );
-			var inherited = isEmpty( value );
+			var inherited = isEmpty( meta.canonical );
+			var error = errors.canonical || '';
+			var invalid = '' !== error;
 			return el(
 				'div',
-				null,
-				metaField( {
-					id: 'rk-canonical',
-					path: 'canonical',
-					label: __( 'Canonical URL', 'rankkernel' ),
-					placeholder: cfg.permalink || cfg.homeUrl || '',
-					help: __( 'Leave blank to use the generated canonical. A full URL is required when set.', 'rankkernel' )
-				} ),
-				inherited
-					? el( 'p', { className: 'description' }, __( 'Using the generated canonical.', 'rankkernel' ) )
-					: el( 'p', { className: 'description' }, __( 'Custom canonical set.', 'rankkernel' ) )
+				{ className: 'rk-canonical' + ( invalid ? ' is-invalid' : '' ) },
+				el(
+					'div',
+					{ className: 'rk-canonical-box' },
+					el( 'label', { className: 'rk-field-label', htmlFor: 'rk-canonical' }, __( 'Canonical URL', 'rankkernel' ) ),
+					el( 'input', {
+						id: 'rk-canonical',
+						type: 'text',
+						className: 'rk-canonical-input',
+						value: value,
+						placeholder: cfg.permalink || cfg.homeUrl || '',
+						onChange: function ( event ) {
+							setError( 'canonical', '' );
+							setDraft( 'canonical', event.target.value );
+						}
+					} ),
+					invalid
+						? el(
+							'p',
+							{ className: 'rk-error rk-canonical-error', role: 'alert' },
+							el( 'span', { className: 'rk-icon rk-icon-sm', 'aria-hidden': 'true' }, 'error' ),
+							el( 'span', null, error )
+						)
+						: el( 'p', { className: 'description' }, __( 'Leave blank to use the generated canonical. A full URL is required when set.', 'rankkernel' ) )
+				),
+				el( 'p', { className: 'description rk-canonical-status' }, inherited ? __( 'Using the generated canonical.', 'rankkernel' ) : __( 'Custom canonical set.', 'rankkernel' ) )
 			);
 		}
 
@@ -2301,27 +2404,45 @@
 
 			return el(
 				'div',
-				{ role: 'tabpanel', id: 'rk-panel-general', 'aria-labelledby': 'rk-tab-general', tabIndex: 0 },
-			el( SerpPreview, {
-				headingId: 'rk-serp-heading',
-				title: titleValue,
-				description: descValue,
-				device: device,
-				onDevice: setDevice,
-				noindex: ! meta.robots.index,
-				url: permalink,
-				onEdit: function () { setModalTab( 'general' ); }
-			} ),
-				el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) ),
-				analysisReady ? el( FocusKeywordsInput, {
-					keywords: meta.focus_keywords,
-					onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
-				} ) : null,
-				analysisReady ? el( ContentAnalysisChecklist, {
-					keywords: meta.focus_keywords,
-					description: meta.description || '',
-					onScore: props.onScore
-				} ) : null
+				{
+					role: 'tabpanel',
+					id: 'rk-panel-general',
+					'aria-labelledby': 'rk-tab-general',
+					tabIndex: 0,
+					className: 'rk-side-panel rk-side-panel--general'
+				},
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( SerpPreview, {
+						headingId: 'rk-serp-heading',
+						title: titleValue,
+						description: descValue,
+						device: device,
+						onDevice: setDevice,
+						noindex: ! meta.robots.index,
+						url: permalink,
+						onEdit: function () { setModalTab( 'general' ); }
+					} ),
+					el( 'p', { className: 'description rk-serp-edit-note' }, __( 'Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values.', 'rankkernel' ) )
+				),
+				analysisReady ? el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( FocusKeywordsInput, {
+						keywords: meta.focus_keywords,
+						onChange: function ( next ) { pushValue( 'focus_keywords', next ); }
+					} )
+				) : null,
+				analysisReady ? el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( ContentAnalysisChecklist, {
+						keywords: meta.focus_keywords,
+						description: meta.description || '',
+						onScore: props.onScore
+					} )
+				) : null
 			);
 		}
 
@@ -2350,48 +2471,65 @@
 		function advancedPanel() {
 			return el(
 				'div',
-				{ role: 'tabpanel', id: 'rk-panel-advanced', 'aria-labelledby': 'rk-tab-advanced', tabIndex: 0 },
-				el( RadioPair, {
-					legend: __( 'Search engine visibility', 'rankkernel' ),
-					name: 'rk-index',
-					value: meta.robots.index ? 'index' : 'noindex',
-					hint: __( 'Noindex hides this post from search results.', 'rankkernel' ),
-					options: [
-						{ value: 'index', label: __( 'Index', 'rankkernel' ) },
-						{ value: 'noindex', label: __( 'Noindex', 'rankkernel' ) }
-					],
-					onChange: function ( next ) {
-						if ( ! editPost ) {
-							return;
+				{
+					role: 'tabpanel',
+					id: 'rk-panel-advanced',
+					'aria-labelledby': 'rk-tab-advanced',
+					tabIndex: 0,
+					className: 'rk-side-panel rk-side-panel--advanced'
+				},
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( RadioPair, {
+						legend: __( 'Search engine visibility', 'rankkernel' ),
+						name: 'rk-index',
+						value: meta.robots.index ? 'index' : 'noindex',
+						hint: __( 'Noindex hides this post from search results.', 'rankkernel' ),
+						options: [
+							{ value: 'index', label: __( 'Index', 'rankkernel' ) },
+							{ value: 'noindex', label: __( 'Noindex', 'rankkernel' ) }
+						],
+						onChange: function ( next ) {
+							if ( ! editPost ) {
+								return;
+							}
+							var updated = withMeta( meta );
+							updated.robots.index = 'index' === next;
+							writeMeta( updated );
 						}
-						var updated = withMeta( meta );
-						updated.robots.index = 'index' === next;
-						writeMeta( updated );
-					}
-				} ),
-				el( RadioPair, {
-					legend: __( 'Link following', 'rankkernel' ),
-					name: 'rk-follow',
-					value: meta.robots.follow ? 'follow' : 'nofollow',
-					hint: __( 'Nofollow tells crawlers not to follow links on this post.', 'rankkernel' ),
-					options: [
-						{ value: 'follow', label: __( 'Follow', 'rankkernel' ) },
-						{ value: 'nofollow', label: __( 'Nofollow', 'rankkernel' ) }
-					],
-					onChange: function ( next ) {
-						if ( ! editPost ) {
-							return;
+					} )
+				),
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( RadioPair, {
+						legend: __( 'Link following', 'rankkernel' ),
+						name: 'rk-follow',
+						value: meta.robots.follow ? 'follow' : 'nofollow',
+						hint: __( 'Nofollow tells crawlers not to follow links on this post.', 'rankkernel' ),
+						options: [
+							{ value: 'follow', label: __( 'Follow', 'rankkernel' ) },
+							{ value: 'nofollow', label: __( 'Nofollow', 'rankkernel' ) }
+						],
+						onChange: function ( next ) {
+							if ( ! editPost ) {
+								return;
+							}
+							var updated = withMeta( meta );
+							updated.robots.follow = 'follow' === next;
+							writeMeta( updated );
 						}
-						var updated = withMeta( meta );
-						updated.robots.follow = 'follow' === next;
-						writeMeta( updated );
-					}
-				} ),
-				el( Collapsible, { title: __( 'Additional robots settings', 'rankkernel' ), bodyId: 'rk-robots-extra' },
+					} )
+				),
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
 					el(
-						'div',
-						null,
-						CheckboxControl ? el( CheckboxControl, {
+						Collapsible,
+						{ title: __( 'Additional robots settings', 'rankkernel' ), bodyId: 'rk-robots-extra' },
+						el( CheckRow, {
+							id: 'rk-robots-noarchive',
 							label: __( 'No archive', 'rankkernel' ),
 							checked: meta.robots.noarchive,
 							onChange: function ( next ) {
@@ -2402,8 +2540,9 @@
 								updated.robots.noarchive = true === next;
 								writeMeta( updated );
 							}
-						} ) : null,
-						CheckboxControl ? el( CheckboxControl, {
+						} ),
+						el( CheckRow, {
+							id: 'rk-robots-nosnippet',
 							label: __( 'No snippet', 'rankkernel' ),
 							checked: meta.robots.nosnippet,
 							onChange: function ( next ) {
@@ -2414,8 +2553,9 @@
 								updated.robots.nosnippet = true === next;
 								writeMeta( updated );
 							}
-						} ) : null,
-						CheckboxControl ? el( CheckboxControl, {
+						} ),
+						el( CheckRow, {
+							id: 'rk-robots-noimageindex',
 							label: __( 'No image index', 'rankkernel' ),
 							checked: meta.robots.noimageindex,
 							onChange: function ( next ) {
@@ -2426,31 +2566,39 @@
 								updated.robots.noimageindex = true === next;
 								writeMeta( updated );
 							}
-						} ) : null,
-						metaField( { id: 'rk-max-snippet', path: 'robots.max_snippet', label: __( 'Max snippet', 'rankkernel' ), help: __( 'Max characters for the snippet. Blank means unlimited.', 'rankkernel' ) } ),
-						SelectControl ? el( SelectControl, {
-							id: 'rk-max-image-preview',
-							label: __( 'Max image preview', 'rankkernel' ),
-							value: meta.robots.max_image_preview,
-							options: [
-								{ label: __( 'Default', 'rankkernel' ), value: '' },
-								{ label: __( 'None', 'rankkernel' ), value: 'none' },
-								{ label: __( 'Standard', 'rankkernel' ), value: 'standard' },
-								{ label: __( 'Large', 'rankkernel' ), value: 'large' }
-							],
-							onChange: function ( next ) {
-								if ( ! editPost ) {
-									return;
-								}
-								var updated = withMeta( meta );
-								updated.robots.max_image_preview = next;
-								writeMeta( updated );
-							}
-						} ) : null,
-						metaField( { id: 'rk-max-video-preview', path: 'robots.max_video_preview', label: __( 'Max video preview', 'rankkernel' ), help: __( 'Max seconds for a video preview. Blank means unlimited.', 'rankkernel' ) } )
+						} )
 					)
 				),
-				canonicalRow()
+				el(
+					'div',
+					{ className: 'rk-panel-block rk-robots-budgets' },
+					metaField( { id: 'rk-max-snippet', path: 'robots.max_snippet', flat: true, label: __( 'Max snippet', 'rankkernel' ), help: __( 'Max characters for the snippet. Blank means unlimited.', 'rankkernel' ) } ),
+					el( SelectRow, {
+						id: 'rk-max-image-preview',
+						label: __( 'Max image preview', 'rankkernel' ),
+						value: meta.robots.max_image_preview,
+						options: [
+							{ label: __( 'Default', 'rankkernel' ), value: '' },
+							{ label: __( 'None', 'rankkernel' ), value: 'none' },
+							{ label: __( 'Standard', 'rankkernel' ), value: 'standard' },
+							{ label: __( 'Large', 'rankkernel' ), value: 'large' }
+						],
+						onChange: function ( next ) {
+							if ( ! editPost ) {
+								return;
+							}
+							var updated = withMeta( meta );
+							updated.robots.max_image_preview = next;
+							writeMeta( updated );
+						}
+					} ),
+					metaField( { id: 'rk-max-video-preview', path: 'robots.max_video_preview', flat: true, label: __( 'Max video preview', 'rankkernel' ), help: __( 'Max seconds for a video preview. Blank means unlimited.', 'rankkernel' ) } )
+				),
+				el(
+					'div',
+					{ className: 'rk-panel-block rk-canonical-block' },
+					canonicalRow()
+				)
 			);
 		}
 
@@ -2459,7 +2607,6 @@
 			var selected = schemaTypeOf( schema );
 			var disabled = Boolean( schemaObject( schema ).disabled );
 			var autoType = 'post' === String( postType ) ? 'BlogPosting' : 'Article';
-			var fields = schemaFieldsOf( schema );
 			var custom = schemaCustomOf( schema );
 			var customText = display( 'schema.customText', JSON.stringify( custom, null, 2 ) );
 			var customError = errors[ 'schema.customText' ] || '';
@@ -2469,76 +2616,99 @@
 			} );
 			return el(
 				'div',
-				{ role: 'tabpanel', id: 'rk-panel-schema', 'aria-labelledby': 'rk-tab-schema', tabIndex: 0 },
+				{
+					role: 'tabpanel',
+					id: 'rk-panel-schema',
+					'aria-labelledby': 'rk-tab-schema',
+					tabIndex: 0,
+					className: 'rk-side-panel rk-side-panel--schema'
+				},
 				el(
 					'div',
-					{ className: 'rk-meta-field rk-field' },
+					{ className: 'rk-panel-block' },
 					el(
 						'p',
 						{ className: 'rk-status rk-schema-accent', role: 'status' },
 						disabled ? __( 'Schema output is disabled for this post.', 'rankkernel' ) : __( 'Schema output is enabled for this post.', 'rankkernel' )
-					),
-					CheckboxControl ? el( CheckboxControl, {
+					)
+				),
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( CheckRow, {
+						id: 'rk-schema-disabled',
 						label: __( 'Disable schema output for this post', 'rankkernel' ),
 						checked: disabled,
 						onChange: function ( next ) { setSchemaKey( 'disabled', true === next ); }
-					} ) : null
+					} )
 				),
-				SelectControl ? el(
+				el(
 					'div',
-					{ className: 'rk-meta-field rk-field' },
-					el( SelectControl, {
+					{ className: 'rk-panel-block' },
+					el( SelectRow, {
 						id: 'rk-schema-type',
 						label: __( 'Schema type', 'rankkernel' ),
 						disabled: disabled,
-						help: '' === selected
-							? __( 'Automatic resolves to', 'rankkernel' ) + ' ' + autoType + '.'
-							: __( 'Manual type selected. Clear it to return to Automatic.', 'rankkernel' ),
+						help: __( 'Automatic resolves to', 'rankkernel' ) + ' ' + autoType + '.',
+						note: '' === selected ? '' : __( 'Manual type selected. Clear it to return to Automatic.', 'rankkernel' ),
 						value: selected,
 						options: [ { label: __( 'Automatic', 'rankkernel' ) + ' (' + autoType + ')', value: '' } ].concat( SCHEMA_TYPES.map( function ( row ) {
 							return { label: row[ 1 ], value: row[ 0 ] };
 						} ) ),
 						onChange: function ( next ) { setSchemaKey( 'type', next ); }
 					} )
-				) : null,
-				el( Collapsible, { title: __( 'Manual overrides', 'rankkernel' ), bodyId: 'rk-schema-manual' },
+				),
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
 					el(
-						'div',
-						null,
+						Collapsible,
+						{ title: __( 'Manual overrides', 'rankkernel' ), bodyId: 'rk-schema-manual' },
 						el( 'p', { className: 'description' }, __( 'Only needed when a value must differ from the post itself. Only fields relevant to the chosen type are shown.', 'rankkernel' ) ),
 						visibleKeys.map( function ( key ) {
-							return metaField( { key: key, id: 'rk-schema-' + key, path: 'schema.fields.' + key, label: SCHEMA_FIELD_LABELS[ key ], disabled: disabled } );
+							return metaField( { key: key, id: 'rk-schema-' + key, path: 'schema.fields.' + key, label: SCHEMA_FIELD_LABELS[ key ], disabled: disabled, flat: true } );
 						} )
 					)
 				),
-				el( Collapsible, { title: __( 'Advanced', 'rankkernel' ), bodyId: 'rk-schema-advanced' },
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
 					el(
-						'div',
-						null,
-						TextareaControl ? el( TextareaControl, {
-							id: 'rk-schema-custom',
-							label: __( 'Custom JSON', 'rankkernel' ),
-							help: __( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ),
-							rows: 6,
-							disabled: disabled,
-							value: customText,
-							onChange: function ( next ) {
-								setDraft( 'schema.customText', next );
-								var parsed = null;
-								try {
-									parsed = JSON.parse( next );
-								} catch ( e ) {
-									parsed = null;
+						Collapsible,
+						{ title: __( 'Advanced', 'rankkernel' ), bodyId: 'rk-schema-advanced' },
+						TextareaControl ? el(
+							'div',
+							{ className: 'rk-schema-json' },
+							el( TextareaControl, {
+								id: 'rk-schema-custom',
+								label: __( 'Custom JSON', 'rankkernel' ),
+								help: __( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ),
+								rows: 6,
+								disabled: disabled,
+								value: customText,
+								onChange: function ( next ) {
+									setDraft( 'schema.customText', next );
+									var parsed = null;
+									try {
+										parsed = JSON.parse( next );
+									} catch ( e ) {
+										parsed = null;
+									}
+									if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
+										setError( 'schema.customText', '' );
+										setSchemaKey( 'custom', parsed );
+									} else {
+										setError( 'schema.customText', __( 'Custom JSON must be a valid JSON object. Nothing was saved.', 'rankkernel' ) );
+									}
 								}
-								if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
-									setError( 'schema.customText', '' );
-									setSchemaKey( 'custom', parsed );
-								} else {
-									setError( 'schema.customText', __( 'Custom JSON must be a valid JSON object. Nothing was saved.', 'rankkernel' ) );
-								}
-							}
-						} ) : null,
-						customError ? el( 'p', { className: 'rk-error', role: 'alert' }, customError ) : null,
+							} )
+						) : null,
+						customError ? el(
+							'p',
+							{ className: 'rk-error rk-schema-json-error', role: 'alert' },
+							el( 'span', { className: 'rk-icon rk-icon-sm', 'aria-hidden': 'true' }, 'error' ),
+							el( 'span', null, customError )
+						) : null,
 						messages.length ? el(
 							'div',
 							{ className: 'rk-notice rk-is-warn', role: 'status' },
@@ -2553,23 +2723,25 @@
 							? __( 'Automatic type selected. Choose a type to validate its required fields.', 'rankkernel' )
 							: __( 'All required fields are present.', 'rankkernel' ) ),
 						el(
-							'p',
-							null,
-							el( 'a', { href: 'https://search.google.com/test/rich-results?url=' + encodeURIComponent( cfg.permalink || cfg.homeUrl || '' ), target: '_blank', rel: 'noopener' }, __( 'Rich Results Test', 'rankkernel' ) ),
-							' | ',
-							el( 'a', { href: 'https://validator.schema.org/', target: '_blank', rel: 'noopener' }, __( 'Schema Validator', 'rankkernel' ) )
-						),
-						el(
 							'div',
-							{ className: 'rk-meta-row-actions' },
+							{ className: 'rk-meta-row-actions rk-schema-tools' },
+							el( 'a', { className: 'rk-schema-link', href: 'https://search.google.com/test/rich-results?url=' + encodeURIComponent( cfg.permalink || cfg.homeUrl || '' ), target: '_blank', rel: 'noopener' }, __( 'Rich Results Test', 'rankkernel' ) ),
+							el( 'span', { className: 'rk-schema-sep', 'aria-hidden': 'true' }, '|' ),
+							el( 'a', { className: 'rk-schema-link', href: 'https://validator.schema.org/', target: '_blank', rel: 'noopener' }, __( 'Schema Validator', 'rankkernel' ) ),
+							el( 'span', { className: 'rk-schema-sep', 'aria-hidden': 'true' }, '|' ),
 							el( 'button', {
 								type: 'button',
-								className: 'button button-small',
+								className: 'button button-small rk-schema-export',
 								disabled: disabled,
 								onClick: function () {
 									downloadJson( 'schema.json', schemaObject( schema ) );
 								}
-							}, __( 'Export JSON', 'rankkernel' ) ),
+							}, __( 'Export JSON', 'rankkernel' ) )
+						),
+						el(
+							'div',
+							{ className: 'rk-meta-row-actions rk-schema-import' },
+							el( 'p', { className: 'description' }, __( 'Import replaces the schema settings with the uploaded file.', 'rankkernel' ) ),
 							el(
 								'label',
 								{ className: 'rk-import-label', htmlFor: 'rk-schema-import' },
@@ -2578,6 +2750,7 @@
 							el( 'input', {
 								type: 'file',
 								id: 'rk-schema-import',
+								className: 'rk-import-input',
 								accept: '.json,application/json',
 								disabled: disabled,
 								onChange: function ( event ) {
@@ -2605,7 +2778,6 @@
 								}
 							} )
 						),
-						el( 'p', { className: 'description' }, __( 'Import replaces the schema settings with the uploaded file.', 'rankkernel' ) ),
 						( 'FAQPage' === selected || 'HowTo' === selected ) ? el(
 							'p',
 							{ className: 'description' },
@@ -2622,49 +2794,68 @@
 			var isTwitter = 'twitter' === socialNetwork;
 			return el(
 				'div',
-				{ role: 'tabpanel', id: 'rk-panel-social', 'aria-labelledby': 'rk-tab-social', tabIndex: 0 },
+				{
+					role: 'tabpanel',
+					id: 'rk-panel-social',
+					'aria-labelledby': 'rk-tab-social',
+					tabIndex: 0,
+					className: 'rk-side-panel rk-side-panel--social'
+				},
 				el(
 					'div',
-					{ className: 'rk-social-notice-card rk-field' },
-					el( 'h4', { className: 'rk-social-notice-title' }, __( 'Social Media Preview', 'rankkernel' ) ),
-					el( 'p', { className: 'description rk-social-notice-desc' }, __( 'Here you can view and edit the thumbnail, title and description that will be displayed when your site is shared on social media.', 'rankkernel' ) ),
-					el( 'p', { className: 'description rk-social-notice-sub' }, __( 'Click on the button below to view and edit the preview.', 'rankkernel' ) ),
+					{ className: 'rk-panel-block' },
 					el(
-						'button',
-						{
-							type: 'button',
-							className: 'button button-primary rk-edit-snippet-btn',
-							onClick: function () { setModalTab( 'social' ); }
-						},
-						el( 'span', { className: 'dashicons dashicons-edit', 'aria-hidden': 'true' } ),
-						el( 'span', null, __( 'Edit Snippet', 'rankkernel' ) )
+						'div',
+						{ className: 'rk-social-notice-card rk-field' },
+						el( 'h4', { className: 'rk-social-notice-title' }, __( 'Social Media Preview', 'rankkernel' ) ),
+						el( 'p', { className: 'description rk-social-notice-desc' }, __( 'Here you can view and edit the thumbnail, title and description that will be displayed when your site is shared on social media.', 'rankkernel' ) ),
+						el( 'p', { className: 'description rk-social-notice-sub' }, __( 'Click on the button below to view and edit the preview.', 'rankkernel' ) ),
+						el(
+							'button',
+							{
+								type: 'button',
+								className: 'button button-primary rk-edit-snippet-btn',
+								onClick: function () { setModalTab( 'social' ); }
+							},
+							el( 'span', { className: 'rk-icon rk-icon-sm', 'aria-hidden': 'true' }, 'auto_fix_high' ),
+							el( 'span', null, __( 'Edit Snippet', 'rankkernel' ) )
+						)
 					)
 				),
 				el(
 					'div',
-					{ className: 'rk-social-switch', role: 'group', 'aria-label': __( 'Social network', 'rankkernel' ) },
-					el( 'button', {
-						type: 'button',
-						className: 'button button-small' + ( ! isTwitter ? ' is-active' : '' ),
-						'aria-pressed': ! isTwitter ? 'true' : 'false',
-						onClick: function () { setSocialNetwork( 'facebook' ); }
-					}, __( 'Facebook', 'rankkernel' ) ),
-					el( 'button', {
-						type: 'button',
-						className: 'button button-small' + ( isTwitter ? ' is-active' : '' ),
-						'aria-pressed': isTwitter ? 'true' : 'false',
-						onClick: function () { setSocialNetwork( 'twitter' ); }
-					}, __( 'Twitter', 'rankkernel' ) )
+					{ className: 'rk-panel-block' },
+					el(
+						'div',
+						{ className: 'rk-social-switch', role: 'group', 'aria-label': __( 'Social network', 'rankkernel' ) },
+						el( 'button', {
+							type: 'button',
+							className: 'button button-small' + ( ! isTwitter ? ' is-active' : '' ),
+							'aria-pressed': ! isTwitter ? 'true' : 'false',
+							onClick: function () { setSocialNetwork( 'facebook' ); }
+						}, __( 'Facebook', 'rankkernel' ) ),
+						el( 'button', {
+							type: 'button',
+							className: 'button button-small' + ( isTwitter ? ' is-active' : '' ),
+							'aria-pressed': isTwitter ? 'true' : 'false',
+							onClick: function () { setSocialNetwork( 'twitter' ); }
+						}, __( 'Twitter', 'rankkernel' ) )
+					),
+					el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } )
 				),
-				el( SocialPreview, { meta: meta, title: titleValue, description: descValue, network: socialNetwork } )
+				el(
+					'div',
+					{ className: 'rk-panel-block' },
+					el( 'p', { className: 'description rk-social-fallback-note' }, __( 'The preview falls back to the network value, then to the general title and description, then to the featured image.', 'rankkernel' ) )
+				)
 			);
 		}
 
 		var tabs = [
 			{ id: 'general', label: __( 'General', 'rankkernel' ), icon: 'search' },
-			{ id: 'advanced', label: __( 'Advanced', 'rankkernel' ), icon: 'admin-generic' },
-			{ id: 'schema', label: __( 'Schema', 'rankkernel' ), icon: 'media-code' },
-			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'share' }
+			{ id: 'advanced', label: __( 'Advanced', 'rankkernel' ), icon: 'tune' },
+			{ id: 'schema', label: __( 'Schema', 'rankkernel' ), icon: 'code_blocks' },
+			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'send' }
 		];
 
 		function onTabKey( event, index ) {
