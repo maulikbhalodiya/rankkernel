@@ -196,6 +196,25 @@ final class SettingsPage {
 			];
 		}
 
+		/*
+		 * The general separator picker reuses the breadcrumbs preset list, so
+		 * the two pickers cannot drift apart. It saves into the same separator
+		 * key it always has, which is a different option from the breadcrumbs
+		 * separator. Any stored value outside the presets, including the en
+		 * dash default, selects the Custom choice.
+		 */
+		$isCustomTitleSeparator = ! BreadcrumbsSettings::isSeparatorPreset( $titleSeparator );
+
+		$titleSeparatorChoices = [];
+
+		foreach ( BreadcrumbsSettings::separatorPresets() as $index => $preset ) {
+			$titleSeparatorChoices[] = [
+				'id'      => 'rk-separator-choice-' . $index,
+				'value'   => $preset,
+				'checked' => ! $isCustomTitleSeparator && $titleSeparator === $preset,
+			];
+		}
+
 		$taxonomyRows = [];
 
 		foreach ( $this->breadcrumbsPostTypes() as $slug => $label ) {
@@ -615,6 +634,28 @@ final class SettingsPage {
 			if ( isset( $_POST[ $key ] ) ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
 				$partial[ $key ] = sanitize_text_field( (string) wp_unslash( $_POST[ $key ] ) );
+			}
+		}
+
+		/*
+		 * The general separator picker posts a radio choice plus a custom text
+		 * field, the same shape the breadcrumbs chooser uses. Resolution runs
+		 * after the plain text loop above, so the chooser wins when present and
+		 * a request without it leaves the stored separator alone. Exactly one
+		 * canonical value saves through the existing separator key.
+		 */
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+		if ( isset( $_POST['rk_general_separator_choice'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
+			$generalSeparatorChoice = (string) wp_unslash( $_POST['rk_general_separator_choice'] );
+
+			if ( 'custom' === $generalSeparatorChoice ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
+				$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';
+
+				$partial['separator'] = sanitize_text_field( $generalSeparatorCustom );
+			} else {
+				$partial['separator'] = sanitize_text_field( $generalSeparatorChoice );
 			}
 		}
 

@@ -18,6 +18,8 @@
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
+ * @var bool   $isCustomTitleSeparator Whether the stored general separator is not a preset.
+ * @var array<int, array{id: string, value: string, checked: bool}> $titleSeparatorChoices General separator preset radio rows.
  * @var array<int, array{fieldId: string, key: string, label: string, value: string}> $webmasters Webmaster verification rows.
  * @var bool   $purgeChecked         Whether the data removal checkbox is checked.
  * @var string $breadcrumbSeparator  Stored breadcrumb separator.

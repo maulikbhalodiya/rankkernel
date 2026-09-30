@@ -25,6 +25,8 @@
  * @var string $titleTemplate        Title template value.
  * @var string $descriptionTemplate  Description template value.
  * @var string $titleSeparator       Title separator value.
+ * @var bool   $isCustomTitleSeparator Whether the stored general separator is not a preset.
+ * @var array<int, array{id: string, value: string, checked: bool}> $titleSeparatorChoices General separator preset radio rows.
  * @var array<int, array{fieldId: string, key: string, label: string, value: string}> $webmasters Webmaster verification rows.
  * @var bool   $purgeChecked         Whether the data removal checkbox is checked.
  * @var string $breadcrumbSeparator  Stored breadcrumb separator.
@@ -95,10 +97,12 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rk-settings-separator">
 					<fieldset>
 						<legend class="screen-reader-text"><?php echo esc_html__( 'Separator', 'rankkernel' ); ?></legend>
-						<?php foreach ( $separatorChoices as $choice ) : ?>
-							<label class="rk-settings-pill" for="<?php echo esc_attr( $choice['id'] ); ?>"><input type="radio" id="<?php echo esc_attr( $choice['id'] ); ?>" name="rk_breadcrumbs_separator_choice" value="<?php echo esc_attr( $choice['value'] ); ?>" <?php echo checked( $choice['checked'], true, false ); ?> /> <span class="rk-settings-pill-text"><?php echo esc_html( $choice['value'] ); ?></span></label>
-						<?php endforeach; ?>
-						<label class="rk-settings-pill rk-settings-pill--custom" for="rk-breadcrumbs-separator-choice-custom"><input type="radio" id="rk-breadcrumbs-separator-choice-custom" name="rk_breadcrumbs_separator_choice" value="custom" <?php echo checked( $isCustomSeparator, true, false ); ?> /> <span class="rk-settings-pill-text"><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></span></label>
+						<div class="rk-settings-separator-row">
+							<?php foreach ( $separatorChoices as $choice ) : ?>
+								<label class="rk-settings-pill" for="<?php echo esc_attr( $choice['id'] ); ?>"><input type="radio" id="<?php echo esc_attr( $choice['id'] ); ?>" name="rk_breadcrumbs_separator_choice" value="<?php echo esc_attr( $choice['value'] ); ?>" <?php echo checked( $choice['checked'], true, false ); ?> /> <span class="rk-settings-pill-text"><?php echo esc_html( $choice['value'] ); ?></span></label>
+							<?php endforeach; ?>
+							<label class="rk-settings-pill rk-settings-pill--custom" for="rk-breadcrumbs-separator-choice-custom"><input type="radio" id="rk-breadcrumbs-separator-choice-custom" name="rk_breadcrumbs_separator_choice" value="custom" <?php echo checked( $isCustomSeparator, true, false ); ?> aria-controls="rk-breadcrumbs-separator-custom-wrap" /> <span class="rk-settings-pill-text"><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></span></label>
+						</div>
 						<div id="rk-breadcrumbs-separator-custom-wrap" class="rk-settings-custom-sep">
 							<label for="rk-breadcrumbs-separator-custom"><?php echo esc_html__( 'Custom separator', 'rankkernel' ); ?></label>
 							<input type="text" id="rk-breadcrumbs-separator-custom" name="rk_breadcrumbs_separator_custom" value="<?php echo esc_attr( $isCustomSeparator ? $breadcrumbSeparator : '' ); ?>" class="rk-settings-input rk-settings-input--narrow" maxlength="10" placeholder="<?php echo esc_attr( __( 'e.g. »', 'rankkernel' ) ); ?>" />

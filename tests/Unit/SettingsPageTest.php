@@ -210,6 +210,126 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Capture the settings partial written by a save request.
+	 *
+	 * @param array<string, mixed> $post Request fields.
+	 * @return array<string, mixed>|null The captured settings, or null.
+	 */
+	private function captureSavedSettings( array $post ): ?array {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$capturedSettings = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$capturedSettings ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$capturedSettings = $value;
+				}
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array_merge(
+			[
+				'rankkernel_save' => '1',
+				'_wpnonce'        => 'valid',
+			],
+			$post
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		return $capturedSettings;
+	}
+
+	/**
+	 * Test the general separator picker saves a preset symbol.
+	 */
+	public function test_general_separator_preset_choice_saves_the_symbol(): void {
+		$capturedSettings = $this->captureSavedSettings(
+			[
+				'rk_general_separator_choice' => '|',
+			]
+		);
+
+		$this->assertIsArray( $capturedSettings );
+		$this->assertArrayHasKey( 'separator', $capturedSettings );
+		$this->assertSame( '|', $capturedSettings['separator'] );
+	}
+
+	/**
+	 * Test the general separator picker saves a custom value.
+	 */
+	public function test_general_separator_custom_value_saves_through(): void {
+		$capturedSettings = $this->captureSavedSettings(
+			[
+				'rk_general_separator_choice' => 'custom',
+				'rk_general_separator_custom' => '→',
+			]
+		);
+
+		$this->assertIsArray( $capturedSettings );
+		$this->assertArrayHasKey( 'separator', $capturedSettings );
+		$this->assertSame( '→', $capturedSettings['separator'] );
+	}
+
+	/**
+	 * Test an untouched chooser leaves the separator alone, so the en dash
+	 * default stays in place.
+	 */
+	public function test_general_separator_chooser_absent_keeps_the_default(): void {
+		$capturedSettings = $this->captureSavedSettings(
+			[
+				'title_template' => 't',
+			]
+		);
+
+		$this->assertIsArray( $capturedSettings );
+		$this->assertSame( '–', $capturedSettings['separator'] );
+	}
+
+	/**
+	 * Test a hostile custom separator value is sanitised on save.
+	 */
+	public function test_general_separator_custom_value_is_sanitised(): void {
+		$capturedSettings = $this->captureSavedSettings(
+			[
+				'rk_general_separator_choice' => 'custom',
+				'rk_general_separator_custom' => '<script>alert(1)</script>',
+			]
+		);
+
+		$this->assertIsArray( $capturedSettings );
+		$this->assertSame( 'alert(1)', $capturedSettings['separator'] );
+	}
+
+	/**
+	 * Test the general separator picker preselects Custom for a stored value
+	 * outside the preset list, which includes the en dash default.
+	 */
+	public function test_general_separator_default_renders_as_the_custom_choice(): void {
+		$this->stubSettingsPageRender();
+		$page = $this->makePage();
+
+		$_GET['section'] = 'general';
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-separator-choice-custom"', $output );
+		$this->assertStringContainsString( 'value="custom" checked="checked"', $output );
+		$this->assertStringContainsString( 'name="rk_general_separator_custom"', $output );
+		$this->assertStringContainsString( 'value="–"', $output );
+	}
+
+	/**
 	 * Test invalid nonce no save wp die.
 	 */
 	public function test_invalid_nonce_no_save_wp_die(): void {

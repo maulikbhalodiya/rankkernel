@@ -385,10 +385,30 @@
 
 .rk-settings-wrap .rk-settings-select {
 	width: 100%;
+	max-width: 100%;
 	height: 40px;
 	padding: 0 32px 0 var(--rk-space-3);
 	border-radius: var(--rk-radius-sm);
 	font-size: var(--rk-font-size-md);
+}
+
+/* The token chips under each template field: one code chip per placeholder,
+   so a token can be copied without selecting it out of the sentence above. */
+.rk-token-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-1);
+}
+
+.rk-token-chip {
+	padding: 2px var(--rk-space-2);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	line-height: var(--rk-line-height-normal);
 }
 
 /* A prefix mark sitting inside a field, such as the at sign on the X handle. */
@@ -455,17 +475,27 @@
    ========================================================================== */
 
 /* The fieldset element itself stays bare, because BreadcrumbsOutputTest pins
-   the literal opening tag, so the flex layout is stated through the wrapper
-   class the view puts around it. */
+   the literal opening tag, so the layout is stated through the wrapper class
+   the view puts around it. The fieldset stacks the radio row over the custom
+   option, so the custom field always lands on its own line under the pills. */
 .rk-settings-separator fieldset {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--rk-space-2);
+	flex-direction: column;
+	gap: var(--rk-space-3);
 	margin: 0;
 	padding: 0;
 	border: 0;
 	min-inline-size: 0;
+}
+
+/* The preset pills in one wrapping row container. The group label sits on the
+   row above it, and the Custom pill closes the row, which is how the approved
+   sheet draws the chooser. */
+.rk-settings-separator-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--rk-space-2);
 }
 
 .rk-settings-pill {
@@ -516,18 +546,32 @@
 	color: var(--rk-color-text-muted);
 }
 
-/* The custom separator field sits on its own line under the pill row. The
-   hidden attribute wins over the flex display, because the browser default
-   for [hidden] cannot beat a class selector on its own. */
+/* The custom separator field is its own contained block under the pill row,
+   with the label the sheet associates with it. The width is the 320px field
+   measure plus the block padding and border, so the field keeps the sheet's
+   narrow measure inside its container. */
 .rk-settings-custom-sep {
 	display: flex;
-	flex-basis: 100%;
 	flex-direction: column;
 	gap: var(--rk-space-1);
-	padding-block-start: var(--rk-space-1);
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 346px;
+	padding: var(--rk-space-3);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-subtle);
 }
 
 .rk-settings-custom-sep[hidden] {
+	display: none;
+}
+
+/* The custom field is a dependent control: it shows only while the Custom
+   radio in the same group is checked. The breadcrumbs script keeps its own
+   hidden attribute in step, and this rule keeps the general picker working
+   with the script untouched. */
+.rk-settings-separator:has(input[value="custom"]:not(:checked)) .rk-settings-custom-sep {
 	display: none;
 }
 
