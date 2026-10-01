@@ -117,7 +117,16 @@ final class RecalculateCommand {
 					$record = $dryRun ? $this->score->compute( $id ) : $this->score->store( $id );
 				} catch ( \Throwable $throwable ) {
 					++$failed;
-					$this->reportFailure( $id, $throwable );
+					$this->reportFailure( $id, $throwable->getMessage() );
+					continue;
+				}
+
+				// store() returns false when the meta keys do not hold the
+				// computed record, a storage failure rather than a post with
+				// nothing to score, so it is counted as failed and reported.
+				if ( false === $record ) {
+					++$failed;
+					$this->reportFailure( $id, 'the stored score was not written' );
 					continue;
 				}
 
@@ -147,19 +156,19 @@ final class RecalculateCommand {
 	}
 
 	/**
-	 * Report one post that threw during scoring.
+	 * Report one post that failed during scoring.
 	 *
 	 * The batch keeps going, so the failure is surfaced through
 	 * wp_trigger_error and counted in the summary, never swallowed silently.
 	 *
-	 * @param int        $postId    Post id.
-	 * @param \Throwable $throwable Caught throwable.
+	 * @param int    $postId Post id.
+	 * @param string $reason Failure reason.
 	 */
-	private function reportFailure( int $postId, \Throwable $throwable ): void {
+	private function reportFailure( int $postId, string $reason ): void {
 		if ( function_exists( 'wp_trigger_error' ) ) {
 			wp_trigger_error(
 				__METHOD__,
-				sprintf( 'Analysis recalculation failed for post %1$d: %2$s', $postId, $throwable->getMessage() ),
+				sprintf( 'Analysis recalculation failed for post %1$d: %2$s', $postId, $reason ),
 				E_USER_WARNING
 			);
 		}

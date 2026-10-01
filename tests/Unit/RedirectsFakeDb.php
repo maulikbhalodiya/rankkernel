@@ -36,6 +36,13 @@ final class RedirectsFakeDb {
 	public bool $tableExists = true;
 
 	/**
+	 * Whether typed inserts fail, mirroring a storage failure.
+	 *
+	 * @var bool
+	 */
+	public bool $failInserts = false;
+
+	/**
 	 * Rows keyed by id.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -200,6 +207,10 @@ final class RedirectsFakeDb {
 	 * @return mixed The result.
 	 */
 	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
+		if ( $this->failInserts ) {
+			return false;
+		}
+
 		foreach ( $this->rows as $row ) {
 			if ( (string) ( $data['match_type'] ?? '' ) === (string) $row['match_type']
 				&& (string) ( $data['source_hash'] ?? '' ) === (string) $row['source_hash'] ) {
