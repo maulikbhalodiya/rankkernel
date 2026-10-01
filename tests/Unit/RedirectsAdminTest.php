@@ -2227,4 +2227,24 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( '/inactive-one', $html );
 		$this->assertStringNotContainsString( '/active-one', $html );
 	}
+
+	/**
+	 * Settings and CSV file upload inputs carry accessible aria-describedby associations.
+	 */
+	public function test_settings_and_csv_inputs_have_aria_describedby(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-describedby="rk-csv-file-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-csv-file-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-preserve-query-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-preserve-query-desc"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-auto-slug-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-auto-slug-desc"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-per-page-desc rk-per-page-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-per-page-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-per-page-hint"', $html );
+	}
 }

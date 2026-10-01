@@ -547,8 +547,9 @@ $rkMatchBadgeMap = [
 									name="rk_csv_file"
 									accept=".csv,text/csv"
 									class="rk-file-input"
+									aria-describedby="rk-csv-file-hint"
 								/>
-								<p class="rk-file-zone-hint"><?php echo esc_html( sprintf( /* translators: %s: maximum accepted CSV upload size, for example 2 MB */ __( '.csv files only (up to %s)', 'rankkernel' ), size_format( \RankKernel\Modules\Redirects\CsvHandler::MAX_FILE_SIZE ) ) ); ?></p>
+								<p class="rk-file-zone-hint" id="rk-csv-file-hint"><?php echo esc_html( sprintf( /* translators: %s: maximum accepted CSV upload size, for example 2 MB */ __( '.csv files only (up to %s)', 'rankkernel' ), size_format( \RankKernel\Modules\Redirects\CsvHandler::MAX_FILE_SIZE ) ) ); ?></p>
 							</div>
 
 							<div class="rk-csv-check-row">
@@ -613,10 +614,10 @@ $rkMatchBadgeMap = [
 				<div class="rk-settings-row">
 					<div class="rk-settings-label-group">
 						<span class="rk-settings-label"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></span>
-						<p class="rk-form-hint"><?php echo esc_html__( 'Determine whether incoming query variables like UTM tags are preserved.', 'rankkernel' ); ?></p>
+						<p class="rk-form-hint" id="rk-preserve-query-desc"><?php echo esc_html__( 'Determine whether incoming query variables like UTM tags are preserved.', 'rankkernel' ); ?></p>
 					</div>
 					<label class="rk-form-check">
-						<input type="checkbox" name="rk_preserve_query" value="1" <?php echo checked( $preserveQuery, true, false ); ?> />
+						<input type="checkbox" name="rk_preserve_query" value="1" <?php echo checked( $preserveQuery, true, false ); ?> aria-describedby="rk-preserve-query-desc" />
 						<span><?php echo esc_html__( 'Pass the query string to the destination. Turn off to drop it.', 'rankkernel' ); ?></span>
 					</label>
 				</div>
@@ -624,10 +625,10 @@ $rkMatchBadgeMap = [
 				<div class="rk-settings-row">
 					<div class="rk-settings-label-group">
 						<span class="rk-settings-label"><?php echo esc_html__( 'Slug changes', 'rankkernel' ); ?></span>
-						<p class="rk-form-hint"><?php echo esc_html__( 'Automated detection when posts, pages, or custom post types change permalinks.', 'rankkernel' ); ?></p>
+						<p class="rk-form-hint" id="rk-auto-slug-desc"><?php echo esc_html__( 'Automated detection when posts, pages, or custom post types change permalinks.', 'rankkernel' ); ?></p>
 					</div>
 					<label class="rk-form-check">
-						<input type="checkbox" name="rk_auto_slug_redirect" value="1" <?php echo checked( $autoSlugRedirect, true, false ); ?> />
+						<input type="checkbox" name="rk_auto_slug_redirect" value="1" <?php echo checked( $autoSlugRedirect, true, false ); ?> aria-describedby="rk-auto-slug-desc" />
 						<span><?php echo esc_html__( 'Create a 301 redirect automatically when a post slug changes.', 'rankkernel' ); ?></span>
 					</label>
 				</div>
@@ -635,7 +636,7 @@ $rkMatchBadgeMap = [
 				<div class="rk-settings-row">
 					<div class="rk-settings-label-group">
 						<label class="rk-settings-label" for="rk-per-page"><?php echo esc_html__( 'Rows per page', 'rankkernel' ); ?></label>
-						<p class="rk-form-hint"><?php echo esc_html__( 'How many redirects to show per page in the admin table.', 'rankkernel' ); ?></p>
+						<p class="rk-form-hint" id="rk-per-page-desc"><?php echo esc_html__( 'How many redirects to show per page in the admin table.', 'rankkernel' ); ?></p>
 					</div>
 					<div class="rk-settings-row-control">
 						<input
@@ -646,8 +647,9 @@ $rkMatchBadgeMap = [
 							class="rk-settings-number"
 							min="1"
 							max="100"
+							aria-describedby="rk-per-page-desc rk-per-page-hint"
 						/>
-						<span class="rk-form-hint"><?php echo esc_html__( 'Min 1, max 100', 'rankkernel' ); ?></span>
+						<span class="rk-form-hint" id="rk-per-page-hint"><?php echo esc_html__( 'Min 1, max 100', 'rankkernel' ); ?></span>
 					</div>
 				</div>
 
