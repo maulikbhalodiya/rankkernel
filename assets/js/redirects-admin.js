@@ -1,9 +1,9 @@
 /**
- * Redirect Manager — progressive enhancement layer.
+ * Redirect Manager, progressive enhancement layer.
  *
  * Features handled here:
  *
- *  PANELS (accordion — only one open at a time):
+ *  PANELS (accordion, only one open at a time):
  *    - Add/Edit editor (#rk-redirect-editor)
  *    - Import/Export card (#rk-redirect-csv)
  *    - Settings card (#rk-redirect-settings)
@@ -34,9 +34,10 @@
  *    - Destructive action confirmations
  *    - File-input label display
  *
- * Every feature degrades gracefully — the page is fully functional without JS.
+ * Every feature degrades gracefully. The page is fully functional without JS.
  *
- * Configuration injected by wp_localize_script under window.rkRedirects:
+ * Configuration injected by wp_localize_script under window.rankkernelRedirects
+ * (window.rkRedirects is kept as a backward compatible alias):
  *   ajaxUrl    {string}  admin-ajax.php URL
  *   nonce      {string}  Nonce for rankkernel_redirects_list
  *   screenSlug {string}  Admin page slug
@@ -44,7 +45,7 @@
  * @package RankKernel
  */
 
-/* global rkRedirects */
+/* global rkRedirects, rankkernelRedirects */
 
 /**
  * Speak an accessible announcement when wp.a11y is available.
@@ -208,7 +209,7 @@ function rankkernelAnnounce( text ) {
 		} );
 	} );
 
-	/* "Cancel" / "Hide" buttons inside panels — close only their own panel. */
+	/* "Cancel" / "Hide" buttons inside panels close only their own panel. */
 	document.querySelectorAll( '#rk-editor-cancel, .rk-editor-cancel-btn' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function ( event ) {
 			event.preventDefault();
@@ -230,7 +231,18 @@ function rankkernelAnnounce( text ) {
 	 * same by serialising its fields.
 	 * ------------------------------------------------------------------ */
 
-	var cfg        = ( typeof window.rkRedirects !== 'undefined' ) ? window.rkRedirects : null;
+	/*
+	 * The localized payload uses the canonical rankkernel prefix. The legacy
+	 * rkRedirects name is still read as a fallback and stays defined as an
+	 * alias for any consumer that still reads it.
+	 */
+	if ( typeof window.rkRedirects === 'undefined' && typeof window.rankkernelRedirects !== 'undefined' ) {
+		window.rkRedirects = window.rankkernelRedirects;
+	}
+
+	var cfg        = ( typeof window.rankkernelRedirects !== 'undefined' )
+		? window.rankkernelRedirects
+		: ( ( typeof window.rkRedirects !== 'undefined' ) ? window.rkRedirects : null );
 	var listWrap   = document.getElementById( 'rk-list-section' );
 	var ajaxActive = false;
 
@@ -552,7 +564,7 @@ function rankkernelAnnounce( text ) {
 	/* Initial bind on page load. */
 	bindListEvents();
 
-	/* Handle back/forward navigation — re-fetch the list for the URL state. */
+	/* Handle back/forward navigation, re-fetch the list for the URL state. */
 	if ( window.history ) {
 		window.addEventListener( 'popstate', function () {
 			fetchList( window.location.href, false );
