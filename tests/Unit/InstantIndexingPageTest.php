@@ -162,8 +162,8 @@ final class InstantIndexingPageTest extends TestCase {
 	 * The enable map reads the option when it is constructed, so the
 	 * module state is staged into the option store first.
 	 *
-	 * @param callable(string[]): void|null $submit        Submission callback override.
-	 * @param bool                          $moduleEnabled Whether instant-indexing is enabled.
+	 * @param callable(string[]): array<string, mixed>|null $submit        Submission callback override.
+	 * @param bool                                          $moduleEnabled Whether instant-indexing is enabled.
 	 * @return InstantIndexingPage The result.
 	 */
 	private function page( ?callable $submit = null, bool $moduleEnabled = true ): InstantIndexingPage {
@@ -544,6 +544,50 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'rk_indexnow_notice=storage_failed', (string) $redirect );
 		$this->assertSame( [], $this->logRows(), 'a rejected URL must never reach the log when the write fails' );
+	}
+
+	/**
+	 * An accepted batch whose log write fails surfaces the storage failure.
+	 *
+	 * The submission itself succeeds, so without this guard the screen
+	 * would report the settings-saved success while the log holds no row.
+	 */
+	public function test_a_submit_whose_log_write_fails_reports_storage_failure(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_http_validate_url' )->alias( static fn( string $u ): string => $u );
+		Functions\when( 'wp_json_encode' )->alias( static fn( mixed $d ): string => (string) json_encode( $d ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- unit tests run without WordPress loaded, wp_json_encode is unavailable here.
+		Functions\when( 'wp_safe_remote_post' )->justReturn(
+			[
+				'response' => [ 'code' => 200 ],
+				'body'     => '',
+			]
+		);
+
+		$redirect = '';
+
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		// The log table probe fails, so the accepted URL cannot be logged.
+		$this->db->tableExists = false;
+		LogTable::resetCache();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://example.com/a',
+		];
+
+		$this->page()->maybeHandleSave();
+
+		$this->assertStringContainsString( 'rk_indexnow_notice=storage_failed', $redirect );
+		$this->assertStringNotContainsString( 'settings-updated', $redirect, 'an unlogged submission must never be reported as recorded' );
+		$this->assertSame( [], $this->logRows(), 'the failed write must leave no row behind' );
 	}
 
 	/**
@@ -942,6 +986,33 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( [ 'rankkernel_indexnow_clear' ], $nonceActions, 'the clear branch must verify its own nonce action' );
 		$this->assertStringContainsString( 'rk_indexnow_notice=cleared', $redirect );
 		$this->assertStringNotContainsString( 'settings-updated', $redirect );
+	}
+
+	/**
+	 * Test a failed clear reports the storage failure, not a false success.
+	 */
+	public function test_a_failed_clear_reports_storage_failure(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): bool {
+				$redirect = $url;
+
+				return true;
+			}
+		);
+
+		$this->db->seed( [] );
+		$this->db->queryFails = true;
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'clear' ];
+		$this->page()->maybeHandleSave();
+
+		$this->assertStringContainsString( 'rk_indexnow_notice=storage_failed', $redirect );
+		$this->assertStringNotContainsString( 'rk_indexnow_notice=cleared', $redirect, 'a failed DELETE must never be reported as cleared' );
+		$this->assertCount( 1, $this->db->rows, 'the rows must remain when the DELETE fails' );
 	}
 
 	/**

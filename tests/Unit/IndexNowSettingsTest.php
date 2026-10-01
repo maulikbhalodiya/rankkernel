@@ -301,6 +301,23 @@ final class IndexNowSettingsTest extends TestCase {
 	}
 
 	/**
+	 * Test clear log reports whether the DELETE succeeded.
+	 */
+	public function test_clear_log_reports_whether_the_delete_succeeded(): void {
+		$settings = new IndexNowSettings();
+		$settings->logEntry( 'https://example.com/a', 200, 'manual', 'Accepted.' );
+
+		$this->assertTrue( $settings->clearLog(), 'a successful DELETE must report success' );
+		$this->assertSame( [], $this->db->rows );
+
+		$this->db->seed( [] );
+		$this->db->queryFails = true;
+
+		$this->assertFalse( $settings->clearLog(), 'a failed DELETE must report failure' );
+		$this->assertCount( 1, $this->db->rows, 'the rows must remain when the DELETE fails' );
+	}
+
+	/**
 	 * Test values are clamped to the column widths and the page size is capped.
 	 */
 	public function test_values_are_clamped_to_the_column_widths_and_page_size_is_capped(): void {
@@ -371,6 +388,6 @@ final class IndexNowSettingsTest extends TestCase {
 		$this->assertSame( [], $query->rows() );
 		$this->assertSame( 0, $query->total() );
 		$this->assertSame( 1, $query->pageCount() );
-		$settings->clearLog();
+		$this->assertTrue( $settings->clearLog(), 'a clear with no database handle has nothing to clear and must report success' );
 	}
 }
