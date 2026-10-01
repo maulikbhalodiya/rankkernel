@@ -83,6 +83,12 @@ final class AdminMenu {
 		private readonly ModuleEnableMap $enableMap,
 		private readonly ?SitemapSettings $sitemap = null
 	) {
+		// The X handle field belongs to the profile screens, not to the General
+		// Settings screen, so its hooks must be registered on every admin request.
+		// This controller is built eagerly, so the registration cannot be deferred
+		// into a lazily constructed page controller.
+		( new UserProfileField() )->register();
+
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSharedStyles' ] );
 
 		// The sitemap screen owns a page scoped feature stylesheet, so its

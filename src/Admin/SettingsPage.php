@@ -67,7 +67,6 @@ final class SettingsPage {
 		private readonly ?RobotsSettings $robots = null,
 		private readonly ?LlmsSettings $llms = null
 	) {
-		( new UserProfileField() )->register();
 	}
 
 	/**

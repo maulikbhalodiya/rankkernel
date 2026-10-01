@@ -283,4 +283,26 @@ final class AdminMenuTest extends TestCase {
 
 		$this->assertSame( array(), $enqueued );
 	}
+
+	/**
+	 * The user profile field hooks must exist as soon as AdminMenu is built.
+	 *
+	 * The field belongs to the profile screens, never to the General Settings
+	 * screen, so registration cannot live in a lazily constructed page
+	 * controller. Without this the X handle field silently vanishes from
+	 * profile.php and user-edit.php.
+	 *
+	 * Runs in its own process because it asserts on the global hook registry.
+	 */
+	#[RunInSeparateProcess]
+	public function test_user_profile_field_hooks_register_on_construction(): void {
+		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
+
+		unset( $menu );
+
+		$this->assertNotFalse( has_action( 'show_user_profile' ), 'show_user_profile must be hooked when AdminMenu is built' );
+		$this->assertNotFalse( has_action( 'edit_user_profile' ), 'edit_user_profile must be hooked when AdminMenu is built' );
+		$this->assertNotFalse( has_action( 'personal_options_update' ), 'personal_options_update must be hooked when AdminMenu is built' );
+		$this->assertNotFalse( has_action( 'edit_user_profile_update' ), 'edit_user_profile_update must be hooked when AdminMenu is built' );
+	}
 }
