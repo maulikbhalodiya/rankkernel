@@ -21,7 +21,7 @@ function source( file ) {
 	return readFileSync( path.join( root, 'assets', 'js', file ), 'utf8' );
 }
 
-function validator( siteHost, sitePort ) {
+function validator( siteHost, sitePort, wp ) {
 	const document = {
 		readyState: 'complete',
 		addEventListener() {},
@@ -35,6 +35,10 @@ function validator( siteHost, sitePort ) {
 		sitePort: sitePort || ''
 	};
 	const sandbox = { document, URL, rankkernelInstantIndexing: config };
+
+	if ( wp ) {
+		sandbox.wp = wp;
+	}
 
 	sandbox.window = sandbox;
 	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
@@ -53,7 +57,7 @@ test( 'a valid same host URL validates clean', () => {
 	assert.equal( result.invalidCount, 0 );
 	assert.equal( result.entries[ 0 ].valid, true );
 	assert.equal( result.entries[ 0 ].reason, '' );
-	assert.equal( result.summary, '1 URLs ready to submit.' );
+	assert.equal( result.summary, '1 URL ready to submit.' );
 	assert.equal( result.disabled, false );
 } );
 
@@ -263,7 +267,7 @@ function fakeNode( props ) {
 	return node;
 }
 
-function mount( value ) {
+function mount( value, wp ) {
 	const readyHandlers = [];
 	const form = fakeNode( {} );
 	const field = fakeNode( { value: value, form: form } );
@@ -307,6 +311,10 @@ function mount( value ) {
 		rankkernelInstantIndexing: { siteHost: 'example.com' }
 	};
 
+	if ( wp ) {
+		sandbox.wp = wp;
+	}
+
 	sandbox.window = sandbox;
 	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
 	readyHandlers.forEach( ( handler ) => handler() );
@@ -333,7 +341,7 @@ test( 'the mounted script disables the button and blocks an invalid submit', () 
 	const fixture = mount( 'https://example.com/a\nhttps://evil.test/b' );
 
 	assert.equal( fixture.button.disabled, true );
-	assert.equal( fixture.status.children[ 0 ].textContent, '1 of 2 URLs are not valid. Fix them to continue.' );
+	assert.equal( fixture.status.children[ 0 ].textContent, '1 of 2 URLs is not valid. Fix it to continue.' );
 	assert.equal( fixture.submit(), true, 'an invalid submit event must be prevented' );
 
 	fixture.field.value = 'https://example.com/a\nhttps://example.com/b';
@@ -1078,7 +1086,7 @@ function mountLog( options ) {
 	const requests = [];
 	const pending = [];
 
-	const location = { href: opts.locationHref || LOG_ACTION };
+	const location = null === opts.locationHref ? null : { href: opts.locationHref || LOG_ACTION };
 	const history = {
 		pushState( state, title, url ) {
 			pushes.push( String( url ) );
@@ -1281,6 +1289,14 @@ function mountLog( options ) {
 			return { matches: false };
 		}
 	};
+
+	if ( opts.wp ) {
+		sandbox.wp = opts.wp;
+	}
+
+	if ( 'console' in opts ) {
+		sandbox.console = opts.console;
+	}
 
 	sandbox.window = sandbox;
 	sandbox.window.addEventListener = ( type, handler ) => {
@@ -1822,4 +1838,245 @@ test( 'a retryable row without a row id carries no retry control', async () => {
 
 	assert.equal( row.querySelector( '.rk-col-actions' ), null, 'a row without an id cannot be addressed, so no control may render' );
 	assert.equal( row.querySelector( '.rk-retry-form' ), null );
+} );
+
+/**
+ * Screen localisation.
+ *
+ * The guarded translator aliases keep the raw English source when wp.i18n
+ * is absent, so these tests pin both the graceful fallback and a stubbed
+ * wp.i18n that proves every flagged literal reaches the rankkernel domain.
+ */
+
+function i18nStub() {
+	const calls = [];
+
+	return {
+		calls,
+		wp: {
+			i18n: {
+				__( text, domain ) {
+					calls.push( [ '__', text, domain ] );
+					return 'translated:' + text;
+				},
+				_n( single, plural, number, domain ) {
+					calls.push( [ '_n', single, plural, number, domain ] );
+					return 'translated:' + ( 1 === number ? single : plural );
+				},
+				sprintf( format ) {
+					const values = Array.prototype.slice.call( arguments );
+
+					return String( format ).replace( /%(\d+)\$[sd]/g, ( match, position ) => String( values[ Number( position ) ] ) );
+				}
+			}
+		}
+	};
+}
+
+function logHelpers( wp ) {
+	const document = {
+		readyState: 'complete',
+		addEventListener() {},
+		getElementById() {
+			return null;
+		},
+		querySelector() {
+			return null;
+		},
+		querySelectorAll() {
+			return [];
+		},
+		createElement( tag ) {
+			return logEl( tag );
+		},
+		createTextNode( text ) {
+			return logTextNode( text );
+		}
+	};
+	const sandbox = {
+		document,
+		URL,
+		setTimeout( callback ) {
+			callback();
+
+			return 1;
+		},
+		clearTimeout() {},
+		rankkernelInstantIndexing: { siteHost: 'example.com', sitePort: '' }
+	};
+
+	if ( wp ) {
+		sandbox.wp = wp;
+	}
+
+	sandbox.window = sandbox;
+	sandbox.window.addEventListener = () => {};
+
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	return sandbox.window.rankkernelInstantIndexing.logLoader;
+}
+
+test( 'the validation reasons and the empty message translate through wp.i18n', () => {
+	const stub = i18nStub();
+	const validate = validator( 'example.com', '', stub.wp );
+
+	assert.equal( validate( 'not a url' ).entries[ 0 ].reason, 'translated:Not a valid URL.' );
+	assert.equal( validate( 'https://evil.test/a' ).entries[ 0 ].reason, 'translated:This URL is not on this site.' );
+	assert.equal( validate( '' ).summary, 'translated:Enter at least one URL on this site.' );
+	assert.deepEqual( stub.calls.filter( ( call ) => '__' === call[ 0 ] ), [
+		[ '__', 'Not a valid URL.', 'rankkernel' ],
+		[ '__', 'This URL is not on this site.', 'rankkernel' ],
+		[ '__', 'Enter at least one URL on this site.', 'rankkernel' ]
+	] );
+} );
+
+test( 'the validation reasons fall back to the raw source without wp.i18n', () => {
+	const validate = validator( 'example.com' );
+
+	assert.equal( validate( 'not a url' ).entries[ 0 ].reason, 'Not a valid URL.' );
+	assert.equal( validate( 'https://evil.test/a' ).entries[ 0 ].reason, 'This URL is not on this site.' );
+	assert.equal( validate( '' ).summary, 'Enter at least one URL on this site.' );
+} );
+
+test( 'the summary translates and pluralises both URL counts', () => {
+	const stub = i18nStub();
+	const validate = validator( 'example.com', '', stub.wp );
+
+	assert.equal( validate( 'https://example.com/a' ).summary, 'translated:1 URL ready to submit.' );
+	assert.equal( validate( 'https://example.com/a\nhttps://example.com/b' ).summary, 'translated:2 URLs ready to submit.' );
+	assert.equal( validate( 'https://example.com/a\nhttps://evil.test/b' ).summary, 'translated:1 of 2 URLs is not valid. Fix it to continue.' );
+	assert.equal( validate( 'https://evil.test/a\nhttps://evil.test/b' ).summary, 'translated:2 of 2 URLs are not valid. Fix them to continue.' );
+
+	assert.deepEqual( stub.calls.filter( ( call ) => '_n' === call[ 0 ] ), [
+		[ '_n', '%1$d URL ready to submit.', '%1$d URLs ready to submit.', 1, 'rankkernel' ],
+		[ '_n', '%1$d URL ready to submit.', '%1$d URLs ready to submit.', 2, 'rankkernel' ],
+		[ '_n', '%1$d of %2$d URLs is not valid. Fix it to continue.', '%1$d of %2$d URLs are not valid. Fix them to continue.', 1, 'rankkernel' ],
+		[ '_n', '%1$d of %2$d URLs is not valid. Fix it to continue.', '%1$d of %2$d URLs are not valid. Fix them to continue.', 2, 'rankkernel' ]
+	] );
+} );
+
+test( 'the truncation row pluralises and translates the hidden URL count', () => {
+	const lines = [];
+
+	for ( let i = 0; i < 6; i++ ) {
+		lines.push( 'https://example.com/p' + i );
+	}
+
+	const fallback = mount( lines.join( '\n' ) );
+	const fallbackList = fallback.status.children[ 1 ];
+	const fallbackMore = fallbackList.children[ fallbackList.children.length - 1 ];
+
+	assert.equal( fallbackMore.textContent, '+ 1 more URL', 'the fallback must select the singular' );
+
+	const stub = i18nStub();
+	const translated = mount( lines.join( '\n' ), stub.wp );
+	const translatedList = translated.status.children[ 1 ];
+	const translatedMore = translatedList.children[ translatedList.children.length - 1 ];
+
+	assert.equal( translatedMore.textContent, 'translated:+ 1 more URL' );
+	assert.deepEqual(
+		stub.calls.filter( ( call ) => '_n' === call[ 0 ] && '+ %1$d more URL' === call[ 1 ] )[ 0 ],
+		[ '_n', '+ %1$d more URL', '+ %1$d more URLs', 1, 'rankkernel' ]
+	);
+} );
+
+test( 'the log pills, the footer and the retry control translate through wp.i18n', () => {
+	const stub = i18nStub();
+	const loader = logHelpers( stub.wp );
+
+	assert.equal( loader.statusLabel( 'pending' ), 'translated:Key pending' );
+	assert.equal( loader.statusLabel( 'rejected' ), 'translated:Rejected' );
+	assert.equal( loader.statusLabel( 'limited' ), 'translated:Rate limited' );
+	assert.equal( loader.statusLabel( 'retry' ), 'translated:Retry later' );
+	assert.equal( loader.statusLabel( 'accepted' ), 'translated:Accepted' );
+	assert.equal( loader.sourceLabel( 'manual' ), 'translated:Manual' );
+	assert.equal( loader.sourceLabel( 'auto' ), 'translated:Auto' );
+	assert.equal( loader.showingText( { from: 1, to: 1, total: 1 } ), 'translated:Showing 1 to 1 of 1 entry' );
+	assert.equal( loader.showingText( { from: 1, to: 20, total: 45 } ), 'translated:Showing 1 to 20 of 45 entries' );
+
+	assert.deepEqual( stub.calls.filter( ( call ) => '_n' === call[ 0 ] ), [
+		[ '_n', 'Showing %1$d to %2$d of %3$d entry', 'Showing %1$d to %2$d of %3$d entries', 1, 'rankkernel' ],
+		[ '_n', 'Showing %1$d to %2$d of %3$d entry', 'Showing %1$d to %2$d of %3$d entries', 45, 'rankkernel' ]
+	] );
+
+	[ 'Key pending', 'Rejected', 'Rate limited', 'Retry later', 'Accepted', 'Manual', 'Auto' ].forEach( ( label ) => {
+		assert.ok(
+			stub.calls.some( ( call ) => '__' === call[ 0 ] && label === call[ 1 ] && 'rankkernel' === call[ 2 ] ),
+			label + ' must reach the translator with the rankkernel domain'
+		);
+	} );
+} );
+
+test( 'an AJAX render rebuilds rows with translated pills, footer and retry label', async () => {
+	const stub = i18nStub();
+	const fixture = mountLog( { wp: stub.wp } );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const rows = fixture.tbody().children;
+
+	assert.equal( rows[ 1 ].children[ 1 ].children[ 0 ].textContent, 'translated:Rejected' );
+	assert.equal( rows[ 1 ].children[ 2 ].children[ 0 ].textContent, 'translated:Manual' );
+	assert.equal( fixture.showing().textContent, 'translated:Showing 1 to 20 of 45 entries' );
+	assert.equal( fixture.card.querySelector( '.rk-retry-submit' ).textContent, 'translated:Retry' );
+} );
+
+test( 'the AJAX rebuilt retry label falls back to the raw source without wp.i18n', async () => {
+	const fixture = mountLog();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	assert.equal( fixture.card.querySelector( '.rk-retry-submit' ).textContent, 'Retry' );
+} );
+
+test( 'a throwing fallback submit surfaces through console.warn', async () => {
+	const warnings = [];
+	const consoleStub = {
+		warn( ...args ) {
+			warnings.push( args );
+		}
+	};
+	const fixture = mountLog( { locationHref: null, console: consoleStub } );
+
+	fixture.form.submit = () => {
+		throw new Error( 'submit blocked' );
+	};
+
+	fixture.submit();
+	fixture.pending[ 0 ].reject( new Error( 'offline' ) );
+	await logFlush();
+
+	assert.equal( warnings.length, 1, 'the swallowed failure must surface once' );
+	assert.equal( warnings[ 0 ][ 0 ], 'Instant Indexing: the fallback submit failed.' );
+	assert.equal( warnings[ 0 ][ 1 ].message, 'submit blocked' );
+} );
+
+test( 'a throwing fallback submit without a console stays silent and usable', async () => {
+	const fixture = mountLog( { locationHref: null, console: undefined } );
+	const rejections = [];
+	const onRejection = ( reason ) => {
+		rejections.push( reason );
+	};
+
+	process.on( 'unhandledRejection', onRejection );
+
+	try {
+		fixture.form.submit = () => {
+			throw new Error( 'submit blocked' );
+		};
+
+		fixture.submit();
+		fixture.pending[ 0 ].reject( new Error( 'offline' ) );
+		await logFlush();
+	} finally {
+		process.removeListener( 'unhandledRejection', onRejection );
+	}
+
+	assert.equal( fixture.searchInput.disabled, false, 'the loader must stay usable without a console' );
+	assert.equal( rejections.length, 0, 'no rejection may escape when the console is absent' );
 } );
