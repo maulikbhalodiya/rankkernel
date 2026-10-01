@@ -85,6 +85,14 @@ final class MonitorFakeDb {
 	public bool $failQueries = false;
 
 	/**
+	 * Optional callback fired before an UPDATE write, so a test can commit a
+	 * concurrent writer exactly between the repository read and its write.
+	 *
+	 * @var \Closure|null
+	 */
+	public ?\Closure $beforeWrite = null;
+
+	/**
 	 * Reset the 404 log table existence cache so each test starts clean.
 	 */
 	public function __construct() {
@@ -242,6 +250,8 @@ final class MonitorFakeDb {
 	public function update( string $table, array $data, array $where, mixed $format = null, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
+		$this->fireBeforeWrite();
+
 		$affected = 0;
 
 		foreach ( $this->rows as $id => $row ) {
@@ -295,6 +305,12 @@ final class MonitorFakeDb {
 			$this->tableExists = true;
 
 			return 1;
+		}
+
+		if ( 0 === strpos( ltrim( $query ), 'UPDATE' ) ) {
+			$this->fireBeforeWrite();
+
+			return $this->applyUpdate( $query );
 		}
 
 		if ( 0 !== strpos( ltrim( $query ), 'DELETE FROM' ) ) {
@@ -355,6 +371,56 @@ final class MonitorFakeDb {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * Fire the concurrent-writer hook when one is installed.
+	 */
+	private function fireBeforeWrite(): void {
+		if ( null !== $this->beforeWrite ) {
+			( $this->beforeWrite )();
+		}
+	}
+
+	/**
+	 * Apply a raw UPDATE, the atomic hits = hits + 1 form plus literal sets.
+	 *
+	 * @param string $query Interpolated UPDATE statement.
+	 * @return int Affected row count.
+	 */
+	private function applyUpdate( string $query ): int {
+		$hash = [];
+
+		if ( 1 !== preg_match( "/uri_hash = '([0-9a-f]+)'/", $query, $hash ) ) {
+			return 0;
+		}
+
+		$sets = [];
+
+		preg_match_all( "/(\w+) = '([^']*)'/", $query, $sets, PREG_SET_ORDER );
+
+		$affected = 0;
+
+		foreach ( $this->rows as $id => $row ) {
+			if ( (string) $row['uri_hash'] !== $hash[1] ) {
+				continue;
+			}
+
+			if ( false !== strpos( $query, 'hits = hits + 1' ) ) {
+				$row['hits'] = (int) $row['hits'] + 1;
+			}
+
+			foreach ( $sets as $set ) {
+				if ( 'uri_hash' !== $set[1] ) {
+					$row[ $set[1] ] = $set[2];
+				}
+			}
+
+			$this->rows[ $id ] = $row;
+			++$affected;
+		}
+
+		return $affected;
 	}
 
 	/**

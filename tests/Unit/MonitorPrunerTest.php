@@ -160,10 +160,50 @@ final class MonitorPrunerTest extends TestCase {
 
 		$deleted = $this->makePruner()->pruneByCount();
 
-		$this->assertSame( 2, $deleted );
-		$this->assertSame( 3, count( $this->db->rows ) );
+		$this->assertSame( 3, $deleted, 'The excess plus the margin is removed in one pass' );
+		$this->assertSame( 2, count( $this->db->rows ), 'The margin headroom is realised below the maximum' );
 		$this->assertArrayNotHasKey( 1, $this->db->rows );
 		$this->assertArrayNotHasKey( 2, $this->db->rows );
+		$this->assertArrayNotHasKey( 3, $this->db->rows );
+		$this->assertArrayHasKey( 4, $this->db->rows );
+		$this->assertArrayHasKey( 5, $this->db->rows );
+	}
+
+	/**
+	 * Test the count prune margin is actually deleted and the row bound holds.
+	 */
+	public function test_prune_by_count_deletes_the_margin_and_keeps_the_row_bound(): void {
+		$this->options['rankkernel_404_settings'] = [ 'max_rows' => 100 ];
+
+		for ( $i = 1; $i <= 105; $i++ ) {
+			$this->db->seed(
+				[
+					'uri_hash' => hash( 'sha256', '/flood-' . (string) $i ),
+					'uri'      => '/flood-' . (string) $i,
+				]
+			);
+		}
+
+		$pruner  = $this->makePruner();
+		$deleted = $pruner->pruneByCount();
+
+		$this->assertSame( 25, $deleted, 'Excess 5 plus the 20 percent margin of 20' );
+		$this->assertSame( 80, count( $this->db->rows ), 'Deleted down to the margin floor below the maximum' );
+		$this->assertArrayNotHasKey( 1, $this->db->rows );
+		$this->assertArrayNotHasKey( 25, $this->db->rows );
+		$this->assertArrayHasKey( 26, $this->db->rows );
+
+		$repo = new MonitorRepository( $this->db );
+
+		// Refill past the maximum: one insert may tip the table to max + 1.
+		for ( $i = 0; $i < 21; $i++ ) {
+			$repo->record( hash( 'sha256', '/refill-' . (string) $i ), '/refill-' . (string) $i );
+		}
+
+		$this->assertSame( 101, $repo->count(), 'The table never runs past one triggering insert' );
+
+		$this->assertSame( 21, $pruner->pruneByCount() );
+		$this->assertSame( 80, $repo->count(), 'The pass returns the table to the margin floor, bounded' );
 	}
 
 	/**

@@ -80,9 +80,10 @@ final class Pruner {
 	 * Delete the oldest rows past the maximum, one bounded batch.
 	 *
 	 * Removes the excess plus a margin of 20 percent of the maximum, capped
-	 * at 500 rows per pass. The margin amortizes cost so a sustained flood
-	 * performs one small delete per request instead of repruning the full
-	 * excess every time.
+	 * at 500 rows per pass. The margin is passed as a floor below the
+	 * maximum so the requested batch is actually deleted, which amortizes
+	 * cost so a sustained flood performs one small delete per request
+	 * instead of repruning the full excess every time.
 	 *
 	 * @return int Deleted row count.
 	 */
@@ -98,7 +99,7 @@ final class Pruner {
 		$margin = (int) ceil( $max * 0.2 );
 		$limit  = min( $excess + $margin, self::COUNT_BATCH_CAP );
 
-		return $this->repository->deleteOldestOver( $max, $limit );
+		return $this->repository->deleteOldestOver( $max, $limit, $margin );
 	}
 
 	/**
