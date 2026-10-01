@@ -268,15 +268,21 @@ final class RedirectsPage {
 		 * to swap only the list section without reloading the whole page.
 		 * wp_localize_script must be called after wp_register_script.
 		 */
-		wp_localize_script(
-			'rankkernel-redirects-admin',
-			'rkRedirects',
-			[
-				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
-				'nonce'      => wp_create_nonce( 'rankkernel_redirects_list' ),
-				'screenSlug' => self::SLUG,
-			]
-		);
+		$config = [
+			'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+			'nonce'      => wp_create_nonce( 'rankkernel_redirects_list' ),
+			'screenSlug' => self::SLUG,
+		];
+
+		/*
+		 * The canonical global carries the full rankkernel prefix. The legacy
+		 * rkRedirects name is emitted too so anything that still reads it keeps
+		 * resolving the same payload; the canonical name is localized last so it
+		 * survives a WordPress version that replaces the payload of a second
+		 * call instead of appending to it.
+		 */
+		wp_localize_script( 'rankkernel-redirects-admin', 'rkRedirects', $config );
+		wp_localize_script( 'rankkernel-redirects-admin', 'rankkernelRedirects', $config );
 	}
 
 	/**

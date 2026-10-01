@@ -1387,6 +1387,42 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * The localized config is emitted under both global names, canonical last.
+	 */
+	public function test_enqueue_localizes_redirects_config_under_both_names(): void {
+		$localized = [];
+
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $name, array $data ) use ( &$localized ): bool {
+				$localized[] = [
+					'handle' => $handle,
+					'name'   => $name,
+					'data'   => $data,
+				];
+
+				return true;
+			}
+		);
+
+		$page = $this->makePage();
+		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
+
+		$this->assertCount( 2, $localized );
+		$this->assertSame( 'rkRedirects', $localized[0]['name'] );
+		$this->assertSame( 'rankkernelRedirects', $localized[1]['name'] );
+		$this->assertSame( 'rankkernel-redirects-admin', $localized[0]['handle'] );
+		$this->assertSame( 'rankkernel-redirects-admin', $localized[1]['handle'] );
+		$this->assertSame( $localized[0]['data'], $localized[1]['data'], 'both names must resolve to the same payload' );
+		$this->assertArrayHasKey( 'ajaxUrl', $localized[1]['data'] );
+		$this->assertArrayHasKey( 'nonce', $localized[1]['data'] );
+		$this->assertArrayHasKey( 'screenSlug', $localized[1]['data'] );
+	}
+
+	/**
 	 * Empty screens guide the admin toward the first redirect.
 	 */
 	public function test_render_empty_state_invites_first_redirect(): void {
