@@ -87,28 +87,27 @@ final class MonitorRepository {
 		$existing = $this->findByHash( $uriHash );
 
 		if ( null !== $existing ) {
-			$data = [
-				'hits'          => (int) ( $existing['hits'] ?? 0 ) + 1,
-				'last_accessed' => $now,
-			];
-
-			$format = [ '%d', '%s' ];
+			$sql    = "UPDATE `{$table}` SET hits = hits + 1, last_accessed = %s";
+			$params = [ $now ];
 
 			if ( '' !== $referer ) {
-				$data['referer'] = $referer;
-				$format[]        = '%s';
+				$sql     .= ', referer = %s';
+				$params[] = $referer;
 			}
 
 			if ( '' !== $userAgent ) {
-				$data['user_agent'] = $userAgent;
-				$format[]           = '%s';
+				$sql     .= ', user_agent = %s';
+				$params[] = $userAgent;
 			}
 
-			// Custom log tables have no core API, counter increment against the unique hash.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$ok = $db->update( $table, $data, [ 'uri_hash' => $uriHash ], $format, [ '%s' ] );
+			$sql     .= ' WHERE uri_hash = %s';
+			$params[] = $uriHash;
 
-			return false === $ok ? '' : 'update';
+			// Custom log tables have no core API, counter increment is atomic in SQL so a concurrent hit cannot be lost.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$ok = $db->query( $db->prepare( $sql, ...$params ) );
+
+			return is_int( $ok ) ? 'update' : '';
 		}
 
 		// Custom log tables have no core API, typed insert with format list.
@@ -413,14 +412,18 @@ final class MonitorRepository {
 	/**
 	 * Delete the oldest rows down toward the maximum, bounded.
 	 *
-	 * Deletes at most the smaller of the excess and the limit, oldest first
-	 * by last_accessed then id. Returns zero when the table is within limit.
+	 * Deletes at most the smaller of the requested limit and the overflow
+	 * past a floor below the maximum, oldest first by last_accessed then id.
+	 * The floor lets the count pruner clear its whole amortization margin in
+	 * one pass; the default zero stops the delete exactly at the maximum.
+	 * Returns zero when the table is within limit.
 	 *
 	 * @param int $maxRows Configured row limit.
 	 * @param int $limit   Rows per pass, capped at 500.
+	 * @param int $floor   Extra rows below the maximum the pass may clear, default 0.
 	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
-	public function deleteOldestOver( int $maxRows, int $limit ): int {
+	public function deleteOldestOver( int $maxRows, int $limit, int $floor = 0 ): int {
 		$db = $this->connection();
 
 		if ( null === $db || $maxRows < 1 ) {
@@ -433,8 +436,9 @@ final class MonitorRepository {
 			return 0;
 		}
 
+		$floor = max( 0, min( $floor, $maxRows - 1 ) );
 		$batch = max( 1, min( 500, $limit ) );
-		$batch = min( $batch, $total - $maxRows );
+		$batch = min( $batch, $total - ( $maxRows - $floor ) );
 		$table = LogTable::name();
 
 		// Custom log tables have no core API, bounded count prune with an integer limit.

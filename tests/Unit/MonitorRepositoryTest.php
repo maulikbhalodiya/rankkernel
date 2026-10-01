@@ -123,6 +123,39 @@ final class MonitorRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * A concurrent increment landing between the read and the write is kept.
+	 */
+	public function test_record_keeps_a_concurrent_increment_landing_between_read_and_write(): void {
+		$hash = hash( 'sha256', '/contended' );
+		$id   = $this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/contended',
+				'hits'          => 5,
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		// Interleave a parallel request: it commits its increment after this
+		// request read the row but before this request writes. A read-modify-
+		// write of an absolute value would overwrite that hit.
+		$this->db->beforeWrite = function () use ( $id ): void {
+			$this->db->beforeWrite = null;
+
+			$hits = (int) $this->db->rows[ $id ]['hits'] + 1;
+
+			$this->db->rows[ $id ]['hits'] = $hits;
+		};
+
+		$this->assertSame( 'update', $this->repo->record( $hash, '/contended' ) );
+
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 7, (int) $row['hits'], 'Both concurrent increments must survive' );
+	}
+
+	/**
 	 * Test count and usage.
 	 */
 	public function test_count_and_usage(): void {
