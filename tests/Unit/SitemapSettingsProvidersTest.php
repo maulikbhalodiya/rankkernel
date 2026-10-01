@@ -445,6 +445,59 @@ final class SitemapSettingsProvidersTest extends TestCase {
 	}
 
 	/**
+	 * Test a throwing dynamic block skips images for that entry only.
+	 */
+	public function test_throwing_dynamic_block_skips_images_for_that_entry_only(): void {
+		// Regression: one broken dynamic block aborted the whole sitemap
+		// page, taking every later entry down with it.
+		$this->db->postsRows = [
+			[
+				'ID'                => 1,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 7,
+				'post_modified_gmt' => '2026-01-02 00:00:00',
+				'post_content'      => '<!-- wp:broken /-->',
+			],
+			[
+				'ID'                => 2,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 7,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '<p><img src="https://example.com/ok.jpg"></p>',
+			],
+		];
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_attachment_url' )->alias( static fn ( int $id ): string => '' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress wp_get_attachment_url signature.
+		Functions\when( 'do_blocks' )->alias(
+			static function ( string $content ): string {
+				if ( str_contains( $content, 'wp:broken' ) ) {
+					throw new \RuntimeException( 'block exploded' );
+				}
+
+				return $content;
+			}
+		);
+
+		libxml_use_internal_errors( false );
+
+		$provider = new PostsProvider( new SitemapSettings() );
+		$entries  = $provider->getEntries( 'post', 1, 10 );
+
+		$this->assertCount( 2, $entries );
+		$this->assertSame( 'https://example.com/?p=1', $entries[0]['loc'] );
+		$this->assertSame( [], $entries[0]['images'] );
+		$this->assertSame( [ 'https://example.com/ok.jpg' ], $entries[1]['images'] );
+		$this->assertFalse( libxml_use_internal_errors() );
+
+		libxml_use_internal_errors( false );
+	}
+
+	/**
 	 * Test gallery shortcode ids resolve.
 	 */
 	public function test_gallery_shortcode_ids_resolve(): void {

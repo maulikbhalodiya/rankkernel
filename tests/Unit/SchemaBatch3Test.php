@@ -621,6 +621,45 @@ final class SchemaBatch3Test extends TestCase {
 	}
 
 	/**
+	 * Test video drops a non-http thumbnail and falls back to the og image.
+	 */
+	public function test_video_drops_non_http_thumbnail_and_falls_back(): void {
+		// Regression: thumbnailUrl was emitted raw, so a javascript: or a
+		// relative value reached the graph unfiltered.
+		$this->stubFeaturedImage( 'https://example.com/frame.jpg' );
+
+		$ctx = $this->schemaContext(
+			[
+				'type'   => 'VideoObject',
+				'fields' => [ 'thumbnailUrl' => 'javascript:alert(1)' ],
+			]
+		);
+
+		$build = ( new VideoPiece() )->build( $ctx );
+
+		$this->assertSame( 'https://example.com/frame.jpg', $build['thumbnailUrl'] );
+	}
+
+	/**
+	 * Test video node drops when no http thumbnail resolves.
+	 */
+	public function test_video_drops_node_when_no_http_thumbnail_resolves(): void {
+		$this->stubFeaturedImage( 'javascript:alert(1)' );
+
+		$ctx = $this->schemaContext(
+			[
+				'type'   => 'VideoObject',
+				'fields' => [ 'thumbnailUrl' => '/relative/frame.jpg' ],
+			]
+		);
+
+		$piece = new VideoPiece();
+
+		$this->assertFalse( $piece->isNeeded( $ctx ) );
+		$this->assertSame( [], $piece->build( $ctx ) );
+	}
+
+	/**
 	 * Test book builds author isbn publisher.
 	 */
 	public function test_book_builds_author_isbn_publisher(): void {

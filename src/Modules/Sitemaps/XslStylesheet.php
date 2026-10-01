@@ -31,8 +31,12 @@ class XslStylesheet {
 	public function output(): void {
 		$path = $this->getPath();
 
-		if ( ! file_exists( $path ) ) {
+		// is_readable, not file_exists: a file that exists but cannot be
+		// opened must never get the year-long stylesheet cache headers
+		// before readfile fails, or the visitor caches a truncated sheet.
+		if ( ! is_readable( $path ) ) {
 			status_header( 404 );
+			nocache_headers();
 			echo esc_html__( 'Stylesheet not found.', 'rankkernel' );
 
 			if ( ! defined( 'RANKKERNEL_TESTING' ) ) {

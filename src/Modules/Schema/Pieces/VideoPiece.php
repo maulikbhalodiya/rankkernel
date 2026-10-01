@@ -140,10 +140,10 @@ final class VideoPiece implements PieceInterface {
 			return [];
 		}
 
-		$thumbnail = trim( $fields['thumbnailUrl'] ?? '' );
+		$thumbnail = SchemaHelpers::httpUrl( $fields['thumbnailUrl'] ?? '' );
 
 		if ( '' === $thumbnail ) {
-			$thumbnail = $ctx->ogImage();
+			$thumbnail = SchemaHelpers::httpUrl( $ctx->ogImage() );
 		}
 
 		if ( '' === $thumbnail ) {

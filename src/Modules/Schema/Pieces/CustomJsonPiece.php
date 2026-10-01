@@ -151,7 +151,26 @@ final class CustomJsonPiece implements PieceInterface {
 		$type = $node['@type'] ?? '';
 
 		if ( is_array( $type ) ) {
-			$type = implode( ',', array_map( static fn ( mixed $t ): string => (string) $t, $type ) );
+			// Same predicate GraphNormalizer uses: only non empty strings
+			// are type names, so a nested array can never be cast to the
+			// literal "Array" and emitted as an @type.
+			$names = [];
+
+			foreach ( $type as $candidate ) {
+				if ( ! is_string( $candidate ) ) {
+					continue;
+				}
+
+				$candidate = trim( $candidate );
+
+				if ( '' !== $candidate ) {
+					$names[] = $candidate;
+				}
+			}
+
+			$type = implode( ',', $names );
+
+			$node['@type'] = $type;
 		}
 
 		if ( ! is_string( $type ) || '' === trim( $type ) ) {

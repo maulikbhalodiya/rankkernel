@@ -565,6 +565,44 @@ final class SchemaProductionTest extends TestCase {
 	}
 
 	/**
+	 * Test custom json array type keeps only valid string type names.
+	 */
+	public function test_custom_json_array_type_keeps_only_valid_strings(): void {
+		// Regression: an array value was cast to the literal "Array" and
+		// emitted as an @type.
+		$ctx = $this->schemaContext(
+			[
+				'custom' => [
+					'@type' => [ 'Article', [ 'nested' ], '', '  ' ],
+					'name'  => 'Layered',
+				],
+			]
+		);
+
+		$build = ( new CustomJsonPiece() )->build( $ctx );
+
+		$this->assertSame( 'Article', $build['@type'] );
+	}
+
+	/**
+	 * Test custom json invalid array type wraps as Thing.
+	 */
+	public function test_custom_json_invalid_array_type_wraps_as_thing(): void {
+		$ctx = $this->schemaContext(
+			[
+				'custom' => [
+					'@type' => [ [ 'nested' ], '' ],
+					'name'  => 'Layered',
+				],
+			]
+		);
+
+		$build = ( new CustomJsonPiece() )->build( $ctx );
+
+		$this->assertSame( 'Thing', $build['@type'] );
+	}
+
+	/**
 	 * Test normalizer rules.
 	 */
 	public function test_normalizer_rules(): void {

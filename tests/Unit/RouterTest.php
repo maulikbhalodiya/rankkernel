@@ -236,6 +236,93 @@ final class RouterTest extends TestCase {
 	}
 
 	/**
+	 * Test intercept 500s when the index build throws.
+	 */
+	public function test_intercept_500s_when_index_build_throws(): void {
+		// Regression: headers were sent before the build, so a throwing
+		// provider committed a 200 and clients cached a truncated body.
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildIndexXml' )->once()->andThrow( new \RuntimeException( 'boom' ) );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'get' )->once()->andReturnUsing(
+			static function ( string $set, int $page, callable $cb ): string {
+				return (string) $cb();
+			}
+		);
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'index';
+				}
+
+				return $fallback;
+			}
+		);
+
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\expect( 'status_header' )->once()->with( 500 );
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'Sitemap unavailable.', $out );
+	}
+
+	/**
+	 * Test intercept 500s when a set build throws.
+	 */
+	public function test_intercept_500s_when_set_build_throws(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildEntriesXml' )->once()->with( 'blog', 1 )->andThrow( new \RuntimeException( 'boom' ) );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'getMap' )->once()->with( 'sets', Mockery::type( 'callable' ) )->andReturn( [ 'blog' => 1 ] );
+		$cache->shouldReceive( 'get' )->once()->andReturnUsing(
+			static function ( string $set, int $page, callable $cb ): string {
+				return (string) $cb();
+			}
+		);
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'blog';
+				}
+
+				return $fallback;
+			}
+		);
+
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\expect( 'status_header' )->once()->with( 500 );
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'Sitemap unavailable.', $out );
+	}
+
+	/**
 	 * Test intercept 404s unknown set.
 	 */
 	public function test_intercept_404s_unknown_set(): void {
