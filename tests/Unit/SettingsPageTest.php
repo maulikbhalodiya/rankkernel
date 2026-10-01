@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\SettingsPage;
+use RankKernel\Admin\UserProfileField;
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
@@ -1242,7 +1243,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_renders_sanitized_handle(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 
 		$this->assertArrayHasKey( 'show_user_profile', $hooks );
 		$this->assertArrayHasKey( 'edit_user_profile', $hooks );
@@ -1272,7 +1273,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_saves_with_edit_user_capability(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
@@ -1302,7 +1303,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_does_not_save_without_edit_user_capability(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'edit_user_profile_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
@@ -1331,7 +1332,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_does_not_save_when_field_is_absent(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
@@ -1358,7 +1359,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_does_not_save_without_valid_profile_nonce(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( false );
@@ -1391,7 +1392,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_reports_a_failed_write(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
@@ -1420,7 +1421,7 @@ final class SettingsPageTest extends TestCase {
 	public function test_user_profile_field_ignores_an_array_shaped_handle(): void {
 		$hooks = [];
 		$this->captureProfileHooks( $hooks );
-		$this->makePage();
+		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );

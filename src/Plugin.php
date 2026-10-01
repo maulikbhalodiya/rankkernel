@@ -158,7 +158,9 @@ final class Plugin {
 			 */
 			add_action(
 				'wp_ajax_rankkernel_redirects_list',
-				[ $adminMenu->getRedirectsPage(), 'handleAjaxList' ]
+				static function () use ( $adminMenu ): void {
+					$adminMenu->getRedirectsPage()->handleAjaxList();
+				}
 			);
 
 			$schemaMetabox = new SchemaMetabox();
