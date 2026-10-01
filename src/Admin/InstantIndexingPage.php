@@ -99,9 +99,9 @@ final class InstantIndexingPage {
 	private ModuleEnableMap $enableMap;
 
 	/**
-	 * Submission callback, validated URLs in.
+	 * Submission callback, validated URLs in, outcome summary out.
 	 *
-	 * @var callable(string[]): void
+	 * @var callable(string[]): array<string, mixed>|null
 	 */
 	private $submit;
 
@@ -111,11 +111,12 @@ final class InstantIndexingPage {
 	 * The default callback routes through InstantIndexingModule, the
 	 * single submission entry point, and never calls the client directly.
 	 * It only runs after the enable map gate, so a disabled module never
-	 * constructs a client.
+	 * constructs a client. The outcome summary travels back so the
+	 * handler can report a storage failure the client recorded.
 	 *
-	 * @param IndexNowSettings|null         $settings  Settings store, fresh one when null.
-	 * @param ModuleEnableMap|null          $enableMap Enable map, fresh one when null.
-	 * @param callable(string[]): void|null $submit    Submission callback, null uses the module entry point.
+	 * @param IndexNowSettings|null                         $settings  Settings store, fresh one when null.
+	 * @param ModuleEnableMap|null                          $enableMap Enable map, fresh one when null.
+	 * @param callable(string[]): array<string, mixed>|null $submit    Submission callback, null uses the module entry point.
 	 */
 	public function __construct(
 		?IndexNowSettings $settings = null,
@@ -124,8 +125,8 @@ final class InstantIndexingPage {
 	) {
 		$this->settings  = $settings ?? new IndexNowSettings();
 		$this->enableMap = $enableMap ?? new ModuleEnableMap();
-		$this->submit    = $submit ?? function ( array $urls ): void {
-			( new InstantIndexingModule( $this->enableMap, $this->settings ) )->submitUrls( $urls, 'manual' );
+		$this->submit    = $submit ?? function ( array $urls ): array {
+			return ( new InstantIndexingModule( $this->enableMap, $this->settings ) )->submitUrls( $urls, 'manual' );
 		};
 	}
 
@@ -343,14 +344,17 @@ final class InstantIndexingPage {
 	/**
 	 * Handle the clear log form, capability plus nonce first.
 	 *
+	 * A failed DELETE redirects with the storage failure notice instead
+	 * of telling the operator the log was cleared while rows remain.
+	 *
 	 * @return void
 	 */
 	private function handleClear(): void {
 		$this->requireAccess( self::NONCE_CLEAR );
 
-		$this->settings->clearLog();
+		$cleared = $this->settings->clearLog();
 
-		$this->redirectTo( false, 'cleared' );
+		$this->redirectTo( false, $cleared ? 'cleared' : 'storage_failed' );
 	}
 
 	/**
@@ -384,7 +388,8 @@ final class InstantIndexingPage {
 	 * line redirects with an outcome code, so the screen can render an
 	 * error notice that names the reason. When a rejection cannot be
 	 * written to the log, the code reports the storage failure instead
-	 * of implying the rejection was recorded.
+	 * of implying the rejection was recorded. The same applies when the
+	 * client reports that an accepted batch could not be logged.
 	 *
 	 * @return void
 	 */
@@ -438,10 +443,14 @@ final class InstantIndexingPage {
 		}
 
 		if ( [] !== $valid ) {
-			( $this->submit )( $valid );
+			$summary = ( $this->submit )( $valid );
+
+			if ( true === ( $summary['storage_failed'] ?? false ) ) {
+				$storageFailed = true;
+			}
 		}
 
-		if ( 0 === $invalid ) {
+		if ( 0 === $invalid && ! $storageFailed ) {
 			$this->redirectTo( true );
 
 			return;
@@ -449,7 +458,8 @@ final class InstantIndexingPage {
 
 		// A rejected URL whose outcome could not be written is never reported as
 		// recorded, so the operator is told the log failed instead of being sent
-		// to a table that holds nothing.
+		// to a table that holds nothing. The same guard covers an accepted batch
+		// that the client could not log.
 		if ( $storageFailed ) {
 			$this->redirectTo( false, 'storage_failed' );
 

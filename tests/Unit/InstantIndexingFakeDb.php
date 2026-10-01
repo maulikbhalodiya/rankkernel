@@ -41,6 +41,20 @@ final class InstantIndexingFakeDb {
 	public bool $tableExists = true;
 
 	/**
+	 * Whether insert() reports a failure instead of writing.
+	 *
+	 * @var bool
+	 */
+	public bool $insertFails = false;
+
+	/**
+	 * Whether a DELETE through query() reports a failure.
+	 *
+	 * @var bool
+	 */
+	public bool $queryFails = false;
+
+	/**
 	 * Rows keyed by id.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -267,6 +281,10 @@ final class InstantIndexingFakeDb {
 	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		++$this->writes;
 
+		if ( $this->insertFails ) {
+			return false;
+		}
+
 		$id                = $this->nextId++;
 		$this->rows[ $id ] = array_merge( $data, [ 'id' => $id ] );
 		$this->insert_id   = $id;
@@ -291,6 +309,10 @@ final class InstantIndexingFakeDb {
 
 		if ( 0 !== strpos( ltrim( $query ), 'DELETE FROM' ) ) {
 			return 0;
+		}
+
+		if ( $this->queryFails ) {
+			return false;
 		}
 
 		$count      = count( $this->rows );

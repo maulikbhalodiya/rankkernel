@@ -109,6 +109,7 @@ final class IndexNowClientTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -220,6 +221,33 @@ final class IndexNowClientTest extends TestCase {
 		$result = $this->client( 0, true )->submit( [ 'https://example.com/a' ] );
 
 		$this->assertSame( 1, $result['transient'] );
+	}
+
+	/**
+	 * Test a failed log write is reported on the outcome summary.
+	 *
+	 * The protocol outcome is unchanged, but storage_failed tells the
+	 * caller the log row was not written, so a success response is never
+	 * presented as recorded.
+	 */
+	public function test_a_failed_log_write_is_reported_on_the_summary(): void {
+		$db = new InstantIndexingFakeDb();
+
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $db;
+
+		$stored = $this->client( 200 )->submit( [ 'https://example.com/a' ] );
+
+		$this->assertSame( 1, $stored['accepted'] );
+		$this->assertFalse( $stored['storage_failed'], 'a written log row must not report a storage failure' );
+		$this->assertSame( 1, $db->writes );
+
+		$db->insertFails = true;
+
+		$failed = $this->client( 200 )->submit( [ 'https://example.com/b' ] );
+
+		$this->assertSame( 1, $failed['accepted'], 'the protocol outcome is unchanged by a storage failure' );
+		$this->assertTrue( $failed['storage_failed'], 'a failed log insert must surface on the summary' );
 	}
 
 	/**

@@ -348,20 +348,25 @@ final class IndexNowSettings {
 	/**
 	 * Delete every log entry.
 	 *
-	 * @return void
+	 * A missing connection or table means there is nothing to clear, so
+	 * the call reports success. A failed DELETE reports failure, so the
+	 * caller surfaces the storage failure instead of claiming the log
+	 * was emptied.
+	 *
+	 * @return bool Whether the log is empty after the call.
 	 */
-	public function clearLog(): void {
+	public function clearLog(): bool {
 		$db = $this->connection();
 
 		if ( null === $db || ! LogTable::exists() ) {
-			return;
+			return true;
 		}
 
 		$table = LogTable::name();
 
 		// Custom log table has no core API, full clear with a constant predicate so the statement stays prepared.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$db->query( $db->prepare( "DELETE FROM `{$table}` WHERE 1 = %d", 1 ) );
+		return false !== $db->query( $db->prepare( "DELETE FROM `{$table}` WHERE 1 = %d", 1 ) );
 	}
 
 	/**

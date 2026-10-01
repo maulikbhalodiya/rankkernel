@@ -72,16 +72,21 @@ final class IndexNowClient {
 	 * An empty key short circuits before any transport call, which is
 	 * a security property rather than an optimization.
 	 *
+	 * A log row that cannot be written is reported on the summary as
+	 * storage_failed, so the caller surfaces the storage failure instead
+	 * of presenting the outcome as recorded.
+	 *
 	 * @param string[] $urls   URLs to submit.
 	 * @param string   $source Submitting surface, auto or manual.
-	 * @return array{accepted:int, permanent:int, transient:int, results:array<int, array{url:string, code:int, accepted:bool, retryable:bool, message:string}>} Outcome summary.
+	 * @return array{accepted:int, permanent:int, transient:int, storage_failed:bool, results:array<int, array{url:string, code:int, accepted:bool, retryable:bool, message:string}>} Outcome summary.
 	 */
 	public function submit( array $urls, string $source = 'auto' ): array {
 		$result = [
-			'accepted'  => 0,
-			'permanent' => 0,
-			'transient' => 0,
-			'results'   => [],
+			'accepted'       => 0,
+			'permanent'      => 0,
+			'transient'      => 0,
+			'storage_failed' => false,
+			'results'        => [],
 		];
 
 		if ( '' === $this->settings->getKey() ) {
@@ -110,7 +115,9 @@ final class IndexNowClient {
 			$retryable = ! $accepted && ! $permanent;
 
 			foreach ( $chunk as $url ) {
-				$this->settings->logEntry( $url, $code, $source, $message );
+				if ( false === $this->settings->logEntry( $url, $code, $source, $message ) ) {
+					$result['storage_failed'] = true;
+				}
 
 				if ( $accepted ) {
 					++$result['accepted'];
