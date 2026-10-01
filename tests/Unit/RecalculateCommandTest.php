@@ -63,6 +63,13 @@ final class RecalculateCommandTest extends TestCase {
 	private int $throwOnMetaId = 0;
 
 	/**
+	 * Whether update post meta writes fail.
+	 *
+	 * @var bool
+	 */
+	private bool $failMetaWrites = false;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -73,12 +80,13 @@ final class RecalculateCommandTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->posts         = [];
-		$this->meta          = [];
-		$this->queried       = [];
-		$this->updated       = false;
-		$this->storedIds     = [];
-		$this->throwOnMetaId = 0;
+		$this->posts          = [];
+		$this->meta           = [];
+		$this->queried        = [];
+		$this->updated        = false;
+		$this->storedIds      = [];
+		$this->throwOnMetaId  = 0;
+		$this->failMetaWrites = false;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $value ): string => strtolower( (string) preg_replace( '/[^a-z0-9_-]/i', '', $value ) ) );
@@ -120,10 +128,20 @@ final class RecalculateCommandTest extends TestCase {
 		);
 		Functions\when( 'update_post_meta' )->alias(
 			function ( int $id, string $key, mixed $value ): bool {
-				unset( $key, $value );
+				if ( $this->failMetaWrites ) {
+					return false;
+				}
 
-				$this->updated     = true;
-				$this->storedIds[] = $id;
+				// WordPress leaves an unchanged value in place and returns
+				// false for it, so the stub mirrors the store and that
+				// ambiguous return the score service has to see through.
+				if ( ( $this->meta[ $id ][ $key ] ?? null ) === $value ) {
+					return false;
+				}
+
+				$this->meta[ $id ][ $key ] = $value;
+				$this->updated             = true;
+				$this->storedIds[]         = $id;
 
 				return true;
 			}
@@ -310,6 +328,59 @@ final class RecalculateCommandTest extends TestCase {
 		$this->assertNotEmpty( $reported, 'The failure must be reported, never silent' );
 		$this->assertStringContainsString( '2', $reported[0][0] );
 		$this->assertSame( E_USER_WARNING, $reported[0][1] );
+	}
+
+	/**
+	 * A failed write is counted as failed, never as stored or skipped.
+	 */
+	public function test_a_failed_write_is_counted_as_failed(): void {
+		$this->addPost( 1, [ 'red apples' ] );
+		$this->addPost( 2, [ 'red apples' ] );
+		$this->queuePages( [ [ 1, 2 ], [] ] );
+
+		$this->failMetaWrites = true;
+
+		$reported = [];
+
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function ( string $functionName, string $message, int $type ) use ( &$reported ): void {
+				unset( $functionName );
+
+				$reported[] = [ $message, $type ];
+			}
+		);
+
+		$result = ( new RecalculateCommand() )->batch( [ 'batch' => 2 ] );
+
+		$this->assertSame( 2, $result['scanned'] );
+		$this->assertSame( 0, $result['stored'], 'a failed write must not be counted as stored' );
+		$this->assertSame( 0, $result['skipped'] );
+		$this->assertSame( 2, $result['failed'] );
+		$this->assertCount( 2, $reported, 'The write failure must be reported, never silent' );
+		$this->assertStringContainsString( '1', $reported[0][0] );
+		$this->assertStringContainsString( '2', $reported[1][0] );
+		$this->assertSame( E_USER_WARNING, $reported[0][1] );
+	}
+
+	/**
+	 * A recalculation whose values are unchanged still counts as stored,
+	 * because update_post_meta reports an unchanged value as false.
+	 */
+	public function test_unchanged_values_are_still_counted_as_stored(): void {
+		$this->addPost( 1, [ 'red apples' ] );
+		$this->queuePages( [ [ 1 ], [], [ 1 ], [] ] );
+
+		Functions\when( 'time' )->justReturn( 1000 );
+
+		$command = new RecalculateCommand();
+
+		$first  = $command->batch( [] );
+		$second = $command->batch( [] );
+
+		$this->assertSame( 1, $first['stored'] );
+		$this->assertSame( 0, $first['failed'] );
+		$this->assertSame( 1, $second['stored'], 'an unchanged recalculation must still count as stored' );
+		$this->assertSame( 0, $second['failed'] );
 	}
 
 	/**

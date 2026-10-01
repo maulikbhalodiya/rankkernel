@@ -367,6 +367,28 @@ final class RedirectsCsvTest extends TestCase {
 	}
 
 	/**
+	 * Test a storage failure is reported as an error, not as a duplicate skip.
+	 */
+	public function test_a_failed_insert_is_reported_as_an_error_not_a_skip(): void {
+		$this->db->failInserts = true;
+
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/old,/new,,,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertSame( 0, $result['updated'] );
+		$this->assertSame( 0, $result['skipped'], 'a storage failure must not be reported as a duplicate skip' );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertSame( 2, $result['errors'][0]['row'] );
+		$this->assertSame( 'The redirect could not be saved. Please try again.', $result['errors'][0]['reason'] );
+		$this->assertSame( [], $this->db->rows );
+	}
+
+	/**
 	 * Test bom and windows line endings tolerated.
 	 */
 	public function test_bom_and_windows_line_endings_tolerated(): void {

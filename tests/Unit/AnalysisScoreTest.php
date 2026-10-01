@@ -42,6 +42,20 @@ final class AnalysisScoreTest extends TestCase {
 	private bool $deleted = false;
 
 	/**
+	 * Meta keys whose update post meta write fails.
+	 *
+	 * @var array<string, bool>
+	 */
+	private array $failMetaWrites = [];
+
+	/**
+	 * Whether the stub saw a write of an unchanged value.
+	 *
+	 * @var bool
+	 */
+	private bool $unchangedWriteSeen = false;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -52,14 +66,16 @@ final class AnalysisScoreTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$post               = new WP_Post();
-		$post->ID           = 7;
-		$post->post_title   = 'Red apples guide';
-		$post->post_name    = 'red-apples-guide';
-		$post->post_content = '<p>We write about red apples and how to pick them. Red apples keep well.</p>';
-		$this->post         = $post;
-		$this->meta         = [];
-		$this->deleted      = false;
+		$post                     = new WP_Post();
+		$post->ID                 = 7;
+		$post->post_title         = 'Red apples guide';
+		$post->post_name          = 'red-apples-guide';
+		$post->post_content       = '<p>We write about red apples and how to pick them. Red apples keep well.</p>';
+		$this->post               = $post;
+		$this->meta               = [];
+		$this->deleted            = false;
+		$this->failMetaWrites     = [];
+		$this->unchangedWriteSeen = false;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( float $number, int $decimals = 0 ): string => number_format( $number, $decimals ) );
@@ -84,6 +100,19 @@ final class AnalysisScoreTest extends TestCase {
 		);
 		Functions\when( 'update_post_meta' )->alias(
 			function ( int $id, string $key, mixed $value ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_post_meta signature.
+				if ( $this->failMetaWrites[ $key ] ?? false ) {
+					return false;
+				}
+
+				// WordPress leaves an unchanged value in place and reports
+				// false for it, so the stub mirrors both the store and that
+				// ambiguous return the score service has to see through.
+				if ( array_key_exists( $key, $this->meta ) && $this->meta[ $key ] === $value ) {
+					$this->unchangedWriteSeen = true;
+
+					return false;
+				}
+
 				$this->meta[ $key ] = $value;
 
 				return true;
@@ -215,6 +244,70 @@ final class AnalysisScoreTest extends TestCase {
 		$score->store( 7 );
 
 		$this->assertArrayNotHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->meta );
+	}
+
+	/**
+	 * A failed meta write is reported as a failure, never as a stored record.
+	 */
+	public function test_store_reports_a_failed_write(): void {
+		$this->withKeywords( [ 'red apples' ] );
+		$this->failMetaWrites = [
+			AnalysisScore::META_KEY        => true,
+			AnalysisScore::SCORE_VALUE_KEY => true,
+		];
+
+		$result = ( new AnalysisScore() )->store( 7 );
+
+		$this->assertFalse( $result, 'a failed write must not report success' );
+		$this->assertArrayNotHasKey( AnalysisScore::META_KEY, $this->meta );
+		$this->assertArrayNotHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->meta );
+	}
+
+	/**
+	 * A failed sort mirror write fails the store even when the record landed.
+	 */
+	public function test_store_reports_a_failed_mirror_write(): void {
+		$this->withKeywords( [ 'red apples' ] );
+		$this->failMetaWrites = [ AnalysisScore::SCORE_VALUE_KEY => true ];
+
+		$result = ( new AnalysisScore() )->store( 7 );
+
+		$this->assertFalse( $result, 'a record without its sort mirror must not report success' );
+		$this->assertArrayHasKey( AnalysisScore::META_KEY, $this->meta );
+		$this->assertArrayNotHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->meta );
+	}
+
+	/**
+	 * A failed record write fails the store even when the sort mirror landed.
+	 */
+	public function test_store_reports_a_failed_record_write(): void {
+		$this->withKeywords( [ 'red apples' ] );
+		$this->failMetaWrites = [ AnalysisScore::META_KEY => true ];
+
+		$result = ( new AnalysisScore() )->store( 7 );
+
+		$this->assertFalse( $result, 'a sort mirror without its record must not report success' );
+		$this->assertArrayNotHasKey( AnalysisScore::META_KEY, $this->meta );
+		$this->assertArrayHasKey( AnalysisScore::SCORE_VALUE_KEY, $this->meta );
+	}
+
+	/**
+	 * An unchanged value makes update_post_meta return false, and that must
+	 * still count as a stored record rather than a write failure.
+	 */
+	public function test_store_counts_an_unchanged_value_as_success(): void {
+		$this->withKeywords( [ 'red apples' ] );
+
+		Functions\when( 'time' )->justReturn( 1000 );
+
+		$score  = new AnalysisScore();
+		$first  = $score->store( 7 );
+		$second = $score->store( 7 );
+
+		$this->assertIsArray( $first );
+		$this->assertIsArray( $second );
+		$this->assertTrue( $this->unchangedWriteSeen, 'the fixture must exercise the unchanged value write' );
+		$this->assertSame( $first, $second );
 	}
 
 	/**

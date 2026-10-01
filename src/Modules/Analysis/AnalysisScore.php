@@ -169,10 +169,16 @@ final class AnalysisScore {
 	/**
 	 * Compute and store the record, clearing it when there are no keywords.
 	 *
+	 * The update_post_meta() function returns false both for a failed write
+	 * and for a new value identical to the stored one, so its return value
+	 * cannot tell the two apart. The stored values are read back instead and
+	 * compared to the record this call intended to write, and false is
+	 * returned when either key does not hold the intended value.
+	 *
 	 * @param int $postId Post id.
-	 * @return array<string, mixed> Stored record, or an empty array when cleared.
+	 * @return array<string, mixed>|false Stored record, an empty array when cleared, or false when the write failed.
 	 */
-	public function store( int $postId ): array {
+	public function store( int $postId ): array|false {
 		$record = $this->compute( $postId );
 
 		if ( null === $record ) {
@@ -187,9 +193,42 @@ final class AnalysisScore {
 		if ( function_exists( 'update_post_meta' ) ) {
 			update_post_meta( $postId, self::META_KEY, $record );
 			update_post_meta( $postId, self::SCORE_VALUE_KEY, (int) $record['score'] );
+
+			if ( ! $this->writeLanded( $postId, $record ) ) {
+				return false;
+			}
 		}
 
 		return $record;
+	}
+
+	/**
+	 * Whether both meta keys hold the values the record write intended.
+	 *
+	 * A failed write leaves the previous value in place, while a write that
+	 * was refused as unchanged reads back identical to the intended value.
+	 * Comparing the read-back values to the intended ones separates the two
+	 * cases that update_post_meta reports identically as false, and checking
+	 * both keys means a write that landed for only one of them still fails.
+	 *
+	 * @param int                  $postId Post id.
+	 * @param array<string, mixed> $record Record the write intended to store.
+	 * @return bool True when both keys hold the intended values.
+	 */
+	private function writeLanded( int $postId, array $record ): bool {
+		if ( ! function_exists( 'get_post_meta' ) ) {
+			return true;
+		}
+
+		$rawRecord = get_post_meta( $postId, self::META_KEY, true );
+
+		if ( self::sanitize( $rawRecord ) !== self::sanitize( $record ) ) {
+			return false;
+		}
+
+		$rawScore = get_post_meta( $postId, self::SCORE_VALUE_KEY, true );
+
+		return (int) $rawScore === (int) $record['score'];
 	}
 
 	/**

@@ -594,12 +594,12 @@ final class CsvHandler {
 		} else {
 			$newId = $this->repository->insert( $row );
 
+			// Duplicates were caught by lookup() above, so a zero insert here
+			// means the storage refused the row: no connection, the pattern
+			// cap, or a failed write. Reporting that as a skip would hide the
+			// storage failure behind the duplicate count.
 			if ( $newId <= 0 ) {
-				return [
-					'status'  => 'skipped',
-					'reason'  => '',
-					'warning' => '',
-				];
+				return $this->row_error( __( 'The redirect could not be saved. Please try again.', 'rankkernel' ) );
 			}
 
 			$status = 'created';
