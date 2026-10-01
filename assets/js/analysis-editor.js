@@ -28,18 +28,27 @@
 	}
 
 	var DEBOUNCE_MS = 200;
-	var FAIL_MESSAGE = 'The analysis could not be run. Try again.';
-	var EMPTY_MESSAGE = 'Add a focus keyword to run the content analysis.';
-	var LOADING_MESSAGE = 'Analysing the current draft…';
 
-	var ANALYSIS_HONESTY = 'This score measures your content against a checklist. It does not predict rankings.';
+	// The translator and the placeholder formatter fall back to the raw value when
+	// wp.i18n is absent, so the panel still renders. Each user facing literal is
+	// passed directly to __() at its call site, because the WordPress extractor only
+	// reads literal arguments and a message passed through a helper would stay
+	// invisible to it. The engine callback below receives its template as a variable,
+	// so those message literals are registered in analysis-format.js.
+	var __ = ( window.wp && window.wp.i18n && 'function' === typeof window.wp.i18n.__ )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
+	var sprintf = ( window.wp && window.wp.i18n && 'function' === typeof window.wp.i18n.sprintf )
+		? window.wp.i18n.sprintf
+		: function ( template ) {
+			var args = arguments;
+			return String( template ).replace( /%(\d+)\$[sd]/g, function ( match, position ) {
+				return String( args[ Number( position ) ] );
+			} );
+		};
 
 	function translate( text ) {
-		if ( window.wp && window.wp.i18n && 'function' === typeof window.wp.i18n.__ ) {
-			return window.wp.i18n.__( text, 'rankkernel' );
-		}
-
-		return text;
+		return __( text, 'rankkernel' );
 	}
 
 	function bandClass( band ) {
@@ -57,15 +66,15 @@
 
 	function bandLabel( band ) {
 		if ( 'good' === band ) {
-			return translate( 'Good' );
+			return __( 'Good', 'rankkernel' );
 		}
 		if ( 'improve' === band ) {
-			return translate( 'Needs improvement' );
+			return __( 'Needs improvement', 'rankkernel' );
 		}
 		if ( 'problem' === band ) {
-			return translate( 'Poor' );
+			return __( 'Poor', 'rankkernel' );
 		}
-		return translate( 'Not analysed' );
+		return __( 'Not analysed', 'rankkernel' );
 	}
 
 	function scoreSlot() {
@@ -195,7 +204,9 @@
 
 			var spoken = document.createElement( 'span' );
 			spoken.className = 'screen-reader-text';
-			spoken.textContent = ok ? 'Pass: ' : 'Needs work: ';
+			spoken.textContent = ok
+				? __( 'Pass: ', 'rankkernel' )
+				: __( 'Needs work: ', 'rankkernel' );
 
 			var label = document.createElement( 'span' );
 			label.className = 'rk-checklist-label';
@@ -218,7 +229,12 @@
 
 			var scoreSpoken = document.createElement( 'span' );
 			scoreSpoken.className = 'screen-reader-text';
-			scoreSpoken.textContent = 'Score ' + score + ' out of 100, ' + bandLabel( data.band ) + '.';
+			scoreSpoken.textContent = sprintf(
+				/* translators: 1: the analysis score from 0 to 100, 2: the score band label. */
+				__( 'Score %1$d out of 100, %2$s.', 'rankkernel' ),
+				score,
+				bandLabel( data.band )
+			);
 
 			var value = document.createElement( 'span' );
 			value.setAttribute( 'aria-hidden', 'true' );
@@ -235,7 +251,7 @@
 
 		var note = document.createElement( 'p' );
 		note.className = 'description rk-analysis-note';
-		note.textContent = translate( ANALYSIS_HONESTY );
+		note.textContent = __( 'This score measures your content against a checklist. It does not predict rankings.', 'rankkernel' );
 		results.appendChild( note );
 
 		hasResult = true;
@@ -265,12 +281,12 @@
 		if ( ! input.keywords.length ) {
 			lastSignature = nextSignature;
 			hasResult = false;
-			setMessage( EMPTY_MESSAGE, false );
+			setMessage( __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ), false );
 			return;
 		}
 
 		if ( ! hasResult ) {
-			setMessage( LOADING_MESSAGE, false );
+			setMessage( __( 'Analysing the current draft…', 'rankkernel' ), false );
 		}
 
 		var result = null;
@@ -283,7 +299,7 @@
 			// the failure message would stick even though the draft is scored.
 			lastSignature = null;
 			hasResult = false;
-			setMessage( FAIL_MESSAGE, true );
+			setMessage( __( 'The analysis could not be run. Try again.', 'rankkernel' ), true );
 			return;
 		}
 
