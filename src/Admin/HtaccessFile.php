@@ -162,7 +162,15 @@ final class HtaccessFile {
 
 		$bytes = file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the site .htaccess, the only portable option.
 
-		if ( false === $bytes ) {
+		// A failed write returns false, but a partial write can return a byte
+		// count smaller than the content without returning false. A truncated
+		// .htaccess can take the whole site down, so both are a failure and
+		// the pre-write backup is restored when one was taken.
+		if ( false === $bytes || $bytes < strlen( $content ) ) {
+			if ( '' !== $backup && file_exists( $backup ) ) {
+				copy( $backup, $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- restoring the sibling backup of the site .htaccess after a failed write.
+			}
+
 			return [
 				'saved'  => false,
 				'reason' => 'write_failed',

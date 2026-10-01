@@ -26,13 +26,29 @@ final class LlmsSettingsTest extends TestCase {
 	private array $options = [];
 
 	/**
+	 * Whether the next stubbed option write fails.
+	 *
+	 * @var bool
+	 */
+	private bool $failWrites = false;
+
+	/**
+	 * Number of stubbed option writes.
+	 *
+	 * @var int
+	 */
+	private int $writeCount = 0;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
-		$this->options = [];
+		$this->options    = [];
+		$this->failWrites = false;
+		$this->writeCount = 0;
 
 		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
 		Functions\when( 'get_option' )->alias(
@@ -42,6 +58,12 @@ final class LlmsSettingsTest extends TestCase {
 		);
 		Functions\when( 'update_option' )->alias(
 			function ( string $key, mixed $value, mixed $autoload = null ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				++$this->writeCount;
+
+				if ( $this->failWrites ) {
+					return false;
+				}
+
 				$this->options[ $key ] = $value;
 
 				return true;
@@ -113,5 +135,37 @@ final class LlmsSettingsTest extends TestCase {
 		$this->assertStringNotContainsString( '<b>', $stored['summary'] );
 		$this->assertStringNotContainsString( '<script>', $stored['summary'] );
 		$this->assertStringNotContainsString( '<', $stored['summary'] );
+	}
+
+	/**
+	 * Test an unchanged value saves as a success without a write.
+	 */
+	public function test_set_unchanged_value_succeeds_without_write(): void {
+		$this->options[ LlmsSettings::OPTION ] = [ 'enabled' => true ];
+
+		$settings = new LlmsSettings();
+
+		$this->assertTrue( $settings->set( [ 'enabled' => true ] ) );
+		$this->assertSame( 0, $this->writeCount, 'an unchanged value must not be written' );
+	}
+
+	/**
+	 * Test a failed write reports false and keeps the previous cache.
+	 *
+	 * The update_option() function returns false both for an unchanged
+	 * value and for a failed write. This covers the changed-value half: the
+	 * write is attempted, fails, and must surface instead of reporting
+	 * success or leaving the in-memory cache ahead of storage.
+	 */
+	public function test_set_reports_failed_write_and_keeps_previous_cache(): void {
+		$this->options[ LlmsSettings::OPTION ] = [ 'enabled' => false ];
+		$this->failWrites                      = true;
+
+		$settings = new LlmsSettings();
+
+		$this->assertFalse( $settings->set( [ 'enabled' => true ] ) );
+		$this->assertSame( 1, $this->writeCount );
+		$this->assertFalse( $settings->get( 'enabled' ), 'a failed write must not update the cache' );
+		$this->assertSame( [ 'enabled' => false ], $this->options[ LlmsSettings::OPTION ] );
 	}
 }

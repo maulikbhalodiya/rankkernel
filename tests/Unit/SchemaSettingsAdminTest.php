@@ -275,6 +275,10 @@ final class SchemaSettingsAdminTest extends TestCase {
 	 * Test toggle sanitize casts to bool.
 	 */
 	public function test_toggle_sanitize_casts_to_bool(): void {
+		// The store skips a write when the sanitized value equals the stored
+		// one, so the baseline is false to make the cast write.
+		$this->options[ SettingsStore::OPTION ] = [ 'schema_breadcrumbs' => false ];
+
 		$store = new SettingsStore();
 
 		$this->assertTrue( $store->set( [ 'schema_breadcrumbs' => 'yes' ] ) );

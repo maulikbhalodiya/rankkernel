@@ -35,6 +35,36 @@ final class HtaccessFileTest extends TestCase {
 	private bool $supported = true;
 
 	/**
+	 * Byte count the harness reports for file_put_contents().
+	 *
+	 * Zero delegates to the real built-in.
+	 *
+	 * @var int
+	 */
+	public static int $shortWriteBytes = 0;
+
+	/**
+	 * Dispatch for the RankKernel\Admin file_put_contents() test harness.
+	 *
+	 * @param string $filename Target path.
+	 * @param mixed  $data     Content.
+	 * @param int    $flags    Stream flags.
+	 * @param mixed  $context  Stream context.
+	 * @return int|false The result.
+	 */
+	public static function filePutContentsShim( string $filename, mixed $data, int $flags = 0, mixed $context = null ): int|false {
+		if ( self::$shortWriteBytes > 0 ) {
+			$written = min( self::$shortWriteBytes, strlen( (string) $data ) );
+
+			\file_put_contents( $filename, substr( (string) $data, 0, $written ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test simulates a partial write into its own temp file.
+
+			return $written;
+		}
+
+		return \file_put_contents( $filename, $data, $flags, $context ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- harness delegates to the real built-in for every test that is not simulating a partial write.
+	}
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -96,6 +126,51 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertFileExists( $result['backup'] );
 		$this->assertSame( "# original\n", (string) file_get_contents( $result['backup'] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own backup.
 		$this->assertSame( "# changed\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+		unlink( $result['backup'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backup.
+	}
+
+	/**
+	 * Test a short write is a failure and the backup is restored.
+	 *
+	 * The file_put_contents() function can report fewer bytes than the
+	 * content length without returning false. A truncated .htaccess can
+	 * break the whole site, so the save must report failure and the
+	 * pre-write backup must be put back. Runs in its own process so the
+	 * namespaced shim below is defined before the first call to the
+	 * built-in is resolved.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_short_write_is_a_failure_and_restores_the_backup(): void {
+		if ( ! function_exists( 'RankKernel\Admin\file_put_contents' ) ) {
+			// The production class calls the unqualified built-in, so a
+			// namespaced function of the same name intercepts it. The shim
+			// delegates to the real built-in unless a test asks for a short
+			// write, so the rest of the suite is unaffected.
+			eval( 'namespace RankKernel\Admin; function file_put_contents( string $filename, mixed $data, int $flags = 0, mixed $context = null ): int|false { return \RankKernel\Tests\Unit\HtaccessFileTest::filePutContentsShim( $filename, $data, $flags, $context ); }' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- test-only seam for the unqualified built-in call, never evaluated in production.
+		}
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path            = $temp;
+		self::$shortWriteBytes = 4;
+
+		try {
+			$result = ( new HtaccessFile() )->save( "# changed content\n" );
+		} finally {
+			self::$shortWriteBytes = 0;
+		}
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'write_failed', $result['reason'] );
+		$this->assertNotSame( '', $result['backup'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 		unlink( $result['backup'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backup.

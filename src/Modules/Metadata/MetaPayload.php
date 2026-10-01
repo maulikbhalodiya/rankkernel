@@ -164,15 +164,15 @@ final class MetaPayload {
 		$out = $defaults;
 
 		if ( isset( $payload['title'] ) ) {
-			$out['title'] = sanitize_text_field( (string) $payload['title'] );
+			$out['title'] = sanitize_text_field( self::scalarString( $payload['title'] ) );
 		}
 
 		if ( isset( $payload['description'] ) ) {
-			$out['description'] = sanitize_text_field( (string) $payload['description'] );
+			$out['description'] = sanitize_text_field( self::scalarString( $payload['description'] ) );
 		}
 
 		if ( isset( $payload['canonical'] ) ) {
-			$out['canonical'] = esc_url_raw( (string) $payload['canonical'] );
+			$out['canonical'] = esc_url_raw( self::scalarString( $payload['canonical'] ) );
 		}
 
 		if ( isset( $payload['robots'] ) && is_array( $payload['robots'] ) ) {
@@ -218,19 +218,19 @@ final class MetaPayload {
 			$og = $payload['og'];
 
 			if ( array_key_exists( 'title', $og ) ) {
-				$out['og']['title'] = sanitize_text_field( (string) $og['title'] );
+				$out['og']['title'] = sanitize_text_field( self::scalarString( $og['title'] ) );
 			}
 
 			if ( array_key_exists( 'description', $og ) ) {
-				$out['og']['description'] = sanitize_text_field( (string) $og['description'] );
+				$out['og']['description'] = sanitize_text_field( self::scalarString( $og['description'] ) );
 			}
 
 			if ( array_key_exists( 'image', $og ) ) {
-				$out['og']['image'] = esc_url_raw( (string) $og['image'] );
+				$out['og']['image'] = esc_url_raw( self::scalarString( $og['image'] ) );
 			}
 
 			if ( array_key_exists( 'image_alt', $og ) ) {
-				$out['og']['image_alt'] = sanitize_text_field( (string) $og['image_alt'] );
+				$out['og']['image_alt'] = sanitize_text_field( self::scalarString( $og['image_alt'] ) );
 			}
 
 			if ( array_key_exists( 'image_id', $og ) ) {
@@ -238,7 +238,7 @@ final class MetaPayload {
 			}
 
 			if ( array_key_exists( 'type', $og ) ) {
-				$out['og']['type'] = sanitize_text_field( (string) $og['type'] );
+				$out['og']['type'] = sanitize_text_field( self::scalarString( $og['type'] ) );
 			}
 		}
 
@@ -246,19 +246,19 @@ final class MetaPayload {
 			$tw = $payload['twitter'];
 
 			if ( array_key_exists( 'card', $tw ) ) {
-				$out['twitter']['card'] = sanitize_text_field( (string) $tw['card'] );
+				$out['twitter']['card'] = sanitize_text_field( self::scalarString( $tw['card'] ) );
 			}
 
 			if ( array_key_exists( 'title', $tw ) ) {
-				$out['twitter']['title'] = sanitize_text_field( (string) $tw['title'] );
+				$out['twitter']['title'] = sanitize_text_field( self::scalarString( $tw['title'] ) );
 			}
 
 			if ( array_key_exists( 'description', $tw ) ) {
-				$out['twitter']['description'] = sanitize_text_field( (string) $tw['description'] );
+				$out['twitter']['description'] = sanitize_text_field( self::scalarString( $tw['description'] ) );
 			}
 
 			if ( array_key_exists( 'image', $tw ) ) {
-				$out['twitter']['image'] = esc_url_raw( (string) $tw['image'] );
+				$out['twitter']['image'] = esc_url_raw( self::scalarString( $tw['image'] ) );
 			}
 
 			if ( array_key_exists( 'image_id', $tw ) ) {
@@ -270,7 +270,7 @@ final class MetaPayload {
 			$keywords = [];
 
 			foreach ( $payload['focus_keywords'] as $kw ) {
-				$clean = sanitize_text_field( (string) $kw );
+				$clean = sanitize_text_field( self::scalarString( $kw ) );
 				if ( '' !== $clean ) {
 					$keywords[] = $clean;
 				}
@@ -295,11 +295,25 @@ final class MetaPayload {
 			}
 
 			if ( array_key_exists( 'breadcrumb_title', $flags ) ) {
-				$out['flags']['breadcrumb_title'] = sanitize_text_field( (string) $flags['breadcrumb_title'] );
+				$out['flags']['breadcrumb_title'] = sanitize_text_field( self::scalarString( $flags['breadcrumb_title'] ) );
 			}
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Cast a string field value without the "Array" trap.
+	 *
+	 * A nested array posted for a string field must not be cast to the
+	 * literal string "Array". Only scalars are cast; anything else becomes
+	 * an empty string, which the existing sanitizers already accept.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string The result.
+	 */
+	private static function scalarString( mixed $value ): string {
+		return is_scalar( $value ) ? (string) $value : '';
 	}
 
 	/**
@@ -469,13 +483,13 @@ final class MetaPayload {
 				continue;
 			}
 
-			$question = isset( $row['question'] ) ? sanitize_text_field( (string) $row['question'] ) : '';
+			$question = isset( $row['question'] ) ? sanitize_text_field( self::scalarString( $row['question'] ) ) : '';
 
 			if ( '' === trim( $question ) ) {
 				continue;
 			}
 
-			$answer = isset( $row['answer'] ) ? self::kses( (string) $row['answer'] ) : '';
+			$answer = isset( $row['answer'] ) ? self::kses( self::scalarString( $row['answer'] ) ) : '';
 
 			$rows[] = [
 				'question' => $question,
@@ -512,7 +526,7 @@ final class MetaPayload {
 		}
 
 		if ( isset( $raw['name'] ) ) {
-			$out['name'] = sanitize_text_field( (string) $raw['name'] );
+			$out['name'] = sanitize_text_field( self::scalarString( $raw['name'] ) );
 		}
 
 		if ( isset( $raw['steps'] ) && is_array( $raw['steps'] ) ) {
@@ -527,14 +541,14 @@ final class MetaPayload {
 					continue;
 				}
 
-				$title = isset( $row['title'] ) ? sanitize_text_field( (string) $row['title'] ) : '';
-				$text  = isset( $row['text'] ) ? self::kses( (string) $row['text'] ) : '';
+				$title = isset( $row['title'] ) ? sanitize_text_field( self::scalarString( $row['title'] ) ) : '';
+				$text  = isset( $row['text'] ) ? self::kses( self::scalarString( $row['text'] ) ) : '';
 
 				if ( '' === trim( $title ) && '' === trim( $text ) ) {
 					continue;
 				}
 
-				$image = isset( $row['image'] ) ? esc_url_raw( (string) $row['image'] ) : '';
+				$image = isset( $row['image'] ) ? esc_url_raw( self::scalarString( $row['image'] ) ) : '';
 
 				$steps[] = [
 					'title' => $title,
@@ -547,11 +561,11 @@ final class MetaPayload {
 		}
 
 		if ( isset( $raw['totalTime'] ) ) {
-			$out['totalTime'] = sanitize_text_field( (string) $raw['totalTime'] );
+			$out['totalTime'] = sanitize_text_field( self::scalarString( $raw['totalTime'] ) );
 		}
 
 		if ( isset( $raw['cost'] ) ) {
-			$out['cost'] = sanitize_text_field( (string) $raw['cost'] );
+			$out['cost'] = sanitize_text_field( self::scalarString( $raw['cost'] ) );
 		}
 
 		return $out;
