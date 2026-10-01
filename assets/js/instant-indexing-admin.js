@@ -18,14 +18,39 @@
 ( function () {
 	'use strict';
 
+	// The translator falls back to the raw string when wp.i18n is absent. Every user facing
+	// literal is translated at its own call site, because the WordPress extractor only reads
+	// literal arguments to a translation function.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) {
+			return text;
+		};
+
+	var _n = ( window.wp && window.wp.i18n && typeof window.wp.i18n._n === 'function' )
+		? window.wp.i18n._n
+		: function ( single, plural, number ) {
+			return 1 === number ? single : plural;
+		};
+
+	var _sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( format ) {
+			var values = arguments;
+
+			return String( format ).replace( /%(\d+)\$[sd]/g, function ( match, position ) {
+				return String( values[ Number( position ) ] );
+			} );
+		};
+
 	var FIELD_ID = 'rankkernel-indexnow-urls';
 	var STATUS_ID = 'rankkernel-indexnow-urls-status';
 	var BUTTON_ID = 'rankkernel-indexnow-submit';
 	var DEBOUNCE_MS = 150;
 
-	var REASON_NOT_A_URL = 'Not a valid URL.';
-	var REASON_FOREIGN_HOST = 'This URL is not on this site.';
-	var MESSAGE_EMPTY = 'Enter at least one URL on this site.';
+	var REASON_NOT_A_URL = __( 'Not a valid URL.', 'rankkernel' );
+	var REASON_FOREIGN_HOST = __( 'This URL is not on this site.', 'rankkernel' );
+	var MESSAGE_EMPTY = __( 'Enter at least one URL on this site.', 'rankkernel' );
 	var MAX_VALID_SHOWN = 5;
 	var MAX_INVALID_SHOWN = 50;
 	var MAX_VALIDATE_LINES = 1000;
@@ -95,10 +120,12 @@
 		}
 
 		if ( 0 === invalidCount ) {
-			return total + ' URLs ready to submit.';
+			/* translators: %d: number of URLs ready to submit. */
+			return _sprintf( _n( '%1$d URL ready to submit.', '%1$d URLs ready to submit.', total, 'rankkernel' ), total );
 		}
 
-		return invalidCount + ' of ' + total + ' URLs are not valid. Fix them to continue.';
+		/* translators: %1$d: number of invalid URLs, %2$d: total number of URLs. */
+		return _sprintf( _n( '%1$d of %2$d URLs is not valid. Fix it to continue.', '%1$d of %2$d URLs are not valid. Fix them to continue.', invalidCount, 'rankkernel' ), invalidCount, total );
 	}
 
 	/**
@@ -253,7 +280,8 @@
 			if ( shown < result.total ) {
 				item = document.createElement( 'li' );
 				item.className = 'rk-validation-more';
-				item.textContent = '+ ' + ( result.total - shown ) + ' more URLs';
+				/* translators: %d: number of URLs hidden from the validation list. */
+				item.textContent = _sprintf( _n( '+ %1$d more URL', '+ %1$d more URLs', result.total - shown, 'rankkernel' ), result.total - shown );
 				list.appendChild( item );
 			}
 
@@ -448,6 +476,7 @@
 			try {
 				panel.scrollIntoView();
 			} catch ( ignored ) {
+				// Scrolling is best effort; the panel is already open.
 			}
 		}
 	}
@@ -547,6 +576,7 @@
 							try {
 								current.toggle.focus();
 							} catch ( error ) {
+								// Focus is best effort; the panel state is already correct.
 							}
 						}
 					} );
@@ -606,6 +636,7 @@
 							try {
 								match.toggle.focus();
 							} catch ( ignored ) {
+								// Focus is best effort; the panel state is already correct.
 							}
 						}
 					}
@@ -661,6 +692,7 @@
 					try {
 						toggle.focus();
 					} catch ( error ) {
+						// Focus is best effort; the panel state is already correct.
 					}
 				}
 			} );
@@ -710,30 +742,29 @@
 	}
 
 	/**
-	 * English pill label for one display category.
+	 * Pill label for one display category.
 	 *
-	 * Mirrors InstantIndexingOutcomes::statusLabel. The server translates
-	 * these, the script cannot, so an AJAX refresh shows the English
-	 * labels while the numbers always agree with the server.
+	 * Mirrors InstantIndexingOutcomes::statusLabel. Each literal is passed
+	 * to the translator directly, so the WordPress extractor can see it.
 	 */
 	function logStatusLabel( category ) {
 		if ( 'pending' === category ) {
-			return 'Key pending';
+			return __( 'Key pending', 'rankkernel' );
 		}
 
 		if ( 'rejected' === category ) {
-			return 'Rejected';
+			return __( 'Rejected', 'rankkernel' );
 		}
 
 		if ( 'limited' === category ) {
-			return 'Rate limited';
+			return __( 'Rate limited', 'rankkernel' );
 		}
 
 		if ( 'retry' === category ) {
-			return 'Retry later';
+			return __( 'Retry later', 'rankkernel' );
 		}
 
-		return 'Accepted';
+		return __( 'Accepted', 'rankkernel' );
 	}
 
 	/**
@@ -758,10 +789,13 @@
 	}
 
 	/**
-	 * English source label, mirroring InstantIndexingOutcomes::sourceLabel.
+	 * Source label, mirroring InstantIndexingOutcomes::sourceLabel.
+	 *
+	 * Each literal is passed to the translator directly, so the WordPress
+	 * extractor can see it.
 	 */
 	function logSourceLabel( source ) {
-		return 'manual' === source ? 'Manual' : 'Auto';
+		return 'manual' === source ? __( 'Manual', 'rankkernel' ) : __( 'Auto', 'rankkernel' );
 	}
 
 	/**
@@ -994,10 +1028,11 @@
 	}
 
 	/**
-	 * Footer label text for one visible range, server template in English.
+	 * Footer label text for one visible range.
 	 */
 	function logShowingText( showing ) {
-		return 'Showing ' + showing.from + ' to ' + showing.to + ' of ' + showing.total + ' entries';
+		/* translators: %1$d: first visible entry, %2$d: last visible entry, %3$d: total number of entries. */
+		return _sprintf( _n( 'Showing %1$d to %2$d of %3$d entry', 'Showing %1$d to %2$d of %3$d entries', showing.total, 'rankkernel' ), showing.from, showing.to, showing.total );
 	}
 
 	/**
@@ -1068,7 +1103,7 @@
 		var nonce = cfg && 'string' === typeof cfg.retryNonce ? cfg.retryNonce : '';
 		var cell = logEl( doc, 'td', 'rk-col-actions' );
 		var form = logEl( doc, 'form', 'rk-retry-form' );
-		var submit = logEl( doc, 'button', 'button secondary rk-retry-submit', 'Retry' );
+		var submit = logEl( doc, 'button', 'button secondary rk-retry-submit', __( 'Retry', 'rankkernel' ) );
 
 		form.setAttribute( 'method', 'post' );
 		form.setAttribute( 'action', '' );
@@ -1537,6 +1572,10 @@
 				try {
 					form.submit();
 				} catch ( error ) {
+					// The fallback submit is the last navigation path, so surface its failure.
+					if ( 'undefined' !== typeof window && 'undefined' !== typeof window.console && 'function' === typeof window.console.warn ) {
+						window.console.warn( 'Instant Indexing: the fallback submit failed.', error );
+					}
 				}
 			}
 		}
@@ -1590,6 +1629,7 @@
 					try {
 						window.history.pushState( {}, '', logPageUrl( action, state, safePage ) );
 					} catch ( error ) {
+						// History is best effort; the table already shows the new page.
 					}
 				}
 			} ).catch( function () {
