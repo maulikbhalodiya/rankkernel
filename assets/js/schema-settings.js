@@ -9,246 +9,253 @@
  * page works with JavaScript off. Loaded on the schema settings screen
  * only.
  */
-(function () {
-    'use strict';
+( function () {
+	'use strict';
 
-    function ready( callback ) {
-        if ('loading' === document.readyState) {
-            document.addEventListener('DOMContentLoaded', callback);
-        } else {
-            callback();
-        }
-    }
+	// The translator falls back to the raw string when wp.i18n is absent. Each announcement
+	// literal is translated at its call site instead, because the WordPress extractor only reads
+	// literal arguments and a message passed through this helper would stay invisible to it.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
 
-    ready(function () {
-        var select  = document.getElementById('rk-org-logo-select');
-        var remove  = document.getElementById('rk-org-logo-remove');
-        var input   = document.getElementById('rk-org-logo');
-        var preview = document.getElementById('rk-org-logo-preview');
+	function ready( callback ) {
+		if ( 'loading' === document.readyState ) {
+			document.addEventListener( 'DOMContentLoaded', callback );
+		} else {
+			callback();
+		}
+	}
 
-        if (! select || ! input || ! preview) {
-            return;
-        }
+	ready( function () {
+		var select  = document.getElementById( 'rk-org-logo-select' );
+		var remove  = document.getElementById( 'rk-org-logo-remove' );
+		var input   = document.getElementById( 'rk-org-logo' );
+		var preview = document.getElementById( 'rk-org-logo-preview' );
 
-        var frame = null;
+		if ( ! select || ! input || ! preview ) {
+			return;
+		}
 
-        select.addEventListener('click', function ( event ) {
-            event.preventDefault();
+		var frame = null;
 
-            if ('undefined' === typeof wp || ! wp.media) {
-                return;
-            }
+		select.addEventListener( 'click', function ( event ) {
+			event.preventDefault();
 
-            if (frame) {
-                frame.open();
-                return;
-            }
+			if ( 'undefined' === typeof wp || ! wp.media ) {
+				return;
+			}
 
-            frame = wp.media({
-                title: 'Select organization logo',
-                button: { text: 'Use this image' },
-                multiple: false,
-                library: { type: 'image' }
-            });
+			if ( frame ) {
+				frame.open();
+				return;
+			}
 
-            frame.on('select', function () {
-                var attachment = frame.state().get('selection').first();
+			frame = wp.media( {
+				title: __( 'Select organization logo', 'rankkernel' ),
+				button: { text: __( 'Use this image', 'rankkernel' ) },
+				multiple: false,
+				library: { type: 'image' }
+			} );
 
-                if (! attachment) {
-                    return;
-                }
+			frame.on( 'select', function () {
+				var attachment = frame.state().get( 'selection' ).first();
 
-                var url = attachment.get('url');
+				if ( ! attachment ) {
+					return;
+				}
 
-                if ('string' !== typeof url || '' === url) {
-                    return;
-                }
+				var url = attachment.get( 'url' );
 
-                input.value      = url;
-                preview.src      = url;
-                preview.style.display = '';
+				if ( 'string' !== typeof url || '' === url ) {
+					return;
+				}
 
-                if (remove) {
-                    remove.style.display = '';
-                }
-            });
+				input.value      = url;
+				preview.src      = url;
+				preview.style.display = '';
 
-            frame.open();
-        });
+				if ( remove ) {
+					remove.style.display = '';
+				}
+			} );
 
-        if (remove) {
-            remove.addEventListener('click', function ( event ) {
-                event.preventDefault();
+			frame.open();
+		} );
 
-                input.value           = '';
-                preview.src           = '';
-                preview.style.display = 'none';
-                remove.style.display  = 'none';
-            });
-        }
-    });
+		if ( remove ) {
+			remove.addEventListener( 'click', function ( event ) {
+				event.preventDefault();
 
-    /*
-     * Social profiles chip editor. The textarea is the control and the
-     * source of truth; this block only presents its lines as chips and
-     * writes every add or remove back into it.
-     */
-    ready(function () {
-        var app = document.getElementById('rk-schema-sameas-app');
+				input.value           = '';
+				preview.src           = '';
+				preview.style.display = 'none';
+				remove.style.display  = 'none';
+			} );
+		}
+	} );
 
-        if (! app) {
-            return;
-        }
+	/*
+	 * Social profiles chip editor. The textarea is the control and the
+	 * source of truth; this block only presents its lines as chips and
+	 * writes every add or remove back into it.
+	 */
+	ready( function () {
+		var app = document.getElementById( 'rk-schema-sameas-app' );
 
-        var textarea = document.getElementById('rk-org-sameas');
-        var list     = document.getElementById('rk-schema-sameas-chips');
-        var input    = document.getElementById('rk-schema-sameas-new');
-        var add      = document.getElementById('rk-schema-sameas-add');
+		if ( ! app ) {
+			return;
+		}
 
-        if (! textarea || ! list || ! input || ! add) {
-            return;
-        }
+		var textarea = document.getElementById( 'rk-org-sameas' );
+		var list     = document.getElementById( 'rk-schema-sameas-chips' );
+		var input    = document.getElementById( 'rk-schema-sameas-new' );
+		var add      = document.getElementById( 'rk-schema-sameas-add' );
 
-        var removeLabel  = app.getAttribute('data-remove-label') || 'Remove';
-        var invalidLabel = app.getAttribute('data-invalid-label') || 'Enter a valid URL.';
+		if ( ! textarea || ! list || ! input || ! add ) {
+			return;
+		}
 
-        function values() {
-            var out   = [];
-            var lines = textarea.value.split(/\r\n|\r|\n/);
+		var removeLabel  = app.getAttribute( 'data-remove-label' ) || __( 'Remove', 'rankkernel' );
+		var invalidLabel = app.getAttribute( 'data-invalid-label' ) || __( 'Enter a valid URL.', 'rankkernel' );
 
-            for (var i = 0; i < lines.length; i++) {
-                var value = lines[i].trim();
+		function values() {
+			var out   = [];
+			var lines = textarea.value.split( /\r\n|\r|\n/ );
 
-                if ('' !== value && -1 === out.indexOf(value)) {
-                    out.push(value);
-                }
-            }
+			for ( var i = 0; i < lines.length; i++ ) {
+				var value = lines[i].trim();
 
-            return out;
-        }
+				if ( '' !== value && -1 === out.indexOf( value ) ) {
+					out.push( value );
+				}
+			}
 
-        function sync( next ) {
-            textarea.value = next.join('\n');
-        }
+			return out;
+		}
 
-        function chip( url ) {
-            var item = document.createElement('li');
-            item.className = 'rk-schema-profile-chip';
+		function sync( next ) {
+			textarea.value = next.join( '\n' );
+		}
 
-            var text  = document.createElement('span');
-            text.className = 'rk-schema-profile-chip-url';
+		function chip( url ) {
+			var item = document.createElement( 'li' );
+			item.className = 'rk-schema-profile-chip';
 
-            var rest   = url.replace(/^https?:\/\//i, '');
-            var cut    = rest.indexOf('/');
-            var muted  = document.createElement('span');
-            var strong = document.createElement('span');
+			var text  = document.createElement( 'span' );
+			text.className = 'rk-schema-profile-chip-url';
 
-            muted.className  = 'rk-schema-profile-chip-muted';
-            strong.className = 'rk-schema-profile-chip-strong';
-            muted.textContent  = -1 === cut ? rest : rest.slice(0, cut + 1);
-            strong.textContent = -1 === cut ? '' : rest.slice(cut + 1);
+			var rest   = url.replace( /^https?:\/\//i, '' );
+			var cut    = rest.indexOf( '/' );
+			var muted  = document.createElement( 'span' );
+			var strong = document.createElement( 'span' );
 
-            text.appendChild(muted);
-            text.appendChild(strong);
+			muted.className  = 'rk-schema-profile-chip-muted';
+			strong.className = 'rk-schema-profile-chip-strong';
+			muted.textContent  = -1 === cut ? rest : rest.slice( 0, cut + 1 );
+			strong.textContent = -1 === cut ? '' : rest.slice( cut + 1 );
 
-            var button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'rk-schema-profile-chip-remove';
-            button.setAttribute('aria-label', removeLabel + ': ' + url);
+			text.appendChild( muted );
+			text.appendChild( strong );
 
-            var icon = document.createElement('span');
-            icon.className = 'rk-icon';
-            icon.setAttribute('aria-hidden', 'true');
-            icon.textContent = 'close';
+			var button = document.createElement( 'button' );
+			button.type = 'button';
+			button.className = 'rk-schema-profile-chip-remove';
+			button.setAttribute( 'aria-label', removeLabel + ': ' + url );
 
-            button.appendChild(icon);
-            button.addEventListener('click', function () {
-                var next = [];
-                var current = values();
+			var icon = document.createElement( 'span' );
+			icon.className = 'rk-icon';
+			icon.setAttribute( 'aria-hidden', 'true' );
+			icon.textContent = 'close';
 
-                for (var i = 0; i < current.length; i++) {
-                    if (current[i] !== url) {
-                        next.push(current[i]);
-                    }
-                }
+			button.appendChild( icon );
+			button.addEventListener( 'click', function () {
+				var next = [];
+				var current = values();
 
-                sync(next);
-                render();
+				for ( var i = 0; i < current.length; i++ ) {
+					if ( current[i] !== url ) {
+						next.push( current[i] );
+					}
+				}
 
-                if (next.length > 0) {
-                    var first = list.querySelector('.rk-schema-profile-chip-remove');
+				sync( next );
+				render();
 
-                    if (first) {
-                        first.focus();
-                    }
-                } else {
-                    input.focus();
-                }
-            });
+				if ( next.length > 0 ) {
+					var first = list.querySelector( '.rk-schema-profile-chip-remove' );
 
-            item.appendChild(text);
-            item.appendChild(button);
+					if ( first ) {
+						first.focus();
+					}
+				} else {
+					input.focus();
+				}
+			} );
 
-            return item;
-        }
+			item.appendChild( text );
+			item.appendChild( button );
 
-        function render() {
-            while (list.firstChild) {
-                list.removeChild(list.firstChild);
-            }
+			return item;
+		}
 
-            var current = values();
+		function render() {
+			while ( list.firstChild ) {
+				list.removeChild( list.firstChild );
+			}
 
-            for (var i = 0; i < current.length; i++) {
-                list.appendChild(chip(current[i]));
-            }
-        }
+			var current = values();
 
-        function addUrl() {
-            var value = input.value.trim();
+			for ( var i = 0; i < current.length; i++ ) {
+				list.appendChild( chip( current[i] ) );
+			}
+		}
 
-            if ('' === value) {
-                return;
-            }
+		function addUrl() {
+			var value = input.value.trim();
 
-            if (! /^https?:\/\/\S+$/i.test(value)) {
-                input.setCustomValidity(invalidLabel);
-                input.reportValidity();
+			if ( '' === value ) {
+				return;
+			}
 
-                return;
-            }
+			if ( ! /^https?:\/\/\S+$/i.test( value ) ) {
+				input.setCustomValidity( invalidLabel );
+				input.reportValidity();
 
-            input.setCustomValidity('');
+				return;
+			}
 
-            var current = values();
+			input.setCustomValidity( '' );
 
-            if (-1 === current.indexOf(value)) {
-                current.push(value);
-                sync(current);
-                render();
-            }
+			var current = values();
 
-            input.value = '';
-            input.focus();
-        }
+			if ( -1 === current.indexOf( value ) ) {
+				current.push( value );
+				sync( current );
+				render();
+			}
 
-        add.addEventListener('click', function ( event ) {
-            event.preventDefault();
-            addUrl();
-        });
+			input.value = '';
+			input.focus();
+		}
 
-        input.addEventListener('keydown', function ( event ) {
-            if ('Enter' === event.key || 13 === event.keyCode) {
-                event.preventDefault();
-                addUrl();
-            }
-        });
+		add.addEventListener( 'click', function ( event ) {
+			event.preventDefault();
+			addUrl();
+		} );
 
-        input.addEventListener('input', function () {
-            input.setCustomValidity('');
-        });
+		input.addEventListener( 'keydown', function ( event ) {
+			if ( 'Enter' === event.key || 13 === event.keyCode ) {
+				event.preventDefault();
+				addUrl();
+			}
+		} );
 
-        render();
-        app.classList.add('is-enhanced');
-    });
-})();
+		input.addEventListener( 'input', function () {
+			input.setCustomValidity( '' );
+		} );
+
+		render();
+		app.classList.add( 'is-enhanced' );
+	} );
+} )();

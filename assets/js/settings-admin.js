@@ -75,8 +75,8 @@
 
 			if ( ! mediaFrame ) {
 				mediaFrame = wp.media( {
-					title: 'Select default social image',
-					button: { text: 'Use this image' },
+					title: __( 'Select default social image', 'rankkernel' ),
+					button: { text: __( 'Use this image', 'rankkernel' ) },
 					multiple: false,
 					library: { type: 'image' }
 				} );
