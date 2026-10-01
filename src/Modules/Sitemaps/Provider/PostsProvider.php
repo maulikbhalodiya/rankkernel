@@ -226,21 +226,28 @@ class PostsProvider {
 
 			$images = [];
 			if ( $this->contentImagesAllowed() ) {
-				$featured    = null;
-				$hasThumbFns = function_exists( 'get_post_thumbnail_id' )
-					&& function_exists( 'wp_get_attachment_image_url' );
-				if ( $this->featuredAllowed() && $hasThumbFns ) {
-					$thumbId = (int) get_post_thumbnail_id( $postId );
-					if ( 0 !== $thumbId ) {
-						$url = wp_get_attachment_image_url( $thumbId, 'full' );
-						if ( is_string( $url ) && '' !== $url ) {
-							$featured = $url;
+				try {
+					$featured    = null;
+					$hasThumbFns = function_exists( 'get_post_thumbnail_id' )
+						&& function_exists( 'wp_get_attachment_image_url' );
+					if ( $this->featuredAllowed() && $hasThumbFns ) {
+						$thumbId = (int) get_post_thumbnail_id( $postId );
+						if ( 0 !== $thumbId ) {
+							$url = wp_get_attachment_image_url( $thumbId, 'full' );
+							if ( is_string( $url ) && '' !== $url ) {
+								$featured = $url;
+							}
 						}
 					}
-				}
 
-				$content = isset( $row['post_content'] ) && is_string( $row['post_content'] ) ? $row['post_content'] : '';
-				$images  = $this->extractContentImages( $postId, $content, $featured );
+					$content = isset( $row['post_content'] ) && is_string( $row['post_content'] ) ? $row['post_content'] : '';
+					$images  = $this->extractContentImages( $postId, $content, $featured );
+				} catch ( \Throwable $throwable ) {
+					// One broken dynamic block must never abort the whole
+					// sitemap page, so the entry keeps its place and only
+					// its images are skipped.
+					$this->reportFailure( $postId, $throwable );
+				}
 			}
 
 			$entries[] = [
@@ -309,16 +316,23 @@ class PostsProvider {
 			$dom = new \DOMDocument();
 
 			$internal = libxml_use_internal_errors( true );
-			$dom->loadHTML( '<?xml encoding="UTF-8">' . $rendered );
-			libxml_clear_errors();
-			libxml_use_internal_errors( $internal );
 
-			foreach ( $dom->getElementsByTagName( 'img' ) as $img ) {
-				$src        = trim( (string) $img->getAttribute( 'src' ) );
-				$normalized = $this->normalizeImageUrl( $src, $home, $host );
-				if ( '' !== $normalized ) {
-					$found[] = $normalized;
+			try {
+				$dom->loadHTML( '<?xml encoding="UTF-8">' . $rendered );
+
+				foreach ( $dom->getElementsByTagName( 'img' ) as $img ) {
+					$src        = trim( (string) $img->getAttribute( 'src' ) );
+					$normalized = $this->normalizeImageUrl( $src, $home, $host );
+					if ( '' !== $normalized ) {
+						$found[] = $normalized;
+					}
 				}
+			} finally {
+				// Restore the caller's libxml state on both the normal and
+				// the throwing path, so one post never leaks parser state
+				// into the rest of the request.
+				libxml_clear_errors();
+				libxml_use_internal_errors( $internal );
 			}
 		}
 
@@ -344,6 +358,26 @@ class PostsProvider {
 		$unique = array_values( array_unique( $found ) );
 
 		return array_slice( $unique, 0, 100 );
+	}
+
+	/**
+	 * Report a post whose content rendering failed.
+	 *
+	 * The failure goes through wp_trigger_error, the same diagnostic the
+	 * module manager and the redirector use. It is never swallowed
+	 * silently, and the entry keeps its place with images skipped.
+	 *
+	 * @param int        $postId    Post id.
+	 * @param \Throwable $throwable Caught throwable.
+	 */
+	private function reportFailure( int $postId, \Throwable $throwable ): void {
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				sprintf( 'Sitemap images skipped for post %1$d: %2$s', $postId, $throwable->getMessage() ),
+				E_USER_WARNING
+			);
+		}
 	}
 
 	/**

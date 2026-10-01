@@ -206,13 +206,19 @@ class Router {
 		}
 
 		if ( 'index' === $set ) {
-			$this->sendXmlHeaders();
+			try {
+				$xml = $this->cache->get(
+					'index',
+					1,
+					fn (): string => $this->builder->buildIndexXml()
+				);
+			} catch ( \Throwable $throwable ) {
+				$this->reportBuildFailure( 'index', $throwable );
 
-			$xml = $this->cache->get(
-				'index',
-				1,
-				fn (): string => $this->builder->buildIndexXml()
-			);
+				return;
+			}
+
+			$this->sendXmlHeaders();
 
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
 			echo $xml;
@@ -246,13 +252,19 @@ class Router {
 			return;
 		}
 
-		$this->sendXmlHeaders();
+		try {
+			$xml = $this->cache->get(
+				$set,
+				$page,
+				fn (): string => $this->builder->buildEntriesXml( $set, $page )
+			);
+		} catch ( \Throwable $throwable ) {
+			$this->reportBuildFailure( $set, $throwable );
 
-		$xml = $this->cache->get(
-			$set,
-			$page,
-			fn (): string => $this->builder->buildEntriesXml( $set, $page )
-		);
+			return;
+		}
+
+		$this->sendXmlHeaders();
 
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML already escaped in builder.
 		echo $xml;
@@ -277,6 +289,37 @@ class Router {
 			header( 'Content-Type: application/xml; charset=UTF-8' );
 			header( 'X-Robots-Tag: noindex, follow' );
 		}
+	}
+
+	/**
+	 * Emit a plain 500 when the XML build fails before headers were sent.
+	 *
+	 * A failing provider or filter must yield an error status, never a
+	 * truncated 200 that clients cache. The failure goes through
+	 * wp_trigger_error, the same diagnostic the module manager and the
+	 * redirector use, and is never rethrown.
+	 *
+	 * @param string     $set       Sitemap set being built.
+	 * @param \Throwable $throwable Caught throwable.
+	 */
+	private function reportBuildFailure( string $set, \Throwable $throwable ): void {
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				sprintf( 'Sitemap build failed for %1$s: %2$s', $set, $throwable->getMessage() ),
+				E_USER_WARNING
+			);
+		}
+
+		if ( ! headers_sent() ) {
+			status_header( 500 );
+			header( 'Content-Type: text/plain; charset=UTF-8' );
+			nocache_headers();
+		}
+
+		echo 'Sitemap unavailable.';
+
+		$this->finishRender();
 	}
 
 	/**
