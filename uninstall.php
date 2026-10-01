@@ -28,6 +28,8 @@ global $wpdb;
 // uninstall.
 
 // Purge all transients and transient timeouts owned by RankKernel modules.
+// Covers rankkernel_* (sitemap caches, llms.txt document, table existence flags),
+// rkredir_* (redirect match caches), and rk404_flood_* (404 rate limit windows).
 $transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
 foreach ( $transient_prefixes as $transient_prefix ) {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
