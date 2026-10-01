@@ -71,7 +71,9 @@ final class SchemaSettingsTest extends TestCase {
 	 * Test unknown site represents falls back.
 	 */
 	public function test_unknown_site_represents_falls_back(): void {
-		Functions\when( 'get_option' )->justReturn( [] );
+		// The store skips a write when the sanitized value equals the stored
+		// one, so the baseline is a non default value to make each set write.
+		Functions\when( 'get_option' )->justReturn( [ 'site_represents' => 'person' ] );
 
 		$captured = null;
 		Functions\when( 'update_option' )->alias(
@@ -117,7 +119,9 @@ final class SchemaSettingsTest extends TestCase {
 	 * Test org logo uses raw url sanitize.
 	 */
 	public function test_org_logo_uses_raw_url_sanitize(): void {
-		Functions\when( 'get_option' )->justReturn( [] );
+		// The store skips a write when the sanitized value equals the stored
+		// one, so the baseline is a non empty logo to make each set write.
+		Functions\when( 'get_option' )->justReturn( [ 'org_logo' => 'https://example.com/old.png' ] );
 
 		$captured = null;
 		Functions\when( 'update_option' )->alias(
@@ -140,7 +144,9 @@ final class SchemaSettingsTest extends TestCase {
 	 * Test website search action bool.
 	 */
 	public function test_website_search_action_bool(): void {
-		Functions\when( 'get_option' )->justReturn( [] );
+		// The store skips a write when the sanitized value equals the stored
+		// one, so the baseline is false to make each set write.
+		Functions\when( 'get_option' )->justReturn( [ 'website_search_action' => false ] );
 
 		$captured = null;
 		Functions\when( 'update_option' )->alias(

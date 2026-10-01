@@ -105,9 +105,20 @@ final class LlmsSettings {
 			return false;
 		}
 
-		$merged = array_merge( $this->all(), $sanitized );
+		$current = $this->all();
+		$merged  = array_merge( $current, $sanitized );
 
-		update_option( self::OPTION, $merged, false );
+		// update_option() returns false both when the value is unchanged and
+		// when the write fails, so the write is skipped when nothing changed.
+		// An unchanged save still counts as a success; a changed write that
+		// returns false reports the failure instead of updating the cache.
+		if ( $merged === $current ) {
+			return true;
+		}
+
+		if ( ! update_option( self::OPTION, $merged, false ) ) {
+			return false;
+		}
 
 		$this->cache = $merged;
 

@@ -122,13 +122,38 @@ final class SettingsStoreTest extends TestCase {
 	public function test_set_noop_same_values_returns_true(): void {
 		Functions\when( 'get_option' )->justReturn( [ 'title_template' => 'Same' ] );
 		Functions\when( 'sanitize_text_field' )->returnArg( 1 );
-		// update_option returns false (no DB change), should still be true.
-		Functions\expect( 'update_option' )->once()->andReturn( false );
+		// An unchanged value is never written; update_option() would return
+		// false for it, which must not be confused with a failed write.
+		Functions\expect( 'update_option' )->never();
 
 		$store  = new SettingsStore();
 		$result = $store->set( [ 'title_template' => 'Same' ] );
 
 		$this->assertTrue( $result, 'no-op save with valid key must return true' );
+	}
+
+	/**
+	 * Test a failed write reports false and keeps the in-memory cache.
+	 *
+	 * The update_option() function returns false both for an unchanged
+	 * value and for a failed write, so the changed-value guard above must
+	 * run first. This covers the other half: a value that did change and
+	 * whose write failed.
+	 */
+	public function test_set_reports_failed_write_and_keeps_cache(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'sanitize_text_field' )->returnArg( 1 );
+		Functions\expect( 'update_option' )->once()->andReturn( false );
+
+		$store  = new SettingsStore();
+		$result = $store->set( [ 'title_template' => 'New title' ] );
+
+		$this->assertFalse( $result, 'a changed write that fails must report false' );
+		$this->assertSame(
+			SettingsStore::defaults()['title_template'],
+			$store->get( 'title_template' ),
+			'a failed write must not update the in-memory cache'
+		);
 	}
 
 	/**

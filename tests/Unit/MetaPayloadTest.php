@@ -140,6 +140,114 @@ final class MetaPayloadTest extends TestCase {
 	}
 
 	/**
+	 * A nested array posted for a string field must never become "Array".
+	 *
+	 * WordPress casts arrays to the literal string "Array", which would
+	 * store and then render as metadata or a schema field. Non scalar input
+	 * is rejected to the field default; genuine scalars keep sanitizing.
+	 */
+	public function test_sanitize_rejects_nested_arrays_for_string_fields(): void {
+		$payload = [
+			'title'          => [ 'nested' ],
+			'description'    => [ 'nested' ],
+			'canonical'      => [ 'https://example.com/page/' ],
+			'og'             => [
+				'title'       => [ 'nested' ],
+				'description' => [ 'nested' ],
+				'image'       => [ 'https://example.com/image.png' ],
+				'image_alt'   => [ 'nested' ],
+				'type'        => [ 'article' ],
+			],
+			'twitter'        => [
+				'card'        => [ 'summary' ],
+				'title'       => [ 'nested' ],
+				'description' => [ 'nested' ],
+				'image'       => [ 'https://example.com/image.png' ],
+			],
+			'focus_keywords' => [ [ 'nested' ], 'keep me' ],
+			'flags'          => [ 'breadcrumb_title' => [ 'nested' ] ],
+		];
+
+		$clean = MetaPayload::sanitize( $payload );
+
+		$this->assertSame( '', $clean['title'] );
+		$this->assertSame( '', $clean['description'] );
+		$this->assertSame( '', $clean['canonical'] );
+		$this->assertSame( '', $clean['og']['title'] );
+		$this->assertSame( '', $clean['og']['description'] );
+		$this->assertSame( '', $clean['og']['image'] );
+		$this->assertSame( '', $clean['og']['image_alt'] );
+		$this->assertSame( '', $clean['og']['type'] );
+		$this->assertSame( '', $clean['twitter']['card'] );
+		$this->assertSame( '', $clean['twitter']['title'] );
+		$this->assertSame( '', $clean['twitter']['description'] );
+		$this->assertSame( '', $clean['twitter']['image'] );
+		$this->assertSame( [ 'keep me' ], $clean['focus_keywords'], 'scalar keywords in the same list must survive' );
+		$this->assertSame( '', $clean['flags']['breadcrumb_title'] );
+	}
+
+	/**
+	 * Nested arrays in FAQ, HowTo, and schema field string slots are rejected.
+	 *
+	 * FAQ rows keep the answer default instead of "Array", a howto step with
+	 * a scalar text still keeps the text while its array slots are blanked,
+	 * and schema field values stay on the existing scalar-only path.
+	 */
+	public function test_sanitize_schema_rejects_nested_arrays_for_string_fields(): void {
+		Functions\when( 'wp_kses_post' )->returnArg( 1 );
+
+		$payload = [
+			'schema' => [
+				'fields' => [
+					'headline' => [ 'nested' ],
+					'keep'     => 'kept',
+				],
+				'faq'    => [
+					'questions' => [
+						[
+							'question' => 'Q1',
+							'answer'   => [ 'nested' ],
+						],
+						[
+							'question' => [ 'nested' ],
+							'answer'   => 'orphan answer',
+						],
+					],
+				],
+				'howto'  => [
+					'name'      => [ 'nested' ],
+					'totalTime' => [ 'nested' ],
+					'cost'      => [ 'nested' ],
+					'steps'     => [
+						[
+							'title' => [ 'nested' ],
+							'text'  => 'kept text',
+							'image' => [ 'https://example.com/step.png' ],
+						],
+					],
+				],
+			],
+		];
+
+		$clean = MetaPayload::sanitize( $payload );
+
+		$this->assertArrayNotHasKey( 'headline', $clean['schema']['fields'] );
+		$this->assertSame( 'kept', $clean['schema']['fields']['keep'] );
+
+		$this->assertCount( 1, $clean['schema']['faq']['questions'] );
+		$this->assertSame( 'Q1', $clean['schema']['faq']['questions'][0]['question'] );
+		$this->assertSame( '', $clean['schema']['faq']['questions'][0]['answer'] );
+
+		$this->assertSame( '', $clean['schema']['howto']['name'] );
+		$this->assertSame( '', $clean['schema']['howto']['totalTime'] );
+		$this->assertSame( '', $clean['schema']['howto']['cost'] );
+		$this->assertCount( 1, $clean['schema']['howto']['steps'] );
+		$this->assertSame( '', $clean['schema']['howto']['steps'][0]['title'] );
+		$this->assertSame( 'kept text', $clean['schema']['howto']['steps'][0]['text'] );
+		$this->assertSame( '', $clean['schema']['howto']['steps'][0]['image'] );
+	}
+
+	/**
 	 * Test rest schema shape sanity.
 	 */
 	public function test_rest_schema_shape_sanity(): void {

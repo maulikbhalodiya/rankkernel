@@ -173,16 +173,28 @@ final class ModulesController {
 		}
 
 		$current = array_map( 'strval', $current );
+		$updated = $current;
 
 		if ( $enabled ) {
-			if ( ! in_array( $moduleId, $current, true ) ) {
-				$current[] = $moduleId;
+			if ( ! in_array( $moduleId, $updated, true ) ) {
+				$updated[] = $moduleId;
 			}
 		} else {
-			$current = array_values( array_filter( $current, static fn( string $id ): bool => $id !== $moduleId ) );
+			$updated = array_values( array_filter( $updated, static fn( string $id ): bool => $id !== $moduleId ) );
 		}
 
-		update_option( self::OPTION, $current );
+		// update_option() returns false both when the list is unchanged and
+		// when the write fails, so an unchanged toggle is never written and
+		// still counts as a success. A changed write that returns false is
+		// reported instead of claiming the toggle persisted and flushing
+		// rewrite rules for a state that was not stored.
+		if ( $updated !== $current && ! update_option( self::OPTION, $updated ) ) {
+			return new WP_Error(
+				'rankkernel_storage_failed',
+				esc_html__( 'The module status could not be saved.', 'rankkernel' ),
+				[ 'status' => 500 ]
+			);
+		}
 
 		// Rewrite-based modules (sitemaps) register or drop rules depending
 		// on this list, so the cached rules must regenerate.
@@ -190,7 +202,7 @@ final class ModulesController {
 
 		return new WP_REST_Response(
 			[
-				'modules' => $current,
+				'modules' => $updated,
 				'message' => esc_html__(
 					'Module status updated. Changes take effect on the next request.',
 					'rankkernel'
