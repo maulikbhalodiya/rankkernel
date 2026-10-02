@@ -28,6 +28,9 @@ final class MigrationRunnerTest extends TestCase {
 		if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
 			define( 'RANKKERNEL_VERSION', '0.1.0' );
 		}
+
+		// The runner stamps a recorded failure with a timestamp.
+		Functions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
 	}
 
 	/**
@@ -108,17 +111,28 @@ final class MigrationRunnerTest extends TestCase {
 	 * A success before a failure is persisted, and only the failure onward retries.
 	 */
 	public function test_failure_at_version_n_persists_the_versions_before_n(): void {
-		$store = '0.0.0';
-		$saved = [];
+		$store    = '0.0.0';
+		$saved    = [];
+		$failures = [];
 
 		Functions\when( 'get_option' )->alias(
-			static function () use ( &$store ): string {
-				return (string) $store;
+			static function ( string $option, mixed $fallback = false ) use ( &$store, &$failures ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				if ( MigrationRunner::FAILURES === $option ) {
+					return $failures;
+				}
+
+				return $store;
 			}
 		);
 		Functions\when( 'update_option' )->alias(
-			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$saved ): bool {
-				unset( $option, $autoload );
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$saved, &$failures ): bool {
+				unset( $autoload );
+
+				if ( MigrationRunner::FAILURES === $option ) {
+					$failures = is_array( $value ) ? $value : [];
+
+					return true;
+				}
 
 				$store   = $value;
 				$saved[] = $value;
@@ -161,6 +175,12 @@ final class MigrationRunnerTest extends TestCase {
 		$this->assertSame( '0.1.0', $store, 'Storage holds the version before the failure' );
 		$this->assertSame( '0.1.0', $first->currentVersion(), 'The in memory version matches storage' );
 
+		// The failure is now recorded, so it survives log rotation and is
+		// visible to the operator instead of only ever reaching the PHP log.
+		$this->assertArrayHasKey( '0.2.0', $failures, 'The failed version must be persisted' );
+		$this->assertSame( 1, (int) $failures['0.2.0']['attempts'] );
+		$this->assertSame( 'boom', (string) $failures['0.2.0']['message'] );
+
 		// The next request starts from the persisted ledger and retries from the failure.
 		$fail       = false;
 		$secondRuns = [];
@@ -189,6 +209,10 @@ final class MigrationRunnerTest extends TestCase {
 
 		$this->assertSame( [ '0.2.0', '0.3.0' ], $secondRuns, 'Only the failed version and later must retry' );
 		$this->assertSame( '0.3.0', $store );
+
+		// Once the version runs cleanly its failure record is dropped, so a
+		// healthy ledger leaves no stale error on the dashboard.
+		$this->assertSame( [], $failures, 'A version that ran cleanly keeps no failure record' );
 	}
 
 	/**
@@ -270,7 +294,24 @@ final class MigrationRunnerTest extends TestCase {
 			}
 		);
 
-		Functions\expect( 'update_option' )->never();
+		// The ledger is never written on failure, but the failure itself is
+		// now persisted so the operator can see it and clear it.
+		$failureWrites = 0;
+
+		Functions\expect( 'update_option' )
+			->with( MigrationRunner::LEDGER, \Mockery::any(), \Mockery::any() )
+			->never();
+
+		Functions\expect( 'update_option' )
+			->with( MigrationRunner::FAILURES, \Mockery::type( 'array' ), false )
+			->andReturnUsing(
+				static function () use ( &$failureWrites ): bool {
+					++$failureWrites;
+
+					return true;
+				}
+			)
+			->once();
 
 		$runner->maybeRun();
 
@@ -279,6 +320,171 @@ final class MigrationRunnerTest extends TestCase {
 		$this->assertSame( $throwable, $actionArgs[1] ?? null );
 		$this->assertTrue( $triggered, 'wp_trigger_error should be called' );
 		$this->assertFalse( $secondCalled, 'Migrations after failure must not run' );
+		$this->assertSame( 1, $failureWrites, 'The failure must be persisted once' );
+	}
+
+	/**
+	 * Test a repeated failure stops emitting the per request warning.
+	 *
+	 * A permanently failing migration used to write an E_USER_WARNING on
+	 * every request, front and back, forever, inside the component whose
+	 * job is bloat prevention.
+	 */
+	public function test_repeated_failure_caps_the_warning(): void {
+		$store    = '0.1.0';
+		$failures = [];
+		$warnings = 0;
+		$actions  = 0;
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, mixed $fallback = false ) use ( &$store, &$failures ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				if ( MigrationRunner::FAILURES === $option ) {
+					return $failures;
+				}
+
+				return $store;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$failures ): bool {
+				unset( $autoload );
+
+				if ( MigrationRunner::FAILURES === $option ) {
+					$failures = is_array( $value ) ? $value : [];
+
+					return true;
+				}
+
+				$store = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$actions ): void {
+				if ( 'rankkernel/migration/failed' === $hook ) {
+					++$actions;
+				}
+			}
+		);
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function () use ( &$warnings ): void {
+				++$warnings;
+			}
+		);
+
+		$total = MigrationRunner::WARNING_LIMIT + 3;
+
+		for ( $i = 0; $i < $total; $i++ ) {
+			$runner = new MigrationRunner();
+			$runner->register(
+				'0.2.0',
+				static function (): void {
+					throw new \RuntimeException( 'boom' );
+				}
+			);
+
+			$runner->maybeRun();
+		}
+
+		$this->assertSame(
+			MigrationRunner::WARNING_LIMIT,
+			$warnings,
+			'The warning must stop after the configured attempt limit'
+		);
+		$this->assertSame(
+			$total,
+			$actions,
+			'The failure action must still fire on every attempt so the state stays observable'
+		);
+		$this->assertSame( $total, (int) $failures['0.2.0']['attempts'], 'Every attempt must be counted' );
+	}
+
+	/**
+	 * Test a recorded failure can be cleared so the version runs again.
+	 */
+	public function test_clearing_a_failure_lets_the_version_run_again(): void {
+		$store    = '0.1.0';
+		$failures = [
+			'0.2.0' => [
+				'attempts' => 5,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, mixed $fallback = false ) use ( &$store, &$failures ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				if ( MigrationRunner::FAILURES === $option ) {
+					return $failures;
+				}
+
+				return $store;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$failures ): bool {
+				unset( $autoload );
+
+				if ( MigrationRunner::FAILURES === $option ) {
+					$failures = is_array( $value ) ? $value : [];
+
+					return true;
+				}
+
+				$store = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_trigger_error' )->justReturn( null );
+
+		$runs = 0;
+
+		$runner = new MigrationRunner();
+		$runner->register(
+			'0.2.0',
+			static function () use ( &$runs ): void {
+				++$runs;
+			}
+		);
+
+		$this->assertTrue( $runner->clearFailure( '0.2.0' ), 'The recorded failure must be clearable' );
+		$this->assertSame( [], $failures, 'Clearing must empty the failures option' );
+		$this->assertSame( '0.1.0', $store, 'Clearing a failure must never touch the ledger' );
+
+		$runner->maybeRun();
+
+		$this->assertSame( 1, $runs, 'After clearing, the pending version must run' );
+		$this->assertSame( '0.2.0', $store, 'A clean run must advance the ledger' );
+	}
+
+	/**
+	 * Test clearing an unknown version changes nothing.
+	 */
+	public function test_clearing_an_unknown_version_is_a_no_op(): void {
+		$failures = [
+			'0.2.0' => [
+				'attempts' => 1,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		Functions\when( 'get_option' )->justReturn( $failures );
+		Functions\expect( 'update_option' )->never();
+
+		$this->assertFalse( ( new MigrationRunner() )->clearFailure( '9.9.9' ) );
+	}
+
+	/**
+	 * Test a corrupt failures option reads as no failures rather than fatal.
+	 */
+	public function test_corrupt_failures_option_reads_empty(): void {
+		Functions\when( 'get_option' )->justReturn( 'not an array' );
+
+		$this->assertSame( [], ( new MigrationRunner() )->failures() );
 	}
 
 	/**

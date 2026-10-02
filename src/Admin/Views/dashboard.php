@@ -35,6 +35,8 @@
  *
  * @var bool  $settingsUpdated Whether the module toggled notice renders.
  * @var array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string}> $cards Module cards.
+ * @var array<int, array{version: string, attempts: int, message: string, failedAt: string}> $migrationFailures Recorded migration failures.
+ * @var bool $migrationCleared Whether the migration cleared notice renders.
  */
 
 declare(strict_types=1);
@@ -150,11 +152,49 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 			<?php endif; ?>
 		</header>
 
-		<?php /* Section 2: module toggled notice, the only notice this screen raises. */ ?>
+		<?php /* Section 2: module toggled notice. */ ?>
 		<?php if ( $settingsUpdated ) : ?>
 			<div class="rk-ui-notice rk-ui-notice-success" role="status">
 				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
 				<p class="rk-ui-notice-text"><?php echo esc_html__( 'Module updated.', 'rankkernel' ); ?></p>
+			</div>
+		<?php endif; ?>
+
+		<?php /* Section 2b: recorded migration failures, with the clear and rerun control. */ ?>
+		<?php if ( $migrationCleared ) : ?>
+			<div class="rk-ui-notice rk-ui-notice-success" role="status">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">check_circle</span>
+				<p class="rk-ui-notice-text"><?php echo esc_html__( 'Migration failure cleared. It will run again on the next request.', 'rankkernel' ); ?></p>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( [] !== $migrationFailures ) : ?>
+			<div class="rk-ui-notice rk-ui-notice-error" role="alert">
+				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">error</span>
+				<div class="rk-ui-notice-text">
+					<p><?php echo esc_html__( 'A database migration is failing, so every migration queued after it is waiting.', 'rankkernel' ); ?></p>
+					<?php foreach ( $migrationFailures as $rk_failure ) : ?>
+						<p>
+							<?php
+							echo esc_html(
+								sprintf(
+									/* translators: 1: migration version, 2: attempt count */
+									__( 'Version %1$s, failed %2$d times. Last error: %3$s', 'rankkernel' ),
+									(string) $rk_failure['version'],
+									(int) $rk_failure['attempts'],
+									(string) $rk_failure['message']
+								)
+							);
+							?>
+							<form method="post" action="">
+								<?php wp_nonce_field( 'rankkernel_migration_clear' ); ?>
+								<button type="submit" class="rk-ui-button rk-ui-button-secondary" name="rankkernel_migration_clear" value="<?php echo esc_attr( (string) $rk_failure['version'] ); ?>">
+									<?php echo esc_html__( 'Clear and run again', 'rankkernel' ); ?>
+								</button>
+							</form>
+						</p>
+					<?php endforeach; ?>
+				</div>
 			</div>
 		<?php endif; ?>
 

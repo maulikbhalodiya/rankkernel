@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\DashboardPage;
+use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\ModuleRegistry;
 
 /*
@@ -235,5 +236,126 @@ final class DashboardPageTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Settings for Metadata Engine"', $output );
 		$this->assertStringContainsString( 'aria-label="Turn off Metadata Engine module"', $output );
 		$this->assertStringContainsString( 'aria-label="Turn on Robots.txt &amp; .htaccess module"', $output );
+	}
+
+	/**
+	 * Test a recorded migration failure is surfaced on the dashboard.
+	 *
+	 * A failure that only reached the PHP log was invisible once the log
+	 * rotated, so the operator had no way to know migrations were stuck.
+	 */
+	public function test_render_surfaces_recorded_migration_failure(): void {
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 4,
+				'message'  => 'table already exists',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '0.2.0', $output, 'The failing version must be visible' );
+		$this->assertStringContainsString( '4 times', $output, 'The attempt count must be visible' );
+		$this->assertStringContainsString( 'table already exists', $output, 'The error must be visible' );
+		$this->assertStringContainsString( 'Clear and run again', $output, 'A recovery control must be offered' );
+		$this->assertStringContainsString( 'rankkernel_migration_clear', $output, 'The control must post its handler' );
+	}
+
+	/**
+	 * Test a healthy install shows no migration failure notice.
+	 */
+	public function test_render_omits_migration_notice_when_healthy(): void {
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'Clear and run again', $output );
+	}
+
+	/**
+	 * Test the clear and rerun control removes only the named version.
+	 */
+	public function test_migration_clear_removes_the_named_version_only(): void {
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+			'0.3.0' => [
+				'attempts' => 1,
+				'message'  => 'other',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		$_SERVER['REQUEST_METHOD']           = 'POST';
+		$_POST['rankkernel_migration_clear'] = '0.2.0';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertArrayNotHasKey( '0.2.0', $this->options[ MigrationRunner::FAILURES ], 'The named failure must be cleared' );
+		$this->assertArrayHasKey( '0.3.0', $this->options[ MigrationRunner::FAILURES ], 'An unrelated failure must survive' );
+		$this->assertArrayNotHasKey(
+			MigrationRunner::LEDGER,
+			array_diff_key( $this->options, [ MigrationRunner::FAILURES => 1 ] ),
+			'Clearing a failure must never write the ledger'
+		);
+	}
+
+	/**
+	 * Test the clear and rerun control refuses without the capability.
+	 */
+	public function test_migration_clear_requires_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		$_SERVER['REQUEST_METHOD']           = 'POST';
+		$_POST['rankkernel_migration_clear'] = '0.2.0';
+
+		$this->expectException( \RuntimeException::class );
+
+		try {
+			( new DashboardPage() )->maybeHandleSave();
+		} finally {
+			$this->assertArrayHasKey( '0.2.0', $this->options[ MigrationRunner::FAILURES ], 'A refused request must clear nothing' );
+			$this->assertSame( [], $this->redirects, 'A refused request must not redirect away' );
+		}
+	}
+
+	/**
+	 * Test the clear and rerun control refuses a bad nonce.
+	 */
+	public function test_migration_clear_requires_valid_nonce(): void {
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		$_SERVER['REQUEST_METHOD']           = 'POST';
+		$_POST['rankkernel_migration_clear'] = '0.2.0';
+
+		$this->expectException( \RuntimeException::class );
+
+		try {
+			( new DashboardPage() )->maybeHandleSave();
+		} finally {
+			$this->assertArrayHasKey( '0.2.0', $this->options[ MigrationRunner::FAILURES ], 'A bad nonce must clear nothing' );
+		}
 	}
 }
