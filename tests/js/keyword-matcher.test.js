@@ -45,6 +45,29 @@ test( 'occurrences counts non overlapping exact phrases only', () => {
 	assert.equal( Matcher.occurrences( 'aaaa', 'aa' ), 0 );
 } );
 
+test( 'occurrences counts every repeat, not every other one', () => {
+	// The old padded scan stepped past the trailing space the next
+	// occurrence also needed, so a repeated keyword came back at about
+	// half its real count. That figure feeds the density ceiling.
+	assert.equal( Matcher.occurrences( 'seo seo seo', 'seo' ), 3 );
+	assert.equal( Matcher.occurrences( 'seo seo seo seo', 'seo' ), 4 );
+	assert.equal( Matcher.occurrences( 'SEO for SEO. SEO!', 'seo' ), 3 );
+	assert.equal( Matcher.occurrences( 'a  seo   b', 'seo' ), 1 );
+} );
+
+test( 'occurrences ignores partial words and empty input', () => {
+	// normalize() folds case and drops punctuation to word boundaries, so
+	// seo-tools becomes the two words seo tools and seo does match it. A
+	// substring of a longer word must not match.
+	assert.equal( Matcher.occurrences( 'seo-tools seo', 'seo' ), 2 );
+	assert.equal( Matcher.occurrences( 'seo-tools seo', 'seo tools' ), 1 );
+	assert.equal( Matcher.occurrences( 'preseo', 'seo' ), 0 );
+	assert.equal( Matcher.occurrences( 'seoseo', 'seo' ), 0 );
+	assert.equal( Matcher.occurrences( 'cat care basics', 'at' ), 0 );
+	assert.equal( Matcher.occurrences( '', 'seo' ), 0 );
+	assert.equal( Matcher.occurrences( 'seo', '' ), 0 );
+} );
+
 test( 'density divides occurrences by normalized words', () => {
 	assert.equal( Matcher.density( 'red apples and green pears and red apples', 'red apples' ), 25 );
 	assert.equal( Matcher.density( '   ', 'red apples' ), 0 );

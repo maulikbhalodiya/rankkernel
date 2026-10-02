@@ -153,15 +153,25 @@
 		if ( '' === hay ) {
 			return 0;
 		}
-		var padded = ' ' + hay + ' ';
-		var target = ' ' + needle + ' ';
+		// Mirrors KeywordMatcher::occurrences() in PHP. Counting with a padded
+		// needle and stepping past its trailing space skips the space the
+		// next occurrence needs, so a repeated keyword was under counted:
+		// "seo seo seo" returned 2, not 3. That count feeds the reported
+		// figure and the 2.5 percent ceiling on both sides, so both sides
+		// must advance one character at a time and test word boundaries.
 		var count = 0;
-		var from = 0;
-		var at = padded.indexOf( target, from );
-		while ( at !== -1 ) {
+		var needleLength = needle.length;
+		for ( var i = 0; i + needleLength <= hay.length; i++ ) {
+			if ( hay.substr( i, needleLength ) !== needle ) {
+				continue;
+			}
+			var before = i === 0 ? ' ' : hay.charAt( i - 1 );
+			var after = i + needleLength >= hay.length ? ' ' : hay.charAt( i + needleLength );
+			if ( ' ' !== before || ' ' !== after ) {
+				continue;
+			}
 			count++;
-			from = at + target.length;
-			at = padded.indexOf( target, from );
+			i += needleLength - 1;
 		}
 		return count;
 	}
