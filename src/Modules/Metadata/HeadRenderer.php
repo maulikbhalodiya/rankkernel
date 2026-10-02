@@ -387,6 +387,27 @@ final class HeadRenderer {
 	}
 
 	/**
+	 * Whether the queried object is an attachment page.
+	 *
+	 * An attachment page carries no text of its own, it is a wrapper around the
+	 * media file, so indexing it competes with the post the file belongs to.
+	 * PostsProvider already excludes attachments from the sitemaps, so this
+	 * governs the head directives only and does not double handle them.
+	 *
+	 * @param Context $ctx Context.
+	 * @return bool The result.
+	 */
+	private static function isAttachmentPage( Context $ctx ): bool {
+		$id = $ctx->queriedId();
+
+		if ( $id <= 0 || ! function_exists( 'get_post_type' ) ) {
+			return false;
+		}
+
+		return 'attachment' === get_post_type( $id );
+	}
+
+	/**
 	 * Translate payload robots settings into wp_robots directive keys.
 	 *
 	 * @param Context              $ctx  Context.
@@ -400,8 +421,8 @@ final class HeadRenderer {
 			$robots = MetaPayload::defaults()['robots'];
 		}
 
-		// Noindex rules: search and 404 are noindex, follow.
-		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) ) {
+		// Noindex rules: search, 404 and attachment pages are noindex, follow.
+		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) || self::isAttachmentPage( $ctx ) ) {
 			$robots['index']  = false;
 			$robots['follow'] = true;
 		}

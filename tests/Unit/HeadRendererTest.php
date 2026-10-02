@@ -43,6 +43,10 @@ final class HeadRendererTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( static fn ( mixed $v ): bool => $v instanceof \WP_Error );
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'get_term_field' )->justReturn( '' );
+		// Default: the queried object is not an attachment. Tests that render an
+		// attachment page override this. It cannot live in the test bootstrap,
+		// because Patchwork cannot redefine a function the bootstrap declares.
+		Functions\when( 'get_post_type' )->justReturn( false );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );
 	}
@@ -1784,5 +1788,85 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertTagCount( $out, 'rel="canonical"', 0 );
 		$this->assertTagCount( $out, '<meta name="description"', 0 );
+	}
+
+	/**
+	 * Test an attachment page is noindex, follow (SEM-16).
+	 *
+	 * The noindex rules were hardcoded to search and 404 only, so every
+	 * attachment page published index, follow and competed with the post the
+	 * media file belongs to. Attachments are already excluded from the
+	 * sitemaps by PostsProvider, so this only closes the head side.
+	 */
+	public function test_attachment_page_is_noindex_follow(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'attachment' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$directives = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $directives['noindex'], 'an attachment page must be noindex' );
+		$this->assertArrayNotHasKey( 'nofollow', $directives, 'an attachment page must still be follow' );
+	}
+
+	/**
+	 * Test an explicit per post robots setting still wins on a non attachment.
+	 *
+	 * Guards the new attachment branch against leaking into ordinary posts.
+	 */
+	public function test_ordinary_post_is_not_noindexed_by_the_attachment_rule(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'post' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$directives = $renderer->filterRobots( [] );
+
+		$this->assertArrayNotHasKey( 'noindex', $directives );
+		$this->assertArrayNotHasKey( 'nofollow', $directives );
+	}
+
+	/**
+	 * Test the attachment rule does not fire without a queried object id.
+	 *
+	 * The queried id is 0 on archives and on any query with no single object, so
+	 * the rule must be inert there rather than asking get_post_type for the
+	 * type of post 0.
+	 */
+	public function test_attachment_rule_is_inert_without_a_queried_id(): void {
+		Functions\expect( 'get_post_type' )->never();
+
+		[ $ctx, $settings ] = $this->makeContext( 'archive', 0 );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$renderer->filterRobots( [] );
+
+		$this->assertTrue( true, 'no assertion failure means get_post_type was never called' );
+	}
+
+	/**
+	 * Test the attachment page still carries its canonical and description.
+	 *
+	 * SEM-16 is a robots change only. Noindex must not also strip the other
+	 * head tags an attachment page needs to be a coherent page.
+	 */
+	public function test_attachment_page_keeps_canonical_and_description(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'attachment' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'description' => 'Description for the attachment.',
+				'canonical'   => 'https://example.com/my-page/',
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
 	}
 }
