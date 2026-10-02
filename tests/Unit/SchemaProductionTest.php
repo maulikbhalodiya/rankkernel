@@ -228,13 +228,27 @@ final class SchemaProductionTest extends TestCase {
 	 */
 	public function test_registry_required_fields_match_admin_warnings(): void {
 		$this->assertSame( [ 'headline', 'startDate', 'locationName' ], SchemaTypes::requiredFields( 'Event' ) );
-		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'Product' ) );
 		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'Service' ) );
 		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'Review' ) );
-		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'LocalBusiness' ) );
 		$this->assertSame( [], SchemaTypes::requiredFields( 'ItemList' ) );
 		$this->assertSame( [], SchemaTypes::requiredFields( 'QAPage' ) );
 		$this->assertSame( [], SchemaTypes::requiredFields( 'EvilType' ) );
+
+		// A Product with only a headline cannot produce a rich result, so the
+		// group it needs at least one of from is reported alongside the
+		// headline. Google states this as one of, not all of.
+		$this->assertSame(
+			[ 'headline', 'price', 'ratingValue', 'datePublished' ],
+			SchemaTypes::requiredFields( 'Product' )
+		);
+		$this->assertSame( [ 'headline', 'ingredients', 'instructions' ], SchemaTypes::requiredFields( 'Recipe' ) );
+		$this->assertSame( [ 'headline', 'isbn' ], SchemaTypes::requiredFields( 'Book' ) );
+		$this->assertSame( [ 'headline', 'description' ], SchemaTypes::requiredFields( 'Course' ) );
+		$this->assertSame( [ 'headline', 'locationName', 'datePosted' ], SchemaTypes::requiredFields( 'JobPosting' ) );
+		$this->assertSame(
+			[ 'headline', 'streetAddress', 'addressLocality' ],
+			SchemaTypes::requiredFields( 'LocalBusiness' )
+		);
 
 		$this->assertSame(
 			'Product name (headline) is required for Product.',
@@ -726,8 +740,20 @@ final class SchemaProductionTest extends TestCase {
 		$ctx = $this->makeContext( $this->makeQuery( [ 'is_singular' => true ] ) );
 
 		$this->assertSame( 'Product', SchemaHelpers::effectiveType( $ctx, $store ) );
-		$this->assertTrue( ( new ProductPiece( $store ) )->isNeeded( $ctx ) );
-		$this->assertFalse( ( new ArticlePiece( $store ) )->isNeeded( $ctx ) );
+
+		// Routing is correct, but a Product with no offers, rating or review
+		// cannot produce a rich result, so the node is not emitted. This is
+		// the defect the audit found: the type routed correctly while the
+		// node it produced was invalid.
+		$this->assertFalse( ( new ProductPiece( $store ) )->isNeeded( $ctx ) );
+
+		// With one of the group present the node is emitted again, proving
+		// the gate is about completeness and not about the type mapping.
+		$this->stubPostMeta( [ 'schema' => [ 'fields' => [ 'price' => '9.99' ] ] ] );
+		$complete = $this->makeContext( $this->makeQuery( [ 'is_singular' => true ] ) );
+
+		$this->assertTrue( ( new ProductPiece( $store ) )->isNeeded( $complete ) );
+		$this->assertFalse( ( new ArticlePiece( $store ) )->isNeeded( $complete ) );
 	}
 
 	/**
@@ -1073,5 +1099,91 @@ final class SchemaProductionTest extends TestCase {
 
 		$this->assertSame( 'FAQPage', $build['@type'] );
 		$this->assertSame( 1, $calls );
+	}
+
+	/**
+	 * Test a Product with only a headline is not complete.
+	 *
+	 * This is the defect the audit reproduced live: the node was published
+	 * with none of offers, aggregateRating or review, so it could never
+	 * produce a rich result.
+	 */
+	public function test_product_with_only_a_headline_is_incomplete(): void {
+		$this->assertFalse( SchemaTypes::isComplete( 'Product', [ 'headline' => 'Test Product' ] ) );
+		$this->assertTrue(
+			SchemaTypes::isComplete(
+				'Product',
+				[
+					'headline' => 'Test Product',
+					'price'    => '19.99',
+				]
+			)
+		);
+		$this->assertTrue(
+			SchemaTypes::isComplete(
+				'Product',
+				[
+					'headline'    => 'Test Product',
+					'ratingValue' => '4',
+				]
+			)
+		);
+	}
+
+	/**
+	 * Test every gated type reports incomplete when a required field is absent.
+	 *
+	 * Guards the whole table in one place, so a new entry in REQUIRED cannot
+	 * land without a test proving the gate follows it.
+	 */
+	public function test_every_gated_type_reports_incomplete_when_a_field_is_missing(): void {
+		// One complete field set per type. Named locals rather than nested
+		// literals, so every array below carries a single value.
+		$product = [
+			'headline' => 'A',
+			'price'    => '1',
+		];
+		$recipe  = [
+			'headline'     => 'A',
+			'ingredients'  => 'F',
+			'instructions' => 'M',
+		];
+		$book    = [
+			'headline' => 'A',
+			'isbn'     => '978',
+		];
+		$course  = [
+			'headline'    => 'A',
+			'description' => 'D',
+		];
+		$job     = [
+			'headline'     => 'A',
+			'locationName' => 'L',
+			'datePosted'   => '2026-01-01',
+		];
+		$local   = [
+			'headline'        => 'A',
+			'streetAddress'   => 'S',
+			'addressLocality' => 'C',
+		];
+
+		$complete = [
+			'Product'       => $product,
+			'Recipe'        => $recipe,
+			'Book'          => $book,
+			'Course'        => $course,
+			'JobPosting'    => $job,
+			'LocalBusiness' => $local,
+		];
+
+		foreach ( $complete as $type => $fields ) {
+			$this->assertTrue( SchemaTypes::isComplete( $type, $fields ), $type . ' must be complete with its fields' );
+
+			$withoutHeadline = $fields;
+
+			unset( $withoutHeadline['headline'] );
+
+			$this->assertFalse( SchemaTypes::isComplete( $type, $withoutHeadline ), $type . ' must need a headline' );
+		}
 	}
 }
