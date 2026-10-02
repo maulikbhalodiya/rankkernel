@@ -30,16 +30,8 @@ final class HtaccessFile {
 
 		$filtered = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		if ( ! is_string( $filtered ) || '' === $filtered ) {
+		if ( ! is_string( $filtered ) || '' === $filtered || $filtered === $default ) {
 			return $default;
-		}
-
-		if ( $filtered === $default ) {
-			return $default;
-		}
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			return $filtered;
 		}
 
 		return $this->containedPath( $filtered, $default );
@@ -56,11 +48,11 @@ final class HtaccessFile {
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
-		if ( function_exists( 'is_link' ) && is_link( $path ) ) {
+		if ( is_link( $path ) ) {
 			return $fallback;
 		}
 
-		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+		if ( ! function_exists( 'wp_normalize_path' ) ) {
 			return $fallback;
 		}
 
@@ -90,6 +82,8 @@ final class HtaccessFile {
 			if ( ! str_starts_with( $fileNorm, $rootNorm ) ) {
 				return $fallback;
 			}
+
+			return $realPath;
 		}
 
 		return $path;
