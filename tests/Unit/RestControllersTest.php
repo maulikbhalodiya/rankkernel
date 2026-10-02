@@ -260,4 +260,92 @@ final class RestControllersTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $res );
 		$this->assertSame( 'rest_invalid_param', $res->get_error_code() );
 	}
+
+	/**
+	 * Test the modules permission callback asks for manage_options and passes.
+	 *
+	 * TQA-01. The callback was only ever asserted as wired to the route, so
+	 * removing the capability check left the suite green. Pin the capability
+	 * that is asked for, not just the truthy return, otherwise a callback that
+	 * returns true unconditionally would still satisfy this test.
+	 */
+	public function test_modules_controller_permission_callback_requires_manage_options(): void {
+		$checked = [];
+
+		Functions\when( 'current_user_can' )->alias(
+			static function ( string $capability ) use ( &$checked ): bool {
+				$checked[] = $capability;
+
+				return true;
+			}
+		);
+
+		$ctrl = new ModulesController();
+
+		$this->assertTrue( $ctrl->checkPermission() );
+		$this->assertSame( [ 'manage_options' ], $checked, 'the gate must be the manage_options capability' );
+	}
+
+	/**
+	 * Test the modules permission callback refuses without manage_options.
+	 *
+	 * TQA-01. The refusal must be a rest_forbidden error carrying a 403 so the
+	 * REST server answers 403 instead of leaking the callback result.
+	 */
+	public function test_modules_controller_permission_callback_denies_without_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$ctrl = new ModulesController();
+
+		$result = $ctrl->checkPermission();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_forbidden', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test the settings permission callback asks for manage_options and passes.
+	 *
+	 * TQA-01. Same reasoning as the modules callback: assert the capability
+	 * name so an unconditional return true cannot pass.
+	 */
+	public function test_settings_controller_permission_callback_requires_manage_options(): void {
+		$checked = [];
+
+		Functions\when( 'current_user_can' )->alias(
+			static function ( string $capability ) use ( &$checked ): bool {
+				$checked[] = $capability;
+
+				return true;
+			}
+		);
+
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$store = new SettingsStore();
+		$ctrl  = new SettingsController( $store );
+
+		$this->assertTrue( $ctrl->checkPermission() );
+		$this->assertSame( [ 'manage_options' ], $checked, 'the gate must be the manage_options capability' );
+	}
+
+	/**
+	 * Test the settings permission callback refuses without manage_options.
+	 *
+	 * TQA-01. The refusal must be a rest_forbidden error carrying a 403.
+	 */
+	public function test_settings_controller_permission_callback_denies_without_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$store = new SettingsStore();
+		$ctrl  = new SettingsController( $store );
+
+		$result = $ctrl->checkPermission();
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'rest_forbidden', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] ?? null );
+	}
 }
