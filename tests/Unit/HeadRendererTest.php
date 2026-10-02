@@ -1702,4 +1702,87 @@ final class HeadRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Post Title', $reverseOut );
 		$this->assertSame( 'Filter WP Default', $reverseRenderer->title( 'Filter WP Default' ) );
 	}
+
+	/**
+	 * Assert a head tag marker occurs the expected number of times.
+	 *
+	 * TQA-03. Presence was asserted for canonical and description but
+	 * cardinality never was, so a regression that emitted a second copy would
+	 * have passed. Counting the literal tag marker rather than an escaped URL
+	 * value keeps the assertion stable against the esc_attr and esc_url stubs.
+	 *
+	 * @param string $output   Rendered output.
+	 * @param string $marker   Literal tag marker to count.
+	 * @param int    $expected Expected number of occurrences.
+	 */
+	private function assertTagCount( string $output, string $marker, int $expected ): void {
+		$this->assertSame(
+			$expected,
+			substr_count( $output, $marker ),
+			$marker . ' must appear exactly ' . $expected . ' time(s) in the head'
+		);
+	}
+
+	/**
+	 * Test a singular post emits exactly one of each core head tag.
+	 *
+	 * TQA-03. Duplicate canonical and duplicate description are the most user
+	 * visible SEO defects there are, and neither had any cardinality assertion
+	 * anywhere in the suite. The social tags are pinned here as well so this
+	 * test is the single place that states the expected head cardinality.
+	 */
+	public function test_singular_post_emits_each_core_head_tag_exactly_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'description' => 'A single description for the page.',
+				'canonical'   => 'https://example.com/my-page/',
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:title"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:url"', 1 );
+	}
+
+	/**
+	 * Test the fallback path emits no duplicates either.
+	 *
+	 * TQA-03. With neither canonical nor description in the payload, the
+	 * renderer falls back to the permalink and to the trimmed excerpt. That
+	 * fallback branch is exactly where a second tag could be appended instead
+	 * of a first one emitted, so the cardinality check runs on it too.
+	 */
+	public function test_fallback_canonical_and_description_are_emitted_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		// The fallback must be genuinely in play, otherwise this is vacuous.
+		$this->assertStringContainsString( 'https://example.com/post/', $out );
+		$this->assertStringContainsString( 'Excerpt text for description fallback that is trimmed', $out );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:title"', 1 );
+	}
+
+	/**
+	 * Test a search page emits no canonical and no duplicate social tags.
+	 *
+	 * TQA-03. Search must carry zero canonical tags, and the search context is
+	 * asserted at zero for description too, because with no excerpt and no
+	 * payload there is nothing to describe.
+	 */
+	public function test_search_emits_no_canonical_and_no_duplicate_tags(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 0 );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 0 );
+		$this->assertTagCount( $out, '<meta name="description"', 0 );
+	}
 }
