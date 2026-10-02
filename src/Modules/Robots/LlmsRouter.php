@@ -140,10 +140,20 @@ final class LlmsRouter {
 			return (string) $cached['md'];
 		}
 
+		$curated = (string) $this->settings->get( 'content', '' );
+
+		// A curated document always wins. Only when the operator has written
+		// nothing does the generator fall back to the automatic sections,
+		// because an empty curated field with 7 published posts produced a
+		// 13 byte document that told crawlers the site had no content.
+		if ( '' === trim( $curated ) ) {
+			$curated = $this->generator->autoSections();
+		}
+
 		$markdown = $this->generator->render(
 			(string) get_bloginfo( 'name' ),
 			(string) $this->settings->get( 'summary', '' ),
-			(string) $this->settings->get( 'content', '' )
+			$curated
 		);
 
 		set_transient(
