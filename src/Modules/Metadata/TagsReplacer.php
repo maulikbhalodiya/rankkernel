@@ -234,6 +234,16 @@ final class TagsReplacer {
 			}
 		}
 
+		// A term archive has no author. The queried id is the term id, and
+		// the post lookup below reads post_author from whatever post happens
+		// to share that number, so a term archive published an unrelated
+		// author's name. Term and post ids both start at 1, so it fired on
+		// the default configuration sitewide. Mirrors resolveCategory(),
+		// which resolves the term name first and never falls through.
+		if ( 'term' === $ctx->queriedType() ) {
+			return '';
+		}
+
 		// Prefer author of queried post.
 		$id = $ctx->queriedId();
 

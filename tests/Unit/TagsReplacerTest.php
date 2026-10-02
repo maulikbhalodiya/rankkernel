@@ -407,6 +407,33 @@ final class TagsReplacerTest extends TestCase {
 	}
 
 	/**
+	 * Test the author token on a term archive never reads the term id as a post id.
+	 *
+	 * Term and post ids both start at 1, so the collision fires on the
+	 * default configuration sitewide.
+	 */
+	public function test_author_token_on_term_archive_never_reads_the_term_id_as_a_post_id(): void {
+		$ctx = $this->makeContext( $this->makeTermQuery( 9, 'News' ) );
+
+		$postLookups = [];
+
+		Functions\when( 'get_post_field' )->alias(
+			static function ( string $field, int $id ) use ( &$postLookups ): string {
+				$postLookups[] = $id;
+
+				// The colliding post author must never win on a term archive.
+				return 'post_author' === $field && $id > 0 ? '77' : '';
+			}
+		);
+		Functions\when( 'get_the_author_meta' )->justReturn( 'Colliding Author' );
+
+		$replacer = new TagsReplacer();
+
+		$this->assertSame( '', $replacer->replace( $ctx, '%%author%%', 'title' ) );
+		$this->assertNotContains( 9, $postLookups, 'The term id must never be read as a post id' );
+	}
+
+	/**
 	 * Test the author token on a singular post is unchanged.
 	 */
 	public function test_author_token_on_singular_post_unchanged(): void {
