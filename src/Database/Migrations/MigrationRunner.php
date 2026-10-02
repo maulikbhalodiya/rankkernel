@@ -33,6 +33,25 @@ final class MigrationRunner {
 	public const LEDGER = 'rankkernel_db_version';
 
 	/**
+	 * Option holding recorded migration failures.
+	 *
+	 * Autoload is off. A migration failure is rare and the option is empty
+	 * on a healthy install, so there is no reason to put it in the
+	 * alloptions payload every frontend request reads.
+	 */
+	public const FAILURES = 'rankkernel_migration_failures';
+
+	/**
+	 * Attempts after which the per request warning stops.
+	 *
+	 * A permanently failing migration used to emit an E_USER_WARNING on
+	 * every request, front and back, forever, inside the component whose
+	 * job is bloat prevention. The action still fires on every attempt, so
+	 * the state is observable, but the log stops growing without bound.
+	 */
+	public const WARNING_LIMIT = 3;
+
+	/**
 	 * Registered migrations.
 	 *
 	 * @var array<string, callable>
@@ -83,8 +102,14 @@ final class MigrationRunner {
 	 * Fires on `init` priority 10. The ledger is persisted after each
 	 * successful migration, so a later failure never causes an already
 	 * applied migration to run again. On failure the ledger is not advanced
-	 * past the failed version, an action is fired, and a warning is
-	 * triggered, the site never goes down. With no registered migrations
+	 * past the failed version, so the failed version stays pending and keeps
+	 * blocking the ones after it until an operator clears it. That blocking
+	 * is deliberate, since skipping a migration silently would be worse than
+	 * stopping, but it is now recoverable: the failure is persisted with its
+	 * attempt count, surfaced on the dashboard, and can be cleared so the
+	 * version runs again. The per request warning stops after WARNING_LIMIT
+	 * attempts so a permanent failure cannot grow the log without bound, and
+	 * the site never goes down. With no registered migrations
 	 * but a stale ledger, the ledger is synced to RANKKERNEL_VERSION.
 	 */
 	public function maybeRun(): void {
@@ -122,10 +147,20 @@ final class MigrationRunner {
 			try {
 				$migration();
 			} catch ( \Throwable $throwable ) {
+				$attempts = $this->recordFailure( $version, $throwable );
+
 				do_action( 'rankkernel/migration/failed', $version, $throwable ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
-				wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
+
+				if ( $attempts <= self::WARNING_LIMIT && function_exists( 'wp_trigger_error' ) ) {
+					wp_trigger_error( __METHOD__, $throwable->getMessage(), E_USER_WARNING );
+				}
+
 				return;
 			}
+
+			// A version that now runs cleanly has no recorded failure to
+			// carry forward, so the record is dropped as it succeeds.
+			$this->clearFailure( $version );
 
 			// Persist after each success, so a failure later in the run cannot
 			// leave an earlier success unrecorded. Without this the next
@@ -137,5 +172,96 @@ final class MigrationRunner {
 				$this->cachedVersion = $version;
 			}
 		}
+	}
+
+	/**
+	 * Recorded failures, newest attempt counts included.
+	 *
+	 * @return array<string, array{attempts: int, message: string, failedAt: string}> The result, keyed by version.
+	 */
+	public function failures(): array {
+		if ( ! function_exists( 'get_option' ) ) {
+			return [];
+		}
+
+		$stored = get_option( self::FAILURES, [] );
+
+		if ( ! is_array( $stored ) ) {
+			return [];
+		}
+
+		$failures = [];
+
+		foreach ( $stored as $version => $entry ) {
+			if ( ! is_string( $version ) || ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$failures[ $version ] = [
+				'attempts' => max( 1, (int) ( $entry['attempts'] ?? 1 ) ),
+				'message'  => isset( $entry['message'] ) ? (string) $entry['message'] : '',
+				'failedAt' => isset( $entry['failedAt'] ) ? (string) $entry['failedAt'] : '',
+			];
+		}
+
+		return $failures;
+	}
+
+	/**
+	 * Record one failed attempt and return the running attempt count.
+	 *
+	 * The count is what caps the warning, so a permanently failing
+	 * migration stops writing to the log after WARNING_LIMIT attempts
+	 * while remaining visible on the dashboard.
+	 *
+	 * @param string     $version   Failing version.
+	 * @param \Throwable $throwable Captured failure.
+	 * @return int Attempt count including this one.
+	 */
+	private function recordFailure( string $version, \Throwable $throwable ): int {
+		if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
+			return 1;
+		}
+
+		$failures = $this->failures();
+		$previous = $failures[ $version ]['attempts'] ?? 0;
+
+		$failures[ $version ] = [
+			'attempts' => $previous + 1,
+			'message'  => $throwable->getMessage(),
+			'failedAt' => function_exists( 'current_time' ) ? (string) current_time( 'mysql' ) : gmdate( 'Y-m-d H:i:s' ),
+		];
+
+		update_option( self::FAILURES, $failures, false );
+
+		return $previous + 1;
+	}
+
+	/**
+	 * Drop the recorded failure for one version, no others.
+	 *
+	 * Called on a success, and by the dashboard clear and rerun action.
+	 * The ledger is deliberately untouched, so clearing a failure cannot
+	 * make the runner skip work that has not run.
+	 *
+	 * @param string $version Version to clear.
+	 * @return bool True when a record was removed.
+	 */
+	public function clearFailure( string $version ): bool {
+		if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
+			return false;
+		}
+
+		$failures = $this->failures();
+
+		if ( ! isset( $failures[ $version ] ) ) {
+			return false;
+		}
+
+		unset( $failures[ $version ] );
+
+		update_option( self::FAILURES, $failures, false );
+
+		return true;
 	}
 }

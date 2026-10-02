@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -64,7 +65,23 @@ final class JobPostingPiece implements PieceInterface {
 			return false;
 		}
 
-		return '' !== SchemaHelpers::headline( $ctx, SchemaHelpers::fields( $ctx ) );
+		return $this->isComplete( $ctx );
+	}
+
+	/**
+	 * Whether the type can produce a complete node.
+	 *
+	 * A node missing the properties Google requires for its rich result is
+	 * published to every consumer and fails validation in Search Console, so
+	 * an incomplete node is never emitted. The metabox warns about the same
+	 * field set through SchemaTypes::requiredFields, so an author is told
+	 * rather than silently losing the entity.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool True when every required field is present.
+	 */
+	private function isComplete( Context $ctx ): bool {
+		return SchemaTypes::isComplete( 'JobPosting', SchemaHelpers::resolvedFields( $ctx ) );
 	}
 
 	/**
@@ -82,6 +99,10 @@ final class JobPostingPiece implements PieceInterface {
 		$title  = SchemaHelpers::headline( $ctx, $fields );
 
 		if ( '' === $title ) {
+			return [];
+		}
+
+		if ( ! $this->isComplete( $ctx ) ) {
 			return [];
 		}
 

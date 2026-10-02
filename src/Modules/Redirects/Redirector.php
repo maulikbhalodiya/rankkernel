@@ -20,6 +20,8 @@ defined( 'ABSPATH' ) || exit;
  * first, fail open on a cold miss when the table is missing, run at most one
  * indexed lookup plus one bounded pattern list read on a cold miss, warm the
  * cache on a hit, send exactly one redirect per request through the reentry guard,
+ * bound the redirect chain across requests with a short lived source_hash to
+ * destination marker cookie that answers 410 on a repeat of the same pair,
  * validate the destination before sending, then exit. Terminal codes 410 and
  * 451 send a status plus a minimal body with no Location header. The hit
  * counter flushes at shutdown, never before the response.
@@ -87,10 +89,27 @@ final class Redirector {
 	}
 
 	/**
+	 * Hop markers recorded in this process, for tests only.
+	 *
+	 * @var string[]
+	 */
+	private static array $markedHops = [];
+
+	/**
 	 * Reset the reentry guard, for tests only.
 	 */
 	public static function resetSent(): void {
-		self::$sent = false;
+		self::$sent       = false;
+		self::$markedHops = [];
+	}
+
+	/**
+	 * Hop markers recorded so far, for tests only.
+	 *
+	 * @return string[] Marker cookie names.
+	 */
+	public static function markedHops(): array {
+		return self::$markedHops;
 	}
 
 	/**
@@ -186,6 +205,24 @@ final class Redirector {
 			return;
 		}
 
+		$hopMarker = $this->hopMarkerName( (string) ( $rule['source_hash'] ?? '' ), $destination );
+
+		// Request time hop guard. The self::$sent static is per process, so it
+		// cannot bound a loop across requests. A capture or regex loop is never
+		// provable at save time, because the validator reports every dynamic
+		// target and every regex rule as inconclusive. So the guard runs here,
+		// keyed on the exact source_hash to destination pair, and answers 410
+		// when the same pair is asked for again inside the marker window.
+		if ( '' !== $hopMarker && $this->hasHopMarker( $hopMarker ) ) {
+			self::$sent = true;
+
+			do_action( 'rankkernel/redirect/loop' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, follows the rankkernel/redirect slash namespaced diagnostics.
+
+			$this->sendTerminal( '410' );
+
+			return;
+		}
+
 		self::$sent = true;
 
 		$this->hits->record( (int) ( $rule['id'] ?? 0 ) );
@@ -199,6 +236,8 @@ final class Redirector {
 		if ( ! in_array( $code, [ '301', '302', '307' ], true ) ) {
 			return;
 		}
+
+		$this->markHop( $hopMarker );
 
 		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- binding plan requires wp_redirect here, the destination passed through DestinationValidator with the scheme allowlist plus the external host allowlist before sending.
 		wp_redirect( $destination, (int) $code );
@@ -334,6 +373,85 @@ final class Redirector {
 		}
 
 		return $query;
+	}
+
+	/**
+	 * Cookie name prefix for the hop marker.
+	 *
+	 * @var string
+	 */
+	private const HOP_COOKIE = 'rankkernel_rh_';
+
+	/**
+	 * Hop marker lifetime in seconds.
+	 *
+	 * Short on purpose. The marker only has to survive one redirect hop, so a
+	 * user who fixes the loop is never served a stale 410.
+	 *
+	 * @var int
+	 */
+	private const HOP_TTL = 60;
+
+	/**
+	 * Build the marker name for a source_hash to destination pair.
+	 *
+	 * An empty source_hash or destination yields an empty name, which the
+	 * caller treats as "no guard available" and redirects as before.
+	 *
+	 * @param string $sourceHash  Rule source hash.
+	 * @param string $destination Final destination.
+	 * @return string Marker name or empty string.
+	 */
+	private function hopMarkerName( string $sourceHash, string $destination ): string {
+		if ( '' === $sourceHash || '' === $destination ) {
+			return '';
+		}
+
+		return self::HOP_COOKIE . substr( md5( $sourceHash . '>' . $destination ), 0, 16 );
+	}
+
+	/**
+	 * Whether this pair already redirected inside the marker window.
+	 *
+	 * @param string $marker Marker name.
+	 * @return bool True when the marker cookie is present.
+	 */
+	private function hasHopMarker( string $marker ): bool {
+		if ( '' === $marker || ! isset( $_COOKIE[ $marker ] ) ) {
+			return false;
+		}
+
+		$value = sanitize_text_field( wp_unslash( $_COOKIE[ $marker ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- the superglobal is unslashed and sanitized on the same line, the value is only compared against a literal.
+
+		return '1' === $value;
+	}
+
+	/**
+	 * Record that this pair redirected, so a second hop can be refused.
+	 *
+	 * @param string $marker Marker name.
+	 */
+	private function markHop( string $marker ): void {
+		if ( '' === $marker || headers_sent() ) {
+			return;
+		}
+
+		self::$markedHops[] = $marker;
+
+		if ( ! function_exists( 'setcookie' ) ) {
+			return;
+		}
+
+		$options = [
+			'expires'  => time() + self::HOP_TTL,
+			'path'     => '/',
+			'secure'   => function_exists( 'is_ssl' ) && is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		];
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- setcookie returns false on failure and the guard is advisory, never load bearing, so a failure is ignored rather than warned.
+		@setcookie( $marker, '1', $options );
 	}
 
 	/**

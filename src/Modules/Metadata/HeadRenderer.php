@@ -169,7 +169,9 @@ final class HeadRenderer {
 		$template = (string) $this->settings->get( 'title_template', '%%title%% %%sep%% %%sitename%%' );
 
 		if ( '' !== trim( $template ) ) {
-			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
+			$resolved = $this->normalizeTemplateEdges(
+				$this->replacer->replace( $ctx, $template, 'title_template' )
+			);
 
 			if ( '' !== trim( $resolved ) ) {
 				$this->resolvedTitleMemo[ $hash ] = $resolved;
@@ -179,6 +181,33 @@ final class HeadRenderer {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Trim separator and whitespace left at either end of a resolved template.
+	 *
+	 * A token that resolves to nothing, %%title%% on a date or search archive
+	 * for example, would otherwise leave the template's own separator stranded
+	 * at the front of the document title, and core never gets to fall back to
+	 * its own archive title because a non empty value was returned.
+	 *
+	 * @param string $resolved Resolved template string.
+	 * @return string Trimmed string.
+	 */
+	private function normalizeTemplateEdges( string $resolved ): string {
+		$value = trim( $resolved );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$separator = trim( (string) $this->settings->get( 'separator', '-' ) );
+
+		if ( '' !== $separator ) {
+			$value = trim( $value, $separator );
+		}
+
+		return trim( preg_replace( '/\s{2,}/', ' ', $value ) ?? $value );
 	}
 
 	/**
@@ -358,6 +387,27 @@ final class HeadRenderer {
 	}
 
 	/**
+	 * Whether the queried object is an attachment page.
+	 *
+	 * An attachment page carries no text of its own, it is a wrapper around the
+	 * media file, so indexing it competes with the post the file belongs to.
+	 * PostsProvider already excludes attachments from the sitemaps, so this
+	 * governs the head directives only and does not double handle them.
+	 *
+	 * @param Context $ctx Context.
+	 * @return bool The result.
+	 */
+	private static function isAttachmentPage( Context $ctx ): bool {
+		$id = $ctx->queriedId();
+
+		if ( $id <= 0 || ! function_exists( 'get_post_type' ) ) {
+			return false;
+		}
+
+		return 'attachment' === get_post_type( $id );
+	}
+
+	/**
 	 * Translate payload robots settings into wp_robots directive keys.
 	 *
 	 * @param Context              $ctx  Context.
@@ -371,8 +421,8 @@ final class HeadRenderer {
 			$robots = MetaPayload::defaults()['robots'];
 		}
 
-		// Noindex rules: search and 404 are noindex, follow.
-		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) ) {
+		// Noindex rules: search, 404 and attachment pages are noindex, follow.
+		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) || self::isAttachmentPage( $ctx ) ) {
 			$robots['index']  = false;
 			$robots['follow'] = true;
 		}

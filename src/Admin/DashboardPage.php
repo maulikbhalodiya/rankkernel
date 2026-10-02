@@ -12,6 +12,7 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\ModuleRegistry;
 
 /**
@@ -80,7 +81,75 @@ final class DashboardPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleToggle which verifies capability plus nonce, compared strictly against a literal, never stored or output.
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_module_toggle'] ) ) {
 			$this->handleToggle();
+
+			return;
 		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleMigrationClear which verifies capability plus nonce, compared strictly against a literal, never stored or output.
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_migration_clear'] ) ) {
+			$this->handleMigrationClear();
+		}
+	}
+
+	/**
+	 * Clear one recorded migration failure so it runs again.
+	 *
+	 * Capability plus nonce, exactly as the module toggle does. Only the
+	 * named version is cleared. The ledger is left alone, so clearing a
+	 * failure lets the pending version run rather than skipping it.
+	 */
+	private function handleMigrationClear(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you are not allowed to manage RankKernel modules.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		$verified = check_admin_referer( 'rankkernel_migration_clear' );
+
+		if ( false === $verified ) {
+			wp_die(
+				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
+				'',
+				[ 'response' => 403 ]
+			);
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
+		$version = isset( $_POST['rankkernel_migration_clear'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_migration_clear'] ) ) : '';
+
+		if ( '' !== $version ) {
+			( new MigrationRunner() )->clearFailure( $version );
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . '&migration-cleared=1' ) );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Recorded migration failures, for the dashboard.
+	 *
+	 * @return array<int, array{version: string, attempts: int, message: string, failedAt: string}> The result.
+	 */
+	public function migrationFailures(): array {
+		$failures = [];
+		$recorded = ( new MigrationRunner() )->failures();
+
+		foreach ( $recorded as $version => $entry ) {
+			$failures[] = [
+				'version'  => (string) $version,
+				'attempts' => (int) $entry['attempts'],
+				'message'  => (string) $entry['message'],
+				'failedAt' => (string) $entry['failedAt'],
+			];
+		}
+
+		return $failures;
 	}
 
 	/**
@@ -152,7 +221,11 @@ final class DashboardPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
-		$cards = $this->cards();
+		$cards             = $this->cards();
+		$migrationFailures = $this->migrationFailures();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
+		$migrationCleared = isset( $_GET['migration-cleared'] ) && '1' === (string) $_GET['migration-cleared'];
 
 		require __DIR__ . '/Views/dashboard.php';
 	}

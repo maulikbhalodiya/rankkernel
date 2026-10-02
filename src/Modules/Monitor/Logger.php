@@ -24,8 +24,11 @@ use RankKernel\Modules\Redirects\Normalizer;
  * codes, static assets, probe patterns, and configured exclusions. The
  * flood budget is spent only on real content 404s that survive every skip.
  * Referer and user agent are captured only when the advanced fields setting
- * is on, truncated to 255. No IP is ever read or stored. One increment per
- * URI per request collapses repeat writes inside a single request.
+ * is on, truncated to 255. No IP is ever read or stored. Sensitive query
+ * values are redacted wherever one can appear: on the logged URI and on the
+ * referer, so a token carried in a referer is never stored beside a path
+ * that was cleaned. One increment per request per URI collapses repeat writes
+ * inside a single request.
  */
 final class Logger {
 	/**
@@ -580,10 +583,56 @@ final class Logger {
 
 		$value = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( wp_unslash( $raw ) ) : trim( $raw );
 
+		if ( 'HTTP_REFERER' === $name ) {
+			$value = $this->redactUrlQuery( $value );
+		}
+
 		if ( strlen( $value ) > self::FIELD_LENGTH ) {
 			$value = substr( $value, 0, self::FIELD_LENGTH );
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Redact the query component of a stored URL, keeping the rest intact.
+	 *
+	 * The 404 URI runs through redactQuery() before storage, but the referer
+	 * beside it did not, so a request carrying a reset token in its referer
+	 * stored that token verbatim while the path beside it was cleaned. A
+	 * referer is attacker and third party controlled, and it frequently
+	 * carries session, token and email parameters, so it now gets the same
+	 * treatment as the path. The path, host and fragment are left alone,
+	 * because only a query carries a value that looks like a secret.
+	 *
+	 * @param string $url Stored field value.
+	 * @return string The value with a redacted query component.
+	 */
+	private function redactUrlQuery( string $url ): string {
+		if ( '' === $url ) {
+			return $url;
+		}
+
+		$qpos = strpos( $url, '?' );
+
+		if ( false === $qpos ) {
+			return $url;
+		}
+
+		$base  = substr( $url, 0, (int) $qpos );
+		$query = substr( $url, (int) $qpos + 1 );
+		$hash  = strpos( $query, '#' );
+
+		if ( false !== $hash ) {
+			$query = substr( $query, 0, (int) $hash );
+		}
+
+		$query = $this->redactQuery( trim( $query ) );
+
+		if ( '' === $query ) {
+			return $base;
+		}
+
+		return $base . '?' . $query;
 	}
 }

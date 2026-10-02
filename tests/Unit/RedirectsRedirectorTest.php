@@ -210,6 +210,7 @@ final class RedirectsRedirectorTest extends TestCase {
 		Functions\when( 'current_time' )->alias( static fn (): string => '2026-01-01 00:00:00' );
 		Functions\when( 'wp_unslash' )->alias( static fn ( string $v ): string => stripslashes( $v ) );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => $v );
 	}
 
 	/**
@@ -577,6 +578,58 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects, 'A throwing matcher must not redirect' );
 		$this->assertSame( [], $this->statuses, 'A throwing matcher must send no status' );
 		$this->assertContains( 'rankkernel/redirect/failed', $this->actions, 'The matcher failure must be logged' );
+	}
+
+	/**
+	 * Test a repeat of the same source to destination pair answers 410 instead of redirecting.
+	 */
+	public function test_repeat_hop_answers_gone_instead_of_redirecting(): void {
+		$this->seedExact( '/loops', '/new' );
+
+		$_SERVER['REQUEST_URI'] = '/loops';
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects, 'The first hop must redirect' );
+
+		// Second hop of the same pair, the marker cookie is now present.
+		$marked = Redirector::markedHops();
+
+		$this->assertCount( 1, $marked, 'The first hop must record a marker' );
+
+		$_COOKIE = [ $marked[0] => '1' ];
+
+		Redirector::resetSent();
+		$this->statuses = [];
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects, 'The second hop must not redirect again' );
+		$this->assertSame( [ 410 ], $this->statuses, 'The repeated hop must answer 410' );
+		$this->assertContains( 'rankkernel/redirect/loop', $this->actions );
+
+		$_COOKIE = [];
+	}
+
+	/**
+	 * Test the hop marker does not block a different destination for the same source.
+	 */
+	public function test_hop_marker_does_not_block_a_different_destination(): void {
+		$this->seedExact( '/loops', '/new' );
+
+		$_SERVER['REQUEST_URI'] = '/loops';
+
+		$this->dispatcher()->maybeRedirect();
+
+		$_COOKIE = [ 'rankkernel_rh_' . str_repeat( '0', 16 ) => '1' ];
+
+		Redirector::resetSent();
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 2, $this->redirects, 'A marker for another pair must not block this hop' );
+
+		$_COOKIE = [];
 	}
 
 	/**

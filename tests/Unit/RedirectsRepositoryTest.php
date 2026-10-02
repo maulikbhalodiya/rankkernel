@@ -568,6 +568,133 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test rule twenty one in the active regex set is refused at write time.
+	 *
+	 * Before this the bound lived only in the matcher, so the rule saved,
+	 * listed as active and counted toward hits, and was never evaluated.
+	 */
+	public function test_regex_rule_past_the_limit_is_refused_on_write(): void {
+		$repo = new RedirectRepository( $this->db );
+
+		for ( $i = 1; $i <= RedirectRepository::MAX_REGEX_RULES; $i++ ) {
+			$id = $repo->insert(
+				[
+					'source'     => '^/rk-' . $i . '$',
+					'target'     => '/new',
+					'code'       => '301',
+					'match_type' => 'regex',
+				]
+			);
+
+			$this->assertGreaterThan( 0, $id, 'Rule ' . $i . ' must be accepted at the limit' );
+		}
+
+		$this->assertSame( RedirectRepository::MAX_REGEX_RULES, $repo->count_regex_rules() );
+
+		$overLimit = $repo->insert(
+			[
+				'source'     => '^/rk-dead$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertSame( 0, $overLimit, 'The rule past the regex limit must be refused' );
+		$this->assertSame( RedirectRepository::MAX_REGEX_RULES, $repo->count_regex_rules() );
+	}
+
+	/**
+	 * Test an inactive regex rule past the limit is still accepted.
+	 *
+	 * The bound is on the evaluated set, so an inactive row never grows it.
+	 */
+	public function test_inactive_regex_past_the_limit_is_accepted(): void {
+		$repo = new RedirectRepository( $this->db );
+
+		for ( $i = 1; $i <= RedirectRepository::MAX_REGEX_RULES; $i++ ) {
+			$repo->insert(
+				[
+					'source'     => '^/rk-' . $i . '$',
+					'target'     => '/new',
+					'code'       => '301',
+					'match_type' => 'regex',
+				]
+			);
+		}
+
+		$inactive = $repo->insert(
+			[
+				'source'     => '^/rk-dormant$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+				'is_active'  => false,
+			]
+		);
+
+		$this->assertGreaterThan( 0, $inactive, 'An inactive rule must not be refused' );
+	}
+
+	/**
+	 * Test a regex source longer than the bound is refused on write.
+	 */
+	public function test_over_length_regex_is_refused_on_write(): void {
+		$repo = new RedirectRepository( $this->db );
+
+		$overLength = $repo->insert(
+			[
+				'source'     => '^/' . str_repeat( 'a', RedirectRepository::MAX_REGEX_LENGTH ) . '$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertSame( 0, $overLength, 'An over length regex must be refused on write' );
+
+		$inBounds = $repo->insert(
+			[
+				'source'     => '^/' . str_repeat( 'a', 10 ) . '$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertGreaterThan( 0, $inBounds, 'A regex inside the length bound must be accepted' );
+	}
+
+	/**
+	 * Test a catastrophic backtracking pattern is refused on write.
+	 */
+	public function test_catastrophic_regex_is_refused_on_write(): void {
+		$repo = new RedirectRepository( $this->db );
+
+		$unsafe = $repo->insert(
+			[
+				'source'     => '^(a+)+$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertSame( 0, $unsafe, 'A catastrophic pattern must be refused on write' );
+
+		$safe = $repo->insert(
+			[
+				'source'     => '^/old/[0-9]+$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertGreaterThan( 0, $safe, 'An ordinary regex must still save' );
+	}
+
+	/**
 	 * Test no connection fails quietly.
 	 */
 	public function test_no_connection_fails_quietly(): void {

@@ -43,6 +43,10 @@ final class HeadRendererTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( static fn ( mixed $v ): bool => $v instanceof \WP_Error );
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'get_term_field' )->justReturn( '' );
+		// Default: the queried object is not an attachment. Tests that render an
+		// attachment page override this. It cannot live in the test bootstrap,
+		// because Patchwork cannot redefine a function the bootstrap declares.
+		Functions\when( 'get_post_type' )->justReturn( false );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );
 	}
@@ -1701,5 +1705,168 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'Post Title', $reverseOut );
 		$this->assertSame( 'Filter WP Default', $reverseRenderer->title( 'Filter WP Default' ) );
+	}
+
+	/**
+	 * Assert a head tag marker occurs the expected number of times.
+	 *
+	 * TQA-03. Presence was asserted for canonical and description but
+	 * cardinality never was, so a regression that emitted a second copy would
+	 * have passed. Counting the literal tag marker rather than an escaped URL
+	 * value keeps the assertion stable against the esc_attr and esc_url stubs.
+	 *
+	 * @param string $output   Rendered output.
+	 * @param string $marker   Literal tag marker to count.
+	 * @param int    $expected Expected number of occurrences.
+	 */
+	private function assertTagCount( string $output, string $marker, int $expected ): void {
+		$this->assertSame(
+			$expected,
+			substr_count( $output, $marker ),
+			$marker . ' must appear exactly ' . $expected . ' time(s) in the head'
+		);
+	}
+
+	/**
+	 * Test a singular post emits exactly one of each core head tag.
+	 *
+	 * TQA-03. Duplicate canonical and duplicate description are the most user
+	 * visible SEO defects there are, and neither had any cardinality assertion
+	 * anywhere in the suite. The social tags are pinned here as well so this
+	 * test is the single place that states the expected head cardinality.
+	 */
+	public function test_singular_post_emits_each_core_head_tag_exactly_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'description' => 'A single description for the page.',
+				'canonical'   => 'https://example.com/my-page/',
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:title"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:url"', 1 );
+	}
+
+	/**
+	 * Test the fallback path emits no duplicates either.
+	 *
+	 * TQA-03. With neither canonical nor description in the payload, the
+	 * renderer falls back to the permalink and to the trimmed excerpt. That
+	 * fallback branch is exactly where a second tag could be appended instead
+	 * of a first one emitted, so the cardinality check runs on it too.
+	 */
+	public function test_fallback_canonical_and_description_are_emitted_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		// The fallback must be genuinely in play, otherwise this is vacuous.
+		$this->assertStringContainsString( 'https://example.com/post/', $out );
+		$this->assertStringContainsString( 'Excerpt text for description fallback that is trimmed', $out );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:title"', 1 );
+	}
+
+	/**
+	 * Test a search page emits no canonical and no duplicate social tags.
+	 *
+	 * TQA-03. Search must carry zero canonical tags, and the search context is
+	 * asserted at zero for description too, because with no excerpt and no
+	 * payload there is nothing to describe.
+	 */
+	public function test_search_emits_no_canonical_and_no_duplicate_tags(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 0 );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 0 );
+		$this->assertTagCount( $out, '<meta name="description"', 0 );
+	}
+
+	/**
+	 * Test an attachment page is noindex, follow (SEM-16).
+	 *
+	 * The noindex rules were hardcoded to search and 404 only, so every
+	 * attachment page published index, follow and competed with the post the
+	 * media file belongs to. Attachments are already excluded from the
+	 * sitemaps by PostsProvider, so this only closes the head side.
+	 */
+	public function test_attachment_page_is_noindex_follow(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'attachment' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$directives = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $directives['noindex'], 'an attachment page must be noindex' );
+		$this->assertArrayNotHasKey( 'nofollow', $directives, 'an attachment page must still be follow' );
+	}
+
+	/**
+	 * Test an explicit per post robots setting still wins on a non attachment.
+	 *
+	 * Guards the new attachment branch against leaking into ordinary posts.
+	 */
+	public function test_ordinary_post_is_not_noindexed_by_the_attachment_rule(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'post' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$directives = $renderer->filterRobots( [] );
+
+		$this->assertArrayNotHasKey( 'noindex', $directives );
+		$this->assertArrayNotHasKey( 'nofollow', $directives );
+	}
+
+	/**
+	 * Test the attachment rule does not fire without a queried object id.
+	 *
+	 * The queried id is 0 on archives and on any query with no single object, so
+	 * the rule must be inert there rather than asking get_post_type for the
+	 * type of post 0.
+	 */
+	public function test_attachment_rule_is_inert_without_a_queried_id(): void {
+		Functions\expect( 'get_post_type' )->never();
+
+		[ $ctx, $settings ] = $this->makeContext( 'archive', 0 );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$renderer->filterRobots( [] );
+
+		$this->assertTrue( true, 'no assertion failure means get_post_type was never called' );
+	}
+
+	/**
+	 * Test the attachment page still carries its canonical and description.
+	 *
+	 * SEM-16 is a robots change only. Noindex must not also strip the other
+	 * head tags an attachment page needs to be a coherent page.
+	 */
+	public function test_attachment_page_keeps_canonical_and_description(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'attachment' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'description' => 'Description for the attachment.',
+				'canonical'   => 'https://example.com/my-page/',
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta name="description"', 1 );
 	}
 }

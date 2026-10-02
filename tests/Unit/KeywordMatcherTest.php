@@ -148,6 +148,38 @@ final class KeywordMatcherTest extends TestCase {
 	}
 
 	/**
+	 * Test occurrences counts every repeat, not every other one.
+	 *
+	 * The old padded substr_count consumed the trailing space the next
+	 * occurrence also needed, so a repeated keyword was reported at about
+	 * half its real count. That figure feeds the 2.5 percent ceiling, so an
+	 * over stuffed article read as fine.
+	 */
+	public function test_occurrences_count_every_repeat(): void {
+		$this->assertSame( 3, KeywordMatcher::occurrences( 'seo seo seo', 'seo' ) );
+		$this->assertSame( 4, KeywordMatcher::occurrences( 'seo seo seo seo', 'seo' ) );
+		$this->assertSame( 3, KeywordMatcher::occurrences( 'SEO for SEO. SEO!', 'seo' ) );
+		$this->assertSame( 1, KeywordMatcher::occurrences( 'a  seo   b', 'seo' ) );
+	}
+
+	/**
+	 * Test occurrences still refuses a partial word match.
+	 */
+	public function test_occurrences_ignore_partial_words(): void {
+		// normalize() folds case and drops punctuation to word boundaries,
+		// so seo-tools becomes the two words seo tools and seo does match
+		// it. A substring of a longer word must not match, which is what
+		// the word anchored pattern is for.
+		$this->assertSame( 2, KeywordMatcher::occurrences( 'seo-tools seo', 'seo' ) );
+		$this->assertSame( 1, KeywordMatcher::occurrences( 'seo-tools seo', 'seo tools' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrences( 'preseo', 'seo' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrences( 'seoseo', 'seo' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrences( 'cat care basics', 'at' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrences( '', 'seo' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrences( 'seo', '' ) );
+	}
+
+	/**
 	 * Test density is a percentage of the word count.
 	 */
 	public function test_density_is_a_percentage_of_word_count(): void {
