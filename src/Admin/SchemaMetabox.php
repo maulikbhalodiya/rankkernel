@@ -340,10 +340,12 @@ final class SchemaMetabox {
 
 		$fields = ( isset( $schema['fields'] ) && is_array( $schema['fields'] ) ) ? $schema['fields'] : [];
 
-		$autoLabel = '' !== $resolved
+		if ( '' !== $resolved ) {
 			/* translators: %s: schema type name, e.g. Blog Posting. */
-			? sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $resolved ) )
-			: __( 'Automatic', 'rankkernel' );
+			$autoLabel = sprintf( __( 'Automatic (%s)', 'rankkernel' ), SchemaTypes::label( $resolved ) );
+		} else {
+			$autoLabel = __( 'Automatic', 'rankkernel' );
+		}
 
 		$typeOptions = [];
 

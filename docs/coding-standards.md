@@ -54,7 +54,7 @@ Run all three from the plugin root before claiming done:
 
 * `composer lint` (PHPCS over `rankkernel.php`, `uninstall.php`, `src/`, `tests/`)
 * `composer stan` (PHPStan level 6 over `src/`)
-* `composer test` (PHPUnit, baseline 830 tests and 3023 assertions, report the exact numbers after every run)
+* `composer test` (PHPUnit, baseline 1772 tests and 7200 assertions, report the exact numbers after every run)
 
 Triage helper for scoping single files (read only, changes nothing):
 
