@@ -48,17 +48,18 @@ final class HtaccessFile {
 	/**
 	 * Keep a filtered path only when it resolves inside the site root.
 	 *
-	 * When the path resolution helpers are unavailable the filter value is not
-	 * trusted, so the default is returned. The parent directory is resolved with
-	 * realpath, so a sequence such as .. cannot climb out of the tree. The file
-	 * itself may not exist yet, so only its directory is resolved before the
-	 * prefix check.
+	 * Rejects symlinks and validates that both the parent directory and the file
+	 * itself (when it already exists) resolve inside ABSPATH.
 	 *
 	 * @param string $path Filtered path.
 	 * @param string $fallback Default path.
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
+		if ( function_exists( 'is_link' ) && is_link( $path ) ) {
+			return $fallback;
+		}
+
 		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
 			return $fallback;
 		}
@@ -70,33 +71,28 @@ final class HtaccessFile {
 			return $fallback;
 		}
 
-		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
-		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+		$rootNorm = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dirNorm  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
 
-		return $this->pathStartsWith( $dir, $root ) ? $path : $fallback;
-	}
-
-	/**
-	 * Whether a path starts with a root prefix.
-	 *
-	 * The str_starts_with helper is used when available and strpos as the
-	 * fallback. When neither exists the check fails closed, so the caller keeps
-	 * the default rather than trusting the filter.
-	 *
-	 * @param string $path Path to test.
-	 * @param string $root Root prefix, with a trailing slash.
-	 * @return bool The result.
-	 */
-	private function pathStartsWith( string $path, string $root ): bool {
-		if ( function_exists( 'str_starts_with' ) ) {
-			return str_starts_with( $path, $root );
+		if ( ! str_starts_with( $dirNorm, $rootNorm ) ) {
+			return $fallback;
 		}
 
-		if ( function_exists( 'strpos' ) ) {
-			return 0 === strpos( $path, $root );
+		if ( file_exists( $path ) ) {
+			$realPath = realpath( $path );
+
+			if ( false === $realPath ) {
+				return $fallback;
+			}
+
+			$fileNorm = wp_normalize_path( $realPath );
+
+			if ( ! str_starts_with( $fileNorm, $rootNorm ) ) {
+				return $fallback;
+			}
 		}
 
-		return false;
+		return $path;
 	}
 
 	/**
