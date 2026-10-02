@@ -48,7 +48,7 @@ elseif ( 'save-failed' === $noticeMessage ) :
 endif;
 ?>
 <?php wp_nonce_field( 'rankkernel_schema_save', 'rankkernel_schema_nonce' ); ?>
-<p><label><input type="checkbox" name="rankkernel_schema_disabled" value="1" <?php echo checked( $disabled, true, false ); ?> /> <?php echo esc_html__( 'Disable schema output for this post', 'rankkernel' ); ?></label><br /><span class="description"><?php echo esc_html__( 'No structured data prints on this post while checked.', 'rankkernel' ); ?></span></p>
+<p><label for="rankkernel-schema-disabled"><input type="checkbox" id="rankkernel-schema-disabled" name="rankkernel_schema_disabled" value="1" <?php echo checked( $disabled, true, false ); ?> aria-describedby="rankkernel-schema-disabled-desc" /> <?php echo esc_html__( 'Disable schema output for this post', 'rankkernel' ); ?></label><br /><span class="description" id="rankkernel-schema-disabled-desc"><?php echo esc_html__( 'No structured data prints on this post while checked.', 'rankkernel' ); ?></span></p>
 
 <h3><?php echo esc_html__( 'Schema type', 'rankkernel' ); ?></h3>
 <p><label for="rankkernel-schema-type"><?php echo esc_html__( 'Type', 'rankkernel' ); ?></label> <select name="rankkernel_schema_type" id="rankkernel-schema-type">
@@ -78,8 +78,8 @@ endif;
 <details><summary><?php echo esc_html__( 'Advanced: custom JSON, import, export', 'rankkernel' ); ?></summary>
 	<h3><?php echo esc_html__( 'Custom JSON', 'rankkernel' ); ?></h3>
 	<p><label for="rankkernel-schema-custom"><?php echo esc_html__( 'Extra schema properties', 'rankkernel' ); ?></label></p>
-	<textarea id="rankkernel-schema-custom" class="large-text code" rows="6" name="rankkernel_schema_custom"><?php echo esc_textarea( $customJson ); ?></textarea>
-	<p class="description"><?php echo esc_html__( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ); ?></p>
+	<textarea id="rankkernel-schema-custom" class="large-text code" rows="6" name="rankkernel_schema_custom" aria-describedby="rankkernel-schema-custom-desc"><?php echo esc_textarea( $customJson ); ?></textarea>
+	<p class="description" id="rankkernel-schema-custom-desc"><?php echo esc_html__( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ); ?></p>
 
 	<h3><?php echo esc_html__( 'Validation', 'rankkernel' ); ?></h3>
 	<?php if ( [] === $validationMessages ) : ?>
@@ -93,10 +93,10 @@ endif;
 	<?php endif; ?>
 
 	<h3><?php echo esc_html__( 'Test this page', 'rankkernel' ); ?></h3>
-	<p><a href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?></a> | <a href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?></a></p>
+	<p><a href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a> | <a href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a></p>
 
 	<h3><?php echo esc_html__( 'Import and export', 'rankkernel' ); ?></h3>
 	<p><a class="button" href="<?php echo esc_url( $exportUrl ); ?>"><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></a></p>
-	<p><label for="rankkernel-schema-import"><?php echo esc_html__( 'Import JSON', 'rankkernel' ); ?></label> <input type="file" id="rankkernel-schema-import" name="rankkernel_schema_import" accept=".json,application/json" /></p>
-	<p class="description"><?php echo esc_html__( 'Upload a file previously exported with the Export JSON button above.', 'rankkernel' ); ?></p>
+	<p><label for="rankkernel-schema-import"><?php echo esc_html__( 'Import JSON', 'rankkernel' ); ?></label> <input type="file" id="rankkernel-schema-import" name="rankkernel_schema_import" accept=".json,application/json" aria-describedby="rankkernel-schema-import-desc" /></p>
+	<p class="description" id="rankkernel-schema-import-desc"><?php echo esc_html__( 'Upload a file previously exported with the Export JSON button above.', 'rankkernel' ); ?></p>
 </details>
