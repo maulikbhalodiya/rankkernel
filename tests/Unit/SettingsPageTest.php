@@ -451,6 +451,10 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'section=webmaster', $output );
 		$this->assertStringContainsString( 'section=advanced', $output );
 		$this->assertStringContainsString( 'id="rk-section-general"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-title-template-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-title-template-hint"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-desc-template-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-desc-template-hint"', $output );
 		$this->assertStringNotContainsString( 'id="rk-section-breadcrumbs"', $output );
 	}
 

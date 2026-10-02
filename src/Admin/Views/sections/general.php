@@ -69,8 +69,8 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 		<h4 class="rk-settings-subhead"><?php echo esc_html__( 'Title and description templates', 'rankkernel' ); ?></h4>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-title-template"><?php echo esc_html__( 'Title template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" />
-			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
+			<input type="text" id="rk-title-template" name="title_template" value="<?php echo esc_attr( $titleTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" aria-describedby="rk-title-template-hint" />
+			<p id="rk-title-template-hint" class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
 					<code class="rk-token-chip"><?php echo esc_html( $templateToken ); ?></code>
@@ -79,8 +79,8 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 		</div>
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-desc-template"><?php echo esc_html__( 'Description template', 'rankkernel' ); ?></label>
-			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" />
-			<p class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
+			<input type="text" id="rk-desc-template" name="description_template" value="<?php echo esc_attr( $descriptionTemplate ); ?>" class="rk-settings-input rk-settings-input--mono" aria-describedby="rk-desc-template-hint" />
+			<p id="rk-desc-template-hint" class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
 					<code class="rk-token-chip"><?php echo esc_html( $templateToken ); ?></code>
