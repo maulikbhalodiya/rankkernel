@@ -1255,6 +1255,36 @@ final class RedirectsPage {
 			return;
 		}
 
+		if ( $this->regexTooLong( $proposed ) ) {
+			$this->stayWithErrors(
+				[
+					'source' => sprintf(
+						/* translators: %d: maximum regex source length */
+						__( 'A regex source may be at most %d characters, because longer patterns are never evaluated. The rule was not saved.', 'rankkernel' ),
+						RedirectRepository::MAX_REGEX_LENGTH
+					),
+				],
+				$fields
+			);
+
+			return;
+		}
+
+		if ( $this->regexCapReached( $editingId, $proposed, $fields['is_active'] ) ) {
+			$this->stayWithErrors(
+				[
+					'blocked' => sprintf(
+						/* translators: %d: maximum active regex rules */
+						__( 'The active regex rule limit of %d is reached, and a rule past the limit is never evaluated. Deactivate or delete a regex rule before adding another. The rule was not saved.', 'rankkernel' ),
+						RedirectRepository::MAX_REGEX_RULES
+					),
+				],
+				$fields
+			);
+
+			return;
+		}
+
 		if ( $this->patternCapReached( $editingId, $proposed, $fields['is_active'] ) ) {
 			$this->stayWithErrors(
 				[
@@ -1340,6 +1370,52 @@ final class RedirectsPage {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether saving would exceed the active regex rule limit.
+	 *
+	 * The matcher evaluates at most this many regex rules per request, so a
+	 * rule past the limit would save, list as active and never fire. The
+	 * repository refuses the write, this reports why.
+	 *
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $proposed  Proposed source, target, code, match type.
+	 * @param bool                 $isActive  Whether the proposed rule stays active.
+	 * @return bool True when the limit blocks this save.
+	 */
+	private function regexCapReached( int $editingId, array $proposed, bool $isActive ): bool {
+		if ( ! $isActive || 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		if ( $editingId > 0 ) {
+			$current = $this->repository->get( $editingId );
+
+			if ( is_array( $current )
+				&& 1 === (int) ( $current['is_active'] ?? 0 )
+				&& 'regex' === (string) ( $current['match_type'] ?? 'exact' ) ) {
+				return false;
+			}
+		}
+
+		return $this->repository->count_regex_rules() >= RedirectRepository::MAX_REGEX_RULES;
+	}
+
+	/**
+	 * Whether the proposed regex source is longer than the matcher accepts.
+	 *
+	 * @param array<string, mixed> $proposed Proposed fields.
+	 * @return bool True when the source is over the length bound.
+	 */
+	private function regexTooLong( array $proposed ): bool {
+		if ( 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		$source = Normalizer::normalizeSource( (string) ( $proposed['source'] ?? '' ), 'regex' );
+
+		return strlen( $source ) > RedirectRepository::MAX_REGEX_LENGTH;
 	}
 
 	/**

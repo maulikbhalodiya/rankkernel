@@ -576,6 +576,27 @@ final class CsvHandler {
 			);
 		}
 
+		if ( 'regex' === $matchType
+			&& strlen( Normalizer::normalizeSource( $source, $matchType ) ) > RedirectRepository::MAX_REGEX_LENGTH ) {
+			return $this->row_error(
+				sprintf(
+					/* translators: %d: maximum regex source length */
+					__( 'A regex source may be at most %d characters, because longer patterns are never evaluated. The row was not imported.', 'rankkernel' ),
+					RedirectRepository::MAX_REGEX_LENGTH
+				)
+			);
+		}
+
+		if ( $this->regexCapReached( $editingId, $matchType, $isActive ) ) {
+			return $this->row_error(
+				sprintf(
+					/* translators: %d: maximum active regex rules */
+					__( 'The active regex rule limit of %d is reached, and a rule past the limit is never evaluated. The row was not imported.', 'rankkernel' ),
+					RedirectRepository::MAX_REGEX_RULES
+				)
+			);
+		}
+
 		if ( $this->patternCapReached( $editingId, $proposed, $isActive ) ) {
 			return $this->row_error(
 				sprintf(
@@ -640,6 +661,40 @@ final class CsvHandler {
 			'reason'  => '',
 			'warning' => $warning,
 		];
+	}
+
+	/**
+	 * Whether importing the proposed row would exceed the active regex limit.
+	 *
+	 * The matcher evaluates at most this many regex rules per request, so a
+	 * rule past the limit would save, list as active and never fire. A row
+	 * already counted never grows the set, so an update keeps passing.
+	 *
+	 * @param int    $editingId Row id being updated, zero when adding.
+	 * @param string $matchType Proposed match type.
+	 * @param bool   $isActive  Whether the proposed row stays active.
+	 * @return bool True when the limit blocks this row.
+	 */
+	private function regexCapReached( int $editingId, string $matchType, bool $isActive ): bool {
+		if ( ! $isActive || 'regex' !== $matchType ) {
+			return false;
+		}
+
+		if ( $this->repository->count_regex_rules() < RedirectRepository::MAX_REGEX_RULES ) {
+			return false;
+		}
+
+		if ( $editingId > 0 ) {
+			$current = $this->repository->get( $editingId );
+
+			if ( is_array( $current )
+				&& 1 === (int) ( $current['is_active'] ?? 0 )
+				&& 'regex' === (string) ( $current['match_type'] ?? 'exact' ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

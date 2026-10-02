@@ -41,6 +41,24 @@ final class RedirectRepository {
 	public const MAX_PATTERNS = 500;
 
 	/**
+	 * Maximum active regex rules.
+	 *
+	 * Regex is the expensive tier, so only this many are ever evaluated per
+	 * request. The bound lives here rather than in the matcher so every write
+	 * path inherits it. Enforced only in the matcher, rule twenty one saved,
+	 * listed as active and counted toward hits, and was never evaluated.
+	 */
+	public const MAX_REGEX_RULES = 20;
+
+	/**
+	 * Maximum regex source length in characters.
+	 *
+	 * Enforced on write for the same reason as MAX_REGEX_RULES. A longer
+	 * pattern saved and was skipped at match time, so it silently never fired.
+	 */
+	public const MAX_REGEX_LENGTH = 200;
+
+	/**
 	 * Rows read per CSV export batch, keeps export memory bounded.
 	 */
 	public const EXPORT_BATCH = 500;
@@ -265,6 +283,27 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Count active regex rules, the expensive bounded tier.
+	 *
+	 * @return int Active regex rule count.
+	 */
+	public function count_regex_rules(): int {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 0;
+		}
+
+		$table = RedirectTable::name();
+		$sql   = "SELECT COUNT(*) FROM `{$table}` WHERE is_active = 1 AND match_type = 'regex'";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single bounded count with no user input.
+		$count = $db->get_var( $sql );
+
+		return (int) $count;
+	}
+
+	/**
 	 * Insert a rule, normalizing the source and hashing before storage.
 	 *
 	 * An active non exact rule that would grow the pattern set past
@@ -326,7 +365,7 @@ final class RedirectRepository {
 			return false;
 		}
 
-		$prepared = $this->prepareRow( $rule, true );
+		$prepared = $this->prepareRow( $rule, true, $id );
 
 		if ( null === $prepared || [] === $prepared['data'] ) {
 			return false;
@@ -997,11 +1036,12 @@ final class RedirectRepository {
 	 * Returns null when the row cannot be stored (blocked source, missing
 	 * destination for a redirect code, unknown fields only).
 	 *
-	 * @param array<string, mixed> $rule    Raw fields.
-	 * @param bool                 $partial Whether missing fields are allowed.
+	 * @param array<string, mixed> $rule      Raw fields.
+	 * @param bool                 $partial   Whether missing fields are allowed.
+	 * @param int|null             $excludeId Row id already in the active regex set, null on insert.
 	 * @return array{data: array<string, mixed>, format: array<int, string>}|null
 	 */
-	private function prepareRow( array $rule, bool $partial = false ): ?array {
+	private function prepareRow( array $rule, bool $partial = false, ?int $excludeId = null ): ?array {
 		$data   = [];
 		$format = [];
 
@@ -1015,6 +1055,17 @@ final class RedirectRepository {
 			$source    = Normalizer::normalizeSource( (string) ( $rule['source'] ?? '' ), $matchType );
 
 			if ( '' === $source || Normalizer::isBlockedSource( $source ) ) {
+				return null;
+			}
+
+			// The regex bounds are enforced here so every write path inherits
+			// them, including bulk import and any future caller. When they
+			// lived only in the matcher, an over length pattern or rule twenty
+			// one saved, listed as active and counted toward hits, and was
+			// never evaluated. An edit that does not change the source keeps
+			// whatever it already passed, so length is only checked when the
+			// row actually carries a regex source.
+			if ( 'regex' === $matchType && strlen( $source ) > self::MAX_REGEX_LENGTH ) {
 				return null;
 			}
 
@@ -1069,9 +1120,62 @@ final class RedirectRepository {
 			return null;
 		}
 
+		// The active regex count is bounded at write time for the same reason
+		// as the length bound above. A row that stays inside the set is
+		// excluded by id, so editing a rule that already passed keeps passing
+		// at the limit, matching the pattern cap behaviour.
+		if ( ! $partial && $this->wouldExceedRegexCap( $rule, $excludeId ) ) {
+			return null;
+		}
+
 		return [
 			'data'   => $data,
 			'format' => $format,
 		];
+	}
+
+	/**
+	 * Whether a write would push active regex rules past MAX_REGEX_RULES.
+	 *
+	 * Only a row that lands inside the active regex set counts as growth. A
+	 * row already counted is excluded by id, so an edit that keeps it active
+	 * always passes.
+	 *
+	 * @param array<string, mixed> $rule      Proposed raw fields.
+	 * @param int|null             $excludeId Row id already in the set, null on insert.
+	 * @return bool True when the write must be refused.
+	 */
+	private function wouldExceedRegexCap( array $rule, ?int $excludeId ): bool {
+		$matchType = Normalizer::isMatchType( (string) ( $rule['match_type'] ?? '' ) )
+			? (string) $rule['match_type']
+			: 'exact';
+
+		if ( 'regex' !== $matchType ) {
+			return false;
+		}
+
+		$newActive = ! array_key_exists( 'is_active', $rule ) || (bool) $rule['is_active'];
+
+		if ( ! $newActive ) {
+			return false;
+		}
+
+		if ( null === $excludeId ) {
+			return $this->count_regex_rules() >= self::MAX_REGEX_RULES;
+		}
+
+		$current = $this->get( $excludeId );
+
+		if ( null === $current ) {
+			return false;
+		}
+
+		$nowCounts = 1 === (int) ( $current['is_active'] ?? 0 ) && 'regex' === (string) ( $current['match_type'] ?? 'exact' );
+
+		if ( $nowCounts ) {
+			return false;
+		}
+
+		return $this->count_regex_rules() >= self::MAX_REGEX_RULES;
 	}
 }
