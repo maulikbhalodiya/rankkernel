@@ -242,15 +242,16 @@ final class InstantIndexingPage {
 	 */
 	public function render(): void {
 		// Read only display flags, compared strictly against literals, never stored or output.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display flags, compared strictly against literals, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === $_GET['settings-updated'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, compared strictly against literals.
+		$rawUpdated      = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$settingsUpdated = '1' === $rawUpdated;
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display flag, whitelisted by InstantIndexingLogView::noticeFor, never stored or output raw.
-		$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? $_GET['rk_indexnow_notice'] : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, whitelisted by InstantIndexingLogView::noticeFor.
+		$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? wp_unslash( $_GET['rk_indexnow_notice'] ) : '';
 		$notice     = InstantIndexingLogView::noticeFor( $noticeCode );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only display value, numeric only, never stored or output raw.
-		$verifyRaw  = $_GET['rk_verify_code'] ?? null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display value, numeric only, never stored or output raw.
+		$verifyRaw  = isset( $_GET['rk_verify_code'] ) && is_numeric( $_GET['rk_verify_code'] ) ? wp_unslash( $_GET['rk_verify_code'] ) : null;
 		$verifyCode = is_numeric( $verifyRaw ) ? (int) $verifyRaw : 0;
 
 		if ( 'verified' === $noticeCode ) {
@@ -546,8 +547,8 @@ final class InstantIndexingPage {
 	 * @return int The result.
 	 */
 	private function postedRowId(): int {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, the value is cast to an int and read back through the prepared id query, never interpolated into SQL.
-		$raw = $_POST['rankkernel_indexnow_id'] ?? 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, cast to int below.
+		$raw = isset( $_POST['rankkernel_indexnow_id'] ) && is_numeric( $_POST['rankkernel_indexnow_id'] ) ? wp_unslash( $_POST['rankkernel_indexnow_id'] ) : 0;
 
 		return is_numeric( $raw ) ? (int) $raw : 0;
 	}
@@ -589,10 +590,10 @@ final class InstantIndexingPage {
 	 * @return string The result.
 	 */
 	private function postedAction(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- action marker only, compared strictly against literals, each branch verifies capability plus its own nonce.
-		$raw = $_POST['rankkernel_indexnow_action'] ?? '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, compared strictly against literals.
+		$raw = isset( $_POST['rankkernel_indexnow_action'] ) && is_string( $_POST['rankkernel_indexnow_action'] ) ? wp_unslash( $_POST['rankkernel_indexnow_action'] ) : '';
 
-		return is_string( $raw ) ? $raw : '';
+		return $raw;
 	}
 
 	/**
@@ -606,15 +607,14 @@ final class InstantIndexingPage {
 	 * @return string[] The result.
 	 */
 	private function postedUrls(): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by the caller, value unslashed below, every URL validated by wp_http_validate_url plus the host check before use.
-		$raw = $_POST['rankkernel_indexnow_urls'] ?? '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, unslashed and validated line by line.
+		$raw = isset( $_POST['rankkernel_indexnow_urls'] ) && is_string( $_POST['rankkernel_indexnow_urls'] ) ? wp_unslash( $_POST['rankkernel_indexnow_urls'] ) : '';
 
-		if ( ! is_string( $raw ) ) {
+		if ( '' === $raw ) {
 			return [];
 		}
 
-		$value = function_exists( 'wp_unslash' ) ? (string) wp_unslash( $raw ) : $raw;
-		$lines = preg_split( '/\r\n|\r|\n/', $value );
+		$lines = preg_split( '/\r\n|\r|\n/', $raw );
 
 		if ( ! is_array( $lines ) ) {
 			return [];
