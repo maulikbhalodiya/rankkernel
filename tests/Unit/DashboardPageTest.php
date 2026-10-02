@@ -358,4 +358,32 @@ final class DashboardPageTest extends TestCase {
 			$this->assertArrayHasKey( '0.2.0', $this->options[ MigrationRunner::FAILURES ], 'A bad nonce must clear nothing' );
 		}
 	}
+
+	/**
+	 * Test the module toggle refuses a bad nonce.
+	 *
+	 * TQA-02. The toggle had a capability test but no nonce test, so deleting
+	 * the check_admin_referer call from handleToggle left the suite green. It
+	 * is the one nonce gate on this page with no rejection coverage, because a
+	 * bad nonce must leave the module map exactly as it was.
+	 */
+	public function test_toggle_requires_valid_nonce(): void {
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'robots';
+
+		$this->expectException( \RuntimeException::class );
+
+		try {
+			( new DashboardPage() )->maybeHandleSave();
+		} finally {
+			$this->assertSame(
+				[ 'metadata', 'sitemaps' ],
+				$this->options['rankkernel_modules'],
+				'a bad nonce must toggle no module'
+			);
+			$this->assertSame( [], $this->redirects, 'a bad nonce must not redirect away' );
+		}
+	}
 }
