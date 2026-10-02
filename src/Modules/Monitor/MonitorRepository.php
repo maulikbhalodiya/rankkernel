@@ -54,8 +54,9 @@ final class MonitorRepository {
 	 * Shared static request-level memoized 404 log rows by URI hash.
 	 *
 	 * Performance optimization: memoizes findByHash results across repository instances
-	 * within a single request execution thread to eliminate duplicate SQL queries during
-	 * 404 logging (e.g. Logger::maybeLog checking flood guard and record() performing update/insert).
+	 * within a single HTTP request execution thread to eliminate duplicate SQL queries during
+	 * 404 logging. Intended for per-request lifecycle; callers or long-lived processes (and unit tests)
+	 * reset memory state via resetCache().
 	 *
 	 * @var array<string, array<string, mixed>|null>
 	 */
@@ -71,14 +72,14 @@ final class MonitorRepository {
 	}
 
 	/**
-	 * Reset static request-level memoization (primarily for unit tests).
+	 * Canonical method to reset static request-level memoization (primarily for unit tests and long-lived processes).
 	 */
 	public static function resetCache(): void {
 		self::$hashMemo = [];
 	}
 
 	/**
-	 * Reset static request-level memoization alias.
+	 * Reset static request-level memoization (alias for resetCache maintained for interface parity).
 	 */
 	public static function resetMemo(): void {
 		self::resetCache();
@@ -364,9 +365,13 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ok = $db->delete( $table, [ 'id' => $id ], [ '%d' ] );
 
-		self::resetCache();
+		if ( false !== $ok && $ok > 0 ) {
+			self::resetCache();
 
-		return false !== $ok;
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -405,9 +410,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( "DELETE FROM `{$table}` WHERE id IN ({$list})" );
 
-		self::resetCache();
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -433,9 +444,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY id ASC LIMIT %d", $batch ) );
 
-		self::resetCache();
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -459,9 +476,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` WHERE last_accessed < %s ORDER BY last_accessed ASC, id ASC LIMIT %d", $cutoff, $batch ) );
 
-		self::resetCache();
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -500,9 +523,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY last_accessed ASC, id ASC LIMIT %d", $batch ) );
 
-		self::resetCache();
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
