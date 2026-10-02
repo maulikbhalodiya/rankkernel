@@ -27,8 +27,8 @@ use RankKernel\Plugin;
  * The add and edit form, the searchable filterable sortable paginated list,
  * and the module settings share one screen under the RankKernel menu. Saves
  * run on the load hook so the redirect after save stays header safe. A loop
- * finding blocks the save, a chain finding saves with a warning, and an
- * inconclusive analysis saves with an informational notice.
+ * finding blocks the save, an inconclusive analysis blocks the save too
+ * because a loop cannot be ruled out, and a chain finding saves with a warning.
  */
 final class RedirectsPage {
 	/**
@@ -1229,6 +1229,21 @@ final class RedirectsPage {
 			return;
 		}
 
+		// Fail closed on an unproven analysis, matching SlugWatcher. Every
+		// dynamic target and every regex rule is reported inconclusive, so an
+		// inconclusive rule can carry a loop the detector never saw. Saving it
+		// used to report success and then loop at request time.
+		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
+			$this->stayWithErrors(
+				[
+					'blocked' => __( 'The redirect chain could not be fully verified, so the rule was not saved because a loop cannot be ruled out. Save an exact source and target, then add the rule.', 'rankkernel' ),
+				],
+				$fields
+			);
+
+			return;
+		}
+
 		$existing = $this->repository->lookup( $clean['source'], $clean['match_type'] );
 
 		if ( is_array( $existing ) && (int) ( $existing['id'] ?? 0 ) !== $editingId ) {
@@ -1289,14 +1304,6 @@ final class RedirectsPage {
 			if ( is_string( $chain['final'] ) && '' !== $chain['final'] ) {
 				$flags .= '&rk_final=' . rawurlencode( $chain['final'] );
 			}
-		}
-
-		if ( $loop['inconclusive'] ) {
-			$flags .= '&rk_mayloop=1';
-		}
-
-		if ( $chain['inconclusive'] ) {
-			$flags .= '&rk_chain_unknown=1';
 		}
 
 		$this->redirect( $flags, $fields['return_to'] );

@@ -565,6 +565,17 @@ final class CsvHandler {
 			);
 		}
 
+		// Fail closed on an unproven analysis, matching SlugWatcher. Every
+		// dynamic target and every regex rule is reported inconclusive, so an
+		// inconclusive row can carry a loop the detector never saw. Importing
+		// it reported success and then looped at request time with no server
+		// side bound.
+		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
+			return $this->row_error(
+				__( 'The redirect chain could not be fully verified, so the rule was refused because a loop cannot be ruled out. Save an exact source and target, then add the rule.', 'rankkernel' )
+			);
+		}
+
 		if ( $this->patternCapReached( $editingId, $proposed, $isActive ) ) {
 			return $this->row_error(
 				sprintf(
@@ -622,12 +633,6 @@ final class CsvHandler {
 					$chain['final']
 				);
 			}
-
-			if ( $loop['inconclusive'] || $chain['inconclusive'] ) {
-				$warning .= ' ' . __( 'The analysis could not fully verify every branch, so please verify it manually.', 'rankkernel' );
-			}
-		} elseif ( $loop['inconclusive'] || $chain['inconclusive'] ) {
-			$warning = __( 'The analysis could not fully verify the final destination. Saved as entered, please verify it manually.', 'rankkernel' );
 		}
 
 		return [

@@ -933,9 +933,9 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
-	 * A chain through a pattern rule saves with an information notice.
+	 * A chain through a pattern rule is refused, because the chain cannot be proven.
 	 */
-	public function test_add_pattern_chain_saves_with_info(): void {
+	public function test_add_pattern_chain_is_refused_when_inconclusive(): void {
 		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
 
 		$page = $this->makePage();
@@ -951,15 +951,14 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_chain_unknown=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive chain must not save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 	}
 
 	/**
-	 * A possible loop through a pattern rule saves with a warning.
+	 * A possible loop through a pattern rule is refused, because a loop cannot be ruled out.
 	 */
-	public function test_add_possible_pattern_loop_saves_with_warning(): void {
+	public function test_add_possible_pattern_loop_is_refused_when_inconclusive(): void {
 		$this->seedRule( '/old-.*', '/new', '301', 'regex' );
 
 		$page = $this->makePage();
@@ -975,9 +974,8 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_mayloop=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive loop analysis must not save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 	}
 
 	/**
@@ -1696,9 +1694,9 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
-	 * Loop plus chain inconclusive saves with both flags, never a clean pass.
+	 * Loop plus chain inconclusive is refused outright, never a clean save with flags.
 	 */
-	public function test_inconclusive_loop_and_chain_saves_with_both_flags(): void {
+	public function test_inconclusive_loop_and_chain_is_refused(): void {
 		$this->seedRule( '/old-.*', '/new', '301', 'regex' );
 
 		$page = $this->makePage();
@@ -1714,10 +1712,8 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_mayloop=1', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_chain_unknown=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive analysis must never reach the save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 
 		$_GET = [
 			'rk_notice'        => 'saved',
