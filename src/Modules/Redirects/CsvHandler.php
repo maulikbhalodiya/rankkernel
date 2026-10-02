@@ -576,6 +576,12 @@ final class CsvHandler {
 			);
 		}
 
+		if ( 'regex' === $matchType && RegexSafety::isUnsafe( Normalizer::normalizeSource( $source, $matchType ) ) ) {
+			return $this->row_error(
+				__( 'This pattern can backtrack catastrophically and slow every uncached request, so the row was not imported. Remove the repeated group or the nested quantifier.', 'rankkernel' )
+			);
+		}
+
 		if ( 'regex' === $matchType
 			&& strlen( Normalizer::normalizeSource( $source, $matchType ) ) > RedirectRepository::MAX_REGEX_LENGTH ) {
 			return $this->row_error(

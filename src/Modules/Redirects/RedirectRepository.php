@@ -1069,6 +1069,14 @@ final class RedirectRepository {
 				return null;
 			}
 
+			// Refuse a pattern that can backtrack catastrophically. PHP
+			// preg_match has no execution timeout, so a stored pattern that
+			// costs the engine real time on every uncached request is a cost
+			// defect even where the PCRE backtrack limit bounds the damage.
+			if ( 'regex' === $matchType && RegexSafety::isUnsafe( $source ) ) {
+				return null;
+			}
+
 			$data['match_type']  = $matchType;
 			$format[]            = '%s';
 			$data['source_hash'] = Normalizer::hash( $matchType, $source );

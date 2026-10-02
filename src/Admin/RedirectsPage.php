@@ -17,6 +17,7 @@ use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
+use RankKernel\Modules\Redirects\RegexSafety;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 use RankKernel\Modules\Redirects\Validator;
 use RankKernel\Plugin;
@@ -1255,6 +1256,17 @@ final class RedirectsPage {
 			return;
 		}
 
+		if ( $this->regexUnsafe( $proposed ) ) {
+			$this->stayWithErrors(
+				[
+					'source' => __( 'This pattern can backtrack catastrophically and slow every uncached request, so it was not saved. Remove the repeated group or the nested quantifier. The rule was not saved.', 'rankkernel' ),
+				],
+				$fields
+			);
+
+			return;
+		}
+
 		if ( $this->regexTooLong( $proposed ) ) {
 			$this->stayWithErrors(
 				[
@@ -1416,6 +1428,22 @@ final class RedirectsPage {
 		$source = Normalizer::normalizeSource( (string) ( $proposed['source'] ?? '' ), 'regex' );
 
 		return strlen( $source ) > RedirectRepository::MAX_REGEX_LENGTH;
+	}
+
+	/**
+	 * Whether the proposed regex source can backtrack catastrophically.
+	 *
+	 * @param array<string, mixed> $proposed Proposed fields.
+	 * @return bool True when the source is refused.
+	 */
+	private function regexUnsafe( array $proposed ): bool {
+		if ( 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		$source = Normalizer::normalizeSource( (string) ( $proposed['source'] ?? '' ), 'regex' );
+
+		return RegexSafety::isUnsafe( $source );
 	}
 
 	/**

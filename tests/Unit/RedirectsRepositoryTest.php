@@ -666,6 +666,35 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test a catastrophic backtracking pattern is refused on write.
+	 */
+	public function test_catastrophic_regex_is_refused_on_write(): void {
+		$repo = new RedirectRepository( $this->db );
+
+		$unsafe = $repo->insert(
+			[
+				'source'     => '^(a+)+$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertSame( 0, $unsafe, 'A catastrophic pattern must be refused on write' );
+
+		$safe = $repo->insert(
+			[
+				'source'     => '^/old/[0-9]+$',
+				'target'     => '/new',
+				'code'       => '301',
+				'match_type' => 'regex',
+			]
+		);
+
+		$this->assertGreaterThan( 0, $safe, 'An ordinary regex must still save' );
+	}
+
+	/**
 	 * Test no connection fails quietly.
 	 */
 	public function test_no_connection_fails_quietly(): void {
