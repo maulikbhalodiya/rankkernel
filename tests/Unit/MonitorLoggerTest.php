@@ -142,6 +142,7 @@ final class MonitorLoggerTest extends TestCase {
 		unset( $_SERVER['HTTP_REFERER'], $_SERVER['HTTP_USER_AGENT'] );
 
 		Logger::resetLogged();
+		MonitorRepository::resetCache();
 
 		// Test double backing the stubbed wp_parse_url with the native parser.
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
