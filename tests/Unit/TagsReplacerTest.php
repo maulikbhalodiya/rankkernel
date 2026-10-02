@@ -73,6 +73,54 @@ final class TagsReplacerTest extends TestCase {
 	}
 
 	/**
+	 * Test the date token never calls get_the_date with a zero id.
+	 *
+	 * On a date or custom post type archive there is no queried post, so the
+	 * id is zero. Core resolves a missing post to the loop global, which put
+	 * an unrelated post date into the page title.
+	 */
+	public function test_date_token_on_archive_does_not_leak_the_loop_post_date(): void {
+		$seen = [];
+
+		Functions\when( 'get_the_date' )->alias(
+			static function ( string $format = '', $post = null ) use ( &$seen ): mixed {
+				$seen[] = $post;
+
+				// Core returns the global post date when given no post.
+				return 0 === $post ? 'September 28, 2026' : '2026-01-01';
+			}
+		);
+
+		$ctx = $this->makeContext( $this->makeQuery( 0, 'archive' ) );
+
+		$this->assertSame( '', ( new TagsReplacer() )->replace( $ctx, '%%date%%', 'title' ) );
+		$this->assertNotContains( 0, $seen, 'get_the_date must never be called with id zero' );
+	}
+
+	/**
+	 * Test the author token never falls back to the global authordata on an archive.
+	 *
+	 * The author accessor reads the global authordata, which on an archive is
+	 * whichever post the loop last set.
+	 */
+	public function test_author_token_on_archive_does_not_leak_the_loop_post_author(): void {
+		$called = false;
+
+		Functions\when( 'get_the_author' )->alias(
+			static function () use ( &$called ): string {
+				$called = true;
+
+				return 'Loop Post Author';
+			}
+		);
+
+		$ctx = $this->makeContext( $this->makeQuery( 0, 'archive' ) );
+
+		$this->assertSame( '', ( new TagsReplacer() )->replace( $ctx, '%%author%%', 'title' ) );
+		$this->assertFalse( $called, 'get_the_author must not be called without a queried post' );
+	}
+
+	/**
 	 * Make Context.
 	 *
 	 * @param WP_Query $query Query.

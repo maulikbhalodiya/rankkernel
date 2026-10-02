@@ -17,6 +17,11 @@ defined( 'ABSPATH' ) || exit;
  *
  * Memoized by (context_hash . '|' . field) so the same field is never
  * resolved twice per request even if called from title() and render().
+ *
+ * Every token that reads a post gated on a real queried id. On an archive
+ * there is no queried post, and the core accessors resolve a missing post
+ * to the loop global, which would leak an unrelated post's date or author
+ * into the page title.
  */
 final class TagsReplacer {
 	/**
@@ -194,8 +199,15 @@ final class TagsReplacer {
 	 * @return string The result.
 	 */
 	private function resolveDate( Context $ctx ): string {
-		if ( function_exists( 'get_the_date' ) ) {
-			$date = get_the_date( '', $ctx->queriedId() );
+		// Archives have no queried post, so the id is zero. get_the_date()
+		// passes that through get_post(), and core resolves a missing post
+		// to the current global, which on an archive is whichever post the
+		// loop is sitting on. That put an unrelated post date into the page
+		// title. Guarded exactly like resolveCategory().
+		$id = $ctx->queriedId();
+
+		if ( $id > 0 && function_exists( 'get_the_date' ) ) {
+			$date = get_the_date( '', $id );
 
 			if ( is_string( $date ) ) {
 				return $date;
@@ -237,7 +249,11 @@ final class TagsReplacer {
 			}
 		}
 
-		if ( function_exists( 'get_the_author' ) ) {
+		// get_the_author() reads the global $authordata, which on an archive
+		// is whichever post the loop last set, so it has the same exposure
+		// the date token had. Only reached once the queried post has been
+		// ruled out above, so the fallback is safe there and nowhere else.
+		if ( $id > 0 && function_exists( 'get_the_author' ) ) {
 			$author = get_the_author();
 
 			if ( is_string( $author ) ) {
