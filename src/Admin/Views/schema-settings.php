@@ -432,7 +432,7 @@ $rkPluginVersion = Plugin::version();
 											</td>
 											<td class="rk-schema-col-schema">
 												<div class="rk-ui-select-wrap rk-schema-select-wrap">
-													<select class="rk-ui-select rk-schema-select" id="rk-<?php echo esc_attr( $row['key'] ); ?>" name="<?php echo esc_attr( $row['key'] ); ?>" aria-describedby="rk-<?php echo esc_attr( $row['key'] ); ?>-desc">
+													<select class="rk-ui-select rk-schema-select" id="rk-<?php echo esc_attr( $row['key'] ); ?>" name="<?php echo esc_attr( $row['key'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: post type label */ __( 'Default schema type for %s', 'rankkernel' ), $row['label'] ) ); ?>" aria-describedby="rk-<?php echo esc_attr( $row['key'] ); ?>-desc">
 														<option value=""<?php echo selected( $row['current'], '', false ); ?>><?php echo esc_html__( 'Automatic', 'rankkernel' ); ?></option>
 														<?php foreach ( $schemaTypes as $schemaType ) : ?>
 															<option value="<?php echo esc_attr( $schemaType['value'] ); ?>"<?php echo selected( $row['current'], $schemaType['value'], false ); ?>><?php echo esc_html( $schemaType['label'] ); ?></option>
