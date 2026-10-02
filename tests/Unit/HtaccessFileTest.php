@@ -177,6 +177,66 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test a valid in tree filtered path is accepted.
+	 */
+	public function test_valid_in_tree_filtered_path_is_accepted(): void {
+		$validPath  = ABSPATH . 'custom.htaccess';
+		$this->path = $validPath;
+
+		$this->assertSame( $validPath, ( new HtaccessFile() )->path() );
+	}
+
+	/**
+	 * Test an out of tree filter path falls back to the default path.
+	 */
+	public function test_out_of_tree_filter_path_falls_back_to_default(): void {
+		$this->path = '/etc/passwd';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
+	 * Test a symlink leaf filter path falls back to the default path.
+	 */
+	public function test_symlink_leaf_filter_path_falls_back_to_default(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink function is unavailable.' );
+		}
+
+		$target  = tempnam( sys_get_temp_dir(), 'rktarget' );
+		$symlink = ABSPATH . 'htaccess_symlink_' . uniqid();
+
+		$this->assertIsString( $target );
+
+		try {
+			symlink( $target, $symlink );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+
+		if ( ! is_link( $symlink ) ) {
+			unlink( $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			$this->markTestSkipped( 'Symlink creation failed or is unsupported on this platform.' );
+		}
+
+		$this->path = $symlink;
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+
+		unlink( $symlink ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		unlink( $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+	}
+
+	/**
+	 * Test a climbed out path falls back to the default path.
+	 */
+	public function test_climbed_out_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . '../etc/passwd';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
 	 * Test an unsupported server refuses to save.
 	 */
 	public function test_unsupported_server_refuses_to_save(): void {
