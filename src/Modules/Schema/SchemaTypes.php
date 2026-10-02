@@ -59,9 +59,7 @@ final class SchemaTypes {
 		'ClaimReview',
 		'Dataset',
 		'PodcastEpisode',
-		'Carousel',
 		'QAPage',
-		'ItemList',
 	];
 
 	/**
@@ -118,9 +116,7 @@ final class SchemaTypes {
 		'ClaimReview'         => 'claimreview',
 		'Dataset'             => 'dataset',
 		'PodcastEpisode'      => 'podcastepisode',
-		'Carousel'            => 'carousel',
 		'QAPage'              => 'qapage',
-		'ItemList'            => 'itemlist',
 	];
 
 	/**
@@ -159,9 +155,7 @@ final class SchemaTypes {
 		'ClaimReview'         => 'Fact Check',
 		'Dataset'             => 'Dataset',
 		'PodcastEpisode'      => 'Podcast Episode',
-		'Carousel'            => 'Carousel',
 		'QAPage'              => 'Question and Answer Page',
-		'ItemList'            => 'Item List',
 	];
 
 	/**
@@ -203,7 +197,7 @@ final class SchemaTypes {
 	 *
 	 * @var string[]
 	 */
-	public const NO_FIELDS_REQUIRED = [ 'WebPage', 'FAQPage', 'HowTo', 'Carousel', 'QAPage', 'ItemList' ];
+	public const NO_FIELDS_REQUIRED = [ 'WebPage', 'FAQPage', 'HowTo', 'QAPage' ];
 
 	/**
 	 * Piece id for a type, empty when unmapped.

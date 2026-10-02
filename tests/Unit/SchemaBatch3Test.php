@@ -225,11 +225,13 @@ final class SchemaBatch3Test extends TestCase {
 			$this->assertSame( $type, SchemaTypes::normalize( $type ) );
 		}
 
-		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'Carousel', 'QAPage', 'ItemList' ] as $type ) {
+		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'QAPage' ] as $type ) {
 			$this->assertSame( $type, SchemaTypes::normalize( $type ) );
 		}
 
 		$this->assertSame( 'Article', SchemaTypes::normalize( 'CarouselRide' ) );
+		$this->assertSame( 'Article', SchemaTypes::normalize( 'Carousel' ), 'Carousel is withdrawn' );
+		$this->assertSame( 'Article', SchemaTypes::normalize( 'ItemList' ), 'ItemList is withdrawn' );
 	}
 
 	/**

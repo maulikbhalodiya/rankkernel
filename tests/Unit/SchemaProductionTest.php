@@ -230,7 +230,6 @@ final class SchemaProductionTest extends TestCase {
 		$this->assertSame( [ 'headline', 'startDate', 'locationName' ], SchemaTypes::requiredFields( 'Event' ) );
 		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'Service' ) );
 		$this->assertSame( [ 'headline' ], SchemaTypes::requiredFields( 'Review' ) );
-		$this->assertSame( [], SchemaTypes::requiredFields( 'ItemList' ) );
 		$this->assertSame( [], SchemaTypes::requiredFields( 'QAPage' ) );
 		$this->assertSame( [], SchemaTypes::requiredFields( 'EvilType' ) );
 
