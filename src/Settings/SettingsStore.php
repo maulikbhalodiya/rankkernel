@@ -25,6 +25,24 @@ final class SettingsStore {
 	public const OPTION = 'rankkernel_settings';
 
 	/**
+	 * Maximum profile URLs kept for the organization sameAs field.
+	 *
+	 * This option is autoloaded, so every entry here is read on every
+	 * frontend request. The bound keeps a repeated save from growing a
+	 * hot option without limit.
+	 */
+	public const ORG_SAMEAS_MAX = 20;
+
+	/**
+	 * Maximum schema_default_ dynamic keys stored at once.
+	 *
+	 * Each key is a per post type default type, so the useful number is
+	 * bounded by how many post types a site has. The cap stops an
+	 * unbounded key namespace accumulating in the same hot option.
+	 */
+	public const SCHEMA_DEFAULT_MAX = 50;
+
+	/**
 	 * Whitelisted setting keys.
 	 *
 	 * @var string[]
@@ -144,10 +162,25 @@ final class SettingsStore {
 	 * @return bool Whether the update succeeded.
 	 */
 	public function set( array $partial ): bool {
-		$sanitized = [];
+		$sanitized   = [];
+		$dynamicKeys = 0;
 
 		foreach ( $partial as $key => $value ) {
 			if ( self::isDefaultTypeKey( $key ) ) {
+				// The suffix names a post type, so it is validated against a
+				// real registered post type rather than only against the key
+				// shape. BreadcrumbsSettings does the same for its own dynamic
+				// keys, so the two stores now agree on what a valid suffix is.
+				if ( ! self::isRegisteredPostType( $key ) ) {
+					continue;
+				}
+
+				++$dynamicKeys;
+
+				if ( $dynamicKeys > self::SCHEMA_DEFAULT_MAX ) {
+					continue;
+				}
+
 				$clean = trim( (string) $value );
 
 				if ( '' === $clean ) {
@@ -217,6 +250,31 @@ final class SettingsStore {
 	}
 
 	/**
+	 * Whether a schema_default_ key names a real post type.
+	 *
+	 * The key shape alone left the namespace unbounded, because
+	 * SettingsController passes get_params() and unregistered body keys come
+	 * back verbatim. When WordPress is absent, as in a unit test, the shape
+	 * check stands alone so the store keeps working without a bootstrap.
+	 *
+	 * @param string $key Candidate key.
+	 * @return bool True when the suffix is a registered post type.
+	 */
+	private static function isRegisteredPostType( string $key ): bool {
+		if ( ! function_exists( 'post_type_exists' ) ) {
+			return true;
+		}
+
+		$postType = substr( $key, strlen( 'schema_default_' ) );
+
+		if ( '' === $postType ) {
+			return false;
+		}
+
+		return post_type_exists( $postType );
+	}
+
+	/**
 	 * Sanitize a single value by key.
 	 *
 	 * @param string $key   Setting key.
@@ -262,7 +320,11 @@ final class SettingsStore {
 				}
 			}
 
-			return $clean;
+			// rankkernel_settings is autoloaded and read on every frontend
+			// request, so an unbounded list here grows a value already
+			// resident in wp_load_alloptions() on every request. Twenty
+			// profiles is far past any real use of the field.
+			return array_slice( $clean, 0, self::ORG_SAMEAS_MAX );
 		}
 
 		if ( 'website_search_action' === $key || 'schema_breadcrumbs' === $key || 'schema_author' === $key ) {

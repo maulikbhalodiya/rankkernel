@@ -35,6 +35,109 @@ final class SettingsStoreTest extends TestCase {
 	}
 
 	/**
+	 * Test org_sameas is capped.
+	 *
+	 * The option is autoloaded and read on every frontend request, so an
+	 * unbounded list here grows a hot option on every save.
+	 */
+	public function test_org_sameas_is_capped(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'esc_url_raw' )->alias( static fn ( string $url ): string => $url );
+
+		$saved = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$saved ): bool {
+				$saved = $value;
+
+				return true;
+			}
+		);
+
+		$urls = [];
+
+		for ( $i = 0; $i < SettingsStore::ORG_SAMEAS_MAX + 15; $i++ ) {
+			$urls[] = 'https://example.com/profile/' . $i;
+		}
+
+		$store = new SettingsStore();
+
+		$this->assertTrue( $store->set( [ 'org_sameas' => $urls ] ) );
+
+		$this->assertIsArray( $saved );
+		$this->assertCount( SettingsStore::ORG_SAMEAS_MAX, $saved['org_sameas'] );
+		$this->assertSame( 'https://example.com/profile/0', $saved['org_sameas'][0] );
+	}
+
+	/**
+	 * Test a schema_default_ key naming an unknown post type is rejected.
+	 */
+	public function test_schema_default_key_requires_a_registered_post_type(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'post_type_exists' )->alias(
+			static fn ( string $postType ): bool => 'post' === $postType || 'page' === $postType
+		);
+
+		$saved = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$saved ): bool {
+				$saved = $value;
+
+				return true;
+			}
+		);
+
+		$store = new SettingsStore();
+
+		$this->assertTrue( $store->set( [ 'schema_default_post' => 'Article' ] ) );
+		$this->assertIsArray( $saved );
+		$this->assertSame( 'Article', $saved['schema_default_post'] );
+
+		$this->assertFalse(
+			$store->set( [ 'schema_default_not_a_real_type' => 'Article' ] ),
+			'A key naming an unregistered post type must not be stored'
+		);
+	}
+
+	/**
+	 * Test the number of schema_default_ keys is capped.
+	 */
+	public function test_schema_default_keys_are_capped(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'post_type_exists' )->justReturn( true );
+
+		$saved = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$saved ): bool {
+				$saved = $value;
+
+				return true;
+			}
+		);
+
+		$partial = [];
+
+		for ( $i = 0; $i < SettingsStore::SCHEMA_DEFAULT_MAX + 20; $i++ ) {
+			$partial[ 'schema_default_type' . $i ] = 'Article';
+		}
+
+		$store = new SettingsStore();
+
+		$this->assertTrue( $store->set( $partial ) );
+
+		$this->assertIsArray( $saved );
+
+		$dynamic = array_filter(
+			array_keys( $saved ),
+			static fn ( string $key ): bool => str_starts_with( $key, 'schema_default_' )
+		);
+
+		$this->assertCount( SettingsStore::SCHEMA_DEFAULT_MAX, $dynamic );
+	}
+
+	/**
 	 * Test defaults merge.
 	 */
 	public function test_defaults_merge(): void {
