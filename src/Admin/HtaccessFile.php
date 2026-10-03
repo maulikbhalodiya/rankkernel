@@ -53,6 +53,12 @@ final class HtaccessFile {
 			return $fallback;
 		}
 
+		$normalized = wp_normalize_path( $path );
+
+		if ( ! str_starts_with( $normalized, '/' ) && ! preg_match( '#^[a-zA-Z]:/#', $normalized ) ) {
+			return $fallback;
+		}
+
 		$root = realpath( ABSPATH );
 		$dir  = realpath( dirname( $path ) );
 
