@@ -286,4 +286,37 @@ final class HtaccessFileTest extends TestCase {
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
+
+	/**
+	 * Test path rejects a symlink inside the site root that points outside.
+	 */
+	public function test_path_rejects_symlink_pointing_outside_site_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() is not available.' );
+		}
+
+		$outDir = is_dir( '/var/tmp' ) && is_writable( '/var/tmp' ) ? '/var/tmp' : dirname( rtrim( ABSPATH, '/\\' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- test fixture checks temp dir writability.
+		$target = tempnam( $outDir, 'rktarget' );
+
+		if ( false === $target ) {
+			$this->markTestSkipped( 'Could not create target temp file.' );
+		}
+
+		$link = ABSPATH . 'rkht_symlink_' . uniqid();
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- test fixture creates symlink safely.
+		if ( false === @symlink( $target, $link ) ) {
+			unlink( $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+			$this->markTestSkipped( 'symlink() creation failed.' );
+		}
+
+		$this->path = $link;
+
+		try {
+			$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+		} finally {
+			@unlink( $link ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- cleanup test symlink.
+			@unlink( $target ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- cleanup test target file.
+		}
+	}
 }

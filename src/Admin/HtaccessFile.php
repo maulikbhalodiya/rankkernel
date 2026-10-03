@@ -49,7 +49,7 @@ final class HtaccessFile {
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
-		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+		if ( ! function_exists( 'wp_normalize_path' ) ) {
 			return $fallback;
 		}
 
