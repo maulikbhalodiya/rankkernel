@@ -286,4 +286,48 @@ final class IndexBuilderTest extends TestCase {
 		$this->assertSame( 0, $builder->getSetPageCount( 'page' ) );
 		$this->assertSame( 0, $builder->getSetPageCount( 'nonexistent' ) );
 	}
+
+	/**
+	 * Test getSetsWithPageCounts memoizes result and resetCache clears it.
+	 */
+	public function test_get_sets_with_page_counts_memoization_and_reset_cache(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->once()->andReturn( [ 'post' ] );
+		$posts->shouldReceive( 'getCount' )->once()->with( 'post' )->andReturn( 10 );
+
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->once()->andReturn( [] );
+
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->once()->andReturn( [] );
+
+		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => 1000 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress apply_filters signature.
+
+		$builder = new IndexBuilder( $posts, $tax, $auth );
+
+		// First call invokes provider methods (mock expectations: once).
+		$first = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 1 ], $first );
+
+		// Second call uses memoized result without calling provider methods again.
+		$second = $builder->getSetsWithPageCounts();
+		$this->assertSame( $first, $second );
+
+		// resetCache clears memoization so next call queries providers again.
+		$builder->resetCache();
+
+		$posts2 = Mockery::mock( PostsProvider::class );
+		$posts2->shouldReceive( 'getSets' )->once()->andReturn( [ 'post' ] );
+		$posts2->shouldReceive( 'getCount' )->once()->with( 'post' )->andReturn( 20 );
+
+		$tax2 = Mockery::mock( TaxonomiesProvider::class );
+		$tax2->shouldReceive( 'getSets' )->once()->andReturn( [] );
+
+		$auth2 = Mockery::mock( AuthorsProvider::class );
+		$auth2->shouldReceive( 'getSets' )->once()->andReturn( [] );
+
+		$builder2 = new IndexBuilder( $posts2, $tax2, $auth2 );
+		$third    = $builder2->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 1 ], $third );
+	}
 }

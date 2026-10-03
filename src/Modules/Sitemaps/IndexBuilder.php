@@ -47,6 +47,24 @@ class IndexBuilder {
 	private ?Router $router = null;
 
 	/**
+	 * Memoized set map with page counts for this builder instance.
+	 *
+	 * Performance optimization: memoizes the populated set map within this builder
+	 * instance to eliminate redundant provider count database queries when checking set
+	 * existence, page counts, or building index XML across multiple calls.
+	 *
+	 * @var array<string, int>|null
+	 */
+	private ?array $setsWithPageCountsMemo = null;
+
+	/**
+	 * Reset in-memory cache (primarily for unit tests).
+	 */
+	public function resetCache(): void {
+		$this->setsWithPageCountsMemo = null;
+	}
+
+	/**
 	 * Set the router used for sitemap URLs.
 	 *
 	 * @param Router $router Router instance.
@@ -195,6 +213,10 @@ class IndexBuilder {
 	 * @return array<string, int> Map of set => page count.
 	 */
 	public function getSetsWithPageCounts(): array {
+		if ( null !== $this->setsWithPageCountsMemo ) {
+			return $this->setsWithPageCountsMemo;
+		}
+
 		$perPage = $this->getPerPage();
 		$out     = [];
 
@@ -242,6 +264,8 @@ class IndexBuilder {
 
 			$out[ $set ] = $pages;
 		}
+
+		$this->setsWithPageCountsMemo = $out;
 
 		return $out;
 	}
