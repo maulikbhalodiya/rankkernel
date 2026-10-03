@@ -262,4 +262,13 @@ final class HtaccessFileTest extends TestCase {
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
+
+	/**
+	 * Test path rejects filter value that attempts path traversal out of site root.
+	 */
+	public function test_path_rejects_filter_that_climbs_out_of_site_root(): void {
+		$this->path = ABSPATH . '../etc/passwd';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
 }

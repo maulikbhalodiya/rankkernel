@@ -30,7 +30,59 @@ final class HtaccessFile {
 
 		$path = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		if ( ! is_string( $path ) || '' === $path || $path === $default ) {
+			return $default;
+		}
+
+		if ( ! defined( 'ABSPATH' ) ) {
+			return $path;
+		}
+
+		return $this->containedPath( $path, $default );
+	}
+
+	/**
+	 * Keep a filtered path only when it resolves inside the site root.
+	 *
+	 * @param string $path     Filtered path.
+	 * @param string $fallback Default path.
+	 * @return string The result.
+	 */
+	private function containedPath( string $path, string $fallback ): string {
+		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+			return $fallback;
+		}
+
+		$root = realpath( ABSPATH );
+		$dir  = realpath( dirname( $path ) );
+
+		if ( false === $root || false === $dir ) {
+			return $fallback;
+		}
+
+		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+
+		return $this->pathStartsWith( $dir, $root ) ? $path : $fallback;
+	}
+
+	/**
+	 * Whether a path starts with a root prefix.
+	 *
+	 * @param string $path Path to test.
+	 * @param string $root Root prefix, with a trailing slash.
+	 * @return bool The result.
+	 */
+	private function pathStartsWith( string $path, string $root ): bool {
+		if ( function_exists( 'str_starts_with' ) ) {
+			return str_starts_with( $path, $root );
+		}
+
+		if ( function_exists( 'strpos' ) ) {
+			return 0 === strpos( $path, $root );
+		}
+
+		return false;
 	}
 
 	/**
