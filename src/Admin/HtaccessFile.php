@@ -35,7 +35,7 @@ final class HtaccessFile {
 		}
 
 		if ( ! defined( 'ABSPATH' ) ) {
-			return $path;
+			return $default;
 		}
 
 		return $this->containedPath( $path, $default );
@@ -63,26 +63,25 @@ final class HtaccessFile {
 		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
 		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
 
-		return $this->pathStartsWith( $dir, $root ) ? $path : $fallback;
-	}
-
-	/**
-	 * Whether a path starts with a root prefix.
-	 *
-	 * @param string $path Path to test.
-	 * @param string $root Root prefix, with a trailing slash.
-	 * @return bool The result.
-	 */
-	private function pathStartsWith( string $path, string $root ): bool {
-		if ( function_exists( 'str_starts_with' ) ) {
-			return str_starts_with( $path, $root );
+		if ( ! str_starts_with( $dir, $root ) ) {
+			return $fallback;
 		}
 
-		if ( function_exists( 'strpos' ) ) {
-			return 0 === strpos( $path, $root );
+		if ( file_exists( $path ) ) {
+			$fileReal = realpath( $path );
+
+			if ( false === $fileReal ) {
+				return $fallback;
+			}
+
+			$fileNorm = wp_normalize_path( $fileReal );
+
+			if ( ! str_starts_with( $fileNorm, $root ) ) {
+				return $fallback;
+			}
 		}
 
-		return false;
+		return $path;
 	}
 
 	/**
