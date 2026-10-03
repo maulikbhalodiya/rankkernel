@@ -43,6 +43,21 @@
 			} );
 		};
 
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
+
 	var FIELD_ID = 'rankkernel-indexnow-urls';
 	var STATUS_ID = 'rankkernel-indexnow-urls-status';
 	var BUTTON_ID = 'rankkernel-indexnow-submit';
@@ -1624,6 +1639,7 @@
 
 				setBusy( false );
 				logRender( doc, card, action, state, data, safePage );
+				rankkernelAnnounce( __( 'Submission log updated.', 'rankkernel' ) );
 
 				if ( push && window.history && window.history.pushState ) {
 					try {

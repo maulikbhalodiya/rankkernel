@@ -1113,7 +1113,7 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertContains( $handle, $enqueuedScripts );
 		$this->assertTrue( $registeredScripts[ $handle ]['in_footer'], 'the script must load in the footer' );
 		$this->assertStringContainsString( 'instant-indexing-admin.js', $registeredScripts[ $handle ]['src'] );
-		$this->assertSame( [ 'wp-i18n' ], $registeredScripts[ $handle ]['deps'], 'the script must declare the wp-i18n dependency so window.wp.i18n is loaded' );
+		$this->assertSame( [ 'wp-i18n', 'wp-a11y' ], $registeredScripts[ $handle ]['deps'], 'the script must declare the wp-i18n and wp-a11y dependencies' );
 
 		$this->assertArrayHasKey( $handle, $registeredStyles, 'the stylesheet must register on this screen' );
 		$this->assertContains( $handle, $enqueuedStyles, 'the stylesheet must enqueue on this screen' );
