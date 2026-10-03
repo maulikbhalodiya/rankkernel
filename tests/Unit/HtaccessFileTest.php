@@ -271,4 +271,19 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
 	}
+
+	/**
+	 * Test path accepts filter value that stays inside the site root.
+	 */
+	public function test_path_accepts_filter_inside_site_root(): void {
+		$temp = tempnam( ABSPATH, 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		$this->path = $temp;
+
+		$this->assertSame( $temp, ( new HtaccessFile() )->path() );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
 }
