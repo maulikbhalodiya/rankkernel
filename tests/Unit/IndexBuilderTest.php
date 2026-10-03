@@ -292,20 +292,20 @@ final class IndexBuilderTest extends TestCase {
 	 */
 	public function test_get_sets_with_page_counts_memoization_and_reset_cache(): void {
 		$posts = Mockery::mock( PostsProvider::class );
-		$posts->shouldReceive( 'getSets' )->once()->andReturn( [ 'post' ] );
-		$posts->shouldReceive( 'getCount' )->once()->with( 'post' )->andReturn( 10 );
+		$posts->shouldReceive( 'getSets' )->twice()->andReturn( [ 'post' ] );
+		$posts->shouldReceive( 'getCount' )->twice()->with( 'post' )->andReturn( 10, 2000 );
 
 		$tax = Mockery::mock( TaxonomiesProvider::class );
-		$tax->shouldReceive( 'getSets' )->once()->andReturn( [] );
+		$tax->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
 		$auth = Mockery::mock( AuthorsProvider::class );
-		$auth->shouldReceive( 'getSets' )->once()->andReturn( [] );
+		$auth->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => 1000 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress apply_filters signature.
 
 		$builder = new IndexBuilder( $posts, $tax, $auth );
 
-		// First call invokes provider methods (mock expectations: once).
+		// First call invokes provider methods.
 		$first = $builder->getSetsWithPageCounts();
 		$this->assertSame( [ 'post' => 1 ], $first );
 
@@ -313,21 +313,10 @@ final class IndexBuilderTest extends TestCase {
 		$second = $builder->getSetsWithPageCounts();
 		$this->assertSame( $first, $second );
 
-		// resetCache clears memoization so next call queries providers again.
+		// resetCache clears memoization on the SAME builder instance so next call queries providers again.
 		$builder->resetCache();
 
-		$posts2 = Mockery::mock( PostsProvider::class );
-		$posts2->shouldReceive( 'getSets' )->once()->andReturn( [ 'post' ] );
-		$posts2->shouldReceive( 'getCount' )->once()->with( 'post' )->andReturn( 20 );
-
-		$tax2 = Mockery::mock( TaxonomiesProvider::class );
-		$tax2->shouldReceive( 'getSets' )->once()->andReturn( [] );
-
-		$auth2 = Mockery::mock( AuthorsProvider::class );
-		$auth2->shouldReceive( 'getSets' )->once()->andReturn( [] );
-
-		$builder2 = new IndexBuilder( $posts2, $tax2, $auth2 );
-		$third    = $builder2->getSetsWithPageCounts();
-		$this->assertSame( [ 'post' => 1 ], $third );
+		$third = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 2 ], $third );
 	}
 }

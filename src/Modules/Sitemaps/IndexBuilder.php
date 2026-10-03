@@ -53,7 +53,7 @@ class IndexBuilder {
 	 * instance to eliminate redundant provider count database queries when checking set
 	 * existence, page counts, or building index XML across multiple calls.
 	 *
-	 * @var array<string, int>|null
+	 * @var array{per_page: int, sets: array<string, int>}|null
 	 */
 	private ?array $setsWithPageCountsMemo = null;
 
@@ -213,12 +213,13 @@ class IndexBuilder {
 	 * @return array<string, int> Map of set => page count.
 	 */
 	public function getSetsWithPageCounts(): array {
-		if ( null !== $this->setsWithPageCountsMemo ) {
-			return $this->setsWithPageCountsMemo;
+		$perPage = $this->getPerPage();
+
+		if ( null !== $this->setsWithPageCountsMemo && $this->setsWithPageCountsMemo['per_page'] === $perPage ) {
+			return $this->setsWithPageCountsMemo['sets'];
 		}
 
-		$perPage = $this->getPerPage();
-		$out     = [];
+		$out = [];
 
 		$postsSets = $this->postsProvider()->getSets();
 		foreach ( $postsSets as $set ) {
@@ -265,7 +266,10 @@ class IndexBuilder {
 			$out[ $set ] = $pages;
 		}
 
-		$this->setsWithPageCountsMemo = $out;
+		$this->setsWithPageCountsMemo = [
+			'per_page' => $perPage,
+			'sets'     => $out,
+		];
 
 		return $out;
 	}
