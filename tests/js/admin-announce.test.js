@@ -550,6 +550,9 @@ test( 'every announcement literal is a direct translation argument for the WordP
 			'Settings section loaded.',
 			'Settings updated.',
 			'Settings reset.'
+		],
+		'instant-indexing-admin.js': [
+			'No submissions match your filters.'
 		]
 	};
 
