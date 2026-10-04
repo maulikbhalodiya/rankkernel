@@ -103,6 +103,16 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test that path traversal filter attempts fall back to default.
+	 */
+	public function test_path_traversal_filter_falls_back_to_default(): void {
+		$this->path = ABSPATH . '../etc/passwd';
+
+		$file = new HtaccessFile();
+		$this->assertSame( ABSPATH . '.htaccess', $file->path() );
+	}
+
+	/**
 	 * Test read, then save writes a backup first.
 	 */
 	public function test_read_and_save_writes_a_backup(): void {

@@ -26,11 +26,39 @@ final class HtaccessFile {
 	 * @return string The result.
 	 */
 	public function path(): string {
-		$default = defined( 'ABSPATH' ) ? ABSPATH . '.htaccess' : '';
+		$default  = defined( 'ABSPATH' ) ? ABSPATH . '.htaccess' : '';
+		$filtered = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		$path = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		if ( ! is_string( $filtered ) || '' === $filtered || $filtered === $default ) {
+			return $default;
+		}
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		return defined( 'ABSPATH' ) ? $this->containedPath( $filtered, $default ) : $filtered;
+	}
+
+	/**
+	 * Keep a filtered path only when it resolves inside the site root.
+	 *
+	 * @param string $path     Filtered path.
+	 * @param string $fallback Default path.
+	 * @return string The result.
+	 */
+	private function containedPath( string $path, string $fallback ): string {
+		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+			return $fallback;
+		}
+
+		$root = realpath( ABSPATH );
+		$dir  = realpath( dirname( $path ) );
+
+		if ( false === $root || false === $dir ) {
+			return $fallback;
+		}
+
+		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+
+		return str_starts_with( $dir, $root ) ? $path : $fallback;
 	}
 
 	/**
