@@ -58,7 +58,21 @@ final class HtaccessFile {
 		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
 		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
 
-		return str_starts_with( $dir, $root ) ? $path : $fallback;
+		if ( ! str_starts_with( $dir, $root ) ) {
+			return $fallback;
+		}
+
+		$target = realpath( $path );
+
+		if ( false !== $target ) {
+			$targetDir = rtrim( wp_normalize_path( dirname( $target ) ), '/' ) . '/';
+
+			if ( ! str_starts_with( $targetDir, $root ) ) {
+				return $fallback;
+			}
+		}
+
+		return $path;
 	}
 
 	/**

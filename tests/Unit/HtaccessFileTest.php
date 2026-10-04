@@ -106,10 +106,20 @@ final class HtaccessFileTest extends TestCase {
 	 * Test that path traversal filter attempts fall back to default.
 	 */
 	public function test_path_traversal_filter_falls_back_to_default(): void {
-		$this->path = ABSPATH . '../etc/passwd';
-
 		$file = new HtaccessFile();
+
+		$this->path = ABSPATH . '../etc/passwd';
 		$this->assertSame( ABSPATH . '.htaccess', $file->path() );
+
+		$this->path = '/etc/passwd';
+		$this->assertSame( ABSPATH . '.htaccess', $file->path() );
+
+		$symlinkPath = ABSPATH . 'rk_test_symlink';
+		if ( function_exists( 'symlink' ) && @symlink( '/etc/passwd', $symlinkPath ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- silence warning if filesystem permissions prohibit symlink creation during unit tests.
+			$this->path = $symlinkPath;
+			$this->assertSame( ABSPATH . '.htaccess', $file->path() );
+			unlink( $symlinkPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own symlink.
+		}
 	}
 
 	/**
