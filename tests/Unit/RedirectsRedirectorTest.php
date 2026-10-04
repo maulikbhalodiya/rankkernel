@@ -130,7 +130,7 @@ final class RedirectsRedirectorTest extends TestCase {
 			$this->originalUri = $_SERVER['REQUEST_URI'];
 		}
 
-		Redirector::resetCache();
+		Redirector::resetSent();
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
@@ -223,7 +223,7 @@ final class RedirectsRedirectorTest extends TestCase {
 		}
 
 		unset( $GLOBALS['wpdb'] );
-		Redirector::resetCache();
+		Redirector::resetSent();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -338,7 +338,6 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->seedExact();
 
 		RedirectTable::resetCache();
-		Redirector::resetCache();
 		$this->db->schemaProbes = 0;
 
 		$_SERVER['REQUEST_URI'] = '/old';
@@ -346,23 +345,6 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->dispatcher()->maybeRedirect();
 
 		$this->assertSame( 1, $this->db->schemaProbes, 'Cold cache miss must probe table existence' );
-	}
-
-	/**
-	 * Test table existence probe is memoized across multiple cold misses in a single request.
-	 */
-	public function test_table_exists_memoized_across_multiple_misses(): void {
-		RedirectTable::resetCache();
-		Redirector::resetCache();
-		$this->db->schemaProbes = 0;
-
-		$_SERVER['REQUEST_URI'] = '/unknown1';
-		$this->dispatcher()->maybeRedirect();
-
-		$_SERVER['REQUEST_URI'] = '/unknown2';
-		$this->dispatcher()->maybeRedirect();
-
-		$this->assertSame( 1, $this->db->schemaProbes, 'Table existence probe must be memoized after the first cold miss' );
 	}
 
 	/**

@@ -33,13 +33,6 @@ final class Redirector {
 	private static bool $sent = false;
 
 	/**
-	 * Static request-level cache for table existence probe.
-	 *
-	 * @var bool|null
-	 */
-	private static ?bool $tableExistsMemo = null;
-
-	/**
 	 * Rule repository.
 	 *
 	 * @var RedirectRepository
@@ -94,18 +87,10 @@ final class Redirector {
 	}
 
 	/**
-	 * Reset static request-level memoization and state (for unit tests).
-	 */
-	public static function resetCache(): void {
-		self::$sent            = false;
-		self::$tableExistsMemo = null;
-	}
-
-	/**
 	 * Reset the reentry guard, for tests only.
 	 */
 	public static function resetSent(): void {
-		self::resetCache();
+		self::$sent = false;
 	}
 
 	/**
@@ -170,12 +155,8 @@ final class Redirector {
 			$rule = $this->cache->get( $path );
 
 			if ( null === $rule ) {
-				// Defer table existence check until a cold cache miss occurs; memoize per request to avoid repeat transient/DB probes.
-				if ( null === self::$tableExistsMemo ) {
-					self::$tableExistsMemo = RedirectTable::exists();
-				}
-
-				if ( ! self::$tableExistsMemo ) {
+				// Defer table existence check until a cold cache miss occurs.
+				if ( ! RedirectTable::exists() ) {
 					return;
 				}
 
