@@ -168,6 +168,14 @@
 					}
 
 					input.focus();
+					var evt;
+					try {
+						evt = new Event( 'input', { bubbles: true } );
+					} catch ( err ) {
+						evt = document.createEvent( 'Event' );
+						evt.initEvent( 'input', true, true );
+					}
+					input.dispatchEvent( evt );
 					var msg = __( 'Inserted token %s.', 'rankkernel' );
 					rankkernelAnnounce( msg.replace( '%s', token ) );
 				}
