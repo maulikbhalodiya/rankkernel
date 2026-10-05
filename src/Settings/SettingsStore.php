@@ -162,8 +162,7 @@ final class SettingsStore {
 	 * @return bool Whether the update succeeded.
 	 */
 	public function set( array $partial ): bool {
-		$sanitized   = [];
-		$dynamicKeys = 0;
+		$sanitized = [];
 
 		foreach ( $partial as $key => $value ) {
 			if ( self::isDefaultTypeKey( $key ) ) {
@@ -172,12 +171,6 @@ final class SettingsStore {
 				// shape. BreadcrumbsSettings does the same for its own dynamic
 				// keys, so the two stores now agree on what a valid suffix is.
 				if ( ! self::isRegisteredPostType( $key ) ) {
-					continue;
-				}
-
-				++$dynamicKeys;
-
-				if ( $dynamicKeys > self::SCHEMA_DEFAULT_MAX ) {
 					continue;
 				}
 
@@ -210,6 +203,12 @@ final class SettingsStore {
 		$current = $this->all();
 		$merged  = array_merge( $current, $sanitized );
 
+		// The dynamic keys are counted across the merged result, not across
+		// the incoming partial. Counting the partial alone let each call see
+		// only its own short list, so repeated set() calls with distinct post
+		// type suffixes walked straight past the cap in the stored option.
+		$merged = self::capDynamicDefaults( $merged );
+
 		// update_option() returns false both when the value is unchanged and
 		// when the write fails, so the write is skipped when nothing changed.
 		// An unchanged save still counts as a success; a changed write that
@@ -225,6 +224,41 @@ final class SettingsStore {
 		$this->cache = $merged;
 
 		return true;
+	}
+
+	/**
+	 * Drop schema_default_ keys beyond SCHEMA_DEFAULT_MAX from a merged set.
+	 *
+	 * The keys already stored are considered first, so the cap never evicts a
+	 * key that is in use in favour of a newly submitted one. Only the surplus
+	 * is dropped, and the remaining keys keep their values.
+	 *
+	 * @param array<string, mixed> $merged Merged settings.
+	 * @return array<string, mixed> Merged settings within the cap.
+	 */
+	private static function capDynamicDefaults( array $merged ): array {
+		$budget  = self::SCHEMA_DEFAULT_MAX;
+		$surplus = [];
+
+		foreach ( array_keys( $merged ) as $key ) {
+			if ( ! self::isDefaultTypeKey( $key ) ) {
+				continue;
+			}
+
+			if ( $budget > 0 ) {
+				--$budget;
+
+				continue;
+			}
+
+			$surplus[] = $key;
+		}
+
+		foreach ( $surplus as $key ) {
+			unset( $merged[ $key ] );
+		}
+
+		return $merged;
 	}
 
 	/**

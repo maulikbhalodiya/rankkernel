@@ -138,6 +138,97 @@ final class SettingsStoreTest extends TestCase {
 	}
 
 	/**
+	 * Test repeated set() calls cannot walk past the dynamic key cap.
+	 */
+	public function test_schema_default_cap_counts_the_merged_total(): void {
+		$stored = [];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				unset( $fallback );
+
+				return $stored;
+			}
+		);
+		Functions\when( 'post_type_exists' )->justReturn( true );
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value ) use ( &$stored ): bool {
+				unset( $option );
+
+				$stored = is_array( $value ) ? $value : [];
+
+				return true;
+			}
+		);
+
+		$store = new SettingsStore();
+
+		// Each call submits a small batch with distinct suffixes, so counting
+		// only the incoming partial would never notice the running total.
+		$perCall = 10;
+
+		for ( $batch = 0; $batch * $perCall < SettingsStore::SCHEMA_DEFAULT_MAX + $perCall; $batch++ ) {
+			$partial = [];
+
+			for ( $i = 0; $i < $perCall; $i++ ) {
+				$partial[ 'schema_default_type' . ( $batch * $perCall + $i ) ] = 'Article';
+			}
+
+			$store->set( $partial );
+		}
+
+		$dynamic = array_filter(
+			array_keys( $stored ),
+			static fn ( string $key ): bool => str_starts_with( $key, 'schema_default_' )
+		);
+
+		$this->assertCount(
+			SettingsStore::SCHEMA_DEFAULT_MAX,
+			$dynamic,
+			'The stored total must stay within the cap across repeated saves'
+		);
+	}
+
+	/**
+	 * Test keys already stored are kept ahead of newly submitted ones.
+	 */
+	public function test_schema_default_cap_keeps_existing_keys_first(): void {
+		$stored = [
+			'schema_default_keepme' => 'Article',
+			'title_template'        => '%%title%%',
+		];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				unset( $fallback );
+
+				return $stored;
+			}
+		);
+		Functions\when( 'post_type_exists' )->justReturn( true );
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value ) use ( &$stored ): bool {
+				unset( $option );
+
+				$stored = is_array( $value ) ? $value : [];
+
+				return true;
+			}
+		);
+
+		$store = new SettingsStore();
+
+		$this->assertTrue( $store->set( [ 'schema_default_newcomer' => 'Article' ] ) );
+
+		$this->assertArrayHasKey(
+			'schema_default_keepme',
+			$stored,
+			'A key already in the option must not be evicted by a new one'
+		);
+		$this->assertArrayHasKey( 'schema_default_newcomer', $stored );
+	}
+
+	/**
 	 * Test defaults merge.
 	 */
 	public function test_defaults_merge(): void {
