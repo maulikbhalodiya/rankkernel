@@ -23,6 +23,11 @@ final class HtaccessFile {
 	/**
 	 * Absolute path of the site .htaccess, filterable for tests.
 	 *
+	 * The filter is a public hook, so the value is only used when it is a non
+	 * empty string that resolves inside the site root. Anything else, including
+	 * a path that climbs out of the tree, falls back to the default so the
+	 * editor can never be pointed at an arbitrary file.
+	 *
 	 * @return string The result.
 	 */
 	public function path(): string {
@@ -30,7 +35,46 @@ final class HtaccessFile {
 
 		$path = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		if ( ! is_string( $path ) || '' === $path ) {
+			return $default;
+		}
+
+		if ( $path === $default || ! defined( 'ABSPATH' ) ) {
+			return $path;
+		}
+
+		return $this->containedPath( $path, $default );
+	}
+
+	/**
+	 * Keep a filtered path only when it resolves inside the site root.
+	 *
+	 * When the path resolution helpers are unavailable the filter value is not
+	 * trusted, so the default is returned. The parent directory is resolved with
+	 * realpath, so a sequence such as .. cannot climb out of the tree. The file
+	 * itself may not exist yet, so only its directory is resolved before the
+	 * prefix check.
+	 *
+	 * @param string $path     Filtered path.
+	 * @param string $fallback Default path.
+	 * @return string The result.
+	 */
+	private function containedPath( string $path, string $fallback ): string {
+		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
+			return $fallback;
+		}
+
+		$root = realpath( ABSPATH );
+		$dir  = realpath( dirname( $path ) );
+
+		if ( false === $root || false === $dir ) {
+			return $fallback;
+		}
+
+		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+
+		return str_starts_with( $dir, $root ) ? $path : $fallback;
 	}
 
 	/**

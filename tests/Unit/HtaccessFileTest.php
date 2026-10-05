@@ -177,6 +177,24 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test an out of tree filter path falls back to the default path.
+	 */
+	public function test_out_of_tree_filter_path_falls_back_to_default(): void {
+		$this->path = '/etc/passwd';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
+	 * Test a climbed out path falls back to the default path.
+	 */
+	public function test_climbed_out_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . '../etc/passwd';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
 	 * Test an unsupported server refuses to save.
 	 */
 	public function test_unsupported_server_refuses_to_save(): void {
