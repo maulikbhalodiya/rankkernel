@@ -416,6 +416,97 @@ final class HeadRendererTest extends TestCase {
 	}
 
 	/**
+	 * Test a stranded template separator is removed from the front of the title.
+	 *
+	 * %%title%% resolves to nothing on a search archive, so the default
+	 * template leaves its own separator at the front of the title. Left in
+	 * place it is visible in the document title and in every share, and core
+	 * never gets to supply its own archive title.
+	 */
+	public function test_empty_title_token_leaves_no_leading_separator(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search' );
+
+		// An archive has no post title to offer, so %%title%% resolves empty.
+		Functions\when( 'get_the_title' )->justReturn( '' );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+		$result   = (string) $renderer->title( 'Search Results' );
+
+		$this->assertSame( 'My Site', $result, 'The stranded separator must be removed, not kept' );
+		$this->assertStringStartsNotWith( '–', $result, 'No separator may lead the document title' );
+	}
+
+	/**
+	 * Test a template that resolves to only a separator falls back to the default title.
+	 *
+	 * Stripping the separator leaves nothing, so the plugin has to return the
+	 * WordPress title rather than an empty string, which themes treat as a
+	 * missing title.
+	 */
+	public function test_separator_only_template_falls_back_to_the_wp_default_title(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 1, [], [ 'title_template' => '%%sep%%' ] );
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$this->assertSame(
+			'Search Results',
+			$renderer->title( 'Search Results' ),
+			'A separator only title must fall back to the WordPress default'
+		);
+	}
+
+	/**
+	 * Test a multi character separator does not strip letters off a title edge.
+	 *
+	 * The trim function takes a character set, so a separator of 'ab' used to
+	 * eat the trailing and leading 'a' and 'b' of legitimate words. Only a
+	 * separator standing alone is a stranded one.
+	 */
+	public function test_multi_character_separator_keeps_legitimate_edge_letters(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [], [ 'separator' => 'ab' ] );
+
+		Functions\when( 'get_the_title' )->justReturn( 'abacus' );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+		$result   = (string) $renderer->title( 'Fallback' );
+
+		$this->assertStringStartsWith( 'abacus', $result, 'The leading letters of a title must survive' );
+		$this->assertSame( 'abacus ab My Site', $result );
+	}
+
+	/**
+	 * Test a separator standing alone is still stripped from both edges.
+	 */
+	public function test_stranded_multi_character_separator_is_stripped(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 1, [], [ 'separator' => 'ab' ] );
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$this->assertSame( 'My Site', (string) $renderer->title( 'Search Results' ) );
+	}
+
+	/**
+	 * Test a non string separator still trims against the rendered default.
+	 *
+	 * Context::separator() renders a value that is not a string as the en
+	 * dash, so the trim has to target that same character rather than
+	 * stringifying whatever was stored.
+	 */
+	public function test_non_string_separator_trims_the_en_dash_that_was_rendered(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 1, [], [ 'separator' => 42 ] );
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+
+		$renderer = new HeadRenderer( $settings, null, $ctx );
+
+		$this->assertSame( 'My Site', (string) $renderer->title( 'Search Results' ) );
+	}
+
+	/**
 	 * Test title resolves tokens in payload.
 	 */
 	public function test_title_resolves_tokens_in_payload(): void {

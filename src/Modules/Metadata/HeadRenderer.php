@@ -201,13 +201,75 @@ final class HeadRenderer {
 			return '';
 		}
 
-		$separator = trim( (string) $this->settings->get( 'separator', '-' ) );
+		$separator = $this->settings->get( 'separator', '' );
+
+		// The trim target has to be the same string the %%sep%% token rendered,
+		// or the strip silently misses and the stranded mark comes back.
+		// SettingsStore::defaults() sets an en dash, and Context::separator()
+		// falls back to that same en dash for a value that is not a string, so
+		// a different fallback here would aim the trim at a character that is
+		// not the one sitting in the title.
+		$separator = is_string( $separator ) ? trim( $separator ) : '–';
 
 		if ( '' !== $separator ) {
-			$value = trim( $value, $separator );
+			$value = self::stripStrandedSeparator( $value, $separator, true );
+			$value = self::stripStrandedSeparator( $value, $separator, false );
+			$value = trim( $value );
 		}
 
 		return trim( preg_replace( '/\s{2,}/', ' ', $value ) ?? $value );
+	}
+
+	/**
+	 * Strip one separator from an edge, but only where it stands alone.
+	 *
+	 * The trim function takes a character set, so a multi character separator
+	 * ate any matching letter off a legitimate title edge. The comparison is on
+	 * whole substrings rather than characters, which keeps a multibyte
+	 * separator intact because only complete sequences are ever cut.
+	 *
+	 * A separator is only stranded when whitespace or the edge of the string
+	 * sits on its other side, since that is the shape a template leaves
+	 * behind. Requiring it also keeps a separator of 'ab' from eating the
+	 * first two letters of a title such as 'abacus'.
+	 *
+	 * @param string $value     Resolved value.
+	 * @param string $separator Separator to remove.
+	 * @param bool   $leading   True for the front edge, false for the back edge.
+	 * @return string Value with at most one separator removed.
+	 */
+	private static function stripStrandedSeparator( string $value, string $separator, bool $leading ): string {
+		$length = strlen( $separator );
+
+		if ( 0 === $length ) {
+			return $value;
+		}
+
+		if ( $leading ) {
+			if ( 0 !== strncmp( $value, $separator, $length ) ) {
+				return $value;
+			}
+
+			$after = substr( $value, $length );
+
+			if ( '' !== $after && 1 !== preg_match( '/^\s/', $after ) ) {
+				return $value;
+			}
+
+			return $after;
+		}
+
+		if ( ! str_ends_with( $value, $separator ) ) {
+			return $value;
+		}
+
+		$before = substr( $value, 0, -$length );
+
+		if ( '' !== $before && 1 !== preg_match( '/\s$/', $before ) ) {
+			return $value;
+		}
+
+		return $before;
 	}
 
 	/**
