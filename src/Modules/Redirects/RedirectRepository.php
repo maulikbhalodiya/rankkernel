@@ -307,8 +307,9 @@ final class RedirectRepository {
 	 * Insert a rule, normalizing the source and hashing before storage.
 	 *
 	 * An active non exact rule that would grow the pattern set past
-	 * MAX_PATTERNS is refused with a zero return, so the caller can report
-	 * the cap instead of silently exceeding it.
+	 * MAX_PATTERNS, or an active regex rule that would grow the active regex
+	 * set past MAX_REGEX_RULES, is refused with a zero return, so the caller
+	 * can report the cap instead of silently exceeding it.
 	 *
 	 * @param array<string, mixed> $rule Source, target, code, match_type, is_active.
 	 * @return int New row id, or 0 when validation, the pattern cap, or storage fails.
@@ -327,6 +328,16 @@ final class RedirectRepository {
 		}
 
 		if ( $this->wouldExceedCap( $prepared['data'], null ) ) {
+			return 0;
+		}
+
+		// The active regex count is bounded at write time for the same reason
+		// as the pattern cap above. Rules past MAX_REGEX_RULES still save,
+		// list as active and count toward hits, but the matcher only ever
+		// evaluates the first MAX_REGEX_RULES by id, so a rule past the cap
+		// is a silent dead rule. Refusing here is the only place that stops
+		// the set growing, so every write path has to consult it.
+		if ( $this->wouldExceedRegexCap( $prepared['data'], null ) ) {
 			return 0;
 		}
 
@@ -352,7 +363,8 @@ final class RedirectRepository {
 	 * Update a rule by id, rehashing when source or matcher changes.
 	 *
 	 * A change that would flip a rule into the active pattern set past
-	 * MAX_PATTERNS is refused with false, so the caller can report the cap.
+	 * MAX_PATTERNS, or into the active regex set past MAX_REGEX_RULES, is
+	 * refused with false, so the caller can report the cap.
 	 *
 	 * @param int                  $id   Rule id.
 	 * @param array<string, mixed> $rule Partial fields to change.
@@ -365,13 +377,17 @@ final class RedirectRepository {
 			return false;
 		}
 
-		$prepared = $this->prepareRow( $rule, true, $id );
+		$prepared = $this->prepareRow( $rule, true );
 
 		if ( null === $prepared || [] === $prepared['data'] ) {
 			return false;
 		}
 
 		if ( $this->wouldExceedCap( $prepared['data'], $id ) ) {
+			return false;
+		}
+
+		if ( $this->wouldExceedRegexCap( $prepared['data'], $id ) ) {
 			return false;
 		}
 
@@ -425,7 +441,8 @@ final class RedirectRepository {
 	/**
 	 * Flip the active flag on one rule.
 	 *
-	 * Activating a non exact rule past MAX_PATTERNS is refused with false.
+	 * Activating a non exact rule past MAX_PATTERNS, or a regex rule past
+	 * MAX_REGEX_RULES, is refused with false.
 	 *
 	 * @param int  $id     Rule id.
 	 * @param bool $active New flag.
@@ -439,6 +456,10 @@ final class RedirectRepository {
 		}
 
 		if ( $active && $this->wouldExceedCap( [ 'is_active' => 1 ], $id ) ) {
+			return false;
+		}
+
+		if ( $active && $this->wouldExceedRegexCap( [ 'is_active' => 1 ], $id ) ) {
 			return false;
 		}
 
@@ -459,10 +480,11 @@ final class RedirectRepository {
 	/**
 	 * Bulk activate, deactivate, or delete a list of ids.
 	 *
-	 * Bulk activation respects MAX_PATTERNS: exact rules always flip, non
-	 * exact rules flip in id order only while budget remains, and the
-	 * returned count reports exactly how many rows changed, so the admin
-	 * notice can never claim more than happened.
+	 * Bulk activation respects MAX_PATTERNS and MAX_REGEX_RULES: exact rules
+	 * always flip, capped rules flip in id order only while budget remains,
+	 * and the returned count reports exactly how many rows changed, so the
+	 * admin notice can never claim more than happened. A row is only flipped
+	 * when both budgets allow it, so neither cap can be overshot.
 	 *
 	 * @param string $action One of activate, deactivate, delete.
 	 * @param int[]  $ids    Rule ids.
@@ -522,7 +544,12 @@ final class RedirectRepository {
 				return $result;
 			}
 
-			$allowed = $this->capBudgetForBulk( $clean );
+			$allowed = array_values(
+				array_intersect(
+					$this->capBudgetForBulk( $clean ),
+					$this->capRegexBudgetForBulk( $clean )
+				)
+			);
 			$flag    = 1;
 
 			if ( [] === $allowed ) {
@@ -1036,12 +1063,11 @@ final class RedirectRepository {
 	 * Returns null when the row cannot be stored (blocked source, missing
 	 * destination for a redirect code, unknown fields only).
 	 *
-	 * @param array<string, mixed> $rule      Raw fields.
-	 * @param bool                 $partial   Whether missing fields are allowed.
-	 * @param int|null             $excludeId Row id already in the active regex set, null on insert.
+	 * @param array<string, mixed> $rule    Raw fields.
+	 * @param bool                 $partial Whether missing fields are allowed.
 	 * @return array{data: array<string, mixed>, format: array<int, string>}|null
 	 */
-	private function prepareRow( array $rule, bool $partial = false, ?int $excludeId = null ): ?array {
+	private function prepareRow( array $rule, bool $partial = false ): ?array {
 		$data   = [];
 		$format = [];
 
@@ -1128,14 +1154,6 @@ final class RedirectRepository {
 			return null;
 		}
 
-		// The active regex count is bounded at write time for the same reason
-		// as the length bound above. A row that stays inside the set is
-		// excluded by id, so editing a rule that already passed keeps passing
-		// at the limit, matching the pattern cap behaviour.
-		if ( ! $partial && $this->wouldExceedRegexCap( $rule, $excludeId ) ) {
-			return null;
-		}
-
 		return [
 			'data'   => $data,
 			'format' => $format,
@@ -1145,31 +1163,22 @@ final class RedirectRepository {
 	/**
 	 * Whether a write would push active regex rules past MAX_REGEX_RULES.
 	 *
-	 * Only a row that lands inside the active regex set counts as growth. A
-	 * row already counted is excluded by id, so an edit that keeps it active
-	 * always passes.
+	 * The resulting row state is resolved rather than the partial alone. A
+	 * partial that never names match_type or is_active still decides whether
+	 * the row lands inside the active regex set, so reading those fields off
+	 * the partial made every update bypass the cap. A row already inside the
+	 * set is excluded by id, so an edit that keeps it active always passes.
 	 *
-	 * @param array<string, mixed> $rule      Proposed raw fields.
-	 * @param int|null             $excludeId Row id already in the set, null on insert.
+	 * @param array<string, mixed> $data      Fields being written.
+	 * @param int|null             $excludeId Row id being written, null on insert.
 	 * @return bool True when the write must be refused.
 	 */
-	private function wouldExceedRegexCap( array $rule, ?int $excludeId ): bool {
-		$matchType = Normalizer::isMatchType( (string) ( $rule['match_type'] ?? '' ) )
-			? (string) $rule['match_type']
-			: 'exact';
-
-		if ( 'regex' !== $matchType ) {
-			return false;
-		}
-
-		$newActive = ! array_key_exists( 'is_active', $rule ) || (bool) $rule['is_active'];
-
-		if ( ! $newActive ) {
-			return false;
-		}
+	private function wouldExceedRegexCap( array $data, ?int $excludeId ): bool {
+		$matchType = isset( $data['match_type'] ) ? (string) $data['match_type'] : null;
+		$isActive  = isset( $data['is_active'] ) ? 1 === (int) $data['is_active'] : null;
 
 		if ( null === $excludeId ) {
-			return $this->count_regex_rules() >= self::MAX_REGEX_RULES;
+			return 'regex' === $matchType && true === $isActive && $this->count_regex_rules() >= self::MAX_REGEX_RULES;
 		}
 
 		$current = $this->get( $excludeId );
@@ -1179,11 +1188,53 @@ final class RedirectRepository {
 		}
 
 		$nowCounts = 1 === (int) ( $current['is_active'] ?? 0 ) && 'regex' === (string) ( $current['match_type'] ?? 'exact' );
+		$newType   = null === $matchType ? (string) ( $current['match_type'] ?? 'exact' ) : $matchType;
+		$newActive = null === $isActive ? 1 === (int) ( $current['is_active'] ?? 0 ) : $isActive;
+		$newCounts = $newActive && 'regex' === $newType;
 
-		if ( $nowCounts ) {
+		if ( ! $newCounts || $nowCounts ) {
 			return false;
 		}
 
 		return $this->count_regex_rules() >= self::MAX_REGEX_RULES;
+	}
+
+	/**
+	 * Ids a bulk activation may flip, bounded by MAX_REGEX_RULES.
+	 *
+	 * Mirrors capBudgetForBulk. Rows already active, or rows outside the
+	 * regex set, always flip. A regex row that lands inside the set flips in
+	 * id order only while regex budget remains, so a bulk activate cannot
+	 * overshoot the cap the way an unbounded UPDATE would.
+	 *
+	 * @param int[] $ids Rule ids.
+	 * @return int[] Ids allowed to activate.
+	 */
+	private function capRegexBudgetForBulk( array $ids ): array {
+		sort( $ids );
+
+		$budget  = self::MAX_REGEX_RULES - $this->count_regex_rules();
+		$allowed = [];
+
+		foreach ( $ids as $id ) {
+			$row = $this->get( $id );
+
+			if ( null === $row ) {
+				continue;
+			}
+
+			if ( 1 === (int) ( $row['is_active'] ?? 0 ) || 'regex' !== (string) ( $row['match_type'] ?? 'exact' ) ) {
+				$allowed[] = $id;
+
+				continue;
+			}
+
+			if ( $budget > 0 ) {
+				$allowed[] = $id;
+				--$budget;
+			}
+		}
+
+		return $allowed;
 	}
 }
