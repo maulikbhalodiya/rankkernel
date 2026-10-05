@@ -207,13 +207,25 @@ final class Redirector {
 
 		$hopMarker = $this->hopMarkerName( (string) ( $rule['source_hash'] ?? '' ), $destination );
 
+		// A rule with no source hash is a data defect: it cannot be looked up
+		// by hash, so it is one of the rows a save time validator reports as
+		// inconclusive and the one most likely to loop. It is still guarded,
+		// because the marker name is built from the pair, but the gap is worth
+		// surfacing rather than passing through in silence.
+		if ( '' === (string) ( $rule['source_hash'] ?? '' ) ) {
+			$this->logFailure(
+				'hop_marker',
+				new \RuntimeException( 'A matched redirect rule carries no source hash, so its hop guard keys on the destination alone.' )
+			);
+		}
+
 		// Request time hop guard. The self::$sent static is per process, so it
 		// cannot bound a loop across requests. A capture or regex loop is never
 		// provable at save time, because the validator reports every dynamic
 		// target and every regex rule as inconclusive. So the guard runs here,
 		// keyed on the exact source_hash to destination pair, and answers 410
 		// when the same pair is asked for again inside the marker window.
-		if ( '' !== $hopMarker && $this->hasHopMarker( $hopMarker ) ) {
+		if ( $this->hasHopMarker( $hopMarker ) ) {
 			self::$sent = true;
 
 			do_action( 'rankkernel/redirect/loop' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, follows the rankkernel/redirect slash namespaced diagnostics.
@@ -395,29 +407,38 @@ final class Redirector {
 	/**
 	 * Build the marker name for a source_hash to destination pair.
 	 *
-	 * An empty source_hash or destination yields an empty name, which the
-	 * caller treats as "no guard available" and redirects as before.
+	 * A name is always returned. This used to hand back an empty string when
+	 * either half was missing, and the caller read empty as no guard
+	 * available, so those rules redirected with nothing bounding them at all.
+	 * A missing source_hash is precisely the malformed row most likely to
+	 * loop, so the name is built from whatever pair exists. The digest stays
+	 * specific when one side is empty, and an empty side cannot collide with
+	 * a populated one because the delimiter stays inside the hashed string.
 	 *
 	 * @param string $sourceHash  Rule source hash.
 	 * @param string $destination Final destination.
-	 * @return string Marker name or empty string.
+	 * @return string Marker name.
 	 */
 	private function hopMarkerName( string $sourceHash, string $destination ): string {
-		if ( '' === $sourceHash || '' === $destination ) {
-			return '';
-		}
-
 		return self::HOP_COOKIE . substr( md5( $sourceHash . '>' . $destination ), 0, 16 );
 	}
 
 	/**
 	 * Whether this pair already redirected inside the marker window.
 	 *
+	 * Reads the cookie and the markers recorded in this process. The second
+	 * source matters when the cookie could not be delivered, because a
+	 * response that already started sending still has to be bounded.
+	 *
 	 * @param string $marker Marker name.
-	 * @return bool True when the marker cookie is present.
+	 * @return bool True when the marker is present.
 	 */
 	private function hasHopMarker( string $marker ): bool {
-		if ( '' === $marker || ! isset( $_COOKIE[ $marker ] ) ) {
+		if ( in_array( $marker, self::$markedHops, true ) ) {
+			return true;
+		}
+
+		if ( ! isset( $_COOKIE[ $marker ] ) ) {
 			return false;
 		}
 
@@ -429,16 +450,31 @@ final class Redirector {
 	/**
 	 * Record that this pair redirected, so a second hop can be refused.
 	 *
+	 * The in process record happens before the cookie attempt and is not
+	 * conditional on it. A marker that could not be delivered has to still
+	 * bound the current request, otherwise the same pair is redirected again
+	 * rather than answered with a terminal status.
+	 *
 	 * @param string $marker Marker name.
 	 */
 	private function markHop( string $marker ): void {
-		if ( '' === $marker || headers_sent() ) {
+		self::$markedHops[] = $marker;
+
+		if ( headers_sent() ) {
+			$this->logFailure(
+				'hop_cookie',
+				new \RuntimeException( 'Response output had already started, so the redirect hop marker could not be set.' )
+			);
+
 			return;
 		}
 
-		self::$markedHops[] = $marker;
-
 		if ( ! function_exists( 'setcookie' ) ) {
+			$this->logFailure(
+				'hop_cookie',
+				new \RuntimeException( 'setcookie() is unavailable, so the redirect hop marker could not be set.' )
+			);
+
 			return;
 		}
 
@@ -450,8 +486,14 @@ final class Redirector {
 			'samesite' => 'Lax',
 		];
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- setcookie returns false on failure and the guard is advisory, never load bearing, so a failure is ignored rather than warned.
-		@setcookie( $marker, '1', $options );
+		// The return value is checked because a silent failure here is what
+		// removes the loop bound, and the repo carries no error suppression.
+		if ( ! setcookie( $marker, '1', $options ) ) {
+			$this->logFailure(
+				'hop_cookie',
+				new \RuntimeException( 'setcookie() refused the redirect hop marker, so the loop guard cannot span requests.' )
+			);
+		}
 	}
 
 	/**

@@ -633,6 +633,172 @@ final class RedirectsRedirectorTest extends TestCase {
 	}
 
 	/**
+	 * Build a dispatcher whose matcher always returns one fixed rule row.
+	 *
+	 * Lets a test present a row shape the repository would never write, such
+	 * as a rule with no source hash.
+	 *
+	 * @param array<string, mixed> $rule Row the matcher returns.
+	 * @return Redirector The result.
+	 */
+	private function fixedMatcherDispatcher( array $rule ): Redirector {
+		$repo    = new RedirectRepository( $this->db );
+		$matcher = new class( $rule ) {
+			/**
+			 * Row to return.
+			 *
+			 * @var array<string, mixed>
+			 */
+			private array $rule;
+
+			/**
+			 * Set up the matcher.
+			 *
+			 * @param array<string, mixed> $rule Row to return.
+			 */
+			public function __construct( array $rule ) {
+				$this->rule = $rule;
+			}
+
+			/**
+			 * Always return the fixed row.
+			 *
+			 * @param string $path Request path.
+			 * @return array<string, mixed>|null The fixed row.
+			 */
+			public function match( string $path ): ?array {
+				unset( $path );
+
+				return $this->rule;
+			}
+		};
+
+		return new Redirector( $repo, new RedirectCache(), new HitCounter(), new RedirectsSettings(), $matcher );
+	}
+
+	/**
+	 * Build a redirect rule row with no source hash.
+	 *
+	 * @param string $target Target.
+	 * @return array<string, mixed> Rule row.
+	 */
+	private function hashlessRule( string $target = '/new' ): array {
+		return [
+			'id'          => 7,
+			'source'      => '/hashless',
+			'source_hash' => '',
+			'target'      => $target,
+			'code'        => '301',
+			'match_type'  => 'exact',
+			'is_active'   => 1,
+		];
+	}
+
+	/**
+	 * Test a rule with no source hash is still bounded by the hop guard.
+	 *
+	 * A row with no source hash is one the repository never writes, but it is
+	 * exactly the malformed row most likely to loop, and the marker name used
+	 * to come back empty for it. Empty read as no guard available, so the pair
+	 * redirected with nothing bounding it.
+	 */
+	public function test_rule_without_a_source_hash_is_still_bounded(): void {
+		$_SERVER['REQUEST_URI'] = '/hashless';
+
+		$this->fixedMatcherDispatcher( $this->hashlessRule() )->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects, 'The first hop must redirect' );
+
+		$marked = Redirector::markedHops();
+
+		$this->assertCount( 1, $marked, 'A row with no source hash must still record a marker' );
+		$this->assertNotSame( '', $marked[0], 'A bounded pair must have a real marker name' );
+		$this->assertStringStartsWith( 'rankkernel_rh_', $marked[0] );
+		$this->assertContains( 'rankkernel/redirect/failed', $this->actions, 'The missing hash must be surfaced' );
+
+		$_COOKIE = [ $marked[0] => '1' ];
+
+		Redirector::resetSent();
+		$this->statuses = [];
+
+		$this->fixedMatcherDispatcher( $this->hashlessRule() )->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects, 'The repeat must not redirect again' );
+		$this->assertSame( [ 410 ], $this->statuses, 'The repeat must answer 410' );
+
+		$_COOKIE = [];
+	}
+
+	/**
+	 * Test the marker name stays specific when the source hash is missing.
+	 *
+	 * A single shared name for every unbounded rule would answer 410 for one
+	 * rule because an unrelated one had looped.
+	 */
+	public function test_marker_for_a_hashless_rule_does_not_cover_another_pair(): void {
+		$_SERVER['REQUEST_URI'] = '/hashless';
+
+		$this->fixedMatcherDispatcher( $this->hashlessRule( '/new' ) )->maybeRedirect();
+
+		$first = Redirector::markedHops()[0];
+
+		$_COOKIE = [];
+
+		Redirector::resetSent();
+		$this->redirects = [];
+
+		// A different request path, so the lookup does not come back from the
+		// dispatch cache with the row the first hop already cached.
+		$_SERVER['REQUEST_URI'] = '/hashless-two';
+		$this->fixedMatcherDispatcher( $this->hashlessRule( '/elsewhere' ) )->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects, 'A different destination is a different pair and must redirect' );
+		$this->assertNotSame( $first, Redirector::markedHops()[0], 'Each pair needs its own marker' );
+	}
+
+	/**
+	 * Test the hop marker is recorded even when output already started.
+	 *
+	 * The record used to sit behind the headers_sent check, so a response that
+	 * had begun sending left no marker at all and the same pair was redirected
+	 * again rather than answered.
+	 */
+	public function test_hop_marker_is_recorded_when_output_already_started(): void {
+		Functions\when( 'headers_sent' )->justReturn( true );
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		$this->seedExact();
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, Redirector::markedHops(), 'The bound must hold even when the cookie cannot be sent' );
+		$this->assertContains(
+			'rankkernel/redirect/failed',
+			$this->actions,
+			'The skipped cookie must be reported rather than swallowed'
+		);
+	}
+
+	/**
+	 * Test a refused cookie is reported instead of being suppressed.
+	 */
+	public function test_refused_cookie_is_reported(): void {
+		Functions\when( 'setcookie' )->justReturn( false );
+
+		$_SERVER['REQUEST_URI'] = '/old';
+
+		$this->seedExact();
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, Redirector::markedHops(), 'The in process bound must still be recorded' );
+		$this->assertContains(
+			'rankkernel/redirect/failed',
+			$this->actions,
+			'A refused cookie must be reported through the plugin failure convention'
+		);
+	}
+
+	/**
 	 * Test a throwing cache read fails open and performs no redirect.
 	 */
 	public function test_throwing_cache_fails_open(): void {
