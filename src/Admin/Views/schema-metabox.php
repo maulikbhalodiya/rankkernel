@@ -93,7 +93,7 @@ endif;
 	<?php endif; ?>
 
 	<h3><?php echo esc_html__( 'Test this page', 'rankkernel' ); ?></h3>
-	<p><a href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a> | <a href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a></p>
+	<p><a href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?> <span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a> | <a href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?> <span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a></p>
 
 	<h3><?php echo esc_html__( 'Import and export', 'rankkernel' ); ?></h3>
 	<p><a class="button" href="<?php echo esc_url( $exportUrl ); ?>"><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></a></p>
