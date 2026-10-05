@@ -35,12 +35,12 @@ final class HtaccessFile {
 
 		$path = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		if ( ! is_string( $path ) || '' === $path ) {
+		if ( ! is_string( $path ) || '' === $path || ! defined( 'ABSPATH' ) ) {
 			return $default;
 		}
 
-		if ( $path === $default || ! defined( 'ABSPATH' ) ) {
-			return $path;
+		if ( $path === $default ) {
+			return $default;
 		}
 
 		return $this->containedPath( $path, $default );
