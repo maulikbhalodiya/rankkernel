@@ -1234,10 +1234,27 @@ final class RedirectsPage {
 		// dynamic target and every regex rule is reported inconclusive, so an
 		// inconclusive rule can carry a loop the detector never saw. Saving it
 		// used to report success and then loop at request time.
+		//
+		// Fail closed with no way forward is its own defect: once an existing
+		// pattern rule matches a path in the new chain, the new rule can never
+		// be added, and neither can the CSV import, so the only recovery is to
+		// reorder rules by hand outside the product. An operator who accepts
+		// that risk can override, and the override is recorded so the
+		// unproven rule is never invisible. It covers this branch only. A
+		// proven cycle above is still refused whatever the operator ticks,
+		// because that one was actually observed.
 		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
+			if ( $this->wantsUnverifiedOverride() ) {
+				$this->logUnverifiedOverride( $proposed, $safety );
+
+				$this->saveRule( $clean, $proposed, $editingId, $fields, $safety );
+
+				return;
+			}
+
 			$this->stayWithErrors(
 				[
-					'blocked' => __( 'The redirect chain could not be fully verified, so the rule was not saved because a loop cannot be ruled out. Save an exact source and target, then add the rule.', 'rankkernel' ),
+					'blocked' => __( 'The redirect chain could not be fully verified, so the rule was not saved because a loop cannot be ruled out. Save an exact source and target, then add the rule, or tick the override box to save it anyway and have it recorded.', 'rankkernel' ),
 				],
 				$fields
 			);
@@ -1245,6 +1262,24 @@ final class RedirectsPage {
 			return;
 		}
 
+		$this->saveRule( $clean, $proposed, $editingId, $fields, $safety );
+	}
+
+	/**
+	 * Run the remaining save checks and write the rule.
+	 *
+	 * Every check below the safety verdict still applies when an operator
+	 * overrides an unproven analysis, so an override never waves through a
+	 * duplicate source, a catastrophic pattern, an over length pattern or a
+	 * reached cap.
+	 *
+	 * @param array<string, mixed> $clean     Validated source, target, code, match type.
+	 * @param array<string, mixed> $proposed  Proposed rule as sent to the safety analysis.
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $fields    Raw posted fields, carried back into errors.
+	 * @param array<string, mixed> $safety    Safety verdict from the validator.
+	 */
+	private function saveRule( array $clean, array $proposed, int $editingId, array $fields, array $safety ): void {
 		$existing = $this->repository->lookup( $clean['source'], $clean['match_type'] );
 
 		if ( is_array( $existing ) && (int) ( $existing['id'] ?? 0 ) !== $editingId ) {
@@ -1349,6 +1384,56 @@ final class RedirectsPage {
 		}
 
 		$this->redirect( $flags, $fields['return_to'] );
+	}
+
+	/**
+	 * Whether the operator asked to save a rule the analysis could not prove.
+	 *
+	 * The capability is already required for any save by requireAccess, and
+	 * it is checked again here so this cannot be true on a request that
+	 * reached the handler without it.
+	 *
+	 * @return bool True when the override was requested and permitted.
+	 */
+	private function wantsUnverifiedOverride(): bool {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by requireAccess on the save request.
+		return isset( $_POST['rk_force_unverified'] );
+	}
+
+	/**
+	 * Record that an operator saved a rule the analysis could not prove safe.
+	 *
+	 * Follows the plugin failure convention: a diagnostic action plus a
+	 * warning, both guarded so they never run when WordPress is absent. An
+	 * override that left no trace would defeat the purpose of failing closed.
+	 *
+	 * @param array<string, mixed> $proposed Proposed rule.
+	 * @param array<string, mixed> $safety   Safety verdict that came back inconclusive.
+	 */
+	private function logUnverifiedOverride( array $proposed, array $safety ): void {
+		$context = [
+			'source'     => (string) ( $proposed['source'] ?? '' ),
+			'target'     => (string) ( $proposed['target'] ?? '' ),
+			'match_type' => (string) ( $proposed['match_type'] ?? 'exact' ),
+			'verdict'    => (string) ( $safety['verdict'] ?? 'inconclusive' ),
+		];
+
+		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, follows the rankkernel/redirect slash namespaced diagnostics.
+			do_action( 'rankkernel/redirect/unverified_override', $context );
+		}
+
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				__( 'A redirect was saved with an unverified chain because an operator overrode the check. The chain could not be proven free of a loop.', 'rankkernel' ),
+				E_USER_WARNING
+			);
+		}
 	}
 
 	/**

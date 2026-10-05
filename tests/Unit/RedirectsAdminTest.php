@@ -896,6 +896,117 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * An administrator can save a rule whose chain could not be proven.
+	 *
+	 * Failing closed with no way forward is its own defect. Once an existing
+	 * pattern rule matches a path in the new chain the analysis is
+	 * inconclusive for good, the CSV import refuses it too, and the only
+	 * recovery was reordering rules outside the product. The override exists
+	 * for that dead end and nothing else.
+	 */
+	public function test_inconclusive_chain_can_be_overridden_by_an_administrator(): void {
+		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
+
+		$fired = [];
+
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$fired ): void {
+				$fired[] = $hook;
+			}
+		);
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function (): void {
+			}
+		);
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/a',
+				'rk_target'           => '/shop/item',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 2, $this->db->rows, 'An administrator override must save the rule' );
+		$this->assertStringContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
+		$this->assertContains(
+			'rankkernel/redirect/unverified_override',
+			$fired,
+			'An override must be recorded so the unproven rule is never invisible'
+		);
+	}
+
+	/**
+	 * The override must not wave through a proven redirect loop.
+	 *
+	 * A proven cycle was actually observed, unlike an inconclusive analysis,
+	 * so it stays refused whatever the operator ticks.
+	 */
+	public function test_override_does_not_bypass_a_proven_redirect_loop(): void {
+		$this->seedRule( '/b', '/a' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/a',
+				'rk_target'           => '/b',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 1, $this->db->rows, 'A proven loop must still be refused' );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'redirect loop', $html );
+	}
+
+	/**
+	 * The override must not wave through a duplicate source.
+	 *
+	 * The override covers the unproven analysis only. Every check after it,
+	 * duplicate source, catastrophic pattern, length and caps included, still
+	 * applies.
+	 */
+	public function test_override_does_not_bypass_a_duplicate_source(): void {
+		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
+		$this->seedRule( '/taken', '/somewhere' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/taken',
+				'rk_target'           => '/shop/item',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 2, $this->db->rows, 'A duplicate source must still be refused' );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'already exists', $html );
+	}
+
+	/**
 	 * A chain saves with a warning plus the recommended destination.
 	 */
 	public function test_add_chain_saves_with_warning(): void {
