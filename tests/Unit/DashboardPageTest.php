@@ -343,6 +343,44 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the guard is the die inside check_admin_referer, not a return branch.
+	 *
+	 * WordPress kills the request itself on a bad nonce, so the return value
+	 * is never false and a test against it proves nothing. Stubbing it to
+	 * return false anyway pins the real contract: the code must not branch on
+	 * that value, because doing so would refuse a request WordPress considers
+	 * verified.
+	 */
+	public function test_migration_clear_does_not_branch_on_the_referer_return_value(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( string $location ): void {
+				$this->redirects[] = $location;
+			}
+		);
+
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		$_SERVER['REQUEST_METHOD']           = 'POST';
+		$_POST['rankkernel_migration_clear'] = '0.2.0';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertArrayNotHasKey(
+			'0.2.0',
+			$this->options[ MigrationRunner::FAILURES ],
+			'A verified request must be honoured, so the referer return value must not be branched on'
+		);
+	}
+
+	/**
 	 * Test the clear and rerun control ignores a value that is not a version.
 	 *
 	 * The option is keyed by version, and clearFailure() removes whatever key
@@ -417,7 +455,15 @@ final class DashboardPageTest extends TestCase {
 	 * Test the clear and rerun control refuses a bad nonce.
 	 */
 	public function test_migration_clear_requires_valid_nonce(): void {
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
 
 		$this->options[ MigrationRunner::FAILURES ] = [
 			'0.2.0' => [

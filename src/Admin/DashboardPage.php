@@ -107,17 +107,14 @@ final class DashboardPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_migration_clear' );
+		// check_admin_referer() does not return a value to branch on. On a
+		// bad or absent nonce it calls wp_die() itself, so execution never
+		// comes back here. An earlier version captured its return and tested
+		// it against false, which could never be true in production and so
+		// guarded nothing.
+		check_admin_referer( 'rankkernel_migration_clear' );
 
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified on the line above, sanitized below.
 		$version = isset( $_POST['rankkernel_migration_clear'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_migration_clear'] ) ) : '';
 
 		// Sanitizing only proves the value is clean text, not that it names a
