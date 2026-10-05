@@ -1044,15 +1044,12 @@ final class RedirectsPage {
 			);
 		}
 
-		$verified = check_admin_referer( $nonceAction );
-
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		// check_admin_referer() does not return a value to branch on. On a
+		// bad or absent nonce it calls wp_die() itself, so execution never
+		// comes back here. An earlier version captured its return and tested
+		// it against false, which could never be true in production and so
+		// guarded nothing.
+		check_admin_referer( $nonceAction );
 	}
 
 	/**

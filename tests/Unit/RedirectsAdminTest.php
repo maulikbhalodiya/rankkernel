@@ -819,14 +819,42 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * The nonce guard is the die inside check_admin_referer, not a return branch.
+	 *
+	 * WordPress kills the request itself on a bad nonce, so the return value is
+	 * never false and a test against it proves nothing. Stubbing it to return
+	 * false anyway pins the real contract: the code must not branch on that
+	 * value, because doing so would refuse a request WordPress considers
+	 * verified.
+	 */
+	public function test_form_save_does_not_branch_on_the_referer_return_value(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+
+		$this->postAdd();
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 1, $this->db->rows, 'A verified request must be honoured' );
+		$this->assertStringContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
+	}
+
+	/**
 	 * Failed nonce stops the save.
 	 */
 	public function test_form_save_with_bad_nonce_dies(): void {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -842,6 +870,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 0, $this->db->rows, 'A bad nonce must save nothing' );
 		}
 	}
 
@@ -1275,8 +1305,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1297,6 +1330,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 1, $this->db->rows, 'A bad nonce must delete nothing' );
 		}
 	}
 
@@ -1682,11 +1717,16 @@ final class RedirectsAdminTest extends TestCase {
 	 * Failed nonce stops a bulk action.
 	 */
 	public function test_bulk_with_bad_nonce_dies(): void {
+		$this->seedRule( '/a', '/b' );
+
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1708,6 +1748,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 1, $this->db->rows, 'A bad nonce must delete nothing' );
 		}
 	}
 
@@ -1718,8 +1760,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1739,6 +1784,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
@@ -1749,8 +1796,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1770,6 +1820,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
@@ -1780,8 +1832,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1801,6 +1856,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
