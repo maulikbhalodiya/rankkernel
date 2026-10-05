@@ -23,6 +23,23 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  */
 class PostsProvider {
 	/**
+	 * Instance memoized count values keyed by post type.
+	 *
+	 * Performance optimization: avoids redundant count queries during sitemap index generation
+	 * when getSets() and getCount() are called sequentially on the same provider instance.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Reset count memoization for this instance.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+	}
+
+	/**
 	 * Inner LIKE text matching a noindex payload.
 	 *
 	 * The payload is stored as a PHP serialized meta row (object typed
@@ -102,6 +119,10 @@ class PostsProvider {
 			return 0;
 		}
 
+		if ( array_key_exists( $postType, $this->countMemo ) ) {
+			return $this->countMemo[ $postType ];
+		}
+
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -122,9 +143,11 @@ class PostsProvider {
 		$args = array_merge( [ $sql ], $params );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
 
-		return (int) $count;
+		$this->countMemo[ $postType ] = $count;
+
+		return $count;
 	}
 
 	/**

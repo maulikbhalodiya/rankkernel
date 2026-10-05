@@ -47,6 +47,27 @@ class IndexBuilder {
 	private ?Router $router = null;
 
 	/**
+	 * Lazy-instantiated default posts provider.
+	 *
+	 * @var PostsProvider|null
+	 */
+	private ?PostsProvider $postsInstance = null;
+
+	/**
+	 * Lazy-instantiated default taxonomies provider.
+	 *
+	 * @var TaxonomiesProvider|null
+	 */
+	private ?TaxonomiesProvider $taxonomiesInstance = null;
+
+	/**
+	 * Lazy-instantiated default authors provider.
+	 *
+	 * @var AuthorsProvider|null
+	 */
+	private ?AuthorsProvider $authorsInstance = null;
+
+	/**
 	 * Memoized set map with page counts for this builder instance.
 	 *
 	 * Performance optimization: memoizes the populated set map within this builder
@@ -64,6 +85,9 @@ class IndexBuilder {
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
+		$this->postsInstance?->resetCache();
+		$this->taxonomiesInstance?->resetCache();
+		$this->authorsInstance?->resetCache();
 	}
 
 	/**
@@ -151,7 +175,7 @@ class IndexBuilder {
 			return $this->posts;
 		}
 
-		return new PostsProvider( $this->sitemapSettings );
+		return $this->postsInstance ??= new PostsProvider( $this->sitemapSettings );
 	}
 
 	/**
@@ -164,7 +188,7 @@ class IndexBuilder {
 			return $this->taxonomies;
 		}
 
-		return new TaxonomiesProvider( $this->sitemapSettings );
+		return $this->taxonomiesInstance ??= new TaxonomiesProvider( $this->sitemapSettings );
 	}
 
 	/**
@@ -177,7 +201,7 @@ class IndexBuilder {
 			return $this->authors;
 		}
 
-		return new AuthorsProvider( $this->sitemapSettings );
+		return $this->authorsInstance ??= new AuthorsProvider( $this->sitemapSettings );
 	}
 
 	/**

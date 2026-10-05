@@ -23,6 +23,23 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  */
 class TaxonomiesProvider {
 	/**
+	 * Instance memoized count values keyed by taxonomy.
+	 *
+	 * Performance optimization: avoids redundant count queries during sitemap index generation
+	 * when getSets() and getCount() are called sequentially on the same provider instance.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Reset count memoization for this instance.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+	}
+
+	/**
 	 * Inner LIKE text matching a noindex term payload.
 	 *
 	 * Same serialized shape as the posts provider (object typed meta is
@@ -95,6 +112,10 @@ class TaxonomiesProvider {
 			return 0;
 		}
 
+		if ( array_key_exists( $taxonomy, $this->countMemo ) ) {
+			return $this->countMemo[ $taxonomy ];
+		}
+
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -102,7 +123,11 @@ class TaxonomiesProvider {
 		}
 
 		if ( $this->includeEmptyTerms() ) {
-			return $this->getCountIncludingEmpty( $taxonomy );
+			$count = $this->getCountIncludingEmpty( $taxonomy );
+
+			$this->countMemo[ $taxonomy ] = $count;
+
+			return $count;
 		}
 
 		$publicTypes = get_post_types( [ 'public' => true ], 'names' );
@@ -135,9 +160,11 @@ class TaxonomiesProvider {
 		$args = array_merge( [ $sql ], $params );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
 
-		return (int) $count;
+		$this->countMemo[ $taxonomy ] = $count;
+
+		return $count;
 	}
 
 	/**

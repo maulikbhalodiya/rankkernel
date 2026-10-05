@@ -573,6 +573,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		$this->assertCount( 1, $provider->getEntries( 'category', 1, 10 ) );
 
 		$settings->set( [ 'include_empty_terms' => true ] );
+		$provider->resetCache();
 
 		$this->assertSame( 2, $provider->getCount( 'category' ) );
 
@@ -631,6 +632,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		$this->assertSame( 1, $provider->getCount( 'authors' ) );
 
 		$settings->set( [ 'authors_include_empty' => true ] );
+		$provider->resetCache();
 
 		$this->assertSame( 2, $provider->getCount( 'authors' ) );
 
@@ -722,6 +724,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		$this->assertSame( 'https://example.com/author/u9/', $entries[0]['loc'] );
 
 		$settings->set( [ 'authors_include_empty' => true ] );
+		$provider->resetCache();
 
 		$this->assertSame( 1, $provider->getCount( 'authors' ) );
 	}

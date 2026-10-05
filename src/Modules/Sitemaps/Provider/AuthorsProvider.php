@@ -25,6 +25,23 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  */
 class AuthorsProvider {
 	/**
+	 * Instance memoized count values keyed by set name.
+	 *
+	 * Performance optimization: avoids redundant count queries during sitemap index generation
+	 * when getSets() and getCount() are called sequentially on the same provider instance.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Reset count memoization for this instance.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * Null settings mean defaults and touch no globals, which keeps
@@ -74,6 +91,10 @@ class AuthorsProvider {
 			return 0;
 		}
 
+		if ( array_key_exists( $set, $this->countMemo ) ) {
+			return $this->countMemo[ $set ];
+		}
+
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
@@ -81,7 +102,11 @@ class AuthorsProvider {
 		}
 
 		if ( (bool) ( $this->settings?->get( 'authors_include_empty', false ) ?? false ) ) {
-			return $this->getCountIncludingEmpty();
+			$count = $this->getCountIncludingEmpty();
+
+			$this->countMemo[ $set ] = $count;
+
+			return $count;
 		}
 
 		// Authors of public content only: internal types (flamingo, forms,
@@ -104,8 +129,11 @@ class AuthorsProvider {
 		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
 		$args   = array_merge( [ $sql ], $params );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
-		return (int) $count;
+		$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
+
+		$this->countMemo[ $set ] = $count;
+
+		return $count;
 	}
 
 	/**
