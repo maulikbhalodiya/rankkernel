@@ -165,6 +165,16 @@ final class SettingsControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test org_sameas declares an item cap, so the route cannot grow a hot option.
+	 */
+	public function test_org_sameas_declares_a_max_items_cap(): void {
+		$args   = $this->captureEndpointArgs();
+		$sameas = $args['org_sameas'];
+
+		self::assertSame( SettingsStore::ORG_SAMEAS_MAX, $sameas['maxItems'] );
+	}
+
+	/**
 	 * Test boolean and purge args stay schema validated by the framework.
 	 */
 	public function test_boolean_args_stay_schema_validated(): void {

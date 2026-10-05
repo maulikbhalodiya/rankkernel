@@ -1520,6 +1520,23 @@ the Edit Snippet action. */
 	padding: 2px 4px !important;
 }
 
+/* The field itself is borderless, so the ring a keyboard user sees comes
+   from the wrapper through focus-within. That covers normal rendering, but
+   it is the only indicator there is, and forced-colors modes do not render
+   box-shadow at all, which left this field with outline none and no
+   replacement. These two rules give the input its own indicator, and
+   restore a system colour outline where the ring cannot be drawn. */
+.rk-meta .rk-keywords-input:focus-visible {
+	outline: 2px solid var(--rk-color-primary) !important;
+	outline-offset: 1px;
+}
+
+@media (forced-colors: active) {
+	.rk-meta .rk-keywords-input:focus-visible {
+		outline: 2px solid CanvasText !important;
+	}
+}
+
 /* SEO Analysis Checklist */
 
 .rk-meta .rk-checklist-head-inner {

@@ -554,4 +554,91 @@ final class ContextTest extends TestCase {
 
 		$this->assertSame( 'From Serialized', $ctx->meta()['title'] );
 	}
+
+	/**
+	 * Test a term archive never reads a post excerpt.
+	 *
+	 * The queried id is a term id here. Reading it as a post id resolves an
+	 * unrelated post that shares the number and publishes its body text as
+	 * the taxonomy archive meta description.
+	 */
+	public function test_excerpt_is_empty_on_a_term_archive(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( true )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->andReturn( 7 )->byDefault();
+		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		// Post 7 exists on a real site. Reading it here is the defect.
+		Functions\expect( 'get_the_excerpt' )->never();
+		Functions\expect( 'get_post_field' )->never();
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'term', $ctx->queriedType() );
+		$this->assertSame( 7, $ctx->queriedId(), 'the id is a term id, not a post id' );
+		$this->assertSame( '', $ctx->excerpt() );
+	}
+
+	/**
+	 * Test an author archive never reads a post excerpt.
+	 */
+	public function test_excerpt_is_empty_on_an_author_archive(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( true )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->andReturn( 3 )->byDefault();
+		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		Functions\expect( 'get_the_excerpt' )->never();
+		Functions\expect( 'get_post_field' )->never();
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'archive', $ctx->queriedType() );
+		$this->assertSame( '', $ctx->excerpt() );
+	}
+
+	/**
+	 * Test a singular post still resolves its excerpt.
+	 */
+	public function test_excerpt_still_resolves_on_a_singular_post(): void {
+		$query = $this->makeQuerySingular( 42 );
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'get_the_excerpt' )->justReturn( 'The real excerpt.' );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( string $t ): string => $t );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'The real excerpt.', $ctx->excerpt() );
+	}
 }

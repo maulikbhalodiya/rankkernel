@@ -96,6 +96,7 @@ defined( 'ABSPATH' ) || exit;
 				<span class="rk-settings-path-label"><?php echo esc_html__( 'File path:', 'rankkernel' ); ?></span>
 				<code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code>
 			</p>
+			<label class="rk-form-label" for="rk-htaccess-content"><?php echo esc_html__( '.htaccess file contents', 'rankkernel' ); ?></label>
 			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="rk-code-editor rk-code-editor--roomy"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
 			<p class="rk-form-actions">
 				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>

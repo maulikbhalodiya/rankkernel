@@ -286,4 +286,61 @@ final class IndexBuilderTest extends TestCase {
 		$this->assertSame( 0, $builder->getSetPageCount( 'page' ) );
 		$this->assertSame( 0, $builder->getSetPageCount( 'nonexistent' ) );
 	}
+
+	/**
+	 * Test xmlEscape takes the WordPress branch and encodes exactly once.
+	 *
+	 * TQA-05. xmlEscape branches on function_exists( 'esc_xml' ). WordPress
+	 * ships esc_xml, so the WordPress branch is what production runs, but the
+	 * function was absent from the test bootstrap, which meant every sitemap
+	 * test exercised only the htmlspecialchars fallback and the production
+	 * branch had no coverage at all. The first assertion pins the branch so
+	 * the test cannot quietly go back to covering the fallback.
+	 *
+	 * The double escape this guards against is the defect the method docblock
+	 * warns about: an ampersand becoming an ampersand entity twice.
+	 */
+	public function test_xml_escape_uses_the_wordpress_branch_and_encodes_once(): void {
+		$this->assertTrue(
+			function_exists( 'esc_xml' ),
+			'esc_xml must be available so xmlEscape exercises the branch production runs'
+		);
+
+		$method = new \ReflectionMethod( IndexBuilder::class, 'xmlEscape' );
+
+		$builder = $this->makeBuilderWithCounts( [] );
+
+		$escaped = $method->invoke( $builder, 'https://example.com/post/?a=1&b=2' );
+
+		$this->assertSame( 'https://example.com/post/?a=1&amp;b=2', $escaped );
+		$this->assertStringNotContainsString( '&amp;amp;', $escaped, 'the ampersand must be encoded once, never twice' );
+		$this->assertSame( 1, substr_count( $escaped, '&amp;' ) );
+
+		// Sanity check the encoder is not a no-op, so the assertions above mean something.
+		$alreadyEscaped = $method->invoke( $builder, 'https://example.com/post/?a=1&amp;b=2' );
+
+		$this->assertStringContainsString( '&amp;amp;', $alreadyEscaped, 'the encoder must still act on an existing entity' );
+	}
+
+	/**
+	 * Test the fallback encoder is a single pass too.
+	 *
+	 * TQA-05. The htmlspecialchars fallback is the branch taken when esc_xml
+	 * is absent, which is how the suite ran before the polyfill existed. It is
+	 * asserted here against the encoder it actually calls so the two branches
+	 * are known to agree, without pretending the branch itself is reachable
+	 * once esc_xml is defined for the whole process.
+	 */
+	public function test_xml_escape_fallback_matches_the_wordpress_branch(): void {
+		$method = new \ReflectionMethod( IndexBuilder::class, 'xmlEscape' );
+
+		$builder = $this->makeBuilderWithCounts( [] );
+		$raw     = 'https://example.com/post/?a=1&b=2&c="quoted"';
+
+		$viaWordPress = $method->invoke( $builder, $raw );
+		$viaFallback  = htmlspecialchars( $raw, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+
+		$this->assertSame( $viaFallback, $viaWordPress, 'both branches must produce the same single pass encoding' );
+		$this->assertStringNotContainsString( '&amp;amp;', $viaWordPress );
+	}
 }

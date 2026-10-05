@@ -169,7 +169,9 @@ final class HeadRenderer {
 		$template = (string) $this->settings->get( 'title_template', '%%title%% %%sep%% %%sitename%%' );
 
 		if ( '' !== trim( $template ) ) {
-			$resolved = $this->replacer->replace( $ctx, $template, 'title_template' );
+			$resolved = $this->normalizeTemplateEdges(
+				$this->replacer->replace( $ctx, $template, 'title_template' )
+			);
 
 			if ( '' !== trim( $resolved ) ) {
 				$this->resolvedTitleMemo[ $hash ] = $resolved;
@@ -179,6 +181,95 @@ final class HeadRenderer {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Trim separator and whitespace left at either end of a resolved template.
+	 *
+	 * A token that resolves to nothing, %%title%% on a date or search archive
+	 * for example, would otherwise leave the template's own separator stranded
+	 * at the front of the document title, and core never gets to fall back to
+	 * its own archive title because a non empty value was returned.
+	 *
+	 * @param string $resolved Resolved template string.
+	 * @return string Trimmed string.
+	 */
+	private function normalizeTemplateEdges( string $resolved ): string {
+		$value = trim( $resolved );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$separator = $this->settings->get( 'separator', '' );
+
+		// The trim target has to be the same string the %%sep%% token rendered,
+		// or the strip silently misses and the stranded mark comes back.
+		// SettingsStore::defaults() sets an en dash, and Context::separator()
+		// falls back to that same en dash for a value that is not a string, so
+		// a different fallback here would aim the trim at a character that is
+		// not the one sitting in the title.
+		$separator = is_string( $separator ) ? trim( $separator ) : '–';
+
+		if ( '' !== $separator ) {
+			$value = self::stripStrandedSeparator( $value, $separator, true );
+			$value = self::stripStrandedSeparator( $value, $separator, false );
+			$value = trim( $value );
+		}
+
+		return trim( preg_replace( '/\s{2,}/', ' ', $value ) ?? $value );
+	}
+
+	/**
+	 * Strip one separator from an edge, but only where it stands alone.
+	 *
+	 * The trim function takes a character set, so a multi character separator
+	 * ate any matching letter off a legitimate title edge. The comparison is on
+	 * whole substrings rather than characters, which keeps a multibyte
+	 * separator intact because only complete sequences are ever cut.
+	 *
+	 * A separator is only stranded when whitespace or the edge of the string
+	 * sits on its other side, since that is the shape a template leaves
+	 * behind. Requiring it also keeps a separator of 'ab' from eating the
+	 * first two letters of a title such as 'abacus'.
+	 *
+	 * @param string $value     Resolved value.
+	 * @param string $separator Separator to remove.
+	 * @param bool   $leading   True for the front edge, false for the back edge.
+	 * @return string Value with at most one separator removed.
+	 */
+	private static function stripStrandedSeparator( string $value, string $separator, bool $leading ): string {
+		$length = strlen( $separator );
+
+		if ( 0 === $length ) {
+			return $value;
+		}
+
+		if ( $leading ) {
+			if ( 0 !== strncmp( $value, $separator, $length ) ) {
+				return $value;
+			}
+
+			$after = substr( $value, $length );
+
+			if ( '' !== $after && 1 !== preg_match( '/^\s/', $after ) ) {
+				return $value;
+			}
+
+			return $after;
+		}
+
+		if ( ! str_ends_with( $value, $separator ) ) {
+			return $value;
+		}
+
+		$before = substr( $value, 0, -$length );
+
+		if ( '' !== $before && 1 !== preg_match( '/\s$/', $before ) ) {
+			return $value;
+		}
+
+		return $before;
 	}
 
 	/**
@@ -358,6 +449,27 @@ final class HeadRenderer {
 	}
 
 	/**
+	 * Whether the queried object is an attachment page.
+	 *
+	 * An attachment page carries no text of its own, it is a wrapper around the
+	 * media file, so indexing it competes with the post the file belongs to.
+	 * PostsProvider already excludes attachments from the sitemaps, so this
+	 * governs the head directives only and does not double handle them.
+	 *
+	 * @param Context $ctx Context.
+	 * @return bool The result.
+	 */
+	private static function isAttachmentPage( Context $ctx ): bool {
+		$id = $ctx->queriedId();
+
+		if ( $id <= 0 || ! function_exists( 'get_post_type' ) ) {
+			return false;
+		}
+
+		return 'attachment' === get_post_type( $id );
+	}
+
+	/**
 	 * Translate payload robots settings into wp_robots directive keys.
 	 *
 	 * @param Context              $ctx  Context.
@@ -371,8 +483,8 @@ final class HeadRenderer {
 			$robots = MetaPayload::defaults()['robots'];
 		}
 
-		// Noindex rules: search and 404 are noindex, follow.
-		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) ) {
+		// Noindex rules: search, 404 and attachment pages are noindex, follow.
+		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) || self::isAttachmentPage( $ctx ) ) {
 			$robots['index']  = false;
 			$robots['follow'] = true;
 		}

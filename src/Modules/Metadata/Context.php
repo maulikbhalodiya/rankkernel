@@ -274,9 +274,18 @@ final class Context {
 	/**
 	 * Trimmed excerpt (max ~160 chars, word-boundary, wp_strip_all_tags).
 	 *
+	 * Only a singular post has a post excerpt. On a term or author archive
+	 * queriedId() returns a term id or a user id, and reading it as a post id
+	 * resolves an unrelated post that happens to share the number, so the
+	 * excerpt stays empty there and the archive description is used instead.
+	 *
 	 * @return string The result.
 	 */
 	public function excerpt(): string {
+		if ( 'post' !== $this->queriedType() ) {
+			return '';
+		}
+
 		$id      = $this->queriedId();
 		$excerpt = '';
 

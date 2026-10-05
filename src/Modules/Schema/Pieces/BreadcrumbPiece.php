@@ -114,7 +114,13 @@ final class BreadcrumbPiece implements PieceInterface {
 			return [];
 		}
 
-		$base = '' !== $permalink ? $permalink : $home;
+		// The page level id honours a canonical override, matching WebpagePiece
+		// and ArticlePiece. Deriving it from the permalink left the
+		// BreadcrumbList pointing at a base no other node used, so
+		// pruneDanglingRefs() deleted it from the graph. The trail item
+		// urls above stay the real permalink, because those are the pages
+		// the visitor actually traversed.
+		$base = SchemaHelpers::pageBase( $ctx );
 
 		if ( '' === $base ) {
 			return [];

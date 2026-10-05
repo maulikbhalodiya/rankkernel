@@ -367,12 +367,20 @@ final class SchemaSettingsAdminTest extends TestCase {
 	public function test_setting_routes_primary_to_owning_piece_for_cpt(): void {
 		Functions\when( 'get_post_type' )->justReturn( 'book' );
 
-		$this->stubPostMeta( [] );
+		// A Book carries the ISBN Google requires, so the routing assertion
+		// below is about the type mapping and not about the node gate.
+		$this->stubPostMeta( [ 'schema' => [ 'fields' => [ 'isbn' => '978-3-16-148410-0' ] ] ] );
 		$ctx = $this->makeContext( $this->singularQuery(), [ 'schema_default_book' => 'Book' ] );
 
 		$this->assertFalse( ( new ArticlePiece( new SettingsStore() ) )->isNeeded( $ctx ) );
 		$this->assertTrue( ( new BookPiece( new SettingsStore() ) )->isNeeded( $ctx ) );
 		$this->assertSame( 'Book', ( new BookPiece( new SettingsStore() ) )->build( $ctx )['@type'] );
+
+		// Without the ISBN the Book abstains rather than emit an incomplete node.
+		$this->stubPostMeta( [] );
+		$bare = $this->makeContext( $this->singularQuery(), [ 'schema_default_book' => 'Book' ] );
+
+		$this->assertFalse( ( new BookPiece( new SettingsStore() ) )->isNeeded( $bare ) );
 	}
 
 	/**
