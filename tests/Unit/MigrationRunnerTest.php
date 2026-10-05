@@ -401,6 +401,115 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	/**
+	 * Test a verbose failure message cannot grow the option.
+	 */
+	public function test_verbose_failure_message_is_truncated(): void {
+		$store    = '0.1.0';
+		$failures = [];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, mixed $fallback = false ) use ( &$store, &$failures ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				if ( MigrationRunner::FAILURES === $option ) {
+					return $failures;
+				}
+
+				return $store;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$failures ): bool {
+				unset( $autoload );
+
+				if ( MigrationRunner::FAILURES === $option ) {
+					$failures = is_array( $value ) ? $value : [];
+
+					return true;
+				}
+
+				$store = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_trigger_error' )->justReturn( null );
+
+		$verbose = str_repeat( 'a very long failure message ', 200 );
+
+		$runner = new MigrationRunner();
+		$runner->register(
+			'0.2.0',
+			static function () use ( $verbose ): void {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- test only exception message, never rendered to the browser.
+				throw new \RuntimeException( $verbose );
+			}
+		);
+
+		$runner->maybeRun();
+
+		$stored = (string) ( $failures['0.2.0']['message'] ?? '' );
+
+		$this->assertStringEndsWith( '...', $stored, 'A bounded message must show that it was cut' );
+		$this->assertLessThanOrEqual(
+			MigrationRunner::MAX_MESSAGE_LENGTH + 3,
+			strlen( $stored ),
+			'The stored message must stay bounded no matter how verbose the throwable is'
+		);
+		$this->assertLessThan(
+			strlen( $verbose ),
+			strlen( $stored ),
+			'A message inside the bound must be stored whole'
+		);
+	}
+
+	/**
+	 * Test a short failure message is stored whole.
+	 */
+	public function test_short_failure_message_is_stored_whole(): void {
+		$store    = '0.1.0';
+		$failures = [];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, mixed $fallback = false ) use ( &$store, &$failures ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_option signature.
+				if ( MigrationRunner::FAILURES === $option ) {
+					return $failures;
+				}
+
+				return $store;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $option, mixed $value, mixed $autoload = null ) use ( &$store, &$failures ): bool {
+				unset( $autoload );
+
+				if ( MigrationRunner::FAILURES === $option ) {
+					$failures = is_array( $value ) ? $value : [];
+
+					return true;
+				}
+
+				$store = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'wp_trigger_error' )->justReturn( null );
+
+		$runner = new MigrationRunner();
+		$runner->register(
+			'0.2.0',
+			static function (): void {
+				throw new \RuntimeException( 'boom' );
+			}
+		);
+
+		$runner->maybeRun();
+
+		$this->assertSame( 'boom', (string) ( $failures['0.2.0']['message'] ?? '' ) );
+	}
+
+	/**
 	 * Test a recorded failure can be cleared so the version runs again.
 	 */
 	public function test_clearing_a_failure_lets_the_version_run_again(): void {

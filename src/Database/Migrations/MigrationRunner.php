@@ -52,6 +52,17 @@ final class MigrationRunner {
 	public const WARNING_LIMIT = 3;
 
 	/**
+	 * Longest failure message kept in the option.
+	 *
+	 * A verbose throwable, a full SQL statement or a stack trace style
+	 * message, was stored verbatim, so the option grew on every attempt of a
+	 * permanently failing migration. The dashboard only ever shows the message
+	 * inline after "Last error", so a bound this size keeps the whole thing
+	 * readable while stopping the growth.
+	 */
+	public const MAX_MESSAGE_LENGTH = 500;
+
+	/**
 	 * Registered migrations.
 	 *
 	 * @var array<string, callable>
@@ -228,13 +239,38 @@ final class MigrationRunner {
 
 		$failures[ $version ] = [
 			'attempts' => $previous + 1,
-			'message'  => $throwable->getMessage(),
+			'message'  => self::boundMessage( $throwable->getMessage() ),
 			'failedAt' => function_exists( 'current_time' ) ? (string) current_time( 'mysql' ) : gmdate( 'Y-m-d H:i:s' ),
 		];
 
 		update_option( self::FAILURES, $failures, false );
 
 		return $previous + 1;
+	}
+
+	/**
+	 * Bound a failure message so the option cannot grow with it.
+	 *
+	 * Multibyte safe where mbstring is present, so a cut never lands inside a
+	 * character and leaves a broken sequence in the stored string.
+	 *
+	 * @param string $message Raw throwable message.
+	 * @return string Message bounded to MAX_MESSAGE_LENGTH.
+	 */
+	private static function boundMessage( string $message ): string {
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			if ( mb_strlen( $message ) <= self::MAX_MESSAGE_LENGTH ) {
+				return $message;
+			}
+
+			return mb_substr( $message, 0, self::MAX_MESSAGE_LENGTH ) . '...';
+		}
+
+		if ( strlen( $message ) <= self::MAX_MESSAGE_LENGTH ) {
+			return $message;
+		}
+
+		return substr( $message, 0, self::MAX_MESSAGE_LENGTH ) . '...';
 	}
 
 	/**
