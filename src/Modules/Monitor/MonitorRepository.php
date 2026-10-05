@@ -51,12 +51,38 @@ final class MonitorRepository {
 	private $db = null;
 
 	/**
+	 * Shared static request-level memoized 404 log rows by URI hash.
+	 *
+	 * Performance optimization: memoizes findByHash results across repository instances
+	 * within a single HTTP request execution thread to eliminate duplicate SQL queries during
+	 * 404 logging. Intended for per-request lifecycle; callers or long-lived processes (and unit tests)
+	 * reset memory state via resetCache().
+	 *
+	 * @var array<string, array<string, mixed>|null>
+	 */
+	private static array $hashMemo = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param \wpdb|null $db Database handle, global $wpdb when null.
 	 */
 	public function __construct( $db = null ) {
 		$this->db = $db;
+	}
+
+	/**
+	 * Canonical method to reset static request-level memoization (primarily for unit tests and long-lived processes).
+	 */
+	public static function resetCache(): void {
+		self::$hashMemo = [];
+	}
+
+	/**
+	 * Reset static request-level memoization (alias for resetCache maintained for interface parity).
+	 */
+	public static function resetMemo(): void {
+		self::resetCache();
 	}
 
 	/**
@@ -107,6 +133,8 @@ final class MonitorRepository {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			$ok = $db->query( $db->prepare( $sql, ...$params ) );
 
+			unset( self::$hashMemo[ $uriHash ] );
+
 			return is_int( $ok ) ? 'update' : '';
 		}
 
@@ -127,6 +155,7 @@ final class MonitorRepository {
 		);
 
 		if ( false === $ok ) {
+			unset( self::$hashMemo[ $uriHash ] );
 			$retry = $this->findByHash( $uriHash );
 
 			if ( null === $retry ) {
@@ -146,8 +175,12 @@ final class MonitorRepository {
 				[ '%s' ]
 			);
 
+			unset( self::$hashMemo[ $uriHash ] );
+
 			return false === $fixed ? '' : 'update';
 		}
+
+		unset( self::$hashMemo[ $uriHash ] );
 
 		return 'insert';
 	}
@@ -155,13 +188,24 @@ final class MonitorRepository {
 	/**
 	 * Find one row by URI hash, the dedupe lookup.
 	 *
+	 * Performance optimization: memoizes results in $hashMemo per request execution thread
+	 * so duplicate lookups across Logger::maybeLog and record() execute zero redundant SQL queries.
+	 *
 	 * @param string $uriHash SHA256 hex of the normalized URI.
 	 * @return array<string, mixed>|null Row or null.
 	 */
 	public function findByHash( string $uriHash ): ?array {
+		if ( '' === $uriHash ) {
+			return null;
+		}
+
+		if ( array_key_exists( $uriHash, self::$hashMemo ) ) {
+			return self::$hashMemo[ $uriHash ];
+		}
+
 		$db = $this->connection();
 
-		if ( null === $db || '' === $uriHash ) {
+		if ( null === $db ) {
 			return null;
 		}
 
@@ -172,7 +216,11 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$row = $db->get_row( $db->prepare( $sql, $uriHash ), ARRAY_A );
 
-		return is_array( $row ) ? $row : null;
+		$result = is_array( $row ) ? $row : null;
+
+		self::$hashMemo[ $uriHash ] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -317,7 +365,13 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ok = $db->delete( $table, [ 'id' => $id ], [ '%d' ] );
 
-		return false !== $ok;
+		if ( false !== $ok && $ok > 0 ) {
+			self::resetCache();
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -356,7 +410,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( "DELETE FROM `{$table}` WHERE id IN ({$list})" );
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
+
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -382,7 +444,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY id ASC LIMIT %d", $batch ) );
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
+
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -406,7 +476,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` WHERE last_accessed < %s ORDER BY last_accessed ASC, id ASC LIMIT %d", $cutoff, $batch ) );
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
+
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
@@ -445,7 +523,15 @@ final class MonitorRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$affected = $db->query( $db->prepare( "DELETE FROM `{$table}` ORDER BY last_accessed ASC, id ASC LIMIT %d", $batch ) );
 
-		return is_int( $affected ) ? $affected : self::QUERY_FAILED;
+		if ( is_int( $affected ) ) {
+			if ( $affected > 0 ) {
+				self::resetCache();
+			}
+
+			return $affected;
+		}
+
+		return self::QUERY_FAILED;
 	}
 
 	/**
