@@ -38,6 +38,7 @@ function classList( initial ) {
 function element( props ) {
 	const attrs = Object.assign( {}, props.attrs || {} );
 	const listeners = {};
+	const dispatchedEvents = [];
 
 	return Object.assign(
 		{
@@ -46,6 +47,14 @@ function element( props ) {
 			src: '',
 			style: { display: props.display || '' },
 			classList: classList( props.classes ),
+			focused: false,
+			dispatchedEvents,
+			focus() {
+				this.focused = true;
+			},
+			dispatchEvent( evt ) {
+				dispatchedEvents.push( evt );
+			},
 			addEventListener( type, handler ) {
 				listeners[ type ] = handler;
 			},
@@ -159,6 +168,13 @@ function settingsFixture() {
 
 	const document = {
 		readyState: 'loading',
+		createEvent() {
+			return {
+				initEvent( type ) {
+					this.type = type;
+				}
+			};
+		},
 		addEventListener( type, handler ) {
 			if ( 'DOMContentLoaded' === type ) {
 				readyHandlers.push( handler );
@@ -206,9 +222,23 @@ function settingsFixture() {
 		}
 	};
 
+	const spoken = [];
 	const wp = {
 		media() {
 			return frame;
+		},
+		a11y: {
+			speak( text ) {
+				spoken.push( text );
+			}
+		},
+		i18n: {
+			__( text ) {
+				return text;
+			},
+			sprintf( format, arg ) {
+				return String( format || '' ).replace( '%s', String( arg || '' ) );
+			}
 		}
 	};
 
@@ -216,6 +246,7 @@ function settingsFixture() {
 	const location = { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' };
 	const sandbox = {
 		document,
+		Event: typeof Event !== 'undefined' ? Event : class Event { constructor( type ) { this.type = type; } },
 		FormData: class {
 			constructor() {}
 			set() {}
@@ -251,7 +282,7 @@ function settingsFixture() {
 		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
 	}
 
-	return { body, current, document, frame, general, social, click, swap, fetchCalls, location };
+	return { body, current, document, frame, general, social, click, swap, fetchCalls, location, spoken };
 }
 
 test( 'media picker remains bound after a settings section swap and a second interaction', async () => {
@@ -295,4 +326,62 @@ test( 'a nav link with a malformed href falls back to normal navigation', () => 
 	}, 'a malformed href must not kill the click handler' );
 
 	assert.equal( fixture.location.href, badHref, 'the guard falls back to navigation instead of dying silently' );
+} );
+
+test( 'token chip click inserts token at cursor position, dispatches input event, and announces via wp.a11y', () => {
+	const fixture = settingsFixture();
+
+	const input = element( {
+		attrs: { id: 'rk-title-template' },
+		value: 'Site - '
+	} );
+	input.selectionStart = 7;
+	input.selectionEnd = 7;
+
+	const chip = element( {
+		classes: [ 'rk-token-chip' ],
+		attrs: {
+			'data-token': '%%title%%',
+			'data-target': 'rk-title-template'
+		}
+	} );
+
+	fixture.current.input = input;
+
+	fixture.click( chip );
+
+	assert.equal( input.value, 'Site - %%title%%' );
+	assert.equal( input.selectionStart, 16 );
+	assert.equal( input.selectionEnd, 16 );
+	assert.equal( input.focused, true );
+	assert.equal( input.dispatchedEvents.length, 1 );
+	assert.equal( input.dispatchedEvents[0].type, 'input' );
+	assert.deepEqual( fixture.spoken, [ 'Inserted token %%title%%.' ] );
+} );
+
+test( 'token chip click appends token when selection range is absent', () => {
+	const fixture = settingsFixture();
+
+	const input = element( {
+		attrs: { id: 'rk-desc-template' },
+		value: 'My Description '
+	} );
+
+	const chip = element( {
+		classes: [ 'rk-token-chip' ],
+		attrs: {
+			'data-token': '%%excerpt%%',
+			'data-target': 'rk-desc-template'
+		}
+	} );
+
+	fixture.current.input = input;
+
+	fixture.click( chip );
+
+	assert.equal( input.value, 'My Description %%excerpt%%' );
+	assert.equal( input.focused, true );
+	assert.equal( input.dispatchedEvents.length, 1 );
+	assert.equal( input.dispatchedEvents[0].type, 'input' );
+	assert.deepEqual( fixture.spoken, [ 'Inserted token %%excerpt%%.' ] );
 } );

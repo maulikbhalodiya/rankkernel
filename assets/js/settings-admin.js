@@ -18,6 +18,12 @@
 			return text;
 		};
 
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			return String( text || '' ).replace( '%s', String( param || '' ) );
+		};
+
 	/**
 	 * Speak an accessible announcement when wp.a11y is available.
 	 *
@@ -167,7 +173,9 @@
 						input.value = val + token;
 					}
 
-					input.focus();
+					if ( 'function' === typeof input.focus ) {
+						input.focus();
+					}
 					var evt;
 					try {
 						evt = new Event( 'input', { bubbles: true } );
@@ -176,8 +184,7 @@
 						evt.initEvent( 'input', true, true );
 					}
 					input.dispatchEvent( evt );
-					var msg = __( 'Inserted token %s.', 'rankkernel' );
-					rankkernelAnnounce( msg.replace( '%s', token ) );
+					rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), token ) );
 				}
 				return;
 			}

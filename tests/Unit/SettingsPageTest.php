@@ -455,6 +455,11 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-title-template-hint"', $output );
 		$this->assertStringContainsString( 'aria-describedby="rk-desc-template-hint"', $output );
 		$this->assertStringContainsString( 'id="rk-desc-template-hint"', $output );
+		$this->assertStringContainsString( 'class="rk-token-chip"', $output );
+		$this->assertStringContainsString( 'data-token="%%title%%"', $output );
+		$this->assertStringContainsString( 'data-target="rk-title-template"', $output );
+		$this->assertStringContainsString( 'data-target="rk-desc-template"', $output );
+		$this->assertStringContainsString( 'aria-label="Insert %%title%% token into title template"', $output );
 		$this->assertStringNotContainsString( 'id="rk-section-breadcrumbs"', $output );
 	}
 
