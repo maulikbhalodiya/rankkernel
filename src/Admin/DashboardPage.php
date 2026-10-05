@@ -120,6 +120,14 @@ final class DashboardPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
 		$version = isset( $_POST['rankkernel_migration_clear'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_migration_clear'] ) ) : '';
 
+		// Sanitizing only proves the value is clean text, not that it names a
+		// migration, so the shape is checked before it reaches the ledger.
+		// The key is written by the form on this page, so a value that does
+		// not look like a version did not come from that form.
+		if ( '' !== $version && 1 !== preg_match( '/^\d+\.\d+\.\d+$/', $version ) ) {
+			$version = '';
+		}
+
 		if ( '' !== $version ) {
 			( new MigrationRunner() )->clearFailure( $version );
 		}

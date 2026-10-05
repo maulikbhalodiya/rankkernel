@@ -174,25 +174,27 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 				<div class="rk-ui-notice-text">
 					<p><?php echo esc_html__( 'A database migration is failing, so every migration queued after it is waiting.', 'rankkernel' ); ?></p>
 					<?php foreach ( $migrationFailures as $rk_failure ) : ?>
-						<p>
-							<?php
-							echo esc_html(
-								sprintf(
-									/* translators: 1: migration version, 2: attempt count */
-									__( 'Version %1$s, failed %2$d times. Last error: %3$s', 'rankkernel' ),
-									(string) $rk_failure['version'],
-									(int) $rk_failure['attempts'],
-									(string) $rk_failure['message']
-								)
-							);
-							?>
+						<div>
+							<p>
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: migration version, 2: attempt count, 3: last recorded error */
+										__( 'Version %1$s, failed %2$d times. Last error: %3$s', 'rankkernel' ),
+										(string) $rk_failure['version'],
+										(int) $rk_failure['attempts'],
+										(string) $rk_failure['message']
+									)
+								);
+								?>
+							</p>
 							<form method="post" action="">
 								<?php wp_nonce_field( 'rankkernel_migration_clear' ); ?>
 								<button type="submit" class="rk-ui-button rk-ui-button-secondary" name="rankkernel_migration_clear" value="<?php echo esc_attr( (string) $rk_failure['version'] ); ?>">
 									<?php echo esc_html__( 'Clear and run again', 'rankkernel' ); ?>
 								</button>
 							</form>
-						</p>
+						</div>
 					<?php endforeach; ?>
 				</div>
 			</div>

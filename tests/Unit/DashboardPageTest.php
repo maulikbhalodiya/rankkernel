@@ -265,6 +265,42 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the migration failure notice keeps the form out of the paragraph.
+	 *
+	 * A form inside a p is invalid HTML. Browsers repair it by closing the
+	 * paragraph early, which moves the button outside the notice and leaves
+	 * assistive technology parsing a fragment it cannot name.
+	 */
+	public function test_render_does_not_nest_the_form_inside_a_paragraph(): void {
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'0.2.0' => [
+				'attempts' => 4,
+				'message'  => 'table already exists',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$formAt = strpos( $output, '<form method="post"' );
+
+		$this->assertNotFalse( $formAt, 'The recovery form must be rendered' );
+
+		$openBefore = substr( $output, 0, $formAt );
+		$openP      = strrpos( $openBefore, '<p>' );
+		$closeP     = strrpos( $openBefore, '</p>' );
+
+		$this->assertNotFalse( $openP, 'The failure text must sit in a paragraph' );
+		$this->assertGreaterThan(
+			$openP,
+			$closeP,
+			'The paragraph holding the failure text must close before the form opens'
+		);
+	}
+
+	/**
 	 * Test a healthy install shows no migration failure notice.
 	 */
 	public function test_render_omits_migration_notice_when_healthy(): void {
@@ -304,6 +340,50 @@ final class DashboardPageTest extends TestCase {
 			array_diff_key( $this->options, [ MigrationRunner::FAILURES => 1 ] ),
 			'Clearing a failure must never write the ledger'
 		);
+	}
+
+	/**
+	 * Test the clear and rerun control ignores a value that is not a version.
+	 *
+	 * The option is keyed by version, and clearFailure() removes whatever key
+	 * it is handed. Sanitizing proves the value is clean text, not that it
+	 * names a migration, so without a shape check a request naming an
+	 * arbitrary stored key deletes that key. The seeded key below is not a
+	 * version shape, so it must survive.
+	 */
+	public function test_migration_clear_ignores_a_value_that_is_not_a_version(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( string $location ): void {
+				$this->redirects[] = $location;
+			}
+		);
+
+		$this->options[ MigrationRunner::FAILURES ] = [
+			'not a version' => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+			'0.2.0'         => [
+				'attempts' => 2,
+				'message'  => 'boom',
+				'failedAt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		$_SERVER['REQUEST_METHOD']           = 'POST';
+		$_POST['rankkernel_migration_clear'] = 'not a version';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertArrayHasKey(
+			'not a version',
+			$this->options[ MigrationRunner::FAILURES ],
+			'A key that is not a version shape must never reach clearFailure'
+		);
+		$this->assertArrayHasKey( '0.2.0', $this->options[ MigrationRunner::FAILURES ], 'A valid version must be untouched too' );
 	}
 
 	/**
