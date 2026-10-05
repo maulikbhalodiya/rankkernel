@@ -15,8 +15,10 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Schema\Pieces\CarouselPiece;
 use RankKernel\Modules\Schema\Pieces\ClaimReviewPiece;
 use RankKernel\Modules\Schema\Pieces\DatasetPiece;
+use RankKernel\Modules\Schema\Pieces\ItemListPiece;
 use RankKernel\Modules\Schema\Pieces\MoviePiece;
 use RankKernel\Modules\Schema\Pieces\PodcastEpisodePiece;
 use RankKernel\Modules\Schema\Pieces\QaPagePiece;
@@ -214,7 +216,7 @@ final class SchemaBatch4Test extends TestCase {
 	 * Test type list covers batch4 types.
 	 */
 	public function test_type_list_covers_batch4_types(): void {
-		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'QAPage' ] as $type ) {
+		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'Carousel', 'QAPage', 'ItemList' ] as $type ) {
 			$this->assertSame( $type, SchemaTypes::normalize( $type ) );
 		}
 
@@ -523,6 +525,97 @@ final class SchemaBatch4Test extends TestCase {
 		$this->assertArrayNotHasKey( 'associatedMedia', $build );
 		$this->assertArrayNotHasKey( 'duration', $build );
 	}
+
+	/**
+	 * Test podcast drops a media URL that is not http or https.
+	 */
+	public function test_podcast_drops_non_http_media_url(): void {
+		$build = ( new PodcastEpisodePiece() )->build(
+			$this->schemaContext(
+				[
+					'type'   => 'PodcastEpisode',
+					'fields' => [
+						'headline'   => 'Episode One',
+						'contentUrl' => 'javascript:alert(1)',
+					],
+				]
+			)
+		);
+
+		$this->assertSame( 'PodcastEpisode', $build['@type'] );
+		$this->assertArrayNotHasKey( 'associatedMedia', $build );
+	}
+
+	/**
+	 * Test carousel not needed when empty or invalid.
+	 */
+	public function test_carousel_not_needed_when_empty_or_invalid(): void {
+		$piece = new CarouselPiece();
+
+		$this->assertFalse( $piece->isNeeded( $this->schemaContext( [] ) ) );
+		$this->assertFalse( $piece->isNeeded( $this->schemaContext( [ 'type' => 'Carousel' ] ) ) );
+		$this->assertFalse(
+			$piece->isNeeded( $this->schemaContext( [ 'carousel' => [ [ 'name' => 'No type' ], 'junk' ] ] ) )
+		);
+	}
+
+	/**
+	 * Test carousel builds positions from one.
+	 */
+	public function test_carousel_builds_positions_from_one(): void {
+		$ctx = $this->schemaContext(
+			[
+				'carousel' => [
+					[
+						'@type' => 'Article',
+						'name'  => 'First',
+					],
+					[ 'name' => 'Missing type' ],
+					'junk',
+					[
+						'@type' => 'Recipe',
+						'name'  => 'Second',
+					],
+				],
+			]
+		);
+
+		$piece = new CarouselPiece();
+
+		$this->assertTrue( $piece->isNeeded( $ctx ) );
+
+		$build = $piece->build( $ctx );
+
+		$this->assertSame( 'ItemList', $build['@type'] );
+		$this->assertSame( 'https://example.com/hello/#carousel', $build['@id'] );
+		$this->assertCount( 2, $build['itemListElement'] );
+		$this->assertSame( 1, $build['itemListElement'][0]['position'] );
+		$this->assertSame( 'ListItem', $build['itemListElement'][0]['@type'] );
+		$this->assertSame( 'Article', $build['itemListElement'][0]['item']['@type'] );
+		$this->assertSame( 2, $build['itemListElement'][1]['position'] );
+		$this->assertSame( 'Recipe', $build['itemListElement'][1]['item']['@type'] );
+	}
+
+	/**
+	 * Test carousel caps at fifty items.
+	 */
+	public function test_carousel_caps_at_fifty_items(): void {
+		$nodes = [];
+
+		for ( $i = 1; $i <= 51; $i++ ) {
+			$nodes[] = [
+				'@type' => 'Article',
+				'name'  => 'Node ' . $i,
+			];
+		}
+
+		$build = ( new CarouselPiece() )->build( $this->schemaContext( [ 'carousel' => $nodes ] ) );
+
+		$this->assertCount( 50, $build['itemListElement'] );
+		$this->assertSame( 50, $build['itemListElement'][49]['position'] );
+		$this->assertSame( 'Node 50', $build['itemListElement'][49]['item']['name'] );
+	}
+
 	/**
 	 * Test qapage needs question and answer.
 	 */
@@ -572,6 +665,125 @@ final class SchemaBatch4Test extends TestCase {
 		$this->assertArrayNotHasKey( 'author', $build['mainEntity']['acceptedAnswer'] );
 		$this->assertSame( 'Hello Post', $build['name'] );
 	}
+
+	/**
+	 * Test qapage uses faq fallback and author ref.
+	 */
+	public function test_qapage_uses_faq_fallback_and_author_ref(): void {
+		$ctx = $this->schemaContext(
+			[
+				'type'   => 'QAPage',
+				'fields' => [ 'answerAuthor' => 'Jane' ],
+				'faq'    => [
+					'questions' => [
+						[
+							'question' => 'Fallback Q?',
+							'answer'   => 'Fallback A.',
+						],
+					],
+				],
+			]
+		);
+
+		$this->stubAuthor( 7 );
+
+		$piece = new QaPagePiece();
+
+		$this->assertTrue( $piece->isNeeded( $ctx ) );
+
+		$build = $piece->build( $ctx );
+
+		$this->assertSame( 'Fallback Q?', $build['mainEntity']['name'] );
+		$this->assertSame( 'Fallback A.', $build['mainEntity']['acceptedAnswer']['text'] );
+		$this->assertSame( 'https://example.com/author/bob/#author', $build['mainEntity']['acceptedAnswer']['author']['@id'] );
+	}
+
+	/**
+	 * Test itemlist needs type and valid items.
+	 */
+	public function test_itemlist_needs_type_and_valid_items(): void {
+		$piece = new ItemListPiece();
+
+		$this->assertFalse( $piece->isNeeded( $this->schemaContext( [] ) ) );
+		$this->assertFalse( $piece->isNeeded( $this->schemaContext( [ 'type' => 'ItemList' ] ) ) );
+		$this->assertFalse(
+			$piece->isNeeded(
+				$this->schemaContext(
+					[
+						'type'  => 'Carousel',
+						'items' => [ [ '@type' => 'Article' ] ],
+					]
+				)
+			)
+		);
+	}
+
+	/**
+	 * Test itemlist builds positions and optional text.
+	 */
+	public function test_itemlist_builds_positions_and_optional_text(): void {
+		$ctx = $this->schemaContext(
+			[
+				'type'   => 'ItemList',
+				'fields' => [
+					'headline'    => 'My List',
+					'description' => 'List intro',
+				],
+				'items'  => [
+					[
+						'@type' => 'Article',
+						'name'  => 'First',
+					],
+					[ 'name' => 'Missing type' ],
+					[
+						'@type' => 'Recipe',
+						'name'  => 'Second',
+					],
+				],
+			]
+		);
+
+		$piece = new ItemListPiece();
+
+		$this->assertTrue( $piece->isNeeded( $ctx ) );
+
+		$build = $piece->build( $ctx );
+
+		$this->assertSame( 'ItemList', $build['@type'] );
+		$this->assertSame( 'https://example.com/hello/#itemlist', $build['@id'] );
+		$this->assertSame( 'My List', $build['name'] );
+		$this->assertSame( 'List intro', $build['description'] );
+		$this->assertCount( 2, $build['itemListElement'] );
+		$this->assertSame( 1, $build['itemListElement'][0]['position'] );
+		$this->assertSame( 2, $build['itemListElement'][1]['position'] );
+	}
+
+	/**
+	 * Test itemlist caps at fifty items.
+	 */
+	public function test_itemlist_caps_at_fifty_items(): void {
+		$nodes = [];
+
+		for ( $i = 1; $i <= 51; $i++ ) {
+			$nodes[] = [
+				'@type' => 'Article',
+				'name'  => 'Node ' . $i,
+			];
+		}
+
+		$build = ( new ItemListPiece() )->build(
+			$this->schemaContext(
+				[
+					'type'  => 'ItemList',
+					'items' => $nodes,
+				]
+			)
+		);
+
+		$this->assertCount( 50, $build['itemListElement'] );
+		$this->assertSame( 50, $build['itemListElement'][49]['position'] );
+	}
+
 	/**
 	 * Test webpage omits speakable about mentions when absent.
 	 */
@@ -614,15 +826,179 @@ final class SchemaBatch4Test extends TestCase {
 	}
 
 	/**
-	 * Test the rest schema no longer offers the withdrawn node list keys.
+	 * Test webpage caps speakable and named things at twenty.
 	 */
-	public function test_rest_schema_drops_the_withdrawn_node_lists(): void {
+	public function test_webpage_caps_speakable_and_named_things_at_twenty(): void {
+		$selectors = [];
+
+		for ( $i = 1; $i <= 21; $i++ ) {
+			$selectors[] = '.sel-' . $i;
+		}
+
+		$names = [];
+
+		for ( $i = 1; $i <= 21; $i++ ) {
+			$names[] = 'Name ' . $i;
+		}
+
+		$this->stubPostMeta(
+			[
+				'schema' => [
+					'type'   => 'Article',
+					'fields' => [
+						'speakable' => implode( "\n", $selectors ),
+						'about'     => implode( ',', $names ),
+						'mentions'  => implode( ',', $names ),
+					],
+				],
+			]
+		);
+
+		$ctx   = $this->makeContext( $this->singularQuery() );
+		$build = ( new WebpagePiece( new SettingsStore() ) )->build( $ctx );
+
+		$this->assertCount( 20, $build['speakable']['cssSelector'] );
+		$this->assertCount( 20, $build['about'] );
+		$this->assertCount( 20, $build['mentions'] );
+	}
+
+	/**
+	 * Test node list helper keeps scalars and drops objects.
+	 */
+	public function test_node_list_helper_keeps_scalars_and_drops_objects(): void {
+		$object       = new \stdClass();
+		$object->name = 'Bad';
+
+		$clean = MetaPayload::sanitizeNodeList(
+			[
+				[
+					'@type' => 'Article',
+					'name'  => 'Good',
+					'count' => 3,
+					'ok'    => true,
+					'nil'   => null,
+				],
+				'junk',
+				42,
+				[ 'name' => 'No type kept here' ],
+				$object,
+			]
+		);
+
+		$this->assertCount( 2, $clean );
+		$this->assertSame( 'Article', $clean[0]['@type'] );
+		$this->assertSame( 3, $clean[0]['count'] );
+		$this->assertTrue( $clean[0]['ok'] );
+		$this->assertNull( $clean[0]['nil'] );
+		$this->assertSame( 'No type kept here', $clean[1]['name'] );
+	}
+
+	/**
+	 * Test node list helper enforces key and depth caps.
+	 */
+	public function test_node_list_helper_enforces_key_and_depth_caps(): void {
+		$wide = [];
+
+		for ( $i = 1; $i <= 55; $i++ ) {
+			$wide[ 'key' . $i ] = 'v' . $i;
+		}
+
+		$clean = MetaPayload::sanitizeNodeList( [ $wide ], 50, 50 );
+
+		$this->assertCount( 50, $clean[0] );
+
+		$deep = [ '@type' => 'Article' ];
+		$ref  = &$deep;
+
+		for ( $i = 1; $i <= 7; $i++ ) {
+			$ref['child'] = [];
+			$ref          = &$ref['child'];
+		}
+
+		$ref['leaf'] = 'too deep';
+
+		$cut = MetaPayload::sanitizeNodeList( [ $deep ] );
+
+		$this->assertSame( 'Article', $cut[0]['@type'] );
+		$this->assertArrayNotHasKey( 'leaf', $cut[0]['child']['child']['child']['child']['child'] ?? [] );
+	}
+
+	/**
+	 * Test node list helper caps items and rejects non arrays.
+	 */
+	public function test_node_list_helper_caps_items_and_rejects_non_arrays(): void {
+		$nodes = [];
+
+		for ( $i = 1; $i <= 51; $i++ ) {
+			$nodes[] = [
+				'@type' => 'Article',
+				'name'  => 'Node ' . $i,
+			];
+		}
+
+		$this->assertCount( 50, MetaPayload::sanitizeNodeList( $nodes ) );
+		$this->assertSame( [], MetaPayload::sanitizeNodeList( 'junk' ) );
+		$this->assertSame( [], MetaPayload::sanitizeNodeList( [] ) );
+	}
+
+	/**
+	 * Test payload sanitizes carousel and items with defaults compatible.
+	 */
+	public function test_payload_sanitizes_carousel_and_items_with_defaults_compatible(): void {
+		$empty = MetaPayload::sanitize( [] );
+
+		$this->assertSame( [], $empty['schema'] );
+
+		$listShape = MetaPayload::sanitize( [ 'schema' => [] ] );
+
+		$this->assertSame( [], $listShape['schema'] );
+
+		$object = new \stdClass();
+
+		$sanitized = MetaPayload::sanitize(
+			[
+				'schema' => [
+					'type'     => 'Carousel',
+					'carousel' => [
+						[
+							'@type' => 'Article',
+							'name'  => 'Kept',
+						],
+						$object,
+						'junk',
+					],
+					'items'    => [
+						[
+							'@type' => 'Recipe',
+							'name'  => 'Dish',
+						],
+					],
+				],
+			]
+		);
+
+		$this->assertSame( 'Carousel', $sanitized['schema']['type'] );
+		$this->assertCount( 1, $sanitized['schema']['carousel'] );
+		$this->assertSame( 'Article', $sanitized['schema']['carousel'][0]['@type'] );
+		$this->assertCount( 1, $sanitized['schema']['items'] );
+		$this->assertSame( 'Recipe', $sanitized['schema']['items'][0]['@type'] );
+
+		$missing = MetaPayload::sanitize( [ 'schema' => [ 'type' => 'Article' ] ] );
+
+		$this->assertSame( [], $missing['schema']['carousel'] );
+		$this->assertSame( [], $missing['schema']['items'] );
+	}
+
+	/**
+	 * Test rest schema lists carousel and items.
+	 */
+	public function test_rest_schema_lists_carousel_and_items(): void {
 		$schema = MetaPayload::restSchema();
 
-		$this->assertArrayNotHasKey( 'carousel', $schema['properties']['schema']['properties'] );
-		$this->assertArrayNotHasKey( 'items', $schema['properties']['schema']['properties'] );
-		$this->assertArrayHasKey( 'faq', $schema['properties']['schema']['properties'] );
+		$this->assertArrayHasKey( 'carousel', $schema['properties']['schema']['properties'] );
+		$this->assertArrayHasKey( 'items', $schema['properties']['schema']['properties'] );
 	}
+
 	/**
 	 * Test generator wiring includes batch4 pieces.
 	 */
@@ -658,6 +1034,17 @@ final class SchemaBatch4Test extends TestCase {
 			],
 			[
 				'schema' => [
+					'carousel' => [
+						[
+							'@type' => 'Article',
+							'name'  => 'First',
+						],
+					],
+				],
+				'node'   => 'ItemList',
+			],
+			[
+				'schema' => [
 					'type'   => 'QAPage',
 					'fields' => [
 						'question' => 'Q?',
@@ -665,6 +1052,18 @@ final class SchemaBatch4Test extends TestCase {
 					],
 				],
 				'node'   => 'QAPage',
+			],
+			[
+				'schema' => [
+					'type'  => 'ItemList',
+					'items' => [
+						[
+							'@type' => 'Article',
+							'name'  => 'First',
+						],
+					],
+				],
+				'node'   => 'ItemList',
 			],
 		];
 

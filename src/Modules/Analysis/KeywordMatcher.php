@@ -297,29 +297,7 @@ final class KeywordMatcher {
 			return 0;
 		}
 
-		// substr_count counts non overlapping matches, and the padded needle
-		// ends with the space the next occurrence also needs, so a repeated
-		// keyword was under counted. "seo seo seo" returned 2, not 3. That
-		// count feeds both the reported figure and the 2.5 percent ceiling,
-		// so an under count reported a stuffing free article that was over
-		// it. The lookaround anchors the match to a word boundary and lets
-		// the scan continue from the end of the match rather than past the
-		// trailing space.
-		$quoted = preg_quote( $needle, '/' );
-		$count  = preg_match_all( '/(?<!\S)' . $quoted . '(?!\S)/u', $hay );
-
-		if ( false === $count ) {
-			// preg_match_all reports an engine failure as false, and the /u
-			// modifier fails on a subject that is not valid UTF-8. Casting
-			// that false to an int turned a failed measurement into a report
-			// of zero occurrences, which reads as an article with no keyword
-			// in it rather than as a measurement that did not happen. The
-			// same pattern without /u still counts, byte for byte, so the
-			// figure stays a real count instead of a false zero.
-			$count = preg_match_all( '/(?<!\S)' . $quoted . '(?!\S)/', $hay );
-		}
-
-		return false === $count ? 0 : $count;
+		return substr_count( ' ' . $hay . ' ', ' ' . $needle . ' ' );
 	}
 
 	/**

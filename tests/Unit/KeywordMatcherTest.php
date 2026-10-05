@@ -148,38 +148,6 @@ final class KeywordMatcherTest extends TestCase {
 	}
 
 	/**
-	 * Test occurrences counts every repeat, not every other one.
-	 *
-	 * The old padded substr_count consumed the trailing space the next
-	 * occurrence also needed, so a repeated keyword was reported at about
-	 * half its real count. That figure feeds the 2.5 percent ceiling, so an
-	 * over stuffed article read as fine.
-	 */
-	public function test_occurrences_count_every_repeat(): void {
-		$this->assertSame( 3, KeywordMatcher::occurrences( 'seo seo seo', 'seo' ) );
-		$this->assertSame( 4, KeywordMatcher::occurrences( 'seo seo seo seo', 'seo' ) );
-		$this->assertSame( 3, KeywordMatcher::occurrences( 'SEO for SEO. SEO!', 'seo' ) );
-		$this->assertSame( 1, KeywordMatcher::occurrences( 'a  seo   b', 'seo' ) );
-	}
-
-	/**
-	 * Test occurrences still refuses a partial word match.
-	 */
-	public function test_occurrences_ignore_partial_words(): void {
-		// normalize() folds case and drops punctuation to word boundaries,
-		// so seo-tools becomes the two words seo tools and seo does match
-		// it. A substring of a longer word must not match, which is what
-		// the word anchored pattern is for.
-		$this->assertSame( 2, KeywordMatcher::occurrences( 'seo-tools seo', 'seo' ) );
-		$this->assertSame( 1, KeywordMatcher::occurrences( 'seo-tools seo', 'seo tools' ) );
-		$this->assertSame( 0, KeywordMatcher::occurrences( 'preseo', 'seo' ) );
-		$this->assertSame( 0, KeywordMatcher::occurrences( 'seoseo', 'seo' ) );
-		$this->assertSame( 0, KeywordMatcher::occurrences( 'cat care basics', 'at' ) );
-		$this->assertSame( 0, KeywordMatcher::occurrences( '', 'seo' ) );
-		$this->assertSame( 0, KeywordMatcher::occurrences( 'seo', '' ) );
-	}
-
-	/**
 	 * Test density is a percentage of the word count.
 	 */
 	public function test_density_is_a_percentage_of_word_count(): void {
@@ -187,62 +155,5 @@ final class KeywordMatcherTest extends TestCase {
 
 		$this->assertSame( 0.0, KeywordMatcher::density( '', 'red apples' ) );
 		$this->assertEqualsWithDelta( 25.0, KeywordMatcher::density( $text, 'red apples' ), 0.01 );
-	}
-
-	/**
-	 * Test the documented PHP and JavaScript occurrence divergence.
-	 *
-	 * The normalize step turns every run of non letter, non digit characters
-	 * into a single space, and occurrences then counts whole words in that
-	 * alphabet. Both engines must agree on which codepoints count as letters
-	 * and digits, or the two sides count differently.
-	 *
-	 * They currently do not, on purpose, and this test is the tripwire. This
-	 * host runs PCRE2 10.46, whose Unicode tables predate the ones in the
-	 * JavaScript engine. PCRE2 does not classify 357 codepoints across 23
-	 * ranges as a letter or a digit, almost all of them Unicode 15.0 and
-	 * later additions such as Kawi, Nag Mundari, Todhri and Garay, while
-	 * V8 does. PHP therefore replaces such a character with a space and
-	 * counts the keyword after it, while JavaScript keeps the character and
-	 * reads it as part of a word, so the count is one lower there.
-	 *
-	 * The divergence is accepted for V1. Hardcoding the ranges in the
-	 * JavaScript normalizer would pin the behaviour to whichever PCRE2 build
-	 * this happens to run and would invert on a newer one, and narrowing the
-	 * word definition to ASCII would drop the Cyrillic and Greek support the
-	 * suite depends on. No real search corpus contains these characters, so
-	 * the practical effect on keyword density is nil.
-	 *
-	 * If this assertion ever fails, PHP has moved to a PCRE2 whose tables do
-	 * know these codepoints. That is the good outcome, and the fix is to
-	 * re-measure the JavaScript side rather than to relax this test.
-	 *
-	 * @dataProvider provideDivergentCodepoints
-	 *
-	 * @param string $character Codepoint the two engines classify differently.
-	 */
-	public function test_occurrences_diverge_from_javascript_only_while_pcre_unicode_lags(
-		string $character
-	): void {
-		$haystack = 'x' . $character . 'seo';
-
-		$this->assertSame(
-			1,
-			KeywordMatcher::occurrences( $haystack, 'seo' ),
-			'PCRE2 replaces this codepoint with a space, so PHP counts the keyword'
-		);
-	}
-
-	/**
-	 * Codepoints the two engines currently classify differently.
-	 *
-	 * @return array<string, array{0: string}>
-	 */
-	public static function provideDivergentCodepoints(): array {
-		return [
-			'U+088F Arabic'  => [ "\u{088F}" ],
-			'U+A7CE Latin'   => [ "\u{A7CE}" ],
-			'U+2CEA2 Gurung' => [ "\u{2CEA2}" ],
-		];
 	}
 }

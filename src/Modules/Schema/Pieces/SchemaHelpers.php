@@ -125,35 +125,6 @@ final class SchemaHelpers {
 	}
 
 	/**
-	 * Fields with the resolved headline and description merged in.
-	 *
-	 * The headline and description accessors both fall back to the post
-	 * title and the excerpt, so a completeness check that reads only the
-	 * raw stored fields would report a node as incomplete on a post that
-	 * renders it perfectly well. This resolves the same way the builders
-	 * do, so the gate agrees with what build() would actually emit.
-	 *
-	 * @param Context $ctx Request context.
-	 * @return array<string, mixed> Fields with the fallbacks applied.
-	 */
-	public static function resolvedFields( Context $ctx ): array {
-		$fields = self::fields( $ctx );
-
-		$headline    = self::headline( $ctx, $fields );
-		$description = self::description( $ctx, $fields );
-
-		if ( '' !== $headline ) {
-			$fields['headline'] = $headline;
-		}
-
-		if ( '' !== $description ) {
-			$fields['description'] = $description;
-		}
-
-		return $fields;
-	}
-
-	/**
 	 * Normalize a free form date to W3C, dropped when unparseable.
 	 *
 	 * Any strtotime parseable string is accepted. Invalid strings

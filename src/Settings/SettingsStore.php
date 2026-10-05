@@ -25,24 +25,6 @@ final class SettingsStore {
 	public const OPTION = 'rankkernel_settings';
 
 	/**
-	 * Maximum profile URLs kept for the organization sameAs field.
-	 *
-	 * This option is autoloaded, so every entry here is read on every
-	 * frontend request. The bound keeps a repeated save from growing a
-	 * hot option without limit.
-	 */
-	public const ORG_SAMEAS_MAX = 20;
-
-	/**
-	 * Maximum schema_default_ dynamic keys stored at once.
-	 *
-	 * Each key is a per post type default type, so the useful number is
-	 * bounded by how many post types a site has. The cap stops an
-	 * unbounded key namespace accumulating in the same hot option.
-	 */
-	public const SCHEMA_DEFAULT_MAX = 50;
-
-	/**
 	 * Whitelisted setting keys.
 	 *
 	 * @var string[]
@@ -166,14 +148,6 @@ final class SettingsStore {
 
 		foreach ( $partial as $key => $value ) {
 			if ( self::isDefaultTypeKey( $key ) ) {
-				// The suffix names a post type, so it is validated against a
-				// real registered post type rather than only against the key
-				// shape. BreadcrumbsSettings does the same for its own dynamic
-				// keys, so the two stores now agree on what a valid suffix is.
-				if ( ! self::isRegisteredPostType( $key ) ) {
-					continue;
-				}
-
 				$clean = trim( (string) $value );
 
 				if ( '' === $clean ) {
@@ -203,12 +177,6 @@ final class SettingsStore {
 		$current = $this->all();
 		$merged  = array_merge( $current, $sanitized );
 
-		// The dynamic keys are counted across the merged result, not across
-		// the incoming partial. Counting the partial alone let each call see
-		// only its own short list, so repeated set() calls with distinct post
-		// type suffixes walked straight past the cap in the stored option.
-		$merged = self::capDynamicDefaults( $merged );
-
 		// update_option() returns false both when the value is unchanged and
 		// when the write fails, so the write is skipped when nothing changed.
 		// An unchanged save still counts as a success; a changed write that
@@ -224,41 +192,6 @@ final class SettingsStore {
 		$this->cache = $merged;
 
 		return true;
-	}
-
-	/**
-	 * Drop schema_default_ keys beyond SCHEMA_DEFAULT_MAX from a merged set.
-	 *
-	 * The keys already stored are considered first, so the cap never evicts a
-	 * key that is in use in favour of a newly submitted one. Only the surplus
-	 * is dropped, and the remaining keys keep their values.
-	 *
-	 * @param array<string, mixed> $merged Merged settings.
-	 * @return array<string, mixed> Merged settings within the cap.
-	 */
-	private static function capDynamicDefaults( array $merged ): array {
-		$budget  = self::SCHEMA_DEFAULT_MAX;
-		$surplus = [];
-
-		foreach ( array_keys( $merged ) as $key ) {
-			if ( ! self::isDefaultTypeKey( $key ) ) {
-				continue;
-			}
-
-			if ( $budget > 0 ) {
-				--$budget;
-
-				continue;
-			}
-
-			$surplus[] = $key;
-		}
-
-		foreach ( $surplus as $key ) {
-			unset( $merged[ $key ] );
-		}
-
-		return $merged;
 	}
 
 	/**
@@ -281,31 +214,6 @@ final class SettingsStore {
 		}
 
 		return 1 === preg_match( '/^schema_default_[a-z0-9_-]+$/', $key );
-	}
-
-	/**
-	 * Whether a schema_default_ key names a real post type.
-	 *
-	 * The key shape alone left the namespace unbounded, because
-	 * SettingsController passes get_params() and unregistered body keys come
-	 * back verbatim. When WordPress is absent, as in a unit test, the shape
-	 * check stands alone so the store keeps working without a bootstrap.
-	 *
-	 * @param string $key Candidate key.
-	 * @return bool True when the suffix is a registered post type.
-	 */
-	private static function isRegisteredPostType( string $key ): bool {
-		if ( ! function_exists( 'post_type_exists' ) ) {
-			return true;
-		}
-
-		$postType = substr( $key, strlen( 'schema_default_' ) );
-
-		if ( '' === $postType ) {
-			return false;
-		}
-
-		return post_type_exists( $postType );
 	}
 
 	/**
@@ -354,11 +262,7 @@ final class SettingsStore {
 				}
 			}
 
-			// rankkernel_settings is autoloaded and read on every frontend
-			// request, so an unbounded list here grows a value already
-			// resident in wp_load_alloptions() on every request. Twenty
-			// profiles is far past any real use of the field.
-			return array_slice( $clean, 0, self::ORG_SAMEAS_MAX );
+			return $clean;
 		}
 
 		if ( 'website_search_action' === $key || 'schema_breadcrumbs' === $key || 'schema_author' === $key ) {

@@ -92,17 +92,11 @@ may fetch a font from an external host. */
 	sits on the soft background, such as the shared danger button on hover. */
 	--rk-color-secondary-4-strong: #B91C1C;
 
-	/* Text and chrome.
-	   Every foreground token below clears 4.5:1 against the background it is
-	   drawn on, and the badge and score foregrounds clear it against their
-	   own soft backgrounds. Darken the foreground to fix a ratio, never the
-	   soft background, which is a deliberate part of the design. The border
-	   tokens are exempt: a divider is not text and WCAG does not ask a
-	   1.23:1 border to reach 4.5:1. */
+	/* Text and chrome. */
 	--rk-color-text: #1E293B;
 	--rk-color-text-secondary: #475569;
-	--rk-color-text-muted: #5E6E85;
-	--rk-color-text-hint: #59687D;
+	--rk-color-text-muted: #64748B;
+	--rk-color-text-hint: #94A3B8;
 	--rk-color-border: #E2E8F0;
 	--rk-color-border-strong: #CBD5E1;
 
@@ -164,7 +158,7 @@ may fetch a font from an external host. */
 	--rk-badge-307-bg: #F5F3FF;
 	--rk-badge-307-fg: #7C3AED;
 	--rk-badge-410-bg: #FEF2F2;
-	--rk-badge-410-fg: #D82222;
+	--rk-badge-410-fg: #DC2626;
 	--rk-badge-451-bg: #1E293B;
 	--rk-badge-451-fg: #F8FAFC;
 	--rk-badge-exact-bg: #F1F5F9;
@@ -172,11 +166,11 @@ may fetch a font from an external host. */
 	--rk-badge-prefix-bg: #F5F3FF;
 	--rk-badge-prefix-fg: #7C3AED;
 	--rk-badge-regex-bg: #FFF7ED;
-	--rk-badge-regex-fg: #CE3C00;
+	--rk-badge-regex-fg: #EA580C;
 	--rk-badge-active-bg: #F0FDFA;
 	--rk-badge-active-fg: #0F766E;
 	--rk-badge-inactive-bg: #F1F5F9;
-	--rk-badge-inactive-fg: #607087;
+	--rk-badge-inactive-fg: #64748B;
 
 	/* Capacity meter. A meter is two boundaries, not one: the track has to be
 	visible against the surface it is drawn on, and the filled part has to be
@@ -196,11 +190,11 @@ may fetch a font from an external host. */
 	--rk-meter-fill-high: #F87171;
 
 	/* Content analysis score bands, WordPress admin palette. */
-	--rk-score-good: #008218;
+	--rk-score-good: #008a20;
 	--rk-score-good-soft: #edfaef;
 	--rk-score-improve: #996800;
 	--rk-score-improve-soft: #fcf9e8;
-	--rk-score-problem: #CE2E30;
+	--rk-score-problem: #d63638;
 	--rk-score-problem-soft: #fcf0f1;
 	--rk-score-neutral: #646970;
 	--rk-score-neutral-soft: #f0f0f1;

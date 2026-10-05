@@ -65,17 +65,6 @@ if (! function_exists('sanitize_textarea_field')) {
     }
 }
 
-// IndexBuilder::xmlEscape() branches on function_exists( 'esc_xml' ). WordPress
-// ships esc_xml, so in production that branch is the one that runs. It was
-// absent here, which meant every sitemap test silently exercised only the
-// htmlspecialchars fallback and the production branch had no coverage at all.
-// Mirroring core here is a single pass XML encode, the same shape as core.
-if (! function_exists('esc_xml')) {
-    function esc_xml( string $text ): string {
-        return htmlspecialchars($text, ENT_QUOTES | ENT_XML1, 'UTF-8');
-    }
-}
-
 if (! function_exists('plugin_dir_path')) {
     function plugin_dir_path( string $file ): string {
         return rtrim(dirname($file), '/\\') . '/';

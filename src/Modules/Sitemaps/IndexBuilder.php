@@ -59,6 +59,8 @@ class IndexBuilder {
 
 	/**
 	 * Reset in-memory cache (primarily for unit tests).
+	 *
+	 * @return void
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
