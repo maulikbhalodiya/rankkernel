@@ -62,6 +62,20 @@ final class RegexSafety {
 	private const PROBE_SUBJECT = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!';
 
 	/**
+	 * Samples taken for one pattern before the budget is compared.
+	 *
+	 * A single wall clock sample spots a catastrophic pattern but cannot be
+	 * trusted to clear a benign one, because a scheduling hiccup on a loaded
+	 * server can push a correct pattern past the budget and get it refused.
+	 * The fastest sample is the one least distorted by load, so that is the
+	 * one compared, and a pattern only has to be slow on every sample to be
+	 * called slow.
+	 *
+	 * @var int
+	 */
+	private const PROBE_SAMPLES = 3;
+
+	/**
 	 * Whether a pattern is refused for save time.
 	 *
 	 * @param string $pattern Stored regex body.
@@ -566,18 +580,6 @@ final class RegexSafety {
 				continue;
 			}
 
-			if ( ']' === $char ) {
-				$open = strrpos( substr( $pattern, 0, $i ), '[' );
-
-				if ( false === $open ) {
-					return $run;
-				}
-
-				$i = $open + 1;
-
-				continue;
-			}
-
 			return $run;
 		}
 
@@ -634,23 +636,35 @@ final class RegexSafety {
 	/**
 	 * Whether a pattern runs longer than the probe budget on the payload.
 	 *
+	 * Takes the fastest of PROBE_SAMPLES samples, because the verdict is a
+	 * refusal and a false refusal locks an operator out of a correct pattern.
+	 *
 	 * @param string $pattern Stored regex body.
 	 * @return bool True when the pattern is too slow to keep.
 	 */
 	public static function exceedsBudget( string $pattern ): bool {
 		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
+		$fastest = INF;
 
-		$start = microtime( true );
+		for ( $sample = 0; $sample < self::PROBE_SAMPLES; $sample++ ) {
+			$start = microtime( true );
 
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded compile probe for operator entered patterns, the handler swallows only the compile warning and is always restored in finally.
-		set_error_handler( static fn (): bool => true );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded compile probe for operator entered patterns, the handler swallows only the compile warning and is always restored in finally.
+			set_error_handler( static fn (): bool => true );
 
-		try {
-			preg_match( $wrapped, self::PROBE_SUBJECT );
-		} finally {
-			restore_error_handler();
+			try {
+				preg_match( $wrapped, self::PROBE_SUBJECT );
+			} finally {
+				restore_error_handler();
+			}
+
+			$elapsed = microtime( true ) - $start;
+
+			if ( $elapsed < $fastest ) {
+				$fastest = $elapsed;
+			}
 		}
 
-		return ( microtime( true ) - $start ) > self::PROBE_BUDGET;
+		return $fastest > self::PROBE_BUDGET;
 	}
 }
