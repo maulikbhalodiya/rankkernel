@@ -43,6 +43,8 @@ final class MonitorRepositoryTest extends TestCase {
 			define( 'ARRAY_A', 'ARRAY_A' );
 		}
 
+		MonitorRepository::resetCache();
+
 		$this->db   = new MonitorFakeDb();
 		$this->repo = new MonitorRepository( $this->db );
 
@@ -57,6 +59,7 @@ final class MonitorRepositoryTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		MonitorRepository::resetCache();
 		unset( $GLOBALS['wpdb'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -413,5 +416,40 @@ final class MonitorRepositoryTest extends TestCase {
 		$this->assertSame( 0, $this->repo->deleteMany( [] ) );
 		$this->assertSame( 0, $this->repo->clearAllBounded( 2 ) );
 		$this->assertSame( 0, $this->repo->deleteOlderThan( '2026-06-01 00:00:00', 500 ) );
+	}
+
+	/**
+	 * Test findByHash memoizes results in memory across lookups and resetCache clears it.
+	 */
+	public function test_find_by_hash_memoizes_results_and_reset_cache_clears_it(): void {
+		$hash = hash( 'sha256', '/memo-test' );
+		$this->db->seed(
+			[
+				'uri_hash' => $hash,
+				'uri'      => '/memo-test',
+				'hits'     => 1,
+			]
+		);
+
+		$first  = $this->repo->findByHash( $hash );
+		$second = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $first );
+		$this->assertSame( $first, $second );
+
+		// Modify DB directly without going through repo mutation methods to verify memoization hit.
+		foreach ( $this->db->rows as $id => $row ) {
+			if ( ( $row['uri_hash'] ?? '' ) === $hash ) {
+				$this->db->rows[ $id ]['hits'] = 999;
+			}
+		}
+
+		$memoized = $this->repo->findByHash( $hash );
+		$this->assertSame( 1, (int) $memoized['hits'], 'Repeated lookup should return memoized row rather than querying DB' );
+
+		MonitorRepository::resetCache();
+
+		$fresh = $this->repo->findByHash( $hash );
+		$this->assertSame( 999, (int) $fresh['hits'], 'After resetCache, lookup should query DB again' );
 	}
 }

@@ -41,6 +41,24 @@ final class RedirectRepository {
 	public const MAX_PATTERNS = 500;
 
 	/**
+	 * Maximum active regex rules.
+	 *
+	 * Regex is the expensive tier, so only this many are ever evaluated per
+	 * request. The bound lives here rather than in the matcher so every write
+	 * path inherits it. Enforced only in the matcher, rule twenty one saved,
+	 * listed as active and counted toward hits, and was never evaluated.
+	 */
+	public const MAX_REGEX_RULES = 20;
+
+	/**
+	 * Maximum regex source length in characters.
+	 *
+	 * Enforced on write for the same reason as MAX_REGEX_RULES. A longer
+	 * pattern saved and was skipped at match time, so it silently never fired.
+	 */
+	public const MAX_REGEX_LENGTH = 200;
+
+	/**
 	 * Rows read per CSV export batch, keeps export memory bounded.
 	 */
 	public const EXPORT_BATCH = 500;
@@ -265,11 +283,33 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Count active regex rules, the expensive bounded tier.
+	 *
+	 * @return int Active regex rule count.
+	 */
+	public function count_regex_rules(): int {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 0;
+		}
+
+		$table = RedirectTable::name();
+		$sql   = "SELECT COUNT(*) FROM `{$table}` WHERE is_active = 1 AND match_type = 'regex'";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single bounded count with no user input.
+		$count = $db->get_var( $sql );
+
+		return (int) $count;
+	}
+
+	/**
 	 * Insert a rule, normalizing the source and hashing before storage.
 	 *
 	 * An active non exact rule that would grow the pattern set past
-	 * MAX_PATTERNS is refused with a zero return, so the caller can report
-	 * the cap instead of silently exceeding it.
+	 * MAX_PATTERNS, or an active regex rule that would grow the active regex
+	 * set past MAX_REGEX_RULES, is refused with a zero return, so the caller
+	 * can report the cap instead of silently exceeding it.
 	 *
 	 * @param array<string, mixed> $rule Source, target, code, match_type, is_active.
 	 * @return int New row id, or 0 when validation, the pattern cap, or storage fails.
@@ -288,6 +328,16 @@ final class RedirectRepository {
 		}
 
 		if ( $this->wouldExceedCap( $prepared['data'], null ) ) {
+			return 0;
+		}
+
+		// The active regex count is bounded at write time for the same reason
+		// as the pattern cap above. Rules past MAX_REGEX_RULES still save,
+		// list as active and count toward hits, but the matcher only ever
+		// evaluates the first MAX_REGEX_RULES by id, so a rule past the cap
+		// is a silent dead rule. Refusing here is the only place that stops
+		// the set growing, so every write path has to consult it.
+		if ( $this->wouldExceedRegexCap( $prepared['data'], null ) ) {
 			return 0;
 		}
 
@@ -313,7 +363,8 @@ final class RedirectRepository {
 	 * Update a rule by id, rehashing when source or matcher changes.
 	 *
 	 * A change that would flip a rule into the active pattern set past
-	 * MAX_PATTERNS is refused with false, so the caller can report the cap.
+	 * MAX_PATTERNS, or into the active regex set past MAX_REGEX_RULES, is
+	 * refused with false, so the caller can report the cap.
 	 *
 	 * @param int                  $id   Rule id.
 	 * @param array<string, mixed> $rule Partial fields to change.
@@ -333,6 +384,10 @@ final class RedirectRepository {
 		}
 
 		if ( $this->wouldExceedCap( $prepared['data'], $id ) ) {
+			return false;
+		}
+
+		if ( $this->wouldExceedRegexCap( $prepared['data'], $id ) ) {
 			return false;
 		}
 
@@ -386,7 +441,8 @@ final class RedirectRepository {
 	/**
 	 * Flip the active flag on one rule.
 	 *
-	 * Activating a non exact rule past MAX_PATTERNS is refused with false.
+	 * Activating a non exact rule past MAX_PATTERNS, or a regex rule past
+	 * MAX_REGEX_RULES, is refused with false.
 	 *
 	 * @param int  $id     Rule id.
 	 * @param bool $active New flag.
@@ -400,6 +456,10 @@ final class RedirectRepository {
 		}
 
 		if ( $active && $this->wouldExceedCap( [ 'is_active' => 1 ], $id ) ) {
+			return false;
+		}
+
+		if ( $active && $this->wouldExceedRegexCap( [ 'is_active' => 1 ], $id ) ) {
 			return false;
 		}
 
@@ -420,10 +480,11 @@ final class RedirectRepository {
 	/**
 	 * Bulk activate, deactivate, or delete a list of ids.
 	 *
-	 * Bulk activation respects MAX_PATTERNS: exact rules always flip, non
-	 * exact rules flip in id order only while budget remains, and the
-	 * returned count reports exactly how many rows changed, so the admin
-	 * notice can never claim more than happened.
+	 * Bulk activation respects MAX_PATTERNS and MAX_REGEX_RULES: exact rules
+	 * always flip, capped rules flip in id order only while budget remains,
+	 * and the returned count reports exactly how many rows changed, so the
+	 * admin notice can never claim more than happened. A row is only flipped
+	 * when both budgets allow it, so neither cap can be overshot.
 	 *
 	 * @param string $action One of activate, deactivate, delete.
 	 * @param int[]  $ids    Rule ids.
@@ -483,7 +544,12 @@ final class RedirectRepository {
 				return $result;
 			}
 
-			$allowed = $this->capBudgetForBulk( $clean );
+			$allowed = array_values(
+				array_intersect(
+					$this->capBudgetForBulk( $clean ),
+					$this->capRegexBudgetForBulk( $clean )
+				)
+			);
 			$flag    = 1;
 
 			if ( [] === $allowed ) {
@@ -1018,6 +1084,25 @@ final class RedirectRepository {
 				return null;
 			}
 
+			// The regex bounds are enforced here so every write path inherits
+			// them, including bulk import and any future caller. When they
+			// lived only in the matcher, an over length pattern or rule twenty
+			// one saved, listed as active and counted toward hits, and was
+			// never evaluated. An edit that does not change the source keeps
+			// whatever it already passed, so length is only checked when the
+			// row actually carries a regex source.
+			if ( 'regex' === $matchType && strlen( $source ) > self::MAX_REGEX_LENGTH ) {
+				return null;
+			}
+
+			// Refuse a pattern that can backtrack catastrophically. PHP
+			// preg_match has no execution timeout, so a stored pattern that
+			// costs the engine real time on every uncached request is a cost
+			// defect even where the PCRE backtrack limit bounds the damage.
+			if ( 'regex' === $matchType && RegexSafety::isUnsafe( $source ) ) {
+				return null;
+			}
+
 			$data['match_type']  = $matchType;
 			$format[]            = '%s';
 			$data['source_hash'] = Normalizer::hash( $matchType, $source );
@@ -1073,5 +1158,83 @@ final class RedirectRepository {
 			'data'   => $data,
 			'format' => $format,
 		];
+	}
+
+	/**
+	 * Whether a write would push active regex rules past MAX_REGEX_RULES.
+	 *
+	 * The resulting row state is resolved rather than the partial alone. A
+	 * partial that never names match_type or is_active still decides whether
+	 * the row lands inside the active regex set, so reading those fields off
+	 * the partial made every update bypass the cap. A row already inside the
+	 * set is excluded by id, so an edit that keeps it active always passes.
+	 *
+	 * @param array<string, mixed> $data      Fields being written.
+	 * @param int|null             $excludeId Row id being written, null on insert.
+	 * @return bool True when the write must be refused.
+	 */
+	private function wouldExceedRegexCap( array $data, ?int $excludeId ): bool {
+		$matchType = isset( $data['match_type'] ) ? (string) $data['match_type'] : null;
+		$isActive  = isset( $data['is_active'] ) ? 1 === (int) $data['is_active'] : null;
+
+		if ( null === $excludeId ) {
+			return 'regex' === $matchType && true === $isActive && $this->count_regex_rules() >= self::MAX_REGEX_RULES;
+		}
+
+		$current = $this->get( $excludeId );
+
+		if ( null === $current ) {
+			return false;
+		}
+
+		$nowCounts = 1 === (int) ( $current['is_active'] ?? 0 ) && 'regex' === (string) ( $current['match_type'] ?? 'exact' );
+		$newType   = null === $matchType ? (string) ( $current['match_type'] ?? 'exact' ) : $matchType;
+		$newActive = null === $isActive ? 1 === (int) ( $current['is_active'] ?? 0 ) : $isActive;
+		$newCounts = $newActive && 'regex' === $newType;
+
+		if ( ! $newCounts || $nowCounts ) {
+			return false;
+		}
+
+		return $this->count_regex_rules() >= self::MAX_REGEX_RULES;
+	}
+
+	/**
+	 * Ids a bulk activation may flip, bounded by MAX_REGEX_RULES.
+	 *
+	 * Mirrors capBudgetForBulk. Rows already active, or rows outside the
+	 * regex set, always flip. A regex row that lands inside the set flips in
+	 * id order only while regex budget remains, so a bulk activate cannot
+	 * overshoot the cap the way an unbounded UPDATE would.
+	 *
+	 * @param int[] $ids Rule ids.
+	 * @return int[] Ids allowed to activate.
+	 */
+	private function capRegexBudgetForBulk( array $ids ): array {
+		sort( $ids );
+
+		$budget  = self::MAX_REGEX_RULES - $this->count_regex_rules();
+		$allowed = [];
+
+		foreach ( $ids as $id ) {
+			$row = $this->get( $id );
+
+			if ( null === $row ) {
+				continue;
+			}
+
+			if ( 1 === (int) ( $row['is_active'] ?? 0 ) || 'regex' !== (string) ( $row['match_type'] ?? 'exact' ) ) {
+				$allowed[] = $id;
+
+				continue;
+			}
+
+			if ( $budget > 0 ) {
+				$allowed[] = $id;
+				--$budget;
+			}
+		}
+
+		return $allowed;
 	}
 }

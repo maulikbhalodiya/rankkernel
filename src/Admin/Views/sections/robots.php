@@ -114,6 +114,7 @@ defined( 'ABSPATH' ) || exit;
 
 				<?php if ( 'edit' === $robotTab ) : ?>
 					<p class="rk-ui-hint"><?php echo esc_html__( 'Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #.', 'rankkernel' ); ?></p>
+					<label class="rk-form-label" for="rk-robots-override"><?php echo esc_html__( 'robots.txt document', 'rankkernel' ); ?></label>
 					<textarea id="rk-robots-override" name="rk_robots_override" rows="16" cols="70" class="rk-code-editor rk-code-editor--roomy"><?php echo esc_textarea( $robotEditValue ); ?></textarea>
 
 					<p class="rk-form-actions">

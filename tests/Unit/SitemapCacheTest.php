@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Sitemaps\SitemapCache;
+use RankKernel\Tests\Unit\Support\CountingFakeWpdb;
 
 /**
  * Sitemap Cache Test.
@@ -402,5 +403,145 @@ final class SitemapCacheTest extends TestCase {
 		SitemapCache::resetValidatorCache();
 		$cache->store( 'post', 3, '<xml>3</xml>' );
 		$this->assertGreaterThan( $initialCalls, $getOptionCalls, 'Resetting validator cache should force fresh option lookup' );
+	}
+
+	/**
+	 * The counting double actually counts (TQA-04).
+	 *
+	 * Without this control the zero query assertion above could pass against a
+	 * double that never records anything, which would make it worthless. Here
+	 * the builder genuinely queries on the cold path and the count must rise.
+	 */
+	public function test_counting_double_records_a_query_from_the_builder(): void {
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$db              = new CountingFakeWpdb();
+		$GLOBALS['wpdb'] = $db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test setup swaps the WordPress global, restored in tearDown.
+
+		try {
+			$store = [];
+
+			Functions\when( 'get_option' )->alias(
+				static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+					return $store[ $key ] ?? $fallback;
+				}
+			);
+
+			Functions\when( 'update_option' )->alias(
+				static function ( string $key, mixed $value ) use ( &$store ): bool {
+					$store[ $key ] = $value;
+
+					return true;
+				}
+			);
+
+			Functions\when( 'get_transient' )->alias(
+				static function ( string $key ) use ( &$store ): mixed {
+					return $store[ 'transient_' . $key ] ?? false;
+				}
+			);
+
+			Functions\when( 'set_transient' )->alias(
+				static function ( string $key, mixed $value ) use ( &$store ): bool {
+					$store[ 'transient_' . $key ] = $value;
+
+					return true;
+				}
+			);
+
+			$cache = new SitemapCache();
+
+			$cache->get(
+				'post',
+				1,
+				static function () use ( $db ): string {
+					$db->get_results( 'SELECT * FROM wp_posts WHERE 1=1' );
+
+					return '<urlset>cold</urlset>';
+				}
+			);
+
+			$this->assertSame( 1, $db->queries, 'the double must count a query the builder issued' );
+			$this->assertSame( [ 'SELECT * FROM wp_posts WHERE 1=1' ], $db->log );
+		} finally {
+			unset( $GLOBALS['wpdb'] );
+		}
+	}
+
+	/**
+	 * A cache hit issues zero database queries (TQA-04).
+	 *
+	 * The existing cache test proves the builder closure was not invoked, which
+	 * is a statement about one collaborator. This measures SQL directly through
+	 * a counting wpdb double, so the zero query claim is measured rather than
+	 * inferred. A builder reached by any other route still shows up here.
+	 */
+	public function test_cache_hit_issues_zero_database_queries(): void {
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$db              = new CountingFakeWpdb();
+		$GLOBALS['wpdb'] = $db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test setup swaps the WordPress global, restored in tearDown.
+
+		try {
+			$store = [];
+
+			Functions\when( 'get_option' )->alias(
+				static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+					return $store[ $key ] ?? $fallback;
+				}
+			);
+
+			Functions\when( 'update_option' )->alias(
+				static function ( string $key, mixed $value ) use ( &$store ): bool {
+					$store[ $key ] = $value;
+
+					return true;
+				}
+			);
+
+			Functions\when( 'get_transient' )->alias(
+				static function ( string $key ) use ( &$store ): mixed {
+					return $store[ 'transient_' . $key ] ?? false;
+				}
+			);
+
+			Functions\when( 'set_transient' )->alias(
+				static function ( string $key, mixed $value ) use ( &$store ): bool {
+					$store[ 'transient_' . $key ] = $value;
+
+					return true;
+				}
+			);
+
+			$cache = new SitemapCache();
+
+			// Warm the cache.
+			$cache->get(
+				'post',
+				1,
+				static fn (): string => '<urlset>first</urlset>'
+			);
+
+			$this->assertSame( 0, $db->queries, 'warming the cache must not query either' );
+
+			$db->queries = 0;
+			$db->log     = [];
+
+			$xml = $cache->get(
+				'post',
+				1,
+				static fn (): string => '<urlset>second</urlset>'
+			);
+
+			$this->assertSame( '<urlset>first</urlset>', $xml );
+			$this->assertSame( 0, $db->queries, 'a cache hit must issue zero database queries' );
+			$this->assertSame( [], $db->log, 'no SQL may be issued on a cache hit' );
+		} finally {
+			unset( $GLOBALS['wpdb'] );
+		}
 	}
 }

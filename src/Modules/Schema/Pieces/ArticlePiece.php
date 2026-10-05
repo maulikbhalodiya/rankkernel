@@ -110,15 +110,22 @@ final class ArticlePiece implements PieceInterface {
 			$postType = 'post';
 		}
 
-		$permalink = $ctx->permalink();
+		// The page level ids derive from pageBase(), which honours a canonical
+		// override. Deriving them from the permalink instead left this
+		// node and the WebPage node on different bases whenever an override
+		// was set, and pruneDanglingRefs() then deleted mainEntityOfPage
+		// and the breadcrumb as references to a node that was not in the
+		// graph. The trail item url stays the real permalink, because that
+		// is the page the visitor is on.
+		$base = SchemaHelpers::pageBase( $ctx );
 
-		if ( '' === $permalink ) {
+		if ( '' === $base ) {
 			return [];
 		}
 
 		$node = [
 			'@type'    => $this->resolveType( $ctx, $postType ),
-			'@id'      => $permalink . '#article',
+			'@id'      => $base . '#article',
 			'headline' => $this->headline( $ctx ),
 		];
 
@@ -154,7 +161,7 @@ final class ArticlePiece implements PieceInterface {
 		}
 
 		$node['mainEntityOfPage'] = [
-			'@id' => $permalink . '#webpage',
+			'@id' => $base . '#webpage',
 		];
 
 		return $node;

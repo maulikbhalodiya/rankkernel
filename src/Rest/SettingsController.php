@@ -202,6 +202,7 @@ final class SettingsController {
 			],
 			'org_sameas'              => [
 				'type'              => 'array',
+				'maxItems'          => SettingsStore::ORG_SAMEAS_MAX,
 				'items'             => [
 					'type'              => 'string',
 					'format'            => 'uri',

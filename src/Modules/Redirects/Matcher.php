@@ -31,13 +31,18 @@ defined( 'ABSPATH' ) || exit;
 final class Matcher {
 	/**
 	 * Maximum regex rules evaluated per request.
+	 *
+	 * Enforced on every write by RedirectRepository, aliased here so the
+	 * matcher reads as the consumer of the bound rather than its owner.
 	 */
-	public const MAX_REGEX_RULES = 20;
+	public const MAX_REGEX_RULES = RedirectRepository::MAX_REGEX_RULES;
 
 	/**
 	 * Maximum regex source length in characters.
+	 *
+	 * Enforced on every write by RedirectRepository, aliased here.
 	 */
-	public const MAX_REGEX_LENGTH = 200;
+	public const MAX_REGEX_LENGTH = RedirectRepository::MAX_REGEX_LENGTH;
 
 	/**
 	 * Rule repository for database backed matching.

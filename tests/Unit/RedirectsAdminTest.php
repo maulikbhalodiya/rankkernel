@@ -819,14 +819,42 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * The nonce guard is the die inside check_admin_referer, not a return branch.
+	 *
+	 * WordPress kills the request itself on a bad nonce, so the return value is
+	 * never false and a test against it proves nothing. Stubbing it to return
+	 * false anyway pins the real contract: the code must not branch on that
+	 * value, because doing so would refuse a request WordPress considers
+	 * verified.
+	 */
+	public function test_form_save_does_not_branch_on_the_referer_return_value(): void {
+		$page = $this->makePage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( false );
+
+		$this->postAdd();
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 1, $this->db->rows, 'A verified request must be honoured' );
+		$this->assertStringContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
+	}
+
+	/**
 	 * Failed nonce stops the save.
 	 */
 	public function test_form_save_with_bad_nonce_dies(): void {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -842,6 +870,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 0, $this->db->rows, 'A bad nonce must save nothing' );
 		}
 	}
 
@@ -896,6 +926,117 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * An administrator can save a rule whose chain could not be proven.
+	 *
+	 * Failing closed with no way forward is its own defect. Once an existing
+	 * pattern rule matches a path in the new chain the analysis is
+	 * inconclusive for good, the CSV import refuses it too, and the only
+	 * recovery was reordering rules outside the product. The override exists
+	 * for that dead end and nothing else.
+	 */
+	public function test_inconclusive_chain_can_be_overridden_by_an_administrator(): void {
+		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
+
+		$fired = [];
+
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook ) use ( &$fired ): void {
+				$fired[] = $hook;
+			}
+		);
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function (): void {
+			}
+		);
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/a',
+				'rk_target'           => '/shop/item',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 2, $this->db->rows, 'An administrator override must save the rule' );
+		$this->assertStringContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
+		$this->assertContains(
+			'rankkernel/redirect/unverified_override',
+			$fired,
+			'An override must be recorded so the unproven rule is never invisible'
+		);
+	}
+
+	/**
+	 * The override must not wave through a proven redirect loop.
+	 *
+	 * A proven cycle was actually observed, unlike an inconclusive analysis,
+	 * so it stays refused whatever the operator ticks.
+	 */
+	public function test_override_does_not_bypass_a_proven_redirect_loop(): void {
+		$this->seedRule( '/b', '/a' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/a',
+				'rk_target'           => '/b',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 1, $this->db->rows, 'A proven loop must still be refused' );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'redirect loop', $html );
+	}
+
+	/**
+	 * The override must not wave through a duplicate source.
+	 *
+	 * The override covers the unproven analysis only. Every check after it,
+	 * duplicate source, catastrophic pattern, length and caps included, still
+	 * applies.
+	 */
+	public function test_override_does_not_bypass_a_duplicate_source(): void {
+		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
+		$this->seedRule( '/taken', '/somewhere' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+		$this->postAdd(
+			[
+				'rk_source'           => '/taken',
+				'rk_target'           => '/shop/item',
+				'rk_force_unverified' => '1',
+			]
+		);
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertCount( 2, $this->db->rows, 'A duplicate source must still be refused' );
+		$this->assertSame( '', $this->lastRedirect );
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'already exists', $html );
+	}
+
+	/**
 	 * A chain saves with a warning plus the recommended destination.
 	 */
 	public function test_add_chain_saves_with_warning(): void {
@@ -933,9 +1074,9 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
-	 * A chain through a pattern rule saves with an information notice.
+	 * A chain through a pattern rule is refused, because the chain cannot be proven.
 	 */
-	public function test_add_pattern_chain_saves_with_info(): void {
+	public function test_add_pattern_chain_is_refused_when_inconclusive(): void {
 		$this->seedRule( '/shop', '/sale', '301', 'prefix' );
 
 		$page = $this->makePage();
@@ -951,15 +1092,14 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_chain_unknown=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive chain must not save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 	}
 
 	/**
-	 * A possible loop through a pattern rule saves with a warning.
+	 * A possible loop through a pattern rule is refused, because a loop cannot be ruled out.
 	 */
-	public function test_add_possible_pattern_loop_saves_with_warning(): void {
+	public function test_add_possible_pattern_loop_is_refused_when_inconclusive(): void {
 		$this->seedRule( '/old-.*', '/new', '301', 'regex' );
 
 		$page = $this->makePage();
@@ -975,9 +1115,8 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_mayloop=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive loop analysis must not save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 	}
 
 	/**
@@ -1166,8 +1305,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1188,6 +1330,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 1, $this->db->rows, 'A bad nonce must delete nothing' );
 		}
 	}
 
@@ -1573,11 +1717,16 @@ final class RedirectsAdminTest extends TestCase {
 	 * Failed nonce stops a bulk action.
 	 */
 	public function test_bulk_with_bad_nonce_dies(): void {
+		$this->seedRule( '/a', '/b' );
+
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1599,6 +1748,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertCount( 1, $this->db->rows, 'A bad nonce must delete nothing' );
 		}
 	}
 
@@ -1609,8 +1760,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1630,6 +1784,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
@@ -1640,8 +1796,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1661,6 +1820,8 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
@@ -1671,8 +1832,11 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		// WordPress does not return false from check_admin_referer() on a bad
+		// nonce, it calls wp_die() itself and never comes back. The stub
+		// reproduces that contract rather than returning a value production
+		// can never produce, so the test covers the path that actually runs.
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1692,13 +1856,15 @@ final class RedirectsAdminTest extends TestCase {
 			$page->maybeHandleSave();
 		} finally {
 			ob_end_clean();
+
+			$this->assertSame( '', $this->lastRedirect, 'A bad nonce must redirect nowhere' );
 		}
 	}
 
 	/**
-	 * Loop plus chain inconclusive saves with both flags, never a clean pass.
+	 * Loop plus chain inconclusive is refused outright, never a clean save with flags.
 	 */
-	public function test_inconclusive_loop_and_chain_saves_with_both_flags(): void {
+	public function test_inconclusive_loop_and_chain_is_refused(): void {
 		$this->seedRule( '/old-.*', '/new', '301', 'regex' );
 
 		$page = $this->makePage();
@@ -1714,10 +1880,8 @@ final class RedirectsAdminTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 2, $this->db->rows );
-		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_mayloop=1', $this->lastRedirect );
-		$this->assertStringContainsString( 'rk_chain_unknown=1', $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows, 'An inconclusive analysis must never reach the save' );
+		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
 
 		$_GET = [
 			'rk_notice'        => 'saved',

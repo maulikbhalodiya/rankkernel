@@ -249,9 +249,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 	}
 
 	/**
-	 * Test csv import carries could not fully verify warning.
+	 * Test csv import refuses a row it could not fully verify.
 	 */
-	public function test_csv_import_carries_could_not_fully_verify_warning(): void {
+	public function test_csv_import_refuses_could_not_fully_verify_row(): void {
 		$repo = new RedirectRepository( $this->db );
 		$id   = $repo->insert(
 			[
@@ -283,8 +283,9 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		);
 		$result  = $handler->import_csv( $path );
 
-		$this->assertSame( 1, $result['created'] );
-		$this->assertCount( 1, $result['warnings'] );
-		$this->assertStringContainsString( 'could not fully verify', $result['warnings'][0]['message'] );
+		$this->assertSame( 0, $result['created'], 'An unverifiable row must not be imported' );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'could not be fully verified', (string) $result['errors'][0]['reason'] );
+		$this->assertSame( [], $result['warnings'] );
 	}
 }
