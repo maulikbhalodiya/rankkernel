@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
-use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -68,22 +67,7 @@ final class RecipePiece implements PieceInterface {
 			return false;
 		}
 
-		// The inference branch above lets a post with ingredients infer a
-		// Recipe. Google also requires instructions and an image, so an
-		// inferred or selected Recipe without them is not emitted. The
-		// inference branch itself still works, it just cannot produce an
-		// incomplete node.
-		return $this->isComplete( $ctx );
-	}
-
-	/**
-	 * Whether the type can produce a complete node.
-	 *
-	 * @param Context $ctx Request context.
-	 * @return bool True when every required field is present.
-	 */
-	private function isComplete( Context $ctx ): bool {
-		return SchemaTypes::isComplete( 'Recipe', SchemaHelpers::resolvedFields( $ctx ) );
+		return '' !== SchemaHelpers::headline( $ctx, $fields );
 	}
 
 	/**
@@ -102,7 +86,7 @@ final class RecipePiece implements PieceInterface {
 
 		$name = SchemaHelpers::headline( $ctx, $fields );
 
-		if ( '' === $name || ! $this->isComplete( $ctx ) ) {
+		if ( '' === $name ) {
 			return [];
 		}
 

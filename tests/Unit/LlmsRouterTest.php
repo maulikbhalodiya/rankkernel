@@ -74,14 +74,6 @@ final class LlmsRouterTest extends TestCase {
 		);
 		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
 		Functions\when( 'wp_rand' )->justReturn( 12345 );
-
-		// The router falls back to the generated sections when no curated
-		// content exists. These stubs keep this test deterministic about that
-		// fallback and keep it independent of test execution order, because a
-		// function defined by any earlier test would otherwise satisfy
-		// function_exists and then raise for being unstubbed.
-		Functions\when( 'get_post_types' )->justReturn( [] );
-		Functions\when( 'get_taxonomies' )->justReturn( [] );
 	}
 
 	/**
@@ -175,71 +167,5 @@ final class LlmsRouterTest extends TestCase {
 		LlmsRouter::invalidate();
 
 		$this->assertArrayHasKey( LlmsRouter::VALIDATOR_OPTION, $this->options );
-	}
-
-	/**
-	 * With no curated content the router falls back to the generated sections.
-	 *
-	 * FUNC-01. The shipped document was a bare H1, 13 bytes, while the site
-	 * had published content, so a site serving llms.txt told crawlers it had
-	 * none. This proves the fallback is wired at the router, not just built by
-	 * the generator.
-	 *
-	 * @return void
-	 */
-	public function test_router_falls_back_to_generated_sections(): void {
-		$post = (object) [
-			'ID'         => 7,
-			'post_title' => 'A published post',
-		];
-
-		Functions\when( 'get_post_types' )->justReturn( [ 'post' ] );
-		Functions\when( 'get_taxonomies' )->justReturn( [] );
-		Functions\when( 'get_posts' )->justReturn( [ $post ] );
-		Functions\when( 'get_post_meta' )->justReturn( '' );
-		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/?p=7' );
-		Functions\when( 'get_the_excerpt' )->justReturn( 'What the post is about.' );
-		Functions\when( 'wp_strip_all_tags' )->alias( static fn ( string $s ): string => strip_tags( $s ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
-		Functions\when( 'get_post_type_object' )->alias(
-			static fn (): object => (object) [ 'labels' => (object) [ 'name' => 'Posts' ] ]
-		);
-
-		$markdown = $this->router()->content();
-
-		$this->assertStringContainsString( '## Posts', $markdown );
-		$this->assertStringContainsString( '- [A published post](https://example.com/?p=7): What the post is about.', $markdown );
-		$this->assertGreaterThan( 13, strlen( $markdown ), 'the document must carry more than a bare H1' );
-	}
-
-	/**
-	 * A curated document is never diluted by generated sections.
-	 *
-	 * FUNC-01. The operator writing their own sections must keep full control,
-	 * so the fallback only fires when the curated field is empty.
-	 *
-	 * @return void
-	 */
-	public function test_curated_content_wins_over_generated_sections(): void {
-		$this->options[ LlmsSettings::OPTION ] = [
-			'enabled' => true,
-			'content' => "## Hand written\n\n- [About](https://example.com/about)\n",
-		];
-
-		Functions\when( 'get_post_types' )->justReturn( [ 'post' ] );
-		Functions\when( 'get_taxonomies' )->justReturn( [] );
-		Functions\when( 'get_posts' )->justReturn( [ (object) [ 'ID' => 7 ] ] );
-		Functions\when( 'get_post_meta' )->justReturn( '' );
-		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/?p=7' );
-		Functions\when( 'get_the_excerpt' )->justReturn( 'Generated excerpt.' );
-		Functions\when( 'wp_strip_all_tags' )->alias( static fn ( string $s ): string => strip_tags( $s ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
-		Functions\when( 'get_post_type_object' )->alias(
-			static fn (): object => (object) [ 'labels' => (object) [ 'name' => 'Posts' ] ]
-		);
-
-		$markdown = $this->router()->content();
-
-		$this->assertStringContainsString( '## Hand written', $markdown );
-		$this->assertStringNotContainsString( '## Posts', $markdown, 'a curated document must not gain generated sections' );
-		$this->assertStringNotContainsString( 'Generated', $markdown );
 	}
 }

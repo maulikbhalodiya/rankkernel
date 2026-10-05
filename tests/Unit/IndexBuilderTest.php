@@ -288,59 +288,74 @@ final class IndexBuilderTest extends TestCase {
 	}
 
 	/**
-	 * Test xmlEscape takes the WordPress branch and encodes exactly once.
-	 *
-	 * TQA-05. xmlEscape branches on function_exists( 'esc_xml' ). WordPress
-	 * ships esc_xml, so the WordPress branch is what production runs, but the
-	 * function was absent from the test bootstrap, which meant every sitemap
-	 * test exercised only the htmlspecialchars fallback and the production
-	 * branch had no coverage at all. The first assertion pins the branch so
-	 * the test cannot quietly go back to covering the fallback.
-	 *
-	 * The double escape this guards against is the defect the method docblock
-	 * warns about: an ampersand becoming an ampersand entity twice.
+	 * Test getSetsWithPageCounts memoizes result and resetCache clears it.
 	 */
-	public function test_xml_escape_uses_the_wordpress_branch_and_encodes_once(): void {
-		$this->assertTrue(
-			function_exists( 'esc_xml' ),
-			'esc_xml must be available so xmlEscape exercises the branch production runs'
-		);
+	public function test_get_sets_with_page_counts_memoization_and_reset_cache(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->twice()->andReturn( [ 'post' ] );
+		$posts->shouldReceive( 'getCount' )->twice()->with( 'post' )->andReturn( 10, 2000 );
 
-		$method = new \ReflectionMethod( IndexBuilder::class, 'xmlEscape' );
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
-		$builder = $this->makeBuilderWithCounts( [] );
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
-		$escaped = $method->invoke( $builder, 'https://example.com/post/?a=1&b=2' );
+		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => 1000 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress apply_filters signature.
 
-		$this->assertSame( 'https://example.com/post/?a=1&amp;b=2', $escaped );
-		$this->assertStringNotContainsString( '&amp;amp;', $escaped, 'the ampersand must be encoded once, never twice' );
-		$this->assertSame( 1, substr_count( $escaped, '&amp;' ) );
+		$builder = new IndexBuilder( $posts, $tax, $auth );
 
-		// Sanity check the encoder is not a no-op, so the assertions above mean something.
-		$alreadyEscaped = $method->invoke( $builder, 'https://example.com/post/?a=1&amp;b=2' );
+		// First call invokes provider methods.
+		$first = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 1 ], $first );
 
-		$this->assertStringContainsString( '&amp;amp;', $alreadyEscaped, 'the encoder must still act on an existing entity' );
+		// Second call uses memoized result without calling provider methods again.
+		$second = $builder->getSetsWithPageCounts();
+		$this->assertSame( $first, $second );
+
+		// resetCache clears memoization on the SAME builder instance so next call queries providers again.
+		$builder->resetCache();
+
+		$third = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 2 ], $third );
 	}
 
 	/**
-	 * Test the fallback encoder is a single pass too.
-	 *
-	 * TQA-05. The htmlspecialchars fallback is the branch taken when esc_xml
-	 * is absent, which is how the suite ran before the polyfill existed. It is
-	 * asserted here against the encoder it actually calls so the two branches
-	 * are known to agree, without pretending the branch itself is reachable
-	 * once esc_xml is defined for the whole process.
+	 * Test getSetsWithPageCounts recomputes when per_page changes.
 	 */
-	public function test_xml_escape_fallback_matches_the_wordpress_branch(): void {
-		$method = new \ReflectionMethod( IndexBuilder::class, 'xmlEscape' );
+	public function test_get_sets_with_page_counts_recomputes_when_per_page_changes(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->twice()->andReturn( [ 'post' ] );
+		$posts->shouldReceive( 'getCount' )->twice()->with( 'post' )->andReturn( 1500 );
 
-		$builder = $this->makeBuilderWithCounts( [] );
-		$raw     = 'https://example.com/post/?a=1&b=2&c="quoted"';
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
-		$viaWordPress = $method->invoke( $builder, $raw );
-		$viaFallback  = htmlspecialchars( $raw, ENT_QUOTES | ENT_XML1, 'UTF-8' );
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->twice()->andReturn( [] );
 
-		$this->assertSame( $viaFallback, $viaWordPress, 'both branches must produce the same single pass encoding' );
-		$this->assertStringNotContainsString( '&amp;amp;', $viaWordPress );
+		$currentPerPage = 1000;
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( &$currentPerPage ): mixed {
+				if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+					return $currentPerPage;
+				}
+				return $value;
+			}
+		);
+
+		$builder = new IndexBuilder( $posts, $tax, $auth );
+
+		// Initial query with per_page = 1000: 1500 items = 2 pages.
+		$first = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 2 ], $first );
+
+		// Change per_page filter to 500 without calling resetCache().
+		$currentPerPage = 500;
+
+		// getSetsWithPageCounts recomputes because perPage changed: 1500 items / 500 = 3 pages.
+		$second = $builder->getSetsWithPageCounts();
+		$this->assertSame( [ 'post' => 3 ], $second );
 	}
 }

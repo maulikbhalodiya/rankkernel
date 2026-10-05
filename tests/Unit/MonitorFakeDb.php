@@ -11,7 +11,6 @@ declare(strict_types=1);
 namespace RankKernel\Tests\Unit;
 
 use RankKernel\Modules\Monitor\LogTable;
-use RankKernel\Modules\Monitor\MonitorRepository;
 
 /**
  * Minimal behavioral fake for the 404 log table.
@@ -98,7 +97,6 @@ final class MonitorFakeDb {
 	 */
 	public function __construct() {
 		LogTable::resetCache();
-		MonitorRepository::resetCache();
 	}
 
 	/**

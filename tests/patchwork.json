@@ -1,7 +1,5 @@
 {
     "redefinable-internals": [
-        "time",
-        "headers_sent",
-        "setcookie"
+        "time"
     ]
 }

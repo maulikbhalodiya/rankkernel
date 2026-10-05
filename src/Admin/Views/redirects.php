@@ -461,15 +461,6 @@ $rkMatchBadgeMap = [
 							<?php endforeach; ?>
 						</ul>
 					</details>
-					<div class="rk-form-row rk-form-row-full">
-						<label class="rk-form-check">
-							<input type="checkbox" name="rk_force_unverified" value="1" />
-							<span>
-								<strong><?php echo esc_html__( 'Save even if the chain cannot be verified', 'rankkernel' ); ?></strong>
-								<?php echo esc_html__( 'Administrators only, and only when the chain could not be proven free of a loop. Check the destination yourself first. A proven redirect loop is still refused, and every override is recorded in the error log.', 'rankkernel' ); ?>
-							</span>
-						</label>
-					</div>
 				</details>
 
 				<div class="rk-form-actions">

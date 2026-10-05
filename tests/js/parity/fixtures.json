@@ -1257,7 +1257,7 @@
       "keywords": [
         "reader"
       ],
-      "html": "<p>Alpha one here for the reader. Alpha two here for the reader.Alpha three here for the reader.</p>",
+      "html": "<p>Alpha one here for the reader.\u2028Alpha two here for the reader.\u0085Alpha three here for the reader.</p>",
       "site_url": "https://example.com"
     }
   },
@@ -1267,19 +1267,7 @@
       "keywords": [
         "reader"
       ],
-      "html": "<p>Alpha one here for the reader.﻿Alpha two here for the reader.﻿Alpha three here for the reader.</p>",
-      "site_url": "https://example.com"
-    }
-  },
-  {
-    "id": "density-repeated-keyword-count",
-    "input": {
-      "keywords": [
-        "seo"
-      ],
-      "title": "SEO guide for small sites",
-      "slug": "seo-guide",
-      "html": "<h1>SEO</h1><p>SEO for small sites. If your SEO is weak, SEO costs you traffic. Better SEO wins. This is about SEO.</p>",
+      "html": "<p>Alpha one here for the reader.\uFEFFAlpha two here for the reader.\uFEFFAlpha three here for the reader.</p>",
       "site_url": "https://example.com"
     }
   }

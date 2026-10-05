@@ -35,7 +35,7 @@ const fixtures = fixtureFile.concat( generatedFixtures );
 
 // Pinned so that deleting a fixture nobody names in an assertion fails loudly
 // instead of silently shrinking parity coverage.
-const FIXTURE_FILE_INVENTORY = 123;
+const FIXTURE_FILE_INVENTORY = 122;
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
 

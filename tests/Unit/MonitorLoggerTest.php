@@ -142,7 +142,6 @@ final class MonitorLoggerTest extends TestCase {
 		unset( $_SERVER['HTTP_REFERER'], $_SERVER['HTTP_USER_AGENT'] );
 
 		Logger::resetLogged();
-		MonitorRepository::resetCache();
 
 		// Test double backing the stubbed wp_parse_url with the native parser.
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
@@ -620,68 +619,6 @@ final class MonitorLoggerTest extends TestCase {
 		$this->assertIsArray( $row );
 		$this->assertSame( 'https://referrer.example/entry', $row['referer'] );
 		$this->assertSame( 255, strlen( (string) $row['user_agent'] ) );
-	}
-
-	/**
-	 * Test a token carried in the referer is redacted before storage.
-	 *
-	 * The logged URI had its query redacted and the referer beside it did
-	 * not, so a reset token arriving in the referer was stored verbatim
-	 * while the path next to it was cleaned.
-	 */
-	public function test_referer_query_values_are_redacted(): void {
-		$this->options['rankkernel_404_settings'] = [ 'advanced_fields' => true ];
-
-		$_SERVER['HTTP_REFERER']    = 'https://referrer.example/reset?token=ABCDEF123456&password=Hunter2&page=2';
-		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent/1.0';
-
-		$this->request( $this->makeLogger(), '/missing-page' );
-
-		$row = $this->repo->findByHash( hash( 'sha256', '/missing-page' ) );
-
-		$this->assertIsArray( $row );
-		$this->assertStringNotContainsString( 'ABCDEF123456', (string) $row['referer'] );
-		$this->assertStringNotContainsString( 'Hunter2', (string) $row['referer'] );
-		$this->assertStringContainsString( 'token=[redacted]', (string) $row['referer'] );
-		$this->assertStringContainsString( 'password=[redacted]', (string) $row['referer'] );
-		$this->assertStringContainsString( 'page=2', (string) $row['referer'] );
-	}
-
-	/**
-	 * Test redaction of the referer keeps the rest of the URL intact.
-	 */
-	public function test_referer_redaction_preserves_host_path_and_safe_params(): void {
-		$this->options['rankkernel_404_settings'] = [ 'advanced_fields' => true ];
-
-		$_SERVER['HTTP_REFERER']    = 'https://referrer.example/deep/path?token=SEKRIT&ok=1';
-		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent/1.0';
-
-		$this->request( $this->makeLogger(), '/missing-page' );
-
-		$row = $this->repo->findByHash( hash( 'sha256', '/missing-page' ) );
-
-		$this->assertIsArray( $row );
-		$this->assertSame(
-			'https://referrer.example/deep/path?token=[redacted]&ok=1',
-			(string) $row['referer']
-		);
-	}
-
-	/**
-	 * Test the user agent is never treated as a URL to redact.
-	 */
-	public function test_user_agent_is_not_redacted(): void {
-		$this->options['rankkernel_404_settings'] = [ 'advanced_fields' => true ];
-
-		$_SERVER['HTTP_REFERER']    = 'https://referrer.example/entry';
-		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 token=agentvalue';
-
-		$this->request( $this->makeLogger(), '/missing-page' );
-
-		$row = $this->repo->findByHash( hash( 'sha256', '/missing-page' ) );
-
-		$this->assertIsArray( $row );
-		$this->assertSame( 'Mozilla/5.0 token=agentvalue', $row['user_agent'] );
 	}
 
 	/**

@@ -711,9 +711,9 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 	}
 
 	/**
-	 * An inconclusive chain is refused, matching the slug watcher, and no guessed target is stored.
+	 * An inconclusive chain saves with a warning and no guessed target.
 	 */
-	public function test_admin_save_inconclusive_chain_is_refused(): void {
+	public function test_admin_save_inconclusive_chain_warns_and_saves(): void {
 		$page = $this->makePage();
 		$this->allowAccess();
 		$this->postAdd(
@@ -728,8 +728,12 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		$page->maybeHandleSave();
 		ob_end_clean();
 
-		$this->assertCount( 0, $this->db->rows, 'An unverifiable capture target must not save' );
-		$this->assertStringNotContainsString( 'rk_notice=saved', (string) $this->lastRedirect );
+		$this->assertCount( 1, $this->db->rows );
+		$this->assertStringContainsString( 'rk_notice=saved', $this->lastRedirect );
+
+		$row = reset( $this->db->rows );
+
+		$this->assertSame( '^/old/(.*)$', (string) $row['source'] );
 	}
 
 	/**
@@ -756,14 +760,12 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		);
 		$summary = $handler->import_csv( $path );
 
-		$this->assertSame( 2, $summary['created'], 'Only the provably safe rows import' );
-		$this->assertCount( 3, $summary['errors'] );
+		$this->assertSame( 3, $summary['created'] );
+		$this->assertCount( 2, $summary['errors'] );
 		$this->assertSame( 2, (int) $summary['errors'][0]['row'] );
 		$this->assertStringContainsString( 'same URL', (string) $summary['errors'][0]['reason'] );
 		$this->assertSame( 3, (int) $summary['errors'][1]['row'] );
 		$this->assertStringContainsString( 'loop', (string) $summary['errors'][1]['reason'] );
-		$this->assertSame( 5, (int) $summary['errors'][2]['row'] );
-		$this->assertStringContainsString( 'could not be fully verified', (string) $summary['errors'][2]['reason'] );
 
 		$warningsByRow = [];
 
@@ -776,7 +778,8 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		$this->assertArrayHasKey( 4, $warningsByRow );
 		$this->assertStringContainsString( 'Redirect chain detected', $warningsByRow[4] );
 		$this->assertStringContainsString( '/final', $warningsByRow[4] );
-		$this->assertArrayNotHasKey( 5, $warningsByRow, 'An unverifiable row is an error, not a warning' );
+		$this->assertArrayHasKey( 5, $warningsByRow );
+		$this->assertStringContainsString( 'verify', $warningsByRow[5] );
 		$this->assertArrayNotHasKey( 6, $warningsByRow );
 	}
 

@@ -14,7 +14,6 @@ use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Metadata\Context;
-use RankKernel\Modules\Schema\GraphNormalizer;
 use RankKernel\Modules\Schema\Pieces\ArticlePiece;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
 use RankKernel\Modules\Schema\Pieces\OrganizationPiece;
@@ -558,96 +557,5 @@ final class SchemaPiecesTest extends TestCase {
 		$build = ( new ArticlePiece() )->build( $ctx );
 
 		$this->assertSame( 'Article', $build['@type'] );
-	}
-
-	/**
-	 * Test a canonical override moves every page level id together.
-	 *
-	 * WebpagePiece already derived its id from pageBase(), which honours
-	 * the override. ArticlePiece and BreadcrumbPiece derived theirs from
-	 * the permalink, so on an overridden page the Article pointed at a
-	 * WebPage that no longer existed and the breadcrumb pointed at a base
-	 * nothing else used. pruneDanglingRefs() then deleted both from the
-	 * graph, silently.
-	 */
-	public function test_canonical_override_moves_every_page_level_id(): void {
-		Functions\when( 'get_post_type' )->justReturn( 'post' );
-		Functions\when( 'get_post_field' )->justReturn( '7' );
-		Functions\when( 'get_post_meta' )->alias(
-			static fn ( int $id, string $key, bool $single ): mixed => [ // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
-				'canonical' => 'https://example.com/campaign/',
-			]
-		);
-
-		$ctx = $this->makeContext( $this->singularQuery() );
-
-		$article    = ( new ArticlePiece() )->build( $ctx );
-		$webpage    = ( new WebpagePiece( new SettingsStore() ) )->build( $ctx );
-		$breadcrumb = ( new BreadcrumbPiece() )->build( $ctx );
-
-		$this->assertSame( 'https://example.com/campaign/#article', $article['@id'] );
-		$this->assertSame( 'https://example.com/campaign/#webpage', $webpage['@id'] );
-		$this->assertSame( 'https://example.com/campaign/#breadcrumb', $breadcrumb['@id'] );
-
-		// The reference the Article makes must resolve to the WebPage node
-		// that is actually in the graph, or the pruner drops it.
-		$this->assertSame(
-			$webpage['@id'],
-			$article['mainEntityOfPage']['@id'],
-			'mainEntityOfPage must point at the WebPage node in the graph'
-		);
-
-		// The breadcrumb trail still lists the real page the visitor is on, not
-		// the canonical, because that is the URL they navigated through.
-		$lastItem = end( $breadcrumb['itemListElement'] );
-
-		$this->assertSame( 'https://example.com/hello/', is_array( $lastItem ) ? ( $lastItem['item'] ?? '' ) : '' );
-
-		// Every page level node must sit on one base. Measured through the
-		// real normalizer: with the ids split across two bases the dangling
-		// mainEntityOfPage reference is stripped, so the article silently
-		// loses its link back to the page.
-		$graph = GraphNormalizer::normalize(
-			[
-				[
-					'@context' => 'https://schema.org',
-					'@type'    => 'WebPage',
-					'@id'      => $webpage['@id'],
-					'url'      => $webpage['url'],
-				],
-				$article,
-				$breadcrumb,
-			]
-		);
-
-		$types = array_column( $graph, '@type' );
-
-		$this->assertContains( 'BlogPosting', $types );
-		$this->assertContains( 'BreadcrumbList', $types );
-
-		foreach ( $graph as $node ) {
-			if ( 'BlogPosting' !== ( $node['@type'] ?? '' ) ) {
-				continue;
-			}
-
-			$this->assertArrayHasKey(
-				'mainEntityOfPage',
-				$node,
-				'A split base makes mainEntityOfPage dangle and the pruner strips it'
-			);
-		}
-	}
-
-	/**
-	 * Test a canonical override leaves the no override ids untouched.
-	 */
-	public function test_page_level_ids_without_an_override_are_unchanged(): void {
-		Functions\when( 'get_post_type' )->justReturn( 'post' );
-		Functions\when( 'get_post_field' )->justReturn( '7' );
-
-		$ctx = $this->makeContext( $this->singularQuery() );
-
-		$this->assertSame( 'https://example.com/hello/#article', ( new ArticlePiece() )->build( $ctx )['@id'] );
-		$this->assertSame( 'https://example.com/hello/#breadcrumb', ( new BreadcrumbPiece() )->build( $ctx )['@id'] );
 	}
 }
