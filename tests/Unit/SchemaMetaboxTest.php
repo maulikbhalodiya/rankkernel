@@ -224,6 +224,60 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Test every control that carries an aria-describedby is linked to a real,
+	 * uniquely identified description element.
+	 */
+	public function test_render_associates_controls_with_their_descriptions(): void {
+		$this->stubRenderCommon( $this->renderPayload() );
+
+		$out = $this->renderBox();
+
+		$pairs = array(
+			'rankkernel-schema-disabled' => 'rankkernel-schema-disabled-desc',
+			'rankkernel-schema-custom'   => 'rankkernel-schema-custom-desc',
+			'rankkernel-schema-import'   => 'rankkernel-schema-import-desc',
+		);
+
+		foreach ( $pairs as $control => $description ) {
+			$this->assertStringContainsString(
+				'aria-describedby="' . $description . '"',
+				$out,
+				$control . ' must reference its description'
+			);
+			$this->assertSame(
+				1,
+				substr_count( $out, 'id="' . $description . '"' ),
+				$description . ' must be defined exactly once'
+			);
+			$this->assertSame(
+				1,
+				substr_count( $out, 'id="' . $control . '"' ),
+				$control . ' must be defined exactly once'
+			);
+		}
+	}
+
+	/**
+	 * Test links that open a new tab announce it to screen readers only.
+	 */
+	public function test_render_new_tab_links_carry_a_screen_reader_hint(): void {
+		$this->stubRenderCommon( $this->renderPayload() );
+
+		$out = $this->renderBox();
+
+		$this->assertSame(
+			2,
+			substr_count( $out, 'class="screen-reader-text"' ),
+			'both new tab links must carry the hint'
+		);
+		$this->assertSame(
+			2,
+			substr_count( $out, '(opens in a new tab)' ),
+			'the hint text must be present for each link'
+		);
+	}
+
+	/**
 	 * Test render automatic shows resolved default.
 	 */
 	public function test_render_automatic_shows_resolved_default(): void {
