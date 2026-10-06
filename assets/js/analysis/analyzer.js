@@ -26,7 +26,45 @@
 	var CATEGORY_SEO = 'seo';
 	var CATEGORY_TITLE = 'title';
 	var CATEGORY_READABILITY = 'readability';
-	var M = AnalysisFormat.MESSAGES;
+
+	// Defensive fallback: WordPress registers the engine with explicit
+	// dependencies, so a missing AnalysisFormat means a failed deploy or a
+	// dequeued handle, not the normal path. Without the shim the MESSAGES read
+	// below would throw at load, Analyzer would never be published, and the
+	// editor panel would go silently dead. The shim keeps every check and the
+	// score working and degrades messages to empty strings, because the
+	// literal table lives in the file that did not load; a messages only stub
+	// would still throw on the first AnalysisFormat.format or numberFormat
+	// call inside t().
+	if ( ! AnalysisFormat ) {
+		AnalysisFormat = {
+			MESSAGES: {},
+			numberFormat: function ( value, decimals ) {
+				var places = 'number' === typeof decimals ? decimals : 0;
+				var number = Number( value );
+				if ( ! isFinite( number ) ) {
+					number = 0;
+				}
+				return number.toFixed( places );
+			},
+			format: function ( template ) {
+				return template == null ? '' : String( template );
+			}
+		};
+	}
+
+	var M = AnalysisFormat.MESSAGES || {};
+
+	// A very long post would otherwise be re-scored in full on every debounced
+	// keystroke, and the distribution check walks every five sentence window.
+	// This ceiling follows the MAX_VALIDATE_LINES idiom from
+	// instant-indexing-admin.js: the first MAX_ANALYZE_SENTENCES sentences are
+	// scored and the remainder is ignored, so one run stays bounded. It sits far
+	// above ordinary long form content; only a document past the cap can see a
+	// different verdict from an uncapped run, which is a deliberate trade,
+	// because the alternative is unbounded main thread work per keystroke. Do
+	// not mistake the cut for a bug.
+	var MAX_ANALYZE_SENTENCES = 1000;
 
 	var WEIGHTS = {
 		keyword_in_title: 36, keyword_in_description: 2, keyword_in_slug: 5, keyword_in_opening: 3,
@@ -650,15 +688,29 @@
 		];
 	}
 
+	// Cap the prose that reaches the checks at MAX_ANALYZE_SENTENCES. Below the
+	// cap the original text and its sentence list are returned untouched, so
+	// behaviour is exact. Above it the leading sentences are joined and
+	// re-derived, and every text based check sees the same truncated document;
+	// the verdict can then differ from an uncapped run, as declared above.
+	function capText( text ) {
+		var sentences = TextStats.sentences( text );
+		if ( sentences.length <= MAX_ANALYZE_SENTENCES ) {
+			return { text: text, sentences: sentences };
+		}
+		var capped = TextStats.phpTrim( sentences.slice( 0, MAX_ANALYZE_SENTENCES ).join( ' ' ) );
+		return { text: capped, sentences: TextStats.sentences( capped ) };
+	}
+
 	function extract( input ) {
 		var html = input.html == null ? '' : String( input.html );
-		var text = TextStats.plainText( html );
+		var capped = capText( TextStats.plainText( html ) );
 		return {
 			html: html,
-			text: text,
-			words: TextStats.words( text ),
-			sentences: TextStats.sentences( text ),
-			paragraphs: TextStats.paragraphs( text ),
+			text: capped.text,
+			words: TextStats.words( capped.text ),
+			sentences: capped.sentences,
+			paragraphs: TextStats.paragraphs( capped.text ),
 			headings: TextStats.headings( html ),
 			alts: TextStats.imageAlts( html ),
 			links: TextStats.links( html ),
@@ -722,6 +774,7 @@
 	return {
 		RULES_VERSION: RULES_VERSION,
 		WEIGHTS: WEIGHTS,
+		MAX_ANALYZE_SENTENCES: MAX_ANALYZE_SENTENCES,
 		analyze: analyze
 	};
 } ) );

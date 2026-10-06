@@ -43,14 +43,31 @@
 	var normalizeCacheSize = 0;
 	var NORMALIZE_CACHE_LIMIT = 20000;
 
+	var PHP_TRIM = /^[ \t\n\r\x00\x0B]+|[ \t\n\r\x00\x0B]+$/g;
+
+	// Defensive fallback: WordPress registers the engine with explicit
+	// dependencies, so a missing sibling means a failed deploy or a dequeued
+	// handle, not the normal path. Identity accent handling and a local PHP
+	// trim keep matching alive when the sibling module is absent, instead of
+	// throwing a TypeError on the first analyze call.
+	function removeAccentsValue( value ) {
+		return ( Accents && 'function' === typeof Accents.removeAccents ) ? Accents.removeAccents( value ) : value;
+	}
+
+	function trimValue( value ) {
+		return ( TextStats && 'function' === typeof TextStats.phpTrim )
+			? TextStats.phpTrim( value )
+			: String( value ).replace( PHP_TRIM, '' );
+	}
+
 	function computeNormalize( value, stripAccents ) {
 		if ( false !== stripAccents ) {
-			value = Accents.removeAccents( value );
+			value = removeAccentsValue( value );
 		}
 		value = value.toLowerCase();
 		value = value.replace( /[^\p{L}\p{N}]+/gu, ' ' );
 		value = value.replace( /[ \t\n\r\f\v\u0085\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/gu, ' ' );
-		return TextStats.phpTrim( value );
+		return trimValue( value );
 	}
 
 	function normalize( text, stripAccents ) {
@@ -129,7 +146,7 @@
 			return true;
 		}
 		var content = contentWords( keyword, stripAccents );
-		if ( content.length > 1 ) {
+		if ( content.length > 1 && TextStats && 'function' === typeof TextStats.sentences ) {
 			var list = TextStats.sentences( strip( haystack ) );
 			for ( var i = 0; i < list.length; i++ ) {
 				if ( sentenceHasAll( normalize( list[ i ], stripAccents ), content ) ) {
