@@ -198,6 +198,149 @@ final class HtaccessFileTest extends TestCase {
 	/**
 	 * Test a symlink leaf filter path falls back to the default path.
 	 */
+	/**
+	 * A dangling symlink whose target does not exist must fall back.
+	 *
+	 * This is the case that a leaf check gated on file_exists() or realpath()
+	 * cannot catch, because both of those fail on a link with no target, while a
+	 * later write would still follow the link.
+	 */
+	public function test_dangling_symlink_filter_path_falls_back_to_default(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink function is unavailable.' );
+		}
+
+		$outsideDir = sys_get_temp_dir() . '/rk_dangling_' . uniqid();
+		mkdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+
+		$symlink     = ABSPATH . 'htaccess_dangling_' . uniqid();
+		$outsideFile = $outsideDir . '/pwned.txt';
+
+		try {
+			symlink( $outsideFile, $symlink );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+
+		if ( ! is_link( $symlink ) ) {
+			rmdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+			$this->markTestSkipped( 'Symlink creation failed or is unsupported on this platform.' );
+		}
+
+		$this->path = $symlink;
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+		$this->assertFileDoesNotExist( $outsideFile );
+
+		unlink( $symlink ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		rmdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+	}
+
+	/**
+	 * A relative path must fall back rather than resolve against the CWD.
+	 */
+	public function test_relative_filter_path_falls_back_to_default(): void {
+		$this->path = 'rk-relative.htaccess';
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
+	 * A path carrying a null byte must fall back before any filesystem call.
+	 */
+	public function test_null_byte_filter_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . "rk-null\0.htaccess";
+
+		$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+	}
+
+	/**
+	 * An existing file inside the root must still be accepted.
+	 */
+	public function test_existing_file_inside_root_is_accepted(): void {
+		$existing = tempnam( ABSPATH, 'rk_existing_' );
+
+		$this->assertIsString( $existing );
+
+		$this->path = $existing;
+
+		$this->assertSame( $existing, ( new HtaccessFile() )->path() );
+
+		unlink( $existing ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+	}
+
+	/**
+	 * Saving through a dangling symlink must not create a file outside the root.
+	 */
+	public function test_save_through_dangling_symlink_writes_nothing_outside_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink function is unavailable.' );
+		}
+
+		$outsideDir = sys_get_temp_dir() . '/rk_save_' . uniqid();
+		mkdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+
+		$symlink     = ABSPATH . 'htaccess_save_' . uniqid();
+		$outsideFile = $outsideDir . '/pwned.txt';
+
+		try {
+			symlink( $outsideFile, $symlink );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+
+		if ( ! is_link( $symlink ) ) {
+			rmdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+			$this->markTestSkipped( 'Symlink creation failed or is unsupported on this platform.' );
+		}
+
+		$this->path      = $symlink;
+		$this->supported = true;
+
+		$file = new HtaccessFile();
+
+		// The hostile filter is contained, so the write lands on the default
+		// path. What must never happen is the link being followed outwards.
+		$this->assertSame( ABSPATH . '.htaccess', $file->path() );
+
+		$before = $this->readFixture( ABSPATH . '.htaccess' );
+
+		$file->save( 'PWNED' );
+
+		// The link was not followed: the outside target was never created, and
+		// the write went to the contained default path instead.
+		$this->assertFileDoesNotExist( $outsideFile, 'no file may be created outside the site root' );
+		$this->assertNotSame( $before, $this->readFixture( ABSPATH . '.htaccess' ), 'the contained default path receives the write' );
+
+		if ( null === $before ) {
+			unlink( ABSPATH . '.htaccess' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		} else {
+			file_put_contents( ABSPATH . '.htaccess', $before ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- restoring the shared temp fixture.
+		}
+
+		unlink( $symlink ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		rmdir( $outsideDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+	}
+
+	/**
+	 * Reads a fixture path, returning null when it does not exist.
+	 *
+	 * @param string $path Absolute fixture path.
+	 * @return string|null Contents, or null when absent.
+	 */
+	private function readFixture( string $path ): ?string {
+		if ( ! is_file( $path ) ) {
+			return null;
+		}
+
+		$contents = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local test fixture.
+
+		return is_string( $contents ) ? $contents : null;
+	}
+
+	/**
+	 * A symlink at the leaf position must fall back to the default path.
+	 */
 	public function test_symlink_leaf_filter_path_falls_back_to_default(): void {
 		if ( ! function_exists( 'symlink' ) ) {
 			$this->markTestSkipped( 'symlink function is unavailable.' );

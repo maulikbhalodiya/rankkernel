@@ -40,14 +40,26 @@ final class HtaccessFile {
 	/**
 	 * Keep a filtered path only when it resolves inside the site root.
 	 *
-	 * Rejects symlinks and validates that both the parent directory and the file
-	 * itself (when it already exists) resolve inside ABSPATH.
+	 * Rejects null bytes, relative paths and symlinks, then validates that both
+	 * the parent directory and the file itself, when it already exists, resolve
+	 * inside ABSPATH.
 	 *
 	 * @param string $path Filtered path.
 	 * @param string $fallback Default path.
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
+		// A null byte makes later filesystem calls raise a ValueError, and a
+		// relative path would be resolved against the current working directory
+		// rather than the site root, so neither can be checked for containment.
+		if ( false !== strpos( $path, "\0" ) || '/' !== $path[0] ) {
+			return $fallback;
+		}
+
+		// Rejecting a symlink outright is what closes the dangling symlink case.
+		// A link whose target does not exist yet fails both file_exists() and
+		// realpath(), so a leaf check gated on either would be skipped while a
+		// later write still followed the link to a target outside the root.
 		if ( is_link( $path ) ) {
 			return $fallback;
 		}
