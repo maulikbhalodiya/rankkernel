@@ -27,15 +27,10 @@ final class ModuleRegistry {
 		'sitemaps'         => 'XML Sitemaps',
 		'schema'           => 'Schema (JSON-LD)',
 		'breadcrumbs'      => 'Breadcrumbs',
-		'importer'         => 'Importer',
 		'redirects'        => 'Redirects',
 		'404'              => '404 Monitor',
 		'instant-indexing' => 'Instant Indexing (IndexNow)',
 		'robots'           => 'Robots.txt & .htaccess',
-		'image-seo'        => 'Image SEO',
-		'gutenberg'        => 'Gutenberg Suite',
-		'ai'               => 'AI Suite (BYO Key)',
-		'headless'         => 'Headless',
 	];
 
 	/**

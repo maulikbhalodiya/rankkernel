@@ -140,7 +140,7 @@ final class DashboardPageTest extends TestCase {
 		$this->assertTrue( $byId['metadata']['enabled'] );
 		$this->assertFalse( $byId['robots']['enabled'] );
 		$this->assertStringContainsString( 'rankkernel-general', $byId['robots']['settingsUrl'] );
-		$this->assertSame( '', $byId['ai']['settingsUrl'] );
+		$this->assertSame( '', $byId['analysis']['settingsUrl'] );
 	}
 
 	/**

@@ -45,7 +45,7 @@ final class ModuleRegistryTest extends TestCase {
 		$all = ModuleRegistry::all();
 
 		$this->assertSame( ModuleRegistry::MODULES, $all );
-		$this->assertCount( 14, $all );
+		$this->assertCount( 9, $all );
 		$this->assertArrayHasKey( 'metadata', $all );
 		$this->assertSame( 'Metadata Engine', $all['metadata'] );
 		$this->assertArrayHasKey( 'analysis', $all );
@@ -69,7 +69,6 @@ final class ModuleRegistryTest extends TestCase {
 	 */
 	public function test_has_returns_true_for_known(): void {
 		$this->assertTrue( ModuleRegistry::has( 'metadata' ) );
-		$this->assertTrue( ModuleRegistry::has( 'ai' ) );
 	}
 
 	/**
@@ -85,7 +84,7 @@ final class ModuleRegistryTest extends TestCase {
 	 */
 	public function test_label_returns_label_for_known(): void {
 		$this->assertSame( 'Metadata Engine', ModuleRegistry::label( 'metadata' ) );
-		$this->assertSame( 'Headless', ModuleRegistry::label( 'headless' ) );
+		$this->assertSame( 'Robots.txt & .htaccess', ModuleRegistry::label( 'robots' ) );
 	}
 
 	/**

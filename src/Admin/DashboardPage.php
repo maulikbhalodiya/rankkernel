@@ -39,15 +39,10 @@ final class DashboardPage {
 		'sitemaps'         => 'XML sitemaps for posts, taxonomies and authors, with the core sitemap taken over.',
 		'schema'           => 'One JSON-LD graph per page, assembled from the Schema pieces.',
 		'breadcrumbs'      => 'An accessible breadcrumb trail with a shortcode, a template tag and a block.',
-		'importer'         => 'One click import from Yoast, Rank Math and SEOPress. Planned.',
 		'redirects'        => 'Manage 301, 302, 307, 410 and 451 redirects, with CSV import and export.',
 		'404'              => 'Log 404 errors with sane pruning and one click redirect creation.',
 		'instant-indexing' => 'Notify participating search engines when a URL changes, using the IndexNow protocol.',
 		'robots'           => 'A virtual robots.txt with per crawler AI controls, plus a curated llms.txt.',
-		'image-seo'        => 'Automatic image alt and title patterns. Planned.',
-		'gutenberg'        => 'An editor sidebar with analysis and previews. Planned.',
-		'ai'               => 'Bring your own key AI tools. Planned.',
-		'headless'         => 'A read only REST payload for headless builds. Planned.',
 	];
 
 	/**

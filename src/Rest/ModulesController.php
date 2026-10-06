@@ -44,15 +44,10 @@ final class ModulesController {
 		'sitemaps',
 		'schema',
 		'breadcrumbs',
-		'importer',
 		'redirects',
 		'404',
 		'instant-indexing',
 		'robots',
-		'image-seo',
-		'gutenberg',
-		'ai',
-		'headless',
 	];
 
 	/**
