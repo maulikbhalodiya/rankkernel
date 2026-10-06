@@ -1101,11 +1101,12 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'get_the_ID' )->justReturn( 0 );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/plugins/rankkernel/' . $p ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 
-		$scripts   = [];
-		$styles    = [];
-		$styleDeps = [];
-		$enqueued  = [];
-		$localized = [];
+		$scripts    = [];
+		$scriptDeps = [];
+		$styles     = [];
+		$styleDeps  = [];
+		$enqueued   = [];
+		$localized  = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $h, string $src, array $deps = [], string $ver = '' ) use ( &$styles, &$styleDeps ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
@@ -1119,8 +1120,9 @@ final class MetadataBoxTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_register_script' )->alias(
-			static function ( string $h, string $src, array $deps = [], string $ver = '', bool $footer = true ) use ( &$scripts ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_script signature.
-				$scripts[ $h ] = $src;
+			static function ( string $h, string $src, array $deps = [], string $ver = '', bool $footer = true ) use ( &$scripts, &$scriptDeps ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_script signature.
+				$scripts[ $h ]    = $src;
+				$scriptDeps[ $h ] = $deps;
 			}
 		);
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -1145,6 +1147,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-metadata-classic'] );
 		$this->assertContains( 'style:rankkernel-admin', $enqueued );
 		$this->assertContains( 'script:rankkernel-metadata-editor', $enqueued );
+		$this->assertSame( [ 'wp-i18n' ], $scriptDeps['rankkernel-metadata-editor'] );
 		$this->assertArrayHasKey( 'rankkernel-analysis-text-stats', $scripts );
 		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );
 		$this->assertContains( 'script:rankkernel-analysis-editor', $enqueued );
