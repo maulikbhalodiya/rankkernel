@@ -2080,3 +2080,38 @@ test( 'a throwing fallback submit without a console stays silent and usable', as
 	assert.equal( fixture.searchInput.disabled, false, 'the loader must stay usable without a console' );
 	assert.equal( rejections.length, 0, 'no rejection may escape when the console is absent' );
 } );
+
+test( 'an AJAX log load speaks the showing range to screen readers via wp.a11y', async () => {
+	const spoken = [];
+	const wp = {
+		a11y: { speak: ( text ) => spoken.push( text ) },
+		i18n: {
+			_n: ( s, p, n ) => ( 1 === n ? s : p ),
+			sprintf: ( fmt, v1, v2, v3 ) => fmt.replace( '%1$d', v1 ).replace( '%2$d', v2 ).replace( '%3$d', v3 )
+		}
+	};
+	const fixture = mountLog( { wp } );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	assert.deepEqual( spoken, [ 'Showing 1 to 20 of 45 entries' ] );
+} );
+
+test( 'an empty AJAX log load speaks the no matches message to screen readers via wp.a11y', async () => {
+	const spoken = [];
+	const wp = {
+		a11y: { speak: ( text ) => spoken.push( text ) },
+		i18n: {
+			__: ( text ) => text
+		}
+	};
+	const fixture = mountLog( { wp } );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload( { rows: [], filteredTotal: 0 } ) ) );
+	await logFlush();
+
+	assert.deepEqual( spoken, [ 'No submissions match your filters.' ] );
+} );

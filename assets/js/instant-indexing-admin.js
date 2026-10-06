@@ -43,6 +43,15 @@
 			} );
 		};
 
+	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
+
 	var FIELD_ID = 'rankkernel-indexnow-urls';
 	var STATUS_ID = 'rankkernel-indexnow-urls-status';
 	var BUTTON_ID = 'rankkernel-indexnow-submit';
@@ -1214,11 +1223,11 @@
 		clear.setAttribute( 'href', clearUrl );
 		clearIcon.setAttribute( 'aria-hidden', 'true' );
 		clear.appendChild( clearIcon );
-		clear.appendChild( doc.createTextNode( 'Clear filters' ) );
+		clear.appendChild( doc.createTextNode( __( 'Clear filters', 'rankkernel' ) ) );
 
 		box.appendChild( iconWrap );
-		box.appendChild( logEl( doc, 'p', 'rk-empty-title', 'No submissions match your filters.' ) );
-		box.appendChild( logEl( doc, 'p', 'rk-empty-body', 'Try a different search term or clear the filters.' ) );
+		box.appendChild( logEl( doc, 'p', 'rk-empty-title', __( 'No submissions match your filters.', 'rankkernel' ) ) );
+		box.appendChild( logEl( doc, 'p', 'rk-empty-body', __( 'Try a different search term or clear the filters.', 'rankkernel' ) ) );
 		box.appendChild( clear );
 
 		return box;
@@ -1624,6 +1633,12 @@
 
 				setBusy( false );
 				logRender( doc, card, action, state, data, safePage );
+
+				if ( 0 === ( data.filteredTotal || 0 ) ) {
+					rankkernelAnnounce( __( 'No submissions match your filters.', 'rankkernel' ) );
+				} else {
+					rankkernelAnnounce( logShowingText( logShowing( safePage, data.perPage || LOG_PER_PAGE_FALLBACK, data.filteredTotal ) ) );
+				}
 
 				if ( push && window.history && window.history.pushState ) {
 					try {
