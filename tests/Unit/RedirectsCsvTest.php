@@ -519,4 +519,20 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( 'prefix', $rows[1]['match_type'] );
 		$this->assertSame( 0, (int) $rows[1]['is_active'] );
 	}
+
+	/**
+	 * Test a catastrophic regex row is rejected by the import.
+	 */
+	public function test_catastrophic_regex_rejected(): void {
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"(.+)+,/new,301,regex,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertSame( [], $this->db->rows );
+	}
 }

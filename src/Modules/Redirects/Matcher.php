@@ -504,10 +504,14 @@ final class Matcher {
 	 * overlap like `(.*)*`, which is the same shape. These are the constructs that
 	 * turn a stored admin regex into a request-killing ReDoS.
 	 *
+	 * Public so the admin save path and the CSV import can refuse the same
+	 * shapes the runtime matcher refuses, instead of storing a rule that can
+	 * never match.
+	 *
 	 * @param string $pattern Stored regex body.
 	 * @return bool True when the pattern must be refused.
 	 */
-	private static function is_catastrophic_pattern( string $pattern ): bool {
+	public static function is_catastrophic_pattern( string $pattern ): bool {
 		// A group containing an inner quantifier, itself followed by a quantifier: (…+|*|{…}…)+|*|{…}.
 		if ( 1 === preg_match( '#\([^()]*[+*][^()]*\)\s*[+*{]#', $pattern ) ) {
 			return true;

@@ -580,4 +580,41 @@ final class RedirectsMatcherTest extends TestCase {
 		$this->assertIsArray( $winner );
 		$this->assertSame( 7, $winner['id'] );
 	}
+
+	/**
+	 * Test catastrophic regex shapes are refused before they are evaluated.
+	 */
+	public function test_catastrophic_regex_is_refused(): void {
+		$this->assertTrue( Matcher::is_catastrophic_pattern( '(.+)+' ) );
+		$this->assertTrue( Matcher::is_catastrophic_pattern( '(a*)*' ) );
+		$this->assertTrue( Matcher::is_catastrophic_pattern( '(a|a+)+' ) );
+
+		$rule = [
+			'match_type' => 'regex',
+			'source'     => '(.+)+',
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertFalse( Matcher::rule_matches( $rule, '/aaaaaaaaaaaaaaaaaaaaaaaa' ) );
+	}
+
+	/**
+	 * Test ordinary regexes are not flagged as catastrophic.
+	 */
+	public function test_safe_regex_is_not_flagged(): void {
+		$this->assertFalse( Matcher::is_catastrophic_pattern( '^/old/(.*)$' ) );
+		$this->assertFalse( Matcher::is_catastrophic_pattern( '^/blog/[0-9]{4}/' ) );
+
+		$rule = [
+			'match_type' => 'regex',
+			'source'     => '^/old/(.*)$',
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertTrue( Matcher::rule_matches( $rule, '/old/page' ) );
+	}
 }
