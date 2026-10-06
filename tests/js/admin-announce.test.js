@@ -127,8 +127,10 @@ function fakeClassList( initial ) {
 	};
 }
 
+const settingsSaveMarker = '<input type="submit" name="rankkernel_save" value="Save Settings" />';
+
 function successReply( html ) {
-	return () => Promise.resolve( { ok: true, text: () => Promise.resolve( html ) } );
+	return () => Promise.resolve( { ok: true, text: () => Promise.resolve( html + settingsSaveMarker ) } );
 }
 
 function errorReply() {
@@ -421,16 +423,16 @@ test( 'settings-admin ignores a stale section response when a newer navigation s
 
 	assert.equal( fixture.fetchCalls.length, 2 );
 
-	second.resolve( { ok: true, text: () => Promise.resolve( '<div>newer</div>' ) } );
+	second.resolve( { ok: true, text: () => Promise.resolve( '<div>newer</div>' + settingsSaveMarker ) } );
 	await fixture.flush();
 
-	assert.equal( fixture.body.innerHTML, '<div>newer</div>' );
+	assert.equal( fixture.body.innerHTML, '<div>newer</div>' + settingsSaveMarker );
 	assert.deepEqual( fixture.pushStates, [ 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' ] );
 
-	first.resolve( { ok: true, text: () => Promise.resolve( '<div>older</div>' ) } );
+	first.resolve( { ok: true, text: () => Promise.resolve( '<div>older</div>' + settingsSaveMarker ) } );
 	await fixture.flush();
 
-	assert.equal( fixture.body.innerHTML, '<div>newer</div>' );
+	assert.equal( fixture.body.innerHTML, '<div>newer</div>' + settingsSaveMarker );
 	assert.equal( fixture.pushStates.length, 1 );
 } );
 

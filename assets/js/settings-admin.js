@@ -227,7 +227,26 @@
 			} );
 		}
 
+		function isSettingsFragment( html ) {
+			var source = String( html || '' );
+
+			// An expired session ends on a full HTML document (login screen or
+			// admin error page) served with a 200 after the redirect, never on
+			// a partial.
+			if ( /<(?:!doctype|html)(?:\s|>)/i.test( source ) ) {
+				return false;
+			}
+
+			// Every partial appends submit_button( ..., 'rankkernel_save' ), so
+			// its input name marks a real settings fragment.
+			return -1 !== source.indexOf( 'name="rankkernel_save"' );
+		}
+
 		function swap( html ) {
+			if ( ! isSettingsFragment( html ) ) {
+				throw new Error( 'unexpected settings response' );
+			}
+
 			body.innerHTML = html;
 		}
 

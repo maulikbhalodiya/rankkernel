@@ -85,6 +85,12 @@ function element( props ) {
 					return this;
 				}
 
+				const named = selector.match( /^\[name="([^"]+)"\]$/ );
+
+				if ( named && this.getAttribute( 'name' ) === named[ 1 ] ) {
+					return this;
+				}
+
 				return null;
 			},
 			querySelector() {
@@ -108,11 +114,27 @@ function socialNodes() {
 	return { image, id, preview, select, remove };
 }
 
+function partial( section ) {
+	return '<section class="rk-settings-section" id="rk-section-' + section + '">' +
+		'<h3 class="rk-settings-section-title">' + section + '</h3>' +
+		'</section>' +
+		'<p class="submit"><input type="submit" name="rankkernel_save" id="rankkernel_save" class="button button-primary" value="Save Settings" /></p>';
+}
+
+function partialFor( url ) {
+	return partial( url.includes( 'social' ) ? 'social' : 'general' );
+}
+
 function settingsFixture() {
 	const readyHandlers = [];
 	const clickHandlers = [];
 	const current = {};
-	const form = { submit() {} };
+	const form = {
+		submitted: 0,
+		submit() {
+			this.submitted += 1;
+		}
+	};
 	const body = {
 		innerHTML: '',
 		classList: classList(),
@@ -244,6 +266,7 @@ function settingsFixture() {
 
 	const fetchCalls = [];
 	const location = { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' };
+	let responseHtml = partialFor;
 	const sandbox = {
 		document,
 		Event: typeof Event !== 'undefined' ? Event : class Event { constructor( type ) { this.type = type; } },
@@ -262,7 +285,7 @@ function settingsFixture() {
 
 			return Promise.resolve( {
 				ok: true,
-				text: () => Promise.resolve( url.includes( 'social' ) ? '<div data-section="social"></div>' : '<div data-section="general"></div>' )
+				text: () => Promise.resolve( responseHtml( url ) )
 			} );
 		}
 	};
@@ -282,7 +305,11 @@ function settingsFixture() {
 		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
 	}
 
-	return { body, current, document, frame, general, social, click, swap, fetchCalls, location, spoken };
+	function respondWith( html ) {
+		responseHtml = typeof html === 'function' ? html : () => html;
+	}
+
+	return { body, current, document, form, frame, general, social, click, swap, respondWith, fetchCalls, location, spoken };
 }
 
 test( 'media picker remains bound after a settings section swap and a second interaction', async () => {
@@ -384,4 +411,101 @@ test( 'token chip click appends token when selection range is absent', () => {
 	assert.equal( input.dispatchedEvents.length, 1 );
 	assert.equal( input.dispatchedEvents[0].type, 'input' );
 	assert.deepEqual( fixture.spoken, [ 'Inserted token %%excerpt%%.' ] );
+} );
+
+const socialUrl = 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=social';
+
+// A full render of this screen also emits the save button (settings.php:163),
+// so the doctype is the only thing that separates it from a partial.
+const fullDocument = '<!DOCTYPE html><html lang="en-US"><head><title>Settings</title></head>' +
+	'<body class="wp-admin"><div class="rk-settings">' +
+	'<section class="rk-settings-section"></section>' +
+	'<input type="submit" name="rankkernel_save" value="Save Settings" />' +
+	'</div></body></html>';
+
+const loginDocument = '<!DOCTYPE html><html lang="en-US"><head><meta charset="utf-8"><title>Log In</title></head>' +
+	'<body class="login"><form name="loginform" id="loginform" action="https://example.test/wp-login.php" method="post">' +
+	'<input type="text" name="log" id="user_login" />' +
+	'<input type="password" name="pwd" id="user_pass" />' +
+	'<input type="submit" name="wp-submit" id="wp-submit" value="Log In" />' +
+	'</form></body></html>';
+
+test( 'a partial carrying the central save marker is swapped and announced', async () => {
+	const fixture = settingsFixture();
+
+	await fixture.swap( fixture.social );
+
+	assert.ok(
+		fixture.body.innerHTML.includes( 'name="rankkernel_save"' ),
+		'a real partial must be swapped, never rejected'
+	);
+	assert.ok( fixture.body.innerHTML.includes( 'rk-settings-section' ) );
+	assert.deepEqual( fixture.spoken, [ 'Settings section loaded.' ] );
+} );
+
+test( 'a full HTML document response is not swapped and falls back to navigation', async () => {
+	const fixture = settingsFixture();
+	fixture.respondWith( fullDocument );
+
+	await fixture.swap( fixture.social );
+
+	assert.equal( fixture.body.innerHTML, '', 'a full document must never land in the settings body' );
+	assert.deepEqual( fixture.spoken, [] );
+	assert.equal( fixture.location.href, socialUrl, 'the load path must navigate like its existing failure branch' );
+} );
+
+test( 'an expired-session login screen response is not swapped and falls back to navigation', async () => {
+	const fixture = settingsFixture();
+	fixture.respondWith( loginDocument );
+
+	await fixture.swap( fixture.social );
+
+	assert.equal( fixture.body.innerHTML, '' );
+	assert.ok(
+		! fixture.spoken.includes( 'Settings section loaded.' ),
+		'a login screen must never be announced as a loaded section'
+	);
+	assert.equal( fixture.location.href, socialUrl );
+	assert.equal( fixture.fetchCalls.length, 1 );
+} );
+
+test( 'a full document save response does not announce success, clears busy and submits the form', async () => {
+	const fixture = settingsFixture();
+	fixture.respondWith( fullDocument );
+
+	fixture.click( element( { attrs: { name: 'rk_robots_save' } } ) );
+
+	assert.equal( fixture.body.classList.contains( 'rk-settings-is-busy' ), true, 'the save request starts busy' );
+
+	await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+
+	assert.equal( fixture.form.submitted, 1, 'the save path must submit the form like its existing failure branch' );
+	assert.equal(
+		fixture.body.classList.contains( 'rk-settings-is-busy' ),
+		false,
+		'busy must be reset exactly like the existing catch block'
+	);
+	assert.deepEqual( fixture.spoken, [] );
+} );
+
+test( 'an empty 200 response is not swapped and falls back to navigation', async () => {
+	const fixture = settingsFixture();
+	fixture.respondWith( '' );
+
+	await fixture.swap( fixture.social );
+
+	assert.equal( fixture.body.innerHTML, '' );
+	assert.deepEqual( fixture.spoken, [] );
+	assert.equal( fixture.location.href, socialUrl );
+} );
+
+test( 'an error-shaped 200 partial without the save marker is not swapped and falls back to navigation', async () => {
+	const fixture = settingsFixture();
+	fixture.respondWith( '<div class="notice notice-error"><p>Settings could not be saved.</p></div>' );
+
+	await fixture.swap( fixture.social );
+
+	assert.equal( fixture.body.innerHTML, '' );
+	assert.deepEqual( fixture.spoken, [] );
+	assert.equal( fixture.location.href, socialUrl );
 } );
