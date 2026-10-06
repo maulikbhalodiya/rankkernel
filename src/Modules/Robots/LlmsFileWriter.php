@@ -64,7 +64,14 @@ final class LlmsFileWriter {
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
-		if ( false !== strpos( $path, "\0" ) || '/' !== $path[0] ) {
+		if ( '' === $path || false !== strpos( $path, "\0" ) ) {
+			return $fallback;
+		}
+
+		$normPath   = function_exists( 'wp_normalize_path' ) ? wp_normalize_path( $path ) : $path;
+		$isAbsolute = '/' === $normPath[0] || ( strlen( $normPath ) >= 2 && ':' === $normPath[1] );
+
+		if ( ! $isAbsolute ) {
 			return $fallback;
 		}
 

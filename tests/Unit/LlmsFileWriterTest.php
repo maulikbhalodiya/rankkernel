@@ -111,6 +111,36 @@ final class LlmsFileWriterTest extends TestCase {
 	}
 
 	/**
+	 * Test a symlink filter path falls back to the default path.
+	 */
+	public function test_symlink_filter_path_falls_back_to_default(): void {
+		$link = ABSPATH . 'llms-symlink-test.txt';
+
+		if ( file_exists( $link ) || is_link( $link ) ) {
+			unlink( $link ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+
+		if ( function_exists( 'symlink' ) ) {
+			try {
+				symlink( '/etc/passwd', $link );
+			} catch ( \Throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			}
+
+			if ( is_link( $link ) ) {
+				$this->path = $link;
+				$result     = ( new LlmsFileWriter() )->path();
+				unlink( $link ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+
+				$this->assertSame( ABSPATH . 'llms.txt', $result );
+
+				return;
+			}
+		}
+
+		$this->markTestSkipped( 'Symlinks not supported in this environment.' );
+	}
+
+	/**
 	 * Test a filter path with a null byte falls back to the default path.
 	 */
 	public function test_null_byte_filter_path_falls_back_to_default(): void {
