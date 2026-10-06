@@ -19,6 +19,25 @@
 		? window.wp.i18n.__
 		: function ( text ) { return text; };
 
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			return String( text || '' ).replace( '%s', String( param || '' ) );
+		};
+
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
+
 	function ready( callback ) {
 		if ( 'loading' === document.readyState ) {
 			document.addEventListener( 'DOMContentLoaded', callback );
@@ -78,6 +97,8 @@
 				if ( remove ) {
 					remove.style.display = '';
 				}
+
+				rankkernelAnnounce( __( 'Organization logo updated.', 'rankkernel' ) );
 			} );
 
 			frame.open();
@@ -91,6 +112,8 @@
 				preview.src           = '';
 				preview.style.display = 'none';
 				remove.style.display  = 'none';
+
+				rankkernelAnnounce( __( 'Organization logo removed.', 'rankkernel' ) );
 			} );
 		}
 	} );
@@ -191,6 +214,9 @@
 				} else {
 					input.focus();
 				}
+
+				/* translators: %s: profile URL */
+				rankkernelAnnounce( sprintf( __( 'Removed profile URL %s.', 'rankkernel' ), url ) );
 			} );
 
 			item.appendChild( text );
@@ -233,6 +259,9 @@
 				current.push( value );
 				sync( current );
 				render();
+
+				/* translators: %s: profile URL */
+				rankkernelAnnounce( sprintf( __( 'Added profile URL %s.', 'rankkernel' ), value ) );
 			}
 
 			input.value = '';
