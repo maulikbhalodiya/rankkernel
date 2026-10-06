@@ -111,6 +111,24 @@ final class LlmsFileWriterTest extends TestCase {
 	}
 
 	/**
+	 * Test a filter path with a null byte falls back to the default path.
+	 */
+	public function test_null_byte_filter_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . "llms.txt\0.php";
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
+	 * Test a relative filter path falls back to the default path.
+	 */
+	public function test_relative_filter_path_falls_back_to_default(): void {
+		$this->path = 'llms.txt';
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
 	 * Test a climbed out path falls back to the default path.
 	 */
 	public function test_climbed_out_path_falls_back_to_default(): void {
