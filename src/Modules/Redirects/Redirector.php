@@ -200,8 +200,7 @@ final class Redirector {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- binding plan requires wp_redirect here, the destination passed through DestinationValidator with the scheme allowlist plus the external host allowlist before sending.
-		wp_redirect( $destination, (int) $code );
+		wp_safe_redirect( $destination, (int) $code );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;

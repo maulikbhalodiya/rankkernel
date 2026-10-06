@@ -65,6 +65,14 @@ final class DestinationValidator {
 			return $failed( 'control characters rejected' );
 		}
 
+		if ( false === wp_parse_url( $target ) ) {
+			return $failed( 'unparsable destination' );
+		}
+
+		if ( str_contains( $target, '\\' ) ) {
+			return $failed( 'backslash rejected' );
+		}
+
 		$scheme = wp_parse_url( $target, PHP_URL_SCHEME );
 
 		if ( is_string( $scheme ) && '' !== $scheme ) {

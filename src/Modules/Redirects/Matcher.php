@@ -461,7 +461,20 @@ final class Matcher {
 			return false;
 		}
 
+		if ( self::is_catastrophic_pattern( $pattern ) ) {
+			return false;
+		}
+
 		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
+
+		// ReDoS guard: run the match inside a lowered PCRE resource window so a
+		// pathological pattern exhausts its small budget instead of the process.
+		$old_backtrack = ini_get( 'pcre.backtrack_limit' );
+		$old_recursion = ini_get( 'pcre.recursion_limit' );
+		// phpcs:ignore WordPress.PHP.IniSet.Risky -- intentional ReDoS window, always restored in finally below.
+		ini_set( 'pcre.backtrack_limit', '10000' );
+		// phpcs:ignore WordPress.PHP.IniSet.Risky -- intentional ReDoS window, always restored in finally below.
+		ini_set( 'pcre.recursion_limit', '1000' );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded regex compile probe for admin entered patterns, the handler swallows only the compile warning and is always restored in finally.
 		set_error_handler( static fn (): bool => true );
@@ -470,6 +483,10 @@ final class Matcher {
 			$result = preg_match( $wrapped, $path );
 		} finally {
 			restore_error_handler();
+			// phpcs:ignore WordPress.PHP.IniSet.Risky -- restoring the original values from the ReDoS window.
+			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
+			// phpcs:ignore WordPress.PHP.IniSet.Risky -- restoring the original values from the ReDoS window.
+			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
 		}
 
 		if ( false === $result || PREG_NO_ERROR !== preg_last_error() ) {
@@ -477,5 +494,34 @@ final class Matcher {
 		}
 
 		return 1 === $result;
+	}
+
+	/**
+	 * Reject patterns with known catastrophic-backtracking shapes before compile.
+	 *
+	 * Catches nested quantifiers over a group such as `(.+)+` or `(a|b)*+`... broadly a
+	 * quantified group whose body itself contains a quantifier, plus star-height
+	 * overlap like `(.*)*`, which is the same shape. These are the constructs that
+	 * turn a stored admin regex into a request-killing ReDoS.
+	 *
+	 * @param string $pattern Stored regex body.
+	 * @return bool True when the pattern must be refused.
+	 */
+	private static function is_catastrophic_pattern( string $pattern ): bool {
+		// A group containing an inner quantifier, itself followed by a quantifier: (…+|*|{…}…)+|*|{…}.
+		if ( 1 === preg_match( '#\([^()]*[+*][^()]*\)\s*[+*{]#', $pattern ) ) {
+			return true;
+		}
+
+		// Bare nested quantifiers on an atom like `a++` are fine, but an overlapping
+		// repeat of any char class across alternation stems is covered above; also
+		// reject an alternation group followed by a quantifier when both branches
+		// are open-ended (e.g. `(.*|.+)+`).
+		if ( 1 === preg_match( '#\([^()]*\|[^()]*\)\s*[+*{]#', $pattern )
+			&& 1 === preg_match( '#\([^()]*[+*][^()]*\|[^()]*[+*][^()]*\)#', $pattern ) ) {
+			return true;
+		}
+
+		return false;
 	}
 }
