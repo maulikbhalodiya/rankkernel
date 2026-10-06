@@ -118,7 +118,7 @@ final class RedirectTable {
 
 		try {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom table existence probe, single prepared SHOW statement, fail open guard.
-			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 		} catch ( \Throwable $throwable ) {
 			// A throwing probe is treated exactly like a missing table, so
 			// every caller fails open instead of the exception escaping.
