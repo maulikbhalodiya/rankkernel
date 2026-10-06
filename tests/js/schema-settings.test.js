@@ -218,6 +218,16 @@ test( 'schema-settings announces social profile chip additions and removals', ()
 	assert.equal( sameasTextarea.value, 'https://twitter.com/example' );
 	assert.deepEqual( spoken, [ 'Added profile URL https://twitter.com/example.' ] );
 
+	// Add duplicate profile URL
+	sameasNewInput.value = 'https://twitter.com/example';
+	sameasAddBtn.fire( 'click' );
+
+	assert.equal( sameasTextarea.value, 'https://twitter.com/example' );
+	assert.deepEqual( spoken, [
+		'Added profile URL https://twitter.com/example.',
+		'Profile URL https://twitter.com/example is already in the list.'
+	] );
+
 	// Remove chip
 	const chipBtn = sameasChips.children[ 0 ].children[ 1 ]; // remove button in chip
 	chipBtn.fire( 'click' );
@@ -225,6 +235,7 @@ test( 'schema-settings announces social profile chip additions and removals', ()
 	assert.equal( sameasTextarea.value, '' );
 	assert.deepEqual( spoken, [
 		'Added profile URL https://twitter.com/example.',
+		'Profile URL https://twitter.com/example is already in the list.',
 		'Removed profile URL https://twitter.com/example.'
 	] );
 } );

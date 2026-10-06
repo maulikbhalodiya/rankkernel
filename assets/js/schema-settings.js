@@ -21,8 +21,13 @@
 
 	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
 		? window.wp.i18n.sprintf
-		: function ( text, param ) {
-			return String( text || '' ).replace( '%s', String( param || '' ) );
+		: function ( format ) {
+			var args = arguments;
+			var index = 1;
+
+			return String( format || '' ).replace( /%s/g, function () {
+				return String( args[ index++ ] || '' );
+			} );
 		};
 
 	/**
@@ -262,6 +267,9 @@
 
 				/* translators: %s: profile URL */
 				rankkernelAnnounce( sprintf( __( 'Added profile URL %s.', 'rankkernel' ), value ) );
+			} else {
+				/* translators: %s: profile URL */
+				rankkernelAnnounce( sprintf( __( 'Profile URL %s is already in the list.', 'rankkernel' ), value ) );
 			}
 
 			input.value = '';
