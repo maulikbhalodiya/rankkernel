@@ -141,6 +141,11 @@ final class DashboardPageTest extends TestCase {
 		$this->assertFalse( $byId['robots']['enabled'] );
 		$this->assertStringContainsString( 'rankkernel-general', $byId['robots']['settingsUrl'] );
 		$this->assertSame( '', $byId['analysis']['settingsUrl'] );
+		$this->assertTrue( $byId['ai']['planned'] );
+		$this->assertFalse( $byId['ai']['enabled'] );
+		$this->assertSame( '', $byId['ai']['settingsUrl'] );
+		$this->assertStringContainsString( 'Planned.', $byId['ai']['description'] );
+		$this->assertFalse( $byId['metadata']['planned'] );
 	}
 
 	/**
@@ -175,6 +180,18 @@ final class DashboardPageTest extends TestCase {
 	public function test_toggle_ignores_unknown_module(): void {
 		$_SERVER['REQUEST_METHOD']         = 'POST';
 		$_POST['rankkernel_module_toggle'] = 'evil-id';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertSame( [ 'metadata', 'sitemaps' ], $this->options['rankkernel_modules'] );
+	}
+
+	/**
+	 * Test a planned module id is never toggled by the dashboard save.
+	 */
+	public function test_toggle_ignores_planned_module(): void {
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'gutenberg';
 
 		( new DashboardPage() )->maybeHandleSave();
 

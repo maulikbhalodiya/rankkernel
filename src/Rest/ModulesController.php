@@ -48,6 +48,10 @@ final class ModulesController {
 		'404',
 		'instant-indexing',
 		'robots',
+		'image-seo',
+		'gutenberg',
+		'ai',
+		'headless',
 	];
 
 	/**
@@ -127,6 +131,14 @@ final class ModulesController {
 			return new WP_Error(
 				'rankkernel_invalid_module',
 				esc_html__( 'Unknown module id.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		if ( ModuleRegistry::isPlanned( $moduleId ) ) {
+			return new WP_Error(
+				'rankkernel_module_planned',
+				esc_html__( 'This module is planned and cannot be enabled yet.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}

@@ -188,6 +188,26 @@ final class RestControllersTest extends TestCase {
 	}
 
 	/**
+	 * Test a planned module id is rejected by toggleModule with a clear error.
+	 */
+	public function test_modules_controller_planned_module_rejected(): void {
+		Functions\expect( 'update_option' )->never();
+
+		$ctrl = new ModulesController();
+		$req  = Mockery::mock( \WP_REST_Request::class );
+		$req->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'image-seo' );
+		$req->shouldReceive( 'get_json_params' )->andReturn( [ 'enabled' => true ] );
+		$req->shouldReceive( 'get_params' )->andReturn( [ 'enabled' => true ] );
+
+		$res = $ctrl->toggleModule( $req );
+
+		$this->assertInstanceOf( \WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_module_planned', $res->get_error_code() );
+		$this->assertStringContainsString( 'planned', strtolower( $res->get_error_message() ) );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
 	 * Test modules controller register routes schema.
 	 */
 	public function test_modules_controller_register_routes(): void {

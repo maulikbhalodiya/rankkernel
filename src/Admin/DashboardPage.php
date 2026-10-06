@@ -43,6 +43,10 @@ final class DashboardPage {
 		'404'              => 'Log 404 errors with sane pruning and one click redirect creation.',
 		'instant-indexing' => 'Notify participating search engines when a URL changes, using the IndexNow protocol.',
 		'robots'           => 'A virtual robots.txt with per crawler AI controls, plus a curated llms.txt.',
+		'image-seo'        => 'Automatic image alt and title patterns. Planned.',
+		'gutenberg'        => 'An editor sidebar with analysis and previews. Planned.',
+		'ai'               => 'Bring your own key AI tools. Planned.',
+		'headless'         => 'A read only REST payload for headless builds. Planned.',
 	];
 
 	/**
@@ -109,7 +113,7 @@ final class DashboardPage {
 	/**
 	 * Build the module cards.
 	 *
-	 * @return array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string}> The result.
+	 * @return array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string, planned: bool}> The result.
 	 */
 	public function cards(): array {
 		$enabled = $this->enabledIds();
@@ -128,12 +132,15 @@ final class DashboardPage {
 				}
 			}
 
+			$planned = ModuleRegistry::isPlanned( $id );
+
 			$cards[] = [
 				'id'          => $id,
 				'label'       => (string) $moduleLabel,
 				'description' => self::DESCRIPTIONS[ $id ] ?? '',
-				'enabled'     => in_array( $id, $enabled, true ),
+				'enabled'     => ! $planned && in_array( $id, $enabled, true ),
 				'settingsUrl' => $url,
+				'planned'     => $planned,
 			];
 		}
 
@@ -177,7 +184,7 @@ final class DashboardPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
 		$rawId = isset( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_module_toggle'] ) ) : '';
 
-		if ( '' !== $rawId && ModuleRegistry::has( $rawId ) ) {
+		if ( '' !== $rawId && ModuleRegistry::has( $rawId ) && ! ModuleRegistry::isPlanned( $rawId ) ) {
 			$enabled = $this->enabledIds();
 
 			if ( in_array( $rawId, $enabled, true ) ) {

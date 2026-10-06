@@ -60,6 +60,10 @@ final class ModuleEnableMap {
 	 * @return bool The result.
 	 */
 	public function isEnabled( string $id ): bool {
+		if ( ModuleRegistry::isPlanned( $id ) ) {
+			return false;
+		}
+
 		return $this->enabledSet[ $id ] ?? false;
 	}
 

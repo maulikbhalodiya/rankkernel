@@ -45,7 +45,7 @@ final class ModuleRegistryTest extends TestCase {
 		$all = ModuleRegistry::all();
 
 		$this->assertSame( ModuleRegistry::MODULES, $all );
-		$this->assertCount( 9, $all );
+		$this->assertCount( 13, $all );
 		$this->assertArrayHasKey( 'metadata', $all );
 		$this->assertSame( 'Metadata Engine', $all['metadata'] );
 		$this->assertArrayHasKey( 'analysis', $all );
@@ -62,6 +62,8 @@ final class ModuleRegistryTest extends TestCase {
 		$this->assertSame( $expected, $ids );
 		$this->assertContains( 'sitemaps', $ids );
 		$this->assertContains( '404', $ids );
+		$this->assertContains( 'image-seo', $ids );
+		$this->assertContains( 'headless', $ids );
 	}
 
 	/**
@@ -69,6 +71,8 @@ final class ModuleRegistryTest extends TestCase {
 	 */
 	public function test_has_returns_true_for_known(): void {
 		$this->assertTrue( ModuleRegistry::has( 'metadata' ) );
+		$this->assertTrue( ModuleRegistry::has( 'ai' ) );
+		$this->assertTrue( ModuleRegistry::has( 'gutenberg' ) );
 	}
 
 	/**
@@ -85,6 +89,10 @@ final class ModuleRegistryTest extends TestCase {
 	public function test_label_returns_label_for_known(): void {
 		$this->assertSame( 'Metadata Engine', ModuleRegistry::label( 'metadata' ) );
 		$this->assertSame( 'Robots.txt & .htaccess', ModuleRegistry::label( 'robots' ) );
+		$this->assertSame( 'Headless', ModuleRegistry::label( 'headless' ) );
+		$this->assertContains( 'image-seo', ModuleRegistry::PLANNED );
+		$this->assertTrue( ModuleRegistry::isPlanned( 'ai' ) );
+		$this->assertFalse( ModuleRegistry::isPlanned( 'metadata' ) );
 	}
 
 	/**
