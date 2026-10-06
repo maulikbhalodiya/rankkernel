@@ -424,7 +424,7 @@ final class MetadataBox {
 			wp_enqueue_style( self::CLASSIC_STYLE );
 		}
 
-		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [], $version, true );
+		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [ 'wp-i18n' ], $version, true );
 
 		if ( function_exists( 'wp_localize_script' ) ) {
 			wp_localize_script( self::EDITOR_SCRIPT, self::LOCALIZE_NAME, $this->localizedState( $this->currentPostId() ) );

@@ -1420,7 +1420,6 @@ the Edit Snippet action. */
 	box-sizing: border-box;
 	max-height: calc(100vh - 60px);
 	max-width: 640px;
-	/* overflow: auto; */
 	width: calc(100% - 32px);
 }
 

@@ -1002,11 +1002,11 @@
 			numbers.push( 0 );
 		}
 
-		var window = [ current - 1, current, current + 1 ];
+		var pages = [ current - 1, current, current + 1 ];
 
-		for ( index = 0; index < window.length; index++ ) {
-			if ( window[ index ] > 1 && window[ index ] < total ) {
-				numbers.push( window[ index ] );
+		for ( index = 0; index < pages.length; index++ ) {
+			if ( pages[ index ] > 1 && pages[ index ] < total ) {
+				numbers.push( pages[ index ] );
 			}
 		}
 
@@ -1170,7 +1170,14 @@
 	 * Table skeleton matching the server markup, for the empty to rows turn.
 	 */
 	function logBuildTable( doc ) {
-		var headers = [ 'URL', 'Status', 'Source', 'Time (UTC)', 'Message', 'Actions' ];
+		var headers = [
+			__( 'URL', 'rankkernel' ),
+			__( 'Status', 'rankkernel' ),
+			__( 'Source', 'rankkernel' ),
+			__( 'Time (UTC)', 'rankkernel' ),
+			__( 'Message', 'rankkernel' ),
+			__( 'Actions', 'rankkernel' )
+		];
 		var classes = [ 'rk-col-url', 'rk-col-status', 'rk-col-source', 'rk-col-time', 'rk-col-message', 'rk-col-actions' ];
 		var wrap = logEl( doc, 'div', 'rk-ui-table-wrap' );
 		var table = logEl( doc, 'table', 'rk-ui-table' );
@@ -1240,14 +1247,14 @@
 		var nav = logEl( doc, 'div', 'rk-ui-page-nums' );
 
 		nav.setAttribute( 'role', 'navigation' );
-		nav.setAttribute( 'aria-label', 'Submission log pages' );
+		nav.setAttribute( 'aria-label', __( 'Submission log pages', 'rankkernel' ) );
 
 		if ( current > 1 ) {
-			var prev = logEl( doc, 'a', 'rk-ui-page-link', 'Previous' );
+			var prev = logEl( doc, 'a', 'rk-ui-page-link', __( 'Previous', 'rankkernel' ) );
 			prev.setAttribute( 'href', logPageUrl( action, state, current - 1 ) );
 			nav.appendChild( prev );
 		} else {
-			var prevOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', 'Previous' );
+			var prevOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', __( 'Previous', 'rankkernel' ) );
 			prevOff.setAttribute( 'aria-disabled', 'true' );
 			nav.appendChild( prevOff );
 		}
@@ -1272,11 +1279,11 @@
 		}
 
 		if ( current < totalPages ) {
-			var next = logEl( doc, 'a', 'rk-ui-page-link', 'Next' );
+			var next = logEl( doc, 'a', 'rk-ui-page-link', __( 'Next', 'rankkernel' ) );
 			next.setAttribute( 'href', logPageUrl( action, state, current + 1 ) );
 			nav.appendChild( next );
 		} else {
-			var nextOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', 'Next' );
+			var nextOff = logEl( doc, 'span', 'rk-ui-page-link is-disabled', __( 'Next', 'rankkernel' ) );
 			nextOff.setAttribute( 'aria-disabled', 'true' );
 			nav.appendChild( nextOff );
 		}
@@ -1440,7 +1447,7 @@
 
 		if ( hasFilter ) {
 			if ( ! clear ) {
-				clear = logEl( doc, 'a', 'rk-filter-clear', 'Clear filters' );
+				clear = logEl( doc, 'a', 'rk-filter-clear', __( 'Clear filters', 'rankkernel' ) );
 				footer.appendChild( clear );
 			}
 

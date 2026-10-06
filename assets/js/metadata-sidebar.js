@@ -38,6 +38,12 @@
 
 	var components = window.wp.components || {};
 	var __ = window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
+	var sprintf = ( window.wp.i18n && 'function' === typeof window.wp.i18n.sprintf ) ? window.wp.i18n.sprintf : function ( template ) {
+		var args = arguments;
+		return String( template ).replace( /%(\d+)\$[sd]/g, function ( match, position ) {
+			return String( args[ Number( position ) ] );
+		} );
+	};
 
 	function analyseText( text ) {
 		return __( text, 'rankkernel' );
@@ -59,6 +65,8 @@
 	var ANALYSIS_DEBOUNCE_MS = 200;
 	var SOCIAL_MIN_W = 600;
 	var SOCIAL_MIN_H = 315;
+	// Schema JSON import cap, mirroring Redirects\CsvHandler::MAX_FILE_SIZE (2 MB).
+	var MAX_IMPORT_BYTES = 2097152;
 
 	var shared = window.rankkernelMetaEditorPreview || {};
 
@@ -81,6 +89,7 @@
 				node.focus();
 			}
 		} catch ( e ) {
+			// Deliberate silent fallback: focus restore is best effort.
 			return;
 		}
 	}
@@ -161,12 +170,12 @@
 			return shared.statusWord( status );
 		}
 		if ( 'warn' === status ) {
-			return 'Long';
+			return __( 'Long', 'rankkernel' );
 		}
 		if ( 'over' === status ) {
-			return 'Too long';
+			return __( 'Too long', 'rankkernel' );
 		}
-		return 'OK';
+		return __( 'OK', 'rankkernel' );
 	}
 
 	function shortUrl( permalink ) {
@@ -186,6 +195,7 @@
 		try {
 			return new URL( text, window.location.href ).host;
 		} catch ( e ) {
+			// Deliberate silent fallback: unparseable permalink, use the short form.
 			return shortUrl( text ).replace( /\/.*$/, '' );
 		}
 	}
@@ -254,7 +264,8 @@
 
 		if ( hasScore ) {
 			children.push( el( 'span', { key: 'value', className: 'rk-toolbar-score-value ' + props.tone, 'aria-hidden': 'true' }, String( props.score ) ) );
-			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis score', 'rankkernel' ) + ': ' + props.score + ' / 100, ' + props.bandLabel ) );
+			/* translators: 1: content analysis score from 0 to 100, 2: score band label. */
+			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, sprintf( __( 'Content analysis score: %1$d / 100, %2$s.', 'rankkernel' ), props.score, props.bandLabel ) ) );
 		} else {
 			children.push( el( 'span', { key: 'mark', className: 'dashicons dashicons-chart-bar', 'aria-hidden': 'true' } ) );
 			children.push( el( 'span', { key: 'label', className: 'screen-reader-text' }, __( 'Content analysis: no score yet', 'rankkernel' ) ) );
@@ -265,102 +276,107 @@
 
 	// Supported schema types, mirroring SchemaTypes::SUPPORTED and
 	// SchemaTypes::LABELS. The payload schema subtree is the only storage;
-	// this list selects into it and is never written itself.
+	// this list selects into it and is never written itself. Row[0] is the
+	// value written to the option and validated against SchemaTypes::SUPPORTED,
+	// so it must stay the raw type name; only row[1], the visible label,
+	// is translated.
 	var SCHEMA_TYPES = [
-		[ 'Article', 'Article' ],
-		[ 'BlogPosting', 'Blog Posting' ],
-		[ 'NewsArticle', 'News Article' ],
-		[ 'WebPage', 'Web Page' ],
-		[ 'FAQPage', 'FAQ Page' ],
-		[ 'HowTo', 'How To' ],
-		[ 'Product', 'Product' ],
-		[ 'Recipe', 'Recipe' ],
-		[ 'Event', 'Event' ],
-		[ 'Service', 'Service' ],
-		[ 'VideoObject', 'Video' ],
-		[ 'ImageObject', 'Image' ],
-		[ 'Book', 'Book' ],
-		[ 'Course', 'Course' ],
-		[ 'JobPosting', 'Job Posting' ],
-		[ 'SoftwareApplication', 'Software Application' ],
-		[ 'MusicRecording', 'Music Recording' ],
-		[ 'LocalBusiness', 'Local Business' ],
-		[ 'Review', 'Review' ],
-		[ 'Movie', 'Movie' ],
-		[ 'ClaimReview', 'Fact Check' ],
-		[ 'Dataset', 'Dataset' ],
-		[ 'PodcastEpisode', 'Podcast Episode' ],
-		[ 'Carousel', 'Carousel' ],
-		[ 'QAPage', 'Question and Answer Page' ],
-		[ 'ItemList', 'Item List' ]
+		[ 'Article', __( 'Article', 'rankkernel' ) ],
+		[ 'BlogPosting', __( 'Blog Posting', 'rankkernel' ) ],
+		[ 'NewsArticle', __( 'News Article', 'rankkernel' ) ],
+		[ 'WebPage', __( 'Web Page', 'rankkernel' ) ],
+		[ 'FAQPage', __( 'FAQ Page', 'rankkernel' ) ],
+		[ 'HowTo', __( 'How To', 'rankkernel' ) ],
+		[ 'Product', __( 'Product', 'rankkernel' ) ],
+		[ 'Recipe', __( 'Recipe', 'rankkernel' ) ],
+		[ 'Event', __( 'Event', 'rankkernel' ) ],
+		[ 'Service', __( 'Service', 'rankkernel' ) ],
+		[ 'VideoObject', __( 'Video', 'rankkernel' ) ],
+		[ 'ImageObject', __( 'Image', 'rankkernel' ) ],
+		[ 'Book', __( 'Book', 'rankkernel' ) ],
+		[ 'Course', __( 'Course', 'rankkernel' ) ],
+		[ 'JobPosting', __( 'Job Posting', 'rankkernel' ) ],
+		[ 'SoftwareApplication', __( 'Software Application', 'rankkernel' ) ],
+		[ 'MusicRecording', __( 'Music Recording', 'rankkernel' ) ],
+		[ 'LocalBusiness', __( 'Local Business', 'rankkernel' ) ],
+		[ 'Review', __( 'Review', 'rankkernel' ) ],
+		[ 'Movie', __( 'Movie', 'rankkernel' ) ],
+		[ 'ClaimReview', __( 'Fact Check', 'rankkernel' ) ],
+		[ 'Dataset', __( 'Dataset', 'rankkernel' ) ],
+		[ 'PodcastEpisode', __( 'Podcast Episode', 'rankkernel' ) ],
+		[ 'Carousel', __( 'Carousel', 'rankkernel' ) ],
+		[ 'QAPage', __( 'Question and Answer Page', 'rankkernel' ) ],
+		[ 'ItemList', __( 'Item List', 'rankkernel' ) ]
 	];
 
 	// Manual field labels, mirroring the Classic schema builder labels.
+	// Keys are schema path segments consumed by schemaFieldVisible() and
+	// 'schema.fields.<key>'; only the display values are translated.
 	var SCHEMA_FIELD_LABELS = {
-		headline: 'Headline',
-		description: 'Description',
-		author: 'Author',
-		price: 'Price',
-		priceCurrency: 'Price currency',
-		sku: 'SKU',
-		availability: 'Availability',
-		ratingValue: 'Rating value',
-		reviewCount: 'Review count',
-		bestRating: 'Best rating',
-		worstRating: 'Worst rating',
-		isbn: 'ISBN',
-		startDate: 'Start date',
-		endDate: 'End date',
-		locationName: 'Location name',
-		streetAddress: 'Street address',
-		addressLocality: 'City',
-		addressRegion: 'Region',
-		postalCode: 'Postal code',
-		addressCountry: 'Country',
-		performer: 'Performer',
-		eventStatus: 'Event status',
-		ingredients: 'Ingredients',
-		instructions: 'Instructions',
-		prepTime: 'Prep time',
-		cookTime: 'Cook time',
-		totalTime: 'Total time',
-		yield: 'Yield',
-		areaServed: 'Area served',
-		thumbnailUrl: 'Thumbnail URL',
-		uploadDate: 'Upload date',
-		duration: 'Duration',
-		contentUrl: 'Content URL',
-		appCategory: 'App category',
-		operatingSystem: 'Operating system',
-		artist: 'Artist',
-		album: 'Album',
-		dateCreated: 'Date created',
-		director: 'Director',
-		company: 'Company',
-		jobLocation: 'Job location',
-		salary: 'Salary',
-		datePosted: 'Date posted',
-		validThrough: 'Valid through',
-		claimReviewed: 'Claim reviewed',
-		datePublished: 'Date published',
-		license: 'License URL',
-		distributionUrl: 'File URL',
-		distributionFormat: 'File format',
-		seriesName: 'Series name',
-		question: 'Question',
-		answer: 'Answer',
-		answerAuthor: 'Answer author',
-		itemName: 'Reviewed item',
-		reviewBody: 'Review text',
-		telephone: 'Phone',
-		priceRange: 'Price range',
-		openingHours: 'Opening hours',
-		caption: 'Caption',
-		width: 'Width',
-		height: 'Height',
-		speakable: 'Speakable selectors',
-		about: 'About',
-		mentions: 'Mentions'
+		headline: __( 'Headline', 'rankkernel' ),
+		description: __( 'Description', 'rankkernel' ),
+		author: __( 'Author', 'rankkernel' ),
+		price: __( 'Price', 'rankkernel' ),
+		priceCurrency: __( 'Price currency', 'rankkernel' ),
+		sku: __( 'SKU', 'rankkernel' ),
+		availability: __( 'Availability', 'rankkernel' ),
+		ratingValue: __( 'Rating value', 'rankkernel' ),
+		reviewCount: __( 'Review count', 'rankkernel' ),
+		bestRating: __( 'Best rating', 'rankkernel' ),
+		worstRating: __( 'Worst rating', 'rankkernel' ),
+		isbn: __( 'ISBN', 'rankkernel' ),
+		startDate: __( 'Start date', 'rankkernel' ),
+		endDate: __( 'End date', 'rankkernel' ),
+		locationName: __( 'Location name', 'rankkernel' ),
+		streetAddress: __( 'Street address', 'rankkernel' ),
+		addressLocality: __( 'City', 'rankkernel' ),
+		addressRegion: __( 'Region', 'rankkernel' ),
+		postalCode: __( 'Postal code', 'rankkernel' ),
+		addressCountry: __( 'Country', 'rankkernel' ),
+		performer: __( 'Performer', 'rankkernel' ),
+		eventStatus: __( 'Event status', 'rankkernel' ),
+		ingredients: __( 'Ingredients', 'rankkernel' ),
+		instructions: __( 'Instructions', 'rankkernel' ),
+		prepTime: __( 'Prep time', 'rankkernel' ),
+		cookTime: __( 'Cook time', 'rankkernel' ),
+		totalTime: __( 'Total time', 'rankkernel' ),
+		yield: __( 'Yield', 'rankkernel' ),
+		areaServed: __( 'Area served', 'rankkernel' ),
+		thumbnailUrl: __( 'Thumbnail URL', 'rankkernel' ),
+		uploadDate: __( 'Upload date', 'rankkernel' ),
+		duration: __( 'Duration', 'rankkernel' ),
+		contentUrl: __( 'Content URL', 'rankkernel' ),
+		appCategory: __( 'App category', 'rankkernel' ),
+		operatingSystem: __( 'Operating system', 'rankkernel' ),
+		artist: __( 'Artist', 'rankkernel' ),
+		album: __( 'Album', 'rankkernel' ),
+		dateCreated: __( 'Date created', 'rankkernel' ),
+		director: __( 'Director', 'rankkernel' ),
+		company: __( 'Company', 'rankkernel' ),
+		jobLocation: __( 'Job location', 'rankkernel' ),
+		salary: __( 'Salary', 'rankkernel' ),
+		datePosted: __( 'Date posted', 'rankkernel' ),
+		validThrough: __( 'Valid through', 'rankkernel' ),
+		claimReviewed: __( 'Claim reviewed', 'rankkernel' ),
+		datePublished: __( 'Date published', 'rankkernel' ),
+		license: __( 'License URL', 'rankkernel' ),
+		distributionUrl: __( 'File URL', 'rankkernel' ),
+		distributionFormat: __( 'File format', 'rankkernel' ),
+		seriesName: __( 'Series name', 'rankkernel' ),
+		question: __( 'Question', 'rankkernel' ),
+		answer: __( 'Answer', 'rankkernel' ),
+		answerAuthor: __( 'Answer author', 'rankkernel' ),
+		itemName: __( 'Reviewed item', 'rankkernel' ),
+		reviewBody: __( 'Review text', 'rankkernel' ),
+		telephone: __( 'Phone', 'rankkernel' ),
+		priceRange: __( 'Price range', 'rankkernel' ),
+		openingHours: __( 'Opening hours', 'rankkernel' ),
+		caption: __( 'Caption', 'rankkernel' ),
+		width: __( 'Width', 'rankkernel' ),
+		height: __( 'Height', 'rankkernel' ),
+		speakable: __( 'Speakable selectors', 'rankkernel' ),
+		about: __( 'About', 'rankkernel' ),
+		mentions: __( 'Mentions', 'rankkernel' )
 	};
 
 	// Manual field relevance per type, mirroring the Classic builder: '*'
@@ -436,7 +452,9 @@
 
 	// Visual grouping for the token picker. Tokens always come from
 	// tokenLabels; this map only groups them, anything unlisted lands in
-	// Other and nothing here is ever inserted on its own.
+	// Other and nothing here is ever inserted on its own. Group names are
+	// internal keys, never persisted or submitted; translating at the render
+	// point keeps them collision free when two labels share a translation.
 	var TOKEN_GROUPS = {
 		'%%title%%': 'Post',
 		'%%excerpt%%': 'Post',
@@ -450,6 +468,16 @@
 
 	function tokenGroupName( token ) {
 		return TOKEN_GROUPS[ token ] || 'Other';
+	}
+
+	function tokenGroupLabel( name ) {
+		if ( 'Post' === name ) {
+			return __( 'Post', 'rankkernel' );
+		}
+		if ( 'Site' === name ) {
+			return __( 'Site', 'rankkernel' );
+		}
+		return __( 'Other', 'rankkernel' );
 	}
 
 	function schemaRequiredFields( type ) {
@@ -467,16 +495,17 @@
 
 	function schemaRequiredMessage( type, fieldKey ) {
 		if ( 'headline' === fieldKey && 'Product' === type ) {
-			return 'Product name (headline) is required for Product.';
+			return __( 'Product name (headline) is required for Product.', 'rankkernel' );
 		}
 		if ( 'headline' === fieldKey && 'Event' === type ) {
-			return 'Name (headline) is required for Event.';
+			return __( 'Name (headline) is required for Event.', 'rankkernel' );
 		}
 		if ( 'headline' === fieldKey ) {
-			return 'Headline is required for ' + type + '.';
+			/* translators: %1$s: schema type name. */
+			return sprintf( __( 'Headline is required for %1$s.', 'rankkernel' ), type );
 		}
-		var labels = { startDate: 'Start date', locationName: 'Location name' };
-		return ( labels[ fieldKey ] || fieldKey ) + ' is required for ' + type + '.';
+		/* translators: 1: schema field label, 2: schema type name. */
+		return sprintf( __( '%1$s is required for %2$s.', 'rankkernel' ), SCHEMA_FIELD_LABELS[ fieldKey ] || fieldKey, type );
 	}
 
 	function schemaFieldVisible( key, selected ) {
@@ -649,14 +678,14 @@
 		if ( 'FAQPage' === type ) {
 			var faq = obj.faq && 'object' === typeof obj.faq ? obj.faq : {};
 			if ( 0 === countRows( faq.questions, true ) ) {
-				messages.push( 'At least one question is required for FAQPage. Add questions with the FAQ block or the Classic editor.' );
+				messages.push( __( 'At least one question is required for FAQPage. Add questions with the FAQ block or the Classic editor.', 'rankkernel' ) );
 			}
 			return messages;
 		}
 		if ( 'HowTo' === type ) {
 			var howto = obj.howto && 'object' === typeof obj.howto ? obj.howto : {};
 			if ( 0 === countRows( howto.steps, false ) ) {
-				messages.push( 'At least one step is required for HowTo. Add steps with the How-To block or the Classic editor.' );
+				messages.push( __( 'At least one step is required for HowTo. Add steps with the How-To block or the Classic editor.', 'rankkernel' ) );
 			}
 			return messages;
 		}
@@ -674,6 +703,12 @@
 			return true;
 		}
 		return /^https?:\/\/\S+\.\S+/.test( String( value ).trim() );
+	}
+
+	// Guard the schema JSON import before FileReader pulls the whole file
+	// into memory. A file without a numeric size is left to the read path.
+	function schemaImportTooLarge( file ) {
+		return Boolean( file ) && 'number' === typeof file.size && file.size > MAX_IMPORT_BYTES;
 	}
 
 	// Tab button: icon only while inactive, icon plus text label while
@@ -922,7 +957,7 @@
 					return el(
 						'div',
 						{ className: 'rk-token-group', key: name },
-						el( 'p', { className: 'rk-token-group-label', 'aria-hidden': 'true' }, name ),
+						el( 'p', { className: 'rk-token-group-label', 'aria-hidden': 'true' }, tokenGroupLabel( name ) ),
 						groups[ name ].map( function ( token ) {
 							flatIndex++;
 							var mine = flatIndex;
@@ -1185,7 +1220,8 @@
 		var tooSmall = 'small' === check.status;
 		var invalid = 'error' === check.status;
 		var empty = isEmpty( current.image );
-		var smallNotice = __( 'This image is smaller than the minimum', 'rankkernel' ) + ' ' + SOCIAL_MIN_W + 'x' + SOCIAL_MIN_H + ' (' + check.width + 'x' + check.height + ').';
+		/* translators: 1: minimum image width in pixels, 2: minimum image height in pixels, 3: actual image width in pixels, 4: actual image height in pixels. */
+		var smallNotice = sprintf( __( 'This image is smaller than the minimum %1$dx%2$d (%3$dx%4$d).', 'rankkernel' ), SOCIAL_MIN_W, SOCIAL_MIN_H, check.width, check.height );
 
 		return el(
 			'div',
@@ -2799,6 +2835,10 @@
 								onChange: function ( event ) {
 									var file = event.target && event.target.files ? event.target.files[ 0 ] : null;
 									if ( ! file ) {
+										return;
+									}
+									if ( schemaImportTooLarge( file ) ) {
+										setError( 'schema.customText', __( 'Import file is larger than 2 MB, nothing was saved.', 'rankkernel' ) );
 										return;
 									}
 									var reader = new FileReader();

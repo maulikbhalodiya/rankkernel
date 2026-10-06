@@ -9,6 +9,13 @@
 ( function () {
 	'use strict';
 
+	// Guarded wp.i18n lookup, mirroring metadata-sidebar.js. This screen has
+	// no early return on a missing wp object, so the window.wp check comes
+	// first: without it a missing handle would throw before init and break
+	// the classic metabox. Falling back to the raw literal keeps the text
+	// visible when translations are unavailable.
+	var __ = window.wp && window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
+
 	var cfg = window.rankkernelMetaEditor || {};
 	var templates = cfg.templates || {};
 	var tokenLabels = cfg.tokenLabels || {};
@@ -180,12 +187,12 @@
 
 	function statusWord( status ) {
 		if ( 'warn' === status ) {
-			return str( 'longLabel', 'Long' );
+			return str( 'longLabel', __( 'Long', 'rankkernel' ) );
 		}
 		if ( 'over' === status ) {
-			return str( 'tooLongLabel', 'Too long' );
+			return str( 'tooLongLabel', __( 'Too long', 'rankkernel' ) );
 		}
-		return str( 'okLabel', 'OK' );
+		return str( 'okLabel', __( 'OK', 'rankkernel' ) );
 	}
 
 	function shortUrl( permalink ) {
@@ -304,7 +311,7 @@
 			if ( ! tokens.length ) {
 				var empty = document.createElement( 'p' );
 				empty.className = 'description';
-				empty.textContent = str( 'noTokens', 'No tokens available for this post type.' );
+				empty.textContent = str( 'noTokens', __( 'No tokens available for this post type.', 'rankkernel' ) );
 				list.appendChild( empty );
 				return;
 			}
@@ -315,7 +322,7 @@
 				button.setAttribute( 'data-rk-token', token );
 				button.textContent = tokenLabels[ token ] || token;
 				button.title = token;
-				button.setAttribute( 'aria-label', str( 'insertToken', 'Insert token' ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
+				button.setAttribute( 'aria-label', str( 'tokenInsert', __( 'Insert token', 'rankkernel' ) ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
 				button.addEventListener( 'click', function () {
 					var target = getTarget();
 					if ( target ) {
@@ -333,8 +340,8 @@
 			var chars = String( text || '' ).length;
 			var px = measureWidth( text );
 			var status = counterStatus( chars, limit );
-			var pxLabel = px >= 0 ? String( px ) + 'px' : str( 'charsOnly', 'chars only' );
-			node.textContent = chars + ' / ' + limit + ' ' + str( 'charsLabel', 'chars' ) + ', ' + pxLabel + ', ' + statusWord( status );
+			var pxLabel = px >= 0 ? String( px ) + 'px' : str( 'charsOnly', __( 'chars only', 'rankkernel' ) );
+			node.textContent = chars + ' / ' + limit + ' ' + str( 'charsLabel', __( 'chars', 'rankkernel' ) ) + ', ' + pxLabel + ', ' + statusWord( status );
 			node.setAttribute( 'data-rk-state', status );
 			node.classList.remove( 'rk-is-ok', 'rk-is-warn', 'rk-is-over' );
 			node.classList.add( 'ok' === status ? 'rk-is-ok' : ( 'warn' === status ? 'rk-is-warn' : 'rk-is-over' ) );
@@ -364,8 +371,8 @@
 		var badge = $( root, '[data-rankkernel-inherited-' + key + ']' );
 		if ( badge ) {
 			badge.textContent = inherited
-				? str( 'inherited', 'Inherited from the template' )
-				: str( 'customOverride', 'Custom override active' );
+				? str( 'inherited', __( 'Inherited from the template', 'rankkernel' ) )
+				: str( 'customOverride', __( 'Custom override active', 'rankkernel' ) );
 			badge.setAttribute( 'data-rk-state', inherited ? 'inherited' : 'custom' );
 			badge.classList.toggle( 'rk-is-inherited', inherited );
 			badge.classList.toggle( 'rk-is-custom', ! inherited );
@@ -400,7 +407,7 @@
 		var title = effectiveValue( values.title, 'title' );
 		var desc = effectiveValue( values.description, 'description' );
 		if ( titleNode ) {
-			titleNode.textContent = title.text || str( 'untitledLabel', 'Untitled' );
+			titleNode.textContent = title.text || str( 'untitledLabel', __( 'Untitled', 'rankkernel' ) );
 		}
 		if ( urlNode ) {
 			urlNode.textContent = shortUrl( cfg.permalink || cfg.homeUrl || '' );
@@ -458,7 +465,7 @@
 		var cardNode = $( box, '[data-rk-social-card]' );
 		var card = String( values.twCard || 'summary_large_image' );
 		if ( titleNode ) {
-			titleNode.textContent = title || str( 'untitledLabel', 'Untitled' );
+			titleNode.textContent = title || str( 'untitledLabel', __( 'Untitled', 'rankkernel' ) );
 		}
 		if ( descNode ) {
 			descNode.textContent = desc || '';
@@ -478,8 +485,8 @@
 		}
 		if ( cardNode ) {
 			cardNode.textContent = 'summary' === card
-				? str( 'smallCardLabel', 'Small image card' )
-				: str( 'largeCardLabel', 'Large image card' );
+				? str( 'smallCardLabel', __( 'Small image card', 'rankkernel' ) )
+				: str( 'largeCardLabel', __( 'Large image card', 'rankkernel' ) );
 		}
 		box.setAttribute( 'data-rk-card', 'summary' === card ? 'summary' : 'summary_large_image' );
 	}
@@ -513,8 +520,8 @@
 			}
 			if ( select ) {
 				select.textContent = hasImage
-					? str( 'changeImage', 'Change image' )
-					: str( 'selectImage', 'Select image' );
+					? str( 'changeImage', __( 'Change image', 'rankkernel' ) )
+					: str( 'selectImage', __( 'Select image', 'rankkernel' ) );
 			}
 		} );
 	}
@@ -540,8 +547,8 @@
 		var custom = String( values.canonical ).trim() !== '';
 		if ( badge ) {
 			badge.textContent = custom
-				? str( 'customLabel', 'Custom' )
-				: str( 'defaultLabel', 'Default' );
+				? str( 'customLabel', __( 'Custom', 'rankkernel' ) )
+				: str( 'defaultLabel', __( 'Default', 'rankkernel' ) );
 			badge.setAttribute( 'data-rk-state', valid ? ( custom ? 'custom' : 'default' ) : 'invalid' );
 		}
 		if ( error ) {
@@ -549,7 +556,7 @@
 				error.setAttribute( 'hidden', '' );
 				error.textContent = '';
 			} else {
-				error.textContent = str( 'canonicalError', 'Enter a full URL starting with http:// or https://. Invalid input is ignored on save.' );
+				error.textContent = str( 'canonicalError', __( 'Enter a full URL starting with http:// or https://. Invalid input is ignored on save.', 'rankkernel' ) );
 				error.removeAttribute( 'hidden' );
 			}
 		}
@@ -570,7 +577,7 @@
 		var select = byId( root, 'rankkernel-meta-schema-type' );
 		var disabled = byId( root, 'rankkernel-meta-schema-disabled' );
 		if ( disabled && disabled.checked ) {
-			node.textContent = str( 'schemaDisabled', 'Disabled for this post. No structured data prints.' );
+			node.textContent = str( 'schemaDisabled', __( 'Disabled for this post. No structured data prints.', 'rankkernel' ) );
 			return;
 		}
 		var current = select ? String( select.value || '' ) : '';
@@ -579,10 +586,10 @@
 			if ( select && select.selectedIndex >= 0 && select.options[ select.selectedIndex ] ) {
 				label = select.options[ select.selectedIndex ].text || current;
 			}
-			node.textContent = str( 'schemaCustomPrefix', 'Custom type: ' ) + label + '.';
+			node.textContent = str( 'schemaCustomPrefix', __( 'Custom type: ', 'rankkernel' ) ) + label + '.';
 			return;
 		}
-		node.textContent = str( 'schemaStatusPrefix', 'Status: ' ) + String( node.getAttribute( 'data-rk-schema-auto' ) || '' ) + '.';
+		node.textContent = str( 'schemaStatusPrefix', __( 'Status: ', 'rankkernel' ) ) + String( node.getAttribute( 'data-rk-schema-auto' ) || '' ) + '.';
 	}
 
 	function filterSchemaRows( root ) {
@@ -639,7 +646,7 @@
 				box.appendChild( note );
 			}
 		}
-		note.textContent = str( 'noindexNotice', 'Noindex is on: this post is hidden from search results.' );
+		note.textContent = str( 'noindexNotice', __( 'Noindex is on: this post is hidden from search results.', 'rankkernel' ) );
 	}
 
 	function refresh( root ) {
@@ -752,8 +759,8 @@
 			return;
 		}
 		var frame = window.wp.media( {
-			title: str( 'mediaTitle', 'Select preview image' ),
-			button: { text: str( 'mediaButton', 'Use this image' ) },
+			title: str( 'mediaTitle', __( 'Select preview image', 'rankkernel' ) ),
+			button: { text: str( 'mediaButton', __( 'Use this image', 'rankkernel' ) ) },
 			multiple: false
 		} );
 		frame.on( 'select', function () {

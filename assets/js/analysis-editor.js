@@ -51,6 +51,12 @@
 		return __( text, 'rankkernel' );
 	}
 
+	function logTinyMceFailure( action, error ) {
+		if ( 'undefined' !== typeof window && 'undefined' !== typeof window.console && 'function' === typeof window.console.warn ) {
+			window.console.warn( 'RankKernel Analysis: ' + action + ' failed.', error );
+		}
+	}
+
 	function bandClass( band ) {
 		if ( 'good' === band ) {
 			return 'rk-badge-ok';
@@ -136,6 +142,7 @@
 				}
 			}
 		} catch ( e ) {
+			logTinyMceFailure( 'reading the TinyMCE editor body', e );
 			return valueOf( 'content' );
 		}
 
@@ -380,6 +387,7 @@
 			try {
 				editor = window.tinymce.get( 'content' ) || window.tinymce.activeEditor;
 			} catch ( e ) {
+				logTinyMceFailure( 'reading the TinyMCE editor by id', e );
 				return false;
 			}
 		}
