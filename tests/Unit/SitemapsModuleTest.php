@@ -61,7 +61,7 @@ final class SitemapsModuleTest extends TestCase {
 		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => $v );
 		Functions\when( '__return_false' )->alias( static fn (): bool => false );
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-sitemap' ] );
 	}
 
 	/**
@@ -140,21 +140,38 @@ final class SitemapsModuleTest extends TestCase {
 	 * Test takeover notice is suppressed on non-RankKernel screens.
 	 */
 	public function test_render_takeover_notice_suppressed_on_other_screens(): void {
+		$module = new SitemapsModule();
+
 		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		ob_start();
+		$module->renderTakeoverNotice();
+		$this->assertSame( '', ob_get_clean() );
+
+		// Another RankKernel screen must also be suppressed: the notice is
+		// scoped to the Sitemap settings screen, not the whole plugin.
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-404' ] );
+		ob_start();
+		$module->renderTakeoverNotice();
+		$this->assertSame( '', ob_get_clean() );
+
+		Functions\when( 'get_current_screen' )->justReturn( null );
+		ob_start();
+		$module->renderTakeoverNotice();
+		$this->assertSame( '', ob_get_clean() );
+	}
+
+	/**
+	 * Test the takeover notice renders on the Sitemap settings screen.
+	 */
+	public function test_render_takeover_notice_on_sitemap_screen(): void {
+		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-sitemap' ] );
 
 		$module = new SitemapsModule();
 		ob_start();
 		$module->renderTakeoverNotice();
 		$out = ob_get_clean();
 
-		$this->assertSame( '', $out );
-
-		Functions\when( 'get_current_screen' )->justReturn( null );
-		ob_start();
-		$module->renderTakeoverNotice();
-		$outNull = ob_get_clean();
-
-		$this->assertSame( '', $outNull );
+		$this->assertStringContainsString( 'Core WordPress sitemaps are disabled in favor of RankKernel sitemaps.', $out );
 	}
 
 	/**
