@@ -129,13 +129,52 @@ final class DestinationValidator {
 			if ( strtolower( (string) $allowed ) === $hostLower ) {
 				return [
 					'valid'       => true,
-					'destination' => $target,
+					'destination' => $this->lowercaseHost( $target ),
 					'reason'      => 'ok',
 				];
 			}
 		}
 
 		return $failed( 'external host not allowlisted' );
+	}
+
+	/**
+	 * Lowercase the host component of an absolute URL.
+	 *
+	 * Hosts are case-insensitive per RFC 3986, but wp_validate_redirect()
+	 * compares them case-sensitively, so an allowlisted destination entered
+	 * with a mixed-case host must be folded before wp_safe_redirect() sees it.
+	 * The path, query and fragment keep their original case.
+	 *
+	 * @param string $target Absolute URL with a host part.
+	 * @return string URL with a lowercase host.
+	 */
+	private function lowercaseHost( string $target ): string {
+		$parts = wp_parse_url( $target );
+
+		if ( ! is_array( $parts ) || ! isset( $parts['host'] ) ) {
+			return $target;
+		}
+
+		$userinfo = '';
+
+		if ( isset( $parts['user'] ) ) {
+			$userinfo = (string) $parts['user'];
+
+			if ( isset( $parts['pass'] ) ) {
+				$userinfo .= ':' . (string) $parts['pass'];
+			}
+
+			$userinfo .= '@';
+		}
+
+		$scheme = isset( $parts['scheme'] ) ? (string) $parts['scheme'] . '://' : '';
+		$port   = isset( $parts['port'] ) ? ':' . (int) $parts['port'] : '';
+		$path   = isset( $parts['path'] ) ? (string) $parts['path'] : '';
+		$query  = isset( $parts['query'] ) ? '?' . (string) $parts['query'] : '';
+		$frag   = isset( $parts['fragment'] ) ? '#' . (string) $parts['fragment'] : '';
+
+		return $scheme . $userinfo . strtolower( (string) $parts['host'] ) . $port . $path . $query . $frag;
 	}
 
 	/**

@@ -198,4 +198,20 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		$this->assertTrue( $result['valid'] );
 		$this->assertSame( '/new/page', $result['destination'] );
 	}
+
+	/**
+	 * Test an allowlisted external host is folded to lowercase.
+	 *
+	 * WordPress compares hosts case-sensitively in wp_validate_redirect(), so the folded
+	 * host is what lets wp_safe_redirect() accept an allowlisted destination
+	 * entered with a mixed-case host.
+	 */
+	public function test_allowlisted_external_host_is_folded(): void {
+		$validator = new DestinationValidator();
+
+		$result = $validator->validate( 'https://External.Example/Path?Q=1', '301', [ 'external.example' ] );
+
+		$this->assertTrue( $result['valid'] );
+		$this->assertSame( 'https://external.example/Path?Q=1', $result['destination'] );
+	}
 }
