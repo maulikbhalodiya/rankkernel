@@ -366,6 +366,7 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 		Functions\when( 'get_month_link' )->alias( static fn ( int $y, int $m ): string => 'https://example.com/' . $y . '/' . $m . '/' );
 		Functions\when( 'get_day_link' )->alias( static fn ( int $y, int $m, int $d ): string => 'https://example.com/' . $y . '/' . $m . '/' . $d . '/' );
 		Functions\when( 'date_i18n' )->alias( static fn ( string $format, int $ts ): string => date( $format, $ts ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- test stub mirrors date_i18n output formatting with a fixed timestamp.
+		Functions\when( 'current_datetime' )->alias( static fn (): \DateTimeImmutable => new \DateTimeImmutable( 'now' ) );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => (string) $n );
 	}
 

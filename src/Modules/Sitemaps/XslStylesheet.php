@@ -48,6 +48,7 @@ class XslStylesheet {
 
 		header( 'Content-Type: text/xsl; charset=UTF-8' );
 		header( 'Cache-Control: public, max-age=31536000' );
+		// HTTP Expires must be GMT regardless of the site timezone (RFC 7231), so the raw gmdate() call is correct here; current_time()/wp_date() would emit site-local time and be wrong for this header.
 		header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 31536000 ) . ' GMT' );
 		header( 'X-Content-Type-Options: nosniff' );
 
