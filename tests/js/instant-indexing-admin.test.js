@@ -2115,3 +2115,176 @@ test( 'an empty AJAX log load speaks the no matches message to screen readers vi
 
 	assert.deepEqual( spoken, [ 'No submissions match your filters.' ] );
 } );
+
+/**
+ * In place log mark-up built by the loader.
+ *
+ * The AJAX path rebuilds the table skeleton, the pagination and the clear
+ * filters link from literals, so these must translate through wp.i18n with
+ * the same English source as the server rendered view. The PHP view is read
+ * from disk and its literals are used as the expectation, so the two sides
+ * cannot drift.
+ */
+
+function phpViewSource() {
+	return readFileSync( path.join( root, 'src', 'Admin', 'Views', 'instant-indexing.php' ), 'utf8' );
+}
+
+function phpTableHeadLiterals() {
+	const php = phpViewSource();
+	const pattern = /<th scope="col" class="rk-col-[a-z]+"><\?php echo esc_html__\( '([^']+)', 'rankkernel' \); \?><\/th>/g;
+	const literals = [];
+	let match;
+
+	while ( ( match = pattern.exec( php ) ) !== null ) {
+		if ( ! literals.includes( match[ 1 ] ) ) {
+			literals.push( match[ 1 ] );
+		}
+	}
+
+	return literals;
+}
+
+test( 'the AJAX built table headers use the exact PHP view literals', async () => {
+	const stub = i18nStub();
+	const fixture = mountLog( { search: 'hello', wp: stub.wp } );
+
+	// Drop the server rendered table so the loader must build the skeleton.
+	fixture.card.removeChild( fixture.card.querySelector( '.rk-ui-table-wrap' ) );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const rendered = fixture.card.querySelector( '.rk-ui-table thead tr' ).children.map( ( cell ) => cell.textContent );
+	const phpLiterals = phpTableHeadLiterals();
+
+	assert.ok( phpLiterals.length >= 6, 'the PHP view must carry the six column headers' );
+	assert.deepEqual(
+		rendered,
+		phpLiterals.map( ( literal ) => 'translated:' + literal ),
+		'the JS built headers must translate the same literals in the same order as the PHP view'
+	);
+} );
+
+test( 'the AJAX built table headers fall back to the PHP literals without wp.i18n', async () => {
+	const fixture = mountLog( { search: 'hello' } );
+
+	fixture.card.removeChild( fixture.card.querySelector( '.rk-ui-table-wrap' ) );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const rendered = fixture.card.querySelector( '.rk-ui-table thead tr' ).children.map( ( cell ) => cell.textContent );
+
+	assert.deepEqual( rendered, phpTableHeadLiterals() );
+} );
+
+test( 'the AJAX rebuilt pagination translates its label and previous and next controls', async () => {
+	const stub = i18nStub();
+	const fixture = mountLog( { search: 'hello', wp: stub.wp } );
+	const before = fixture.pageNums();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const nav = fixture.pageNums();
+
+	assert.notEqual( nav, before, 'the pagination must be rebuilt, not reused' );
+	assert.equal( nav.getAttribute( 'aria-label' ), 'translated:Submission log pages' );
+
+	const labels = nav.children.map( ( node ) => node.textContent );
+
+	assert.ok( labels.includes( 'translated:Previous' ), 'the disabled Previous control must translate' );
+	assert.ok( labels.includes( 'translated:Next' ), 'the Next link must translate' );
+	assert.deepEqual(
+		stub.calls.filter( ( call ) => [ 'Previous', 'Next', 'Submission log pages' ].includes( call[ 1 ] ) ),
+		[
+			[ '__', 'Submission log pages', 'rankkernel' ],
+			[ '__', 'Previous', 'rankkernel' ],
+			[ '__', 'Next', 'rankkernel' ]
+		],
+		'each pagination literal must reach the translator with the rankkernel domain'
+	);
+} );
+
+test( 'the AJAX rebuilt pagination keeps the raw labels without wp.i18n', async () => {
+	const fixture = mountLog( { search: 'hello' } );
+	const before = fixture.pageNums();
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const nav = fixture.pageNums();
+
+	assert.notEqual( nav, before, 'the pagination must be rebuilt, not reused' );
+	assert.equal( nav.getAttribute( 'aria-label' ), 'Submission log pages' );
+
+	const labels = nav.children.map( ( node ) => node.textContent );
+
+	assert.ok( labels.includes( 'Previous' ) );
+	assert.ok( labels.includes( 'Next' ) );
+} );
+
+test( 'the AJAX built clear filters link translates through wp.i18n', async () => {
+	const stub = i18nStub();
+	const fixture = mountLog( { search: 'hello', wp: stub.wp } );
+
+	assert.equal( fixture.footer().querySelector( '.rk-filter-clear' ), null, 'the fixture must start without the link' );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const clear = fixture.footer().querySelector( '.rk-filter-clear' );
+
+	assert.ok( clear, 'an active filter must render the clear link' );
+	assert.equal( clear.textContent, 'translated:Clear filters' );
+	assert.ok(
+		stub.calls.some( ( call ) => '__' === call[ 0 ] && 'Clear filters' === call[ 1 ] && 'rankkernel' === call[ 2 ] ),
+		'the clear link label must reach the translator with the rankkernel domain'
+	);
+} );
+
+test( 'the AJAX built clear filters link keeps the raw label without wp.i18n', async () => {
+	const fixture = mountLog( { search: 'hello' } );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	assert.equal( fixture.footer().querySelector( '.rk-filter-clear' ).textContent, 'Clear filters' );
+} );
+
+test( 'the rebuilt pagination and clear filters literals exist in the PHP view', async () => {
+	const php = phpViewSource();
+	const stub = i18nStub();
+	const fixture = mountLog( { search: 'hello', wp: stub.wp } );
+
+	fixture.submit();
+	fixture.pending[ 0 ].resolve( logJson( logPayload() ) );
+	await logFlush();
+
+	const literals = [
+		fixture.pageNums().getAttribute( 'aria-label' ),
+		...fixture.pageNums().children.map( ( node ) => node.textContent ),
+		fixture.footer().querySelector( '.rk-filter-clear' ).textContent
+	]
+		.filter( ( text ) => text.startsWith( 'translated:' ) )
+		.map( ( text ) => text.slice( 'translated:'.length ) );
+
+	[ 'Submission log pages', 'Previous', 'Next', 'Clear filters' ].forEach( ( literal ) => {
+		assert.ok( literals.includes( literal ), literal + ' must be built through __()' );
+		assert.ok(
+			php.includes( "'" + literal + "'" ),
+			literal + ' must exist in the PHP view so both share one translation'
+		);
+	} );
+} );
+
+test( 'logPageNumbers does not shadow the global window object', () => {
+	assert.doesNotMatch( source( 'instant-indexing-admin.js' ), /var window\s*=/ );
+} );

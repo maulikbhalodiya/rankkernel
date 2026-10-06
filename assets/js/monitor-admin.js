@@ -6,7 +6,7 @@
  */
 document.addEventListener( 'DOMContentLoaded', function () {
 	// Announcement is best effort by contract: speak when wp.a11y is present, stay silent otherwise.
-	function rkAnnounce( text ) {
+	function rankkernelAnnounce( text ) {
 		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
 			return;
 		}
@@ -25,7 +25,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 	confirmLinks.forEach( function ( link ) {
 		link.addEventListener( 'click', function ( event ) {
-			var message = link.getAttribute( 'data-rk-confirm' ) || 'Are you sure?';
+			var message = link.getAttribute( 'data-rk-confirm' ) || __( 'Are you sure?', 'rankkernel' );
 
 			if ( ! window.confirm( message ) ) {
 				event.preventDefault();
@@ -40,7 +40,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			var action = document.getElementById( 'rk-bulk-action' );
 
 			if ( action && 'delete' === action.value ) {
-				var message = bulkForm.getAttribute( 'data-rk-confirm' ) || 'Are you sure?';
+				var message = bulkForm.getAttribute( 'data-rk-confirm' ) || __( 'Are you sure?', 'rankkernel' );
 
 				if ( ! window.confirm( message ) ) {
 					event.preventDefault();
@@ -53,7 +53,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 	if ( clearForm ) {
 		clearForm.addEventListener( 'submit', function ( event ) {
-			var message = clearForm.getAttribute( 'data-rk-confirm' ) || 'Are you sure?';
+			var message = clearForm.getAttribute( 'data-rk-confirm' ) || __( 'Are you sure?', 'rankkernel' );
 
 			if ( ! window.confirm( message ) ) {
 				event.preventDefault();
@@ -71,7 +71,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				box.checked = selectAll.checked;
 			} );
 
-			rkAnnounce( selectAll.checked
+			rankkernelAnnounce( selectAll.checked
 				? __( 'All 404 entries selected.', 'rankkernel' )
 				: __( 'All 404 entries deselected.', 'rankkernel' ) );
 		} );
@@ -94,7 +94,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				lastInput.focus();
 			}
 
-			rkAnnounce( __( 'Exclusion row added.', 'rankkernel' ) );
+			rankkernelAnnounce( __( 'Exclusion row added.', 'rankkernel' ) );
 		} );
 
 		exclusionBody.addEventListener( 'click', function ( event ) {
@@ -129,7 +129,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					focusInput.focus();
 				}
 
-				rkAnnounce( __( 'Exclusion row removed.', 'rankkernel' ) );
+				rankkernelAnnounce( __( 'Exclusion row removed.', 'rankkernel' ) );
 			} else {
 				var input = row.querySelector( 'input' );
 
@@ -138,7 +138,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					input.focus();
 				}
 
-				rkAnnounce( __( 'Exclusion row cleared.', 'rankkernel' ) );
+				rankkernelAnnounce( __( 'Exclusion row cleared.', 'rankkernel' ) );
 			}
 		} );
 	}
