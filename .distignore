@@ -1,0 +1,16 @@
+.git
+.github
+.audit-prompts
+.coderabbit.yaml
+.opencode-reviewer.yml
+AGENTS.md
+docs/
+tests/
+vendor/
+node_modules/
+composer.lock
+phpstan*
+phpunit.xml
+phpcs.xml
+.gitignore
+README.md
