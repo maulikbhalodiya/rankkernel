@@ -389,6 +389,69 @@ test( 'redirects-admin announces the applied recommended destination', () => {
 	assert.deepEqual( spoken, [ 'rankkernel:Recommended destination applied to Destination URL field.' ] );
 } );
 
+test( 'monitor-admin translates the confirm fallback and keeps the raw text without wp.i18n', () => {
+	const confirmLink = fakeNode();
+	const bulkForm = fakeNode();
+	const bulkAction = fakeNode( { value: 'delete' } );
+	const clearForm = fakeNode();
+	const document = fakeDocument(
+		{ 'rk-bulk-form': bulkForm, 'rk-bulk-action': bulkAction, 'rk-clear-form': clearForm },
+		{ '.rk-monitor .rk-confirm': [ confirmLink ] }
+	);
+	const messages = [];
+
+	run( 'monitor-admin.js', document, translatingWp( [] ), {
+		confirm( message ) {
+			messages.push( message );
+
+			return true;
+		}
+	} );
+
+	document.handlers.forEach( ( handler ) => handler() );
+	confirmLink.fire( 'click' );
+	bulkForm.fire( 'submit' );
+	clearForm.fire( 'submit' );
+
+	assert.deepEqual( messages, [
+		'rankkernel:Are you sure?',
+		'rankkernel:Are you sure?',
+		'rankkernel:Are you sure?'
+	] );
+} );
+
+test( 'monitor-admin keeps the raw confirm fallback without wp.i18n', () => {
+	const confirmLink = fakeNode();
+	const document = fakeDocument( {}, { '.rk-monitor .rk-confirm': [ confirmLink ] } );
+	const messages = [];
+
+	run( 'monitor-admin.js', document, speakingWp( [] ), {
+		confirm( message ) {
+			messages.push( message );
+
+			return true;
+		}
+	} );
+
+	document.handlers.forEach( ( handler ) => handler() );
+	confirmLink.fire( 'click' );
+
+	assert.deepEqual( messages, [ 'Are you sure?' ] );
+} );
+
+test( 'monitor-admin names its announce helper rankkernelAnnounce, not rkAnnounce', () => {
+	const code = source( 'monitor-admin.js' );
+
+	assert.match( code, /function rankkernelAnnounce\( text \) \{/ );
+	assert.equal(
+		( code.match( /rankkernelAnnounce\(/g ) || [] ).length,
+		5,
+		'the helper and all four call sites must use the prefixed name'
+	);
+	assert.doesNotMatch( code, /\bfunction rkAnnounce\b/ );
+	assert.doesNotMatch( code, /\brkAnnounce\(/ );
+} );
+
 test( 'settings-admin announces a section load under a private prefixed helper', async () => {
 	const spoken = [];
 	const fixture = settingsFixture();
@@ -539,7 +602,8 @@ test( 'every announcement literal is a direct translation argument for the WordP
 			'All 404 entries deselected.',
 			'Exclusion row added.',
 			'Exclusion row removed.',
-			'Exclusion row cleared.'
+			'Exclusion row cleared.',
+			'Are you sure?'
 		],
 		'redirects-admin.js': [
 			'All redirects selected.',
