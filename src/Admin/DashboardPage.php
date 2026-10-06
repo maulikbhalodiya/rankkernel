@@ -47,6 +47,7 @@ final class DashboardPage {
 		'gutenberg'        => 'An editor sidebar with analysis and previews. Planned.',
 		'ai'               => 'Bring your own key AI tools. Planned.',
 		'headless'         => 'A read only REST payload for headless builds. Planned.',
+		'importer'         => 'One click import from Yoast, Rank Math and SEOPress. Planned.',
 	];
 
 	/**

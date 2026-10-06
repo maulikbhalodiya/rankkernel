@@ -45,7 +45,7 @@ final class ModuleRegistryTest extends TestCase {
 		$all = ModuleRegistry::all();
 
 		$this->assertSame( ModuleRegistry::MODULES, $all );
-		$this->assertCount( 13, $all );
+		$this->assertCount( 14, $all );
 		$this->assertArrayHasKey( 'metadata', $all );
 		$this->assertSame( 'Metadata Engine', $all['metadata'] );
 		$this->assertArrayHasKey( 'analysis', $all );
@@ -64,6 +64,7 @@ final class ModuleRegistryTest extends TestCase {
 		$this->assertContains( '404', $ids );
 		$this->assertContains( 'image-seo', $ids );
 		$this->assertContains( 'headless', $ids );
+		$this->assertContains( 'importer', $ids );
 	}
 
 	/**
@@ -91,6 +92,8 @@ final class ModuleRegistryTest extends TestCase {
 		$this->assertSame( 'Robots.txt & .htaccess', ModuleRegistry::label( 'robots' ) );
 		$this->assertSame( 'Headless', ModuleRegistry::label( 'headless' ) );
 		$this->assertContains( 'image-seo', ModuleRegistry::PLANNED );
+		$this->assertContains( 'importer', ModuleRegistry::PLANNED );
+		$this->assertTrue( ModuleRegistry::isPlanned( 'importer' ) );
 		$this->assertTrue( ModuleRegistry::isPlanned( 'ai' ) );
 		$this->assertFalse( ModuleRegistry::isPlanned( 'metadata' ) );
 	}

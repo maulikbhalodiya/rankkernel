@@ -205,6 +205,16 @@ final class RestControllersTest extends TestCase {
 		$this->assertSame( 'rankkernel_module_planned', $res->get_error_code() );
 		$this->assertStringContainsString( 'planned', strtolower( $res->get_error_message() ) );
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+
+		$req2 = Mockery::mock( \WP_REST_Request::class );
+		$req2->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'importer' );
+		$req2->shouldReceive( 'get_json_params' )->andReturn( [ 'enabled' => true ] );
+		$req2->shouldReceive( 'get_params' )->andReturn( [ 'enabled' => true ] );
+
+		$res2 = $ctrl->toggleModule( $req2 );
+
+		$this->assertInstanceOf( \WP_Error::class, $res2 );
+		$this->assertSame( 'rankkernel_module_planned', $res2->get_error_code() );
 	}
 
 	/**

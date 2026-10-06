@@ -106,6 +106,7 @@ $rk_module_icons = [
 	'gutenberg'        => 'add',
 	'ai'               => 'auto_fix_high',
 	'headless'         => 'link',
+	'importer'         => 'download',
 ];
 
 $rk_attention_label = 1 === $rk_attention_count

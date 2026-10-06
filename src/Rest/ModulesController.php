@@ -52,6 +52,7 @@ final class ModulesController {
 		'gutenberg',
 		'ai',
 		'headless',
+		'importer',
 	];
 
 	/**

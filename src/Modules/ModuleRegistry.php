@@ -35,6 +35,7 @@ final class ModuleRegistry {
 		'gutenberg'        => 'Gutenberg Suite',
 		'ai'               => 'AI Suite (BYO Key)',
 		'headless'         => 'Headless',
+		'importer'         => 'Importer',
 	];
 
 	/**
@@ -43,7 +44,7 @@ final class ModuleRegistry {
 	 *
 	 * @var string[]
 	 */
-	public const PLANNED = [ 'image-seo', 'gutenberg', 'ai', 'headless' ];
+	public const PLANNED = [ 'image-seo', 'gutenberg', 'ai', 'headless', 'importer' ];
 
 	/**
 	 * Get all modules as id => label.
