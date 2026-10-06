@@ -284,8 +284,8 @@ final class AdminMenu {
 		// this the submenu would read RankKernel and repeat the top level label.
 		add_submenu_page(
 			'rankkernel',
-			'Dashboard',
-			'Dashboard',
+			esc_html__( 'Dashboard', 'rankkernel' ),
+			esc_html__( 'Dashboard', 'rankkernel' ),
 			'manage_options',
 			DashboardPage::SLUG,
 			[ $this, 'renderDashboard' ]
@@ -298,8 +298,8 @@ final class AdminMenu {
 
 		$sitemapHook = add_submenu_page(
 			'rankkernel',
-			'Sitemap Settings',
-			'Sitemap',
+			esc_html__( 'Sitemap Settings', 'rankkernel' ),
+			esc_html__( 'Sitemap', 'rankkernel' ),
 			'manage_options',
 			'rankkernel-sitemap',
 			[ $this, 'renderSitemap' ]
@@ -359,8 +359,8 @@ final class AdminMenu {
 	public function addGeneralPage(): void {
 		$hook = add_submenu_page(
 			'rankkernel',
-			'General Settings',
-			'General Settings',
+			esc_html__( 'General Settings', 'rankkernel' ),
+			esc_html__( 'General Settings', 'rankkernel' ),
 			'manage_options',
 			'rankkernel-general',
 			[ $this, 'renderGeneral' ]
@@ -407,8 +407,8 @@ final class AdminMenu {
 	public function addSchemaPage(): void {
 		$hook = add_submenu_page(
 			'rankkernel',
-			'Schema Settings',
-			'Schema',
+			esc_html__( 'Schema Settings', 'rankkernel' ),
+			esc_html__( 'Schema', 'rankkernel' ),
 			'manage_options',
 			'rankkernel-schema',
 			[ $this, 'renderSchema' ]
@@ -455,8 +455,8 @@ final class AdminMenu {
 	public function addRedirectsPage(): void {
 		$hook = add_submenu_page(
 			'rankkernel',
-			'Redirects',
-			'Redirects',
+			esc_html__( 'Redirects', 'rankkernel' ),
+			esc_html__( 'Redirects', 'rankkernel' ),
 			'manage_options',
 			'rankkernel-redirects',
 			[ $this, 'renderRedirects' ]
@@ -503,8 +503,8 @@ final class AdminMenu {
 	public function addMonitorPage(): void {
 		$hook = add_submenu_page(
 			'rankkernel',
-			'404 Monitor',
-			'404 Monitor',
+			esc_html__( '404 Monitor', 'rankkernel' ),
+			esc_html__( '404 Monitor', 'rankkernel' ),
 			'manage_options',
 			'rankkernel-404',
 			[ $this, 'renderMonitor' ]
@@ -551,8 +551,8 @@ final class AdminMenu {
 	public function addInstantIndexingPage(): void {
 		$hook = add_submenu_page(
 			'rankkernel',
-			'Instant Indexing',
-			'Instant Indexing',
+			esc_html__( 'Instant Indexing', 'rankkernel' ),
+			esc_html__( 'Instant Indexing', 'rankkernel' ),
 			'manage_options',
 			InstantIndexingPage::SLUG,
 			[ $this, 'renderInstantIndexing' ]
