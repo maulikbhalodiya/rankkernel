@@ -28,9 +28,77 @@ final class HtaccessFile {
 	public function path(): string {
 		$default = defined( 'ABSPATH' ) ? ABSPATH . '.htaccess' : '';
 
-		$path = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		$filtered = apply_filters( 'rankkernel/htaccess/path', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		if ( ! is_string( $filtered ) || '' === $filtered || $filtered === $default ) {
+			return $default;
+		}
+
+		return $this->containedPath( $filtered, $default );
+	}
+
+	/**
+	 * Keep a filtered path only when it resolves inside the site root.
+	 *
+	 * Rejects null bytes, relative paths and symlinks, then validates that both
+	 * the parent directory and the file itself, when it already exists, resolve
+	 * inside ABSPATH.
+	 *
+	 * @param string $path Filtered path.
+	 * @param string $fallback Default path.
+	 * @return string The result.
+	 */
+	private function containedPath( string $path, string $fallback ): string {
+		// A null byte makes later filesystem calls raise a ValueError, and a
+		// relative path would be resolved against the current working directory
+		// rather than the site root, so neither can be checked for containment.
+		if ( false !== strpos( $path, "\0" ) || '/' !== $path[0] ) {
+			return $fallback;
+		}
+
+		// Rejecting a symlink outright is what closes the dangling symlink case.
+		// A link whose target does not exist yet fails both file_exists() and
+		// realpath(), so a leaf check gated on either would be skipped while a
+		// later write still followed the link to a target outside the root.
+		if ( is_link( $path ) ) {
+			return $fallback;
+		}
+
+		if ( ! function_exists( 'wp_normalize_path' ) ) {
+			return $fallback;
+		}
+
+		$root = realpath( ABSPATH );
+		$dir  = realpath( dirname( $path ) );
+
+		if ( false === $root || false === $dir ) {
+			return $fallback;
+		}
+
+		$rootNorm = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dirNorm  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+
+		if ( ! str_starts_with( $dirNorm, $rootNorm ) ) {
+			return $fallback;
+		}
+
+		if ( file_exists( $path ) ) {
+			$realPath = realpath( $path );
+
+			if ( false === $realPath ) {
+				return $fallback;
+			}
+
+			$fileNorm = wp_normalize_path( $realPath );
+
+			if ( ! str_starts_with( $fileNorm, $rootNorm ) ) {
+				return $fallback;
+			}
+
+			return $realPath;
+		}
+
+		return $path;
 	}
 
 	/**
