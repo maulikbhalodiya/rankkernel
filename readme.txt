@@ -1,8 +1,8 @@
-=== RankKernel, Free SEO & Schema Engine ===
+=== RankKernel – Free SEO & Schema Engine ===
 Contributors: maulikbhalodiya
 Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 8.2
 Stable tag: 0.1.0
 License: GPLv2 or later
@@ -12,7 +12,22 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 
-RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor and IndexNow, all free, forever.
+RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress, all free, forever:
+
+* Metadata engine (titles, meta descriptions, robots, canonical, Open Graph, Twitter cards)
+* Content analysis
+* XML sitemaps
+* Schema (JSON-LD)
+* Breadcrumbs
+* Redirects
+* 404 monitor
+* Robots.txt editors
+* IndexNow instant indexing
+* REST API (`rankkernel/v1`)
+* Versioned migrations
+* Uninstall purge
+
+Modules are hard-gated: a module that is off is never loaded.
 
 Hard-gated modules, single-row metadata. A module that is off is never loaded: no hooks, no queries, no bloat.
 
@@ -36,7 +51,7 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 == Changelog ==
 
 = 0.1.0 =
-* Initial release: bootstrap, ModuleManager, SettingsStore, REST controllers.
+* Initial release: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, robots, IndexNow, REST API, migrations, uninstall purge, plus bootstrap, ModuleManager and SettingsStore.
 
 == Upgrade Notice ==
 
