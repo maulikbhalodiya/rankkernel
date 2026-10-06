@@ -9,6 +9,7 @@
  * Author URI: https://github.com/maulikbhalodiya
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Network: false
  * Text Domain: rankkernel
  * Domain Path: /languages
  *
