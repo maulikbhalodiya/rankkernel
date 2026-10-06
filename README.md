@@ -2,7 +2,7 @@
 
 > 100% free, lightweight SEO for WordPress, no paywalls, no upsell banners, no telemetry.
 
-**Status: work in progress (v0.1.0-dev, foundation).** Not yet submitted to WordPress.org.
+**Status: stable release 0.1.0.** Not yet submitted to WordPress.org.
 
 ## What makes it different
 
@@ -11,17 +11,25 @@
 - **Clean uninstall, by design.** Purge is an explicit, user-controlled choice.
 - **Zero telemetry.** No external requests except endpoints you explicitly configure.
 
-## Shipped (foundation)
+## Shipped (V1)
 
 - Module system with a hard gate (zero cost when disabled)
 - Metadata Engine: title, meta description, robots, canonical, Open Graph, Twitter cards
+- Content Analysis
+- XML Sitemaps
+- Schema (JSON-LD)
+- Breadcrumbs
+- Redirects
+- 404 Monitor
+- Robots.txt editors
+- Instant Indexing (IndexNow)
 - REST API (`rankkernel/v1`): settings + module toggles
 - Versioned migrations with a safe failure ledger
 - Guarded bootstrap, activation requirement checks, uninstall purge
 
 ## Roadmap
 
-XML sitemaps (cache ON) · Schema/JSON-LD · Breadcrumbs · Redirects (cache-first) · 404 monitor · Instant Indexing (IndexNow) · Robots editors · Importer (Yoast/Rank Math/SEOPress) · Gutenberg suite · AI suite (bring-your-own-key) · Headless payload
+Importer (Yoast/Rank Math/SEOPress) · Image SEO · Internal Linking · AI suite (bring-your-own-key) · WooCommerce · Local SEO · News SEO · Video SEO · Headless
 
 ## Requirements
 

@@ -1,0 +1,1 @@
+This directory is intentionally empty: WordPress auto-loads translations from wordpress.org since 4.6, so no local .mo files ship here. It exists so the plugin header's 'Domain Path: /languages' resolves to a real directory.

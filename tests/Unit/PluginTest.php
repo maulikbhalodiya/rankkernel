@@ -77,7 +77,6 @@ final class PluginTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( [] );
 		Functions\when( 'get_term_meta' )->justReturn( [] );
 		Functions\when( 'do_action' )->justReturn( null );
-		Functions\when( 'load_plugin_textdomain' )->justReturn( true );
 		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
 			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
 		}
@@ -150,7 +149,6 @@ final class PluginTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( [] );
 		Functions\when( 'get_term_meta' )->justReturn( [] );
 		Functions\when( 'do_action' )->justReturn( null );
-		Functions\when( 'load_plugin_textdomain' )->justReturn( true );
 
 		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
 			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
@@ -385,53 +383,5 @@ final class PluginTest extends TestCase {
 		$output_escaped = ob_get_clean();
 		$this->assertStringNotContainsString( '<script>', $output_escaped, 'Conflict names must not be emitted as raw HTML' );
 		$this->assertStringContainsString( '&lt;script&gt;', $output_escaped, 'Conflict names must pass through esc_html' );
-	}
-
-	/**
-	 * Test the init text domain closure returns early without the plugin file constant.
-	 *
-	 * Runs in a separate process so RANKKERNEL_FILE is genuinely undefined,
-	 * reproducing the fatal the guard prevents.
-	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState( false )]
-	public function test_init_closure_returns_early_without_the_plugin_file_constant(): void {
-		$this->assertFalse( defined( 'RANKKERNEL_FILE' ), 'The isolated process must start without the plugin file constant' );
-
-		$initCallbacks = [];
-		$calls         = [];
-
-		Functions\when( 'add_action' )->alias(
-			static function ( string $hook, mixed $callback ) use ( &$initCallbacks ): bool {
-				if ( 'init' === $hook && $callback instanceof \Closure ) {
-					$initCallbacks[] = $callback;
-				}
-
-				return true;
-			}
-		);
-		Functions\when( 'load_plugin_textdomain' )->alias(
-			static function ( string $domain, mixed $deprecated = false, string $pluginRelPath = '' ) use ( &$calls ): bool {
-				unset( $deprecated );
-				$calls[] = [ $domain, $pluginRelPath ];
-
-				return true;
-			}
-		);
-		Functions\when( 'get_option' )->justReturn( [] );
-		Functions\when( 'get_post_meta' )->justReturn( [] );
-		Functions\when( 'get_term_meta' )->justReturn( [] );
-		Functions\when( 'do_action' )->justReturn( null );
-
-		$plugin = Plugin::getInstance();
-		$plugin->registerCoreServices();
-
-		$this->assertCount( 1, $initCallbacks, 'The plugin must register exactly one init closure' );
-
-		foreach ( $initCallbacks as $callback ) {
-			$callback();
-		}
-
-		$this->assertSame( [], $calls, 'The init closure must return early when RANKKERNEL_FILE is undefined' );
 	}
 }

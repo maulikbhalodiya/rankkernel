@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Redirects\CsvHandler;
 use RankKernel\Modules\Redirects\DestinationValidator;
+use RankKernel\Modules\Redirects\Matcher;
 use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
@@ -1454,6 +1455,12 @@ final class RedirectsPage {
 	 */
 	private function regexCompiles( string $pattern ): bool {
 		if ( '' === $pattern || strlen( $pattern ) > 200 ) {
+			return false;
+		}
+
+		// Refuse catastrophic shapes at save time too, so the admin gets told
+		// instead of storing a rule the runtime matcher will never evaluate.
+		if ( Matcher::is_catastrophic_pattern( $pattern ) ) {
 			return false;
 		}
 

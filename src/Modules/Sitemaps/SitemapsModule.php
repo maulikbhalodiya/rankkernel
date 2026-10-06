@@ -239,7 +239,10 @@ class SitemapsModule implements ModuleInterface {
 
 		$screen = get_current_screen();
 
-		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || ! str_contains( (string) $screen->id, 'rankkernel' ) ) {
+		// Scope the notice to the Sitemap settings screen only. The state it
+		// reports is configured there, so showing it on every RankKernel
+		// screen was noise the user could not permanently dismiss.
+		if ( ! is_object( $screen ) || ! property_exists( $screen, 'id' ) || \RankKernel\Admin\SitemapSettingsPage::HOOK_SUFFIX !== (string) $screen->id ) {
 			return;
 		}
 

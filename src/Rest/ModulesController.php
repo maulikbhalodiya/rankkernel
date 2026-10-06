@@ -136,6 +136,14 @@ final class ModulesController {
 			);
 		}
 
+		if ( ModuleRegistry::isPlanned( $moduleId ) ) {
+			return new WP_Error(
+				'rankkernel_module_planned',
+				esc_html__( 'This module is planned and cannot be enabled yet.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
 		$params = $request->get_json_params();
 		if ( ! is_array( $params ) ) {
 			$params = $request->get_params();

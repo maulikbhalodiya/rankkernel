@@ -27,14 +27,14 @@
  *
  * The Quick Actions card and the module search have no handler on this screen,
  * so both render static and disabled rather than dead on click. The module
- * toggles are real: every row posts the module id the form always posted, and
- * a planned module keeps its toggle for the same reason.
+ * toggles are real: every row posts the module id the form always posted.
+ * Planned modules render a disabled switch and never post to the toggle.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
  * @var bool  $settingsUpdated Whether the module toggled notice renders.
- * @var array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string}> $cards Module cards.
+ * @var array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string, planned: bool}> $cards Module cards.
  */
 
 declare(strict_types=1);
@@ -57,7 +57,7 @@ foreach ( $cards as $rk_card ) {
 		++$rk_active_modules;
 	}
 
-	if ( str_contains( (string) $rk_card['description'], 'Planned.' ) ) {
+	if ( ! empty( $rk_card['planned'] ) || str_contains( (string) $rk_card['description'], 'Planned.' ) ) {
 		$rk_planned_cards[] = $rk_card;
 
 		continue;
@@ -298,7 +298,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 						</div>
 					</div>
 
-					<?php /* Planned modules. They are not implemented, and their toggles stay real, because the stored option can already hold them. */ ?>
+					<?php /* Planned modules. They are not implemented, so no toggle form is rendered and nothing posts to the REST toggle. */ ?>
 					<div class="rk-dashboard-module-group" id="rk-modules-planned">
 						<div class="rk-dashboard-group-head">
 							<span class="rk-dashboard-group-dot" aria-hidden="true"></span>
@@ -318,24 +318,14 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 									</div>
 									<div class="rk-dashboard-module-actions">
 										<span class="rk-dashboard-module-planned-tag"><?php echo esc_html__( 'Planned', 'rankkernel' ); ?></span>
-										<form method="post" action="" class="rk-dashboard-module-toggle">
-											<?php wp_nonce_field( 'rankkernel_module_toggle' ); ?>
-											<input type="hidden" name="rankkernel_module_toggle" value="<?php echo esc_attr( $card['id'] ); ?>" />
-											<?php
-											$toggleAriaLabel = $card['enabled']
-												? sprintf(
-													/* translators: %s: module name */
-													__( 'Turn off %s module', 'rankkernel' ),
-													$card['label']
-												)
-												: sprintf(
-													/* translators: %s: module name */
-													__( 'Turn on %s module', 'rankkernel' ),
-													$card['label']
-												);
-											?>
-											<button type="submit" class="rk-dashboard-switch<?php echo $card['enabled'] ? ' is-on' : ''; ?>" role="switch" aria-checked="<?php echo $card['enabled'] ? 'true' : 'false'; ?>" aria-label="<?php echo esc_attr( $toggleAriaLabel ); ?>"><span class="rk-dashboard-switch-knob" aria-hidden="true"></span></button>
-										</form>
+										<?php
+										$plannedAriaLabel = sprintf(
+											/* translators: %s: module name */
+											__( '%s module is planned and cannot be enabled yet', 'rankkernel' ),
+											$card['label']
+										);
+										?>
+										<button type="button" class="rk-dashboard-switch" role="switch" aria-checked="false" aria-disabled="true" disabled aria-label="<?php echo esc_attr( $plannedAriaLabel ); ?>"><span class="rk-dashboard-switch-knob" aria-hidden="true"></span></button>
 									</div>
 								</div>
 							<?php endforeach; ?>

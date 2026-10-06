@@ -32,11 +32,19 @@ final class ModuleRegistry {
 		'404'              => '404 Monitor',
 		'instant-indexing' => 'Instant Indexing (IndexNow)',
 		'robots'           => 'Robots.txt & .htaccess',
-		'image-seo'        => 'Image SEO',
-		'gutenberg'        => 'Gutenberg Suite',
-		'ai'               => 'AI Suite (BYO Key)',
-		'headless'         => 'Headless',
+		'image-seo'        => 'Automatic image alt and title patterns. Planned.',
+		'gutenberg'        => 'An editor sidebar with analysis and previews. Planned.',
+		'ai'               => 'Bring your own key AI tools. Planned.',
+		'headless'         => 'A read only REST payload for headless builds. Planned.',
 	];
+
+	/**
+	 * Module ids that are planned: visible to the owner as coming soon,
+	 * but never toggleable and never booted, even if present in the option.
+	 *
+	 * @var string[]
+	 */
+	public const PLANNED = [ 'image-seo', 'gutenberg', 'ai', 'headless', 'importer' ];
 
 	/**
 	 * Get all modules as id => label.
@@ -64,6 +72,16 @@ final class ModuleRegistry {
 	 */
 	public static function has( string $id ): bool {
 		return array_key_exists( $id, self::MODULES );
+	}
+
+	/**
+	 * Whether a module id is planned (visible but not toggleable).
+	 *
+	 * @param string $id Id.
+	 * @return bool The result.
+	 */
+	public static function isPlanned( string $id ): bool {
+		return in_array( $id, self::PLANNED, true );
 	}
 
 	/**

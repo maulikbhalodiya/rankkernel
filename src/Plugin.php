@@ -228,18 +228,6 @@ final class Plugin {
 				$logController->registerRoutes();
 			}
 		);
-
-		// Load text domain on init.
-		add_action(
-			'init',
-			static function (): void {
-				if ( ! defined( 'RANKKERNEL_FILE' ) || ! function_exists( 'plugin_basename' ) || ! function_exists( 'load_plugin_textdomain' ) ) {
-					return;
-				}
-
-				load_plugin_textdomain( 'rankkernel', false, dirname( plugin_basename( RANKKERNEL_FILE ) ) . '/languages' );
-			}
-		);
 	}
 
 	/**

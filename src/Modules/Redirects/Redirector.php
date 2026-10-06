@@ -94,10 +94,41 @@ final class Redirector {
 	}
 
 	/**
-	 * Register the dispatch hook.
+	 * Register the dispatch hook and the safe-redirect host allowlist.
 	 */
 	public function register(): void {
 		add_action( 'template_redirect', [ $this, 'maybeRedirect' ], 1 );
+		add_filter( 'allowed_redirect_hosts', [ $this, 'allowRedirectHosts' ] );
+	}
+
+	/**
+	 * Register the plugin allowlist with WordPress's safe-redirect check.
+	 *
+	 * The wp_safe_redirect() call validates the destination through
+	 * wp_validate_redirect(), which only permits the site host plus the hosts
+	 * this filter returns. The plugin's own policy (DestinationValidator plus the
+	 * rankkernel/redirect/allowed_hosts filter) already decided the host is
+	 * allowed, so both lists have to agree, or an allowlisted external redirect
+	 * is silently rewritten to the admin URL. The allowlist is empty by default,
+	 * so nothing is added unless a site opts in.
+	 *
+	 * @param string[] $hosts Hosts WordPress already allows.
+	 * @return string[] Hosts plus the plugin allowlist.
+	 */
+	public function allowRedirectHosts( $hosts ): array {
+		if ( ! is_array( $hosts ) ) {
+			$hosts = [];
+		}
+
+		foreach ( $this->allowedHosts() as $host ) {
+			$lower = strtolower( $host );
+
+			if ( ! in_array( $lower, $hosts, true ) ) {
+				$hosts[] = $lower;
+			}
+		}
+
+		return $hosts;
 	}
 
 	/**
@@ -200,8 +231,7 @@ final class Redirector {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- binding plan requires wp_redirect here, the destination passed through DestinationValidator with the scheme allowlist plus the external host allowlist before sending.
-		wp_redirect( $destination, (int) $code );
+		wp_safe_redirect( $destination, (int) $code );
 
 		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
 			exit;

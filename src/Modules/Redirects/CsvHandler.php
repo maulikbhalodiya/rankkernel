@@ -732,6 +732,12 @@ final class CsvHandler {
 			return false;
 		}
 
+		// Mirror the runtime matcher: a catastrophic shape is refused here as
+		// well, so an import cannot seed a rule that never evaluates.
+		if ( Matcher::is_catastrophic_pattern( $pattern ) ) {
+			return false;
+		}
+
 		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
 
 		// Bounded compile probe for an imported pattern. The probe handler

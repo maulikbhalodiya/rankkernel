@@ -118,7 +118,7 @@ final class LogTable {
 
 		// Custom table existence probe, single prepared SHOW statement, fail open guard.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 
 		$exists                      = is_string( $found ) && $found === $table;
 		self::$existsCache[ $table ] = $exists;

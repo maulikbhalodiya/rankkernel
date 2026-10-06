@@ -62,6 +62,9 @@ final class ModuleRegistryTest extends TestCase {
 		$this->assertSame( $expected, $ids );
 		$this->assertContains( 'sitemaps', $ids );
 		$this->assertContains( '404', $ids );
+		$this->assertContains( 'image-seo', $ids );
+		$this->assertContains( 'headless', $ids );
+		$this->assertContains( 'importer', $ids );
 	}
 
 	/**
@@ -70,6 +73,7 @@ final class ModuleRegistryTest extends TestCase {
 	public function test_has_returns_true_for_known(): void {
 		$this->assertTrue( ModuleRegistry::has( 'metadata' ) );
 		$this->assertTrue( ModuleRegistry::has( 'ai' ) );
+		$this->assertTrue( ModuleRegistry::has( 'gutenberg' ) );
 	}
 
 	/**
@@ -85,7 +89,14 @@ final class ModuleRegistryTest extends TestCase {
 	 */
 	public function test_label_returns_label_for_known(): void {
 		$this->assertSame( 'Metadata Engine', ModuleRegistry::label( 'metadata' ) );
-		$this->assertSame( 'Headless', ModuleRegistry::label( 'headless' ) );
+		$this->assertSame( 'Robots.txt & .htaccess', ModuleRegistry::label( 'robots' ) );
+		$this->assertSame( 'A read only REST payload for headless builds. Planned.', ModuleRegistry::label( 'headless' ) );
+		$this->assertSame( 'Importer', ModuleRegistry::label( 'importer' ) );
+		$this->assertContains( 'image-seo', ModuleRegistry::PLANNED );
+		$this->assertContains( 'importer', ModuleRegistry::PLANNED );
+		$this->assertTrue( ModuleRegistry::isPlanned( 'importer' ) );
+		$this->assertTrue( ModuleRegistry::isPlanned( 'ai' ) );
+		$this->assertFalse( ModuleRegistry::isPlanned( 'metadata' ) );
 	}
 
 	/**

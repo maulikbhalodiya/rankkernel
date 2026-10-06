@@ -177,7 +177,7 @@ final class RedirectsRedirectorTest extends TestCase {
 				return true;
 			}
 		);
-		Functions\when( 'wp_redirect' )->alias(
+		Functions\when( 'wp_safe_redirect' )->alias(
 			function ( string $location, int $status = 302 ): bool {
 				$this->redirects[] = [
 					'location' => $location,
@@ -602,5 +602,26 @@ final class RedirectsRedirectorTest extends TestCase {
 		$this->assertSame( [], $this->redirects, 'A throwing cache must not redirect' );
 		$this->assertSame( [], $this->statuses, 'A throwing cache must send no status' );
 		$this->assertContains( 'rankkernel/redirect/failed', $this->actions, 'The cache failure must be logged' );
+	}
+
+	/**
+	 * Test the plugin allowlist is registered with WordPress's safe-redirect check.
+	 */
+	public function test_allow_redirect_hosts_registers_plugin_allowlist(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/redirect/allowed_hosts' === $hook ) {
+					return [ 'External.Example' ];
+				}
+
+				return $value;
+			}
+		);
+
+		$redirector = $this->dispatcher();
+		$hosts      = $redirector->allowRedirectHosts( [ 'example.com' ] );
+
+		$this->assertContains( 'external.example', $hosts );
+		$this->assertContains( 'example.com', $hosts );
 	}
 }

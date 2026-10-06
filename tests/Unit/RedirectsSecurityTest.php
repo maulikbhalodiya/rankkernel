@@ -129,7 +129,7 @@ final class RedirectsSecurityTest extends TestCase {
 				return true;
 			}
 		);
-		Functions\when( 'wp_redirect' )->alias(
+		Functions\when( 'wp_safe_redirect' )->alias(
 			function ( string $location, int $status = 302 ): bool {
 				$this->redirects[] = [
 					'location' => $location,

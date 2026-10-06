@@ -643,9 +643,10 @@ final class RedirectRepository {
 	 * suits small selections only.
 	 *
 	 * @param int[] $ids Optional row ids, all rows when empty.
+	 * @param int   $limit Maximum rows returned, bounded so a huge table cannot be loaded whole.
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function export_rows( array $ids = [] ): array {
+	public function export_rows( array $ids = [], int $limit = 1000 ): array {
 		$db = $this->connection();
 
 		if ( null === $db ) {
@@ -666,13 +667,13 @@ final class RedirectRepository {
 		$clean = array_values( array_unique( $clean ) );
 
 		if ( [] === $clean ) {
-			$sql = "SELECT * FROM `{$table}` ORDER BY id ASC";
+			$sql = "SELECT * FROM `{$table}` ORDER BY id ASC LIMIT " . max( 1, $limit );
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, unbounded admin export with no user input.
 			$rows = $db->get_results( $sql, ARRAY_A );
 		} else {
 			$list = implode( ',', $clean );
-			$sql  = "SELECT * FROM `{$table}` WHERE id IN ({$list}) ORDER BY id ASC";
+			$sql  = "SELECT * FROM `{$table}` WHERE id IN ({$list}) ORDER BY id ASC LIMIT " . max( 1, $limit );
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
 			$rows = $db->get_results( $sql, ARRAY_A );

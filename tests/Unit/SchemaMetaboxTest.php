@@ -1448,7 +1448,6 @@ final class SchemaMetaboxTest extends TestCase {
 		Functions\when( 'get_post_meta' )->justReturn( [] );
 		Functions\when( 'get_term_meta' )->justReturn( [] );
 		Functions\when( 'do_action' )->justReturn( null );
-		Functions\when( 'load_plugin_textdomain' )->justReturn( true );
 	}
 
 	/**

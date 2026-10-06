@@ -1153,8 +1153,8 @@ final class TrailBuilder {
 	 * @return string The result.
 	 */
 	private function monthLabel( int $year, int $month ): string {
-		if ( function_exists( 'date_i18n' ) ) {
-			$label = date_i18n( 'F Y', (int) mktime( 0, 0, 0, $month, 1, $year ) );
+		if ( function_exists( 'date_i18n' ) && function_exists( 'current_datetime' ) ) {
+			$label = date_i18n( 'F Y', current_datetime()->setDate( $year, $month, 1 )->setTime( 0, 0 )->getTimestamp() );
 
 			if ( is_string( $label ) && '' !== $label ) {
 				return $label;
@@ -1173,8 +1173,8 @@ final class TrailBuilder {
 	 * @return string The result.
 	 */
 	private function dayLabel( int $year, int $month, int $day ): string {
-		if ( function_exists( 'date_i18n' ) ) {
-			$label = date_i18n( 'F j, Y', (int) mktime( 0, 0, 0, $month, $day, $year ) );
+		if ( function_exists( 'date_i18n' ) && function_exists( 'current_datetime' ) ) {
+			$label = date_i18n( 'F j, Y', current_datetime()->setDate( $year, $month, $day )->setTime( 0, 0 )->getTimestamp() );
 
 			if ( is_string( $label ) && '' !== $label ) {
 				return $label;

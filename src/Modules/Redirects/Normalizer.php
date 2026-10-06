@@ -64,6 +64,13 @@ final class Normalizer {
 			return '/';
 		}
 
+		// Reject backslash input: browsers treat `https://example\\@evil.com`-style
+		// backslashes as forward slashes, which is an open-redirect smuggling vector.
+		// Failing closed to root means no backslash ever flows toward Redirector.
+		if ( str_contains( $path, '\\' ) ) {
+			return '/';
+		}
+
 		if ( '/' === substr( $path, 0, 1 ) ) {
 			$cut  = strcspn( $path, '?#' );
 			$path = substr( $path, 0, $cut );

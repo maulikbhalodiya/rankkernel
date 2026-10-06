@@ -28,13 +28,13 @@
  */
 
 /* ==========================================================================
-   Page shell, a single column stack with a consistent gap, held to the
-   design measure and centred in the admin content column
+   Page shell, a single column stack with a consistent gap. It fills the
+   admin content column like the other RankKernel screens, with no width
+   cap and no centring, so it ends at the same edges as Settings, Redirects
+   and Instant Indexing.
    ========================================================================== */
 
 .rk-monitor {
-	max-width: 1140px;
-	margin-inline: auto;
 	padding: 0 0 var(--rk-space-6) 0;
 	display: flex;
 	flex-direction: column;
