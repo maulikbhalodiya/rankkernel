@@ -69,7 +69,7 @@ final class LlmsFileWriter {
 		}
 
 		$normPath   = function_exists( 'wp_normalize_path' ) ? wp_normalize_path( $path ) : $path;
-		$isAbsolute = '/' === $normPath[0] || ( strlen( $normPath ) >= 2 && ':' === $normPath[1] );
+		$isAbsolute = '/' === $normPath[0] || ( strlen( $normPath ) >= 3 && ':' === $normPath[1] && '/' === $normPath[2] );
 
 		if ( ! $isAbsolute ) {
 			return $fallback;
