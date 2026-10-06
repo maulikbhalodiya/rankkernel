@@ -73,7 +73,17 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 			<p id="rk-title-template-hint" class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
-					<code class="rk-token-chip"><?php echo esc_html( $templateToken ); ?></code>
+					<?php
+					/* translators: %s: template token name, for example %%title%% */
+					$titleTokenLabel = sprintf( __( 'Insert %s token into title template', 'rankkernel' ), $templateToken );
+					?>
+					<button
+						type="button"
+						class="rk-token-chip"
+						data-token="<?php echo esc_attr( $templateToken ); ?>"
+						data-target="rk-title-template"
+						aria-label="<?php echo esc_attr( $titleTokenLabel ); ?>"
+					><?php echo esc_html( $templateToken ); ?></button>
 				<?php endforeach; ?>
 			</div>
 		</div>
@@ -83,7 +93,17 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 			<p id="rk-desc-template-hint" class="rk-ui-hint"><?php echo esc_html__( 'Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%', 'rankkernel' ); ?></p>
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
-					<code class="rk-token-chip"><?php echo esc_html( $templateToken ); ?></code>
+					<?php
+					/* translators: %s: template token name, for example %%title%% */
+					$descTokenLabel = sprintf( __( 'Insert %s token into description template', 'rankkernel' ), $templateToken );
+					?>
+					<button
+						type="button"
+						class="rk-token-chip"
+						data-token="<?php echo esc_attr( $templateToken ); ?>"
+						data-target="rk-desc-template"
+						aria-label="<?php echo esc_attr( $descTokenLabel ); ?>"
+					><?php echo esc_html( $templateToken ); ?></button>
 				<?php endforeach; ?>
 			</div>
 		</div>

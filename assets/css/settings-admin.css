@@ -409,6 +409,20 @@
 	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
 	line-height: var(--rk-line-height-normal);
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rk-token-chip:hover {
+	border-color: var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary);
+}
+
+.rk-token-chip:focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 1px;
+	border-color: var(--rk-color-primary);
 }
 
 /* A prefix mark sitting inside a field, such as the at sign on the X handle. */
@@ -1083,6 +1097,7 @@
 	.rk-settings-input,
 	.rk-code-editor,
 	.rk-settings-pill,
+	.rk-token-chip,
 	.rk-robots-tabs .rk-tab,
 	.rk-settings-disclosure > summary .rk-icon {
 		transition: none;

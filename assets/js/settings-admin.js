@@ -18,6 +18,12 @@
 			return text;
 		};
 
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			return String( text || '' ).replace( '%s', String( param || '' ) );
+		};
+
 	/**
 	 * Speak an accessible announcement when wp.a11y is available.
 	 *
@@ -144,6 +150,42 @@
 			var node = event.target;
 
 			if ( ! node || ! node.closest ) {
+				return;
+			}
+
+			var chip = node.closest( '.rk-token-chip' );
+
+			if ( chip ) {
+				event.preventDefault();
+				var token = chip.getAttribute( 'data-token' );
+				var targetId = chip.getAttribute( 'data-target' );
+				var input = targetId ? document.getElementById( targetId ) : null;
+
+				if ( token && input ) {
+					var start = input.selectionStart;
+					var end = input.selectionEnd;
+					var val = input.value || '';
+
+					if ( 'number' === typeof start && 'number' === typeof end ) {
+						input.value = val.substring( 0, start ) + token + val.substring( end );
+						input.selectionStart = input.selectionEnd = start + token.length;
+					} else {
+						input.value = val + token;
+					}
+
+					if ( 'function' === typeof input.focus ) {
+						input.focus();
+					}
+					var evt;
+					try {
+						evt = new Event( 'input', { bubbles: true } );
+					} catch ( err ) {
+						evt = document.createEvent( 'Event' );
+						evt.initEvent( 'input', true, true );
+					}
+					input.dispatchEvent( evt );
+					rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), token ) );
+				}
 				return;
 			}
 
