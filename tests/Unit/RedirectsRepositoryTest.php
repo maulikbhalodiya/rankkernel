@@ -588,4 +588,25 @@ final class RedirectsRepositoryTest extends TestCase {
 		);
 		$this->assertFalse( $repo->delete( 1 ) );
 	}
+
+	/**
+	 * Test export rows honors the row limit.
+	 */
+	public function test_export_rows_honors_limit(): void {
+		$this->repo->insert(
+			[
+				'source' => '/a',
+				'target' => '/x',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/y',
+			]
+		);
+
+		$this->assertCount( 1, $this->repo->export_rows( [], 1 ) );
+		$this->assertCount( 2, $this->repo->export_rows( [], 10 ) );
+	}
 }

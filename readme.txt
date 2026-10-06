@@ -29,6 +29,8 @@ RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress, all fre
 
 Modules are hard-gated: a module that is off is never loaded.
 
+RankKernel is built for single-site installations. Network activation is not supported.
+
 Hard-gated modules, single-row metadata. A module that is off is never loaded: no hooks, no queries, no bloat.
 
 == Installation ==
