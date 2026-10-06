@@ -90,7 +90,8 @@ final class ModuleRegistryTest extends TestCase {
 	public function test_label_returns_label_for_known(): void {
 		$this->assertSame( 'Metadata Engine', ModuleRegistry::label( 'metadata' ) );
 		$this->assertSame( 'Robots.txt & .htaccess', ModuleRegistry::label( 'robots' ) );
-		$this->assertSame( 'Headless', ModuleRegistry::label( 'headless' ) );
+		$this->assertSame( 'A read only REST payload for headless builds. Planned.', ModuleRegistry::label( 'headless' ) );
+		$this->assertSame( 'Importer', ModuleRegistry::label( 'importer' ) );
 		$this->assertContains( 'image-seo', ModuleRegistry::PLANNED );
 		$this->assertContains( 'importer', ModuleRegistry::PLANNED );
 		$this->assertTrue( ModuleRegistry::isPlanned( 'importer' ) );

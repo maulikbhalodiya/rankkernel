@@ -44,6 +44,7 @@ final class ModulesController {
 		'sitemaps',
 		'schema',
 		'breadcrumbs',
+		'importer',
 		'redirects',
 		'404',
 		'instant-indexing',
@@ -52,7 +53,6 @@ final class ModulesController {
 		'gutenberg',
 		'ai',
 		'headless',
-		'importer',
 	];
 
 	/**
