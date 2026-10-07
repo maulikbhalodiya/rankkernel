@@ -338,10 +338,12 @@ final class SupportPage {
 	 * @return void
 	 */
 	public function render(): void {
-		$notice     = $this->notice();
-		$errors     = $this->errors();
-		$values     = $this->values();
-		$categories = SupportRequest::categories();
+		$notice         = $this->notice();
+		$errors         = $this->errors();
+		$values         = $this->values();
+		$categories     = SupportRequest::categories();
+		$version        = defined( 'RANKKERNEL_VERSION' ) ? (string) RANKKERNEL_VERSION : '';
+		$diagnosticRows = SupportRequest::diagnosticRows();
 
 		$view = __DIR__ . '/Views/support.php';
 

@@ -1,131 +1,419 @@
-/*
+/**
  * Support screen styles.
  *
- * Everything structural comes from the shared token and UI layers, so this
- * sheet only holds what those layers do not already provide: the form card,
- * its field spacing, the live error and counter lines, and the honeypot.
+ * Loads only on the Support admin screen via SupportPage::enqueueAssets, as a
+ * page sheet that depends on the shared token layer and the shared rk-ui
+ * component layer. Every rule is scoped under .rk-support so nothing leaks
+ * elsewhere.
+ *
+ * The shared rk-ui components (the page header, the notice family, the card
+ * shell, the select, the switch, the buttons, the pills and the hints) are
+ * consumed from assets/css/rankkernel-ui.css and are not restated here. What
+ * remains below is only what is genuinely page specific: the breadcrumb, the
+ * stepped sections, the icon fields, the upload zone, the diagnostics chips,
+ * the consent row, the action bar, the knowledge base cards and the footer.
+ * All colour, spacing, radius and shadow values come from the var(--rk-*)
+ * tokens defined in the shared token layer. No raw hex and no raw rgba tint
+ * belongs here.
+ *
+ * @package RankKernel
  */
 
-.rk-support .rk-support-lede {
+.rk-support {
+	max-width: 880px;
+}
+
+.rk-support-crumbs {
+	margin: 0 0 var(--rk-space-2);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-support-crumbs-sep {
+	margin: 0 var(--rk-space-1);
+	color: var(--rk-color-border-strong);
+}
+
+.rk-support-crumbs-current {
+	color: var(--rk-color-text);
+	font-weight: 600;
+}
+
+.rk-support-top {
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-support-status {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: var(--rk-space-2) 0 0;
 	color: var(--rk-color-text-secondary);
-	margin: 4px 0 0;
-	max-width: 68ch;
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-support-status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--rk-color-primary);
+	flex-shrink: 0;
 }
 
 .rk-support-card {
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-md);
-	margin: 20px 0 0;
-	padding: 24px;
+	margin-bottom: var(--rk-space-4);
 }
 
-.rk-support-card .rk-ui-form-row + .rk-ui-form-row {
-	border-top: 1px solid var(--rk-color-border);
-	margin-top: 20px;
-	padding-top: 20px;
+.rk-support-step {
+	padding-bottom: var(--rk-space-5);
+	margin-bottom: var(--rk-space-5);
+	border-bottom: 1px solid var(--rk-color-border);
 }
 
-.rk-support-input,
-.rk-support-textarea,
-.rk-support-file {
-	background: var(--rk-color-surface);
-	border: 1px solid var(--rk-color-border);
-	border-radius: var(--rk-radius-sm);
-	color: var(--rk-color-text);
-	display: block;
-	font-size: var(--rk-font-size-sm);
-	max-width: 640px;
-	padding: 8px 10px;
-	width: 100%;
+.rk-support-step:last-of-type {
+	padding-bottom: 0;
+	margin-bottom: 0;
+	border-bottom: none;
 }
 
-.rk-support-textarea {
-	font-family: inherit;
-	line-height: var(--rk-line-height-normal);
-	min-height: 180px;
-	resize: vertical;
+.rk-support-step-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	margin-bottom: var(--rk-space-2);
 }
 
-.rk-support-input:focus-visible,
-.rk-support-textarea:focus-visible,
-.rk-support-file:focus-visible,
-.rk-ui-select:focus-visible {
-	outline: 2px solid var(--rk-color-focus);
-	outline-offset: 1px;
+.rk-support-step-label {
+	margin: 0;
+	font-size: var(--rk-font-size-md);
 }
 
-/* The invalid border has to outrank the default one without an !important,
-   because the shared input rule sets its own border. */
-.rk-support-input[aria-invalid="true"],
-.rk-support-textarea[aria-invalid="true"] {
-	border-color: var(--rk-color-secondary-4);
-}
-
-.rk-support-error {
-	color: var(--rk-color-secondary-4);
+.rk-support-step-count {
+	color: var(--rk-color-text-muted);
 	font-size: var(--rk-font-size-xs);
-	margin: 6px 0 0;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	white-space: nowrap;
+}
+
+.rk-support-required {
+	color: var(--rk-color-secondary-4);
+	font-weight: 600;
+}
+
+.rk-support-label-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+}
+
+.rk-support-message-head {
+	margin-top: var(--rk-space-4);
+	margin-bottom: var(--rk-space-1);
 }
 
 .rk-support-count {
+	margin: 0;
 	color: var(--rk-color-text-muted);
+	font-family: var(--rk-font-mono);
 	font-size: var(--rk-font-size-xs);
-	font-variant-numeric: tabular-nums;
-	margin: 6px 0 0;
+	white-space: nowrap;
 }
 
-.rk-support-count.is-near-limit {
-	color: var(--rk-color-secondary-3);
+.rk-support-input,
+.rk-support-textarea {
+	width: 100%;
+	padding: var(--rk-space-2) var(--rk-space-3);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border-strong);
+	border-radius: var(--rk-radius-md);
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-md);
+	line-height: var(--rk-line-height-normal);
+	box-shadow: var(--rk-shadow-sm);
 }
 
-.rk-support-switch-row .rk-ui-switch {
+.rk-support-input {
+	height: 44px;
+}
+
+.rk-support-textarea {
+	min-height: 160px;
+	resize: vertical;
+}
+
+.rk-support-input::placeholder,
+.rk-support-textarea::placeholder {
+	color: var(--rk-color-text-muted);
+}
+
+.rk-support-input:focus,
+.rk-support-textarea:focus {
+	border-color: var(--rk-color-primary);
+	outline: none;
+	box-shadow: 0 0 0 1px var(--rk-color-primary);
+}
+
+.rk-support-icon-field {
+	position: relative;
+}
+
+.rk-support-icon-field-icon {
+	position: absolute;
+	inset-inline-start: var(--rk-space-3);
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--rk-color-text-muted);
+	pointer-events: none;
+}
+
+.rk-support-icon-field .rk-support-input {
+	padding-inline-start: 40px;
+}
+
+.rk-support-error {
+	display: flex;
 	align-items: center;
-	cursor: pointer;
-	display: inline-flex;
-	gap: 8px;
+	gap: var(--rk-space-1);
+	margin: var(--rk-space-1) 0 0;
+	color: var(--rk-color-secondary-4);
+	font-size: var(--rk-font-size-sm);
 }
 
-.rk-support-switch-row .rk-ui-hint {
-	margin-left: 0;
+.rk-support-error::before {
+	content: "error";
+	font-family: var(--rk-font-icon);
+	font-size: var(--rk-font-size-md);
+	line-height: 1;
+}
+
+.rk-support-upload {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding: var(--rk-space-4);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+}
+
+.rk-support-upload-info {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	min-width: 0;
+}
+
+.rk-support-upload-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface-subtle);
+	color: var(--rk-color-primary);
+	flex-shrink: 0;
+}
+
+.rk-support-upload-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--rk-space-1);
+	min-width: 0;
+}
+
+.rk-support-upload-name {
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rk-support-upload-name.has-file {
+	color: var(--rk-color-primary);
+}
+
+.rk-support-browse {
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+/* Hide the native file control, the label is the button. */
+.rk-support-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.rk-support-diagnostics {
+	margin-top: var(--rk-space-4);
+	padding: var(--rk-space-4);
+	background: var(--rk-color-surface-subtle);
+	border-radius: var(--rk-radius-lg);
+}
+
+.rk-support-diagnostics-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+}
+
+.rk-support-diagnostics-text .rk-ui-form-label {
+	margin-bottom: var(--rk-space-1);
+}
+
+.rk-support-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--rk-space-2);
+	margin-top: var(--rk-space-3);
+	padding: var(--rk-space-3);
+	background: var(--rk-color-surface);
+	border-radius: var(--rk-radius-md);
+}
+
+.rk-support-chips.is-dimmed {
+	opacity: 0.4;
+	pointer-events: none;
+}
+
+.rk-support-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--rk-space-1);
+	padding: var(--rk-space-1) var(--rk-space-2);
+	background: var(--rk-color-surface-subtle);
+	border-radius: var(--rk-radius-sm);
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text);
+}
+
+.rk-support-chip-label {
+	color: var(--rk-color-text-muted);
+}
+
+.rk-support-chip-value {
+	font-weight: 500;
+}
+
+.rk-support-consent-row {
+	padding-top: var(--rk-space-4);
 }
 
 .rk-support-consent {
-	align-items: flex-start;
-	cursor: pointer;
 	display: flex;
-	gap: 8px;
-	max-width: 640px;
+	align-items: flex-start;
+	gap: var(--rk-space-2);
+	cursor: pointer;
 }
 
-.rk-support-consent .rk-support-checkbox {
-	flex: 0 0 auto;
+.rk-support-checkbox {
+	width: 16px;
+	height: 16px;
 	margin-top: 2px;
+	flex-shrink: 0;
+	accent-color: var(--rk-color-primary);
 }
 
 .rk-support-consent-text {
+	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-sm);
-	line-height: var(--rk-line-height-normal);
+	font-weight: 600;
+}
+
+/* Honeypot stays out of sight and out of the tab order. */
+.rk-support-honeypot {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 
 .rk-support-actions {
-	align-items: center;
 	display: flex;
-	gap: 12px;
-	margin: 20px 0 0;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	padding-top: var(--rk-space-4);
 }
 
-/* Kept in the layout rather than display:none so it stays reachable to a bot
-   that fills every field it finds, which is what gives it away. */
-.rk-support-honeypot {
-	left: -9999px;
-	position: absolute;
-	top: auto;
+.rk-support-assurance {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0;
 }
 
-@media ( prefers-reduced-motion: reduce ) {
-	.rk-support-input,
-	.rk-support-textarea {
-		transition: none;
+.rk-support-assurance .rk-icon {
+	color: var(--rk-color-primary);
+}
+
+.rk-support-kb {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--rk-space-3);
+	margin-bottom: var(--rk-space-4);
+}
+
+.rk-support-kb-title {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+	margin: 0 0 var(--rk-space-1);
+	color: var(--rk-color-primary);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+}
+
+.rk-support-kb-card .rk-ui-hint {
+	margin: 0;
+}
+
+.rk-support-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin: 0;
+	padding: var(--rk-space-2) 0;
+}
+
+@media (max-width: 782px) {
+	.rk-support-upload {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-support-browse {
+		justify-content: center;
+	}
+
+	.rk-support-actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rk-support-actions .rk-ui-btn {
+		justify-content: center;
+	}
+
+	.rk-support-kb {
+		grid-template-columns: 1fr;
 	}
 }

@@ -247,10 +247,11 @@ final class SupportRequest {
 	/**
 	 * Collects site details for a submission.
 	 *
-	 * @return string Diagnostic block.
+	 * @return array<string, string> Label to value, empty values included so
+	 *                               the screen preview and the email agree.
 	 */
-	public static function diagnostics(): string {
-		$rows = [
+	public static function diagnosticRows(): array {
+		return [
 			'RankKernel' => defined( 'RANKKERNEL_VERSION' ) ? (string) RANKKERNEL_VERSION : self::pluginVersion(),
 			'WordPress'  => function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'version' ) : '',
 			'PHP'        => PHP_VERSION,
@@ -258,10 +259,17 @@ final class SupportRequest {
 			'Site'       => function_exists( 'home_url' ) ? (string) home_url() : '',
 			'Multisite'  => function_exists( 'is_multisite' ) && is_multisite() ? 'yes' : 'no',
 		];
+	}
 
+	/**
+	 * Collects site details for a submission.
+	 *
+	 * @return string Diagnostic block.
+	 */
+	public static function diagnostics(): string {
 		$lines = array();
 
-		foreach ( $rows as $label => $value ) {
+		foreach ( self::diagnosticRows() as $label => $value ) {
 			if ( '' !== (string) $value ) {
 				$lines[] = $label . ': ' . $value;
 			}

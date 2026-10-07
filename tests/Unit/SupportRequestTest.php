@@ -232,6 +232,27 @@ final class SupportRequestTest extends TestCase {
 	}
 
 	/**
+	 * The diagnostic rows carry the same labels the email block prints.
+	 */
+	public function test_diagnostic_rows_carry_the_email_labels(): void {
+		Functions\when( 'get_bloginfo' )->justReturn( '6.9' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'is_multisite' )->justReturn( false );
+		Functions\when( 'wp_get_theme' )->justReturn( false );
+
+		$rows = SupportRequest::diagnosticRows();
+
+		$this->assertArrayHasKey( 'RankKernel', $rows );
+		$this->assertArrayHasKey( 'WordPress', $rows );
+		$this->assertArrayHasKey( 'PHP', $rows );
+		$this->assertArrayHasKey( 'Theme', $rows );
+		$this->assertArrayHasKey( 'Site', $rows );
+		$this->assertSame( '6.9', $rows['WordPress'] );
+		$this->assertSame( 'https://example.com', $rows['Site'] );
+		$this->assertStringContainsString( 'WordPress: 6.9', SupportRequest::diagnostics() );
+	}
+
+	/**
 	 * The recipient is the support inbox.
 	 */
 	public function test_the_recipient_is_the_support_inbox(): void {

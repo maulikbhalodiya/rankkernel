@@ -262,10 +262,60 @@
 	}
 
 	function init() {
-		var form = document.querySelector( '[data-rk-support-form]' );
+		var page = document.querySelector( '.rk-support' );
+
+		if ( ! page ) {
+			return;
+		}
+
+		Array.prototype.forEach.call(
+			page.querySelectorAll( '[data-rk-support-notice] .rk-ui-notice-dismiss' ),
+			function ( button ) {
+				button.addEventListener( 'click', function () {
+					var notice = button.closest( '[data-rk-support-notice]' );
+
+					if ( notice ) {
+						notice.remove();
+					}
+				} );
+			}
+		);
+
+		var form = page.querySelector( '[data-rk-support-form]' );
 
 		if ( ! form ) {
 			return;
+		}
+
+		var fileName = page.querySelector( '#rk-support-file-name' );
+		var chips = page.querySelector( '[data-rk-support-diagnostics]' );
+		var diagnosticsToggle = form.querySelector( '[data-rk-support-field="diagnostics"]' );
+
+		if ( fileName ) {
+			form.addEventListener( 'change', function ( event ) {
+				var field = event.target.closest( '[data-rk-support-field="screenshot"]' );
+
+				if ( ! field || ! field.files ) {
+					return;
+				}
+
+				if ( field.files[ 0 ] ) {
+					fileName.textContent = field.files[ 0 ].name;
+					fileName.classList.add( 'has-file' );
+				} else {
+					fileName.textContent = fileName.getAttribute( 'data-rk-support-empty' ) || '';
+					fileName.classList.remove( 'has-file' );
+				}
+			} );
+		}
+
+		if ( chips && diagnosticsToggle ) {
+			var syncChips = function () {
+				chips.classList.toggle( 'is-dimmed', ! diagnosticsToggle.checked );
+			};
+
+			diagnosticsToggle.addEventListener( 'change', syncChips );
+			syncChips();
 		}
 
 		form.addEventListener(
