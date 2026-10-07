@@ -1790,7 +1790,7 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
-	 * Export action invokes nocache_headers and sets security response headers.
+	 * Export action invokes nocache_headers on the export path.
 	 */
 	public function test_export_invokes_nocache_headers(): void {
 		$page = $this->makePage();
@@ -1814,7 +1814,7 @@ final class RedirectsAdminTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertTrue( $nocacheCalled, 'Export must invoke nocache_headers()' );
-		$this->assertIsString( $output );
+		$this->assertSame( '', $output );
 	}
 
 	/**
