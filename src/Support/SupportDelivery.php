@@ -104,6 +104,78 @@ final class SupportDelivery {
 	}
 
 	/**
+	 * Normalizes the screenshot upload into a list of single files.
+	 *
+	 * A multiple file control arrives grouped by attribute, so each entry is
+	 * rebuilt into the single file shape the validators accept. Empty slots
+	 * are dropped, and anything that is not an upload at all becomes no files.
+	 *
+	 * @param array<string, mixed>|null $raw Raw $_FILES entry, or null.
+	 * @return array<int, array<string, mixed>> Single file entries.
+	 */
+	public static function normalizeScreenshots( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		if ( isset( $raw['name'] ) && is_array( $raw['name'] ) ) {
+			$files = [];
+			$count = count( $raw['name'] );
+
+			foreach ( [ 'name', 'type', 'tmp_name', 'error', 'size' ] as $slot ) {
+				if ( ! isset( $raw[ $slot ] ) || ! is_array( $raw[ $slot ] ) ) {
+					return [];
+				}
+			}
+
+			for ( $i = 0; $i < $count; $i++ ) {
+				$error = (int) ( $raw['error'][ $i ] ?? UPLOAD_ERR_NO_FILE );
+
+				if ( UPLOAD_ERR_NO_FILE === $error ) {
+					continue;
+				}
+
+				$files[] = [
+					'name'     => $raw['name'][ $i ] ?? '',
+					'type'     => $raw['type'][ $i ] ?? '',
+					'tmp_name' => $raw['tmp_name'][ $i ] ?? '',
+					'error'    => $error,
+					'size'     => $raw['size'][ $i ] ?? 0,
+				];
+			}
+
+			return $files;
+		}
+
+		if ( isset( $raw['error'] ) && UPLOAD_ERR_NO_FILE !== (int) $raw['error'] ) {
+			return [ $raw ];
+		}
+
+		return [];
+	}
+
+	/**
+	 * Refuses more screenshots than one request may carry.
+	 *
+	 * @param array<int, array<string, mixed>> $files Normalized files.
+	 * @return true|WP_Error True when the count fits, otherwise the reason.
+	 */
+	public static function validateScreenshotCount( array $files ) {
+		if ( count( $files ) <= SupportRequest::SCREENSHOT_MAX_COUNT ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'support_screenshots_too_many',
+			sprintf(
+				/* translators: %d: maximum number of screenshots. */
+				__( 'Please keep it to %d screenshots or fewer.', 'rankkernel' ),
+				SupportRequest::SCREENSHOT_MAX_COUNT
+			)
+		);
+	}
+
+	/**
 	 * Validates an uploaded screenshot.
 	 *
 	 * @param array<string, mixed>|null $file One entry from $_FILES, or null when nothing was sent.
@@ -253,7 +325,9 @@ final class SupportDelivery {
 			return new WP_Error( 'support_mail_unavailable', __( 'Email is not available on this site.', 'rankkernel' ) );
 		}
 
-		$diagnostics = '1' === (string) ( $values['diagnostics'] ?? '0' ) ? SupportRequest::diagnostics() : '';
+		// Site details travel with every request, so the issue can be reproduced
+		// in the same environment. There is no opt out on the form.
+		$diagnostics = SupportRequest::diagnostics();
 
 		$subject = sprintf(
 			/* translators: %s: support category label. */

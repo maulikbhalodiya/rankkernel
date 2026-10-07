@@ -229,6 +229,7 @@ final class SupportRequestTest extends TestCase {
 		$this->assertSame( SupportRequest::MESSAGE_MIN, $limits['messageMin'] );
 		$this->assertSame( SupportRequest::MESSAGE_MAX, $limits['messageMax'] );
 		$this->assertSame( SupportRequest::SCREENSHOT_MAX_BYTES, $limits['screenshotMaxBytes'] );
+		$this->assertSame( SupportRequest::SCREENSHOT_MAX_COUNT, $limits['screenshotMaxCount'] );
 	}
 
 	/**

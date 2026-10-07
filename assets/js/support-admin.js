@@ -162,13 +162,23 @@
 			return i18n.consentRequired;
 		}
 
-		if ( 'screenshot' === key && value ) {
-			if ( value.size > ( limits.screenshotMaxBytes || 2097152 ) ) {
-				return i18n.screenshotTooLarge;
+		if ( 'screenshot' === key && value && value.length ) {
+			var maxCount = limits.screenshotMaxCount || 5;
+
+			if ( value.length > maxCount ) {
+				return fill( i18n.screenshotTooMany, maxCount );
 			}
 
-			if ( [ 'image/png', 'image/jpeg', 'image/gif', 'image/webp' ].indexOf( value.type ) === -1 ) {
-				return i18n.screenshotType;
+			for ( var i = 0; i < value.length; i++ ) {
+				var shot = value[ i ];
+
+				if ( shot.size > ( limits.screenshotMaxBytes || 2097152 ) ) {
+					return i18n.screenshotTooLarge;
+				}
+
+				if ( [ 'image/png', 'image/jpeg', 'image/gif', 'image/webp' ].indexOf( shot.type ) === -1 ) {
+					return i18n.screenshotType;
+				}
 			}
 		}
 
@@ -179,7 +189,7 @@
 	 * Reads the comparable value out of a form control.
 	 *
 	 * @param {HTMLElement} field Field element.
-	 * @return {*} String, boolean, or the chosen file.
+	 * @return {*} String, boolean, or the chosen files.
 	 */
 	function fieldValue( field ) {
 		if ( 'consent' === field.dataset.rkSupportField ) {
@@ -187,7 +197,7 @@
 		}
 
 		if ( 'screenshot' === field.dataset.rkSupportField ) {
-			return field.files && field.files[ 0 ] ? field.files[ 0 ] : null;
+			return field.files ? Array.prototype.slice.call( field.files ) : [];
 		}
 
 		return field.value;
@@ -288,34 +298,133 @@
 		}
 
 		var fileName = page.querySelector( '#rk-support-file-name' );
-		var chips = page.querySelector( '[data-rk-support-diagnostics]' );
-		var diagnosticsToggle = form.querySelector( '[data-rk-support-field="diagnostics"]' );
+		var fileList = page.querySelector( '[data-rk-support-file-list]' );
+		var shotField = form.querySelector( '[data-rk-support-field="screenshot"]' );
+		var shotStore = null;
 
-		if ( fileName ) {
-			form.addEventListener( 'change', function ( event ) {
-				var field = event.target.closest( '[data-rk-support-field="screenshot"]' );
+		if ( typeof DataTransfer !== 'undefined' ) {
+			shotStore = new DataTransfer();
+		}
 
-				if ( ! field || ! field.files ) {
-					return;
-				}
+		function emptyText() {
+			return fileName ? fileName.getAttribute( 'data-rk-support-empty' ) || '' : '';
+		}
 
-				if ( field.files[ 0 ] ) {
-					fileName.textContent = field.files[ 0 ].name;
+		function currentShots() {
+			if ( ! shotField || ! shotField.files ) {
+				return [];
+			}
+
+			return Array.prototype.slice.call( shotField.files );
+		}
+
+		function renderShots() {
+			var shots = currentShots();
+
+			if ( fileName ) {
+				if ( 1 === shots.length ) {
+					fileName.textContent = shots[ 0 ].name;
+					fileName.classList.add( 'has-file' );
+				} else if ( shots.length > 1 ) {
+					fileName.textContent = fill( i18n.filesSelected, shots.length );
 					fileName.classList.add( 'has-file' );
 				} else {
-					fileName.textContent = fileName.getAttribute( 'data-rk-support-empty' ) || '';
+					fileName.textContent = emptyText();
 					fileName.classList.remove( 'has-file' );
 				}
+			}
+
+			if ( ! fileList ) {
+				return;
+			}
+
+			while ( fileList.firstChild ) {
+				fileList.removeChild( fileList.firstChild );
+			}
+
+			if ( shots.length < 2 ) {
+				fileList.setAttribute( 'hidden', '' );
+
+				return;
+			}
+
+			fileList.removeAttribute( 'hidden' );
+
+			shots.forEach( function ( shot, index ) {
+				var item = document.createElement( 'li' );
+				item.className = 'rk-support-file-item';
+
+				var name = document.createElement( 'span' );
+				name.className = 'rk-support-file-item-name';
+
+				var icon = document.createElement( 'span' );
+				icon.className = 'rk-icon';
+				icon.setAttribute( 'aria-hidden', 'true' );
+				icon.textContent = 'cloud_upload';
+				name.appendChild( icon );
+				name.appendChild( document.createTextNode( shot.name ) );
+				item.appendChild( name );
+
+				var remove = document.createElement( 'button' );
+				remove.type = 'button';
+				remove.className = 'rk-support-file-remove';
+				remove.setAttribute( 'data-rk-support-remove', String( index ) );
+				remove.setAttribute( 'aria-label', ( i18n.removeFile || '' ) + ' ' + shot.name );
+
+				var removeIcon = document.createElement( 'span' );
+				removeIcon.className = 'rk-icon';
+				removeIcon.setAttribute( 'aria-hidden', 'true' );
+				removeIcon.textContent = 'close';
+				remove.appendChild( removeIcon );
+				item.appendChild( remove );
+
+				fileList.appendChild( item );
 			} );
 		}
 
-		if ( chips && diagnosticsToggle ) {
-			var syncChips = function () {
-				chips.classList.toggle( 'is-dimmed', ! diagnosticsToggle.checked );
-			};
+		if ( shotField ) {
+			form.addEventListener( 'change', function ( event ) {
+				var field = event.target.closest( '[data-rk-support-field="screenshot"]' );
 
-			diagnosticsToggle.addEventListener( 'change', syncChips );
-			syncChips();
+				if ( ! field || ! field.files || ! shotStore ) {
+					renderShots();
+
+					return;
+				}
+
+				Array.prototype.forEach.call( field.files, function ( shot ) {
+					shotStore.items.add( shot );
+				} );
+
+				field.files = shotStore.files;
+				renderShots();
+			} );
+
+			if ( fileList ) {
+				fileList.addEventListener( 'click', function ( event ) {
+					var button = event.target.closest( '[data-rk-support-remove]' );
+
+					if ( ! button || ! shotStore || ! shotField.files ) {
+						return;
+					}
+
+					var at = parseInt( button.getAttribute( 'data-rk-support-remove' ), 10 );
+					var kept = new DataTransfer();
+
+					Array.prototype.forEach.call( shotField.files, function ( shot, index ) {
+						if ( index !== at ) {
+							kept.items.add( shot );
+						}
+					} );
+
+					shotStore = kept;
+					shotField.files = kept.files;
+					renderShots();
+					validateField( shotField );
+				} );
+			}
+
+			renderShots();
 		}
 
 		form.addEventListener(

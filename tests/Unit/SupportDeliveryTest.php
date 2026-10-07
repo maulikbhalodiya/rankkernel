@@ -81,6 +81,10 @@ final class SupportDeliveryTest extends TestCase {
 			}
 		);
 		Functions\when( 'time' )->alias( static fn (): int => 1000 );
+		Functions\when( 'get_bloginfo' )->justReturn( '' );
+		Functions\when( 'home_url' )->justReturn( '' );
+		Functions\when( 'is_multisite' )->justReturn( false );
+		Functions\when( 'wp_get_theme' )->justReturn( false );
 		// No opinion by default, so the browser supplied type still decides.
 		Functions\when( 'wp_check_filetype_and_ext' )->alias(
 			static fn (): array => [
@@ -207,6 +211,93 @@ final class SupportDeliveryTest extends TestCase {
 		}
 
 		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, (int) get_transient( SupportDelivery::rateKey( $ip ) ) );
+	}
+
+	/**
+	 * A single file upload normalizes to a one item list.
+	 */
+	public function test_a_single_upload_normalizes_to_one_file(): void {
+		$file = [
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => 1024,
+			'name'     => 'shot.png',
+			'type'     => 'image/png',
+			'tmp_name' => '/tmp/shot.png',
+		];
+
+		$this->assertSame( [ $file ], SupportDelivery::normalizeScreenshots( $file ) );
+	}
+
+	/**
+	 * A multiple file upload normalizes to one entry per file.
+	 */
+	public function test_a_multiple_upload_normalizes_per_file(): void {
+		$raw = [
+			'name'     => [ 'a.png', 'b.png' ],
+			'type'     => [ 'image/png', 'image/png' ],
+			'tmp_name' => [ '/tmp/a.png', '/tmp/b.png' ],
+			'error'    => [ UPLOAD_ERR_OK, UPLOAD_ERR_OK ],
+			'size'     => [ 10, 12 ],
+		];
+
+		$files = SupportDelivery::normalizeScreenshots( $raw );
+
+		$this->assertCount( 2, $files );
+		$this->assertSame( 'a.png', $files[0]['name'] );
+		$this->assertSame( 'b.png', $files[1]['name'] );
+	}
+
+	/**
+	 * Empty upload slots are dropped from a multiple upload.
+	 */
+	public function test_empty_slots_are_dropped_from_a_multiple_upload(): void {
+		$raw = [
+			'name'     => [ 'a.png', '' ],
+			'type'     => [ 'image/png', '' ],
+			'tmp_name' => [ '/tmp/a.png', '' ],
+			'error'    => [ UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE ],
+			'size'     => [ 10, 0 ],
+		];
+
+		$this->assertCount( 1, SupportDelivery::normalizeScreenshots( $raw ) );
+	}
+
+	/**
+	 * Nothing uploaded normalizes to no files.
+	 */
+	public function test_nothing_uploaded_normalizes_to_no_files(): void {
+		$this->assertSame( [], SupportDelivery::normalizeScreenshots( null ) );
+		$this->assertSame( [], SupportDelivery::normalizeScreenshots( [ 'error' => UPLOAD_ERR_NO_FILE ] ) );
+		$this->assertSame( [], SupportDelivery::normalizeScreenshots( 'nonsense' ) );
+	}
+
+	/**
+	 * A file count within the cap passes.
+	 */
+	public function test_a_file_count_within_the_cap_passes(): void {
+		$files = [];
+
+		for ( $i = 0; $i < SupportRequest::SCREENSHOT_MAX_COUNT; $i++ ) {
+			$files[] = [ 'error' => UPLOAD_ERR_OK ];
+		}
+
+		$this->assertTrue( SupportDelivery::validateScreenshotCount( $files ) );
+	}
+
+	/**
+	 * A file count past the cap is refused.
+	 */
+	public function test_a_file_count_past_the_cap_is_refused(): void {
+		$files = [];
+
+		for ( $i = 0; $i < SupportRequest::SCREENSHOT_MAX_COUNT + 1; $i++ ) {
+			$files[] = [ 'error' => UPLOAD_ERR_OK ];
+		}
+
+		$result = SupportDelivery::validateScreenshotCount( $files );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'support_screenshots_too_many', $result->get_error_code() );
 	}
 
 	/**
@@ -360,9 +451,10 @@ final class SupportDeliveryTest extends TestCase {
 	}
 
 	/**
-	 * Ticking diagnostics attaches the site details block.
+	 * Diagnostics travel with every send, so the issue can be reproduced in
+	 * the same environment. There is no opt out.
 	 */
-	public function test_diagnostics_are_attached_when_requested(): void {
+	public function test_diagnostics_are_attached_even_when_the_flag_is_off(): void {
 		$message = '';
 
 		Functions\when( 'get_bloginfo' )->justReturn( '6.9' );
@@ -383,39 +475,12 @@ final class SupportDeliveryTest extends TestCase {
 				'subject'     => 'Broken sitemap',
 				'message'     => 'The sitemap index is empty on staging.',
 				'email'       => 'owner@example.com',
-				'diagnostics' => '1',
+				'diagnostics' => '0',
 			]
 		);
 
 		$this->assertStringContainsString( '--- Site details ---', $message );
 		$this->assertStringContainsString( '6.9', $message );
-	}
-
-	/**
-	 * Diagnostics are not attached when unticked.
-	 */
-	public function test_diagnostics_are_absent_when_not_requested(): void {
-		$message = '';
-
-		Functions\when( 'wp_mail' )->alias(
-			function ( $to, $subject, $body ) use ( &$message ): bool {
-				$message = (string) $body;
-
-				return true;
-			}
-		);
-
-		SupportDelivery::send(
-			[
-				'category'    => 'bug',
-				'subject'     => 'Broken sitemap',
-				'message'     => 'The sitemap index is empty on staging.',
-				'email'       => 'owner@example.com',
-				'diagnostics' => '0',
-			]
-		);
-
-		$this->assertStringNotContainsString( '--- Site details ---', $message );
 	}
 
 	/**

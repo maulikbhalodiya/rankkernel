@@ -47,11 +47,6 @@ final class SupportRequest {
 	public const FIELD_CONSENT = 'rankkernel_support_consent';
 
 	/**
-	 * Field name of the diagnostics checkbox.
-	 */
-	public const FIELD_DIAGNOSTICS = 'rankkernel_support_diagnostics';
-
-	/**
 	 * Field name of the screenshot upload.
 	 */
 	public const FIELD_SCREENSHOT = 'rankkernel_support_screenshot';
@@ -80,6 +75,11 @@ final class SupportRequest {
 	 * Largest accepted screenshot, in bytes.
 	 */
 	public const SCREENSHOT_MAX_BYTES = 2097152;
+
+	/**
+	 * Most screenshots accepted with one request.
+	 */
+	public const SCREENSHOT_MAX_COUNT = 5;
 
 	/**
 	 * Seconds a single IP has to wait between submissions.
@@ -130,6 +130,7 @@ final class SupportRequest {
 			'messageMin'         => self::MESSAGE_MIN,
 			'messageMax'         => self::MESSAGE_MAX,
 			'screenshotMaxBytes' => self::SCREENSHOT_MAX_BYTES,
+			'screenshotMaxCount' => self::SCREENSHOT_MAX_COUNT,
 		];
 	}
 

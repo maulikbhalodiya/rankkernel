@@ -417,6 +417,54 @@ final class SupportPageTest extends TestCase {
 	}
 
 	/**
+	 * Several screenshots ride along with the mail and are then removed.
+	 */
+	public function test_several_screenshots_are_attached_then_removed(): void {
+		$this->postValid();
+
+		$_FILES = [
+			SupportRequest::FIELD_SCREENSHOT => [
+				'name'     => [ 'a.png', 'b.png' ],
+				'type'     => [ 'image/png', 'image/png' ],
+				'tmp_name' => [ '/tmp/a.png', '/tmp/b.png' ],
+				'error'    => [ UPLOAD_ERR_OK, UPLOAD_ERR_OK ],
+				'size'     => [ 1024, 1024 ],
+			],
+		];
+
+		( new SupportPage() )->maybeHandleSave();
+
+		$this->assertCount( 1, $this->mail );
+		$this->assertSame( 2, $this->uploadCalls );
+		$this->assertCount( 2, $this->mail[0]['attachments'] );
+		$this->assertCount( 2, $this->deleted );
+		$this->assertStringContainsString( 'rk_support=sent', $this->lastRedirect );
+	}
+
+	/**
+	 * More screenshots than the cap are refused before anything is stored.
+	 */
+	public function test_more_screenshots_than_the_cap_are_refused(): void {
+		$this->postValid();
+
+		$_FILES = [
+			SupportRequest::FIELD_SCREENSHOT => [
+				'name'     => array_fill( 0, SupportRequest::SCREENSHOT_MAX_COUNT + 1, 'shot.png' ),
+				'type'     => array_fill( 0, SupportRequest::SCREENSHOT_MAX_COUNT + 1, 'image/png' ),
+				'tmp_name' => array_fill( 0, SupportRequest::SCREENSHOT_MAX_COUNT + 1, '/tmp/shot.png' ),
+				'error'    => array_fill( 0, SupportRequest::SCREENSHOT_MAX_COUNT + 1, UPLOAD_ERR_OK ),
+				'size'     => array_fill( 0, SupportRequest::SCREENSHOT_MAX_COUNT + 1, 1024 ),
+			],
+		];
+
+		( new SupportPage() )->maybeHandleSave();
+
+		$this->assertSame( [], $this->mail );
+		$this->assertSame( 0, $this->uploadCalls );
+		$this->assertStringContainsString( 'rk_support=invalid', $this->lastRedirect );
+	}
+
+	/**
 	 * The upload allowlist is keyed by extension, not by MIME type.
 	 */
 	public function test_the_upload_allowlist_is_keyed_by_extension(): void {

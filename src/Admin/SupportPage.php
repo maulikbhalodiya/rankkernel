@@ -132,7 +132,9 @@ final class SupportPage {
 			'message'     => sanitize_textarea_field( wp_unslash( (string) ( $_POST['message'] ?? '' ) ) ),
 			'email'       => sanitize_email( wp_unslash( (string) ( $_POST['email'] ?? '' ) ) ),
 			'consent'     => isset( $_POST[ SupportRequest::FIELD_CONSENT ] ) ? '1' : '',
-			'diagnostics' => isset( $_POST[ SupportRequest::FIELD_DIAGNOSTICS ] ) ? '1' : '',
+			// Site details are always sent, so the value is fixed here rather
+			// than read from a control that no longer exists.
+			'diagnostics' => '1',
 		];
 		$file  = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
@@ -142,10 +144,22 @@ final class SupportPage {
 		$this->values = $check['values'];
 		$this->errors = $check['errors'];
 
-		$upload = SupportDelivery::validateScreenshot( $file );
+		$files = SupportDelivery::normalizeScreenshots( $file );
 
-		if ( is_wp_error( $upload ) ) {
-			$this->errors['screenshot'] = $upload->get_error_message();
+		$countCheck = SupportDelivery::validateScreenshotCount( $files );
+
+		if ( is_wp_error( $countCheck ) ) {
+			$this->errors['screenshot'] = $countCheck->get_error_message();
+		} else {
+			foreach ( $files as $single ) {
+				$upload = SupportDelivery::validateScreenshot( $single );
+
+				if ( is_wp_error( $upload ) ) {
+					$this->errors['screenshot'] = $upload->get_error_message();
+
+					break;
+				}
+			}
 		}
 
 		// The upload is only moved into the uploads directory once every other
@@ -158,10 +172,13 @@ final class SupportPage {
 
 		$attachments = [];
 
-		if ( is_array( $file ) ) {
-			$stored = SupportDelivery::storeScreenshot( $file );
+		foreach ( $files as $single ) {
+			$stored = SupportDelivery::storeScreenshot( $single );
 
 			if ( is_wp_error( $stored ) ) {
+				// A sibling file may already be stored, so those are removed
+				// before bouncing back.
+				SupportDelivery::deleteScreenshots( $attachments );
 				$this->errors['screenshot'] = $stored->get_error_message();
 				$this->redirect( 'invalid' );
 
@@ -404,6 +421,11 @@ final class SupportPage {
 						'messageMax'         => __( 'The message must be %d characters or fewer.', 'rankkernel' ),
 						'screenshotTooLarge' => __( 'That screenshot is too large. Please keep it under 2 MB.', 'rankkernel' ),
 						'screenshotType'     => __( 'The screenshot must be a PNG, JPEG, GIF or WebP image.', 'rankkernel' ),
+						/* translators: %d: maximum number of screenshots. */
+																			'screenshotTooMany' => __( 'Please keep it to %d screenshots or fewer.', 'rankkernel' ),
+						/* translators: %d: number of selected files. */
+						'filesSelected'      => __( '%d files selected', 'rankkernel' ),
+						'removeFile'         => __( 'Remove', 'rankkernel' ),
 						'emailInvalid'       => __( 'Enter an email address we can reply to.', 'rankkernel' ),
 						'categoryRequired'   => __( 'Choose what this is about.', 'rankkernel' ),
 						'consentRequired'    => __( 'Please confirm you understand this message is emailed to the plugin author.', 'rankkernel' ),

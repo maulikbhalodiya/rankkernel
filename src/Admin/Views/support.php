@@ -47,24 +47,50 @@ $rk_error = static function ( string $key ) use ( $rkErrors ): string {
 };
 
 /**
- * Prints the error text and the aria wiring for a field.
+ * Prints the validity wiring for a field, for use inside its start tag.
  *
  * @param string $key Field name.
  * @return void
  */
-$rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
-	$message = $rk_error( $key );
-
-	if ( '' === $message ) {
+$rk_error_attrs = static function ( string $key ) use ( $rk_error ): void {
+	if ( '' === $rk_error( $key ) ) {
 		echo ' aria-invalid="false"';
 
 		return;
 	}
 
-	printf(
-		' aria-invalid="true" aria-describedby="rk-support-%1$s-error"',
-		esc_attr( $key )
-	);
+	echo ' aria-invalid="true"';
+};
+
+/**
+ * Builds the describedby value for a field: its hints plus the live error id
+ * when one is showing.
+ *
+ * @param string $key      Field name.
+ * @param string $hint_ids Space separated hint element ids.
+ * @return string Describedby value.
+ */
+$rk_describedby = static function ( string $key, string $hint_ids ) use ( $rk_error ): string {
+	if ( '' === $rk_error( $key ) ) {
+		return $hint_ids;
+	}
+
+	return trim( $hint_ids . ' rk-support-' . $key . '-error' );
+};
+
+/**
+ * Prints the server side error block for a field, for use after its control.
+ *
+ * @param string $key Field name.
+ * @return void
+ */
+$rk_error_block = static function ( string $key ) use ( $rk_error ): void {
+	$message = $rk_error( $key );
+
+	if ( '' === $message ) {
+		return;
+	}
+
 	echo '<p class="rk-support-error" id="rk-support-' . esc_attr( $key ) . '-error">';
 	echo esc_html( $message );
 	echo '</p>';
@@ -74,11 +100,6 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 <div class="wrap rk-support rk-ui">
 	<h1 class="screen-reader-text"><?php esc_html_e( 'Support', 'rankkernel' ); ?></h1>
 	<div class="rk-support-top">
-		<p class="rk-support-crumbs">
-			<span><?php esc_html_e( 'RankKernel', 'rankkernel' ); ?></span>
-			<span class="rk-support-crumbs-sep" aria-hidden="true">›</span>
-			<span class="rk-support-crumbs-current" aria-current="page"><?php esc_html_e( 'Support', 'rankkernel' ); ?></span>
-		</p>
 		<header class="rk-ui-card rk-ui-page-header">
 			<div class="rk-ui-page-header-text">
 				<div class="rk-ui-page-header-title-row">
@@ -140,8 +161,8 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 							name="category"
 							class="rk-ui-select"
 							data-rk-support-field="category"
-							aria-describedby="rk-support-category-hint"
-							<?php $rk_error_markup( 'category' ); ?>
+							aria-describedby="<?php echo esc_attr( $rk_describedby( 'category', 'rk-support-category-hint' ) ); ?>"
+							<?php $rk_error_attrs( 'category' ); ?>
 						>
 							<option value=""><?php esc_html_e( 'Choose one', 'rankkernel' ); ?></option>
 							<?php foreach ( $rkCats as $rkValue => $rkLabel ) : ?>
@@ -153,6 +174,7 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 						</select>
 						<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
 					</div>
+					<?php $rk_error_block( 'category' ); ?>
 					<p class="rk-ui-hint" id="rk-support-category-hint"><?php esc_html_e( 'This decides who picks the request up.', 'rankkernel' ); ?></p>
 				</div>
 
@@ -176,9 +198,10 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 						placeholder="<?php echo esc_attr__( 'e.g. Sitemap returning 404 after enabling RankKernel', 'rankkernel' ); ?>"
 						data-rk-support-field="subject"
 						data-rk-support-count="rk-support-subject-count"
-						aria-describedby="rk-support-subject-hint rk-support-subject-count"
-						<?php $rk_error_markup( 'subject' ); ?>
+						aria-describedby="<?php echo esc_attr( $rk_describedby( 'subject', 'rk-support-subject-hint rk-support-subject-count' ) ); ?>"
+						<?php $rk_error_attrs( 'subject' ); ?>
 					/>
+					<?php $rk_error_block( 'subject' ); ?>
 					<div class="rk-support-label-row rk-support-message-head">
 						<label class="rk-ui-form-label" for="rk-support-message"><?php esc_html_e( 'Message', 'rankkernel' ); ?> <span class="rk-support-required" aria-hidden="true">*</span></label>
 						<p class="rk-support-count" id="rk-support-message-count" aria-live="polite"></p>
@@ -192,9 +215,10 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 						placeholder="<?php echo esc_attr__( 'For a problem, say what you did, what you expected and what happened instead. A link to the page helps.', 'rankkernel' ); ?>"
 						data-rk-support-field="message"
 						data-rk-support-count="rk-support-message-count"
-						aria-describedby="rk-support-message-hint rk-support-message-count"
-						<?php $rk_error_markup( 'message' ); ?>
+						aria-describedby="<?php echo esc_attr( $rk_describedby( 'message', 'rk-support-message-hint rk-support-message-count' ) ); ?>"
+						<?php $rk_error_attrs( 'message' ); ?>
 					><?php echo esc_textarea( $rk_value( 'message' ) ); ?></textarea>
+					<?php $rk_error_block( 'message' ); ?>
 					<p class="rk-ui-hint" id="rk-support-message-hint"><?php esc_html_e( 'The more precise the steps, the faster the fix.', 'rankkernel' ); ?></p>
 				</div>
 
@@ -215,10 +239,11 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 							autocomplete="email"
 							placeholder="<?php echo esc_attr__( 'admin@example.com', 'rankkernel' ); ?>"
 							data-rk-support-field="email"
-							aria-describedby="rk-support-email-hint"
-							<?php $rk_error_markup( 'email' ); ?>
+							aria-describedby="<?php echo esc_attr( $rk_describedby( 'email', 'rk-support-email-hint' ) ); ?>"
+							<?php $rk_error_attrs( 'email' ); ?>
 						/>
 					</div>
+					<?php $rk_error_block( 'email' ); ?>
 					<p class="rk-ui-hint" id="rk-support-email-hint"><?php esc_html_e( 'Only used to reply to this request. We never send promotional emails or share contacts.', 'rankkernel' ); ?></p>
 				</div>
 
@@ -239,34 +264,26 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 						<input
 							type="file"
 							id="rk-support-screenshot"
-							name="rankkernel_support_screenshot"
+							name="rankkernel_support_screenshot[]"
 							class="rk-support-sr-only"
 							accept="image/png,image/jpeg,image/gif,image/webp"
+							multiple
 							data-rk-support-field="screenshot"
-							aria-describedby="rk-support-screenshot-hint"
-							<?php $rk_error_markup( 'screenshot' ); ?>
+							data-rk-support-max="5"
+							aria-describedby="<?php echo esc_attr( $rk_describedby( 'screenshot', 'rk-support-screenshot-hint' ) ); ?>"
+							<?php $rk_error_attrs( 'screenshot' ); ?>
 						/>
-						<label class="rk-ui-btn rk-ui-btn-secondary rk-support-browse" for="rk-support-screenshot"><span class="rk-icon" aria-hidden="true">download</span><?php esc_html_e( 'Browse file', 'rankkernel' ); ?></label>
+						<label class="rk-ui-btn rk-ui-btn-secondary rk-support-browse" for="rk-support-screenshot"><span class="rk-icon" aria-hidden="true">download</span><?php esc_html_e( 'Browse files', 'rankkernel' ); ?></label>
 					</div>
-					<p class="rk-ui-hint" id="rk-support-screenshot-hint"><?php esc_html_e( 'Optional. A picture often says more than a paragraph.', 'rankkernel' ); ?></p>
+					<?php $rk_error_block( 'screenshot' ); ?>
+					<ul class="rk-support-file-list" data-rk-support-file-list hidden></ul>
+					<p class="rk-ui-hint" id="rk-support-screenshot-hint"><?php esc_html_e( 'Optional. Up to 5 pictures, PNG, JPEG, GIF or WebP, 2 MB each. A picture often says more than a paragraph.', 'rankkernel' ); ?></p>
 					<div class="rk-support-diagnostics">
 						<div class="rk-support-diagnostics-head">
 							<div class="rk-support-diagnostics-text">
-								<label class="rk-ui-form-label" for="rk-support-diagnostics"><?php esc_html_e( 'Include site details with this request', 'rankkernel' ); ?></label>
-								<p class="rk-ui-hint" id="rk-support-diagnostics-hint"><?php esc_html_e( 'Adds the plugin version, WordPress version, PHP version, active theme and site address to the email. This is usually what makes a report fixable in one round.', 'rankkernel' ); ?></p>
+								<p class="rk-ui-form-label rk-support-diagnostics-label"><?php esc_html_e( 'Site details sent with this request', 'rankkernel' ); ?> <span class="rk-icon rk-support-help" aria-hidden="true">help</span></p>
+								<p class="rk-ui-hint" id="rk-support-diagnostics-hint"><?php esc_html_e( 'Your RankKernel and WordPress versions, PHP version, active theme and site address travel with the message, so the issue can be reproduced in the same environment.', 'rankkernel' ); ?></p>
 							</div>
-							<label class="rk-ui-switch">
-								<input
-									type="checkbox"
-									id="rk-support-diagnostics"
-									name="rankkernel_support_diagnostics"
-									value="1"
-									<?php checked( '1', $rk_value( 'diagnostics' ) ); ?>
-									data-rk-support-field="diagnostics"
-									aria-describedby="rk-support-diagnostics-hint"
-								/>
-								<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
-							</label>
 						</div>
 						<div class="rk-support-chips" data-rk-support-diagnostics>
 							<?php foreach ( $rkDiag as $rkDiagLabel => $rkDiagValue ) : ?>
@@ -288,11 +305,12 @@ $rk_error_markup = static function ( string $key ) use ( $rk_error ): void {
 							class="rk-support-checkbox"
 							<?php checked( '1', $rk_value( 'consent' ) ); ?>
 							data-rk-support-field="consent"
-							aria-describedby="rk-support-consent-hint"
-							<?php $rk_error_markup( 'consent' ); ?>
+							aria-describedby="<?php echo esc_attr( $rk_describedby( 'consent', 'rk-support-consent-hint' ) ); ?>"
+							<?php $rk_error_attrs( 'consent' ); ?>
 						/>
 						<span class="rk-support-consent-text"><?php esc_html_e( 'I understand this message and any site details are emailed to the plugin author.', 'rankkernel' ); ?></span>
 					</label>
+					<?php $rk_error_block( 'consent' ); ?>
 					<p class="rk-ui-hint" id="rk-support-consent-hint"><?php esc_html_e( 'Your request is emailed, never posted anywhere and never shared with anyone else.', 'rankkernel' ); ?></p>
 				</div>
 

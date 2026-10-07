@@ -21,7 +21,8 @@ const LIMITS = {
 	subjectMax: 150,
 	messageMin: 20,
 	messageMax: 5000,
-	screenshotMaxBytes: 2097152
+	screenshotMaxBytes: 2097152,
+	screenshotMaxCount: 5
 };
 
 const I18N = {
@@ -33,7 +34,10 @@ const I18N = {
 	categoryRequired: 'Choose what this is about.',
 	consentRequired: 'Please confirm you understand this message is emailed to the plugin author.',
 	screenshotTooLarge: 'That screenshot is too large. Please keep it under 2 MB.',
-	screenshotType: 'The screenshot must be a PNG, JPEG, GIF or WebP image.'
+	screenshotType: 'The screenshot must be a PNG, JPEG, GIF or WebP image.',
+	screenshotTooMany: 'Please keep it to %d screenshots or fewer.',
+	filesSelected: '%d files selected',
+	removeFile: 'Remove'
 };
 
 function load() {
@@ -179,7 +183,7 @@ test( 'an oversized screenshot is refused', () => {
 	const { validate } = load();
 
 	assert.equal(
-		validate( 'screenshot', { size: LIMITS.screenshotMaxBytes + 1, type: 'image/png' } ),
+		validate( 'screenshot', [ { size: LIMITS.screenshotMaxBytes + 1, type: 'image/png' } ] ),
 		'That screenshot is too large. Please keep it under 2 MB.'
 	);
 } );
@@ -187,15 +191,38 @@ test( 'an oversized screenshot is refused', () => {
 test( 'a screenshot on the size limit passes', () => {
 	const { validate } = load();
 
-	assert.equal( validate( 'screenshot', { size: LIMITS.screenshotMaxBytes, type: 'image/png' } ), '' );
+	assert.equal( validate( 'screenshot', [ { size: LIMITS.screenshotMaxBytes, type: 'image/png' } ] ), '' );
 } );
 
 test( 'a non image screenshot is refused', () => {
 	const { validate } = load();
 
 	assert.equal(
-		validate( 'screenshot', { size: 10, type: 'application/pdf' } ),
+		validate( 'screenshot', [ { size: 10, type: 'application/pdf' } ] ),
 		'The screenshot must be a PNG, JPEG, GIF or WebP image.'
+	);
+} );
+
+test( 'more screenshots than the cap are refused', () => {
+	const { validate } = load();
+	const shots = [];
+
+	for ( let i = 0; i < LIMITS.screenshotMaxCount + 1; i++ ) {
+		shots.push( { size: 10, type: 'image/png' } );
+	}
+
+	assert.equal(
+		validate( 'screenshot', shots ),
+		'Please keep it to 5 screenshots or fewer.'
+	);
+} );
+
+test( 'several valid screenshots pass together', () => {
+	const { validate } = load();
+
+	assert.equal(
+		validate( 'screenshot', [ { size: 10, type: 'image/png' }, { size: 12, type: 'image/jpeg' } ] ),
+		''
 	);
 } );
 
@@ -203,6 +230,7 @@ test( 'an untouched screenshot field is fine', () => {
 	const { validate } = load();
 
 	assert.equal( validate( 'screenshot', null ), '' );
+	assert.equal( validate( 'screenshot', [] ), '' );
 } );
 
 test( 'a field reader reports consent as a boolean', () => {
@@ -218,17 +246,17 @@ test( 'a field reader reports consent as a boolean', () => {
 	);
 } );
 
-test( 'a field reader returns the chosen file for the screenshot', () => {
+test( 'a field reader returns the chosen files for the screenshot', () => {
 	const { fieldValue } = load();
-	const file = { size: 12, type: 'image/png' };
+	const shots = [ { size: 12, type: 'image/png' } ];
+	const read = fieldValue( { dataset: { rkSupportField: 'screenshot' }, files: shots } );
 
+	assert.equal( read.length, 1 );
+	assert.equal( read[ 0 ].size, 12 );
+	assert.equal( read[ 0 ].type, 'image/png' );
 	assert.equal(
-		fieldValue( { dataset: { rkSupportField: 'screenshot' }, files: [ file ] } ),
-		file
-	);
-	assert.equal(
-		fieldValue( { dataset: { rkSupportField: 'screenshot' }, files: [] } ),
-		null
+		fieldValue( { dataset: { rkSupportField: 'screenshot' }, files: [] } ).length,
+		0
 	);
 } );
 
