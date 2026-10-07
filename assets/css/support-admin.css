@@ -35,6 +35,10 @@
 	margin-bottom: var(--rk-space-4);
 }
 
+.rk-support .rk-ui-notice {
+	margin-bottom: var(--rk-space-4);
+}
+
 .rk-support-status {
 	display: flex;
 	align-items: center;
@@ -101,7 +105,6 @@
 	font-size: var(--rk-font-size-md);
 	font-weight: 400;
 	line-height: var(--rk-line-height-normal);
-	text-align: center;
 	appearance: none;
 	-webkit-appearance: none;
 	background: var(--rk-color-surface);

@@ -30,9 +30,12 @@ const I18N = {
 	subjectMax: 'The subject must be %d characters or fewer.',
 	messageMin: 'Please add a little more detail, at least %d characters.',
 	messageMax: 'The message must be %d characters or fewer.',
-	emailInvalid: 'Enter an email address we can reply to.',
+	emailInvalid: 'That email address does not look valid.',
+	emailRequired: 'Add an email address so we can reply.',
+	subjectRequired: 'Add a short subject.',
+	messageRequired: 'Describe what happened.',
 	categoryRequired: 'Choose what this is about.',
-	consentRequired: 'Please confirm you understand this message is emailed to the plugin author.',
+	consentRequired: 'Please confirm before sending.',
 	screenshotTooLarge: 'That screenshot is too large. Please keep it under 2 MB.',
 	screenshotType: 'The screenshot must be a PNG, JPEG, GIF or WebP image.',
 	screenshotTooMany: 'Please keep it to %d screenshots or fewer.',
@@ -101,10 +104,17 @@ test( 'an over long subject reports the maximum', () => {
 	);
 } );
 
-test( 'an empty subject is left to the server, not nagged about', () => {
+test( 'an empty subject asks for one', () => {
 	const { validate } = load();
 
-	assert.equal( validate( 'subject', '' ), '' );
+	assert.equal( validate( 'subject', '' ), 'Add a short subject.' );
+	assert.equal( validate( 'subject', '   ' ), 'Add a short subject.' );
+} );
+
+test( 'an empty message asks for one', () => {
+	const { validate } = load();
+
+	assert.equal( validate( 'message', '' ), 'Describe what happened.' );
 } );
 
 test( 'a short message reports the minimum', () => {
@@ -125,11 +135,11 @@ test( 'an over long message reports the maximum', () => {
 	);
 } );
 
-test( 'a malformed email reports a replyable address error', () => {
+test( 'a malformed email reports an invalid address error', () => {
 	const { validate } = load();
 
-	assert.equal( validate( 'email', 'not-an-address' ), 'Enter an email address we can reply to.' );
-	assert.equal( validate( 'email', 'a@b' ), 'Enter an email address we can reply to.' );
+	assert.equal( validate( 'email', 'not-an-address' ), 'That email address does not look valid.' );
+	assert.equal( validate( 'email', 'a@b' ), 'That email address does not look valid.' );
 } );
 
 test( 'a well formed email passes', () => {
@@ -138,10 +148,10 @@ test( 'a well formed email passes', () => {
 	assert.equal( validate( 'email', 'owner@example.com' ), '' );
 } );
 
-test( 'an empty email is left to the server', () => {
+test( 'an empty email asks for one', () => {
 	const { validate } = load();
 
-	assert.equal( validate( 'email', '' ), '' );
+	assert.equal( validate( 'email', '' ), 'Add an email address so we can reply.' );
 } );
 
 test( 'an unchosen category asks for one', () => {
@@ -169,7 +179,7 @@ test( 'unticked consent asks for confirmation', () => {
 
 	assert.equal(
 		validate( 'consent', false ),
-		'Please confirm you understand this message is emailed to the plugin author.'
+		'Please confirm before sending.'
 	);
 } );
 

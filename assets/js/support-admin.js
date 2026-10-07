@@ -123,7 +123,11 @@
 			var min = limits.subjectMin || 4;
 			var max = limits.subjectMax || 150;
 
-			if ( subject.length > 0 && subject.length < min ) {
+			if ( 0 === subject.length ) {
+				return i18n.subjectRequired;
+			}
+
+			if ( subject.length < min ) {
 				return fill( i18n.subjectMin, min );
 			}
 
@@ -137,7 +141,11 @@
 			var bodyMin = limits.messageMin || 20;
 			var bodyMax = limits.messageMax || 5000;
 
-			if ( body.length > 0 && body.length < bodyMin ) {
+			if ( 0 === body.length ) {
+				return i18n.messageRequired;
+			}
+
+			if ( body.length < bodyMin ) {
 				return fill( i18n.messageMin, bodyMin );
 			}
 
@@ -149,7 +157,11 @@
 		if ( 'email' === key ) {
 			var address = String( value || '' ).trim();
 
-			if ( address !== '' && ! /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test( address ) ) {
+			if ( '' === address ) {
+				return i18n.emailRequired;
+			}
+
+			if ( ! /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test( address ) ) {
 				return i18n.emailInvalid;
 			}
 		}

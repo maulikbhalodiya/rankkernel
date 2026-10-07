@@ -422,13 +422,16 @@ final class SupportPage {
 						'screenshotTooLarge' => __( 'That screenshot is too large. Please keep it under 2 MB.', 'rankkernel' ),
 						'screenshotType'     => __( 'The screenshot must be a PNG, JPEG, GIF or WebP image.', 'rankkernel' ),
 						/* translators: %d: maximum number of screenshots. */
-																			'screenshotTooMany' => __( 'Please keep it to %d screenshots or fewer.', 'rankkernel' ),
+													'screenshotTooMany' => __( 'Please keep it to %d screenshots or fewer.', 'rankkernel' ),
 						/* translators: %d: number of selected files. */
 						'filesSelected'      => __( '%d files selected', 'rankkernel' ),
 						'removeFile'         => __( 'Remove', 'rankkernel' ),
-						'emailInvalid'       => __( 'Enter an email address we can reply to.', 'rankkernel' ),
+						'emailInvalid'       => __( 'That email address does not look valid.', 'rankkernel' ),
+						'emailRequired'      => __( 'Add an email address so we can reply.', 'rankkernel' ),
 						'categoryRequired'   => __( 'Choose what this is about.', 'rankkernel' ),
-						'consentRequired'    => __( 'Please confirm you understand this message is emailed to the plugin author.', 'rankkernel' ),
+						'consentRequired'    => __( 'Please confirm before sending.', 'rankkernel' ),
+						'subjectRequired'    => __( 'Add a short subject.', 'rankkernel' ),
+						'messageRequired'    => __( 'Describe what happened.', 'rankkernel' ),
 					],
 				]
 			);

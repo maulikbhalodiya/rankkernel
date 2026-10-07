@@ -281,7 +281,7 @@ $rk_error_block = static function ( string $key ) use ( $rk_error ): void {
 					<div class="rk-support-diagnostics">
 						<div class="rk-support-diagnostics-head">
 							<div class="rk-support-diagnostics-text">
-								<p class="rk-ui-form-label rk-support-diagnostics-label"><?php esc_html_e( 'Site details sent with this request', 'rankkernel' ); ?> <span class="rk-icon rk-support-help" aria-hidden="true">help</span></p>
+								<p class="rk-ui-form-label rk-support-diagnostics-label"><?php esc_html_e( 'Site details sent with this request', 'rankkernel' ); ?></p>
 								<p class="rk-ui-hint" id="rk-support-diagnostics-hint"><?php esc_html_e( 'Your RankKernel and WordPress versions, PHP version, active theme and site address travel with the message, so the issue can be reproduced in the same environment.', 'rankkernel' ); ?></p>
 							</div>
 						</div>
