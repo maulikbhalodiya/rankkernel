@@ -170,7 +170,11 @@ if ( $schemaDisabled ) {
 				<summary><?php echo esc_html__( 'Insert token', 'rankkernel' ); ?></summary>
 				<div class="rk-classic-token-list" data-rankkernel-tokens="1">
 					<?php foreach ( $tokenRows as $tokenRow ) : ?>
-						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
+						<?php
+						/* translators: %s: template token name, for example %%title%% */
+						$rkTitleTokenLabel = sprintf( __( 'Insert %s token into SEO title', 'rankkernel' ), $tokenRow['token'] );
+						?>
+						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>" aria-label="<?php echo esc_attr( $rkTitleTokenLabel ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
 					<?php endforeach; ?>
 				</div>
 			</details>
@@ -195,7 +199,11 @@ if ( $schemaDisabled ) {
 				<summary><?php echo esc_html__( 'Insert token', 'rankkernel' ); ?></summary>
 				<div class="rk-classic-token-list" data-rankkernel-tokens="1">
 					<?php foreach ( $tokenRows as $tokenRow ) : ?>
-						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
+						<?php
+						/* translators: %s: template token name, for example %%title%% */
+						$rkDescTokenLabel = sprintf( __( 'Insert %s token into meta description', 'rankkernel' ), $tokenRow['token'] );
+						?>
+						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>" aria-label="<?php echo esc_attr( $rkDescTokenLabel ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
 					<?php endforeach; ?>
 				</div>
 			</details>
