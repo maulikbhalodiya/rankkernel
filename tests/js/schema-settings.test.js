@@ -271,9 +271,9 @@ function fakeTabLink( href ) {
 		addEventListener( type, handler ) {
 			this.listeners[ type ] = handler;
 		},
-		fire( type ) {
+		fire( type, event = {} ) {
 			if ( this.listeners[ type ] ) {
-				this.listeners[ type ]();
+				this.listeners[ type ]( Object.assign( { preventDefault() {} }, event ) );
 			}
 		}
 	};
@@ -316,6 +316,12 @@ function loadTabs( hash ) {
 	const sandbox = {
 		document,
 		location: { hash },
+		history: {
+			pushed: [],
+			pushState( state, title, url ) {
+				this.pushed.push( url );
+			}
+		},
 		addEventListener( type, handler ) {
 			windowListeners[ type ] = handler;
 		}
@@ -370,10 +376,14 @@ test( 'loading without a hash opens the first section', () => {
 } );
 
 test( 'clicking a tab moves the highlight and the visible section', () => {
-	const { links, sections } = loadTabs( '' );
+	const { links, sections, sandbox } = loadTabs( '' );
+	let prevented = false;
 
-	links[ 1 ].fire( 'click' );
+	links[ 1 ].fire( 'click', { preventDefault() { prevented = true; } } );
 
+	assert.equal( prevented, true );
+	assert.equal( sandbox.history.pushed.length, 1 );
+	assert.equal( sandbox.history.pushed[ 0 ], '#section-defaults' );
 	assert.ok( ! links[ 0 ].classes.has( 'is-current' ) );
 	assert.ok( links[ 1 ].classes.has( 'is-current' ) );
 	assert.equal( sections[ 0 ].hidden, true );

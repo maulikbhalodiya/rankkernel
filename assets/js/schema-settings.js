@@ -375,14 +375,32 @@
 		}
 
 		Array.prototype.forEach.call( links, function ( link ) {
-			link.addEventListener( 'click', function () {
-				activate( pickSection( link.getAttribute( 'href' ), ids ) );
+			link.addEventListener( 'click', function ( event ) {
+				var id = pickSection( link.getAttribute( 'href' ), ids );
+
+				event.preventDefault();
+				activate( id );
+
+				if ( window.history && 'function' === typeof window.history.pushState ) {
+					window.history.pushState( null, '', '#' + id );
+				} else {
+					window.location.hash = id;
+				}
 			} );
 		} );
 
 		window.addEventListener( 'hashchange', activateFromHash );
 
-		activateFromHash();
+		var initial = pickSection( window.location.hash, ids );
+		activate( initial );
+
+		if ( initial !== ids[ 0 ] ) {
+			var target = document.getElementById( initial );
+
+			if ( target && 'function' === typeof target.scrollIntoView ) {
+				target.scrollIntoView();
+			}
+		}
 	} );
 
 	if ( 'undefined' !== typeof window ) {

@@ -217,6 +217,7 @@ $rkPluginVersion = Plugin::version();
 			</aside>
 
 			<main class="rk-schema-main">
+				<noscript><style>.rk-schema-section[hidden]{display:block}</style></noscript>
 
 				<?php /* Section 4: identity card. */ ?>
 				<section class="rk-ui-card rk-schema-section" id="section-identity">
@@ -369,7 +370,7 @@ $rkPluginVersion = Plugin::version();
 				</section>
 
 				<?php /* Section 5: schema defaults card. */ ?>
-				<section class="rk-ui-card rk-schema-section" id="section-defaults">
+				<section class="rk-ui-card rk-schema-section" id="section-defaults" hidden>
 					<div class="rk-ui-card-header rk-schema-section-head">
 						<div class="rk-schema-section-head-text">
 							<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Schema Defaults', 'rankkernel' ); ?></h3>
@@ -451,7 +452,7 @@ $rkPluginVersion = Plugin::version();
 				</section>
 
 				<?php /* Section 6: output options card. */ ?>
-				<section class="rk-ui-card rk-schema-section" id="section-output">
+				<section class="rk-ui-card rk-schema-section" id="section-output" hidden>
 					<div class="rk-ui-card-header rk-schema-section-head">
 						<div class="rk-schema-section-head-text">
 							<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Output Options', 'rankkernel' ); ?></h3>
@@ -505,7 +506,7 @@ $rkPluginVersion = Plugin::version();
 				 * controller URL.
 				 */
 				?>
-				<section class="rk-ui-card rk-schema-section" id="section-preview">
+				<section class="rk-ui-card rk-schema-section" id="section-preview" hidden>
 					<div class="rk-ui-card-header rk-schema-section-head">
 						<div class="rk-schema-section-head-text">
 							<div class="rk-schema-preview-title-row">
@@ -565,7 +566,7 @@ $rkPluginVersion = Plugin::version();
 				</section>
 
 				<?php /* Section 8: testing tools card. */ ?>
-				<section class="rk-ui-card rk-schema-section" id="section-testing">
+				<section class="rk-ui-card rk-schema-section" id="section-testing" hidden>
 					<div class="rk-ui-card-header rk-schema-section-head">
 						<div class="rk-schema-section-head-text">
 							<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Testing Tools', 'rankkernel' ); ?></h3>
