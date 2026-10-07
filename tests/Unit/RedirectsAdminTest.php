@@ -1791,6 +1791,7 @@ final class RedirectsAdminTest extends TestCase {
 
 	/**
 	 * Export action invokes nocache_headers on the export path.
+	 * Note: header() calls are executed on production WP environment and not observable in CLI unit tests.
 	 */
 	public function test_export_invokes_nocache_headers(): void {
 		$page = $this->makePage();
