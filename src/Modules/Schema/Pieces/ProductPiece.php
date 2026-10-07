@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\PieceInterface;
+use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -65,7 +66,42 @@ class ProductPiece implements PieceInterface {
 			return false;
 		}
 
-		return '' !== SchemaHelpers::headline( $ctx, SchemaHelpers::fields( $ctx ) );
+		return $this->isComplete( $ctx );
+	}
+
+	/**
+	 * Whether the type can produce a complete node.
+	 *
+	 * A node missing the properties Google requires for its rich result is
+	 * published to every consumer and fails validation in Search Console, so
+	 * an incomplete node is never emitted. The metabox warns about the same
+	 * field set through SchemaTypes::requiredFields, so an author is told
+	 * rather than silently losing the entity.
+	 *
+	 * A WooCommerce backed product carries its price and rating in Woo data
+	 * rather than in the payload, so those are folded in first. Otherwise a
+	 * real store product would read as incomplete and would lose its Product
+	 * entity entirely.
+	 *
+	 * @param Context $ctx Request context.
+	 * @return bool True when the node can be emitted.
+	 */
+	private function isComplete( Context $ctx ): bool {
+		$fields = SchemaHelpers::resolvedFields( $ctx );
+
+		if ( $this->isWooCommerceAvailable() ) {
+			$woo = $this->readWooFields( $ctx->queriedId() );
+
+			foreach ( [ 'price', 'ratingValue', 'datePublished' ] as $key ) {
+				$value = isset( $woo[ $key ] ) ? trim( (string) $woo[ $key ] ) : '';
+
+				if ( '' !== $value && '' === trim( (string) ( $fields[ $key ] ?? '' ) ) ) {
+					$fields[ $key ] = $value;
+				}
+			}
+		}
+
+		return SchemaTypes::isComplete( 'Product', $fields );
 	}
 
 	/**
@@ -83,6 +119,10 @@ class ProductPiece implements PieceInterface {
 		$name   = SchemaHelpers::headline( $ctx, $fields );
 
 		if ( '' === $name ) {
+			return [];
+		}
+
+		if ( ! $this->isComplete( $ctx ) ) {
 			return [];
 		}
 

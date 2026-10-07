@@ -18,6 +18,7 @@ use RankKernel\Modules\Redirects\Matcher;
 use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
+use RankKernel\Modules\Redirects\RegexSafety;
 use RankKernel\Modules\Redirects\RedirectsSettings;
 use RankKernel\Modules\Redirects\Validator;
 use RankKernel\Plugin;
@@ -28,8 +29,8 @@ use RankKernel\Plugin;
  * The add and edit form, the searchable filterable sortable paginated list,
  * and the module settings share one screen under the RankKernel menu. Saves
  * run on the load hook so the redirect after save stays header safe. A loop
- * finding blocks the save, a chain finding saves with a warning, and an
- * inconclusive analysis saves with an informational notice.
+ * finding blocks the save, an inconclusive analysis blocks the save too
+ * because a loop cannot be ruled out, and a chain finding saves with a warning.
  */
 final class RedirectsPage {
 	/**
@@ -1044,15 +1045,12 @@ final class RedirectsPage {
 			);
 		}
 
-		$verified = check_admin_referer( $nonceAction );
-
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		// check_admin_referer() does not return a value to branch on. On a
+		// bad or absent nonce it calls wp_die() itself, so execution never
+		// comes back here. An earlier version captured its return and tested
+		// it against false, which could never be true in production and so
+		// guarded nothing.
+		check_admin_referer( $nonceAction );
 	}
 
 	/**
@@ -1230,11 +1228,102 @@ final class RedirectsPage {
 			return;
 		}
 
+		// Fail closed on an unproven analysis, matching SlugWatcher. Every
+		// dynamic target and every regex rule is reported inconclusive, so an
+		// inconclusive rule can carry a loop the detector never saw. Saving it
+		// used to report success and then loop at request time.
+		//
+		// Fail closed with no way forward is its own defect: once an existing
+		// pattern rule matches a path in the new chain, the new rule can never
+		// be added, and neither can the CSV import, so the only recovery is to
+		// reorder rules by hand outside the product. An operator who accepts
+		// that risk can override, and the override is recorded so the
+		// unproven rule is never invisible. It covers this branch only. A
+		// proven cycle above is still refused whatever the operator ticks,
+		// because that one was actually observed.
+		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
+			if ( $this->wantsUnverifiedOverride() ) {
+				$this->logUnverifiedOverride( $proposed, $safety );
+
+				$this->saveRule( $clean, $proposed, $editingId, $fields, $safety );
+
+				return;
+			}
+
+			$this->stayWithErrors(
+				[
+					'blocked' => __( 'The redirect chain could not be fully verified, so the rule was not saved because a loop cannot be ruled out. Save an exact source and target, then add the rule, or tick the override box to save it anyway and have it recorded.', 'rankkernel' ),
+				],
+				$fields
+			);
+
+			return;
+		}
+
+		$this->saveRule( $clean, $proposed, $editingId, $fields, $safety );
+	}
+
+	/**
+	 * Run the remaining save checks and write the rule.
+	 *
+	 * Every check below the safety verdict still applies when an operator
+	 * overrides an unproven analysis, so an override never waves through a
+	 * duplicate source, a catastrophic pattern, an over length pattern or a
+	 * reached cap.
+	 *
+	 * @param array<string, mixed> $clean     Validated source, target, code, match type.
+	 * @param array<string, mixed> $proposed  Proposed rule as sent to the safety analysis.
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $fields    Raw posted fields, carried back into errors.
+	 * @param array<string, mixed> $safety    Safety verdict from the validator.
+	 */
+	private function saveRule( array $clean, array $proposed, int $editingId, array $fields, array $safety ): void {
 		$existing = $this->repository->lookup( $clean['source'], $clean['match_type'] );
 
 		if ( is_array( $existing ) && (int) ( $existing['id'] ?? 0 ) !== $editingId ) {
 			$this->stayWithErrors(
 				[ 'source' => __( 'A redirect with this source and match type already exists.', 'rankkernel' ) ],
+				$fields
+			);
+
+			return;
+		}
+
+		if ( $this->regexUnsafe( $proposed ) ) {
+			$this->stayWithErrors(
+				[
+					'source' => __( 'This pattern can backtrack catastrophically and slow every uncached request, so it was not saved. Remove the repeated group or the nested quantifier. The rule was not saved.', 'rankkernel' ),
+				],
+				$fields
+			);
+
+			return;
+		}
+
+		if ( $this->regexTooLong( $proposed ) ) {
+			$this->stayWithErrors(
+				[
+					'source' => sprintf(
+						/* translators: %d: maximum regex source length */
+						__( 'A regex source may be at most %d characters, because longer patterns are never evaluated. The rule was not saved.', 'rankkernel' ),
+						RedirectRepository::MAX_REGEX_LENGTH
+					),
+				],
+				$fields
+			);
+
+			return;
+		}
+
+		if ( $this->regexCapReached( $editingId, $proposed, $fields['is_active'] ) ) {
+			$this->stayWithErrors(
+				[
+					'blocked' => sprintf(
+						/* translators: %d: maximum active regex rules */
+						__( 'The active regex rule limit of %d is reached, and a rule past the limit is never evaluated. Deactivate or delete a regex rule before adding another. The rule was not saved.', 'rankkernel' ),
+						RedirectRepository::MAX_REGEX_RULES
+					),
+				],
 				$fields
 			);
 
@@ -1292,15 +1381,57 @@ final class RedirectsPage {
 			}
 		}
 
-		if ( $loop['inconclusive'] ) {
-			$flags .= '&rk_mayloop=1';
-		}
-
-		if ( $chain['inconclusive'] ) {
-			$flags .= '&rk_chain_unknown=1';
-		}
-
 		$this->redirect( $flags, $fields['return_to'] );
+	}
+
+	/**
+	 * Whether the operator asked to save a rule the analysis could not prove.
+	 *
+	 * The capability is already required for any save by requireAccess, and
+	 * it is checked again here so this cannot be true on a request that
+	 * reached the handler without it.
+	 *
+	 * @return bool True when the override was requested and permitted.
+	 */
+	private function wantsUnverifiedOverride(): bool {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by requireAccess on the save request.
+		return isset( $_POST['rk_force_unverified'] );
+	}
+
+	/**
+	 * Record that an operator saved a rule the analysis could not prove safe.
+	 *
+	 * Follows the plugin failure convention: a diagnostic action plus a
+	 * warning, both guarded so they never run when WordPress is absent. An
+	 * override that left no trace would defeat the purpose of failing closed.
+	 *
+	 * @param array<string, mixed> $proposed Proposed rule.
+	 * @param array<string, mixed> $safety   Safety verdict that came back inconclusive.
+	 */
+	private function logUnverifiedOverride( array $proposed, array $safety ): void {
+		$context = [
+			'source'     => (string) ( $proposed['source'] ?? '' ),
+			'target'     => (string) ( $proposed['target'] ?? '' ),
+			'match_type' => (string) ( $proposed['match_type'] ?? 'exact' ),
+			'verdict'    => (string) ( $safety['verdict'] ?? 'inconclusive' ),
+		];
+
+		if ( function_exists( 'do_action' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, follows the rankkernel/redirect slash namespaced diagnostics.
+			do_action( 'rankkernel/redirect/unverified_override', $context );
+		}
+
+		if ( function_exists( 'wp_trigger_error' ) ) {
+			wp_trigger_error(
+				__METHOD__,
+				__( 'A redirect was saved with an unverified chain because an operator overrode the check. The chain could not be proven free of a loop.', 'rankkernel' ),
+				E_USER_WARNING
+			);
+		}
 	}
 
 	/**
@@ -1334,6 +1465,68 @@ final class RedirectsPage {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether saving would exceed the active regex rule limit.
+	 *
+	 * The matcher evaluates at most this many regex rules per request, so a
+	 * rule past the limit would save, list as active and never fire. The
+	 * repository refuses the write, this reports why.
+	 *
+	 * @param int                  $editingId Row id being edited, zero when adding.
+	 * @param array<string, mixed> $proposed  Proposed source, target, code, match type.
+	 * @param bool                 $isActive  Whether the proposed rule stays active.
+	 * @return bool True when the limit blocks this save.
+	 */
+	private function regexCapReached( int $editingId, array $proposed, bool $isActive ): bool {
+		if ( ! $isActive || 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		if ( $editingId > 0 ) {
+			$current = $this->repository->get( $editingId );
+
+			if ( is_array( $current )
+				&& 1 === (int) ( $current['is_active'] ?? 0 )
+				&& 'regex' === (string) ( $current['match_type'] ?? 'exact' ) ) {
+				return false;
+			}
+		}
+
+		return $this->repository->count_regex_rules() >= RedirectRepository::MAX_REGEX_RULES;
+	}
+
+	/**
+	 * Whether the proposed regex source is longer than the matcher accepts.
+	 *
+	 * @param array<string, mixed> $proposed Proposed fields.
+	 * @return bool True when the source is over the length bound.
+	 */
+	private function regexTooLong( array $proposed ): bool {
+		if ( 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		$source = Normalizer::normalizeSource( (string) ( $proposed['source'] ?? '' ), 'regex' );
+
+		return strlen( $source ) > RedirectRepository::MAX_REGEX_LENGTH;
+	}
+
+	/**
+	 * Whether the proposed regex source can backtrack catastrophically.
+	 *
+	 * @param array<string, mixed> $proposed Proposed fields.
+	 * @return bool True when the source is refused.
+	 */
+	private function regexUnsafe( array $proposed ): bool {
+		if ( 'regex' !== (string) ( $proposed['match_type'] ?? 'exact' ) ) {
+			return false;
+		}
+
+		$source = Normalizer::normalizeSource( (string) ( $proposed['source'] ?? '' ), 'regex' );
+
+		return RegexSafety::isUnsafe( $source );
 	}
 
 	/**

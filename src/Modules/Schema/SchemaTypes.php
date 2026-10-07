@@ -59,9 +59,7 @@ final class SchemaTypes {
 		'ClaimReview',
 		'Dataset',
 		'PodcastEpisode',
-		'Carousel',
 		'QAPage',
-		'ItemList',
 	];
 
 	/**
@@ -118,9 +116,7 @@ final class SchemaTypes {
 		'ClaimReview'         => 'claimreview',
 		'Dataset'             => 'dataset',
 		'PodcastEpisode'      => 'podcastepisode',
-		'Carousel'            => 'carousel',
 		'QAPage'              => 'qapage',
-		'ItemList'            => 'itemlist',
 	];
 
 	/**
@@ -159,9 +155,7 @@ final class SchemaTypes {
 		'ClaimReview'         => 'Fact Check',
 		'Dataset'             => 'Dataset',
 		'PodcastEpisode'      => 'Podcast Episode',
-		'Carousel'            => 'Carousel',
 		'QAPage'              => 'Question and Answer Page',
-		'ItemList'            => 'Item List',
 	];
 
 	/**
@@ -174,8 +168,28 @@ final class SchemaTypes {
 	 * @var array<string, string[]>
 	 */
 	public const REQUIRED = [
-		'Event'   => [ 'headline', 'startDate', 'locationName' ],
-		'Product' => [ 'headline' ],
+		'Event'         => [ 'headline', 'startDate', 'locationName' ],
+		'Product'       => [ 'headline' ],
+		'Recipe'        => [ 'headline', 'ingredients', 'instructions' ],
+		'Book'          => [ 'headline', 'isbn' ],
+		'Course'        => [ 'headline', 'description' ],
+		'JobPosting'    => [ 'headline', 'locationName', 'datePosted' ],
+		'LocalBusiness' => [ 'headline', 'streetAddress', 'addressLocality' ],
+	];
+
+	/**
+	 * Types that need at least one of a group of fields to be complete.
+	 *
+	 * Google states these as "one of" rather than "all of". A Product
+	 * without offers, a rating or a review cannot produce a rich result,
+	 * and emitting one anyway only produces a Search Console error, so the
+	 * group is checked as a whole. Listed here so the metabox can warn and
+	 * the pieces can abstain, and so the two never drift apart.
+	 *
+	 * @var array<string, string[]>
+	 */
+	public const REQUIRED_ANY_OF = [
+		'Product' => [ 'price', 'ratingValue', 'datePublished' ],
 	];
 
 	/**
@@ -183,7 +197,7 @@ final class SchemaTypes {
 	 *
 	 * @var string[]
 	 */
-	public const NO_FIELDS_REQUIRED = [ 'WebPage', 'FAQPage', 'HowTo', 'Carousel', 'QAPage', 'ItemList' ];
+	public const NO_FIELDS_REQUIRED = [ 'WebPage', 'FAQPage', 'HowTo', 'QAPage' ];
 
 	/**
 	 * Piece id for a type, empty when unmapped.
@@ -213,7 +227,11 @@ final class SchemaTypes {
 	 */
 	public static function requiredFields( string $type ): array {
 		if ( isset( self::REQUIRED[ $type ] ) ) {
-			return self::REQUIRED[ $type ];
+			return array_values(
+				array_unique(
+					array_merge( self::REQUIRED[ $type ], self::REQUIRED_ANY_OF[ $type ] ?? [] )
+				)
+			);
 		}
 
 		if ( ! in_array( $type, self::SUPPORTED, true ) ) {
@@ -248,11 +266,55 @@ final class SchemaTypes {
 		}
 
 		$labels = [
-			'startDate'    => 'Start date',
-			'locationName' => 'Location name',
+			'startDate'       => 'Start date',
+			'locationName'    => 'Location name',
+			'ingredients'     => 'Ingredients',
+			'instructions'    => 'Instructions',
+			'isbn'            => 'ISBN',
+			'datePosted'      => 'Date posted',
+			'streetAddress'   => 'Street address',
+			'addressLocality' => 'Address locality',
+			'price'           => 'Price',
+			'ratingValue'     => 'Rating value',
+			'datePublished'   => 'Date published',
 		];
 
 		return sprintf( '%s is required for %s.', $labels[ $field ] ?? $field, $type );
+	}
+
+	/**
+	 * Whether a type is complete for the fields this plugin collects.
+	 *
+	 * A type needs every field in REQUIRED and at least one field from
+	 * REQUIRED_ANY_OF, if it has a group. This is the single definition the
+	 * metabox warning and the piece gates share, so an author can never be
+	 * warned about one set of fields while a different set decides whether
+	 * the node is emitted.
+	 *
+	 * @param string               $type   Schema type name.
+	 * @param array<string, mixed> $fields Collected payload fields.
+	 * @return bool True when the type can produce a complete node.
+	 */
+	public static function isComplete( string $type, array $fields ): bool {
+		foreach ( self::requiredFields( $type ) as $field ) {
+			if ( ! in_array( $field, self::REQUIRED_ANY_OF[ $type ] ?? [], true ) ) {
+				$value = isset( $fields[ $field ] ) ? trim( (string) $fields[ $field ] ) : '';
+
+				if ( '' === $value ) {
+					return false;
+				}
+			}
+		}
+
+		foreach ( self::REQUIRED_ANY_OF[ $type ] ?? [] as $field ) {
+			$value = isset( $fields[ $field ] ) ? trim( (string) $fields[ $field ] ) : '';
+
+			if ( '' !== $value ) {
+				return true;
+			}
+		}
+
+		return ! isset( self::REQUIRED_ANY_OF[ $type ] );
 	}
 
 	/**

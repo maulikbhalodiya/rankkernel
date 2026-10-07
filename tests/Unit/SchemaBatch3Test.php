@@ -225,11 +225,13 @@ final class SchemaBatch3Test extends TestCase {
 			$this->assertSame( $type, SchemaTypes::normalize( $type ) );
 		}
 
-		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'Carousel', 'QAPage', 'ItemList' ] as $type ) {
+		foreach ( [ 'Movie', 'ClaimReview', 'Dataset', 'PodcastEpisode', 'QAPage' ] as $type ) {
 			$this->assertSame( $type, SchemaTypes::normalize( $type ) );
 		}
 
 		$this->assertSame( 'Article', SchemaTypes::normalize( 'CarouselRide' ) );
+		$this->assertSame( 'Article', SchemaTypes::normalize( 'Carousel' ), 'Carousel is withdrawn' );
+		$this->assertSame( 'Article', SchemaTypes::normalize( 'ItemList' ), 'ItemList is withdrawn' );
 	}
 
 	/**
@@ -285,14 +287,32 @@ final class SchemaBatch3Test extends TestCase {
 
 	/**
 	 * Test product omits sku offers and rating when empty.
+	 *
+	 * A price is present so the node is complete and emitted, and the
+	 * remaining optional fields are still omitted when empty.
 	 */
 	public function test_product_omits_sku_offers_and_rating_when_empty(): void {
-		$build = ( new ProductPiece() )->build( $this->schemaContext( [ 'type' => 'Product' ] ) );
+		$build = ( new ProductPiece() )->build(
+			$this->schemaContext(
+				[
+					'type'   => 'Product',
+					'fields' => [ 'price' => '19.99' ],
+				]
+			)
+		);
 
 		$this->assertSame( 'Hello Post', $build['name'] );
 		$this->assertArrayNotHasKey( 'sku', $build );
-		$this->assertArrayNotHasKey( 'offers', $build );
-		$this->assertArrayNotHasKey( 'aggregateRating', $build );
+		$this->assertArrayNotHasKey( 'review', $build );
+	}
+
+	/**
+	 * Test product with no price rating or date is not emitted at all.
+	 */
+	public function test_product_without_any_offer_rating_or_date_is_not_emitted(): void {
+		$build = ( new ProductPiece() )->build( $this->schemaContext( [ 'type' => 'Product' ] ) );
+
+		$this->assertSame( [], $build, 'A Product with no offer, rating or review must not be emitted' );
 	}
 
 	/**
@@ -393,9 +413,22 @@ final class SchemaBatch3Test extends TestCase {
 
 		$this->assertFalse( $piece->isNeeded( $this->schemaContext( [] ) ) );
 
-		$ctx = $this->schemaContext( [ 'fields' => [ 'ingredients' => "Flour\nWater" ] ] );
+		// Ingredients alone still infer a Recipe, but Google also requires
+		// instructions, so the inference cannot emit an incomplete node.
+		$incomplete = $this->schemaContext( [ 'fields' => [ 'ingredients' => "Flour\nWater" ] ] );
 
-		$this->assertTrue( $piece->isNeeded( $ctx ) );
+		$this->assertFalse( $piece->isNeeded( $incomplete ) );
+
+		$complete = $this->schemaContext(
+			[
+				'fields' => [
+					'ingredients'  => "Flour\nWater",
+					'instructions' => "Mix\nBake",
+				],
+			]
+		);
+
+		$this->assertTrue( $piece->isNeeded( $complete ) );
 	}
 
 	/**
@@ -737,6 +770,8 @@ final class SchemaBatch3Test extends TestCase {
 				'fields' => [
 					'headline'      => 'Baker',
 					'jobLocation'   => 'Springfield',
+					'locationName'  => 'Springfield',
+					'datePosted'    => '2026-01-01 00:00:00',
 					'salary'        => '45000',
 					'priceCurrency' => 'USD',
 					'validThrough'  => '2026-12-31 23:59:59',
@@ -773,6 +808,8 @@ final class SchemaBatch3Test extends TestCase {
 						'company'      => 'Acme',
 						'salary'       => 'lots',
 						'validThrough' => 'not a real date',
+						'locationName' => 'Springfield',
+						'datePosted'   => '2026-01-01 00:00:00',
 					],
 				]
 			)
@@ -917,9 +954,13 @@ final class SchemaBatch3Test extends TestCase {
 	}
 
 	/**
-	 * Test woo absent yields product without offers and no crash.
+	 * Test woo absent does not emit a product with no offers.
+	 *
+	 * This test previously asserted that a Product with WooCommerce absent
+	 * still emitted a node carrying no offers. That node cannot produce a
+	 * rich result, which is the defect the audit found.
 	 */
-	public function test_woo_absent_yields_product_without_offers_and_no_crash(): void {
+	public function test_woo_absent_does_not_emit_a_product_without_offers(): void {
 		WooProductDouble::$available = false;
 		WooProductDouble::$woo       = [ 'price' => '29.99' ];
 
@@ -927,24 +968,60 @@ final class SchemaBatch3Test extends TestCase {
 
 		$piece = new WooProductDouble();
 
-		$this->assertTrue( $piece->isNeeded( $ctx ) );
+		$this->assertFalse( $piece->isNeeded( $ctx ) );
+		$this->assertSame( [], $piece->build( $ctx ) );
 
-		$build = $piece->build( $ctx );
+		// With the price supplied in the payload instead, it emits again.
+		$withPrice = $this->schemaContext(
+			[
+				'type'   => 'Product',
+				'fields' => [ 'price' => '29.99' ],
+			]
+		);
 
-		$this->assertSame( 'Product', $build['@type'] );
-		$this->assertArrayNotHasKey( 'offers', $build );
+		$this->assertTrue( $piece->isNeeded( $withPrice ) );
+		$this->assertSame( 'Product', $piece->build( $withPrice )['@type'] );
 	}
 
 	/**
 	 * Test generator wiring includes batch3 pieces.
 	 */
 	public function test_generator_wiring_includes_batch3_pieces(): void {
-		$fields = [
+		// Each type carries the fields Google requires for it, because a
+		// piece that cannot build a complete node now abstains by design.
+		$common = [
 			'price'         => '19.99',
 			'priceCurrency' => 'USD',
 			'startDate'     => '2026-06-01 19:00:00',
 			'thumbnailUrl'  => 'https://example.com/frame.jpg',
 			'uploadDate'    => '2026-05-01 10:00:00',
+		];
+
+		// Extra fields each type needs on top of the common set. Named
+		// locals so every entry below carries a single value.
+		$recipeFields = [
+			'ingredients'  => 'F',
+			'instructions' => 'M',
+		];
+		$eventFields  = [ 'locationName' => 'Springfield' ];
+		$bookFields   = [ 'isbn' => '978-3-16-148410-0' ];
+		$courseFields = [ 'description' => 'A course about bread.' ];
+		$jobFields    = [
+			'locationName' => 'Springfield',
+			'datePosted'   => '2026-01-01',
+		];
+
+		$perType = [
+			'Product'             => [],
+			'Recipe'              => $recipeFields,
+			'Event'               => $eventFields,
+			'Service'             => [],
+			'VideoObject'         => [],
+			'Book'                => $bookFields,
+			'Course'              => $courseFields,
+			'JobPosting'          => $jobFields,
+			'SoftwareApplication' => [],
+			'MusicRecording'      => [],
 		];
 
 		$expected = [
@@ -964,7 +1041,7 @@ final class SchemaBatch3Test extends TestCase {
 			$ctx    = $this->schemaContext(
 				[
 					'type'   => $payloadType,
-					'fields' => $fields,
+					'fields' => array_merge( $common, $perType[ $payloadType ] ),
 				]
 			);
 			$module = new SchemaModule( null, null, null, $ctx );

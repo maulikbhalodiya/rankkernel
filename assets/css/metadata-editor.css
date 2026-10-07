@@ -1519,6 +1519,13 @@ the Edit Snippet action. */
 	padding: 2px 4px !important;
 }
 
+/* The borderless chip suppresses its own outline, so the focus ring has to be
+   drawn here or keyboard users get no indicator at all. */
+.rk-meta .rk-keywords-input:focus-visible {
+	outline: 2px solid var(--rk-color-focus) !important;
+	outline-offset: 1px;
+}
+
 /* SEO Analysis Checklist */
 
 .rk-meta .rk-checklist-head-inner {

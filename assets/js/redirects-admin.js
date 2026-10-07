@@ -114,6 +114,27 @@ function rankkernelAnnounce( text ) {
 	}
 
 	/**
+	 * Whether the visitor asked for reduced motion.
+	 *
+	 * Same guard the instant indexing screen already uses, so the two agree
+	 * and there is one place the behaviour is defined. matchMedia is guarded
+	 * because the node test harness has no window.
+	 *
+	 * @return {boolean} True when motion should be suppressed.
+	 */
+	function prefersReducedMotion() {
+		if ( 'undefined' === typeof window || ! window.matchMedia ) {
+			return false;
+		}
+
+		try {
+			return !! window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+		} catch ( error ) {
+			return false;
+		}
+	}
+
+	/**
 	 * Open one panel and close every other panel.
 	 *
 	 * @param {string} panelId ID of the panel to open.
@@ -142,8 +163,8 @@ function rankkernelAnnounce( text ) {
 				source.focus();
 			}
 		} else {
-			/* Scroll the panel into view for others. */
-			panel.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			/* Scroll the panel into view for others, unless motion was reduced. */
+			panel.scrollIntoView( { behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'nearest' } );
 		}
 
 		/* Store the trigger so we can focus back when the panel is closed. */
