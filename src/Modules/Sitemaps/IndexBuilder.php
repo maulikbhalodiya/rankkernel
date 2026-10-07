@@ -58,12 +58,45 @@ class IndexBuilder {
 	private ?array $setsWithPageCountsMemo = null;
 
 	/**
+	 * Lazy-stored posts provider instance when constructor parameter is null.
+	 *
+	 * Performance optimization: avoids creating a new provider object on every call to
+	 * postsProvider() during sitemap index and entry generation.
+	 *
+	 * @var PostsProvider|null
+	 */
+	private ?PostsProvider $postsInstance = null;
+
+	/**
+	 * Lazy-stored taxonomies provider instance when constructor parameter is null.
+	 *
+	 * Performance optimization: avoids creating a new provider object on every call to
+	 * taxonomiesProvider() during sitemap index and entry generation.
+	 *
+	 * @var TaxonomiesProvider|null
+	 */
+	private ?TaxonomiesProvider $taxonomiesInstance = null;
+
+	/**
+	 * Lazy-stored authors provider instance when constructor parameter is null.
+	 *
+	 * Performance optimization: avoids creating a new provider object on every call to
+	 * authorsProvider() during sitemap index and entry generation.
+	 *
+	 * @var AuthorsProvider|null
+	 */
+	private ?AuthorsProvider $authorsInstance = null;
+
+	/**
 	 * Reset in-memory cache (primarily for unit tests).
 	 *
 	 * @return void
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
+		$this->postsInstance          = null;
+		$this->taxonomiesInstance     = null;
+		$this->authorsInstance        = null;
 	}
 
 	/**
@@ -151,7 +184,7 @@ class IndexBuilder {
 			return $this->posts;
 		}
 
-		return new PostsProvider( $this->sitemapSettings );
+		return $this->postsInstance ??= new PostsProvider( $this->sitemapSettings );
 	}
 
 	/**
@@ -164,7 +197,7 @@ class IndexBuilder {
 			return $this->taxonomies;
 		}
 
-		return new TaxonomiesProvider( $this->sitemapSettings );
+		return $this->taxonomiesInstance ??= new TaxonomiesProvider( $this->sitemapSettings );
 	}
 
 	/**
@@ -177,7 +210,7 @@ class IndexBuilder {
 			return $this->authors;
 		}
 
-		return new AuthorsProvider( $this->sitemapSettings );
+		return $this->authorsInstance ??= new AuthorsProvider( $this->sitemapSettings );
 	}
 
 	/**

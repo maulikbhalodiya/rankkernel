@@ -358,4 +358,31 @@ final class IndexBuilderTest extends TestCase {
 		$second = $builder->getSetsWithPageCounts();
 		$this->assertSame( [ 'post' => 3 ], $second );
 	}
+
+	/**
+	 * Test default providers are memoized per builder and cleared by resetCache.
+	 *
+	 * The provider classes hold no per instance state, every read goes through
+	 * the current settings, so storing the lazily created instance is safe and
+	 * removes the repeated allocations during index and entry building. The
+	 * reset must drop the stored instances so a settings change starts from
+	 * fresh providers instead of a stale one.
+	 */
+	public function test_default_providers_are_memoized_and_reset(): void {
+		$builder = new IndexBuilder();
+
+		foreach ( [ 'postsProvider', 'taxonomiesProvider', 'authorsProvider' ] as $method ) {
+			$reflection = new \ReflectionMethod( IndexBuilder::class, $method );
+			$reflection->setAccessible( true );
+
+			$first  = $reflection->invoke( $builder );
+			$second = $reflection->invoke( $builder );
+
+			$this->assertSame( $first, $second, $method . ' must reuse the stored instance' );
+
+			$builder->resetCache();
+
+			$this->assertNotSame( $first, $reflection->invoke( $builder ), $method . ' must create a fresh instance after resetCache' );
+		}
+	}
 }
