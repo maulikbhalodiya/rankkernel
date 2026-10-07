@@ -2,6 +2,7 @@
     "redefinable-internals": [
         "time",
         "headers_sent",
-        "setcookie"
+        "setcookie",
+        "is_uploaded_file"
     ]
 }

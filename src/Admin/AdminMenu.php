@@ -51,6 +51,13 @@ final class AdminMenu {
 	private ?RedirectsPage $redirectsPage = null;
 
 	/**
+	 * Support page instance.
+	 *
+	 * @var SupportPage|null
+	 */
+	private ?SupportPage $supportPage = null;
+
+	/**
 	 * 404 Monitor page instance.
 	 *
 	 * @var NotFoundPage|null
@@ -464,6 +471,61 @@ final class AdminMenu {
 
 		add_action( 'load-' . $hook, [ $this, 'handleRedirectsSave' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueRedirectsAssets' ] );
+	}
+
+	/**
+	 * Register the Support submenu.
+	 *
+	 * Last in the RankKernel menu, because it is the fallback for a user who
+	 * needs help rather than a tool they reach for deliberately.
+	 *
+	 * Uses the same load hook save pattern as the other pages, so the
+	 * post-redirect-get redirect stays header safe.
+	 */
+	public function addSupportPage(): void {
+		$hook = add_submenu_page(
+			'rankkernel',
+			esc_html__( 'Support', 'rankkernel' ),
+			esc_html__( 'Support', 'rankkernel' ),
+			SupportPage::CAPABILITY,
+			SupportPage::SLUG,
+			[ $this, 'renderSupport' ]
+		);
+
+		add_action( 'load-' . $hook, [ $this, 'handleSupportSave' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueSupportAssets' ] );
+	}
+
+	/**
+	 * Render support page callback.
+	 */
+	public function renderSupport(): void {
+		$this->getSupportPage()->render();
+	}
+
+	/**
+	 * Handle support save callback.
+	 */
+	public function handleSupportSave(): void {
+		$this->getSupportPage()->maybeHandleSave();
+	}
+
+	/**
+	 * Enqueue support page assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueSupportAssets( string $hookSuffix = '' ): void {
+		$this->getSupportPage()->enqueueAssets( $hookSuffix );
+	}
+
+	/**
+	 * Get the Support page (lazy instantiated).
+	 *
+	 * @return SupportPage The result.
+	 */
+	public function getSupportPage(): SupportPage {
+		return $this->supportPage ??= new SupportPage();
 	}
 
 	/**
