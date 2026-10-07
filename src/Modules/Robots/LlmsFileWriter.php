@@ -64,6 +64,21 @@ final class LlmsFileWriter {
 	 * @return string The result.
 	 */
 	private function containedPath( string $path, string $fallback ): string {
+		if ( '' === $path || false !== strpos( $path, "\0" ) ) {
+			return $fallback;
+		}
+
+		$normPath   = function_exists( 'wp_normalize_path' ) ? wp_normalize_path( $path ) : $path;
+		$isAbsolute = '/' === $normPath[0] || ( strlen( $normPath ) >= 3 && ':' === $normPath[1] && '/' === $normPath[2] );
+
+		if ( ! $isAbsolute ) {
+			return $fallback;
+		}
+
+		if ( is_link( $path ) ) {
+			return $fallback;
+		}
+
 		if ( ! function_exists( 'realpath' ) || ! function_exists( 'wp_normalize_path' ) ) {
 			return $fallback;
 		}
@@ -75,10 +90,30 @@ final class LlmsFileWriter {
 			return $fallback;
 		}
 
-		$root = rtrim( wp_normalize_path( $root ), '/' ) . '/';
-		$dir  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
+		$rootNorm = rtrim( wp_normalize_path( $root ), '/' ) . '/';
+		$dirNorm  = rtrim( wp_normalize_path( $dir ), '/' ) . '/';
 
-		return $this->pathStartsWith( $dir, $root ) ? $path : $fallback;
+		if ( ! $this->pathStartsWith( $dirNorm, $rootNorm ) ) {
+			return $fallback;
+		}
+
+		if ( file_exists( $path ) ) {
+			$realPath = realpath( $path );
+
+			if ( false === $realPath ) {
+				return $fallback;
+			}
+
+			$fileNorm = wp_normalize_path( $realPath );
+
+			if ( ! $this->pathStartsWith( $fileNorm, $rootNorm ) ) {
+				return $fallback;
+			}
+
+			return $realPath;
+		}
+
+		return $path;
 	}
 
 	/**

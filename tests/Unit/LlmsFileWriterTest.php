@@ -111,6 +111,123 @@ final class LlmsFileWriterTest extends TestCase {
 	}
 
 	/**
+	 * Test a symlink filter path falls back to the default path.
+	 */
+	public function test_symlink_filter_path_falls_back_to_default(): void {
+		$link = ABSPATH . 'llms-symlink-test.txt';
+
+		if ( file_exists( $link ) || is_link( $link ) ) {
+			unlink( $link ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+
+		if ( function_exists( 'symlink' ) ) {
+			try {
+				symlink( '/etc/passwd', $link );
+			} catch ( \Throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			}
+
+			if ( is_link( $link ) ) {
+				$this->path = $link;
+				$result     = ( new LlmsFileWriter() )->path();
+				unlink( $link ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+
+				$this->assertSame( ABSPATH . 'llms.txt', $result );
+
+				return;
+			}
+		}
+
+		$this->markTestSkipped( 'Symlinks not supported in this environment.' );
+	}
+
+	/**
+	 * Test a filter path with a null byte falls back to the default path.
+	 */
+	public function test_null_byte_filter_path_falls_back_to_default(): void {
+		$this->path = ABSPATH . "llms.txt\0.php";
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
+	 * Test a relative filter path falls back to the default path.
+	 */
+	public function test_relative_filter_path_falls_back_to_default(): void {
+		$this->path = 'llms.txt';
+
+		$this->assertSame( ABSPATH . 'llms.txt', ( new LlmsFileWriter() )->path() );
+	}
+
+	/**
+	 * Test a dangling symlink filter path cannot write outside the site root.
+	 *
+	 * A symlink whose target does not exist fails both file_exists() and
+	 * realpath() on the leaf, so a containment check gated on either would let
+	 * the write follow the link and create a file outside ABSPATH. The writer
+	 * must reject the leaf symlink before the write and never touch the target.
+	 */
+	public function test_dangling_symlink_filter_path_cannot_write_outside_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'Symlinks not supported in this environment.' );
+		}
+
+		$outsideDir = '';
+
+		foreach ( [ '/var/tmp', '/dev/shm' ] as $candidate ) {
+			if ( is_dir( $candidate ) && is_writable( $candidate ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- test fixture probes for a writable directory outside the site root.
+				$outsideDir = $candidate;
+
+				break;
+			}
+		}
+
+		if ( '' === $outsideDir ) {
+			$this->markTestSkipped( 'No writable directory outside ABSPATH to prove the escape target.' );
+		}
+
+		$link    = ABSPATH . 'llms-dangling-' . uniqid() . '.txt';
+		$target  = $outsideDir . '/rkllms-escape-' . uniqid() . '.txt';
+		$default = ABSPATH . 'llms.txt';
+
+		if ( file_exists( $default ) ) {
+			unlink( $default ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes a leftover default file.
+		}
+
+		try {
+			symlink( $target, $link );
+		} catch ( \Throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- a failed symlink is reported by the is_link guard below.
+		}
+
+		if ( ! is_link( $link ) ) {
+			$this->markTestSkipped( 'Could not create a test symlink.' );
+		}
+
+		try {
+			$this->path = $link;
+
+			$writer = new LlmsFileWriter();
+			$result = $writer->write( "# Generated\n" );
+
+			$this->assertFileDoesNotExist( $target, 'The write must never create a file outside the site root.' );
+			$this->assertSame( $default, $writer->path() );
+			$this->assertTrue( $result['written'] );
+			$this->assertFileExists( $default );
+		} finally {
+			if ( is_link( $link ) ) {
+				unlink( $link ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own symlink.
+			}
+
+			if ( file_exists( $target ) ) {
+				unlink( $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes an escaped file when a bug created one.
+			}
+
+			if ( file_exists( $default ) ) {
+				unlink( $default ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own default file.
+			}
+		}
+	}
+
+	/**
 	 * Test a climbed out path falls back to the default path.
 	 */
 	public function test_climbed_out_path_falls_back_to_default(): void {
