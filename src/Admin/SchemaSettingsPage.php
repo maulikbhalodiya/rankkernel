@@ -82,7 +82,7 @@ final class SchemaSettingsPage {
 
 		$src = plugins_url( 'assets/js/schema-settings.js', (string) RANKKERNEL_FILE );
 
-		wp_register_script( 'rankkernel-schema-settings', $src, [ 'media-editor', 'wp-i18n' ], $version, true );
+		wp_register_script( 'rankkernel-schema-settings', $src, [ 'media-editor', 'wp-i18n', 'wp-a11y' ], $version, true );
 		wp_enqueue_script( 'rankkernel-schema-settings' );
 	}
 
