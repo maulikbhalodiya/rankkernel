@@ -1946,14 +1946,15 @@ final class RedirectsPage {
 	private function handleExport(): void {
 		$this->requireAccess( self::NONCE_EXPORT );
 
-		if ( defined( 'RANKKERNEL_TESTING' ) ) {
-			return;
-		}
-
 		nocache_headers();
 
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename=rankkernel-redirects-' . gmdate( 'Ymd-His' ) . '.csv' );
+		header( 'X-Content-Type-Options: nosniff' );
+
+		if ( defined( 'RANKKERNEL_TESTING' ) ) {
+			return;
+		}
 
 		$handler = new CsvHandler( $this->repository );
 		$handler->stream_csv();

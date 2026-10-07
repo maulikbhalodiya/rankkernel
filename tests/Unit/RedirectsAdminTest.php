@@ -1790,6 +1790,34 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Export action invokes nocache_headers and sets security response headers.
+	 */
+	public function test_export_invokes_nocache_headers(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$nocacheCalled = false;
+		Functions\when( 'nocache_headers' )->alias(
+			static function () use ( &$nocacheCalled ): void {
+				$nocacheCalled = true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_GET                      = [
+			'rk_action' => 'export',
+			'_wpnonce'  => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		$output = ob_get_clean();
+
+		$this->assertTrue( $nocacheCalled, 'Export must invoke nocache_headers()' );
+		$this->assertIsString( $output );
+	}
+
+	/**
 	 * Failed nonce stops a CSV import.
 	 */
 	public function test_import_with_bad_nonce_dies(): void {
