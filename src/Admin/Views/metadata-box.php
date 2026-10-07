@@ -171,8 +171,8 @@ if ( $schemaDisabled ) {
 				<div class="rk-classic-token-list" data-rankkernel-tokens="1">
 					<?php foreach ( $tokenRows as $tokenRow ) : ?>
 						<?php
-						/* translators: %s: template token name, for example %%title%% */
-						$rkTitleTokenLabel = sprintf( __( 'Insert %s token into SEO title', 'rankkernel' ), $tokenRow['token'] );
+						/* translators: 1: visible token label, for example Title, 2: template token code, for example %%title%% */
+						$rkTitleTokenLabel = sprintf( __( 'Insert %1$s (%2$s) token into SEO title', 'rankkernel' ), $tokenRow['label'], $tokenRow['token'] );
 						?>
 						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>" aria-label="<?php echo esc_attr( $rkTitleTokenLabel ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
 					<?php endforeach; ?>
@@ -200,8 +200,8 @@ if ( $schemaDisabled ) {
 				<div class="rk-classic-token-list" data-rankkernel-tokens="1">
 					<?php foreach ( $tokenRows as $tokenRow ) : ?>
 						<?php
-						/* translators: %s: template token name, for example %%title%% */
-						$rkDescTokenLabel = sprintf( __( 'Insert %s token into meta description', 'rankkernel' ), $tokenRow['token'] );
+						/* translators: 1: visible token label, for example Title, 2: template token code, for example %%title%% */
+						$rkDescTokenLabel = sprintf( __( 'Insert %1$s (%2$s) token into meta description', 'rankkernel' ), $tokenRow['label'], $tokenRow['token'] );
 						?>
 						<button type="button" class="button button-small" data-rk-token="<?php echo esc_attr( $tokenRow['token'] ); ?>" title="<?php echo esc_attr( $tokenRow['value'] ); ?>" aria-label="<?php echo esc_attr( $rkDescTokenLabel ); ?>"><?php echo esc_html( $tokenRow['label'] ); ?></button>
 					<?php endforeach; ?>
