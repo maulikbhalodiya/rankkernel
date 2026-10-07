@@ -213,7 +213,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 		<?php endif; ?>
 	<?php endif; ?>
 
-	<?php /* Section 3: page header card. Title plus the real plugin version, the Clear Log control and the settings gear that jumps to the settings panel. */ ?>
+	<?php /* Section 3: page header card. Title plus the real plugin version, the Clear Log control and the settings gear that toggles the settings panel. */ ?>
 	<header class="rk-ui-card rk-ui-page-header">
 		<div class="rk-ui-page-header-text">
 			<div class="rk-ui-page-header-title-row">
@@ -236,9 +236,208 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 				<?php wp_nonce_field( 'rankkernel_404_clear' ); ?>
 				<button type="submit" name="rankkernel_404_clear" id="rankkernel_404_clear" value="1" class="rk-ui-btn rk-clear-btn"><span class="rk-icon" aria-hidden="true">cancel</span><?php echo esc_html__( 'Clear Log', 'rankkernel' ); ?></button>
 			</form>
-			<a class="rk-ui-btn rk-ui-btn-icon" href="#rk-monitor-settings" aria-label="<?php echo esc_attr__( 'Monitor Settings', 'rankkernel' ); ?>" title="<?php echo esc_attr__( 'Monitor Settings', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">settings</span></a>
+			<button type="button" class="rk-ui-btn rk-ui-btn-icon" id="rk-monitor-settings-toggle" aria-expanded="false" aria-controls="rk-monitor-settings" aria-label="<?php echo esc_attr__( 'Monitor Settings', 'rankkernel' ); ?>" title="<?php echo esc_attr__( 'Monitor Settings', 'rankkernel' ); ?>"><span class="rk-icon" aria-hidden="true">settings</span></button>
 		</div>
 	</header>
+
+	<?php /* Monitor settings panel, collapsed. Every control posts the real settings form. Sits above the log status card. */ ?>
+	<noscript><style>.rk-monitor .rk-monitor-settings[hidden]{display:block}</style></noscript>
+	<div class="rk-ui-card rk-monitor-settings" id="rk-monitor-settings" hidden>
+		<?php
+		/*
+		 * The disclosure summary carries the card heading, so the heading is
+		 * a real h3 inside the summary rather than a styled span. A heading
+		 * is allowed inside a summary, and the summary is not allowed to
+		 * hold block content, so the name and the hint are two spans inside
+		 * the heading rather than a wrapper around it. The Hide/Show wording
+		 * is a pair of spans swapped by the hidden state in CSS. The gear
+		 * button plus the banner link above toggle this panel through
+		 * assets/js/monitor-settings.js; every form hook is unchanged.
+		 */
+		?>
+		<div class="rk-monitor-settings-summary">
+			<h3 class="rk-monitor-settings-heading">
+				<span class="rk-monitor-settings-name"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Monitor Settings', 'rankkernel' ); ?></span>
+				<span class="rk-monitor-settings-hint"><?php echo esc_html__( 'Stored in WordPress. Retention, entry limit, flood guard and address exclusions.', 'rankkernel' ); ?></span>
+			</h3>
+			<span class="rk-monitor-settings-toggle"><span class="rk-monitor-settings-show"><?php echo esc_html__( 'Show', 'rankkernel' ); ?></span><span class="rk-monitor-settings-hide"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></span></span>
+		</div>
+
+		<form method="post" action="" class="rk-monitor-settings-form">
+			<?php wp_nonce_field( 'rankkernel_404_settings' ); ?>
+
+			<div class="rk-settings-grid">
+				<div class="rk-settings-col">
+					<?php /* Row A: advanced fields, the switch the design draws next to the explanation. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-advanced-fields"><?php echo esc_html__( 'Advanced fields', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Store referer and user agent with each entry.', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-ui-switch rk-setting-switch">
+							<input type="checkbox" id="rk-advanced-fields" name="rk_advanced_fields" value="1" <?php echo checked( $settingsAdvanced, true, false ); ?> />
+							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
+						</span>
+					</div>
+
+					<?php /* Row B: retention window. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-retention"><?php echo esc_html__( 'Retention days', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Log rotation threshold in days', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-setting-control">
+							<input type="number" id="rk-retention" name="rk_retention_days" value="<?php echo esc_attr( (string) $settingsRetention ); ?>" class="rk-setting-input" min="1" max="365" />
+							<span class="rk-setting-unit"><?php echo esc_html__( 'days', 'rankkernel' ); ?></span>
+						</span>
+					</div>
+
+					<?php /* Row C: entry limit. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-max-rows"><?php echo esc_html__( 'Maximum entries', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Table limit guard', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-setting-control">
+							<input type="number" id="rk-max-rows" name="rk_max_rows" value="<?php echo esc_attr( (string) $settingsMaxRows ); ?>" class="rk-setting-input" min="100" max="10000" />
+							<span class="rk-setting-unit"><?php echo esc_html__( 'entries', 'rankkernel' ); ?></span>
+						</span>
+					</div>
+				</div>
+
+				<div class="rk-settings-col">
+					<?php /* Row D: flood budget. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-flood-budget"><?php echo esc_html__( 'Flood budget', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Rate limiting protection against bot scans', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-setting-control">
+							<input type="number" id="rk-flood-budget" name="rk_flood_budget" value="<?php echo esc_attr( (string) $settingsFloodBudget ); ?>" class="rk-setting-input" min="1" max="1000" />
+							<span class="rk-setting-unit"><?php echo esc_html__( 'addrs', 'rankkernel' ); ?></span>
+						</span>
+					</div>
+
+					<?php /* Row E: flood window. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-flood-window"><?php echo esc_html__( 'Flood window', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Rolling window duration', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-setting-control">
+							<input type="number" id="rk-flood-window" name="rk_flood_window" value="<?php echo esc_attr( (string) $settingsFloodWindow ); ?>" class="rk-setting-input" min="60" max="3600" />
+							<span class="rk-setting-unit"><?php echo esc_html__( 'sec', 'rankkernel' ); ?></span>
+						</span>
+					</div>
+
+					<?php /* Row F: query strings. */ ?>
+					<div class="rk-setting-row">
+						<div class="rk-setting-text">
+							<label class="rk-setting-label" for="rk-ignore-query"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></label>
+							<span class="rk-setting-desc"><?php echo esc_html__( 'Ignore query strings when logging.', 'rankkernel' ); ?></span>
+							<p class="rk-ui-hint"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p>
+						</div>
+						<span class="rk-ui-switch rk-setting-switch">
+							<input type="checkbox" id="rk-ignore-query" name="rk_ignore_query" value="1" <?php echo checked( $settingsIgnoreQuery, true, false ); ?> />
+							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<hr class="rk-settings-divider" />
+
+			<?php
+			/*
+			 * The heading above is also the name of the table below, so table
+			 * navigation announces what the table holds. It is the id the
+			 * table points at, so the visible words stay the single source.
+			 */
+			?>
+			<div class="rk-exclusions-head">
+				<h4 class="rk-subheading" id="rk-exclusions-heading"><?php echo esc_html__( 'URL Exclusions', 'rankkernel' ); ?></h4>
+				<p class="rk-ui-hint rk-ui-hint-strong"><?php echo esc_html__( 'Skip logging for addresses that match a rule. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' ); ?></p>
+			</div>
+
+			<div class="rk-ui-table-wrap rk-exclusions-wrap">
+				<table class="rk-ui-table rk-exclusions" aria-labelledby="rk-exclusions-heading">
+					<thead>
+						<tr>
+							<th scope="col" class="rk-col-compare"><?php echo esc_html__( 'Compare', 'rankkernel' ); ?></th>
+							<th scope="col" class="rk-col-value"><?php echo esc_html__( 'Value', 'rankkernel' ); ?></th>
+							<th scope="col" class="rk-col-remove"><?php echo esc_html__( 'Action', 'rankkernel' ); ?></th>
+						</tr>
+					</thead>
+					<tbody id="rk-exclusions-body">
+						<?php
+						/*
+						 * Every row of this table carried the same two names, so
+						 * a screen reader heard "How to compare" and "Exclusion
+						 * value" once per row with nothing to say which rule it
+						 * was on. The position in the list is what the server
+						 * rendered rows can offer that is unique, so each pair
+						 * of controls is named after its rule number. The Remove
+						 * button in the same row already names itself after the
+						 * value it removes, which is the pattern followed here.
+						 */
+						foreach ( $exclusionRowItems as $rkExclRowIndex => $exclusionRowItem ) :
+							$rkExclRuleNumber = $rkExclRowIndex + 1;
+
+							$rkExclRemoveLabel = '' !== $exclusionRowItem['value']
+								? sprintf( /* translators: %s: exclusion value or pattern */ __( 'Remove exclusion rule for %s', 'rankkernel' ), $exclusionRowItem['value'] )
+								: __( 'Remove exclusion rule', 'rankkernel' );
+							?>
+							<tr class="rk-exclusion-row"><td>
+								<div class="rk-ui-select-wrap">
+									<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'How to compare for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" class="rk-ui-select rk-exclusion-select">
+										<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
+											<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( $exclusionRowItem['comparator'], $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
+								</div></td>
+								<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'Exclusion value for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" /></td>
+								<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr( $rkExclRemoveLabel ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+
+			<?php
+			/*
+			 * The row the script clones. It carries no id of its own, because
+			 * every clone would copy that id, so the controls are named from
+			 * the copy itself rather than from a per row id. A clone has no
+			 * number yet, so it says it is a new rule, and the number arrives
+			 * with the page after the save.
+			 */
+			?>
+			<template id="rk-exclusion-template"><tr class="rk-exclusion-row"><td>
+				<div class="rk-ui-select-wrap">
+					<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare for a new exclusion rule', 'rankkernel' ); ?>" class="rk-ui-select rk-exclusion-select">
+						<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
+							<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( 'prefix', $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
+				</div></td>
+				<td><input type="text" name="rk_excl_value[]" value="" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value for a new exclusion rule', 'rankkernel' ); ?>" /></td>
+				<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr></template>
+
+			<div class="rk-exclusion-controls">
+				<div class="rk-exclusion-add-wrap">
+					<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-exclusion-add"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add Exclusion', 'rankkernel' ); ?></button>
+					<span class="rk-ui-hint"><?php echo esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ); ?></span>
+				</div>
+				<?php submit_button( __( 'Save Monitor Settings', 'rankkernel' ), 'primary', 'rankkernel_404_settings_save' ); ?>
+			</div>
+		</form>
+	</div>
 
 	<?php /* Section 4: log status card. The figures come from the controller, never from a mockup. */ ?>
 	<section class="rk-ui-card rk-log-status">
@@ -360,7 +559,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 			<div class="rk-ui-notice rk-ui-notice-info rk-tracked-banner">
 				<span class="rk-icon rk-ui-notice-icon" aria-hidden="true">info</span>
 				<p class="rk-ui-notice-text"><?php echo esc_html__( 'Redirect creation needs the Redirects module. Enable Redirects to turn a 404 entry into a redirect.', 'rankkernel' ); ?></p>
-				<a class="rk-banner-link" href="#rk-monitor-settings"><?php echo esc_html__( 'Module Settings', 'rankkernel' ); ?><span aria-hidden="true"> →</span></a>
+				<a class="rk-banner-link" id="rk-monitor-settings-link" href="#rk-monitor-settings"><?php echo esc_html__( 'Module Settings', 'rankkernel' ); ?><span aria-hidden="true"> →</span></a>
 			</div>
 		<?php endif; ?>
 
@@ -611,203 +810,6 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 		<?php endif; ?>
 	</section>
 
-	<?php /* Section 6: monitor settings, collapsed. Every control posts the real settings form. */ ?>
-	<details class="rk-ui-card rk-monitor-settings" id="rk-monitor-settings">
-		<?php
-		/*
-		 * The disclosure summary carries the card heading, so the heading is
-		 * a real h3 inside the summary rather than a styled span. A heading
-		 * is allowed inside a summary, and the summary is not allowed to
-		 * hold block content, so the name and the hint are two spans inside
-		 * the heading rather than a wrapper around it. The Hide/Show wording
-		 * is a pair of spans swapped by the open state in CSS, so the
-		 * summary is the real control and no script is needed. The hooks the
-		 * script looks for are all below this summary and are unchanged.
-		 */
-		?>
-		<summary class="rk-monitor-settings-summary">
-			<h3 class="rk-monitor-settings-heading">
-				<span class="rk-monitor-settings-name"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Monitor Settings', 'rankkernel' ); ?></span>
-				<span class="rk-monitor-settings-hint"><?php echo esc_html__( 'Stored in WordPress. Retention, entry limit, flood guard and address exclusions.', 'rankkernel' ); ?></span>
-			</h3>
-			<span class="rk-monitor-settings-toggle"><span class="rk-monitor-settings-show"><?php echo esc_html__( 'Show', 'rankkernel' ); ?></span><span class="rk-monitor-settings-hide"><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></span></span>
-		</summary>
-
-		<form method="post" action="" class="rk-monitor-settings-form">
-			<?php wp_nonce_field( 'rankkernel_404_settings' ); ?>
-
-			<div class="rk-settings-grid">
-				<div class="rk-settings-col">
-					<?php /* Row A: advanced fields, the switch the design draws next to the explanation. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-advanced-fields"><?php echo esc_html__( 'Advanced fields', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Store referer and user agent with each entry.', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-ui-switch rk-setting-switch">
-							<input type="checkbox" id="rk-advanced-fields" name="rk_advanced_fields" value="1" <?php echo checked( $settingsAdvanced, true, false ); ?> />
-							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
-						</span>
-					</div>
-
-					<?php /* Row B: retention window. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-retention"><?php echo esc_html__( 'Retention days', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Log rotation threshold in days', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-setting-control">
-							<input type="number" id="rk-retention" name="rk_retention_days" value="<?php echo esc_attr( (string) $settingsRetention ); ?>" class="rk-setting-input" min="1" max="365" />
-							<span class="rk-setting-unit"><?php echo esc_html__( 'days', 'rankkernel' ); ?></span>
-						</span>
-					</div>
-
-					<?php /* Row C: entry limit. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-max-rows"><?php echo esc_html__( 'Maximum entries', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Table limit guard', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-setting-control">
-							<input type="number" id="rk-max-rows" name="rk_max_rows" value="<?php echo esc_attr( (string) $settingsMaxRows ); ?>" class="rk-setting-input" min="100" max="10000" />
-							<span class="rk-setting-unit"><?php echo esc_html__( 'entries', 'rankkernel' ); ?></span>
-						</span>
-					</div>
-				</div>
-
-				<div class="rk-settings-col">
-					<?php /* Row D: flood budget. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-flood-budget"><?php echo esc_html__( 'Flood budget', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Rate limiting protection against bot scans', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-setting-control">
-							<input type="number" id="rk-flood-budget" name="rk_flood_budget" value="<?php echo esc_attr( (string) $settingsFloodBudget ); ?>" class="rk-setting-input" min="1" max="1000" />
-							<span class="rk-setting-unit"><?php echo esc_html__( 'addrs', 'rankkernel' ); ?></span>
-						</span>
-					</div>
-
-					<?php /* Row E: flood window. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-flood-window"><?php echo esc_html__( 'Flood window', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Rolling window duration', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-setting-control">
-							<input type="number" id="rk-flood-window" name="rk_flood_window" value="<?php echo esc_attr( (string) $settingsFloodWindow ); ?>" class="rk-setting-input" min="60" max="3600" />
-							<span class="rk-setting-unit"><?php echo esc_html__( 'sec', 'rankkernel' ); ?></span>
-						</span>
-					</div>
-
-					<?php /* Row F: query strings. */ ?>
-					<div class="rk-setting-row">
-						<div class="rk-setting-text">
-							<label class="rk-setting-label" for="rk-ignore-query"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></label>
-							<span class="rk-setting-desc"><?php echo esc_html__( 'Ignore query strings when logging.', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p>
-						</div>
-						<span class="rk-ui-switch rk-setting-switch">
-							<input type="checkbox" id="rk-ignore-query" name="rk_ignore_query" value="1" <?php echo checked( $settingsIgnoreQuery, true, false ); ?> />
-							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<hr class="rk-settings-divider" />
-
-			<?php
-			/*
-			 * The heading above is also the name of the table below, so table
-			 * navigation announces what the table holds. It is the id the
-			 * table points at, so the visible words stay the single source.
-			 */
-			?>
-			<div class="rk-exclusions-head">
-				<h4 class="rk-subheading" id="rk-exclusions-heading"><?php echo esc_html__( 'URL Exclusions', 'rankkernel' ); ?></h4>
-				<p class="rk-ui-hint rk-ui-hint-strong"><?php echo esc_html__( 'Skip logging for addresses that match a rule. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page.', 'rankkernel' ); ?></p>
-			</div>
-
-			<div class="rk-ui-table-wrap rk-exclusions-wrap">
-				<table class="rk-ui-table rk-exclusions" aria-labelledby="rk-exclusions-heading">
-					<thead>
-						<tr>
-							<th scope="col" class="rk-col-compare"><?php echo esc_html__( 'Compare', 'rankkernel' ); ?></th>
-							<th scope="col" class="rk-col-value"><?php echo esc_html__( 'Value', 'rankkernel' ); ?></th>
-							<th scope="col" class="rk-col-remove"><?php echo esc_html__( 'Action', 'rankkernel' ); ?></th>
-						</tr>
-					</thead>
-					<tbody id="rk-exclusions-body">
-						<?php
-						/*
-						 * Every row of this table carried the same two names, so
-						 * a screen reader heard "How to compare" and "Exclusion
-						 * value" once per row with nothing to say which rule it
-						 * was on. The position in the list is what the server
-						 * rendered rows can offer that is unique, so each pair
-						 * of controls is named after its rule number. The Remove
-						 * button in the same row already names itself after the
-						 * value it removes, which is the pattern followed here.
-						 */
-						foreach ( $exclusionRowItems as $rkExclRowIndex => $exclusionRowItem ) :
-							$rkExclRuleNumber = $rkExclRowIndex + 1;
-
-							$rkExclRemoveLabel = '' !== $exclusionRowItem['value']
-								? sprintf( /* translators: %s: exclusion value or pattern */ __( 'Remove exclusion rule for %s', 'rankkernel' ), $exclusionRowItem['value'] )
-								: __( 'Remove exclusion rule', 'rankkernel' );
-							?>
-							<tr class="rk-exclusion-row"><td>
-								<div class="rk-ui-select-wrap">
-									<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'How to compare for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" class="rk-ui-select rk-exclusion-select">
-										<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
-											<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( $exclusionRowItem['comparator'], $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
-										<?php endforeach; ?>
-									</select>
-									<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
-								</div></td>
-								<td><input type="text" name="rk_excl_value[]" value="<?php echo esc_attr( $exclusionRowItem['value'] ); ?>" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr( sprintf( /* translators: %d: position of the exclusion rule in the list */ __( 'Exclusion value for exclusion rule %d', 'rankkernel' ), $rkExclRuleNumber ) ); ?>" /></td>
-								<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr( $rkExclRemoveLabel ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr>
-						<?php endforeach; ?>
-					</tbody>
-				</table>
-			</div>
-
-			<?php
-			/*
-			 * The row the script clones. It carries no id of its own, because
-			 * every clone would copy that id, so the controls are named from
-			 * the copy itself rather than from a per row id. A clone has no
-			 * number yet, so it says it is a new rule, and the number arrives
-			 * with the page after the save.
-			 */
-			?>
-			<template id="rk-exclusion-template"><tr class="rk-exclusion-row"><td>
-				<div class="rk-ui-select-wrap">
-					<select name="rk_excl_comparator[]" aria-label="<?php echo esc_attr__( 'How to compare for a new exclusion rule', 'rankkernel' ); ?>" class="rk-ui-select rk-exclusion-select">
-						<?php foreach ( $settingsComparators as $comparatorOption => $comparatorLabel ) : ?>
-							<option value="<?php echo esc_attr( $comparatorOption ); ?>"<?php echo selected( 'prefix', $comparatorOption, false ); ?>><?php echo esc_html( $comparatorLabel ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<span class="rk-icon rk-ui-select-chevron" aria-hidden="true">expand_more</span>
-				</div></td>
-				<td><input type="text" name="rk_excl_value[]" value="" class="rk-exclusion-value" maxlength="500" aria-label="<?php echo esc_attr__( 'Exclusion value for a new exclusion rule', 'rankkernel' ); ?>" /></td>
-				<td><button type="button" class="rk-ui-btn rk-ui-btn-danger rk-exclusion-remove" aria-label="<?php echo esc_attr__( 'Remove exclusion rule', 'rankkernel' ); ?>"><?php echo esc_html__( 'Remove', 'rankkernel' ); ?></button></td></tr></template>
-
-			<div class="rk-exclusion-controls">
-				<div class="rk-exclusion-add-wrap">
-					<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-exclusion-add"><span class="rk-icon" aria-hidden="true">add</span><?php echo esc_html__( 'Add Exclusion', 'rankkernel' ); ?></button>
-					<span class="rk-ui-hint"><?php echo esc_html__( 'Without JavaScript, clear a row value and save to remove its rule.', 'rankkernel' ); ?></span>
-				</div>
-				<?php submit_button( __( 'Save Monitor Settings', 'rankkernel' ), 'primary', 'rankkernel_404_settings_save' ); ?>
-			</div>
-		</form>
-	</details>
 
 	<?php /* Section 7: footer meta caption. The version is the real plugin version. */ ?>
 	<footer class="rk-monitor-footer"><?php echo esc_html( sprintf( /* translators: %s: plugin version */ __( 'RankKernel SEO Suite · 404 Monitor · v%s · Zero runtime overhead background logging', 'rankkernel' ), \RankKernel\Plugin::version() ) ); ?></footer>

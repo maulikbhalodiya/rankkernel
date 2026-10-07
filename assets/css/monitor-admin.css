@@ -903,6 +903,10 @@
 	border-block-start: 4px solid var(--rk-color-primary);
 }
 
+.rk-monitor .rk-monitor-settings[hidden] {
+	display: none;
+}
+
 .rk-monitor .rk-monitor-settings-summary {
 	display: flex;
 	align-items: center;
@@ -968,15 +972,15 @@
 	display: none;
 }
 
-.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-show {
+.rk-monitor .rk-monitor-settings:not([hidden]) .rk-monitor-settings-show {
 	display: none;
 }
 
-.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-hide {
+.rk-monitor .rk-monitor-settings:not([hidden]) .rk-monitor-settings-hide {
 	display: inline;
 }
 
-.rk-monitor .rk-monitor-settings[open] .rk-monitor-settings-summary {
+.rk-monitor .rk-monitor-settings:not([hidden]) .rk-monitor-settings-summary {
 	border-block-end: 1px solid var(--rk-color-border);
 }
 
