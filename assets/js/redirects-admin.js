@@ -268,6 +268,45 @@ function rankkernelAnnounce( text ) {
 	var ajaxActive = false;
 
 	/**
+	 * Whether the AJAX list refresh can start right now. Every intercept
+	 * checks this BEFORE preventDefault() so a dead click falls back to the
+	 * browser's normal navigation instead of silently doing nothing.
+	 *
+	 * @return {boolean} True when fetchList would actually run.
+	 */
+	function canFetchList() {
+		return Boolean( cfg && listWrap && ! ajaxActive );
+	}
+
+	/**
+	 * Debounced call wrapper. Local mirror of the debounce() in
+	 * metadata-editor.js (lines 77-90): metadata-editor.js wraps its helper
+	 * in a private IIFE, so the same setTimeout shape is inlined here
+	 * rather than imported.
+	 *
+	 * @param {Function} fn   Callback to debounce.
+	 * @param {number}   wait Milliseconds to wait.
+	 * @return {Function} Debounced callback.
+	 */
+	function debounce( fn, wait ) {
+		var timer = null;
+
+		return function () {
+			var args = arguments;
+			var self = this;
+
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+
+			timer = setTimeout( function () {
+				timer = null;
+				fn.apply( self, args );
+			}, wait );
+		};
+	}
+
+	/**
 	 * Build a query-string from a URL's search params, extending or
 	 * replacing values supplied in overrides.
 	 *
@@ -319,7 +358,7 @@ function rankkernelAnnounce( text ) {
 	 * @param {boolean} pushState Whether to push to browser history.
 	 */
 	function fetchList( filterUrl, pushState ) {
-		if ( ! cfg || ! listWrap || ajaxActive ) {
+		if ( ! canFetchList() ) {
 			return;
 		}
 
@@ -517,7 +556,7 @@ function rankkernelAnnounce( text ) {
 					return;
 				}
 
-				if ( ! cfg ) {
+				if ( ! cfg || ajaxActive ) {
 					if ( typeof perPageForm.submit === 'function' ) {
 						perPageForm.submit();
 					}
@@ -534,7 +573,7 @@ function rankkernelAnnounce( text ) {
 			el.addEventListener( 'click', function ( event ) {
 				var url = el.getAttribute( 'data-rk-filter-url' );
 
-				if ( ! url || ! cfg ) {
+				if ( ! url || ! canFetchList() ) {
 					return;
 				}
 
@@ -548,9 +587,46 @@ function rankkernelAnnounce( text ) {
 
 		if ( filterForm && cfg ) {
 			filterForm.addEventListener( 'submit', function ( event ) {
+				if ( ! canFetchList() ) {
+					return;
+				}
+
 				event.preventDefault();
 				refreshForm( filterForm );
 			} );
+
+			/*
+			 * Auto-submit the filter form on dropdown change and debounced
+			 * search input, always through the same AJAX refreshForm path.
+			 * The Filter button stays bound as-is so no-JS keeps working.
+			 */
+			var autoSubmit = function () {
+				if ( ! canFetchList() ) {
+					if ( typeof filterForm.submit === 'function' ) {
+						filterForm.submit();
+					}
+
+					return;
+				}
+
+				refreshForm( filterForm );
+			};
+
+			var matchSelect  = filterForm.querySelector( '#rk-filter-match' );
+			var codeSelect   = filterForm.querySelector( '#rk-filter-code' );
+			var searchInput  = filterForm.querySelector( '#rk-search-input' );
+
+			if ( matchSelect ) {
+				matchSelect.addEventListener( 'change', autoSubmit );
+			}
+
+			if ( codeSelect ) {
+				codeSelect.addEventListener( 'change', autoSubmit );
+			}
+
+			if ( searchInput ) {
+				searchInput.addEventListener( 'input', debounce( autoSubmit, 300 ) );
+			}
 		}
 
 		/* Destructive row confirm links. */
@@ -588,6 +664,10 @@ function rankkernelAnnounce( text ) {
 	/* Handle back/forward navigation, re-fetch the list for the URL state. */
 	if ( window.history ) {
 		window.addEventListener( 'popstate', function () {
+			if ( ! canFetchList() ) {
+				return;
+			}
+
 			fetchList( window.location.href, false );
 		} );
 	}
