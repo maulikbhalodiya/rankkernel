@@ -255,7 +255,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 		 * assets/js/monitor-settings.js; every form hook is unchanged.
 		 */
 		?>
-		<div class="rk-monitor-settings-summary">
+		<div class="rk-monitor-settings-summary" role="button" tabindex="0" aria-expanded="false" aria-controls="rk-monitor-settings">
 			<h3 class="rk-monitor-settings-heading">
 				<span class="rk-monitor-settings-name"><span class="rk-icon" aria-hidden="true">settings</span><?php echo esc_html__( 'Monitor Settings', 'rankkernel' ); ?></span>
 				<span class="rk-monitor-settings-hint"><?php echo esc_html__( 'Stored in WordPress. Retention, entry limit, flood guard and address exclusions.', 'rankkernel' ); ?></span>

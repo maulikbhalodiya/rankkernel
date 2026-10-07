@@ -489,6 +489,75 @@ $rkMatchBadgeMap = [
 			</form>
 		</div><!-- #rk-redirect-editor -->
 
+		<?php /* ---- Redirect Settings card (hidden by default, gear toggles it) - */ ?>
+
+		<div
+			class="rk-ui-card rk-settings-card"
+			id="rk-redirect-settings"
+			hidden
+		>
+			<div class="rk-ui-card-header">
+				<div class="rk-ui-card-header-left">
+					<span class="rk-icon rk-card-header-icon" aria-hidden="true">tune</span>
+					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Redirect Settings', 'rankkernel' ); ?></h3>
+				</div>
+				<button
+					type="button"
+					class="rk-card-cancel rk-settings-hide"
+				><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></button>
+			</div>
+
+			<form method="post" action="" class="rk-settings-form">
+				<?php wp_nonce_field( $nonceSettingsAction ); ?>
+
+				<div class="rk-settings-row">
+					<div class="rk-settings-label-group">
+						<span class="rk-settings-label"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></span>
+						<p class="rk-form-hint" id="rk-preserve-query-desc"><?php echo esc_html__( 'Determine whether incoming query variables like UTM tags are preserved.', 'rankkernel' ); ?></p>
+					</div>
+					<label class="rk-form-check">
+						<input type="checkbox" name="rk_preserve_query" value="1" <?php echo checked( $preserveQuery, true, false ); ?> aria-describedby="rk-preserve-query-desc" />
+						<span><?php echo esc_html__( 'Pass the query string to the destination. Turn off to drop it.', 'rankkernel' ); ?></span>
+					</label>
+				</div>
+
+				<div class="rk-settings-row">
+					<div class="rk-settings-label-group">
+						<span class="rk-settings-label"><?php echo esc_html__( 'Slug changes', 'rankkernel' ); ?></span>
+						<p class="rk-form-hint" id="rk-auto-slug-desc"><?php echo esc_html__( 'Automated detection when posts, pages, or custom post types change permalinks.', 'rankkernel' ); ?></p>
+					</div>
+					<label class="rk-form-check">
+						<input type="checkbox" name="rk_auto_slug_redirect" value="1" <?php echo checked( $autoSlugRedirect, true, false ); ?> aria-describedby="rk-auto-slug-desc" />
+						<span><?php echo esc_html__( 'Create a 301 redirect automatically when a post slug changes.', 'rankkernel' ); ?></span>
+					</label>
+				</div>
+
+				<div class="rk-settings-row">
+					<div class="rk-settings-label-group">
+						<label class="rk-settings-label" for="rk-per-page"><?php echo esc_html__( 'Rows per page', 'rankkernel' ); ?></label>
+						<p class="rk-form-hint" id="rk-per-page-desc"><?php echo esc_html__( 'How many redirects to show per page in the admin table.', 'rankkernel' ); ?></p>
+					</div>
+					<div class="rk-settings-row-control">
+						<input
+							type="number"
+							id="rk-per-page"
+							name="rk_rules_per_page"
+							value="<?php echo esc_attr( (string) $rulesPerPage ); ?>"
+							class="rk-settings-number"
+							min="1"
+							max="100"
+							aria-describedby="rk-per-page-desc rk-per-page-hint"
+						/>
+						<span class="rk-form-hint" id="rk-per-page-hint"><?php echo esc_html__( 'Min 1, max 100', 'rankkernel' ); ?></span>
+					</div>
+				</div>
+
+				<div class="rk-settings-footer">
+					<?php submit_button( __( 'Save Settings', 'rankkernel' ), 'secondary', 'rankkernel_redirect_settings_save', false ); ?>
+				</div>
+			</form>
+		</div><!-- #rk-redirect-settings -->
+
 		<?php /* ---- List section: pre-rendered by renderListSection() ----------- */ ?>
 
 		<?php
@@ -599,74 +668,6 @@ $rkMatchBadgeMap = [
 			</div><!-- #rk-csv-body -->
 		</div><!-- #rk-redirect-csv -->
 
-		<?php /* ---- Redirect Settings card (hidden by default, gear toggles it) - */ ?>
-
-		<div
-			class="rk-ui-card rk-settings-card"
-			id="rk-redirect-settings"
-			hidden
-		>
-			<div class="rk-ui-card-header">
-				<div class="rk-ui-card-header-left">
-					<span class="rk-icon rk-card-header-icon" aria-hidden="true">tune</span>
-					<h3 class="rk-ui-card-title"><?php echo esc_html__( 'Redirect Settings', 'rankkernel' ); ?></h3>
-				</div>
-				<button
-					type="button"
-					class="rk-card-cancel rk-settings-hide"
-				><?php echo esc_html__( 'Hide', 'rankkernel' ); ?></button>
-			</div>
-
-			<form method="post" action="" class="rk-settings-form">
-				<?php wp_nonce_field( $nonceSettingsAction ); ?>
-
-				<div class="rk-settings-row">
-					<div class="rk-settings-label-group">
-						<span class="rk-settings-label"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></span>
-						<p class="rk-form-hint" id="rk-preserve-query-desc"><?php echo esc_html__( 'Determine whether incoming query variables like UTM tags are preserved.', 'rankkernel' ); ?></p>
-					</div>
-					<label class="rk-form-check">
-						<input type="checkbox" name="rk_preserve_query" value="1" <?php echo checked( $preserveQuery, true, false ); ?> aria-describedby="rk-preserve-query-desc" />
-						<span><?php echo esc_html__( 'Pass the query string to the destination. Turn off to drop it.', 'rankkernel' ); ?></span>
-					</label>
-				</div>
-
-				<div class="rk-settings-row">
-					<div class="rk-settings-label-group">
-						<span class="rk-settings-label"><?php echo esc_html__( 'Slug changes', 'rankkernel' ); ?></span>
-						<p class="rk-form-hint" id="rk-auto-slug-desc"><?php echo esc_html__( 'Automated detection when posts, pages, or custom post types change permalinks.', 'rankkernel' ); ?></p>
-					</div>
-					<label class="rk-form-check">
-						<input type="checkbox" name="rk_auto_slug_redirect" value="1" <?php echo checked( $autoSlugRedirect, true, false ); ?> aria-describedby="rk-auto-slug-desc" />
-						<span><?php echo esc_html__( 'Create a 301 redirect automatically when a post slug changes.', 'rankkernel' ); ?></span>
-					</label>
-				</div>
-
-				<div class="rk-settings-row">
-					<div class="rk-settings-label-group">
-						<label class="rk-settings-label" for="rk-per-page"><?php echo esc_html__( 'Rows per page', 'rankkernel' ); ?></label>
-						<p class="rk-form-hint" id="rk-per-page-desc"><?php echo esc_html__( 'How many redirects to show per page in the admin table.', 'rankkernel' ); ?></p>
-					</div>
-					<div class="rk-settings-row-control">
-						<input
-							type="number"
-							id="rk-per-page"
-							name="rk_rules_per_page"
-							value="<?php echo esc_attr( (string) $rulesPerPage ); ?>"
-							class="rk-settings-number"
-							min="1"
-							max="100"
-							aria-describedby="rk-per-page-desc rk-per-page-hint"
-						/>
-						<span class="rk-form-hint" id="rk-per-page-hint"><?php echo esc_html__( 'Min 1, max 100', 'rankkernel' ); ?></span>
-					</div>
-				</div>
-
-				<div class="rk-settings-footer">
-					<?php submit_button( __( 'Save Settings', 'rankkernel' ), 'secondary', 'rankkernel_redirect_settings_save', false ); ?>
-				</div>
-			</form>
-		</div><!-- #rk-redirect-settings -->
 
 	</div><!-- .rk-redirects -->
 </div><!-- .wrap.rk-redirects-wrap -->

@@ -36,7 +36,7 @@ may fetch a font from an external host. */
 	font-family: 'Material Symbols Outlined';
 	font-style: normal;
 	font-weight: 100 700;
-	font-display: swap;
+	font-display: block;
 	src: url("../fonts/material-symbols-outlined-variable.woff2") format("woff2");
 }
 

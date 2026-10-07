@@ -15,7 +15,7 @@
 	 * Closing only hides; it never disables, so every nonce field plus the
 	 * submit button still posts when the panel is open again.
 	 */
-	function setOpen( toggle, panel, open ) {
+	function setOpen( toggle, panel, open, summary ) {
 		if ( ! panel ) {
 			return;
 		}
@@ -34,6 +34,10 @@
 
 		if ( toggle && toggle.setAttribute ) {
 			toggle.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		}
+
+		if ( summary && summary.setAttribute ) {
+			summary.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
 		}
 	}
 
@@ -84,6 +88,7 @@
 		var toggle = scope.getElementById( 'rk-monitor-settings-toggle' );
 		var panel  = scope.getElementById( 'rk-monitor-settings' );
 		var banner = scope.getElementById( 'rk-monitor-settings-link' );
+		var summary = panel && panel.querySelector ? panel.querySelector( '.rk-monitor-settings-summary' ) : null;
 
 		if ( ! toggle || ! panel ) {
 			return null;
@@ -92,12 +97,30 @@
 		toggle.addEventListener( 'click', function () {
 			var willOpen = !! panel.hidden;
 
-			setOpen( toggle, panel, willOpen );
+			setOpen( toggle, panel, willOpen, summary );
 
 			if ( willOpen ) {
 				scrollPanelIntoView( panel );
 			}
 		} );
+
+		if ( summary && summary.addEventListener ) {
+			summary.addEventListener( 'click', function () {
+				setOpen( toggle, panel, false, summary );
+			} );
+
+			summary.addEventListener( 'keydown', function ( event ) {
+				var key = event && event.key ? event.key : '';
+
+				if ( 'Enter' === key || ' ' === key || 'Spacebar' === key ) {
+					if ( event && event.preventDefault ) {
+						event.preventDefault();
+					}
+
+					setOpen( toggle, panel, false, summary );
+				}
+			} );
+		}
 
 		if ( banner ) {
 			banner.addEventListener( 'click', function ( event ) {
@@ -105,12 +128,12 @@
 					event.preventDefault();
 				}
 
-				setOpen( toggle, panel, true );
+				setOpen( toggle, panel, true, summary );
 				scrollPanelIntoView( panel );
 			} );
 		}
 
-		return { toggle: toggle, panel: panel, banner: banner };
+		return { toggle: toggle, panel: panel, banner: banner, summary: summary };
 	}
 
 	if ( 'undefined' !== typeof document && document.addEventListener ) {

@@ -61,9 +61,12 @@ function mount() {
 	const toggle = fakeNode();
 	const panel = fakeNode();
 	const banner = fakeNode();
+	const summary = fakeNode();
 
 	panel.hidden = true;
 	toggle.setAttribute( 'aria-expanded', 'false' );
+	summary.setAttribute( 'aria-expanded', 'false' );
+	panel.querySelector = ( selector ) => ( '.rk-monitor-settings-summary' === selector ? summary : null );
 
 	const nodes = {};
 	nodes[ 'rk-monitor-settings-toggle' ] = toggle;
@@ -88,7 +91,7 @@ function mount() {
 
 	domContentLoaded.forEach( ( handler ) => handler() );
 
-	return { toggle, panel, banner, sandbox };
+	return { toggle, panel, banner, summary, sandbox };
 }
 
 test( 'the panel starts collapsed with aria-expanded false', () => {
@@ -126,6 +129,42 @@ test( 'the banner link opens the panel and prevents the bare anchor jump', () =>
 	assert.equal( event.prevented, true, 'preventDefault must run or the URL hash jumps' );
 	assert.equal( panel.hidden, false );
 	assert.equal( toggle.getAttribute( 'aria-expanded' ), 'true' );
+} );
+
+test( 'a click on the summary closes the panel and flips aria-expanded', () => {
+	const { toggle, panel, summary } = mount();
+
+	toggle.fire( 'click' );
+
+	assert.equal( panel.hidden, false );
+	assert.equal( summary.getAttribute( 'aria-expanded' ), 'true' );
+
+	summary.fire( 'click' );
+
+	assert.equal( panel.hidden, true );
+	assert.equal( toggle.getAttribute( 'aria-expanded' ), 'false' );
+	assert.equal( summary.getAttribute( 'aria-expanded' ), 'false' );
+} );
+
+test( 'Enter on the summary closes the panel and Space would too', () => {
+	const { toggle, panel, summary } = mount();
+
+	toggle.fire( 'click' );
+	assert.equal( panel.hidden, false );
+
+	const event = summary.fire( 'keydown', { key: 'Enter' } );
+
+	assert.equal( event.prevented, true, 'Enter must not scroll or submit' );
+	assert.equal( panel.hidden, true );
+	assert.equal( summary.getAttribute( 'aria-expanded' ), 'false' );
+
+	toggle.fire( 'click' );
+	assert.equal( panel.hidden, false );
+
+	summary.fire( 'keydown', { key: ' ' } );
+
+	assert.equal( panel.hidden, true );
+	assert.equal( summary.getAttribute( 'aria-expanded' ), 'false' );
 } );
 
 test( 'the wiring is exposed for reuse and missing nodes are safe', () => {
