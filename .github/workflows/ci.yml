@@ -61,6 +61,29 @@ jobs:
           composer test:js
           find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
 
+  removed-work:
+    name: Removed Work Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          # Full history, the guard compares the branch against its merge base.
+          fetch-depth: 0
+
+      - name: Fail a pull request that silently removes work
+        env:
+          RK_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RK_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bash tools/guard-large-deletions.sh
+
   security:
     name: Psalm Security Scan
     runs-on: ubuntu-latest
