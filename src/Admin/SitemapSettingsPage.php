@@ -115,6 +115,22 @@ final class SitemapSettingsPage {
 		$css = plugins_url( 'assets/css/sitemap-admin.css', (string) RANKKERNEL_FILE );
 		wp_register_style( 'rankkernel-sitemap-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
 		wp_enqueue_style( 'rankkernel-sitemap-admin' );
+
+		if ( ! function_exists( 'wp_register_script' ) ) {
+			return;
+		}
+
+		$src = plugins_url( 'assets/js/sitemap-settings-admin.js', (string) RANKKERNEL_FILE );
+		wp_register_script( 'rankkernel-sitemap-settings', $src, [ 'wp-i18n', 'wp-a11y' ], $version, true );
+		wp_enqueue_script( 'rankkernel-sitemap-settings' );
+
+		if ( function_exists( 'wp_localize_script' ) ) {
+			wp_localize_script(
+				'rankkernel-sitemap-settings',
+				'rankkernelSitemapSettings',
+				[ 'tabIds' => self::TABS ]
+			);
+		}
 	}
 
 	/**
@@ -151,6 +167,7 @@ final class SitemapSettingsPage {
 
 		foreach ( $tabLabels as $tabId => $tabLabel ) {
 			$tabItems[] = [
+				'id'      => $tabId,
 				'url'     => admin_url( 'admin.php?page=rankkernel-sitemap&tab=' . $tabId ),
 				'current' => $tabId === $tab,
 				'label'   => $tabLabel,
@@ -158,137 +175,131 @@ final class SitemapSettingsPage {
 			];
 		}
 
+		// Every panel renders; the flags only mark which one starts open,
+		// both for the server side hidden attribute and for the no-JS case.
 		$showGeneral    = 'general' === $tab;
 		$showPostTypes  = 'post-types' === $tab;
 		$showTaxonomies = 'taxonomies' === $tab;
 		$showAuthors    = 'authors' === $tab;
 
-		if ( $showGeneral ) {
-			$itemsPerPage = (string) ( $all['items_per_page'] ?? 1000 );
+		$itemsPerPage = (string) ( $all['items_per_page'] ?? 1000 );
 
-			$generalRows = [
-				[
-					'kind'    => 'checkbox',
-					'name'    => 'include_images',
-					'title'   => __( 'Images in Sitemaps', 'rankkernel' ),
-					'checked' => ! empty( $all['include_images'] ),
-					'hint'    => __( 'Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages.', 'rankkernel' ),
-				],
-				[
-					'kind'    => 'checkbox',
-					'name'    => 'include_featured_image',
-					'title'   => __( 'Include Featured Images', 'rankkernel' ),
-					'checked' => ! empty( $all['include_featured_image'] ),
-					'hint'    => __( 'Include the Featured Image too, even if it does not appear directly in the post content.', 'rankkernel' ),
-				],
-				[
-					'kind'  => 'ids',
-					'name'  => 'exclude_posts',
-					'title' => __( 'Exclude Posts', 'rankkernel' ),
-					'value' => $this->idsText( $all['exclude_posts'] ?? [] ),
-					'hint'  => __( 'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types.', 'rankkernel' ),
-				],
-				[
-					'kind'  => 'ids',
-					'name'  => 'exclude_terms',
-					'title' => __( 'Exclude Terms', 'rankkernel' ),
-					'value' => $this->idsText( $all['exclude_terms'] ?? [] ),
-					'hint'  => __( 'Add term IDs, separated by comma. This option is applied for all taxonomies.', 'rankkernel' ),
-				],
-				[
-					'kind'    => 'checkbox',
-					'name'    => 'include_empty_terms',
-					'title'   => __( 'Include empty terms', 'rankkernel' ),
-					'checked' => ! empty( $all['include_empty_terms'] ),
-					'hint'    => __( 'List terms that have no published posts.', 'rankkernel' ),
-				],
+		$generalRows = [
+			[
+				'kind'    => 'checkbox',
+				'name'    => 'include_images',
+				'title'   => __( 'Images in Sitemaps', 'rankkernel' ),
+				'checked' => ! empty( $all['include_images'] ),
+				'hint'    => __( 'Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages.', 'rankkernel' ),
+			],
+			[
+				'kind'    => 'checkbox',
+				'name'    => 'include_featured_image',
+				'title'   => __( 'Include Featured Images', 'rankkernel' ),
+				'checked' => ! empty( $all['include_featured_image'] ),
+				'hint'    => __( 'Include the Featured Image too, even if it does not appear directly in the post content.', 'rankkernel' ),
+			],
+			[
+				'kind'  => 'ids',
+				'name'  => 'exclude_posts',
+				'title' => __( 'Exclude Posts', 'rankkernel' ),
+				'value' => $this->idsText( $all['exclude_posts'] ?? [] ),
+				'hint'  => __( 'Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types.', 'rankkernel' ),
+			],
+			[
+				'kind'  => 'ids',
+				'name'  => 'exclude_terms',
+				'title' => __( 'Exclude Terms', 'rankkernel' ),
+				'value' => $this->idsText( $all['exclude_terms'] ?? [] ),
+				'hint'  => __( 'Add term IDs, separated by comma. This option is applied for all taxonomies.', 'rankkernel' ),
+			],
+			[
+				'kind'    => 'checkbox',
+				'name'    => 'include_empty_terms',
+				'title'   => __( 'Include empty terms', 'rankkernel' ),
+				'checked' => ! empty( $all['include_empty_terms'] ),
+				'hint'    => __( 'List terms that have no published posts.', 'rankkernel' ),
+			],
+		];
+
+		$postTypeRows = [];
+
+		foreach ( $this->publicPostTypes() as $slug => $label ) {
+			$key            = 'pt_' . $slug . '_sitemap';
+			$postTypeRows[] = [
+				'key'     => $key,
+				'slug'    => $slug,
+				'label'   => $label,
+				'enabled' => (bool) ( $all[ $key ] ?? true ),
+				'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
 			];
 		}
 
-		if ( $showPostTypes ) {
-			$postTypeRows = [];
+		$taxonomyRows = [];
 
-			foreach ( $this->publicPostTypes() as $slug => $label ) {
-				$key            = 'pt_' . $slug . '_sitemap';
-				$postTypeRows[] = [
-					'key'     => $key,
-					'slug'    => $slug,
-					'label'   => $label,
-					'enabled' => (bool) ( $all[ $key ] ?? true ),
-					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
-				];
-			}
-		}
-
-		if ( $showTaxonomies ) {
-			$taxonomyRows = [];
-
-			foreach ( $this->publicTaxonomies() as $slug => $label ) {
-				$key            = 'tax_' . $slug . '_sitemap';
-				$taxonomyRows[] = [
-					'key'     => $key,
-					'slug'    => $slug,
-					'label'   => $label,
-					'enabled' => (bool) ( $all[ $key ] ?? true ),
-					'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
-				];
-			}
-		}
-
-		if ( $showAuthors ) {
-			$authorsRows = [
-				[
-					'name'    => 'authors_sitemap',
-					'title'   => __( 'Authors sitemap', 'rankkernel' ),
-					'checked' => ! empty( $all['authors_sitemap'] ),
-					'hint'    => __( 'List authors in the sitemap index.', 'rankkernel' ),
-				],
-				[
-					'name'    => 'authors_include_empty',
-					'title'   => __( 'Include authors without posts', 'rankkernel' ),
-					'checked' => ! empty( $all['authors_include_empty'] ),
-					'hint'    => __( 'Also list users who can publish, such as authors and editors, even when they have no published posts. Enabling this can expose author archives to search engines.', 'rankkernel' ),
-				],
+		foreach ( $this->publicTaxonomies() as $slug => $label ) {
+			$key            = 'tax_' . $slug . '_sitemap';
+			$taxonomyRows[] = [
+				'key'     => $key,
+				'slug'    => $slug,
+				'label'   => $label,
+				'enabled' => (bool) ( $all[ $key ] ?? true ),
+				'url'     => home_url( '/' . $slug . '-sitemap.xml' ),
 			];
+		}
 
-			$excludedRoles = $all['authors_exclude_roles'] ?? [];
+		$authorsRows = [
+			[
+				'name'    => 'authors_sitemap',
+				'title'   => __( 'Authors sitemap', 'rankkernel' ),
+				'checked' => ! empty( $all['authors_sitemap'] ),
+				'hint'    => __( 'List authors in the sitemap index.', 'rankkernel' ),
+			],
+			[
+				'name'    => 'authors_include_empty',
+				'title'   => __( 'Include authors without posts', 'rankkernel' ),
+				'checked' => ! empty( $all['authors_include_empty'] ),
+				'hint'    => __( 'Also list users who can publish, such as authors and editors, even when they have no published posts. Enabling this can expose author archives to search engines.', 'rankkernel' ),
+			],
+		];
 
-			if ( ! is_array( $excludedRoles ) ) {
-				$excludedRoles = [];
-			}
+		$excludedRoles = $all['authors_exclude_roles'] ?? [];
 
-			$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
+		if ( ! is_array( $excludedRoles ) ) {
+			$excludedRoles = [];
+		}
 
-			$hasEditableRoles = is_array( $roles ) && [] !== $roles;
-			$roleRows         = [];
+		$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
 
-			if ( $hasEditableRoles ) {
-				foreach ( $roles as $slug => $details ) {
-					if ( ! is_string( $slug ) || '' === $slug ) {
-						continue;
-					}
+		$hasEditableRoles = is_array( $roles ) && [] !== $roles;
+		$roleRows         = [];
 
-					$roleName = $slug;
-
-					if ( is_array( $details ) && isset( $details['name'] ) && is_string( $details['name'] ) ) {
-						$roleName = $details['name'];
-					}
-
-					$roleRows[] = [
-						'slug'     => $slug,
-						'name'     => $roleName,
-						'excluded' => in_array( $slug, $excludedRoles, true ),
-					];
+		if ( $hasEditableRoles ) {
+			foreach ( $roles as $slug => $details ) {
+				if ( ! is_string( $slug ) || '' === $slug ) {
+					continue;
 				}
-			}
 
-			$authorsExcludeUsers = [
-				'name'  => 'authors_exclude_users',
-				'title' => __( 'Exclude users', 'rankkernel' ),
-				'value' => $this->idsText( $all['authors_exclude_users'] ?? [] ),
-				'hint'  => __( 'Comma separated user ids to leave out of the authors sitemap.', 'rankkernel' ),
-			];
+				$roleName = $slug;
+
+				if ( is_array( $details ) && isset( $details['name'] ) && is_string( $details['name'] ) ) {
+					$roleName = $details['name'];
+				}
+
+				$roleRows[] = [
+					'slug'     => $slug,
+					'name'     => $roleName,
+					'excluded' => in_array( $slug, $excludedRoles, true ),
+				];
+			}
 		}
+
+		$authorsExcludeUsers = [
+			'name'  => 'authors_exclude_users',
+			'title' => __( 'Exclude users', 'rankkernel' ),
+			'value' => $this->idsText( $all['authors_exclude_users'] ?? [] ),
+			'hint'  => __( 'Comma separated user ids to leave out of the authors sitemap.', 'rankkernel' ),
+		];
 
 		require __DIR__ . '/Views/sitemap-settings.php';
 	}
