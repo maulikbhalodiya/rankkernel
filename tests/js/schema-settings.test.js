@@ -239,3 +239,168 @@ test( 'schema-settings announces social profile chip additions and removals', ()
 		'Removed profile URL https://twitter.com/example.'
 	] );
 } );
+
+function fakeTabLink( href ) {
+	const classes = new Set();
+	const attrs = { href };
+
+	return {
+		classes,
+		getAttribute( name ) {
+			return Object.prototype.hasOwnProperty.call( attrs, name ) ? attrs[ name ] : null;
+		},
+		setAttribute( name, val ) {
+			attrs[ name ] = String( val );
+		},
+		removeAttribute( name ) {
+			delete attrs[ name ];
+		},
+		hasAttribute( name ) {
+			return Object.prototype.hasOwnProperty.call( attrs, name );
+		},
+		classList: {
+			toggle( name, force ) {
+				if ( force ) {
+					classes.add( name );
+				} else {
+					classes.delete( name );
+				}
+			}
+		},
+		listeners: {},
+		addEventListener( type, handler ) {
+			this.listeners[ type ] = handler;
+		},
+		fire( type, event = {} ) {
+			if ( this.listeners[ type ] ) {
+				this.listeners[ type ]( Object.assign( { preventDefault() {} }, event ) );
+			}
+		}
+	};
+}
+
+function fakeTabSection( id ) {
+	return { id, hidden: false };
+}
+
+function loadTabs( hash ) {
+	const ids = [ 'section-identity', 'section-defaults', 'section-output' ];
+	const links = ids.map( ( id ) => fakeTabLink( '#' + id ) );
+	const sections = ids.map( ( id ) => fakeTabSection( id ) );
+	const byId = {};
+
+	sections.forEach( ( section ) => {
+		byId[ section.id ] = section;
+	} );
+
+	const windowListeners = {};
+	const document = {
+		readyState: 'complete',
+		addEventListener() {},
+		querySelector( selector ) {
+			if ( '.rk-schema-nav-list' === selector ) {
+				return {
+					querySelectorAll() {
+						return links;
+					}
+				};
+			}
+
+			return null;
+		},
+		getElementById( id ) {
+			return byId[ id ] || null;
+		}
+	};
+
+	const sandbox = {
+		document,
+		location: { hash },
+		history: {
+			pushed: [],
+			pushState( state, title, url ) {
+				this.pushed.push( url );
+			}
+		},
+		addEventListener( type, handler ) {
+			windowListeners[ type ] = handler;
+		}
+	};
+	sandbox.window = sandbox;
+
+	vm.runInNewContext( source( 'schema-settings.js' ), sandbox );
+
+	return { links, sections, windowListeners, sandbox, api: sandbox.rankkernelSchemaSettings };
+}
+
+test( 'pickSection follows a known hash and falls back to the first section', () => {
+	const { api } = loadTabs( '' );
+	const ids = [ 'section-identity', 'section-defaults', 'section-output' ];
+
+	assert.equal( api.pickSection( '#section-output', ids ), 'section-output' );
+	assert.equal( api.pickSection( 'section-defaults', ids ), 'section-defaults' );
+	assert.equal( api.pickSection( '#nope', ids ), 'section-identity' );
+	assert.equal( api.pickSection( '', ids ), 'section-identity' );
+	assert.equal( api.pickSection( '#section-output', [] ), '' );
+} );
+
+test( 'sectionIds reads fragment links and skips the rest', () => {
+	const { api } = loadTabs( '' );
+	const ids = api.sectionIds( [ fakeTabLink( '#a' ), fakeTabLink( '#b' ), fakeTabLink( 'https://example.com/' ) ] );
+
+	assert.equal( ids.length, 2 );
+	assert.equal( ids[ 0 ], 'a' );
+	assert.equal( ids[ 1 ], 'b' );
+} );
+
+test( 'loading with a hash opens that section and highlights its tab', () => {
+	const { links, sections } = loadTabs( '#section-output' );
+
+	assert.ok( links[ 2 ].classes.has( 'is-current' ) );
+	assert.ok( ! links[ 0 ].classes.has( 'is-current' ) );
+	assert.ok( ! links[ 1 ].classes.has( 'is-current' ) );
+	assert.equal( links[ 2 ].hasAttribute( 'aria-current' ), true );
+	assert.equal( links[ 0 ].hasAttribute( 'aria-current' ), false );
+	assert.equal( sections[ 2 ].hidden, false );
+	assert.equal( sections[ 0 ].hidden, true );
+	assert.equal( sections[ 1 ].hidden, true );
+} );
+
+test( 'loading without a hash opens the first section', () => {
+	const { links, sections } = loadTabs( '' );
+
+	assert.ok( links[ 0 ].classes.has( 'is-current' ) );
+	assert.equal( sections[ 0 ].hidden, false );
+	assert.equal( sections[ 1 ].hidden, true );
+	assert.equal( sections[ 2 ].hidden, true );
+} );
+
+test( 'clicking a tab moves the highlight and the visible section', () => {
+	const { links, sections, sandbox } = loadTabs( '' );
+	let prevented = false;
+
+	links[ 1 ].fire( 'click', { preventDefault() { prevented = true; } } );
+
+	assert.equal( prevented, true );
+	assert.equal( sandbox.history.pushed.length, 1 );
+	assert.equal( sandbox.history.pushed[ 0 ], '#section-defaults' );
+	assert.ok( ! links[ 0 ].classes.has( 'is-current' ) );
+	assert.ok( links[ 1 ].classes.has( 'is-current' ) );
+	assert.equal( sections[ 0 ].hidden, true );
+	assert.equal( sections[ 1 ].hidden, false );
+	assert.equal( sections[ 2 ].hidden, true );
+} );
+
+test( 'a hash change after load moves the open section', () => {
+	const harness = loadTabs( '' );
+
+	assert.ok( harness.links[ 0 ].classes.has( 'is-current' ) );
+
+	harness.sandbox.location.hash = '#section-output';
+	harness.windowListeners.hashchange();
+
+	assert.ok( ! harness.links[ 0 ].classes.has( 'is-current' ) );
+	assert.ok( harness.links[ 2 ].classes.has( 'is-current' ) );
+	assert.equal( harness.sections[ 0 ].hidden, true );
+	assert.equal( harness.sections[ 2 ].hidden, false );
+} );

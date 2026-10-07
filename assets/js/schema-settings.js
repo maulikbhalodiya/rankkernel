@@ -295,4 +295,120 @@
 		render();
 		app.classList.add( 'is-enhanced' );
 	} );
+	/*
+	 * Section tabs. The nav links point at the section ids, so without
+	 * JavaScript every section stays visible and the anchors still jump.
+	 * With JavaScript only the open section shows, and the highlight
+	 * follows it, including on load when the address carries a hash.
+	 */
+	function sectionIds( links ) {
+		var ids = [];
+
+		Array.prototype.forEach.call( links, function ( link ) {
+			var href = link.getAttribute( 'href' ) || '';
+
+			if ( '#' === href.charAt( 0 ) && href.length > 1 ) {
+				ids.push( href.slice( 1 ) );
+			}
+		} );
+
+		return ids;
+	}
+
+	function pickSection( hash, ids ) {
+		var wanted = String( hash || '' ).replace( /^#/, '' );
+
+		if ( ids.indexOf( wanted ) !== -1 ) {
+			return wanted;
+		}
+
+		return ids.length ? ids[ 0 ] : '';
+	}
+
+	ready( function () {
+		if ( 'function' !== typeof document.querySelector || 'function' !== typeof document.getElementById ) {
+			return;
+		}
+
+		var nav = document.querySelector( '.rk-schema-nav-list' );
+
+		if ( ! nav ) {
+			return;
+		}
+
+		var links = nav.querySelectorAll( '.rk-schema-nav-item' );
+		var ids = sectionIds( links );
+		var sections = [];
+
+		Array.prototype.forEach.call( ids, function ( id ) {
+			var section = document.getElementById( id );
+
+			if ( section ) {
+				sections.push( section );
+			}
+		} );
+
+		if ( ! links.length || ! sections.length ) {
+			return;
+		}
+
+		function activate( id ) {
+			Array.prototype.forEach.call( links, function ( link ) {
+				var open = link.getAttribute( 'href' ) === '#' + id;
+
+				link.classList.toggle( 'is-current', open );
+
+				if ( open ) {
+					link.setAttribute( 'aria-current', 'true' );
+				} else {
+					link.removeAttribute( 'aria-current' );
+				}
+			} );
+
+			Array.prototype.forEach.call( sections, function ( section ) {
+				section.hidden = section.id !== id;
+			} );
+		}
+
+		function activateFromHash() {
+			activate( pickSection( window.location.hash, ids ) );
+		}
+
+		Array.prototype.forEach.call( links, function ( link ) {
+			link.addEventListener( 'click', function ( event ) {
+				var id = pickSection( link.getAttribute( 'href' ), ids );
+
+				event.preventDefault();
+				activate( id );
+
+				if ( window.history && 'function' === typeof window.history.pushState ) {
+					window.history.pushState( null, '', '#' + id );
+				} else {
+					window.location.hash = id;
+				}
+			} );
+		} );
+
+		window.addEventListener( 'hashchange', activateFromHash );
+
+		var initial = pickSection( window.location.hash, ids );
+		activate( initial );
+
+		if ( initial !== ids[ 0 ] ) {
+			var target = document.getElementById( initial );
+
+			if ( target && 'function' === typeof target.scrollIntoView ) {
+				target.scrollIntoView();
+			}
+		}
+	} );
+
+	if ( 'undefined' !== typeof window ) {
+		if ( ! window.rankkernelSchemaSettings ) {
+			window.rankkernelSchemaSettings = {};
+		}
+
+		window.rankkernelSchemaSettings.pickSection = pickSection;
+		window.rankkernelSchemaSettings.sectionIds = sectionIds;
+	}
 } )();

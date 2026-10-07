@@ -381,6 +381,10 @@
 	overflow: hidden;
 }
 
+.rk-schema-section[hidden] {
+	display: none;
+}
+
 .rk-schema-section-head {
 	align-items: center;
 	padding: var(--rk-space-5) var(--rk-space-6);
