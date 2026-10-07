@@ -202,6 +202,10 @@ final class NotFoundPage {
 		$js = plugins_url( 'assets/js/monitor-admin.js', (string) RANKKERNEL_FILE );
 		wp_register_script( 'rankkernel-monitor-admin', $js, [ 'wp-a11y', 'wp-i18n' ], $version, true );
 		wp_enqueue_script( 'rankkernel-monitor-admin' );
+
+		$settingsJs = plugins_url( 'assets/js/monitor-settings.js', (string) RANKKERNEL_FILE );
+		wp_register_script( 'rankkernel-monitor-settings', $settingsJs, [], $version, true );
+		wp_enqueue_script( 'rankkernel-monitor-settings' );
 	}
 
 	/**

@@ -431,7 +431,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'General', $html );
-		$this->assertStringContainsString( 'tab=general" class="rk-ui-tab is-current" aria-current="page"', $html );
+		$this->assertStringContainsString( 'tab=general" data-rk-tab="general" class="rk-ui-tab is-current" aria-current="page"', $html );
 	}
 
 	/**
@@ -446,7 +446,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'tab=authors" class="rk-ui-tab is-current" aria-current="page"', $html );
+		$this->assertStringContainsString( 'tab=authors" data-rk-tab="authors" class="rk-ui-tab is-current" aria-current="page"', $html );
 		$this->assertStringContainsString( 'Administrator', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_roles[]"', $html );
 		$this->assertStringContainsString( 'name="authors_exclude_users"', $html );
@@ -467,5 +467,25 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'name="pt_post_sitemap"', $html );
 		$this->assertStringContainsString( 'https://example.com/post-sitemap.xml', $html );
 		$this->assertStringContainsString( 'Posts', $html );
+	}
+
+	/**
+	 * Test render always renders every panel, only the current one starts open.
+	 */
+	public function test_render_outputs_all_panels_with_one_open(): void {
+		$page = $this->makePage();
+
+		$_GET['tab'] = 'taxonomies';
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-rk-tab-panel="general"', $html );
+		$this->assertStringContainsString( 'data-rk-tab-panel="post-types"', $html );
+		$this->assertStringContainsString( 'data-rk-tab-panel="taxonomies"', $html );
+		$this->assertStringContainsString( 'data-rk-tab-panel="authors"', $html );
+		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
+		$this->assertStringContainsString( '<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>', $html );
 	}
 }

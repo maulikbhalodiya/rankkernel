@@ -191,6 +191,10 @@
 	overflow: hidden;
 }
 
+.rk-sitemap-panel[hidden] {
+	display: none;
+}
+
 .rk-sitemap-settings .rk-sitemap-panel-head {
 	display: flex;
 	flex-direction: column;

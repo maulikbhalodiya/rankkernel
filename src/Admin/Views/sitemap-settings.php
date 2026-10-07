@@ -10,9 +10,11 @@
  * page redefines a shared component.
  *
  * The design is a spec sheet that stacks all four tab sections on one page.
- * The product keeps one working tab at a time, so this view renders the tab
- * bar as links and styles only the active section, which is the same
- * behaviour the controller already owned.
+ * Every panel renders server side; the controller marks the current one with
+ * its hidden attribute, the JavaScript hides and shows panels in place, and
+ * the tab links keep working as plain ?tab= page loads when JavaScript never
+ * runs, so the address bar tab parameter remains the no-JS and deep-link
+ * fallback.
  *
  * Two controls in the design have no backing feature in this product. The
  * "Submit to Google" button renders disabled beside the sitemap index URL
@@ -28,11 +30,11 @@
  * @var bool   $settingsUpdated       Whether the settings saved notice renders.
  * @var bool   $settingsSaveFailed    Whether the save failed notice renders.
  * @var string $pluginVersion         Plugin version for the header chip.
- * @var array<int, array{url: string, current: bool, label: string, icon: string}> $tabItems Tab links.
- * @var bool   $showGeneral           Whether the General tab section renders.
- * @var bool   $showPostTypes         Whether the Post Types tab section renders.
- * @var bool   $showTaxonomies        Whether the Taxonomies tab section renders.
- * @var bool   $showAuthors           Whether the Authors tab section renders.
+ * @var array<int, array{id: string, url: string, current: bool, label: string, icon: string}> $tabItems Tab links.
+ * @var bool   $showGeneral           Whether the General tab panel starts open.
+ * @var bool   $showPostTypes         Whether the Post Types tab panel starts open.
+ * @var bool   $showTaxonomies        Whether the Taxonomies tab panel starts open.
+ * @var bool   $showAuthors           Whether the Authors tab panel starts open.
  * @var string $indexUrl              Sitemap index URL.
  * @var string $itemsPerPage          Links per sitemap value.
  * @var array<int, array<string, mixed>> $generalRows General tab rows.
@@ -75,8 +77,7 @@ $rkGeneralRowNotes = [
 	/*
 	 * Section 1: outcome notices, first, the order the design opens with. The
 	 * notices live inside the page root so the shared notice component
-	 * applies, and they carry no dismiss button because this screen ships no
-	 * JavaScript to wire one.
+	 * applies, and they carry no dismiss button.
 	 */
 	?>
 	<?php if ( $settingsUpdated ) : ?>
@@ -128,15 +129,23 @@ $rkGeneralRowNotes = [
 	?>
 	<nav class="rk-ui-tabs" aria-label="<?php echo esc_attr( __( 'Sitemap settings tabs', 'rankkernel' ) ); ?>">
 		<?php foreach ( $tabItems as $tabItem ) : ?>
-			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" class="rk-ui-tab<?php echo ! empty( $tabItem['current'] ) ? ' is-current' : ''; ?>"<?php echo ! empty( $tabItem['current'] ) ? ' aria-current="page"' : ''; ?>><span class="rk-icon" aria-hidden="true"><?php echo esc_html( $tabItem['icon'] ); ?></span><?php echo esc_html( $tabItem['label'] ); ?></a>
+			<a href="<?php echo esc_url( $tabItem['url'] ); ?>" data-rk-tab="<?php echo esc_attr( $tabItem['id'] ); ?>" class="rk-ui-tab<?php echo ! empty( $tabItem['current'] ) ? ' is-current' : ''; ?>"<?php echo ! empty( $tabItem['current'] ) ? ' aria-current="page"' : ''; ?>><span class="rk-icon" aria-hidden="true"><?php echo esc_html( $tabItem['icon'] ); ?></span><?php echo esc_html( $tabItem['label'] ); ?></a>
 		<?php endforeach; ?>
 	</nav>
 
 	<form method="post" action="" id="rk-sitemap-settings-form" class="rk-sitemap-form">
 		<?php wp_nonce_field( 'rankkernel_sitemap_settings' ); ?>
 
-		<?php if ( $showGeneral ) : ?>
-			<div class="rk-ui-card rk-sitemap-panel">
+		<?php
+		/*
+		 * Without JavaScript every panel must show, because the server only
+		 * printed the current tab's panel without its hidden attribute clashing.
+		 * The browser's normal [hidden] rule would otherwise hide the rest.
+		 */
+		?>
+		<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>
+
+		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-general" data-rk-tab-panel="general"<?php echo $showGeneral ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
 					<div class="rk-sitemap-panel-head-text">
 						<h3 class="rk-sitemap-panel-title"><?php echo esc_html__( 'General Settings', 'rankkernel' ); ?></h3>
@@ -233,18 +242,17 @@ $rkGeneralRowNotes = [
 					</div>
 				</div>
 			</div>
-		<?php elseif ( $showPostTypes ) : ?>
-			<?php
-			$rkPostTypeCount      = count( $postTypeRows );
-			$rkPostTypeCountLabel = 1 === $rkPostTypeCount
-				? __( '1 post type registered', 'rankkernel' )
-				: sprintf(
-					/* translators: %d: number of registered public post types. */
-					__( '%d post types registered', 'rankkernel' ),
-					$rkPostTypeCount
-				);
-			?>
-			<div class="rk-ui-card rk-sitemap-panel">
+		<?php
+		$rkPostTypeCount      = count( $postTypeRows );
+		$rkPostTypeCountLabel = 1 === $rkPostTypeCount
+			? __( '1 post type registered', 'rankkernel' )
+			: sprintf(
+				/* translators: %d: number of registered public post types. */
+				__( '%d post types registered', 'rankkernel' ),
+				$rkPostTypeCount
+			);
+		?>
+		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-post-types" data-rk-tab-panel="post-types"<?php echo $showPostTypes ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
 					<div class="rk-sitemap-panel-head-text">
 						<h3 class="rk-sitemap-panel-title"><?php echo esc_html__( 'Post Types', 'rankkernel' ); ?></h3>
@@ -301,18 +309,17 @@ $rkGeneralRowNotes = [
 					</div>
 				</div>
 			</div>
-		<?php elseif ( $showTaxonomies ) : ?>
-			<?php
-			$rkTaxonomyCount      = count( $taxonomyRows );
-			$rkTaxonomyCountLabel = 1 === $rkTaxonomyCount
-				? __( '1 taxonomy registered', 'rankkernel' )
-				: sprintf(
-					/* translators: %d: number of registered public taxonomies. */
-					__( '%d taxonomies registered', 'rankkernel' ),
-					$rkTaxonomyCount
-				);
-			?>
-			<div class="rk-ui-card rk-sitemap-panel">
+		<?php
+		$rkTaxonomyCount      = count( $taxonomyRows );
+		$rkTaxonomyCountLabel = 1 === $rkTaxonomyCount
+			? __( '1 taxonomy registered', 'rankkernel' )
+			: sprintf(
+				/* translators: %d: number of registered public taxonomies. */
+				__( '%d taxonomies registered', 'rankkernel' ),
+				$rkTaxonomyCount
+			);
+		?>
+		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-taxonomies" data-rk-tab-panel="taxonomies"<?php echo $showTaxonomies ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
 					<div class="rk-sitemap-panel-head-text">
 						<h3 class="rk-sitemap-panel-title"><?php echo esc_html__( 'Taxonomies', 'rankkernel' ); ?></h3>
@@ -367,8 +374,7 @@ $rkGeneralRowNotes = [
 					</div>
 				</div>
 			</div>
-		<?php elseif ( $showAuthors ) : ?>
-			<div class="rk-ui-card rk-sitemap-panel">
+		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-authors" data-rk-tab-panel="authors"<?php echo $showAuthors ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
 					<div class="rk-sitemap-panel-head-text">
 						<h3 class="rk-sitemap-panel-title"><?php echo esc_html__( 'Authors', 'rankkernel' ); ?></h3>
@@ -448,7 +454,6 @@ $rkGeneralRowNotes = [
 					</div>
 				</div>
 			</div>
-		<?php endif; ?>
 	</form>
 
 	<?php /* Section 4: footer line. Static product naming only, no claims. */ ?>

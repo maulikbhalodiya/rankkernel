@@ -81,5 +81,33 @@ final class AdminStyles {
 		if ( function_exists( 'wp_enqueue_style' ) ) {
 			wp_enqueue_style( $handle );
 		}
+
+		if ( self::TOKEN_HANDLE === $handle ) {
+			self::preloadMaterialSymbolsFont( $pluginFile );
+		}
+	}
+
+	/**
+	 * Emit a preload for the Material Symbols webfont on admin screens.
+	 *
+	 * The icons are ligature text spans, so without an early fetch every
+	 * page paint shows the raw ligature word until the woff2 arrives. The
+	 * link is printed from admin_head so it lands ahead of the stylesheets.
+	 *
+	 * @param string $pluginFile Main plugin file used to build the URL.
+	 * @return void
+	 */
+	private static function preloadMaterialSymbolsFont( string $pluginFile ): void {
+		if ( ! function_exists( 'add_action' ) || ! function_exists( 'plugins_url' ) ) {
+			return;
+		}
+
+		add_action(
+			'admin_head',
+			static function () use ( $pluginFile ): void {
+				$url = plugins_url( 'assets/fonts/material-symbols-outlined-variable.woff2', $pluginFile );
+				echo '<link rel="preload" as="font" type="font/woff2" crossorigin href="' . esc_url( $url ) . '">' . "\n";
+			}
+		);
 	}
 }
