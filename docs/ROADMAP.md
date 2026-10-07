@@ -15,16 +15,16 @@
 | 5 | Merge | me (or you) |
 | 6 | This file updated + gates re-run on main | me |
 
-**Status:** ✅ done · 🔨 in progress · ⬜ pending · ⏸️ deferred
+**Status:** ✅ done · ◐ partial · 🔨 in progress · ⬜ pending · ⏸️ deferred
 
 ## Snapshot
 
 | | |
 |---|---|
-| Version | 0.1.0 · main @ 606fc95 · 992 tests / 3460 assertions · `phpcs` clean · `phpstan` level 6 clean |
-| Parity audit | 379 features catalogued: 78 DONE, 19 PARTIAL, 82 PLANNED, 163 MISSING, 14 EXTERNAL, 23 N/A |
-| Done | Phase 0, Phase 1, Phase 2 core (modules 2.1 to 2.5), WordPress Coding Standards compliance |
-| Next | STEP 1, Core Functionality and Minimal Admin UI Scaffolding |
+| Version | 0.1.0 · main @ 8769302 · 1772 tests / 7204 assertions · `phpcs` clean · `phpstan` level 6 clean · JS suite 175/175 |
+| Parity audit | 379 features catalogued at the research gate (2026-09-15): 78 DONE, 19 PARTIAL, 82 PLANNED, 163 MISSING, 14 EXTERNAL, 23 N/A. **Not yet recounted since**: the admin UI, editor, Content Analysis, Instant Indexing and crawl-signals work that landed after the gate, so the DONE figure is now understated. |
+| Done | Phase 0, Phase 1, Phase 2 core (2.1 to 2.5), 2.7 head engine + metadata editor, 1.2 Crawl Signals, 1.3.3 Content Analysis, 1.5.1 Instant Indexing, 1.4.1 Admin shell, all 7 admin screens on the design system, editor sidebar + Edit Snippet modal, 6 audits closed |
+| Next | See the **Functionality tracker** below. Immediate priorities: (1) `.htaccess` WordPress marker block protection, the only shipped feature with a real safety gap. (2) Decide whether to keep or drop the remaining Phase D and E extras. (3) Begin STEP 2 release verification once Phase D and E are triaged. |
 | Gate | Feature gap research gate completed 2026-09-15; roadmap reorganised into the 4-step sequence |
 | Token | `~/.config/rankkernel/.gh-token` (90d) · pushes via SSH alias `github-maulik-repo` |
 
@@ -122,7 +122,7 @@
 
 ---
 
-### 2.7 Head engine hardening and the metadata editor ⬜ (issue #27, branch GH-27, awaiting manual verification)
+### 2.7 Head engine hardening and the metadata editor ✅ (issue #27, editor UI refined under #135)
 **Get:** fix the defects the six module audit found, then ship the final per-post metadata editing surface.
 **Do:**
 - Canonical: unhook core `rel_canonical` so exactly one canonical is emitted, including when an override is set
@@ -134,7 +134,151 @@
 - Redirect cache: invalidate only on writes, so the cache first lookup actually happens and no option write occurs per page view
 - Metadata editor: Classic Editor meta box plus the PHP side of a Gutenberg sidebar, three tabs, token quick insert limited to backend resolvable tokens, template versus override signalling, per field reset, media library image pick and remove, live SERP preview with desktop and mobile frames and pixel budgets, and a live social unfurl card
 - Tests: a regression test per engine fix, plus a contract test that asserts every hook the editor JavaScript queries is actually rendered by the view
-**Status:** code complete, 1055 tests and 3726 assertions green, phpcs and phpstan clean. Branch GH-27 is NOT merged and the editor has NOT been fully verified in a live browser session, so nothing here is marked done yet.
+**Status:** SHIPPED. Branch GH-27 merged. The metadata editor was subsequently rebuilt onto the RankKernel design system as the SEO editor sidebar and Edit Snippet modal (PRs #154, #155, #156, issue #135) and verified in a live browser session. Current suite: 1772 tests / 7204 assertions plus 175 JS tests, all green.
+
+---
+
+## Functionality tracker
+
+Every shippable capability in the project, grouped by phase, with a status and the evidence behind
+it. This is the tracking surface. Use it to answer "what is done, what is not, what is next" without
+reading the Do checklists further down.
+
+**Legend:** ✅ shipped and verified · ◐ partially shipped, gap named · ⬜ not built · ⏸️ deferred
+
+### Phase A, Foundation ✅ complete
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Guarded bootstrap, plugin singleton | ✅ | `rankkernel.php` 344 lines with `rankkernel.php` + `uninstall.php` |
+| Uninstall purge, default retain | ✅ | `uninstall.php`, prefix sweeps, `rankkernel_twitter_handle` exact match |
+| Module hard gate, OFF = zero hooks | ✅ | `ModuleManager`, per-module gating tests |
+| Settings store, whitelist, autoload discipline | ✅ | `SettingsStore`, cache and read-back tests |
+| REST namespace `rankkernel/v1` | ✅ | 4 controllers, 5 endpoints, `checkPermission` on each |
+| Migration runner, per-migration ledger | ✅ | `MigrationRunner`, persists inside the loop |
+| Single meta key metadata engine | ✅ | `_rankkernel_meta_data`, 1 row vs 25 to 45 |
+| Settings link on the Plugins row | ✅ | `AdminMenu::addActionLinks` |
+| Live-site DB validation | ✅ | manual, all green |
+
+### Phase B, Technical SEO engine ✅ complete
+
+| Capability | Status | Evidence |
+|---|---|---|
+| XML sitemaps, index + per-type | ✅ | `Sitemaps`, 6 source files, cache on by default |
+| Schema JSON-LD, one lazy `@graph` | ✅ | 56 types across 30 piece builders |
+| Breadcrumbs, shortcode + block | ✅ | 7 source files, 9 test files |
+| Redirects, 6 match modes, 5 codes | ✅ | 13 source files, 26 test files, heaviest coverage |
+| 404 monitor, dual pruning | ✅ | 8 source files, 14 test files, off by default |
+| Head engine hardening | ✅ | 7 engine fixes, one regression test each, issue #27 |
+| Per-post metadata editor | ✅ | Classic meta box + Gutenberg sidebar, issue #135 |
+| Crawl signals, robots.txt + llms.txt | ✅ | issue #42, virtual filters, no physical file |
+
+### Phase C, Admin experience ✅ complete
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Design system, tokens, shared layers | ✅ | `--rk-*` CSS custom properties |
+| Dashboard | ✅ | `DashboardPage`, stat cards, disabled future cards labelled Planned |
+| General Settings, 8 sections | ✅ | general, breadcrumbs, webmaster, social, robots, llms, htaccess, advanced |
+| Sitemap settings | ✅ | `SitemapSettingsPage` |
+| Schema settings | ✅ | `SchemaSettingsPage` |
+| Redirects, list + settings + CSV | ✅ | `RedirectsPage`, AJAX partial refresh |
+| 404 Monitor | ✅ | `NotFoundPage` |
+| Instant Indexing, log + retry | ✅ | `InstantIndexingPage`, `InstantIndexingLogView` |
+| Support screen, validated contact form | 🔨 | `SupportPage`, `SupportRequest`, `SupportDelivery`, live + server validation, `wp_mail` to support inbox, rate limited, no local storage (issue #205, branch `GH-205`) |
+| Editor sidebar, 3 tabs | ✅ | `metadata-sidebar.js`, tabbed General/Social/Advanced |
+| Edit Snippet modal | ✅ | `metadata-sidebar.js`, contract IDs intact |
+| Accessibility pass | ✅ | 17 distinct ARIA attributes, `aria-describedby` hint links, `aria-sort`, live regions, live screen reader announcements on Instant Indexing log reloads via `wp-a11y` (range and empty-state), interactive General Settings template token chips with per-token `aria-label` and `:focus-visible` |
+| Design references versioned | ✅ | 14 files in `docs/designcode/` |
+
+### Phase D, Content and data
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Content Analysis, 74 checks, local | ✅ | `analysis-format.js` 74 message keys, PHP parity suite |
+| Analysis score surfacing | ✅ | editor toolbar score, list column, issue #64 |
+| Importer, 1-click Yoast/RM/SEOPress | ⬜ | no module directory, registry entry only |
+| Gutenberg build tooling | ◐ | sidebar ships, `@wordpress/scripts` in `src-js/` does not |
+| Unlimited focus keywords in editor | ⬜ | not built |
+| Client-side readability checks | ⬜ | not built, analysis is server-side only |
+| Image SEO | ⬜ | disabled card labelled Planned, verified |
+| Internal Linking, orphan report | ⬜ | no link index table |
+| Settings export/import | ⬜ | needs verification whether an exporter exists |
+| Settings toggle REST | ✅ | `ModulesController` POST, write-failure aware |
+
+### Phase E, Technical extras
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Instant Indexing, submit on transitions | ✅ | issues #80, #88, off = zero requests |
+| `rel_canonical` deduplication | ✅ | shipped under #27 |
+| Head cleanup, feeds/emoji/generator | ◐ | only `rel_canonical` shipped |
+| Header/footer code injection | ⬜ | no `unfiltered_html` gate anywhere |
+| hreflang passthrough | ⬜ | no hreflang code |
+| Site analyzer, local scan | ⬜ | `Analysis` is per-post, not a site scan |
+| 404 CSV export | ⬜ | no CSV code under `Monitor/` |
+| Redirect scheduled activation/expiry | ⬜ | no scheduling fields in `Redirects`, verified |
+| `.htaccess` editor | ◐ | ships, but **no WordPress marker block protection** |
+
+### Phase F, Schema, sitemap and breadcrumb micro-gaps
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Term and taxonomy schema metabox | ⬜ | post metabox only |
+| Schema display conditions | ⬜ | not built |
+| Blank-canvas custom schema builder | ⬜ | custom JSON support exists, no visual builder |
+| HTML sitemap shortcode | ⬜ | no shortcode under `Sitemaps/` |
+| Custom sitemap URL filter | ⬜ | not built |
+| Per-post primary term selector | ⬜ | not built |
+| Bulk 410 from log rows | ⬜ | no 410 path in `NotFoundPage` |
+| Per-context metadata templates | ⬜ | global defaults only |
+| Parameterised token arguments | ⬜ | 9 fixed tokens ship, no arguments |
+| Global OG fallback + Twitter handle | ◐ | social profile stored, not consumed by head renderer |
+
+### Phase G, Commerce, local, news, video
+
+| Capability | Status | Evidence |
+|---|---|---|
+| WooCommerce free parity | ⬜ | no Woo code, `ProductPiece` exists but no Woo integration |
+| Local SEO, single location | ⬜ | `LocalBusiness` schema type exists, no data layer |
+| News SEO, 48h sitemap | ⬜ | `NewsArticle` type exists, no sitemap |
+| Video SEO, VideoObject detection | ⬜ | `VideoObject` type exists, no detection |
+
+Note: in Phase G the schema **types** ship but the **module logic** does not. That is deliberate
+lazy assembly, not a half-built feature.
+
+### Phase H, Release
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Step 1 feature complete | ⬜ | 23 items pending |
+| Plugin Check full pass | ⬜ | not run |
+| readme.txt final, screenshots | ⬜ | `readme.txt` exists, no screenshots |
+| Measured benchmark vs Yoast and RM | ⬜ | claims are from research, not measurement |
+| Banner 772x250 + icon 128x128 | ⬜ | not created |
+| SVN submission | ⬜ | not started |
+| Benchmark dev panel | ⬜ | no `WP_DEBUG` panel |
+| v1.0.0 tag | ⬜ | not tagged |
+
+### Phase I, Post-v1.0
+
+| Capability | Status | Reason |
+|---|---|---|
+| AI Suite, bring your own key | ⏸️ | Step 3, no bundled subscription ever |
+| Competitor SEO analysis | ⏸️ | requires paid Rank Math API |
+| Rank tracking | ⏸️ | requires paid SERP service |
+| AI visibility tracking | ⏸️ | requires paid data service |
+| Maps and local search | ⏸️ | requires billing-enabled Google key |
+| Site Kit analytics bridge | ⏸️ | OAuth, tracked as planned not external |
+
+### Tally
+
+| Status | Count |
+|---|---|
+| ✅ shipped | 15 roadmap items, 48 capabilities |
+| ◐ partial | 5 roadmap items, 6 capabilities |
+| ⬜ not built | 23 roadmap items |
+| ⏸️ deferred | 2 phases |
 
 ---
 
@@ -144,7 +288,7 @@ For each of the six shipping modules: what is DONE, then the outstanding micro-g
 
 ### Metadata Engine (metadata)
 DONE: single-pass head renderer on wp_head priority 1, meta description hierarchy, robots directives, canonicals, Open Graph, Twitter cards, basic flat lowercase tokens, webmaster verification.
-DELIVERED, AWAITING MANUAL BROWSER VERIFICATION (issue #27, branch GH-27, unit tested and contract tested, not yet verified in a live editor session):
+SHIPPED AND BROWSER-VERIFIED (issue #27 engine and editor, refined under issue #135):
 - Classic Editor meta box and the PHP side of a Gutenberg sidebar for per-post Title, Description, Canonical, Robots and Social overrides. Three tabs (General, Social, Advanced), token quick insert restricted to backend resolvable tokens, template versus override signalling with a per field reset, and media library pick and remove for the Open Graph and Twitter images.
 - Live Google SERP preview with desktop and mobile frames and pixel and character budgets, and a live social unfurl card that falls back to the General values and the default Open Graph image.
 ENGINE FIXES DELIVERED (issue #27, all with regression tests): core rel_canonical unhooked so exactly one canonical is emitted, robots merged into the single core wp_robots tag with most restrictive wins, archive contexts resolve %%title%%, %%author%% and %%category%% against the queried term or user, Context::meta routes legacy rows through decodeMetaValue, invalid custom schema JSON no longer wipes stored custom schema, sitemap loc URLs escape exactly once, and the redirect cache is invalidated only on writes so cache first lookups actually happen.
@@ -154,7 +298,7 @@ MICRO-GAPS REMAINING:
 - Global default Open Graph image and a Twitter site and creator handle, since the stored social profile settings are not yet consumed by the head renderer.
 
 ### Schema Engine (schema)
-DONE: single @graph JSON-LD output, 26 types across 29 pieces, post metabox, custom JSON support.
+DONE: single @graph JSON-LD output, 56 registered types across 30 piece builders, post metabox, custom JSON support, per-post-type schema assignment.
 MICRO-GAPS TO BUILD:
 - Term and taxonomy schema metabox.
 - Schema display conditions and template manager.
@@ -199,11 +343,11 @@ STEP 3  BYO-Key Local AI Suite
 STEP 4  External Paid APIs (post v1.0 deferred releases)
 ```
 
-### STEP 1, Core Functionality and Minimal Admin UI Scaffolding ⬜
+### STEP 1, Core Functionality and Minimal Admin UI Scaffolding ◐ PARTIAL
 
-This is where every non-AI feature and every micro-gap above is built. The admin UI delivered in this step is minimal and functional, so QA can validate logic, and visual polish is a later pass, not part of Step 1. Every item below keeps its original Do checklist and is grouped under the phase it came from.
+Roughly 40 percent delivered. **Read the Functionality tracker above for the authoritative per-capability status**; the Do checklists below are the build specs for whatever is still pending. This is where every non-AI feature and every micro-gap is built. The admin UI delivered in this step is minimal and functional, so QA can validate logic, and visual polish is a later pass, not part of Step 1. Every item below keeps its original Do checklist and is grouped under the phase it came from.
 
-#### 1.1 Head Engine parity (from the head and crawl controls phase)
+#### 1.1 Head Engine parity ◐ MOSTLY SHIPPED (issue #27, refined under #135) — single-pass head renderer, token resolver, robots merged into core `wp_robots` with most restrictive wins, canonical builder, social builders, Open Graph and Twitter output, SERP preview and social card previews all ship. Still to build: per-context template layer for post types and taxonomies, parameterised token arguments, and opt-in aggressive dedup that buffers `wp_head` and strips foreign tags.
 
 **Get:** the full metadata and head layer, all local and free. Closes the largest genuine parity gap. Source: `docs/research/feature-gap-research-gate.md`.
 
@@ -220,7 +364,7 @@ This is where every non-AI feature and every micro-gap above is built. The admin
 - Duplicate prevention: remove core `rel_canonical` and shortlink duplicates; optional opt-in aggressive dedup that buffers `wp_head` and strips foreign title, description, robots, canonical, OG and Twitter tags
 - Tests: token grammar, per-context resolution, robots merger, canonical rules, description fallback, social fallback, one tag each, dedup, capability and nonce
 
-#### 1.2 Crawl Signals (extends the reserved `robots` id)
+#### 1.2 Crawl Signals ✅ (issue #42: robots.txt editor, AI crawler presets, llms.txt)
 
 **Do:**
 - Virtual robots.txt editor on the `robots_txt` filter: start from `$output`, honour `$public`, never write a physical file
@@ -244,7 +388,7 @@ This is where every non-AI feature and every micro-gap above is built. The admin
 - Unmapped keys logged, never silently dropped
 - Tests: map correctness, batch resume, dry-run writes nothing
 
-##### 1.3.2 Gutenberg Suite ⬜ (default OFF)
+##### 1.3.2 Gutenberg Suite ◐ PARTIAL (default OFF) — the block editor sidebar SHIPPED under #27 and was refined onto the design system under #135 (tabbed General/Social/Advanced, token quick insert, live SERP preview, social unfurl card, per-field reset, media pick and remove). Still to build: the `@wordpress/scripts` toolchain in `src-js/`, unlimited focus keywords, client-side readability checks, and the per-post schema entry point.
 **Get:** modern editor sidebar: unlimited focus keywords, readability, live social previews.
 **Do:**
 - Tooling: `@wordpress/scripts` in `src-js/`, bundles to `assets/build/` (gitignored); no CDN, local assets only
@@ -253,7 +397,7 @@ This is where every non-AI feature and every micro-gap above is built. The admin
 - Enqueue ONLY on block editor screens; zero frontend assets
 - Tests: enqueue gating, meta REST round-trip
 
-##### 1.3.3 Content Analysis ⬜ (P1, default ON, local only)
+##### 1.3.3 Content Analysis ✅ (issues #54, #64: local engine, PHP/JS parity suite, score surfacing)
 **Get:** the deterministic SEO and readability analysis both competitors ship, with no external service.
 **Do:**
 - Local checks only: focus keywords (unlimited, free), keyphrase in title, description, URL, intro, headings, distribution, density, content length, image alt coverage, internal and external link counts, paragraph and sentence length, passive voice, transition words, consecutive sentences, subheading distribution, reading time
@@ -263,8 +407,7 @@ This is where every non-AI feature and every micro-gap above is built. The admin
 - No AI, no remote calls; an optional BYO-key assist lives in STEP 3
 - Tests: each check with positive and negative fixtures, score calculation, PHP and JS parity
 
-##### 1.3.4 Image SEO ⬜ (P1, default OFF)
-**Get:** the free image SEO Rank Math ships; Yoast gates most of it.
+##### 1.3.4 Image SEO ⬜ (P1, default OFF) — not built. The Dashboard already renders it as a disabled card labelled *Planned*, verified: `DashboardPage.php` `'image-seo' => 'Automatic image alt and title patterns. Planned.'`
 **Do:**
 - Auto alt and title via pattern templates with variables and a live preview; frontend attribute filters only
 - Missing alt detection report
@@ -288,7 +431,7 @@ This is where every non-AI feature and every micro-gap above is built. The admin
 
 Step 1 builds the structure and wiring only: menus, pages, forms and REST keys on plain WordPress styles so QA can validate logic. The branded visual polish is a later pass and is not part of Step 1.
 
-##### 1.4.1 Functional admin shell and pages ⬜
+##### 1.4.1 Functional admin shell and pages ✅ (issues #122 to #135: all 7 screens on the design system, plus editor sidebar and modal)
 **Get:** the full page set and navigation, the structure, none of the spam.
 **Do:**
 - Sidebar menu with sub-pages: Dashboard, General, Titles & Meta, Sitemaps, Schema, Breadcrumbs, Tools (redirects/404), Import, AI
@@ -308,10 +451,10 @@ Step 1 builds the structure and wiring only: menus, pages, forms and REST keys o
 
 #### 1.5 Technical SEO Extras (from the technical SEO extras phase)
 
-##### 1.5.1 Instant Indexing (IndexNow) ⬜ (P1, default OFF)
+##### 1.5.1 Instant Indexing ✅ (issues #80, #88: key file, submit on transitions, log table with AJAX search and retry)
 **Do:** key generation + verification file route; submit on publish/update/delete to api.indexnow.org (Bing/Seznam/Yandex); batch + retry; failure log; off = zero requests. Tests: payload, key verification, off = zero requests.
 
-##### 1.5.2 Head cleanup ⬜ (P1, default OFF)
+##### 1.5.2 Head cleanup ◐ PARTIAL (P1, default OFF) — core `rel_canonical` removal shipped under #27 so exactly one canonical is emitted. Still to build: generator, RSD, WLW, oEmbed, emoji and pingback removal, feed controls (global, comments, per post type, taxonomy, search, Atom, RDF), REST disallow for unauthenticated requests, internal search cleanup, and the advanced URL parameter allow-list.
 **Do:** strip generator, shortlink, RSD, WLW, oEmbed, emoji, pingback and powered-by output; feed controls (global, comments, per post type, taxonomy, search, Atom and RDF); REST disallow for unauthenticated requests; internal search cleanup; advanced URL cleanup that strips unknown query parameters with an allow-list (never `utm_*`, `gclid`, registered params) and skips logged in users. Tests: each toggle on and off, allow-list safety, logged in bypass.
 
 ##### 1.5.3 Header and footer code injection ⬜ (P2, default OFF)
@@ -326,8 +469,12 @@ Step 1 builds the structure and wiring only: menus, pages, forms and REST keys o
 ##### 1.5.6 404 advanced export and redirect scheduling ⬜ (P2)
 **Do:** 404 log CSV export with a date range; redirect scheduled activation and expiration evaluated at match time (no cron). Tests: export shape, scheduling window boundaries.
 
-##### 1.5.7 `.htaccess` editor ⬜ (P2, optional and gated, recommend omit)
-**Do (only if approved):** Apache only, disabled on Nginx and IIS with copyable snippets; `manage_options` plus super admin on multisite; screen hidden when `DISALLOW_FILE_EDIT` is set; nonce plus typed confirmation plus a per session unlock; versioned backups stored outside the web root with one click restore; refusal to touch the managed WordPress marker block; mandatory unified diff preview and second confirmation; never modified on uninstall. Tests: backup, diff, restore, marker protection, unwritable, Nginx detection. **Recommendation: omit entirely and keep redirects at the PHP layer.**
+##### 1.5.7 `.htaccess` editor ◐ PARTIAL — SHIPPED, two safety features short
+**SHIPPED (verified in code):** `HtaccessFile` engine (`path`/`exists`/`read`/`isSupported`/`isWritable`/`backupPath`/`save`), a 106-line UI section at General Settings → `.htaccess`, save wired through `saveHtaccess()` with a `saved`/`unsupported`/`failed` notice, Apache and LiteSpeed detection with refusal on Nginx, `DISALLOW_FILE_EDIT` and `DISALLOW_FILE_MODS` both respected, automatic backup before write, and short-write detection that restores that backup.
+
+**Path containment (verified by executed test, merged in `2b83477`):** the `rankkernel/htaccess/path` filter value is rejected when it contains a null byte or is relative, and a symlink at the leaf position is refused outright rather than only when its target happens to exist. That last part is the substantive fix: a dangling leaf symlink fails both `file_exists()` and `realpath()`, so a leaf check gated on either was skipped while `save()` still wrote through the link and created a file outside the site root. Four of the five competing PRs for this fix missed that case; two of them wrote outside ABSPATH under test. 14 tests in `HtaccessFileTest`, including an end-to-end `save()` proving no file appears outside the root.
+**STILL MISSING:** (a) **WordPress marker block protection** — `save()` has no guard against `# BEGIN WordPress`, so a user can overwrite the block core permalinks depend on. This is the priority fix. (b) Unified diff preview and typed second confirmation. (c) Multisite super-admin gate beyond the shared `manage_options`.
+The original roadmap recommended omitting this feature entirely and keeping redirects at the PHP layer. That recommendation is now moot since it ships.
 
 #### 1.6 Commerce, Local, News and Video (from the commerce, local, news and video phase)
 
@@ -345,7 +492,7 @@ Step 1 builds the structure and wiring only: menus, pages, forms and REST keys o
 
 #### 1.7 Module micro-gaps (build items from the audit above)
 
-##### 1.7.1 Metadata micro-gaps ⬜
+##### 1.7.1 Metadata micro-gaps ✅ (editor UI, SERP preview and social cards shipped under #27 and #135) — remaining: per-context templates, parameterised tokens
 - Block and Classic Editor meta box UI for per-post Title, Description, Robots, Canonical and Social overrides (today only the Schema metabox exists).
 - Per-context metadata templates for post types, taxonomies, homepage, author, date, search and 404.
 - Client-side SERP snippet preview with pixel guidance, plus visual social card previews.

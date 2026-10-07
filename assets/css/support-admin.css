@@ -1,0 +1,131 @@
+/*
+ * Support screen styles.
+ *
+ * Everything structural comes from the shared token and UI layers, so this
+ * sheet only holds what those layers do not already provide: the form card,
+ * its field spacing, the live error and counter lines, and the honeypot.
+ */
+
+.rk-support .rk-support-lede {
+	color: var(--rk-color-text-secondary);
+	margin: 4px 0 0;
+	max-width: 68ch;
+}
+
+.rk-support-card {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	margin: 20px 0 0;
+	padding: 24px;
+}
+
+.rk-support-card .rk-ui-form-row + .rk-ui-form-row {
+	border-top: 1px solid var(--rk-color-border);
+	margin-top: 20px;
+	padding-top: 20px;
+}
+
+.rk-support-input,
+.rk-support-textarea,
+.rk-support-file {
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	color: var(--rk-color-text);
+	display: block;
+	font-size: var(--rk-font-size-sm);
+	max-width: 640px;
+	padding: 8px 10px;
+	width: 100%;
+}
+
+.rk-support-textarea {
+	font-family: inherit;
+	line-height: var(--rk-line-height-normal);
+	min-height: 180px;
+	resize: vertical;
+}
+
+.rk-support-input:focus-visible,
+.rk-support-textarea:focus-visible,
+.rk-support-file:focus-visible,
+.rk-ui-select:focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 1px;
+}
+
+/* The invalid border has to outrank the default one without an !important,
+   because the shared input rule sets its own border. */
+.rk-support-input[aria-invalid="true"],
+.rk-support-textarea[aria-invalid="true"] {
+	border-color: var(--rk-color-secondary-4);
+}
+
+.rk-support-error {
+	color: var(--rk-color-secondary-4);
+	font-size: var(--rk-font-size-xs);
+	margin: 6px 0 0;
+}
+
+.rk-support-count {
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-xs);
+	font-variant-numeric: tabular-nums;
+	margin: 6px 0 0;
+}
+
+.rk-support-count.is-near-limit {
+	color: var(--rk-color-secondary-3);
+}
+
+.rk-support-switch-row .rk-ui-switch {
+	align-items: center;
+	cursor: pointer;
+	display: inline-flex;
+	gap: 8px;
+}
+
+.rk-support-switch-row .rk-ui-hint {
+	margin-left: 0;
+}
+
+.rk-support-consent {
+	align-items: flex-start;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	max-width: 640px;
+}
+
+.rk-support-consent .rk-support-checkbox {
+	flex: 0 0 auto;
+	margin-top: 2px;
+}
+
+.rk-support-consent-text {
+	font-size: var(--rk-font-size-sm);
+	line-height: var(--rk-line-height-normal);
+}
+
+.rk-support-actions {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+	margin: 20px 0 0;
+}
+
+/* Kept in the layout rather than display:none so it stays reachable to a bot
+   that fills every field it finds, which is what gives it away. */
+.rk-support-honeypot {
+	left: -9999px;
+	position: absolute;
+	top: auto;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.rk-support-input,
+	.rk-support-textarea {
+		transition: none;
+	}
+}
