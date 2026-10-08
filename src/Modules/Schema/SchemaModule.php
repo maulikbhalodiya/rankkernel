@@ -85,7 +85,7 @@ final class SchemaModule implements ModuleInterface {
 	 *
 	 * @var Generator|null
 	 */
-	private ?Generator $generator;
+	private ?Generator $generator = null;
 
 	/**
 	 * Cached context (built once per request).
