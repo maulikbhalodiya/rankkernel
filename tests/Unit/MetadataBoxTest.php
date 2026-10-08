@@ -899,6 +899,8 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertStringContainsString( 'name="rankkernel_meta_og[title]"', $out );
 		$this->assertStringContainsString( 'name="rankkernel_meta_twitter[card]"', $out );
 		$this->assertStringContainsString( 'data-rk-token="%%title%%"', $out );
+		$this->assertStringContainsString( 'aria-label="Insert Title (%%title%%) token into SEO title"', $out );
+		$this->assertStringContainsString( 'aria-label="Insert Title (%%title%%) token into meta description"', $out );
 	}
 
 	/**
