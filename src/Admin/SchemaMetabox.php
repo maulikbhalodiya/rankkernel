@@ -1100,6 +1100,7 @@ final class SchemaMetabox {
 
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $slug ) . '-schema.json"' );
+		header( 'X-Content-Type-Options: nosniff' );
 
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download body served as application/json, encoded with wp_json_encode above.
 		echo $json;
