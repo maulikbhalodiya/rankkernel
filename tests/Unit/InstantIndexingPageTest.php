@@ -1051,6 +1051,10 @@ final class InstantIndexingPageTest extends TestCase {
 	 * localized object nor the registered script arguments.
 	 */
 	public function test_enqueue_assets_is_screen_scoped_and_never_passes_the_key(): void {
+		// Explicit unavailable fallbacks: another test file may already have defined
+		// these globals, so the empty values asserted below must not depend on suite order.
+		Functions\when( 'rest_url' )->justReturn( '' );
+		Functions\when( 'wp_create_nonce' )->justReturn( '' );
 		$registeredScripts = [];
 		$enqueuedScripts   = [];
 		$localizedScripts  = [];
@@ -1157,6 +1161,9 @@ final class InstantIndexingPageTest extends TestCase {
 	 * port to allow, while a default port localizes as an empty string.
 	 */
 	public function test_enqueue_localizes_the_site_port_derived_from_home_url(): void {
+		// Same explicit fallbacks as above; the port assertion needs home_url only.
+		Functions\when( 'rest_url' )->justReturn( '' );
+		Functions\when( 'wp_create_nonce' )->justReturn( '' );
 		Functions\when( 'home_url' )->alias( static fn( string $path = '' ): string => 'http://example.com:8080' . $path );
 		Functions\when( 'plugins_url' )->alias( static fn( string $path = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $path );
 		Functions\when( 'wp_register_script' )->justReturn( true );

@@ -229,6 +229,20 @@ final class DashboardPageTest extends TestCase {
 				$enqueued[] = $handle;
 			}
 		);
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
+			}
+		);
+		Functions\when( 'rest_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( string $action = '' ): string => 'nonce:' . $action ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_create_nonce signature.
+		$localized = [];
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( string $handle, string $objectName, array $data ) use ( &$localized ): void {
+				$localized[ $objectName ] = $data;
+			}
+		);
 
 		$page = new DashboardPage();
 
@@ -236,9 +250,12 @@ final class DashboardPageTest extends TestCase {
 		$this->assertSame( [], $enqueued );
 
 		$page->enqueueAssets( DashboardPage::HOOK_SUFFIX );
-		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-dashboard-admin' ], $enqueued );
+		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-dashboard-admin', 'rankkernel-dashboard-admin' ], $enqueued );
 		// The sheet styles rk-ui components, so the UI layer must print first.
 		$this->assertSame( [ 'rankkernel-admin', 'rankkernel-ui' ], $registered['rankkernel-dashboard-admin'] );
+		// The toggle script posts to the REST module endpoint with a wp_rest nonce.
+		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/modules', $localized['rankkernelDashboard']['modulesUrl'] );
+		$this->assertSame( 'nonce:wp_rest', $localized['rankkernelDashboard']['restNonce'] );
 	}
 
 	/**
