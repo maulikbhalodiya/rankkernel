@@ -109,6 +109,28 @@ final class DashboardPage {
 		if ( function_exists( 'wp_enqueue_style' ) ) {
 			wp_enqueue_style( 'rankkernel-dashboard-admin' );
 		}
+
+		if ( ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) ) {
+			return;
+		}
+
+		$src = plugins_url( 'assets/js/dashboard-admin.js', RANKKERNEL_FILE );
+
+		wp_register_script( 'rankkernel-dashboard-admin', $src, [ 'wp-a11y', 'wp-i18n' ], \RankKernel\Plugin::version(), true );
+		wp_enqueue_script( 'rankkernel-dashboard-admin' );
+
+		if ( ! function_exists( 'wp_localize_script' ) ) {
+			return;
+		}
+
+		wp_localize_script(
+			'rankkernel-dashboard-admin',
+			'rankkernelDashboard',
+			[
+				'modulesUrl' => function_exists( 'rest_url' ) ? (string) rest_url( 'rankkernel/v1/modules' ) : '',
+				'restNonce'  => function_exists( 'wp_create_nonce' ) ? (string) wp_create_nonce( 'wp_rest' ) : '',
+			]
+		);
 	}
 
 	/**

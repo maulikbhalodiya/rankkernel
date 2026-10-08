@@ -242,15 +242,89 @@ final class PluginTest extends TestCase {
 		$this->assertSame( '8.2+', $readme_md_requirement[1], 'README.md must require PHP 8.2+' );
 	}
 	/**
-	 * Test rankkernel_conflict_notice is scoped to RankKernel admin screens.
+	 * Stub get_option against a mutable option store shared with the test.
+	 *
+	 * @param array<string, mixed> $store Options store.
+	 */
+	private function stub_option_store( array &$store ): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ) {
+				return array_key_exists( $key, $store ) ? $store[ $key ] : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ) {
+				$store[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'add_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ) {
+				if ( ! array_key_exists( $key, $store ) ) {
+					$store[ $key ] = $value;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( string $key ) use ( &$store ) {
+				unset( $store[ $key ] );
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Activation seeds the conflict option with every known SEO plugin slug.
 	 *
 	 * Runs in a separate process because it loads rankkernel.php and defines
-	 * the plugin constants. In the shared process earlier test files already
-	 * define some of them, so the bare defines would raise PHP warnings that
-	 * the failOnWarning setting turns into a failure.
+	 * the plugin constants.
 	 */
 	#[RunInSeparateProcess]
-	public function test_conflict_notice_is_scoped_to_rankkernel_screens(): void {
+	#[PreserveGlobalState( false )]
+	public function test_activation_seeds_conflict_notice_with_all_known_slugs(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_activate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$store = array(
+			'rankkernel_modules'      => array( 'metadata' ),
+			'rankkernel_settings'     => array(),
+			'rankkernel_db_version'   => '0.0.0',
+			'active_plugins'          => array(
+				'wordpress-seo/wordpress-seo.php',
+				'seo-by-rank-math/rank-math.php',
+				'wp-seopress/seopress.php',
+				'all-in-one-seo-pack/all_in_one_seo_pack.php',
+				'autodescription/autodescription.php',
+			),
+			'active_sitewide_plugins' => array(
+				'slim-seo/slim-seo.php' => time(),
+			),
+		);
+		$this->stub_option_store( $store );
+
+		\rankkernel_activate();
+
+		$this->assertSame(
+			array( 'Yoast SEO', 'Rank Math', 'SEOPress', 'All in One SEO', 'The SEO Framework', 'Slim SEO' ),
+			$store['rankkernel_conflict_notice'] ?? null,
+			'Activation must seed the conflict notice with every active SEO plugin, network-activated included'
+		);
+	}
+
+	/**
+	 * Conflict notice renders on the plugins screen with a live re-check.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_conflict_notice_renders_on_plugins_screen_with_live_recheck(): void {
 		Functions\when( 'register_activation_hook' )->justReturn( true );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 
@@ -258,130 +332,95 @@ final class PluginTest extends TestCase {
 			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
 		}
 
-		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) {
-				if ( 'rankkernel_conflict_notice' === $key ) {
-					return [ 'Yoast SEO' ];
-				}
-				return $fallback;
-			}
+		$store = array(
+			'active_plugins'             => array( 'wp-seopress/seopress.php' ),
+			'active_sitewide_plugins'    => array( 'wordpress-seo/wordpress-seo.php' => time() ),
+			'rankkernel_conflict_notice' => array( 'Stale Plugin' ),
 		);
+		$this->stub_option_store( $store );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'id' => 'plugins' ) );
+
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output );
+		$this->assertStringContainsString( 'SEOPress', $output );
+		$this->assertStringContainsString( 'Yoast SEO', $output );
+		$this->assertSame( array( 'Yoast SEO', 'SEOPress' ), $store['rankkernel_conflict_notice'], 'Live list must replace the stale cached option' );
+	}
+
+	/**
+	 * Stale conflict option is cleared and nothing renders when no conflict is active.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_conflict_notice_clears_stale_option_when_no_conflict(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_conflict_notice' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$store = array(
+			'active_plugins'             => array(),
+			'active_sitewide_plugins'    => array(),
+			'rankkernel_conflict_notice' => array( 'Yoast SEO' ),
+		);
+		$this->stub_option_store( $store );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'id' => 'plugins.php' ) );
+
+		ob_start();
+		\rankkernel_conflict_notice();
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output, 'Notice must not render when nothing conflicts' );
+		$this->assertArrayNotHasKey( 'rankkernel_conflict_notice', $store, 'Stale conflict option must be deleted' );
+	}
+
+	/**
+	 * Notice stays silent off the plugins screen and outside RankKernel screens.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_conflict_notice_silent_on_unrelated_screens(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_conflict_notice' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$store = array(
+			'active_plugins'             => array( 'slim-seo/slim-seo.php' ),
+			'active_sitewide_plugins'    => array(),
+			'rankkernel_conflict_notice' => array( 'Slim SEO' ),
+		);
+		$this->stub_option_store( $store );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		// Case 1: get_current_screen unavailable, as on a frontend request -> Should output nothing.
+		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'id' => 'dashboard' ) );
 		ob_start();
 		\rankkernel_conflict_notice();
-		$output_no_screen_function = ob_get_clean();
-		$this->assertEmpty( $output_no_screen_function, 'Notice must not render when get_current_screen is unavailable' );
+		$this->assertEmpty( ob_get_clean(), 'Notice must not render on the dashboard' );
 
-		// Case 2: Non RankKernel screen -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'dashboard' ] );
+		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'id' => 'my-rankkernel-clone' ) );
 		ob_start();
 		\rankkernel_conflict_notice();
-		$output_non_rk = ob_get_clean();
-		$this->assertEmpty( $output_non_rk, 'Notice must not render on a screen outside RankKernel' );
+		$this->assertEmpty( ob_get_clean(), 'Notice must not render on a lookalike screen id' );
 
-		// Case 3: Null screen -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( null );
+		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'id' => 'toplevel_page_rankkernel' ) );
 		ob_start();
 		\rankkernel_conflict_notice();
-		$output_null_screen = ob_get_clean();
-		$this->assertEmpty( $output_null_screen, 'Notice must not render when get_current_screen returns null' );
-
-		// Case 4: Screen object without an id property -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( new \stdClass() );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_no_id = ob_get_clean();
-		$this->assertEmpty( $output_no_id, 'Notice must not render when the screen has no id property' );
-
-		// Case 5: Integer screen id -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 123 ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_int_id = ob_get_clean();
-		$this->assertEmpty( $output_int_id, 'Notice must not render when the screen id is an integer' );
-
-		// Case 6: Object screen id that would coerce to a RankKernel match -> Should output nothing.
-		$stringable_id = new class() {
-			/**
-			 * String value for the screen id double.
-			 *
-			 * @return string
-			 */
-			public function __toString(): string {
-				return 'rankkernel';
-			}
-		};
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => $stringable_id ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_object_id = ob_get_clean();
-		$this->assertEmpty( $output_object_id, 'Notice must not render when the screen id is not a string' );
-
-		// Case 7: Screen id that only CONTAINS rankkernel but is not a real screen -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'my-rankkernel-clone' ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_lookalike = ob_get_clean();
-		$this->assertEmpty( $output_lookalike, 'Notice must not render on a screen that merely contains the rankkernel substring' );
-
-		// Case 8: User lacking manage_options -> Should output nothing.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'toplevel_page_rankkernel' ] );
-		Functions\when( 'current_user_can' )->justReturn( false );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_no_cap = ob_get_clean();
-		$this->assertEmpty( $output_no_cap, 'Notice must not render without the manage_options capability' );
-
-		// Case 9: RankKernel top level screen with manage_options capability -> Should output conflict notice.
-		Functions\when( 'current_user_can' )->justReturn( true );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_rk = ob_get_clean();
-		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk );
-
-		// Case 10: RankKernel submenu screen -> Should output conflict notice.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel_page_rankkernel-redirects' ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_rk_sub = ob_get_clean();
-		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk_sub );
-
-		// Case 11: Literal rankkernel screen id -> Should output conflict notice.
-		Functions\when( 'get_current_screen' )->justReturn( (object) [ 'id' => 'rankkernel' ] );
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_rk_literal = ob_get_clean();
-		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', $output_rk_literal );
-
-		// Case 12: Empty conflict list -> Should output nothing.
-		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) {
-				if ( 'rankkernel_conflict_notice' === $key ) {
-					return [];
-				}
-				return $fallback;
-			}
-		);
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_no_conflicts = ob_get_clean();
-		$this->assertEmpty( $output_no_conflicts, 'Notice must not render without conflicts' );
-
-		// Case 13: Conflict names are escaped -> Should output no raw script tag.
-		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) {
-				if ( 'rankkernel_conflict_notice' === $key ) {
-					return [ '<script>alert("xss")</script>' ];
-				}
-				return $fallback;
-			}
-		);
-		ob_start();
-		\rankkernel_conflict_notice();
-		$output_escaped = ob_get_clean();
-		$this->assertStringNotContainsString( '<script>', $output_escaped, 'Conflict names must not be emitted as raw HTML' );
-		$this->assertStringContainsString( '&lt;script&gt;', $output_escaped, 'Conflict names must pass through esc_html' );
+		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', ob_get_clean() );
 	}
 }

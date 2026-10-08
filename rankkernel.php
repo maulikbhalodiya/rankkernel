@@ -134,19 +134,8 @@ function rankkernel_activate(): void {
 		add_option( 'rankkernel_db_version', '0.0.0', '', false );
 	}
 
-	// Conflict detection: Yoast / Rank Math / SEOPress active.
-	$active_plugins = (array) get_option( 'active_plugins', array() );
-	$conflicts      = array();
-	if ( in_array( 'wordpress-seo/wordpress-seo.php', $active_plugins, true ) ) {
-		$conflicts[] = 'Yoast SEO';
-	}
-	if ( in_array( 'seo-by-rank-math/rank-math.php', $active_plugins, true ) ) {
-		$conflicts[] = 'Rank Math';
-	}
-	if ( in_array( 'wp-seopress/seopress.php', $active_plugins, true ) ) {
-		$conflicts[] = 'SEOPress';
-	}
-
+	// Conflict detection seeds the notice option (cheap cache; renderer re-checks live).
+	$conflicts = rankkernel_detect_seo_conflicts();
 	if ( array() !== $conflicts ) {
 		update_option( 'rankkernel_conflict_notice', $conflicts );
 	}
@@ -164,11 +153,41 @@ register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );
 /**
  * Conflict admin notice.
  */
-function rankkernel_conflict_notice(): void {
-	$conflicts = get_option( 'rankkernel_conflict_notice', array() );
-	if ( array() === $conflicts || ! is_array( $conflicts ) ) {
-		return;
+function rankkernel_seo_conflicts_map(): array {
+	return array(
+		'wordpress-seo/wordpress-seo.php'             => 'Yoast SEO',
+		'seo-by-rank-math/rank-math.php'              => 'Rank Math',
+		'wp-seopress/seopress.php'                    => 'SEOPress',
+		'all-in-one-seo-pack/all_in_one_seo_pack.php' => 'All in One SEO',
+		'autodescription/autodescription.php'         => 'The SEO Framework',
+		'slim-seo/slim-seo.php'                       => 'Slim SEO',
+	);
+}
+
+/**
+ * Detect active SEO plugin conflicts from single-site and network-activated plugins.
+ *
+ * @return array<int, string> List of conflicting plugin labels.
+ */
+function rankkernel_detect_seo_conflicts(): array {
+	$active  = (array) get_option( 'active_plugins', array() );
+	$network = get_option( 'active_sitewide_plugins', array() );
+	if ( is_array( $network ) ) {
+		$active = array_merge( $active, array_keys( $network ) );
 	}
+	$conflicts = array();
+	foreach ( rankkernel_seo_conflicts_map() as $basename => $label ) {
+		if ( in_array( $basename, $active, true ) ) {
+			$conflicts[] = $label;
+		}
+	}
+	return $conflicts;
+}
+
+/**
+ * Conflict admin notice.
+ */
+function rankkernel_conflict_notice(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
@@ -180,8 +199,20 @@ function rankkernel_conflict_notice(): void {
 		return;
 	}
 	$screen_id = $screen->id;
-	if ( 'toplevel_page_rankkernel' !== $screen_id && ! str_starts_with( $screen_id, 'rankkernel_page_' ) && 'rankkernel' !== $screen_id ) {
+	if ( 'toplevel_page_rankkernel' !== $screen_id && ! str_starts_with( $screen_id, 'rankkernel_page_' ) && 'rankkernel' !== $screen_id && 'plugins' !== $screen_id && 'plugins.php' !== $screen_id ) {
 		return;
+	}
+	// Live re-check every call; the option is a cache only.
+	$conflicts = rankkernel_detect_seo_conflicts();
+	$stored    = get_option( 'rankkernel_conflict_notice', array() );
+	if ( array() === $conflicts ) {
+		if ( is_array( $stored ) && array() !== $stored ) {
+			delete_option( 'rankkernel_conflict_notice' );
+		}
+		return;
+	}
+	if ( $stored !== $conflicts ) {
+		update_option( 'rankkernel_conflict_notice', $conflicts );
 	}
 	echo '<div class="notice notice-warning is-dismissible"><p>';
 	echo esc_html(

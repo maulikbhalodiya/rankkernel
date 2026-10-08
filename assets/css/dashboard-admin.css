@@ -119,10 +119,6 @@
 	font-size: 28px;
 }
 
-.rk-dashboard .rk-dashboard-stat-value-warning {
-	color: var(--rk-color-secondary-3);
-}
-
 .rk-dashboard .rk-dashboard-stat-label,
 .rk-dashboard .rk-dashboard-stat-caption {
 	margin-block-start: 6px;
@@ -151,14 +147,14 @@
 	flex-shrink: 0;
 }
 
-/* The attention chip beside the count. Its foreground is the strong warning
-   step, the one token that clears 4.5:1 on the soft warning background. */
+/* The chip beside the count stays neutral: optional modules being off is an
+   information state, not a problem. */
 .rk-dashboard .rk-dashboard-attention-tag {
 	padding: 2px 8px;
-	border: 1px solid var(--rk-tint-warning-border);
+	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-sm);
-	background: var(--rk-color-secondary-3-soft);
-	color: var(--rk-color-secondary-3-strong);
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
 	line-height: var(--rk-line-height-normal);
@@ -210,11 +206,6 @@
 	color: var(--rk-color-secondary-1);
 }
 
-.rk-dashboard .rk-dashboard-stat-icon-warning {
-	background: var(--rk-color-secondary-3-soft);
-	color: var(--rk-color-secondary-3);
-}
-
 .rk-dashboard .rk-dashboard-stat-icon-neutral {
 	background: var(--rk-color-surface-muted);
 	color: var(--rk-color-text-muted);
@@ -225,8 +216,8 @@
    ========================================================================== */
 
 .rk-dashboard .rk-dashboard-alert {
-	background: var(--rk-color-secondary-3-soft);
-	border: 1px solid var(--rk-tint-warning-border);
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
 	border-radius: var(--rk-radius-lg);
 	box-shadow: var(--rk-shadow-sm);
 	overflow: hidden;
@@ -257,18 +248,18 @@
 }
 
 .rk-dashboard .rk-dashboard-alert-icon {
-	color: var(--rk-color-secondary-3);
+	color: var(--rk-color-primary);
 	font-size: 20px;
 }
 
 .rk-dashboard .rk-dashboard-alert-count {
-	color: var(--rk-color-secondary-3-strong);
+	color: var(--rk-color-text);
 	font-size: var(--rk-font-size-sm);
 	font-weight: 600;
 }
 
 .rk-dashboard .rk-dashboard-alert-names {
-	color: var(--rk-color-secondary-3-strong);
+	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
 }
 
@@ -277,7 +268,7 @@
 	align-items: center;
 	gap: var(--rk-space-1);
 	flex-shrink: 0;
-	color: var(--rk-color-secondary-3-strong);
+	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
 }
@@ -289,13 +280,13 @@
 	gap: var(--rk-space-3);
 	margin-inline: 14px;
 	padding-block: 10px 14px;
-	border-block-start: 1px solid var(--rk-tint-warning-border);
+	border-block-start: 1px solid var(--rk-tint-primary-border);
 }
 
 .rk-dashboard .rk-dashboard-alert-text {
 	margin: 0;
 	font-size: var(--rk-font-size-sm);
-	color: var(--rk-color-secondary-3-strong);
+	color: var(--rk-color-text-secondary);
 	line-height: var(--rk-line-height-normal);
 }
 
