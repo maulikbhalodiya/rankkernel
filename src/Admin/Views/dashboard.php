@@ -110,10 +110,10 @@ $rk_module_icons = [
 ];
 
 $rk_attention_label = 1 === $rk_attention_count
-	? __( '1 module needs attention', 'rankkernel' )
+	? __( '1 optional module is off', 'rankkernel' )
 	: sprintf(
-		/* translators: %d: number of available modules that are switched off. */
-		__( '%d modules need attention', 'rankkernel' ),
+		/* translators: %d: number of optional, available modules that are switched off. */
+		__( '%d optional modules are off', 'rankkernel' ),
 		$rk_attention_count
 	);
 
@@ -185,26 +185,28 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 			<div class="rk-ui-card rk-dashboard-stat">
 				<div class="rk-dashboard-stat-text">
 					<div class="rk-dashboard-stat-value-row">
-						<span class="rk-dashboard-stat-value<?php echo $rk_attention_count > 0 ? ' rk-dashboard-stat-value-warning' : ''; ?>"><?php echo esc_html( (string) $rk_attention_count ); ?></span>
+						<span class="rk-dashboard-stat-value" id="rk-attention-count"><?php echo esc_html( (string) $rk_attention_count ); ?></span>
 						<?php if ( $rk_attention_count > 0 ) : ?>
-							<span class="rk-dashboard-attention-tag"><?php echo esc_html__( 'Attention', 'rankkernel' ); ?></span>
+							<span class="rk-dashboard-attention-tag" id="rk-attention-tag"><?php echo esc_html__( 'Optional', 'rankkernel' ); ?></span>
+						<?php else : ?>
+							<span class="rk-dashboard-attention-tag" id="rk-attention-tag" hidden><?php echo esc_html__( 'Optional', 'rankkernel' ); ?></span>
 						<?php endif; ?>
 					</div>
 					<div class="rk-dashboard-stat-label"><?php echo esc_html__( 'available modules switched off', 'rankkernel' ); ?></div>
 					<a class="rk-dashboard-stat-link" href="#rk-modules"><?php echo esc_html__( 'View Modules', 'rankkernel' ); ?><span class="rk-icon" aria-hidden="true">arrow_right</span></a>
 				</div>
-				<div class="rk-dashboard-stat-icon <?php echo $rk_attention_count > 0 ? 'rk-dashboard-stat-icon-warning' : 'rk-dashboard-stat-icon-positive'; ?>" aria-hidden="true"><span class="rk-icon" aria-hidden="true"><?php echo $rk_attention_count > 0 ? 'warning' : 'check_circle'; ?></span></div>
+				<div class="rk-dashboard-stat-icon <?php echo $rk_attention_count > 0 ? 'rk-dashboard-stat-icon-neutral' : 'rk-dashboard-stat-icon-positive'; ?>" id="rk-attention-stat-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true"><?php echo $rk_attention_count > 0 ? 'info' : 'check_circle'; ?></span></div>
 			</div>
 		</section>
 
 		<?php /* Section 4: attention bar. It renders only while an available module is switched off, so it never shows an empty alert. */ ?>
 		<?php if ( $rk_attention_count > 0 ) : ?>
-			<details class="rk-dashboard-alert" open>
+			<details class="rk-dashboard-alert" id="rk-attention-bar" open>
 				<summary class="rk-dashboard-alert-summary">
 					<span class="rk-dashboard-alert-lead">
-						<span class="rk-icon rk-dashboard-alert-icon" aria-hidden="true">error</span>
-						<strong class="rk-dashboard-alert-count"><?php echo esc_html( $rk_attention_label ); ?></strong>
-						<span class="rk-dashboard-alert-names">&bull; <?php echo esc_html( implode( ', ', $rk_attention_names ) ); ?></span>
+						<span class="rk-icon rk-dashboard-alert-icon" aria-hidden="true">info</span>
+						<strong class="rk-dashboard-alert-count" id="rk-attention-bar-count"><?php echo esc_html( $rk_attention_label ); ?></strong>
+						<span class="rk-dashboard-alert-names" id="rk-attention-bar-names">&bull; <?php echo esc_html( implode( ', ', $rk_attention_names ) ); ?></span>
 					</span>
 					<span class="rk-dashboard-alert-toggle">
 						<span class="rk-dashboard-alert-toggle-text"><?php echo esc_html__( 'Details', 'rankkernel' ); ?></span>
@@ -212,7 +214,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 					</span>
 				</summary>
 				<div class="rk-dashboard-alert-body">
-					<p class="rk-dashboard-alert-text"><?php echo esc_html( $rk_attention_body ); ?></p>
+					<p class="rk-dashboard-alert-text" id="rk-attention-bar-text"><?php echo esc_html( $rk_attention_body ); ?></p>
 					<a class="rk-dashboard-alert-link" href="#rk-modules"><?php echo esc_html__( 'Go to Modules', 'rankkernel' ); ?><span class="rk-icon" aria-hidden="true">arrow_right</span></a>
 				</div>
 			</details>
