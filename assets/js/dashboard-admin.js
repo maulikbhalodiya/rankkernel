@@ -53,7 +53,7 @@
 			return;
 		}
 
-		window.wp.a11y.speak( text );
+		window.wp.a11y.speak( text, 'polite' );
 	}
 
 	/**
