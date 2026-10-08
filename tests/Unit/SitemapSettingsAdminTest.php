@@ -140,6 +140,8 @@ final class SitemapSettingsAdminTest extends TestCase {
 	 * Test submenu render callback renders sitemap page.
 	 */
 	public function test_submenu_render_callback_renders_sitemap_page(): void {
+		$this->options['rankkernel_modules'] = [ 'sitemaps' ];
+
 		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
 
 		$captured = null;

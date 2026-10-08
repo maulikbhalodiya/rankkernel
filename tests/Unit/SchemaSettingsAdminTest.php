@@ -828,6 +828,8 @@ final class SchemaSettingsAdminTest extends TestCase {
 	 * Test schema submenu registered with exact args.
 	 */
 	public function test_schema_submenu_registered_with_exact_args(): void {
+		$this->options['rankkernel_modules'] = [ 'schema' ];
+
 		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
 
 		Functions\expect( 'add_submenu_page' )

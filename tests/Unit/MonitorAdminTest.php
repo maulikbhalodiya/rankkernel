@@ -264,6 +264,8 @@ final class MonitorAdminTest extends TestCase {
 	 * The submenu registers under the RankKernel menu with hooks.
 	 */
 	public function test_menu_registers_monitor_submenu_with_exact_args(): void {
+		$this->options['rankkernel_modules'] = [ '404' ];
+
 		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
 
 		$captured = null;

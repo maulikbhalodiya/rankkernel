@@ -355,6 +355,8 @@ final class RedirectsAdminTest extends TestCase {
 	 * The submenu registers under the RankKernel menu with hooks.
 	 */
 	public function test_menu_registers_redirects_submenu_with_exact_args(): void {
+		$this->options['rankkernel_modules'] = [ 'redirects' ];
+
 		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
 
 		$captured = null;

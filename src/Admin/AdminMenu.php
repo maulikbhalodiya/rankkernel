@@ -303,6 +303,10 @@ final class AdminMenu {
 		add_action( 'load-' . $hook, [ $this, 'handleDashboardSave' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueDashboardAssets' ] );
 
+		if ( ! $this->enableMap->isEnabled( 'sitemaps' ) ) {
+			return;
+		}
+
 		$sitemapHook = add_submenu_page(
 			'rankkernel',
 			esc_html__( 'Sitemap Settings', 'rankkernel' ),
@@ -331,6 +335,30 @@ final class AdminMenu {
 	}
 
 	/**
+	 * Block a module-owned page when its module is switched OFF.
+	 *
+	 * Hiding the submenu is not enough: the URL stays reachable by direct
+	 * entry, so every render and save callback must re-check the enable map
+	 * and bounce to the dashboard when the module is off.
+	 *
+	 * @param string $moduleId Module id from ModuleRegistry.
+	 * @return bool True when the module is disabled and the caller returned.
+	 */
+	private function blockWhenDisabled( string $moduleId ): bool {
+		if ( $this->enableMap->isEnabled( $moduleId ) ) {
+			return false;
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . DashboardPage::SLUG ) );
+
+		if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
+			exit;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Enqueue dashboard page assets callback.
 	 *
 	 * @param string $hookSuffix Current admin page hook suffix.
@@ -347,6 +375,10 @@ final class AdminMenu {
 	 * Render sitemap page callback.
 	 */
 	public function renderSitemap(): void {
+		if ( $this->blockWhenDisabled( 'sitemaps' ) ) {
+			return;
+		}
+
 		$this->getSitemapPage()->render();
 	}
 
@@ -354,6 +386,10 @@ final class AdminMenu {
 	 * Handle sitemap save callback.
 	 */
 	public function handleSitemapSave(): void {
+		if ( $this->blockWhenDisabled( 'sitemaps' ) ) {
+			return;
+		}
+
 		$this->getSitemapPage()->maybeHandleSave();
 	}
 
@@ -412,6 +448,10 @@ final class AdminMenu {
 	 * page, so the redirect stays header safe.
 	 */
 	public function addSchemaPage(): void {
+		if ( ! $this->enableMap->isEnabled( 'schema' ) ) {
+			return;
+		}
+
 		$hook = add_submenu_page(
 			'rankkernel',
 			esc_html__( 'Schema Settings', 'rankkernel' ),
@@ -429,6 +469,10 @@ final class AdminMenu {
 	 * Render schema settings callback.
 	 */
 	public function renderSchema(): void {
+		if ( $this->blockWhenDisabled( 'schema' ) ) {
+			return;
+		}
+
 		$this->getSchemaPage()->render();
 	}
 
@@ -436,6 +480,10 @@ final class AdminMenu {
 	 * Handle schema settings save callback.
 	 */
 	public function handleSchemaSave(): void {
+		if ( $this->blockWhenDisabled( 'schema' ) ) {
+			return;
+		}
+
 		$this->getSchemaPage()->maybeHandleSave();
 	}
 
@@ -460,6 +508,10 @@ final class AdminMenu {
 	 * pages, so the redirect stays header safe.
 	 */
 	public function addRedirectsPage(): void {
+		if ( ! $this->enableMap->isEnabled( 'redirects' ) ) {
+			return;
+		}
+
 		$hook = add_submenu_page(
 			'rankkernel',
 			esc_html__( 'Redirects', 'rankkernel' ),
@@ -532,6 +584,10 @@ final class AdminMenu {
 	 * Render redirects page callback.
 	 */
 	public function renderRedirects(): void {
+		if ( $this->blockWhenDisabled( 'redirects' ) ) {
+			return;
+		}
+
 		$this->getRedirectsPage()->render();
 	}
 
@@ -539,6 +595,10 @@ final class AdminMenu {
 	 * Handle redirects save callback.
 	 */
 	public function handleRedirectsSave(): void {
+		if ( $this->blockWhenDisabled( 'redirects' ) ) {
+			return;
+		}
+
 		$this->getRedirectsPage()->maybeHandleSave();
 	}
 
@@ -563,6 +623,10 @@ final class AdminMenu {
 	 * pages, so the redirect stays header safe.
 	 */
 	public function addMonitorPage(): void {
+		if ( ! $this->enableMap->isEnabled( '404' ) ) {
+			return;
+		}
+
 		$hook = add_submenu_page(
 			'rankkernel',
 			esc_html__( '404 Monitor', 'rankkernel' ),
@@ -580,6 +644,10 @@ final class AdminMenu {
 	 * Render monitor page callback.
 	 */
 	public function renderMonitor(): void {
+		if ( $this->blockWhenDisabled( '404' ) ) {
+			return;
+		}
+
 		$this->getMonitorPage()->render();
 	}
 
@@ -587,6 +655,10 @@ final class AdminMenu {
 	 * Handle monitor save callback.
 	 */
 	public function handleMonitorSave(): void {
+		if ( $this->blockWhenDisabled( '404' ) ) {
+			return;
+		}
+
 		$this->getMonitorPage()->maybeHandleSave();
 	}
 
@@ -611,6 +683,10 @@ final class AdminMenu {
 	 * pages, so the redirect stays header safe.
 	 */
 	public function addInstantIndexingPage(): void {
+		if ( ! $this->enableMap->isEnabled( 'instant-indexing' ) ) {
+			return;
+		}
+
 		$hook = add_submenu_page(
 			'rankkernel',
 			esc_html__( 'Instant Indexing', 'rankkernel' ),
@@ -628,6 +704,10 @@ final class AdminMenu {
 	 * Render instant indexing page callback.
 	 */
 	public function renderInstantIndexing(): void {
+		if ( $this->blockWhenDisabled( 'instant-indexing' ) ) {
+			return;
+		}
+
 		$this->getInstantIndexingPage()->render();
 	}
 
@@ -635,6 +715,10 @@ final class AdminMenu {
 	 * Handle instant indexing save callback.
 	 */
 	public function handleInstantIndexingSave(): void {
+		if ( $this->blockWhenDisabled( 'instant-indexing' ) ) {
+			return;
+		}
+
 		$this->getInstantIndexingPage()->maybeHandleSave();
 	}
 
