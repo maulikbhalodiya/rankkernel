@@ -230,6 +230,7 @@ final class DashboardPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			function ( string $handle ) use ( &$enqueued ): void {
 				$enqueued[] = $handle;

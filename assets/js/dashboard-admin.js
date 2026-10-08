@@ -31,6 +31,31 @@
 
 	var cfg = window.rankkernelDashboard || {};
 
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) {
+			return text;
+		};
+
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			return String( text || '' ).replace( '%s', String( param || '' ) );
+		};
+
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
+
 	/**
 	 * Translate through wp.i18n when present; fall back to the raw string.
 	 */
@@ -370,6 +395,23 @@
 
 			updateAttention();
 			refreshMenu();
+
+			var name = moduleName( form );
+			var msg;
+
+			if ( name ) {
+				msg = nowOn
+					/* translators: %s: Module name */
+					? sprintf( __( '%s module enabled.', 'rankkernel' ), name )
+					/* translators: %s: Module name */
+					: sprintf( __( '%s module disabled.', 'rankkernel' ), name );
+			} else {
+				msg = nowOn
+					? __( 'Module enabled.', 'rankkernel' )
+					: __( 'Module disabled.', 'rankkernel' );
+			}
+
+			rankkernelAnnounce( msg );
 		} ).catch( function () {
 			form.submit();
 		} );
