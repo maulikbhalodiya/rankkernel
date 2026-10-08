@@ -343,7 +343,7 @@ $rk_error_block = static function ( string $key ) use ( $rk_error ): void {
 		<div class="rk-ui-card rk-support-kb-card">
 			<div class="rk-ui-card-body">
 				<p class="rk-support-kb-title"><span class="rk-icon" aria-hidden="true">assessment</span><?php esc_html_e( 'Changelog and releases', 'rankkernel' ); ?></p>
-				<p class="rk-ui-hint"><?php esc_html_e( 'Update manifests, bug fixes, and telemetry revisions.', 'rankkernel' ); ?></p>
+				<p class="rk-ui-hint"><?php esc_html_e( 'Update manifests, bug fixes, and release revisions.', 'rankkernel' ); ?></p>
 			</div>
 		</div>
 	</div>

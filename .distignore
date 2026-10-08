@@ -16,3 +16,4 @@ phpcs.xml
 README.md
 CONTRIBUTING.md
 composer.json
+tools/
