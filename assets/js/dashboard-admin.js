@@ -15,6 +15,14 @@
  *   modulesUrl {string} REST base, e.g. /wp-json/rankkernel/v1/modules
  *   restNonce  {string} Nonce for the wp_rest nonce action
  *
+ * After a successful toggle the sidebar submenu is refreshed in place:
+ * the current admin page is re-requested, its rankkernel submenu is
+ * parsed out of the response, and the live one is swapped only when the
+ * normalized HTML actually differs. Any failure leaves the menu alone —
+ * the next full page load renders the correct items. The switch
+ * itself is never locked; rapid toggles abort or supersede older
+ * refreshes via a generation guard.
+ *
  * @package RankKernel
  */
 
@@ -22,6 +30,26 @@
 	'use strict';
 
 	var cfg = window.rankkernelDashboard || {};
+
+	/**
+	 * Translate through wp.i18n when present; fall back to the raw string.
+	 */
+	var __ = ( window.wp && window.wp.i18n && 'function' === typeof window.wp.i18n.__ )
+		? window.wp.i18n.__
+		: function ( text ) {
+			return text;
+		};
+
+	/**
+	 * Announce an accessible status line when wp.a11y is present.
+	 */
+	function dashboardAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || 'function' !== typeof window.wp.a11y.speak ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
 
 	/**
 	 * Read the module id the form has always posted.
@@ -123,6 +151,191 @@
 	}
 
 	/**
+	 * Collapse markup whitespace so two serializations of the same
+	 * submenu compare equal regardless of formatting.
+	 */
+	function normalizeHtml( html ) {
+		return String( html || '' )
+			.replace( />\s+</g, '><' )
+			.replace( /\s+/g, ' ' )
+			.trim();
+	}
+
+	/**
+	 * Whether two submenu serializations render the same items.
+	 */
+	function submenusEqual( a, b ) {
+		return normalizeHtml( a ) === normalizeHtml( b );
+	}
+
+	/**
+	 * Locate the rankkernel submenu inside a document.
+	 */
+	function findSubmenu( doc ) {
+		if ( ! doc ) {
+			return null;
+		}
+
+		var top = doc.getElementById ? doc.getElementById( 'toplevel_page_rankkernel' ) : null;
+
+		if ( ! top && doc.querySelector ) {
+			top = doc.querySelector( '#toplevel_page_rankkernel' );
+		}
+
+		return top && top.querySelector ? top.querySelector( '.wp-submenu' ) : null;
+	}
+
+	/**
+	 * Whether the user asked for reduced motion.
+	 */
+	function prefersReducedMotion() {
+		try {
+			if ( window.matchMedia ) {
+				return !! window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+			}
+		} catch ( error ) {
+			return false;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Pull the submenu inner HTML out of a full admin page response.
+	 */
+	function extractSubmenuHtml( html ) {
+		if ( 'function' !== typeof window.DOMParser ) {
+			return null;
+		}
+
+		try {
+			var parsed = new window.DOMParser().parseFromString( String( html ), 'text/html' );
+			var submenu = findSubmenu( parsed );
+
+			return submenu ? submenu.innerHTML : null;
+		} catch ( error ) {
+			return null;
+		}
+	}
+
+	var menuRefreshToken = 0;
+	var menuRefreshController = null;
+
+	/**
+	 * Swap the live submenu contents with fresh markup, fading out/in
+	 * unless the user prefers reduced motion. Focus stays on the toggle
+	 * that was clicked; the submenu links are plain anchors and carry no
+	 * bound listeners, so only the reference is re-acquired afterwards.
+	 */
+	function swapSubmenu( freshHtml ) {
+		var current = findSubmenu( document );
+
+		if ( ! current ) {
+			return;
+		}
+
+		var apply = function () {
+			var live = findSubmenu( document );
+
+			if ( ! live ) {
+				return;
+			}
+
+			live.innerHTML = freshHtml;
+
+			var updated = findSubmenu( document );
+
+			if ( updated && updated.style ) {
+				updated.style.opacity = '1';
+			}
+
+			dashboardAnnounce( __( 'Sidebar menu updated.', 'rankkernel' ) );
+		};
+
+		if ( prefersReducedMotion() || ! current.style ) {
+			apply();
+			return;
+		}
+
+		current.style.transition = 'opacity 150ms ease';
+		current.style.opacity = '0';
+		window.setTimeout( apply, 150 );
+	}
+
+	/**
+	 * Re-fetch the current admin page and refresh the sidebar submenu
+	 * when its normalized markup differs. Never interrupts the caller:
+	 * fetch, parse, or generation loss all leave the menu untouched.
+	 */
+	function refreshMenu() {
+		if ( ! document.getElementById || ! document.getElementById( 'toplevel_page_rankkernel' ) ) {
+			return;
+		}
+
+		if ( 'function' !== typeof window.fetch || ! window.location || ! window.location.href ) {
+			return;
+		}
+
+		// Last intent wins: a newer toggle supersedes any in-flight one.
+		menuRefreshToken++;
+		var token = menuRefreshToken;
+
+		if ( menuRefreshController && 'function' === typeof menuRefreshController.abort ) {
+			try {
+				menuRefreshController.abort();
+			} catch ( error ) {
+				// Abort is best effort; the token guard drops stale results.
+			}
+		}
+
+		menuRefreshController = null;
+
+		var signal;
+
+		if ( 'function' === typeof window.AbortController ) {
+			menuRefreshController = new window.AbortController();
+			signal = menuRefreshController.signal;
+		}
+
+		window.fetch( String( window.location.href ), {
+			credentials: 'same-origin',
+			signal: signal
+		} ).then( function ( response ) {
+			if ( ! response || ! response.ok ) {
+				throw new Error( 'menu refresh failed' );
+			}
+
+			return response.text();
+		} ).then( function ( html ) {
+			if ( token !== menuRefreshToken ) {
+				return;
+			}
+
+			var fresh = extractSubmenuHtml( html );
+			var current = findSubmenu( document );
+
+			if ( null === fresh || ! current ) {
+				return;
+			}
+
+			if ( submenusEqual( fresh, current.innerHTML ) ) {
+				return;
+			}
+
+			swapSubmenu( fresh );
+		} ).catch( function () {
+			// Leave the menu as-is; the next full page load is correct.
+		} );
+	}
+
+	window.rankkernelMenuRefresh = {
+		normalizeHtml: normalizeHtml,
+		submenusEqual: submenusEqual,
+		extractSubmenuHtml: extractSubmenuHtml,
+		findSubmenu: findSubmenu
+	};
+
+	/**
 	 * Send the toggle to REST, flip state on success, fall back to the native
 	 * form post otherwise.
 	 */
@@ -156,6 +369,7 @@
 			}
 
 			updateAttention();
+			refreshMenu();
 		} ).catch( function () {
 			form.submit();
 		} );
