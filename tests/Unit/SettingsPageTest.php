@@ -972,6 +972,7 @@ final class SettingsPageTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'llms';
 		$_POST                     = [
 			'rankkernel_save' => '1',
 			'_wpnonce'        => 'valid',
