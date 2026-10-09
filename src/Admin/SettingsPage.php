@@ -580,6 +580,24 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Section the save was posted from, read from the screen URL.
+	 *
+	 * The form carries only its own section, so each saver below runs solely
+	 * for the section that posted. Unknown or missing values fall back to the
+	 * general section, matching the render path.
+	 *
+	 * @return string Section id.
+	 */
+	private function postedSection(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- the nonce action itself depends on this value; verified immediately after.
+		$raw = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+
+		$ids = [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ];
+
+		return in_array( $raw, $ids, true ) ? $raw : 'general';
+	}
+
+	/**
 	 * Handle save, capability + nonce, then persist settings + modules.
 	 */
 	private function handleSave(): void {
@@ -591,7 +609,7 @@ final class SettingsPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_settings' );
+		$verified = check_admin_referer( 'rankkernel_settings_' . $this->postedSection() );
 		if ( false === $verified ) {
 			wp_die(
 				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
@@ -692,16 +710,25 @@ final class SettingsPage {
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		// Checkbox semantics: absent from POST = false.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified.
-		$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );
+		// Checkbox semantics: absent from POST = false. The checkbox lives on
+		// the Advanced tab only, so any other section leaves the stored value
+		// alone instead of deciding it.
+		if ( 'advanced' === $this->postedSection() ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
+			$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );
+		}
 
 		$saved = $this->store->set( $partial );
 
-		$saved = $this->saveBreadcrumbs() && $saved;
+		if ( 'breadcrumbs' === $this->postedSection() ) {
+			$saved = $this->saveBreadcrumbs() && $saved;
+		}
 
-		if ( $this->enableMap->isEnabled( 'robots' ) ) {
+		if ( $this->enableMap->isEnabled( 'robots' ) && 'robots' === $this->postedSection() ) {
 			$saved = $this->saveRobots() && $saved;
+		}
+
+		if ( $this->enableMap->isEnabled( 'robots' ) && 'llms' === $this->postedSection() ) {
 			$saved = $this->saveLlms() && $saved;
 		}
 

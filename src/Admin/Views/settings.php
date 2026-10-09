@@ -122,8 +122,8 @@ defined( 'ABSPATH' ) || exit;
 		<?php endif; ?>
 	</header>
 
-	<form method="post" action="">
-		<?php wp_nonce_field( 'rankkernel_settings' ); ?>
+<form method="post" action="">
+		<?php wp_nonce_field( 'rankkernel_settings_' . $currentSection ); ?>
 
 		<?php
 		/*
