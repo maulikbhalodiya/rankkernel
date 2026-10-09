@@ -99,7 +99,7 @@ final class Pruner {
 		$margin = (int) ceil( $max * 0.2 );
 		$limit  = min( $excess + $margin, self::COUNT_BATCH_CAP );
 
-		return $this->repository->deleteOldestOver( $max, $limit, $margin );
+		return $this->repository->deleteOldestOver( $max, $limit, $margin, $total );
 	}
 
 	/**
