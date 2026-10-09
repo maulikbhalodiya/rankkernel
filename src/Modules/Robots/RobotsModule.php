@@ -174,8 +174,11 @@ class RobotsModule implements ModuleInterface {
 
 			add_action( 'save_post', [ $this, 'invalidateLlms' ] );
 			add_action( 'edited_terms', [ $this, 'invalidateLlms' ] );
-			add_action( 'admin_notices', [ $this, 'renderLlmsPhysicalNotice' ] );
 		}
+
+		// The shadowing warning must show even when the feature is off: a
+		// leftover physical file keeps serving ahead of the virtual route.
+		add_action( 'admin_notices', [ $this, 'renderLlmsPhysicalNotice' ] );
 
 		$this->maybeFlushRules();
 	}
@@ -207,9 +210,9 @@ class RobotsModule implements ModuleInterface {
 			return;
 		}
 
-		$writer = $this->llmsWriter;
+		$writer = $this->llmsWriter ?? new LlmsFileWriter();
 
-		if ( null === $writer || ! $writer->exists() ) {
+		if ( ! $writer->exists() ) {
 			return;
 		}
 

@@ -21,6 +21,16 @@ defined( 'ABSPATH' ) || exit;
  */
 final class LlmsFileWriter {
 	/**
+	 * Option holding the real path this writer created.
+	 *
+	 * A hand made llms.txt the writer refused to overwrite must never be
+	 * removed by disable/uninstall, so deletion is allowed only for a path
+	 * recorded here by a successful write(). Non-autoloaded: it is read at
+	 * most once per disable/uninstall, never on the frontend.
+	 */
+	public const MANAGED_OPTION = 'rankkernel_llms_physical_path';
+
+	/**
 	 * Get the physical llms.txt path, filterable for tests.
 	 *
 	 * The filter is a public hook, so the value is only used when it is a non
@@ -207,9 +217,97 @@ final class LlmsFileWriter {
 			];
 		}
 
+		if ( function_exists( 'update_option' ) ) {
+			update_option( self::MANAGED_OPTION, $path, false );
+		}
+
 		return [
 			'written' => true,
 			'reason'  => '',
 		];
+	}
+
+	/**
+	 * Delete the plugin-managed physical llms.txt, if there is one.
+	 *
+	 * Only removes a path previously recorded by a successful write(), so a
+	 * hand made file the writer refused to overwrite is never touched. Never
+	 * fatal: a missing file, an unmanaged path, a symlink, or a path that no
+	 * longer resolves inside the site root all return cleanly.
+	 *
+	 * @return array{deleted: bool, reason: string} Result and reason code.
+	 */
+	public function delete(): array {
+		$managed = function_exists( 'get_option' ) ? get_option( self::MANAGED_OPTION, '' ) : '';
+
+		if ( ! is_string( $managed ) || '' === $managed ) {
+			return [
+				'deleted' => false,
+				'reason'  => 'unmanaged',
+			];
+		}
+
+		if ( ! file_exists( $managed ) ) {
+			$this->forgetManagedPath();
+
+			return [
+				'deleted' => false,
+				'reason'  => 'missing',
+			];
+		}
+
+		if ( ! is_file( $managed ) || is_link( $managed ) ) {
+			return [
+				'deleted' => false,
+				'reason'  => 'refused',
+			];
+		}
+
+		// Re-resolve containment at delete time: the filter value may have
+		// changed since the write, so a stored path is never trusted blindly.
+		if ( '' !== $this->containedPath( $managed, '' ) && $this->containedPath( $managed, '' ) !== $managed ) {
+			return [
+				'deleted' => false,
+				'reason'  => 'refused',
+			];
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- writability probes before the opt-in managed-file removal, not file writes.
+		if ( function_exists( 'is_writable' ) && ! is_writable( $managed ) && ! is_writable( dirname( $managed ) ) ) {
+			return [
+				'deleted' => false,
+				'reason'  => 'not_writable',
+			];
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- removing the opt-in physical llms.txt the plugin itself wrote, the only portable option.
+		$ok = unlink( $managed );
+
+		if ( ! $ok ) {
+			return [
+				'deleted' => false,
+				'reason'  => 'failed',
+			];
+		}
+
+		$this->forgetManagedPath();
+
+		if ( class_exists( LlmsRouter::class ) ) {
+			LlmsRouter::invalidate();
+		}
+
+		return [
+			'deleted' => true,
+			'reason'  => '',
+		];
+	}
+
+	/**
+	 * Drop the managed-path record.
+	 */
+	private function forgetManagedPath(): void {
+		if ( function_exists( 'delete_option' ) ) {
+			delete_option( self::MANAGED_OPTION );
+		}
 	}
 }
