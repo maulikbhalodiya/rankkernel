@@ -172,10 +172,6 @@ final class RedirectTable {
 			return false;
 		}
 
-		if ( self::exists() ) {
-			return true;
-		}
-
 		self::resetCache();
 
 		if ( ! function_exists( 'dbDelta' ) ) {
@@ -188,7 +184,7 @@ final class RedirectTable {
 
 		$table   = self::name();
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
-		$sql     = "CREATE TABLE IF NOT EXISTS `{$table}` ("
+		$sql     = "CREATE TABLE `{$table}` ("
 			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
 			. "match_type ENUM('exact','prefix','contains','suffix','wildcard','regex') NOT NULL DEFAULT 'exact',"
 			. 'source_hash CHAR(64) NOT NULL,'
@@ -202,16 +198,6 @@ final class RedirectTable {
 			. 'PRIMARY KEY (id),'
 			. 'UNIQUE KEY match_source (match_type, source_hash),'
 			. 'KEY is_active (is_active)'
-			/**
-			 * Charset.
-			 *
-			 * @var `('idBIGINTUNSIGNEDNOTNULLAUTO_INCREMENT,'"match_typeENUM('exact','prefix','contains','suffix','wildcard','regex')NOTNULLDEFAULT'exact',"'source_hashCHAR(64)NOTNULL,''sourceTEXTNOTNULL,''targetTEXTNOTNULL,'"codeENUM('301','302','307','410','451')NOTNULLDEFAULT'301',"'hitsBIGINTUNSIGNEDNOTNULLDEFAULT0,''is_activeTINYINT(1)NOTNULLDEFAULT1,''createdDATETIMENOTNULL,''last_accessedDATETIMENULLDEFAULTNULL,''PRIMARYKEY(id),''UNIQUEKEYmatch_source(match_type,source_hash),''KEYis_active(is_active)'){
-			 */
-			/**
-			 * Charset.
-			 *
-			 * @var `('idBIGINTUNSIGNEDNOTNULLAUTO_INCREMENT,'"match_typeENUM('exact','prefix','contains','suffix','wildcard','regex')NOTNULLDEFAULT'exact',"'source_hashCHAR(64)NOTNULL,''sourceTEXTNOTNULL,''targetTEXTNOTNULL,'"codeENUM('301','302','307','410','451')NOTNULLDEFAULT'301',"'hitsBIGINTUNSIGNEDNOTNULLDEFAULT0,''is_activeTINYINT(1)NOTNULLDEFAULT1,''createdDATETIMENOTNULL,''last_accessedDATETIMENULLDEFAULTNULL,''PRIMARYKEY(id),''UNIQUEKEYmatch_source(match_type,source_hash),''KEYis_active(is_active)'){
-			 */
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {

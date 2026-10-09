@@ -135,10 +135,6 @@ final class LogTable {
 			return false;
 		}
 
-		if ( self::exists() ) {
-			return true;
-		}
-
 		self::resetCache();
 
 		if ( ! function_exists( 'dbDelta' ) ) {
@@ -151,7 +147,7 @@ final class LogTable {
 
 		$table   = self::name();
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
-		$sql     = "CREATE TABLE IF NOT EXISTS `{$table}` ("
+		$sql     = "CREATE TABLE `{$table}` ("
 			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
 			. 'url TEXT NOT NULL,'
 			. "host VARCHAR(255) NOT NULL DEFAULT '',"
