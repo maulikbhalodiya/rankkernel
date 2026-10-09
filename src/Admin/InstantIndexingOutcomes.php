@@ -50,9 +50,12 @@ final class InstantIndexingOutcomes {
 	/**
 	 * Permanent rejection codes, mirroring the client boundary.
 	 *
+	 * 403 stays transient on both sides: an unreachable key file is
+	 * fixable, so the log must offer a retry, not a dead end.
+	 *
 	 * @var int[]
 	 */
-	private const PERMANENT_CODES = [ 400, 403, 405, 422 ];
+	private const PERMANENT_CODES = [ 400, 405, 422 ];
 
 	/**
 	 * Display category for one stored status code.

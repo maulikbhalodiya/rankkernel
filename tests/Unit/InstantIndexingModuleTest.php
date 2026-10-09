@@ -369,9 +369,13 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test an enabled module registers no cron or scheduler hooks.
+	 * Test the enabled module registers its hooks including deferred delivery.
+	 *
+	 * Auto-submit delivery runs on a same-plugin action fired by a single
+	 * deferred event — never inline in the save — so the save path stays
+	 * fast while no external scheduler is involved.
 	 */
-	public function test_enabled_module_registers_no_cron_hooks(): void {
+	public function test_enabled_module_registers_expected_hooks(): void {
 		$hooks = [];
 		Functions\when( 'add_action' )->alias(
 			static function ( string $hook ) use ( &$hooks ): bool {
@@ -400,12 +404,13 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$this->assertSame( [], array_values( $scheduled ) );
 
-		// The exact hook set is pinned, so any added scheduling hook fails here.
+		// The exact hook set is pinned, so any added hook fails here.
 		$this->assertSame(
 			[
 				'parse_request',
 				'pre_post_update',
 				'transition_post_status',
+				'rankkernel_indexnow_submit',
 				'created_term',
 				'edited_term',
 				'pre_delete_term',
@@ -427,15 +432,148 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test auto submit on publish submits the permalink once.
+	 * Capture deferred-submit queue calls.
+	 *
+	 * @param array<int, array{hook: string, args: array}> $queued Queue sink, passed by reference.
 	 */
-	public function test_auto_submit_on_publish_submits_the_permalink(): void {
+	private function stubCronQueue( array &$queued ): void {
+		Functions\when( 'wp_next_scheduled' )->alias(
+			static function ( string $hook, array $args = [] ) use ( &$queued ): mixed {
+				foreach ( $queued as $entry ) {
+					if ( $entry['hook'] === $hook && $entry['args'] === $args ) {
+						return 123456;
+					}
+				}
+
+				return false;
+			}
+		);
+		Functions\when( 'wp_schedule_single_event' )->alias(
+			static function ( int $timestamp, string $hook, array $args = [] ) use ( &$queued ): bool {
+				$queued[] = [
+					'hook' => $hook,
+					'args' => $args,
+				];
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Test auto submit on publish queues delivery without inline HTTP.
+	 */
+	public function test_auto_submit_on_publish_queues_without_inline_http(): void {
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module = $this->module( true, true );
 		$module->boot();
 
 		$module->onTransitionPostStatus( 'publish', 'draft', $this->post( 42 ) );
 
-		$this->assertSame( 1, $this->clientCalls );
+		$this->assertSame( 0, $this->clientCalls, 'the save path must not perform HTTP inline' );
+		$this->assertCount( 1, $queued );
+		$this->assertSame( 'rankkernel_indexnow_submit', $queued[0]['hook'] );
+	}
+
+	/**
+	 * Test an identical pending payload is not queued twice.
+	 */
+	public function test_identical_pending_payload_is_not_duplicated(): void {
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$post               = $this->post( 43 );
+		$post->post_content = 'Same content here.';
+
+		$module->onTransitionPostStatus( 'publish', 'draft', $post );
+
+		// Simulate delivery marking so the second signal sees the debounce,
+		// then queue the same logical payload again: the pending check wins.
+		$module->runDeferredSubmit( $queued[0]['args'][0] );
+
+		$this->assertCount( 1, $queued );
+	}
+
+	/**
+	 * Test an unchanged publish-to-publish re-save submits nothing new.
+	 */
+	public function test_unchanged_republish_submits_nothing(): void {
+		$meta = [];
+		$this->trackPostMeta( $meta );
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$now   = 3000;
+		$clock = static function () use ( &$now ): int {
+			return $now;
+		};
+		Functions\when( 'time' )->alias( $clock );
+
+		$post                = $this->post( 44 );
+		$post->post_content  = 'Steady content that never changes.';
+		$post->post_password = '';
+
+		$module->onTransitionPostStatus( 'publish', 'draft', $post );
+		$this->assertCount( 1, $queued );
+
+		$module->runDeferredSubmit( $queued[0]['args'][0] );
+
+		// Past the debounce window, so only the content-hash dedupe can
+		// suppress the second signal: this proves the hash check itself.
+		$now = 3000 + 601;
+
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
+		$module->onTransitionPostStatus( 'publish', 'publish', $post );
+
+		$this->assertSame( [], $queued, 'byte-identical republish must not queue again' );
+	}
+
+	/**
+	 * Test an edited republish still queues after identical content.
+	 */
+	public function test_edited_republish_queues_again(): void {
+		$meta = [];
+		$this->trackPostMeta( $meta );
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
+		$module = $this->module( true, true );
+		$module->boot();
+
+		$post               = $this->post( 45 );
+		$post->post_content = 'Original words here.';
+
+		$now   = 2000;
+		$clock = static function () use ( &$now ): int {
+			return $now;
+		};
+		Functions\when( 'time' )->alias( $clock );
+
+		$module->onTransitionPostStatus( 'publish', 'draft', $post );
+		$module->runDeferredSubmit( $queued[0]['args'][0] );
+
+		// Move past the ten-minute debounce so only the content-hash dedupe
+		// decides: identical content must skip, edited content must queue.
+		$now = 2000 + 601;
+
+		$post->post_content = 'Edited words arrive here.';
+
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
+		$module->onTransitionPostStatus( 'publish', 'publish', $post );
+
+		$this->assertCount( 1, $queued, 'changed content must still submit' );
 	}
 
 	/**
@@ -515,6 +653,9 @@ final class InstantIndexingModuleTest extends TestCase {
 		$this->trackPostMeta( $meta );
 		Functions\when( 'time' )->justReturn( 1000 );
 
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module = $this->module( true, true );
 		$module->boot();
 
@@ -522,6 +663,10 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$module->onTransitionPostStatus( 'publish', 'draft', $post );
 		$module->onTransitionPostStatus( 'publish', 'publish', $post );
+
+		$this->assertCount( 1, $queued );
+
+		$module->runDeferredSubmit( $queued[0]['args'][0] );
 
 		$this->assertSame( 1, $this->clientCalls );
 	}
@@ -547,7 +692,14 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$permalink = 'https://example.com/new-slug';
 
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module->onTransitionPostStatus( 'publish', 'publish', $post );
+
+		$this->assertCount( 1, $queued );
+
+		$module->runDeferredSubmit( $queued[0]['args'][0] );
 
 		$this->assertSame( 1, $this->clientCalls, 'both URLs ride one request' );
 		$this->assertSame( [ 'https://example.com/old-slug', 'https://example.com/new-slug' ], $this->submittedUrls );
@@ -566,13 +718,20 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$post = $this->post( 31 );
 
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module->onTransitionPostStatus( 'publish', 'draft', $post );
-		$callsAfterPublish = $this->clientCalls;
+		$this->assertCount( 1, $queued );
 
 		$module->onTransitionPostStatus( 'trash', 'publish', $post );
+		$this->assertCount( 2, $queued, 'a trash signal is a distinct fact and is never debounced away' );
 
-		$this->assertSame( 1, $callsAfterPublish );
-		$this->assertSame( 2, $this->clientCalls, 'a trash signal is a distinct fact and is never debounced away' );
+		foreach ( $queued as $entry ) {
+			$module->runDeferredSubmit( $entry['args'][0] );
+		}
+
+		$this->assertSame( 2, $this->clientCalls );
 	}
 
 	/**
@@ -591,16 +750,23 @@ final class InstantIndexingModuleTest extends TestCase {
 
 		$post = $this->post( 21 );
 
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module->onTransitionPostStatus( 'publish', 'publish', $post );
-		$callsAfterUpdate = $this->clientCalls;
+		$this->assertCount( 1, $queued );
 
 		// WordPress reports the __trashed slug after the trash lands, so
 		// the only way to signal the URL that was live is the snapshot.
 		$permalink = 'https://example.com/live-slug__trashed';
 
 		$module->onTransitionPostStatus( 'trash', 'publish', $post );
+		$this->assertCount( 2, $queued );
 
-		$this->assertSame( 1, $callsAfterUpdate );
+		foreach ( $queued as $entry ) {
+			$module->runDeferredSubmit( $entry['args'][0] );
+		}
+
 		$this->assertCount( 2, $this->submittedUrls );
 		$this->assertSame( 'https://example.com/live-slug', $this->submittedUrls[1] );
 		$this->assertNotContains( 'https://example.com/live-slug__trashed', $this->submittedUrls );

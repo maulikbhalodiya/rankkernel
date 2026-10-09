@@ -278,7 +278,7 @@ final class InstantIndexingLogQueryTest extends TestCase {
 		$expected = [
 			InstantIndexingOutcomes::CATEGORY_ACCEPTED => [ 200 ],
 			InstantIndexingOutcomes::CATEGORY_PENDING  => [ 202 ],
-			InstantIndexingOutcomes::CATEGORY_REJECTED => [ 0, 422, 405, 403, 400 ],
+			InstantIndexingOutcomes::CATEGORY_REJECTED => [ 0, 422, 405, 400 ],
 			InstantIndexingOutcomes::CATEGORY_LIMITED  => [ 429 ],
 		];
 

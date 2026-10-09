@@ -207,10 +207,16 @@ final class IndexNowClientTest extends TestCase {
 	}
 
 	/**
-	 * Test 403 is permanent and 429 is retryable.
+	 * Test 403 is transient (key file unreachable is fixable) and 429 stays retryable.
+	 *
+	 * 403 was permanent; it now surfaces a retry instead of a dead end.
 	 */
-	public function test_403_is_permanent_and_429_is_retryable(): void {
-		$this->assertSame( 1, $this->client( 403 )->submit( [ 'https://example.com/a' ] )['permanent'] );
+	public function test_403_is_transient_and_429_is_retryable(): void {
+		$result = $this->client( 403 )->submit( [ 'https://example.com/a' ] );
+
+		$this->assertSame( 0, $result['permanent'] );
+		$this->assertSame( 1, $result['transient'] );
+		$this->assertTrue( $result['results'][0]['retryable'] );
 		$this->assertSame( 1, $this->client( 429 )->submit( [ 'https://example.com/a' ] )['transient'] );
 	}
 

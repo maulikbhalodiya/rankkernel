@@ -99,7 +99,7 @@ final class InstantIndexingLogViewTest extends TestCase {
 		$this->assertSame( 'accepted', InstantIndexingOutcomes::categoryFor( 200 ) );
 		$this->assertSame( 'pending', InstantIndexingOutcomes::categoryFor( 202 ) );
 		$this->assertSame( 'rejected', InstantIndexingOutcomes::categoryFor( 400 ) );
-		$this->assertSame( 'rejected', InstantIndexingOutcomes::categoryFor( 403 ) );
+		$this->assertSame( 'retry', InstantIndexingOutcomes::categoryFor( 403 ) );
 		$this->assertSame( 'rejected', InstantIndexingOutcomes::categoryFor( 405 ) );
 		$this->assertSame( 'rejected', InstantIndexingOutcomes::categoryFor( 422 ) );
 		$this->assertSame( 'rejected', InstantIndexingOutcomes::categoryFor( 0 ) );
@@ -141,7 +141,7 @@ final class InstantIndexingLogViewTest extends TestCase {
 			}
 		}
 
-		$this->assertSame( [ 0, 400, 403, 405, 422 ], $map[ InstantIndexingOutcomes::CATEGORY_REJECTED ] );
+		$this->assertSame( [ 0, 400, 405, 422 ], $map[ InstantIndexingOutcomes::CATEGORY_REJECTED ] );
 		$this->assertSame( [ 429 ], $map[ InstantIndexingOutcomes::CATEGORY_LIMITED ] );
 	}
 
