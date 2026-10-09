@@ -25,7 +25,7 @@
 ### Phase A1 — data loss + upgrade path (do first)
 
 - [ ] **C-1 (Critical) — any settings save wipes the entire llms.txt and AI-crawler policy.**
-  Status: IN-REVIEW (#243, branch GH-237).
+  Status: DONE (#243 merged).
   What breaks and why it matters: the General Settings form renders only the currently
   selected section (`src/Admin/Views/settings.php:161` requires only
   `sections/<currentSection>.php`, and the AJAX tab loader swaps that body per tab). But the
@@ -53,7 +53,7 @@
   test fail. Accept when: the audit's exact repro (curated llms.txt → save from another tab →
   content intact) passes.
 - [ ] **C-5 (Critical) — schema changes can never reach existing installs.**
-  Status: IN-REVIEW (#248, branch GH-238).
+  Status: DONE (#248 merged).
   What breaks and why it matters: all three module table files (`src/Modules/Monitor/
   LogTable.php`, `src/Modules/Redirects/RedirectTable.php`,
   `src/Modules/InstantIndexing/LogTable.php`) guard table creation with `if (self::exists())
@@ -77,7 +77,7 @@
   new column exists afterwards (all three tables). Accept when: the early return is gone, the DDL
   has no `IF NOT EXISTS`, and the migration test passes.
 - [ ] **H-17 (High) — migration baseline is an unconditional no-op; no downgrade path.**
-  Status: IN-REVIEW (#256, branch GH-251).
+  Status: DONE (#256 merged).
   What breaks and why it matters: `src/Plugin.php:127` registers an empty `0.1.0` migration
   unconditionally, so `MigrationRunner.php:130` (`if ([] === $this->migrations)`) and its entire
   ledger-sync fallback are unreachable dead code. On downgrade (ledger says 0.2.0, plugin is
@@ -110,7 +110,7 @@
   mutation-prove by removing the section condition. Accept when: QA-1's checkbox persists and the
   tri-state is reachable again.
 - [ ] **H-16 (High) — dashboard toggle can silently disable every other module.**
-  Status: IN-REVIEW (#252, branch GH-250).
+  Status: DONE (#252 merged).
   What breaks and why it matters: two writers disagree on the option shape.
   `ModulesController.php:183` runs `array_map('strval', $current)` on the raw option, while
   `DashboardPage.php:247` (`enabledIds()`) branches on `is_int($key)`, which never matches an
@@ -129,7 +129,7 @@
 ### Phase A2 — redirects engine
 
 - [ ] **C-2 (Critical) — activating a redirect skips loop validation; live infinite loops possible.**
-  Status: IN-REVIEW (#249, branch GH-239).
+  Status: DONE (#249 merged).
   What breaks and why it matters: `Validator::assess_safety()` runs on the add/edit form
   (`RedirectsPage.php:1199`) and in `CsvHandler`, but `set_active()` and `bulk('activate')` in
   `RedirectRepository.php` (`:451`, `:493`) are bare `UPDATE … SET is_active = 1`. Worse,
@@ -152,7 +152,7 @@
   Tests required: the exact 6-step repro as a regression test (refused at step 5, both single
   and bulk paths); a hop-cap test. Mutation-prove by removing the toggle-time call.
 - [ ] **H-1 (High) — SlugWatcher writes redirects with no capability check, any status, no cap.**
-  Status: IN-REVIEW (#255, branch GH-253).
+  Status: DONE (#255 merged).
   What breaks and why it matters: `handle_post_updated()` (`SlugWatcher.php:119`) hooks
   `post_updated`, which fires for every post write by anyone who can edit — Contributor on own
   drafts, Authors, REST, WP-CLI, importers. The file contains zero `current_user_can` and zero
