@@ -701,4 +701,115 @@ final class RedirectsRepositoryTest extends TestCase {
 		$this->assertCount( 1, $this->repo->export_rows( [], 1 ) );
 		$this->assertCount( 2, $this->repo->export_rows( [], 10 ) );
 	}
+
+	/**
+	 * Test get row memoizes across calls and invalidates on write.
+	 */
+	public function test_get_row_memoizes_and_invalidates_on_write(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/memo-a',
+				'target' => '/target-a',
+			]
+		);
+
+		$readsBefore = $this->db->reads;
+		$first       = $this->repo->get( $id );
+		$readsFirst  = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+		$this->assertIsArray( $first );
+
+		// Second call reuses memoized row without triggering DB read.
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->get( $id );
+		$readsSecond = $this->db->reads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
+		$this->assertSame( $first, $second );
+
+		// Write operation invalidates $rowMemo.
+		$this->repo->update( $id, [ 'target' => '/target-updated' ] );
+
+		$readsWrite = $this->db->reads;
+		$third      = $this->repo->get( $id );
+		$readsThird = $this->db->reads;
+
+		$this->assertGreaterThan( $readsWrite, $readsThird );
+		$this->assertSame( '/target-updated', $third['target'] ?? '' );
+	}
+
+	/**
+	 * Test find_cycle_candidates memoizes across calls and invalidates on write.
+	 */
+	public function test_find_cycle_candidates_memoizes_and_invalidates_on_write(): void {
+		$this->repo->insert(
+			[
+				'source' => '/cycle-a',
+				'target' => '/cycle-b',
+				'code'   => '301',
+			]
+		);
+
+		$readsBefore = $this->db->reads;
+		$first       = $this->repo->find_cycle_candidates();
+		$readsFirst  = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+		$this->assertCount( 1, $first );
+
+		// Subsequent call reuses memoized candidates without triggering DB read.
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->find_cycle_candidates();
+		$readsSecond = $this->db->reads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
+		$this->assertSame( $first, $second );
+
+		// Inserting a new active candidate invalidates cycle candidates memo.
+		$this->repo->insert(
+			[
+				'source' => '/cycle-c',
+				'target' => '/cycle-d',
+				'code'   => '301',
+			]
+		);
+
+		$readsWrite = $this->db->reads;
+		$third      = $this->repo->find_cycle_candidates();
+		$readsThird = $this->db->reads;
+
+		$this->assertGreaterThan( $readsWrite, $readsThird );
+		$this->assertCount( 2, $third );
+	}
+
+	/**
+	 * Test resetCache resets all static memoized properties.
+	 */
+	public function test_reset_cache_resets_all_static_memos(): void {
+		$id = $this->repo->insert(
+			[
+				'source'     => '/pattern-1*',
+				'target'     => '/target-1',
+				'match_type' => 'prefix',
+				'code'       => '301',
+			]
+		);
+
+		$this->repo->get( $id );
+		$this->repo->all_patterns();
+		$this->repo->find_cycle_candidates();
+
+		$readsBefore = $this->db->reads;
+
+		RedirectRepository::resetCache();
+
+		$this->repo->get( $id );
+		$this->repo->all_patterns();
+		$this->repo->find_cycle_candidates();
+
+		$readsAfter = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsAfter );
+	}
 }
