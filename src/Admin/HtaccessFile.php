@@ -173,12 +173,122 @@ final class HtaccessFile {
 	}
 
 	/**
+	 * How many backups to keep; older ones are pruned on every save.
+	 */
+	public const BACKUP_KEEP = 5;
+
+	/**
+	 * Directory holding backups, outside the site root's servable files.
+	 *
+	 * Backups used to sit next to the live .htaccess, where the timestamped
+	 * pattern was directly web-fetchable while .htaccess itself 403s. They
+	 * now live in a guarded uploads subdirectory with a silence index and a
+	 * deny file, so config contents never leak over HTTP.
+	 *
+	 * @return string Directory path, empty when it cannot be prepared.
+	 */
+	public function backupDir(): string {
+		$base = '';
+
+		if ( function_exists( 'wp_upload_dir' ) ) {
+			$uploads = wp_upload_dir();
+
+			// Core documents basedir as always present; a filter reshaping
+			// that would break core itself, so read it directly once the
+			// array shape is confirmed.
+			if ( is_array( $uploads ) ) {
+				$base = (string) $uploads['basedir'];
+			}
+		}
+
+		if ( '' === $base && defined( 'ABSPATH' ) ) {
+			$base = rtrim( (string) ABSPATH, '/' ) . '/wp-content/uploads';
+		}
+
+		if ( '' === $base ) {
+			return '';
+		}
+
+		$dir = rtrim( $base, '/' ) . '/rankkernel-htaccess-backups';
+
+		if ( ! file_exists( $dir ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- creating the guarded backup directory for .htaccess backups.
+			if ( ! mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) {
+				return '';
+			}
+		}
+
+		$index = $dir . '/index.php';
+
+		if ( ! file_exists( $index ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- silence file guarding the backup directory.
+			file_put_contents( $index, '<?php // Silence is golden.' );
+		}
+
+		$deny = $dir . '/.htaccess';
+
+		if ( ! file_exists( $deny ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- deny file guarding the backup directory on Apache stacks.
+			file_put_contents( $deny, "Require all denied\n" );
+		}
+
+		return $dir;
+	}
+
+	/**
 	 * Path of the backup written before the next save.
+	 *
+	 * No extension: the name carries no content hint and matches nothing a
+	 * static server would serve with a text type by default.
 	 *
 	 * @return string The result.
 	 */
 	public function backupPath(): string {
-		return $this->path() . '.rankkernel-backup-' . gmdate( 'YmdHis' );
+		$dir = $this->backupDir();
+
+		if ( '' === $dir ) {
+			return $this->path() . '.rankkernel-backup-' . gmdate( 'YmdHis' );
+		}
+
+		// uniqid() suffix: two saves inside the same second must not share
+		// a name, or the later copy would silently overwrite the earlier
+		// backup the restore-on-failure path may need.
+		return $dir . '/htaccess-backup-' . gmdate( 'YmdHis' ) . '-' . uniqid();
+	}
+
+	/**
+	 * Prune old backups, keeping the newest BACKUP_KEEP.
+	 *
+	 * @return int Removed backup count.
+	 */
+	public function pruneBackups(): int {
+		$dir = $this->backupDir();
+
+		if ( '' === $dir ) {
+			return 0;
+		}
+
+		$files = glob( $dir . '/htaccess-backup-*' );
+
+		if ( ! is_array( $files ) ) {
+			return 0;
+		}
+
+		rsort( $files );
+
+		$stale   = array_slice( $files, self::BACKUP_KEEP );
+		$removed = 0;
+
+		foreach ( $stale as $staleFile ) {
+			if ( is_file( $staleFile ) && ! is_link( $staleFile ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- pruning superseded .htaccess backups the plugin itself wrote.
+				if ( unlink( $staleFile ) ) {
+					++$removed;
+				}
+			}
+		}
+
+		return $removed;
 	}
 
 	/**
@@ -219,13 +329,15 @@ final class HtaccessFile {
 		if ( file_exists( $path ) ) {
 			$backup = $this->backupPath();
 
-			if ( ! copy( $path, $backup ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- writing a sibling backup of the site .htaccess.
+			if ( ! copy( $path, $backup ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- writing a guarded backup of the site .htaccess.
 				return [
 					'saved'  => false,
 					'reason' => 'backup_failed',
 					'backup' => '',
 				];
 			}
+
+			$this->pruneBackups();
 		}
 
 		$bytes = file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the site .htaccess, the only portable option.
