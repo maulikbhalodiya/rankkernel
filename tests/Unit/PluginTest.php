@@ -317,6 +317,41 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Deactivation flushes rewrite rules while leaving all data intact.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_deactivation_flushes_rewrite_rules_and_keeps_data(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_deactivate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$calls   = 0;
+		$flushed = null;
+		Functions\when( 'flush_rewrite_rules' )->alias(
+			static function ( bool $hard = true ) use ( &$calls, &$flushed ): void {
+				++$calls;
+				$flushed = $hard;
+			}
+		);
+
+		$store = array( 'rankkernel_settings' => array( 'separator' => 'x' ) );
+		$this->stub_option_store( $store );
+
+		\rankkernel_deactivate();
+
+		$this->assertSame( 1, $calls, 'Deactivation must flush rewrite rules exactly once.' );
+		$this->assertFalse( $flushed, 'Deactivation must flush softly, never hard.' );
+		$this->assertSame( array( 'separator' => 'x' ), $store['rankkernel_settings'], 'Deactivation must leave all data intact.' );
+	}
+
+	/**
 	 * Conflict notice renders on the plugins screen with a live re-check.
 	 *
 	 * Runs in a separate process because it loads rankkernel.php and defines
