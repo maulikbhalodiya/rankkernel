@@ -33,6 +33,13 @@ final class RedirectsTableTest extends TestCase {
 	private int $dbDeltaCalls = 0;
 
 	/**
+	 * Last schema statement passed to dbDelta.
+	 *
+	 * @var string
+	 */
+	private string $lastSql = '';
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -43,10 +50,12 @@ final class RedirectsTableTest extends TestCase {
 		$this->db           = new RedirectsFakeDb();
 		$GLOBALS['wpdb']    = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored in tearDown.
 		$this->dbDeltaCalls = 0;
+		$this->lastSql      = '';
 
 		Functions\when( 'dbDelta' )->alias(
-			function (): void {
+			function ( string $sql ): void {
 				++$this->dbDeltaCalls;
+				$this->lastSql         = $sql;
 				$this->db->tableExists = true;
 			}
 		);
@@ -143,8 +152,37 @@ final class RedirectsTableTest extends TestCase {
 		$this->assertTrue( RedirectTable::ensureTables() );
 		$this->assertSame( 1, $this->dbDeltaCalls );
 
+		// dbDelta is itself idempotent, so every call runs the diff: that is
+		// what lets a new column reach an install that already has the table.
 		$this->assertTrue( RedirectTable::ensureTables() );
-		$this->assertSame( 1, $this->dbDeltaCalls, 'Second call must not rebuild' );
+		$this->assertSame( 2, $this->dbDeltaCalls, 'Every call runs the diff' );
+	}
+
+	/**
+	 * Test ensure tables diffs a table that already exists.
+	 */
+	public function test_ensure_tables_diffs_existing_table(): void {
+		$this->db->tableExists = true;
+
+		$this->assertTrue( RedirectTable::ensureTables() );
+		$this->assertSame( 1, $this->dbDeltaCalls, 'An existing table must still be diffed' );
+	}
+
+	/**
+	 * Test the DDL carries no IF NOT EXISTS and names a real table.
+	 */
+	public function test_ddl_names_real_table_without_if_not_exists(): void {
+		$this->db->tableExists = false;
+
+		RedirectTable::ensureTables();
+
+		$this->assertStringNotContainsString( 'IF NOT EXISTS', $this->lastSql );
+
+		// Core parses the name with preg_match('|CREATE TABLE ([^ ]*)|'.
+		$matched = preg_match( '|CREATE TABLE ([^ ]*)|', $this->lastSql, $found );
+
+		$this->assertSame( 1, $matched );
+		$this->assertSame( '`' . RedirectTable::name() . '`', $found[1] );
 	}
 
 	/**

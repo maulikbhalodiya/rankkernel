@@ -127,6 +127,14 @@ final class MonitorModuleTest extends TestCase {
 		);
 		Functions\when( 'update_option' )->justReturn( true );
 
+		// ensureTables() always runs the schema diff now, so the test owns
+		// dbDelta instead of depending on which test ran before it.
+		Functions\when( 'dbDelta' )->alias(
+			static function () use ( $db ): void {
+				$db->tableExists = true;
+			}
+		);
+
 		$map     = new ModuleEnableMap();
 		$manager = new ModuleManager( $map );
 		$module  = new MonitorModule( $map );
