@@ -86,6 +86,9 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		// Test installs the in memory wpdb double, restored in tearDown.
 		$GLOBALS['wpdb'] = $this->db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
+		// Watcher tests simulate an administrator renaming flow.
+		Functions\when( 'current_user_can' )->justReturn( true );
+
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
 				return $this->options[ $key ] ?? $fallback;
