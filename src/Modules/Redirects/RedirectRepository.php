@@ -100,14 +100,105 @@ final class RedirectRepository {
 	private static ?array $patternsMemo = null;
 
 	/**
+	 * Safety analyzer for activation checks, fresh one when null.
+	 *
+	 * @var Validator|null
+	 */
+	private ?Validator $validator = null;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param \wpdb|null         $db    Database handle, global $wpdb when null.
-	 * @param RedirectCache|null $cache Cache to invalidate on writes.
+	 * @param \wpdb|null         $db        Database handle, global $wpdb when null.
+	 * @param RedirectCache|null $cache     Cache to invalidate on writes.
+	 * @param Validator|null     $validator Safety analyzer, fresh one when null.
 	 */
-	public function __construct( $db = null, ?RedirectCache $cache = null ) {
-		$this->db    = $db;
-		$this->cache = $cache;
+	public function __construct( $db = null, ?RedirectCache $cache = null, ?Validator $validator = null ) {
+		$this->db        = $db;
+		$this->cache     = $cache;
+		$this->validator = $validator;
+	}
+
+	/**
+	 * Safety analyzer, lazily built.
+	 *
+	 * @return Validator The result.
+	 */
+	private function validator(): Validator {
+		if ( null === $this->validator ) {
+			$this->validator = new Validator();
+		}
+
+		return $this->validator;
+	}
+
+	/**
+	 * Loop path activating a rule would complete, or an empty list when safe.
+	 *
+	 * Only a proven cycle refuses; an inconclusive analysis stays toggleable
+	 * so regex rules are never wedged off, mirroring the add form where a
+	 * proven cycle is refused outright while the unproven case carries an
+	 * explicit operator override.
+	 *
+	 * @param int                              $id          Rule id.
+	 * @param array<int, array<string, mixed>> $extraActive Extra rules treated as active, for bulk simulation.
+	 * @return array<int, string> Loop path, empty when activation is safe.
+	 */
+	public function activationLoopPath( int $id, array $extraActive = [] ): array {
+		if ( $id <= 0 ) {
+			return [];
+		}
+
+		$rule = $this->get( $id );
+
+		if ( ! is_array( $rule ) ) {
+			return [];
+		}
+
+		if ( 1 === (int) ( $rule['is_active'] ?? 0 ) && [] === $extraActive ) {
+			return [];
+		}
+
+		$proposed = [
+			'source'     => (string) ( $rule['source'] ?? '' ),
+			'target'     => (string) ( $rule['target'] ?? '' ),
+			'code'       => (string) ( $rule['code'] ?? '301' ),
+			'match_type' => (string) ( $rule['match_type'] ?? 'exact' ),
+		];
+
+		if ( '' === $proposed['source'] || '' === $proposed['target'] ) {
+			return [];
+		}
+
+		$candidates = [];
+
+		foreach ( $this->find_cycle_candidates() as $row ) {
+			if ( ! is_array( $row ) || (int) ( $row['id'] ?? 0 ) === $id ) {
+				continue;
+			}
+
+			$candidates[] = $row;
+		}
+
+		foreach ( $extraActive as $extra ) {
+			if ( is_array( $extra ) ) {
+				$candidates[] = $extra;
+			}
+		}
+
+		$safety = $this->validator()->assess_safety( $proposed, $candidates );
+
+		if ( 'cycle' !== $safety['verdict'] ) {
+			return [];
+		}
+
+		$path = $safety['loop']['path'];
+
+		if ( ! is_array( $path ) ) {
+			return [];
+		}
+
+		return array_values( array_map( 'strval', $path ) );
 	}
 
 	/**
@@ -463,6 +554,12 @@ final class RedirectRepository {
 			return false;
 		}
 
+		// A proven cycle is refused outright, mirroring the add form where no
+		// override saves an observed loop.
+		if ( $active && [] !== $this->activationLoopPath( $id ) ) {
+			return false;
+		}
+
 		$table = RedirectTable::name();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom redirect tables have no core API, flag flip against the primary key.
@@ -556,7 +653,34 @@ final class RedirectRepository {
 				return $result;
 			}
 
-			$allowedList = implode( ',', $allowed );
+			// Each approval joins the candidate set for the rows after it, so
+			// two inactive edges that only loop together cannot slip through
+			// one bulk activation. Cycle makers stay inactive and uncounted.
+			$approved = [];
+
+			foreach ( $allowed as $candidateId ) {
+				$extra = [];
+
+				foreach ( $approved as $approvedId ) {
+					$row = $this->get( $approvedId );
+
+					if ( is_array( $row ) ) {
+						$extra[] = array_merge( $row, [ 'is_active' => 1 ] );
+					}
+				}
+
+				if ( [] !== $this->activationLoopPath( $candidateId, $extra ) ) {
+					continue;
+				}
+
+				$approved[] = $candidateId;
+			}
+
+			if ( [] === $approved ) {
+				return $result;
+			}
+
+			$allowedList = implode( ',', $approved );
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
 			$affected = $db->query( "UPDATE `{$table}` SET is_active = {$flag} WHERE id IN ({$allowedList})" );

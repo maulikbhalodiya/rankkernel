@@ -276,6 +276,98 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test activating a rule that completes a cycle is refused.
+	 */
+	public function test_activate_refuses_completed_cycle(): void {
+		$this->repo->insert(
+			[
+				'source'    => '/a',
+				'target'    => '/b',
+				'is_active' => 0,
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/c',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/c',
+				'target' => '/a',
+			]
+		);
+
+		$path = $this->repo->activationLoopPath( 1 );
+
+		$this->assertNotSame( [], $path, 'activating /a → /b must report the cycle path' );
+		$this->assertFalse( $this->repo->set_active( 1, true ) );
+		$this->assertSame( 0, (int) $this->db->rows[1]['is_active'], 'a refused activation leaves the row inactive' );
+	}
+
+	/**
+	 * Test activating a safe rule still succeeds.
+	 */
+	public function test_activate_allows_safe_rule(): void {
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/c',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'    => '/d',
+				'target'    => '/e',
+				'is_active' => 0,
+			]
+		);
+
+		$this->assertSame( [], $this->repo->activationLoopPath( 2 ) );
+		$this->assertTrue( $this->repo->set_active( 2, true ) );
+		$this->assertSame( 1, (int) $this->db->rows[2]['is_active'] );
+	}
+
+	/**
+	 * Test bulk activate flips safe rows and skips the cycle maker.
+	 */
+	public function test_bulk_activate_skips_cycle_maker(): void {
+		$this->repo->insert(
+			[
+				'source'    => '/a',
+				'target'    => '/b',
+				'is_active' => 0,
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/b',
+				'target' => '/c',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source' => '/c',
+				'target' => '/a',
+			]
+		);
+		$this->repo->insert(
+			[
+				'source'    => '/d',
+				'target'    => '/e',
+				'is_active' => 0,
+			]
+		);
+
+		$result = $this->repo->bulk( 'activate', [ 1, 4 ] );
+
+		$this->assertSame( 1, $result['updated'], 'only the safe row flips' );
+		$this->assertSame( 0, (int) $this->db->rows[1]['is_active'] );
+		$this->assertSame( 1, (int) $this->db->rows[4]['is_active'] );
+	}
+
+	/**
 	 * Test all patterns excludes exact and inactive.
 	 */
 	public function test_all_patterns_excludes_exact_and_inactive(): void {
