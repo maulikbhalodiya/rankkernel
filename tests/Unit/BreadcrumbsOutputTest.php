@@ -1012,6 +1012,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                   => '1',
 			'_wpnonce'                          => 'valid',
@@ -1039,6 +1040,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                 => '1',
 			'_wpnonce'                        => 'valid',
@@ -1062,6 +1064,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                 => '1',
 			'_wpnonce'                        => 'valid',
@@ -1085,6 +1088,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                 => '1',
 			'_wpnonce'                        => 'valid',
@@ -1124,6 +1128,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                      => '1',
 			'_wpnonce'                             => 'valid',
@@ -1166,6 +1171,7 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'breadcrumbs';
 		$_POST                     = [
 			'rankkernel_save'                   => '1',
 			'_wpnonce'                          => 'valid',

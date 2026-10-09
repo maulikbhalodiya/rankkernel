@@ -194,6 +194,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'advanced';
 		$_POST                     = [
 			'rankkernel_save' => '1',
 			'_wpnonce'        => 'valid',
@@ -659,6 +660,7 @@ final class SettingsPageTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'robots';
 		$_POST                     = [
 			'rankkernel_save'    => '1',
 			'_wpnonce'           => 'valid',
@@ -891,6 +893,7 @@ final class SettingsPageTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'llms';
 		$_POST                     = [
 			'rankkernel_save' => '1',
 			'_wpnonce'        => 'valid',
@@ -969,6 +972,7 @@ final class SettingsPageTest extends TestCase {
 		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'llms';
 		$_POST                     = [
 			'rankkernel_save' => '1',
 			'_wpnonce'        => 'valid',
@@ -1281,9 +1285,12 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
 
 		foreach ( [ 'not-a-number', '-7' ] as $rawId ) {
-			$page = $this->makePage();
+			// Seed a non-zero id so the sanitized zero below actually changes
+			// the stored value and a write must occur.
+			$page = $this->makePage( [ 'social_default_image_id' => 5 ] );
 
 			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_GET['section']           = 'social';
 			$_POST                     = [
 				'rankkernel_save'         => '1',
 				'social_default_image_id' => $rawId,
@@ -1524,5 +1531,195 @@ final class SettingsPageTest extends TestCase {
 		call_user_func( $hooks['personal_options_update'][0], 42 );
 
 		$this->assertFalse( $called, 'an array shaped handle must be ignored, not passed to the sanitiser' );
+	}
+
+	/**
+	 * Make a page whose robots module is enabled and whose llms option is seeded.
+	 *
+	 * @param array<string, mixed> $settings Stored main settings values.
+	 * @param array<string, mixed> $llms     Stored llms settings values.
+	 * @return SettingsPage The result.
+	 */
+	private function makeRobotsPage( array $settings = [], array $llms = [] ): SettingsPage {
+		Functions\when( 'wp_rand' )->justReturn( 7 );
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( $settings, $llms ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				if ( 'rankkernel_settings' === $key ) {
+					return $settings;
+				}
+
+				if ( 'rankkernel_llms_settings' === $key ) {
+					return $llms;
+				}
+
+				if ( 'rankkernel_robots_settings' === $key ) {
+					return [];
+				}
+
+				return $fallback;
+			}
+		);
+
+		return new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+	}
+
+	/**
+	 * Saving from an unrelated tab keeps a curated llms.txt byte-identical.
+	 */
+	public function test_save_from_unrelated_tab_preserves_llms(): void {
+		$page = $this->makeRobotsPage(
+			[],
+			[
+				'enabled' => true,
+				'summary' => 'Curated summary.',
+				'content' => 'Curated document.',
+			]
+		);
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$writes = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$writes ): bool {
+				$writes[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'webmaster';
+		$_POST                     = [
+			'_wpnonce'         => 'valid',
+			'rankkernel_save'  => '1',
+			'webmaster_google' => 'google123',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertArrayNotHasKey( 'rankkernel_llms_settings', $writes, 'a webmaster save must not touch llms.txt' );
+		$this->assertArrayNotHasKey( 'rankkernel_robots_settings', $writes, 'a webmaster save must not touch robots policy' );
+	}
+
+	/**
+	 * Saving from an unrelated tab keeps an undecided purge state undecided.
+	 */
+	public function test_save_from_unrelated_tab_preserves_purge_null(): void {
+		$page = $this->makeRobotsPage( [ 'separator' => '|' ] );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+
+		$writes = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$writes ): bool {
+				$writes[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'general';
+		$_POST                     = [
+			'_wpnonce'        => 'valid',
+			'rankkernel_save' => '1',
+			'separator'       => '|',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		if ( isset( $writes['rankkernel_settings'] ) && is_array( $writes['rankkernel_settings'] ) ) {
+			$this->assertArrayNotHasKey( 'purge_on_uninstall', $writes['rankkernel_settings'], 'a general save must not decide purge_on_uninstall' );
+		} else {
+			$this->assertArrayNotHasKey( 'rankkernel_settings', $writes, 'a general save with no changes writes nothing' );
+		}
+	}
+
+	/**
+	 * Saving from the llms tab still writes the llms document.
+	 */
+	public function test_save_from_llms_tab_writes_llms(): void {
+		$page = $this->makeRobotsPage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_rand' )->justReturn( 7 );
+
+		$writes = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$writes ): bool {
+				$writes[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'llms';
+		$_POST                     = [
+			'_wpnonce'        => 'valid',
+			'rankkernel_save' => '1',
+			'rk_llms_enabled' => '1',
+			'rk_llms_summary' => 'Fresh summary.',
+			'rk_llms_content' => 'Fresh document.',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'rankkernel_llms_settings', $writes, 'an llms save must write llms.txt' );
+		$this->assertSame( 'Fresh document.', $writes['rankkernel_llms_settings']['content'] );
+	}
+
+	/**
+	 * The save nonce is scoped to the posted section.
+	 */
+	public function test_save_uses_section_specific_nonce(): void {
+		$page = $this->makeRobotsPage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$actions = [];
+
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action ) use ( &$actions ): bool {
+				$actions[] = $action;
+
+				return true;
+			}
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'robots';
+		$_POST                     = [
+			'_wpnonce'        => 'valid',
+			'rankkernel_save' => '1',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertContains( 'rankkernel_settings_robots', $actions, 'a robots save must verify the robots nonce' );
 	}
 }
