@@ -126,6 +126,11 @@ final class SettingsPage {
 		$socialDefaultImage   = is_string( $allSettings['social_default_image'] ?? null ) ? $allSettings['social_default_image'] : '';
 		$socialDefaultImageId = is_numeric( $allSettings['social_default_image_id'] ?? null ) && (int) $allSettings['social_default_image_id'] > 0 ? (int) $allSettings['social_default_image_id'] : 0;
 		$twitterSite          = MetaPayload::sanitizeTwitterHandle( $allSettings['twitter_site'] ?? '' );
+		$socialProfiles       = array();
+
+		foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'pinterest' ) as $socialNetwork ) {
+			$socialProfiles[ $socialNetwork ] = esc_url_raw( is_string( $allSettings[ 'social_' . $socialNetwork ] ?? null ) ? $allSettings[ 'social_' . $socialNetwork ] : '' );
+		}
 
 		$webmasterLabels = [
 			'webmaster_google'    => __( 'Google', 'rankkernel' ),
@@ -707,6 +712,17 @@ final class SettingsPage {
 		if ( isset( $_POST['twitter_site'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$partial['twitter_site'] = MetaPayload::sanitizeTwitterHandle( wp_unslash( $_POST['twitter_site'] ) );
+		}
+
+		foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'pinterest' ) as $socialNetwork ) {
+			$socialKey = 'social_' . $socialNetwork;
+
+			if ( isset( $_POST[ $socialKey ] ) ) {
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				$rawSocial = wp_unslash( $_POST[ $socialKey ] );
+
+				$partial[ $socialKey ] = esc_url_raw( is_string( $rawSocial ) ? trim( $rawSocial ) : '' );
+			}
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 

@@ -12,6 +12,9 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Metadata\Context;
+use RankKernel\Modules\Schema\Generator;
+use RankKernel\Modules\Schema\SchemaModule;
 use RankKernel\Modules\Schema\SchemaTypes;
 use RankKernel\Settings\SettingsStore;
 
@@ -51,6 +54,56 @@ final class SchemaSettingsPage {
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_schema_save'] ) ) {
 			$this->handleSave();
 		}
+	}
+
+	/**
+	 * Build the live JSON-LD preview from the same generator the frontend emits.
+	 *
+	 * The admin screen has no frontend query, so the preview uses a home
+	 * context: the identity pieces (Organization, WebSite) emit from
+	 * settings alone, exactly as they do on the homepage. Whatever the
+	 * builder returns for these settings is what the preview shows, so the
+	 * two can never drift apart.
+	 *
+	 * @param Context|null $ctx Request context, home query when omitted.
+	 * @return array<string, mixed> Document with @context and @graph.
+	 */
+	public function previewGraph( ?Context $ctx = null ): array {
+		if ( ! class_exists( Generator::class ) || ! class_exists( Context::class ) ) {
+			return [
+				'@context' => 'https://schema.org',
+				'@graph'   => [],
+			];
+		}
+
+		if ( null === $ctx ) {
+			$ctx = new Context( new \WP_Query(), $this->store );
+		}
+
+		$module = new SchemaModule( $this->store );
+
+		return $module->getGenerator()->generate( $ctx );
+	}
+
+	/**
+	 * Pretty-print a preview graph for the settings screen.
+	 *
+	 * @param array<string, mixed> $document Graph document.
+	 * @return string Pretty JSON, or empty string when there is no graph.
+	 */
+	public function previewJson( array $document ): string {
+		$graph = $document['@graph'] ?? [];
+
+		if ( ! is_array( $graph ) || [] === $graph ) {
+			return '';
+		}
+
+		$json = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE )
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+			: json_encode( $document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		return is_string( $json ) ? $json : '';
 	}
 
 	/**
@@ -156,6 +209,9 @@ final class SchemaSettingsPage {
 		$websiteSearchAction = ! empty( $all['website_search_action'] );
 		$schemaBreadcrumbs   = ! empty( $all['schema_breadcrumbs'] );
 		$schemaAuthor        = ! empty( $all['schema_author'] );
+
+		$previewGraph = $this->previewGraph();
+		$previewJson  = $this->previewJson( $previewGraph );
 
 		require __DIR__ . '/Views/schema-settings.php';
 	}

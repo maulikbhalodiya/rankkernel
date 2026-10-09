@@ -986,6 +986,56 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the six social profile URLs round-trip through the settings form.
+	 */
+	public function test_social_profile_urls_round_trip(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$captured = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( 'rankkernel_settings' === $key ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'social';
+		$_POST                     = [
+			'rankkernel_save'  => '1',
+			'_wpnonce'         => 'valid',
+			'social_facebook'  => 'https://facebook.com/example',
+			'social_twitter'   => 'https://twitter.com/example',
+			'social_instagram' => 'https://instagram.com/example',
+			'social_linkedin'  => 'https://linkedin.com/company/example',
+			'social_youtube'   => 'https://youtube.com/@example',
+			'social_pinterest' => 'https://pinterest.com/example',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+
+		foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'pinterest' ) as $network ) {
+			$this->assertArrayHasKey( 'social_' . $network, $captured, 'every profile URL must persist' );
+			$this->assertStringContainsString( 'example', (string) $captured[ 'social_' . $network ] );
+		}
+	}
+
+
+	/**
 	 * Test the physical llms.txt write action.
 	 */
 	public function test_llms_write_action_writes_file(): void {

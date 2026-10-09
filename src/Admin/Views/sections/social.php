@@ -72,5 +72,29 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 			<p class="rk-ui-hint"><?php echo esc_html__( 'Enter the handle without the at sign. RankKernel adds it when rendering metadata.', 'rankkernel' ); ?></p>
 		</div>
+		<div class="rk-ui-form-row" role="group" aria-labelledby="rk-social-profiles-label">
+			<span class="rk-ui-form-label" id="rk-social-profiles-label"><?php echo esc_html__( 'Social profiles', 'rankkernel' ); ?></span>
+			<?php
+			$rkSocialNetworks = array(
+				'facebook'  => __( 'Facebook', 'rankkernel' ),
+				'twitter'   => __( 'Twitter', 'rankkernel' ),
+				'instagram' => __( 'Instagram', 'rankkernel' ),
+				'linkedin'  => __( 'LinkedIn', 'rankkernel' ),
+				'youtube'   => __( 'YouTube', 'rankkernel' ),
+				'pinterest' => __( 'Pinterest', 'rankkernel' ),
+			);
+
+			foreach ( $rkSocialNetworks as $rkNetworkId => $rkNetworkLabel ) :
+				$rkProfileValue = isset( $socialProfiles[ $rkNetworkId ] ) && is_string( $socialProfiles[ $rkNetworkId ] ) ? $socialProfiles[ $rkNetworkId ] : '';
+				?>
+				<div class="rk-settings-row-head rk-settings-row-head--measure">
+					<label class="rk-ui-form-label" for="<?php echo esc_attr( 'rk-social-' . $rkNetworkId ); ?>"><?php echo esc_html( $rkNetworkLabel ); ?></label>
+				</div>
+				<div class="rk-input-prefix rk-settings-input--wide">
+					<input type="url" id="<?php echo esc_attr( 'rk-social-' . $rkNetworkId ); ?>" name="<?php echo esc_attr( 'social_' . $rkNetworkId ); ?>" value="<?php echo esc_attr( $rkProfileValue ); ?>" class="rk-settings-input rk-settings-input--wide" />
+				</div>
+			<?php endforeach; ?>
+			<p class="rk-ui-hint"><?php echo esc_html__( 'Full profile URLs. Used for the sameAs links in the organization schema.', 'rankkernel' ); ?></p>
+		</div>
 	</div>
 </section>
