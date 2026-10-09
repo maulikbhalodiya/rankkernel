@@ -212,6 +212,50 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test toggling the sitemaps module invalidates the sitemap cache.
+	 */
+	public function test_toggle_sitemaps_invalidates_sitemap_cache(): void {
+		$written = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key ) use ( &$written ): bool {
+				$written[] = $key;
+
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'sitemaps';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertContains( 'rankkernel_sitemap_validator_global', $written );
+	}
+
+	/**
+	 * Test toggling an unrelated module leaves the sitemap cache alone.
+	 */
+	public function test_toggle_other_module_leaves_sitemap_cache_alone(): void {
+		$written = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key ) use ( &$written ): bool {
+				$written[] = $key;
+
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'robots';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertNotContains( 'rankkernel_sitemap_validator_global', $written );
+	}
+
+	/**
 	 * Test an unknown module id is ignored.
 	 */
 	public function test_toggle_ignores_unknown_module(): void {

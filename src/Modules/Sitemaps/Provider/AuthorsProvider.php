@@ -103,9 +103,58 @@ class AuthorsProvider {
 		$params = array_merge( [ 'publish' ], $types );
 		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
 		$args   = array_merge( [ $sql ], $params );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
 		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
 		return (int) $count;
+	}
+
+	/**
+	 * Newest modification date in the authors set, for the sitemap index.
+	 *
+	 * Same population as the post-backed count: published public-type posts
+	 * minus excluded authors. An empty result reports '', and the index falls
+	 * back to the current time for that entry.
+	 *
+	 * @param string $set Set name, expected authors.
+	 * @return string MySQL datetime, empty when none.
+	 */
+	public function getMaxLastmod( string $set ): string {
+		if ( 'authors' !== $set ) {
+			return '';
+		}
+
+		if ( ! (bool) ( $this->settings?->get( 'authors_sitemap', true ) ?? true ) ) {
+			return '';
+		}
+
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return '';
+		}
+
+		// Authors of public content only: internal types (flamingo, forms,
+		// oembed cache) publish rows that must not create author entries.
+		$publicTypes = get_post_types( [ 'public' => true ], 'names' );
+		if ( ! is_array( $publicTypes ) || [] === $publicTypes ) {
+			return '';
+		}
+
+		$types = array_values( array_filter( $publicTypes, static fn ( mixed $v ): bool => is_string( $v ) && '' !== $v ) );
+		if ( [] === $types ) {
+			return '';
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+
+		$sql    = "SELECT MAX(post_modified_gmt) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders)";
+		$params = array_merge( [ 'publish' ], $types );
+		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
+		$args   = array_merge( [ $sql ], $params );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
+		$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+
+		return is_string( $max ) ? $max : '';
 	}
 
 	/**

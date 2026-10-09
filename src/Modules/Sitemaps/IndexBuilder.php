@@ -310,6 +310,33 @@ class IndexBuilder {
 	}
 
 	/**
+	 * Index entry date for one set: its newest content date, not now.
+	 *
+	 * A set whose newest date the providers cannot see keeps the previous
+	 * behavior (current time) so the entry is never dateless.
+	 *
+	 * @param string $set Set name.
+	 * @return string W3C date.
+	 */
+	private function setLastmod( string $set ): string {
+		$max = '';
+
+		if ( str_starts_with( $set, 'tax_' ) ) {
+			$max = $this->taxonomiesProvider()->getMaxLastmod( substr( $set, 4 ) );
+		} elseif ( 'authors' === $set ) {
+			$max = $this->authorsProvider()->getMaxLastmod( $set );
+		} else {
+			$max = $this->postsProvider()->getMaxLastmod( $set );
+		}
+
+		if ( '' !== $max ) {
+			return (string) mysql2date( DATE_W3C, $max, false );
+		}
+
+		return (string) mysql2date( DATE_W3C, current_time( 'mysql', true ), false );
+	}
+
+	/**
 	 * Build sitemap index XML.
 	 *
 	 * @return string XML.
@@ -327,7 +354,7 @@ class IndexBuilder {
 		foreach ( $sets as $set => $pages ) {
 			for ( $i = 1; $i <= $pages; $i++ ) {
 				$loc     = $this->sitemapLoc( $set, $i );
-				$date    = (string) mysql2date( DATE_W3C, current_time( 'mysql', true ), false );
+				$date    = $this->setLastmod( $set );
 				$locEsc  = $this->xmlEscape( $loc );
 				$dateEsc = $this->xmlEscape( $date );
 

@@ -128,6 +128,50 @@ class PostsProvider {
 	}
 
 	/**
+	 * Newest modification date in a set, for the sitemap index.
+	 *
+	 * Same population as getCount(): published, unlocked, indexed, included.
+	 * A set whose max the query cannot see reports '', and the index falls
+	 * back to the current time for that entry.
+	 *
+	 * @param string $postType Post type slug.
+	 * @return string MySQL datetime, empty when none.
+	 */
+	public function getMaxLastmod( string $postType ): string {
+		if ( 'attachment' === $postType ) {
+			return '';
+		}
+
+		if ( ! ( $this->settings?->isTypeEnabled( 'pt', $postType ) ?? true ) ) {
+			return '';
+		}
+
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return '';
+		}
+
+		$like = '%' . $wpdb->esc_like( self::NOINDEX_LIKE_INNER ) . '%';
+
+		$params  = [ $postType, 'publish', $like ];
+		$exclude = $this->excludeClause( $this->excludedPostIds(), 'p.ID', $params );
+
+		$sql = "SELECT MAX(p.post_modified_gmt) FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s"
+			. " AND p.post_password = ''"
+			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
+			. " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
+			. $exclude;
+
+		$args = array_merge( [ $sql ], $params );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
+		$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+
+		return is_string( $max ) ? $max : '';
+	}
+
+	/**
 	 * Get entries for a post type page.
 	 *
 	 * @param string $postType Post type slug.

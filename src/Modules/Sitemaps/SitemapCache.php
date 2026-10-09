@@ -40,6 +40,15 @@ class SitemapCache {
 	private const TRANSIENT_PREFIX = 'rankkernel_sitemap_';
 
 	/**
+	 * Payload time to live, in seconds.
+	 *
+	 * A zero TTL made payloads immortal, so a missed invalidation haunted the
+	 * XML forever. One day bounds the worst case while keeping the hot path
+	 * served from cache; invalidation still clears eagerly on change.
+	 */
+	public const PAYLOAD_TTL = DAY_IN_SECONDS;
+
+	/**
 	 * In-memory static cache for sitemap validator option values.
 	 *
 	 * Performance optimization: memoizes validator options within the request
@@ -261,6 +270,8 @@ class SitemapCache {
 	 */
 	public function registerHooks(): void {
 		add_action( 'save_post', [ $this, 'onSavePost' ], 10, 3 );
+		add_action( 'deleted_post', [ $this, 'onDeletedPost' ], 10, 1 );
+		add_action( 'trashed_post', [ $this, 'onDeletedPost' ], 10, 1 );
 		add_action( 'edited_terms', [ $this, 'onEditedTerms' ], 10, 2 );
 		add_action( 'delete_term', [ $this, 'onDeletedTerm' ], 10, 3 );
 		add_action( 'clean_term_cache', [ $this, 'onCleanTermCache' ], 10, 2 );
@@ -284,6 +295,18 @@ class SitemapCache {
 		if ( is_object( $post ) && isset( $post->post_type ) && is_string( $post->post_type ) && '' !== $post->post_type ) {
 			$this->queueInvalidation( $post->post_type );
 		}
+	}
+
+	/**
+	 * Handle post deletion or trashing: the URL is gone either way.
+	 *
+	 * WordPress does not fire save_post here, so without this a deleted post
+	 * haunts the XML until something else bumps the validator.
+	 *
+	 * @param int $postId Deleted or trashed post id.
+	 */
+	public function onDeletedPost( int $postId ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- unused parameter required by the WordPress hook signature.
+		$this->queueInvalidation( 'global' );
 	}
 
 	/**
@@ -407,13 +430,13 @@ class SitemapCache {
 	 */
 	private function setToStore( string $key, mixed $payload ): void {
 		if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) {
-			wp_cache_set( $key, $payload, self::GROUP, 0 );
+			wp_cache_set( $key, $payload, self::GROUP, self::PAYLOAD_TTL );
 
 			return;
 		}
 
 		$transientKey = self::TRANSIENT_PREFIX . $key;
-		set_transient( $transientKey, $payload, 0 );
+		set_transient( $transientKey, $payload, self::PAYLOAD_TTL );
 	}
 
 	/**
