@@ -208,7 +208,7 @@
 	display: inline-block;
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	padding: 2px var(--rk-space-3);
+	padding: var(--rk-space-0) var(--rk-space-3);
 }
 
 .rankkernel-meta-editor .rk-analysis-score-slot .rk-checklist-badge.rk-badge-ok {
@@ -562,7 +562,7 @@ a small marker before the status line, never a purple tab. */
 	flex-wrap: wrap;
 	gap: 0;
 	max-width: 100%;
-	padding: 2px;
+	padding: var(--rk-space-0);
 }
 
 .rankkernel-meta-editor .rk-classic-toggle .button {
@@ -651,7 +651,7 @@ a small marker before the status line, never a purple tab. */
 .rankkernel-meta-editor .rk-classic-serp-site {
 	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 	overflow-wrap: anywhere;
 }
 
@@ -668,7 +668,7 @@ a small marker before the status line, never a purple tab. */
 	display: -webkit-box;
 	font-size: var(--rk-font-size-xl);
 	line-height: var(--rk-line-height-tight);
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 	overflow: hidden;
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;

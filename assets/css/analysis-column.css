@@ -11,7 +11,7 @@
 	display: inline-block;
 	font-weight: 600;
 	min-width: 28px;
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	text-align: center;
 }
 

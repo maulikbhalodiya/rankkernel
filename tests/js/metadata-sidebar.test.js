@@ -426,6 +426,28 @@ test( 'TOKEN_GROUPS token-to-group mapping is unchanged and the heading is trans
 	);
 } );
 
+test( 'cycleFocus wraps Tab from last to first and Shift+Tab from first to last', () => {
+	const code = source();
+	const start = code.indexOf( 'function cycleFocus(' );
+	assert.notEqual( start, -1, 'cycleFocus declaration must exist' );
+	const end = braceEnd( code, code.indexOf( '{', start ) );
+	const sandbox = { window: {} };
+	sandbox.window = sandbox;
+	vm.runInNewContext( code.slice( start, end + 1 ) + '\nresult = cycleFocus;', sandbox );
+
+	const cycle = sandbox.result;
+	const first = { id: 'first' };
+	const middle = { id: 'middle' };
+	const last = { id: 'last' };
+	const list = [ first, middle, last ];
+
+	assert.equal( cycle( list, last, false ), first, 'Tab on last wraps to first' );
+	assert.equal( cycle( list, first, true ), last, 'Shift+Tab on first wraps to last' );
+	assert.equal( cycle( list, middle, false ), null, 'Tab mid-list does not cycle' );
+	assert.equal( cycle( list, middle, true ), null, 'Shift+Tab mid-list does not cycle' );
+	assert.equal( cycle( [], null, false ), null, 'empty list never cycles' );
+} );
+
 test( 'statusWord fallback translates Long/Too long/OK and defers to the shared helper', () => {
 	const code = source();
 	const declarations = statement( code, 'shared' ) + '\n' + functionSource( code, 'statusWord' );

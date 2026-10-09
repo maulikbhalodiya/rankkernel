@@ -116,7 +116,7 @@ $rkGeneralRowNotes = [
 		</div>
 		<div class="rk-ui-page-header-actions">
 			<a class="rk-ui-btn rk-ui-btn-secondary" href="<?php echo esc_url( $indexUrl ); ?>"><span><?php echo esc_html__( 'View Sitemap', 'rankkernel' ); ?></span><span class="rk-icon" aria-hidden="true">arrow_right</span></a>
-			<button type="submit" form="rk-sitemap-settings-form" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Sitemap Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Settings', 'rankkernel' ); ?></button>
+			<button type="submit" form="rk-sitemap-settings-form" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Sitemap Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Settings', 'rankkernel' ); ?></button>
 		</div>
 	</header>
 
@@ -238,7 +238,7 @@ $rkGeneralRowNotes = [
 				<div class="rk-sitemap-panel-footer">
 					<p class="rk-sitemap-footer-status"><span class="rk-sitemap-footer-dot" aria-hidden="true"></span><?php echo esc_html__( 'Sitemap cache clears automatically on save.', 'rankkernel' ); ?></p>
 					<div class="rk-sitemap-footer-actions">
-						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Sitemap Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Sitemap Settings', 'rankkernel' ); ?></button>
+						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Sitemap Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Sitemap Settings', 'rankkernel' ); ?></button>
 					</div>
 				</div>
 			</div>
@@ -305,7 +305,7 @@ $rkGeneralRowNotes = [
 				<div class="rk-sitemap-panel-footer">
 					<p class="rk-sitemap-footer-note"><span class="rk-icon" aria-hidden="true">info</span><?php echo esc_html__( 'Attachments are never included in XML sitemaps to prevent zero-value asset indexing.', 'rankkernel' ); ?></p>
 					<div class="rk-sitemap-footer-actions">
-						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Post Types Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Post Types Settings', 'rankkernel' ); ?></button>
+						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Post Types Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Post Types Settings', 'rankkernel' ); ?></button>
 					</div>
 				</div>
 			</div>
@@ -370,7 +370,7 @@ $rkGeneralRowNotes = [
 				<div class="rk-sitemap-panel-footer">
 					<p class="rk-sitemap-footer-note"><span class="rk-icon" aria-hidden="true">info</span><?php echo esc_html__( 'Empty terms are listed only when the general include empty terms setting is on.', 'rankkernel' ); ?></p>
 					<div class="rk-sitemap-footer-actions">
-						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Taxonomy Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Taxonomy Settings', 'rankkernel' ); ?></button>
+						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Taxonomy Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Taxonomy Settings', 'rankkernel' ); ?></button>
 					</div>
 				</div>
 			</div>
@@ -450,7 +450,7 @@ $rkGeneralRowNotes = [
 				</div>
 				<div class="rk-sitemap-panel-footer rk-sitemap-panel-footer-end">
 					<div class="rk-sitemap-footer-actions">
-						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Author Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Author Settings', 'rankkernel' ); ?></button>
+						<button type="submit" name="rankkernel_sitemap_save" value="<?php echo esc_attr__( 'Save Author Settings', 'rankkernel' ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Author Settings', 'rankkernel' ); ?></button>
 					</div>
 				</div>
 			</div>

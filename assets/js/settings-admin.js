@@ -250,8 +250,9 @@
 			body.innerHTML = html;
 		}
 
-		function loadSection( url, section ) {
+		function loadSection( url, section, push ) {
 			var target;
+			var pushState = ( false === push ) ? false : true;
 
 			try {
 				target = new URL( url, window.location.href );
@@ -296,7 +297,11 @@
 				swap( html );
 				busy( false );
 				markActive( section );
-				window.history.pushState( {}, '', url );
+
+				if ( pushState && window.history ) {
+					window.history.pushState( {}, '', url );
+				}
+
 				rankkernelAnnounce( __( 'Settings section loaded.', 'rankkernel' ) );
 			} ).catch( function () {
 				if ( token !== loadGeneration ) {
@@ -414,7 +419,13 @@
 		} );
 
 		window.addEventListener( 'popstate', function () {
-			window.location.reload();
+			var url = String( window.location.href || '' );
+			var section = sectionOf( url ) || 'general';
+
+			// A history walk must not push a new entry: restore the section
+			// in place through the same AJAX path, falling back to normal
+			// navigation inside loadSection when the fetch fails.
+			loadSection( url, section, false );
 		} );
 	} );
 } )();

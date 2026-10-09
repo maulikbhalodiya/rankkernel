@@ -45,7 +45,7 @@
 	display: inline-flex;
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	justify-content: center;
 	line-height: 1;
 	margin: 0 0 -1px;
@@ -414,7 +414,7 @@ visibly disabled until the field becomes custom. */
 	margin: 0;
 	max-width: 100%;
 	min-width: 0;
-	padding: 2px;
+	padding: var(--rk-space-0);
 }
 
 .rk-meta .rk-meta-serp-tools .button {
@@ -424,7 +424,7 @@ visibly disabled until the field becomes custom. */
 	box-shadow: none;
 	color: var(--rk-color-text-muted);
 	flex: 0 0 auto;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 500;
 	height: auto;
 	line-height: 1;
@@ -598,7 +598,7 @@ visibly disabled until the field becomes custom. */
 .rk-meta .rk-social-twitter .rk-meta-social-title {
 	font-size: 15px;
 	line-height: var(--rk-line-height-tight);
-	margin-bottom: 2px;
+	margin-bottom: var(--rk-space-0);
 }
 
 .rk-meta .rk-meta-social-desc {
@@ -672,7 +672,7 @@ at the design rhythm (24px general, 20px advanced and schema, 16px social). */
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--rk-space-2) var(--rk-space-5);
-	padding-top: 2px;
+	padding-top: var(--rk-space-0);
 }
 
 .rk-meta .rk-radio {
@@ -728,7 +728,7 @@ at the design rhythm (24px general, 20px advanced and schema, 16px social). */
 	display: flex;
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	line-height: var(--rk-line-height-tight);
 	margin: var(--rk-space-2) 0 0;
 	overflow-wrap: anywhere;
@@ -997,7 +997,7 @@ accessible name and tooltip. */
 	display: inline-flex;
 	font-size: var(--rk-font-size-sm);
 	font-weight: 500;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	height: auto;
 	justify-content: center;
 	line-height: 1.2;
@@ -1361,7 +1361,7 @@ the Edit Snippet action. */
 }
 
 .rk-meta .rk-social-profile .rk-serp-mark {
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	height: 24px;
 	width: 24px;
 }
@@ -1375,7 +1375,7 @@ the Edit Snippet action. */
 	font-size: var(--rk-font-size-md);
 	font-weight: 600;
 	line-height: var(--rk-line-height-tight);
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -1461,7 +1461,7 @@ the Edit Snippet action. */
 	border-radius: var(--rk-radius-md);
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	min-height: 38px;
 	padding: 6px 8px;
 	transition: border-color 0.15s ease-in-out;
@@ -1501,7 +1501,7 @@ the Edit Snippet action. */
 	font-size: 14px;
 	font-weight: bold;
 	line-height: 1;
-	padding: 0 2px;
+	padding: 0 var(--rk-space-0);
 }
 
 .rk-meta .rk-keyword-tag-remove:hover {
@@ -1516,7 +1516,7 @@ the Edit Snippet action. */
 	font-size: var(--rk-font-size-xs);
 	min-width: 130px;
 	outline: none !important;
-	padding: 2px 4px !important;
+	padding: var(--rk-space-0) var(--rk-space-1) !important;
 }
 
 /* The borderless chip suppresses its own outline, so the focus ring has to be
@@ -1539,10 +1539,10 @@ the Edit Snippet action. */
 .rk-meta .rk-checklist-badge {
 	border: 1px solid transparent;
 	border-radius: var(--rk-radius-sm);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	line-height: 1.5;
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	white-space: nowrap;
 }
 
@@ -1579,7 +1579,7 @@ the Edit Snippet action. */
 	tokens. The value chip sets its own band colour below. */
 	color: inherit;
 	display: inline-flex;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	gap: 3px;
 	line-height: 1;
 	vertical-align: middle;
@@ -1626,7 +1626,7 @@ the Edit Snippet action. */
 .rk-meta .rk-checklist-filter {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	margin-top: 0;
 }
 
@@ -1718,9 +1718,9 @@ the Edit Snippet action. */
 	display: inline-flex;
 	font-size: 13px;
 	font-weight: 600;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	justify-content: center;
-	margin-bottom: -2px;
+	margin-bottom: calc(-1 * var(--rk-space-0));
 	min-height: 40px;
 	min-width: 48px;
 	padding: 8px 16px;
@@ -1790,7 +1790,7 @@ the Edit Snippet action. */
 	display: flex;
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	height: auto;
 	justify-content: center;
 	margin: 0;
@@ -1892,7 +1892,7 @@ border, a single-step primary ring while focused. */
 /* Checkbox row: 16px square, primary fill with a white check when set. */
 
 .rk-meta .rk-check-row {
-	padding: 2px 0;
+	padding: var(--rk-space-0) 0;
 }
 
 .rk-meta .rk-check {
@@ -2023,7 +2023,7 @@ border, a single-step primary ring while focused. */
 
 .rk-meta .rk-select-field .rk-select-note {
 	color: var(--rk-color-text-hint);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-style: italic;
 }
 
@@ -2079,7 +2079,7 @@ border, a single-step primary ring while focused. */
 .rk-meta .rk-schema-json .components-textarea-control__textarea {
 	background: var(--rk-color-surface-subtle);
 	font-family: var(--rk-font-mono);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	line-height: var(--rk-line-height-normal);
 	min-height: 104px;
 	resize: none;

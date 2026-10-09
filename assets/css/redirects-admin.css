@@ -110,7 +110,7 @@
 
 .rk-redirects .rk-card-collapse {
 	font-size: 18px;
-	padding: 2px 4px;
+	padding: var(--rk-space-0) var(--rk-space-1);
 }
 
 /* ==========================================================================
@@ -182,7 +182,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--rk-color-text-secondary);
-	margin-block-end: 2px;
+	margin-block-end: var(--rk-space-0);
 }
 
 .rk-redirects .rk-required {
@@ -268,7 +268,7 @@
 .rk-redirects .rk-form-hint {
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-text-muted);
-	margin: 2px 0 0;
+	margin: var(--rk-space-0) 0 0;
 	line-height: 1.5;
 }
 
@@ -295,7 +295,7 @@
 
 .rk-redirects .rk-form-check input[type="checkbox"] {
 	flex-shrink: 0;
-	margin-block-start: 2px;
+	margin-block-start: var(--rk-space-0);
 	width: 16px;
 	height: 16px;
 	accent-color: var(--rk-color-primary);
@@ -532,7 +532,7 @@
 .rk-redirects .rk-table thead td {
 	background: var(--rk-color-surface-subtle);
 	border-block-end: 1px solid var(--rk-color-border);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
@@ -638,7 +638,7 @@
 .rk-redirects .rk-table .row-actions {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	padding-block-start: 0;
 	visibility: visible;
 	font-size: var(--rk-font-size-xs);
@@ -690,8 +690,8 @@
 .rk-redirects .rk-pill {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px var(--rk-space-2);
-	font-size: 11px;
+	padding: var(--rk-space-0) var(--rk-space-2);
+	font-size: var(--rk-font-size-2xs);
 	line-height: 1.5;
 	white-space: nowrap;
 }
@@ -896,7 +896,7 @@
 }
 
 .rk-redirects .rk-file-zone-hint {
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	color: var(--rk-color-text-hint);
 	margin: 0;
 }
@@ -947,7 +947,7 @@
 
 .rk-redirects .rk-import-errors li,
 .rk-redirects .rk-import-warnings li {
-	padding-block: 2px;
+	padding-block: var(--rk-space-0);
 }
 
 .rk-redirects .rk-import-warnings {
@@ -1003,7 +1003,7 @@
 	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
 	color: var(--rk-color-text);
-	margin-block-end: 2px;
+	margin-block-end: var(--rk-space-0);
 }
 
 .rk-redirects .rk-settings-row-control {
@@ -1066,7 +1066,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--rk-space-2);
-	margin-block-end: 2px;
+	margin-block-end: var(--rk-space-0);
 }
 
 .rk-redirects .rk-form-label-row .rk-form-label {
@@ -1075,7 +1075,7 @@
 
 .rk-redirects .rk-char-count {
 	font-family: var(--rk-font-mono);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	color: var(--rk-color-text-hint);
 	white-space: nowrap;
 }
@@ -1104,7 +1104,7 @@
 .rk-redirects .rk-advanced-meta {
 	margin-inline-start: auto;
 	font-weight: 400;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	text-transform: none;
 	letter-spacing: normal;
 	color: var(--rk-color-text-hint);
@@ -1114,11 +1114,11 @@
 .rk-redirects .rk-selected-chip {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	border-radius: var(--rk-radius-sm);
 	background: var(--rk-color-primary);
 	color: var(--rk-color-surface);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	line-height: var(--rk-line-height-normal);
 	white-space: nowrap;
@@ -1154,7 +1154,7 @@
 .rk-redirects .rk-perpage-form {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 }
 
 .rk-redirects .rk-perpage-label {

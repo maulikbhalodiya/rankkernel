@@ -150,7 +150,7 @@
 /* The chip beside the count stays neutral: optional modules being off is an
    information state, not a problem. */
 .rk-dashboard .rk-dashboard-attention-tag {
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-sm);
 	background: var(--rk-color-surface-muted);
@@ -331,7 +331,7 @@
 }
 
 .rk-dashboard .rk-dashboard-count-pill {
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	border-radius: 999px;
 	background: var(--rk-color-surface-muted);
 	color: var(--rk-color-text-muted);
@@ -405,7 +405,7 @@
 .rk-dashboard .rk-dashboard-group-head {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	margin-block-end: var(--rk-space-3);
 }
 
@@ -423,7 +423,7 @@
 
 .rk-dashboard .rk-dashboard-group-title {
 	margin: 0;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
@@ -521,7 +521,7 @@
 }
 
 .rk-dashboard .rk-dashboard-module-desc {
-	margin-block-start: 2px;
+	margin-block-start: var(--rk-space-0);
 	font-size: var(--rk-font-size-sm);
 	color: var(--rk-color-text-muted);
 	line-height: var(--rk-line-height-normal);
@@ -572,7 +572,7 @@
 	align-items: center;
 	width: 36px;
 	height: 20px;
-	padding: 2px;
+	padding: var(--rk-space-0);
 	margin: 0;
 	border: none;
 	border-radius: 999px;
@@ -642,7 +642,7 @@
 
 .rk-dashboard .rk-dashboard-card-tag {
 	color: var(--rk-color-text-muted);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 500;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
@@ -655,7 +655,7 @@
 .rk-dashboard .rk-dashboard-tool-list {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 }
 
 .rk-dashboard .rk-dashboard-tool {
@@ -710,7 +710,7 @@
 
 .rk-dashboard .rk-dashboard-tool-tag {
 	color: var(--rk-color-text-muted);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	white-space: nowrap;
 }
 
@@ -718,7 +718,7 @@
 .rk-dashboard .rk-dashboard-live {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	color: var(--rk-color-secondary-1);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;

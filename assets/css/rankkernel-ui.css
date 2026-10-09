@@ -353,7 +353,7 @@
 }
 
 .rk-ui .rk-ui-notice-body > * + * {
-	margin-block-start: 2px;
+	margin-block-start: var(--rk-space-0);
 }
 
 .rk-ui .rk-ui-notice-dismiss {
@@ -422,9 +422,9 @@
 .rk-ui .rk-ui-pill {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 	border-radius: 999px;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	line-height: var(--rk-line-height-normal);
 	white-space: nowrap;
@@ -496,7 +496,7 @@
 	background: var(--rk-color-surface-subtle);
 	border-block-end: 1px solid var(--rk-color-border);
 	padding: var(--rk-space-3) var(--rk-space-4);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
@@ -538,8 +538,8 @@
 .rk-ui .rk-ui-tab {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: var(--rk-space-3) 2px;
+	gap: var(--rk-space-1h);
+	padding: var(--rk-space-3) var(--rk-space-0);
 	border-block-end: 2px solid transparent;
 	margin-block-end: -1px;
 	color: var(--rk-color-text-muted);
@@ -568,7 +568,7 @@
 	height: 18px;
 	padding: 0 6px;
 	border-radius: 999px;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 700;
 	background: var(--rk-color-surface-muted);
 	color: var(--rk-color-text-muted);
@@ -783,7 +783,7 @@
 .rk-ui .rk-ui-form-row {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 }
 
 .rk-ui .rk-ui-form-label {
@@ -814,7 +814,7 @@
 	display: block;
 	width: 40px;
 	height: 24px;
-	padding: 2px;
+	padding: var(--rk-space-0);
 	border-radius: 999px;
 	background: var(--rk-color-border-strong);
 	transition: background 0.15s;

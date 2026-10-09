@@ -130,8 +130,12 @@ may fetch a font from an external host. */
 	--rk-shadow-sm: 0 1px 3px rgba(15, 23, 42, .05);
 	--rk-shadow-md: 0 4px 12px rgba(15, 23, 42, .08);
 
-	/* Spacing scale, 4px base. Components use these steps only. */
+	/* Spacing scale, 4px base. Components use these steps only. The 0 and
+	1h steps cover hairline padding and tight gaps the design already used;
+	they are tokens now instead of literals. */
+	--rk-space-0: 2px;
 	--rk-space-1: 4px;
+	--rk-space-1h: 6px;
 	--rk-space-2: 8px;
 	--rk-space-3: 12px;
 	--rk-space-4: 16px;
@@ -146,7 +150,10 @@ may fetch a font from an external host. */
 	--rk-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	--rk-font-icon: 'Material Symbols Outlined';
 
-	/* Type scale. */
+	/* Type scale. 2xs is the floor for secondary captions, tags and
+	hints — never body copy — so every sub-12px size in the design resolves
+	to exactly one step. */
+	--rk-font-size-2xs: 11px;
 	--rk-font-size-xs: 12px;
 	--rk-font-size-sm: 13px;
 	--rk-font-size-md: 14px;

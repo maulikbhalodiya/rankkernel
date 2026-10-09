@@ -225,6 +225,38 @@
 		return '' === String( value == null ? '' : value ).trim();
 	}
 
+	/**
+	 * Cycle keyboard focus inside a container on Tab.
+	 *
+	 * Pure over plain lists so the vm harness can prove the trap without
+	 * rendering hooks: returns the element that must receive focus, or null
+	 * when no cycle applies. The live trap calls focus() on the result.
+	 */
+	function cycleFocus( focusables, active, shiftKey ) {
+		var list = [];
+
+		for ( var i = 0; i < focusables.length; i++ ) {
+			list.push( focusables[ i ] );
+		}
+
+		if ( ! list.length ) {
+			return null;
+		}
+
+		var first = list[ 0 ];
+		var last = list[ list.length - 1 ];
+
+		if ( shiftKey && active === first ) {
+			return last;
+		}
+
+		if ( ! shiftKey && active === last ) {
+			return first;
+		}
+
+		return null;
+	}
+
 	// One badge vocabulary for the editor and the list table. The band is
 	// always named in words next to the number, so state is never colour alone.
 	function bandClass( band ) {
@@ -1444,6 +1476,7 @@
 	// the sidebar preview immediately.
 	function PreviewModal( props ) {
 		var Modal = components.Modal;
+		var fallbackRef = useRef( null );
 		var modalTabState = useState( props.initialTab || 'general' );
 		var activeModalTab = modalTabState[ 0 ];
 		var setActiveModalTab = modalTabState[ 1 ];
@@ -1454,6 +1487,35 @@
 			{ id: 'general', label: __( 'General', 'rankkernel' ), icon: 'search' },
 			{ id: 'social', label: __( 'Social', 'rankkernel' ), icon: 'send' }
 		];
+
+		function fallbackKey( event ) {
+			if ( 'Escape' === event.key ) {
+				event.stopPropagation();
+				props.onClose();
+				return;
+			}
+
+			if ( 'Tab' !== event.key ) {
+				return;
+			}
+
+			var root = fallbackRef && fallbackRef.current ? fallbackRef.current : null;
+
+			if ( ! root || ! root.querySelectorAll ) {
+				return;
+			}
+
+			var focusables = root.querySelectorAll(
+				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+			);
+			var active = root.ownerDocument ? root.ownerDocument.activeElement : null;
+			var target = cycleFocus( focusables, active, !! event.shiftKey );
+
+			if ( target && target.focus ) {
+				event.preventDefault();
+				target.focus();
+			}
+		}
 
 		function onModalTabKey( event, index ) {
 			if ( 'ArrowRight' === event.key || 'ArrowDown' === event.key ) {
@@ -1470,6 +1532,38 @@
 				setActiveModalTab( modalTabs[ modalTabs.length - 1 ].id );
 			}
 		}
+
+		useEffect( function () {
+			var opener = null;
+
+			try {
+				opener = document.activeElement;
+			} catch ( error ) {
+				opener = null;
+			}
+
+			var root = fallbackRef && fallbackRef.current ? fallbackRef.current : null;
+
+			if ( root ) {
+				var close = root.querySelector ? root.querySelector( '.rk-modal-close' ) : null;
+
+				if ( close && close.focus ) {
+					close.focus();
+				} else if ( root.focus ) {
+					if ( ! root.hasAttribute( 'tabindex' ) ) {
+						root.setAttribute( 'tabindex', '-1' );
+					}
+
+					root.focus();
+				}
+			}
+
+			return function () {
+				if ( opener && opener.focus ) {
+					opener.focus();
+				}
+			};
+		}, [] );
 
 		var modalTabNav = el(
 			'div',
@@ -1582,7 +1676,9 @@
 					role: 'dialog',
 					'aria-modal': 'true',
 					'aria-label': titleText,
-					onClick: function ( event ) { event.stopPropagation(); }
+					ref: fallbackRef,
+					onClick: function ( event ) { event.stopPropagation(); },
+					onKeyDown: fallbackKey
 				},
 				el(
 					'div',
@@ -3002,6 +3098,7 @@
 
 	// Keep a reference for tests and for future reuse.
 	window.rankkernelSeoSidebar = window.rankkernelSeoSidebar || {};
+	window.rankkernelSeoSidebar.cycleFocus = cycleFocus;
 	window.rankkernelSeoSidebar.withMeta = withMeta;
 	window.rankkernelSeoSidebar.sidebarName = SIDEBAR_NAME;
 	window.rankkernelSeoSidebar.usesSharedPreview = function () {

@@ -265,6 +265,8 @@ function settingsFixture() {
 	};
 
 	const fetchCalls = [];
+	const pushes = [];
+	const windowListeners = {};
 	const location = { href: 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=general' };
 	let responseHtml = partialFor;
 	const sandbox = {
@@ -275,10 +277,12 @@ function settingsFixture() {
 			set() {}
 		},
 		URL,
-		history: { pushState() {} },
+		history: { pushState( state, title, url ) { pushes.push( url ); } },
 		location,
 		confirm: () => true,
-		addEventListener() {},
+		addEventListener( type, handler ) {
+			windowListeners[ type ] = handler;
+		},
 		wp,
 		fetch( url ) {
 			fetchCalls.push( url );
@@ -291,6 +295,7 @@ function settingsFixture() {
 	};
 
 	sandbox.window = sandbox;
+	sandbox.windowListeners = windowListeners;
 	vm.runInNewContext( source( 'settings-admin.js' ), sandbox );
 	readyHandlers.forEach( ( handler ) => handler() );
 
@@ -309,7 +314,7 @@ function settingsFixture() {
 		responseHtml = typeof html === 'function' ? html : () => html;
 	}
 
-	return { body, current, document, form, frame, general, social, click, swap, respondWith, fetchCalls, location, spoken };
+	return { body, current, document, form, frame, general, social, click, swap, respondWith, fetchCalls, location, spoken, pushes, windowListeners };
 }
 
 test( 'media picker remains bound after a settings section swap and a second interaction', async () => {
@@ -497,6 +502,24 @@ test( 'an empty 200 response is not swapped and falls back to navigation', async
 	assert.equal( fixture.body.innerHTML, '' );
 	assert.deepEqual( fixture.spoken, [] );
 	assert.equal( fixture.location.href, socialUrl );
+} );
+
+test( 'popstate restores the section in place without reloading or pushing state', async () => {
+	const fixture = settingsFixture();
+
+	fixture.location.href = 'https://example.test/wp-admin/admin.php?page=rankkernel-general&section=social';
+	fixture.respondWith(
+		'<section class="rk-settings-section" id="rk-section-social"><h3>social</h3></section>' +
+		'<p class="submit"><input type="submit" name="rankkernel_save" value="Save" /></p>'
+	);
+
+	fixture.windowListeners.popstate();
+
+	await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+	await new Promise( ( resolve ) => setImmediate( resolve ) );
+
+	assert.ok( fixture.body.innerHTML.includes( 'social' ), 'the social section must render after back-navigation' );
+	assert.deepEqual( fixture.pushes, [], 'popstate must not push a new history entry' );
 } );
 
 test( 'an error-shaped 200 partial without the save marker is not swapped and falls back to navigation', async () => {
