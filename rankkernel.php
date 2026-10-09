@@ -146,7 +146,13 @@ register_activation_hook( __FILE__, 'rankkernel_activate' );
  * Deactivation callback, leave data intact.
  */
 function rankkernel_deactivate(): void {
-	// Intentionally leave all data, no destructive flush.
+	// Rewrite rules are not data: the sitemap and robots modules flush them
+	// on boot, so deactivation flushes them back out. Without this the
+	// submitted sitemap URLs hard-404 instead of cleanly disappearing.
+	// All plugin data (options, tables, files) is intentionally left intact.
+	if ( function_exists( 'flush_rewrite_rules' ) ) {
+		flush_rewrite_rules( false );
+	}
 }
 register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );
 
