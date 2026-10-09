@@ -317,6 +317,45 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Activation schedules the daily 404 prune exactly once.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_activation_schedules_daily_prune_once(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_activate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$scheduled = [];
+		Functions\when( 'wp_next_scheduled' )->alias(
+			static function ( string $hook ) use ( &$scheduled ): mixed {
+				return in_array( $hook, $scheduled, true ) ? 123456 : false;
+			}
+		);
+		Functions\when( 'wp_schedule_event' )->alias(
+			static function ( int $timestamp, string $recurrence, string $hook ) use ( &$scheduled ): bool {
+				$scheduled[] = $hook;
+
+				return true;
+			}
+		);
+
+		$store = array();
+		$this->stub_option_store( $store );
+
+		\rankkernel_activate();
+		\rankkernel_activate();
+
+		$this->assertSame( [ 'rankkernel_daily_prune' ], $scheduled, 'Double activation must still schedule exactly one prune event.' );
+	}
+
+	/**
 	 * Deactivation flushes rewrite rules while leaving all data intact.
 	 *
 	 * Runs in a separate process because it loads rankkernel.php and defines
@@ -349,6 +388,36 @@ final class PluginTest extends TestCase {
 		$this->assertSame( 1, $calls, 'Deactivation must flush rewrite rules exactly once.' );
 		$this->assertFalse( $flushed, 'Deactivation must flush softly, never hard.' );
 		$this->assertSame( array( 'separator' => 'x' ), $store['rankkernel_settings'], 'Deactivation must leave all data intact.' );
+	}
+
+	/**
+	 * Deactivation clears the daily 404 prune event.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_deactivation_clears_daily_prune_event(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_deactivate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		Functions\when( 'flush_rewrite_rules' )->justReturn( true );
+
+		$cleared = [];
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( string $hook ) use ( &$cleared ): void {
+				$cleared[] = $hook;
+			}
+		);
+
+		\rankkernel_deactivate();
+
+		$this->assertSame( [ 'rankkernel_daily_prune' ], $cleared );
 	}
 
 	/**

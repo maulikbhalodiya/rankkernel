@@ -250,4 +250,48 @@ final class MonitorPrunerTest extends TestCase {
 		$this->assertSame( 1, $this->makePruner()->prune() );
 		$this->assertSame( 1, count( $this->db->rows ) );
 	}
+
+	/**
+	 * Test prune enforces both limits on fixture data with no new inserts.
+	 *
+	 * This is the scheduled-event path: no Logger, no shutdown hook, just
+	 * prune() over rows that are already stale or over the row cap.
+	 */
+	public function test_prune_enforces_both_limits_without_new_inserts(): void {
+		$this->options['rankkernel_404_settings'] = [
+			'retention_days' => 30,
+			'max_rows'       => 2,
+		];
+
+		$this->db->seed(
+			[
+				'uri_hash'      => hash( 'sha256', '/stale' ),
+				'uri'           => '/stale',
+				'last_accessed' => '2026-01-01 00:00:00',
+			]
+		);
+		$this->db->seed(
+			[
+				'uri_hash'      => hash( 'sha256', '/fresh-a' ),
+				'uri'           => '/fresh-a',
+				'last_accessed' => '2026-06-01 00:00:00',
+			]
+		);
+		$this->db->seed(
+			[
+				'uri_hash'      => hash( 'sha256', '/fresh-b' ),
+				'uri'           => '/fresh-b',
+				'last_accessed' => '2026-06-01 00:00:00',
+			]
+		);
+
+		$deleted = $this->makePruner()->prune();
+
+		$this->assertGreaterThan( 0, $deleted );
+		$this->assertLessThanOrEqual( 2, count( $this->db->rows ) );
+
+		foreach ( $this->db->rows as $row ) {
+			$this->assertNotSame( '/stale', $row['uri'] );
+		}
+	}
 }

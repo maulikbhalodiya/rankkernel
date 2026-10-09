@@ -24,6 +24,11 @@ use RankKernel\Modules\ModuleInterface;
  */
 class MonitorModule implements ModuleInterface {
 	/**
+	 * Daily cron hook enforcing 404 retention.
+	 */
+	public const PRUNE_CRON_HOOK = 'rankkernel_daily_prune';
+
+	/**
 	 * Cached enabled check.
 	 *
 	 * @var bool|null
@@ -149,6 +154,26 @@ class MonitorModule implements ModuleInterface {
 		$this->logger = $logger;
 
 		$logger->register();
+
+		// Daily retention enforcement. The shutdown-after-insert prune is a
+		// backstop only; without this a quiet site never enforces its limits.
+		// Registered here (not unconditionally) so a disabled module keeps
+		// zero hooks. The event itself is scheduled on activation and cleared
+		// on deactivation; an orphan firing with no listener is a harmless
+		// no-op until the module is enabled again.
+		if ( function_exists( 'add_action' ) ) {
+			add_action( self::PRUNE_CRON_HOOK, [ $this, 'runScheduledPrune' ] );
+		}
+	}
+
+	/**
+	 * Cron callback: enforce retention age and row cap.
+	 *
+	 * Returns nothing: action callbacks must not return values.
+	 */
+	public function runScheduledPrune(): void {
+		$pruner = new Pruner();
+		$pruner->prune();
 	}
 
 	/**

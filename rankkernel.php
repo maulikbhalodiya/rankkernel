@@ -134,6 +134,14 @@ function rankkernel_activate(): void {
 		add_option( 'rankkernel_db_version', '0.0.0', '', false );
 	}
 
+	// Schedule the daily 404 retention prune once. The shutdown-after-insert
+	// prune is a backstop only; without this a quiet site never enforces its
+	// retention limits. The callback lives behind the monitor module gate, so
+	// an orphan firing with the module off is a harmless no-op.
+	if ( function_exists( 'wp_next_scheduled' ) && function_exists( 'wp_schedule_event' ) && ! wp_next_scheduled( 'rankkernel_daily_prune' ) ) {
+		wp_schedule_event( time(), 'daily', 'rankkernel_daily_prune' );
+	}
+
 	// Conflict detection seeds the notice option (cheap cache; renderer re-checks live).
 	$conflicts = rankkernel_detect_seo_conflicts();
 	if ( array() !== $conflicts ) {
@@ -152,6 +160,10 @@ function rankkernel_deactivate(): void {
 	// All plugin data (options, tables, files) is intentionally left intact.
 	if ( function_exists( 'flush_rewrite_rules' ) ) {
 		flush_rewrite_rules( false );
+	}
+
+	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+		wp_clear_scheduled_hook( 'rankkernel_daily_prune' );
 	}
 }
 register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );

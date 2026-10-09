@@ -496,19 +496,22 @@ final class MonitorRepository {
 	 * one pass; the default zero stops the delete exactly at the maximum.
 	 * Returns zero when the table is within limit.
 	 *
-	 * @param int $maxRows Configured row limit.
-	 * @param int $limit   Rows per pass, capped at 500.
-	 * @param int $floor   Extra rows below the maximum the pass may clear, default 0.
+	 * @param int  $maxRows    Configured row limit.
+	 * @param int  $limit      Rows per pass, capped at 500.
+	 * @param int  $floor      Extra rows below the maximum the pass may clear, default 0.
+	 * @param ?int $knownTotal Pre-counted total that skips a second COUNT(*) scan, null to recount.
 	 * @return int Deleted row count, or QUERY_FAILED when the query failed.
 	 */
-	public function deleteOldestOver( int $maxRows, int $limit, int $floor = 0 ): int {
+	public function deleteOldestOver( int $maxRows, int $limit, int $floor = 0, ?int $knownTotal = null ): int {
 		$db = $this->connection();
 
 		if ( null === $db || $maxRows < 1 ) {
 			return 0;
 		}
 
-		$total = $this->count();
+		// A caller that just counted (the pruner) passes its total so one
+		// full COUNT(*) scan serves both the excess math and the batch math.
+		$total = $knownTotal ?? $this->count();
 
 		if ( $total <= $maxRows ) {
 			return 0;
