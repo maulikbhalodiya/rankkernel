@@ -871,6 +871,63 @@ final class SchemaSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test the settings preview matches the frontend graph node for node.
+	 *
+	 * The preview must call the same generator the frontend emits, so this
+	 * builds a home context from fixture settings and asserts the preview
+	 * document equals a direct generator run.
+	 */
+	public function test_preview_matches_frontend_graph_node_for_node(): void {
+		Functions\when( 'post_password_required' )->justReturn( false );
+
+		$overrides = [
+			'org_name'        => 'Example Org',
+			'site_represents' => 'organization',
+		];
+		$query     = $this->makeQuery(
+			[
+				'is_home'       => true,
+				'is_front_page' => true,
+			]
+		);
+		$ctx       = $this->makeContext( $query, $overrides );
+
+		$page    = new SchemaSettingsPage( new SettingsStore() );
+		$preview = $page->previewGraph( $ctx );
+
+		$module = new \RankKernel\Modules\Schema\SchemaModule( new SettingsStore() );
+		$direct = $module->getGenerator()->generate( $ctx );
+
+		$this->assertSame( $direct, $preview );
+
+		$json = $page->previewJson( $preview );
+
+		$this->assertNotSame( '', $json );
+
+		$decoded = json_decode( $json, true );
+
+		$this->assertIsArray( $decoded );
+		$this->assertSame( $preview['@graph'], $decoded['@graph'] );
+	}
+
+	/**
+	 * Test the preview reports empty when nothing is configured.
+	 */
+	public function test_preview_empty_state_when_no_graph(): void {
+		$page = new SchemaSettingsPage( new SettingsStore() );
+
+		$this->assertSame(
+			'',
+			$page->previewJson(
+				[
+					'@context' => 'https://schema.org',
+					'@graph'   => [],
+				]
+			)
+		);
+	}
+
+	/**
 	 * Test admin wiring registers menu inside admin.
 	 */
 	public function test_admin_wiring_registers_menu_inside_admin(): void {

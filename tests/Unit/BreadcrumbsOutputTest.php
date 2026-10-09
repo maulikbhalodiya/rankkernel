@@ -182,6 +182,13 @@ final class BreadcrumbsOutputTest extends TestCase {
 				return $url;
 			}
 		);
+		Functions\when( 'esc_url_raw' )->alias(
+			static function ( string $url ): string {
+				$url = trim( $url );
+
+				return preg_match( '/^https?:\/\//i', $url ) ? $url : '';
+			}
+		);
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );

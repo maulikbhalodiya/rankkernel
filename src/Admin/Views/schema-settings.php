@@ -45,6 +45,8 @@
  * @var array<int, array{value: string, label: string}>                $schemaTypes Supported schema types.
  * @var string   $richResultsUrl      Rich Results Test URL.
  * @var string   $validatorUrl        Schema Validator URL.
+ * @var array<string, mixed> $previewGraph Live preview graph document.
+ * @var string   $previewJson         Pretty-printed preview JSON, empty when no graph.
  */
 
 declare(strict_types=1);
@@ -528,40 +530,19 @@ $rkPluginVersion = Plugin::version();
 							<p class="rk-ui-notice-text"><?php echo esc_html__( 'The graph for your site is assembled from these settings when a page is requested, and an individual post can override the schema type.', 'rankkernel' ); ?></p>
 						</div>
 
-						<p class="rk-ui-hint rk-schema-preview-example"><?php echo esc_html__( 'Example preview. This graph is illustrative and is not generated from your settings.', 'rankkernel' ); ?></p>
+						<?php if ( '' !== $previewJson ) : ?>
+						<p class="rk-ui-hint rk-schema-preview-example"><?php echo esc_html__( 'Live preview. This graph is generated from your settings by the same builder the frontend uses.', 'rankkernel' ); ?></p>
 
 						<div class="rk-schema-codeblock">
-							<pre class="rk-schema-code"><code><span class="rk-tok-key">"@context"</span>: <span class="rk-tok-string">"https://schema.org"</span>,
-<span class="rk-tok-key">"@graph"</span>: [
-	{
-		<span class="rk-tok-key">"@type"</span>: <span class="rk-tok-string">"WebSite"</span>,
-		<span class="rk-tok-key">"@id"</span>: <span class="rk-tok-string">"https://example.com/#website"</span>,
-		<span class="rk-tok-key">"url"</span>: <span class="rk-tok-string">"https://example.com/"</span>,
-		<span class="rk-tok-key">"name"</span>: <span class="rk-tok-string">"Example Site"</span>,
-		<span class="rk-tok-key">"potentialAction"</span>: {
-			<span class="rk-tok-key">"@type"</span>: <span class="rk-tok-string">"SearchAction"</span>,
-			<span class="rk-tok-key">"target"</span>: <span class="rk-tok-string">"https://example.com/?s={search_term_string}"</span>,
-			<span class="rk-tok-key">"query-input"</span>: <span class="rk-tok-string">"required name=search_term_string"</span>
-		}
-	},
-	{
-		<span class="rk-tok-key">"@type"</span>: <span class="rk-tok-string">"Organization"</span>,
-		<span class="rk-tok-key">"@id"</span>: <span class="rk-tok-string">"https://example.com/#organization"</span>,
-		<span class="rk-tok-key">"name"</span>: <span class="rk-tok-string">"Example Site"</span>,
-		<span class="rk-tok-key">"url"</span>: <span class="rk-tok-string">"https://example.com/"</span>,
-		<span class="rk-tok-key">"logo"</span>: <span class="rk-tok-string">"https://example.com/logo.png"</span>,
-		<span class="rk-tok-key">"sameAs"</span>: [
-			<span class="rk-tok-string">"https://twitter.com/example"</span>,
-			<span class="rk-tok-string">"https://linkedin.com/company/example"</span>
-		]
-	}
-]</code></pre>
+							<pre class="rk-schema-code"><code><?php echo esc_html( $previewJson ); ?></code></pre>
 						</div>
 
 						<p class="rk-schema-preview-meta">
-							<span><?php echo esc_html__( 'Example graph: WebSite, Organization', 'rankkernel' ); ?></span>
-							<span><?php echo esc_html__( 'Not a live preview', 'rankkernel' ); ?></span>
+							<span><?php echo esc_html( sprintf( /* translators: %d: number of schema nodes in the preview. */ __( 'Live graph: %d nodes', 'rankkernel' ), count( is_array( $previewGraph['@graph'] ?? null ) ? $previewGraph['@graph'] : array() ) ) ); ?></span>
 						</p>
+						<?php else : ?>
+						<p class="rk-ui-hint rk-schema-preview-example"><?php echo esc_html__( 'No schema nodes are configured yet. The preview appears once your settings produce a graph.', 'rankkernel' ); ?></p>
+						<?php endif; ?>
 					</div>
 				</section>
 
