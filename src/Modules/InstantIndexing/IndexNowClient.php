@@ -38,8 +38,12 @@ final class IndexNowClient {
 
 	/**
 	 * Status codes that must never be retried.
+	 *
+	 * 403 is deliberately transient: IndexNow returns it when the key file
+	 * is unreachable, a common and fixable misconfiguration, so the log
+	 * offers a retry instead of a dead end.
 	 */
-	private const PERMANENT_CODES = [ 400, 403, 405, 422 ];
+	private const PERMANENT_CODES = [ 400, 405, 422 ];
 
 	/**
 	 * Settings instance supplying the key and the log.

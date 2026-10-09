@@ -36,6 +36,13 @@ final class InstantIndexingModule implements ModuleInterface {
 	private const TERM_ACTIONS = [ 'created', 'edited', 'deleted' ];
 
 	/**
+	 * Deferred submit cron hook: the save path only queues URLs, this hook
+	 * performs the HTTP outside the save so a slow endpoint never stalls it.
+	 * Submissions are never dropped by deferring, only moved in time.
+	 */
+	public const SUBMIT_CRON_HOOK = 'rankkernel_indexnow_submit';
+
+	/**
 	 * Enable map, resolved from the option when not injected.
 	 *
 	 * @var ModuleEnableMap|null
@@ -174,6 +181,7 @@ final class InstantIndexingModule implements ModuleInterface {
 
 		add_action( 'pre_post_update', [ $this, 'onPrePostUpdate' ], 10, 1 );
 		add_action( 'transition_post_status', [ $this, 'onTransitionPostStatus' ], 10, 3 );
+		add_action( self::SUBMIT_CRON_HOOK, [ $this, 'runDeferredSubmit' ] );
 
 		$this->registerTermHooks();
 	}
@@ -341,13 +349,87 @@ final class InstantIndexingModule implements ModuleInterface {
 			return;
 		}
 
+		$contentHash = $this->postContentHash( $post );
+
+		// A publish-to-publish re-save with byte-identical content submits
+		// nothing: same URL, same status, nothing new to discover. Any edit
+		// changes the hash and still submits.
+		if ( 'publish' === $newStatus && 'publish' === $oldStatus && $this->collector()->isUnchangedRepublish( $postId, $current, $contentHash ) ) {
+			return;
+		}
+
+		// Never submit inline: a slow endpoint must not stall the save.
+		// Queue one deferred event per payload; an identical pending event
+		// is not duplicated. The cron worker marks the attempt on delivery.
+		$this->queueDeferredSubmit( $postId, $urls, $current, $contentHash, $newStatus );
+	}
+
+	/**
+	 * Queue deferred auto-submit delivery for collected URLs.
+	 *
+	 * @param int      $postId      Post id.
+	 * @param string[] $urls        Collected URLs.
+	 * @param string   $current     Newest URL, the throttle key.
+	 * @param string   $contentHash Content hash for the unchanged-republish dedupe.
+	 * @param string   $signal      Transition signal, part of the dedupe key.
+	 */
+	public function queueDeferredSubmit( int $postId, array $urls, string $current, string $contentHash = '', string $signal = '' ): void {
+		if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+			return;
+		}
+
+		$payload = [
+			'post_id'      => $postId,
+			'urls'         => array_values( $urls ),
+			'source'       => 'auto',
+			'content_hash' => $contentHash,
+			'signal'       => $signal,
+		];
+
+		if ( function_exists( 'wp_next_scheduled' ) && false !== wp_next_scheduled( self::SUBMIT_CRON_HOOK, [ $payload ] ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time(), self::SUBMIT_CRON_HOOK, [ $payload ] );
+	}
+
+	/**
+	 * Cron worker: deliver a deferred auto-submit payload.
+	 *
+	 * The payload crosses serialize/unserialize through the cron store, so
+	 * its shape is validated at runtime here rather than assumed.
+	 *
+	 * @param array<string, mixed> $payload Queued payload with urls, post_id, content_hash.
+	 */
+	public function runDeferredSubmit( array $payload ): void {
+		$rawUrls = isset( $payload['urls'] ) && is_array( $payload['urls'] ) ? array_values( $payload['urls'] ) : [];
+		$urls    = [];
+
+		foreach ( $rawUrls as $url ) {
+			if ( is_string( $url ) && '' !== $url ) {
+				$urls[] = $url;
+			}
+		}
+
+		if ( [] === $urls ) {
+			return;
+		}
+
+		$postId = (int) ( $payload['post_id'] ?? 0 );
+
+		// Non-emptiness is established by the check above, so end() yields
+		// a string here; the loop only ever collects non-empty strings.
+		$current = end( $urls );
+
 		$result = $this->submitUrls( $urls, 'auto' );
 
 		// Mark the attempt, not just the acceptance: the spec debounces the
 		// same URL for ten minutes, and an unmarked failure would let every
 		// later save retry against the endpoint inside that window.
 		if ( [] !== ( $result['results'] ?? [] ) ) {
-			$this->collector()->markSubmitted( $postId, $current );
+			$rawHash     = $payload['content_hash'] ?? '';
+			$contentHash = is_string( $rawHash ) ? $rawHash : '';
+			$this->collector()->markSubmitted( $postId, $current, $contentHash );
 		}
 	}
 
@@ -463,6 +545,23 @@ final class InstantIndexingModule implements ModuleInterface {
 		}
 
 		return $post->post_type;
+	}
+
+	/**
+	 * Content hash from the mixed object a hook hands over.
+	 *
+	 * Empty content hashes to the empty string, which never matches a
+	 * stored record, so the dedupe fails open toward submitting.
+	 *
+	 * @param mixed $post Post object.
+	 * @return string Hash of the post content, or empty string.
+	 */
+	private function postContentHash( mixed $post ): string {
+		if ( ! is_object( $post ) || ! isset( $post->post_content ) || ! is_string( $post->post_content ) || '' === $post->post_content ) {
+			return '';
+		}
+
+		return md5( $post->post_content );
 	}
 
 	/**

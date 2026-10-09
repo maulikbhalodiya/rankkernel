@@ -377,7 +377,9 @@ final class RestLogControllerTest extends TestCase {
 		self::assertSame( $direct->statusCounts(), $data['statusCounts'] );
 		self::assertSame( $direct->sourceCounts(), $data['sourceCounts'] );
 
-		self::assertSame( 2, $data['filteredTotal'], 'the same filter must narrow both calls identically' );
+		// The 403 seed now categorises as retry, not rejected, so the
+		// rejected+manual+alpha filter matches one row instead of two.
+		self::assertSame( 1, $data['filteredTotal'], 'the same filter must narrow both calls identically' );
 		self::assertSame( 7, $data['total'], 'the unfiltered total must cover the whole table' );
 	}
 

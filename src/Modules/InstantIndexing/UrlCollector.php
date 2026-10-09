@@ -167,11 +167,12 @@ final class UrlCollector {
 	/**
 	 * Record that a URL was just submitted for a post.
 	 *
-	 * @param int    $postId Post id.
-	 * @param string $url    Submitted URL.
+	 * @param int    $postId      Post id.
+	 * @param string $url         Submitted URL.
+	 * @param string $contentHash Content hash for the unchanged-republish dedupe.
 	 * @return void
 	 */
-	public function markSubmitted( int $postId, string $url ): void {
+	public function markSubmitted( int $postId, string $url, string $contentHash = '' ): void {
 		if ( $postId <= 0 || '' === $url || ! function_exists( 'update_post_meta' ) ) {
 			return;
 		}
@@ -182,8 +183,37 @@ final class UrlCollector {
 			[
 				'last_url'       => $url,
 				'last_submitted' => time(),
+				'content_hash'   => $contentHash,
 			]
 		);
+	}
+
+	/**
+	 * Whether a republish carries byte-identical content to the last submission.
+	 *
+	 * A publish-to-publish re-save with the same URL, same status context and
+	 * unchanged content submits nothing: there is nothing new for the engine
+	 * to discover. Any content change still submits, so genuine updates are
+	 * never swallowed.
+	 *
+	 * @param int    $postId      Post id.
+	 * @param string $url         Current URL.
+	 * @param string $contentHash Hash of the current content.
+	 * @return bool True when the republish is a no-op for submission.
+	 */
+	public function isUnchangedRepublish( int $postId, string $url, string $contentHash ): bool {
+		if ( $postId <= 0 || '' === $url || '' === $contentHash || ! function_exists( 'get_post_meta' ) ) {
+			return false;
+		}
+
+		$stored = get_post_meta( $postId, self::META_KEY, true );
+
+		if ( ! is_array( $stored ) ) {
+			return false;
+		}
+
+		return (string) ( $stored['last_url'] ?? '' ) === $url
+			&& (string) ( $stored['content_hash'] ?? '' ) === $contentHash;
 	}
 
 	/**
