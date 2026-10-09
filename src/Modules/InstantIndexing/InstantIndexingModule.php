@@ -394,7 +394,6 @@ final class InstantIndexingModule implements ModuleInterface {
 	}
 
 	/**
-	/**
 	 * Cron worker: deliver a deferred auto-submit payload.
 	 *
 	 * The payload crosses serialize/unserialize through the cron store, so
