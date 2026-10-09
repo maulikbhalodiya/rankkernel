@@ -134,10 +134,65 @@ class TaxonomiesProvider {
 
 		$args = array_merge( [ $sql ], $params );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
 
 		return (int) $count;
+	}
+
+	/**
+	 * Newest modification date in a set, for the sitemap index.
+	 *
+	 * Same population as the non-empty count: terms with published public
+	 * posts, minus noindexed terms. A set with no dated posts reports '',
+	 * and the index falls back to the current time for that entry.
+	 *
+	 * @param string $taxonomy Taxonomy name.
+	 * @return string MySQL datetime, empty when none.
+	 */
+	public function getMaxLastmod( string $taxonomy ): string {
+		if ( ! ( $this->settings?->isTypeEnabled( 'tax', $taxonomy ) ?? true ) ) {
+			return '';
+		}
+
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
+			return '';
+		}
+
+		$publicTypes = get_post_types( [ 'public' => true ], 'names' );
+		if ( ! is_array( $publicTypes ) || [] === $publicTypes ) {
+			return '';
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $publicTypes ), '%s' ) );
+
+		$types = array_values( array_filter( $publicTypes, static fn ( mixed $v ): bool => is_string( $v ) && '' !== $v ) );
+		if ( [] === $types ) {
+			return '';
+		}
+
+		$like = '%' . $wpdb->esc_like( self::NOINDEX_LIKE_INNER ) . '%';
+
+		$params  = array_merge( [ $taxonomy, 'publish' ], $types, [ $like ] );
+		$exclude = $this->excludeClause( $this->excludedTermIds(), 't.term_id', $params );
+
+		$sql = "SELECT MAX(p.post_modified_gmt) FROM {$wpdb->terms} t"
+			. " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
+			. " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
+			. " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
+			. " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
+			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
+			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+			. $exclude;
+
+		$args = array_merge( [ $sql ], $params );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+
+		return is_string( $max ) ? $max : '';
 	}
 
 	/**

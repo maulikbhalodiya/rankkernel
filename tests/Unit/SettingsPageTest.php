@@ -1740,6 +1740,43 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test an llms save flushes rewrite rules so the route goes live at once.
+	 */
+	public function test_llms_save_flushes_rewrite_rules(): void {
+		$page = $this->makeRobotsPage();
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_rand' )->justReturn( 7 );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$flushes = 0;
+
+		Functions\when( 'flush_rewrite_rules' )->alias(
+			static function () use ( &$flushes ): void {
+				++$flushes;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'llms';
+		$_POST                     = [
+			'_wpnonce'        => 'valid',
+			'rankkernel_save' => '1',
+			'rk_llms_enabled' => '1',
+			'rk_llms_summary' => 'Fresh summary.',
+			'rk_llms_content' => 'Fresh document.',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertSame( 1, $flushes, 'a successful llms save flushes exactly once' );
+	}
+
+	/**
 	 * The save nonce is scoped to the posted section.
 	 */
 	public function test_save_uses_section_specific_nonce(): void {

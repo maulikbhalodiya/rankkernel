@@ -535,6 +535,13 @@ final class SettingsPage {
 
 		LlmsRouter::invalidate();
 
+		// The route registers at boot, so a successful save must flush for it
+		// to go live (or disappear) at once instead of waiting for an
+		// unrelated flush. Without this the route 404s after a green save.
+		if ( $saved && function_exists( 'flush_rewrite_rules' ) ) {
+			flush_rewrite_rules( false );
+		}
+
 		// The physical file belongs to the enabled feature: once a save lands
 		// with it disabled, remove the managed file so a stale document stops
 		// shadowing the virtual route. delete() is a safe no-op when nothing
