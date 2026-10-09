@@ -1732,7 +1732,27 @@ final class RedirectsPage {
 		}
 
 		$ok = $this->repository->set_active( $id, 'activate' === $action );
-		$this->redirect( $ok ? '&rk_notice=' . $action . 'd' : '&rk_error=save_failed' );
+
+		if ( $ok ) {
+			$this->redirect( '&rk_notice=' . $action . 'd' );
+
+			return;
+		}
+
+		// A refusal can mean a database failure or a proven loop. The loop
+		// path is recomputed here (not trusted from any request value) so the
+		// operator sees exactly why the rule stayed off.
+		if ( 'activate' === $action ) {
+			$path = $this->repository->activationLoopPath( $id );
+
+			if ( [] !== $path ) {
+				$this->redirect( '&rk_error=loop&rk_path=' . rawurlencode( implode( ' → ', $path ) ) );
+
+				return;
+			}
+		}
+
+		$this->redirect( '&rk_error=save_failed' );
 	}
 
 	/**

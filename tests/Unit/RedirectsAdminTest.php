@@ -1299,6 +1299,33 @@ final class RedirectsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Row activate on a cycle maker is refused with the loop path shown.
+	 */
+	public function test_row_activate_refuses_cycle_with_path(): void {
+		$id = $this->seedRule( '/a', '/b', '301', 'exact', false );
+		$this->seedRule( '/b', '/c' );
+		$this->seedRule( '/c', '/a' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_GET                      = [
+			'rk_action' => 'activate',
+			'rule'      => (string) $id,
+			'_wpnonce'  => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertSame( 0, (int) $this->db->rows[ $id ]['is_active'], 'the cycle maker stays off' );
+		$this->assertStringContainsString( 'rk_error=loop', $this->lastRedirect );
+		$this->assertStringContainsString( 'rk_path=', $this->lastRedirect );
+	}
+
+	/**
 	 * Row actions verify the nonce.
 	 */
 	public function test_row_action_with_bad_nonce_dies(): void {
