@@ -73,6 +73,25 @@ if ( is_array( $tables ) ) {
 	}
 }
 
+// Remove a plugin-managed physical llms.txt. The writer only ever removes
+// a path it recorded on a successful write, so a hand made file is safe.
+// The class files load standalone here: uninstall runs with WordPress
+// loaded but without the plugin, so require exactly what is needed.
+$llms_writer_file = __DIR__ . '/src/Modules/Robots/LlmsFileWriter.php';
+$llms_router_file = __DIR__ . '/src/Modules/Robots/LlmsRouter.php';
+
+if ( is_readable( $llms_writer_file ) && is_readable( $llms_router_file ) ) {
+	require_once $llms_writer_file;
+	require_once $llms_router_file;
+
+	if ( class_exists( 'RankKernel\Modules\Robots\LlmsFileWriter' ) ) {
+		$llms_writer  = new \RankKernel\Modules\Robots\LlmsFileWriter();
+		$llms_deleted = $llms_writer->delete();
+
+		unset( $llms_writer, $llms_deleted );
+	}
+}
+
 if ( ! $purge ) {
 	return;
 }

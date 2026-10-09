@@ -63,6 +63,8 @@ final class LlmsFileWriterTest extends TestCase {
 	 * Test write creates a file when none exists.
 	 */
 	public function test_write_creates_when_absent(): void {
+		Functions\when( 'update_option' )->justReturn( true );
+
 		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
 
 		$this->assertIsString( $temp );
@@ -204,6 +206,8 @@ final class LlmsFileWriterTest extends TestCase {
 
 		try {
 			$this->path = $link;
+
+			Functions\when( 'update_option' )->justReturn( true );
 
 			$writer = new LlmsFileWriter();
 			$result = $writer->write( "# Generated\n" );
@@ -380,5 +384,116 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertFileExists( $temp );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Stub the managed-path option in memory.
+	 *
+	 * @return array<string, string> Reference to the option store, keyed by test.
+	 */
+	private function stubManagedOption(): array {
+		$store = [];
+
+		Functions\when( 'wp_rand' )->alias( static fn(): int => 12345 );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				return array_key_exists( $key, $store ) ? $store[ $key ] : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ): bool {
+				$store[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( string $key ) use ( &$store ): bool {
+				unset( $store[ $key ] );
+
+				return true;
+			}
+		);
+
+		return $store;
+	}
+
+	/**
+	 * Test delete removes a file the writer created and clears the record.
+	 */
+	public function test_delete_removes_managed_file(): void {
+		$this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$writer = new LlmsFileWriter();
+
+		$this->assertTrue( $writer->write( "# Site\n" )['written'] );
+		$this->assertFileExists( $temp );
+
+		$result = $writer->delete();
+
+		$this->assertTrue( $result['deleted'] );
+		$this->assertFileDoesNotExist( $temp );
+	}
+
+	/**
+	 * Test delete never touches a hand made file the writer refused to overwrite.
+	 */
+	public function test_delete_refuses_unmanaged_file(): void {
+		$this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "manual content\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$writer = new LlmsFileWriter();
+		$write  = $writer->write( "# Generated\n" );
+
+		$this->assertFalse( $write['written'] );
+
+		$result = $writer->delete();
+
+		$this->assertFalse( $result['deleted'] );
+		$this->assertSame( 'unmanaged', $result['reason'] );
+		$this->assertSame( "manual content\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test delete on a missing file returns cleanly and drops a stale record.
+	 */
+	public function test_delete_missing_file_returns_cleanly(): void {
+		$this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		$this->path = $temp;
+
+		$writer = new LlmsFileWriter();
+
+		$this->assertTrue( $writer->write( "# Site\n" )['written'] );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- simulate external removal.
+
+		$result = $writer->delete();
+
+		$this->assertFalse( $result['deleted'] );
+		$this->assertSame( 'missing', $result['reason'] );
 	}
 }

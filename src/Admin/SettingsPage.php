@@ -530,6 +530,14 @@ final class SettingsPage {
 
 		LlmsRouter::invalidate();
 
+		// The physical file belongs to the enabled feature: once a save lands
+		// with it disabled, remove the managed file so a stale document stops
+		// shadowing the virtual route. delete() is a safe no-op when nothing
+		// managed exists, and it never touches a hand made file.
+		if ( $saved && ! (bool) $settings->get( 'enabled', false ) ) {
+			( new LlmsFileWriter() )->delete();
+		}
+
 		return $saved;
 	}
 
@@ -565,6 +573,8 @@ final class SettingsPage {
 		$settings->set( LlmsSettings::defaults() );
 
 		LlmsRouter::invalidate();
+
+		( new LlmsFileWriter() )->delete();
 
 		$this->redirectTo( admin_url( 'admin.php?page=rankkernel-general&section=llms&settings-updated=1' ) );
 	}

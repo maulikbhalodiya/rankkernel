@@ -910,6 +910,78 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test disabling llms.txt removes the managed physical file.
+	 */
+	public function test_llms_disable_removes_managed_file(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $temp ): mixed {
+				if ( 'rankkernel/llms/physical_file' === $hook ) {
+					return $temp;
+				}
+
+				return $value;
+			}
+		);
+
+		$store = [];
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ): bool {
+				$store[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return array_key_exists( $key, $store ) ? $store[ $key ] : $fallback;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( string $key ) use ( &$store ): bool {
+				unset( $store[ $key ] );
+
+				return true;
+			}
+		);
+
+		// Seed a plugin-managed file the way write() records it.
+		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+		$store['rankkernel_llms_physical_path'] = $temp;
+
+		$this->assertFileExists( $temp );
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save' => '1',
+			'_wpnonce'        => 'valid',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertFileDoesNotExist( $temp, 'Disabling llms.txt must remove the managed physical file.' );
+	}
+
+	/**
 	 * Test the physical llms.txt write action.
 	 */
 	public function test_llms_write_action_writes_file(): void {

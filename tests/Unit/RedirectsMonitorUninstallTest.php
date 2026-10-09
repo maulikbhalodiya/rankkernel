@@ -296,4 +296,68 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 		$this->assertContains( [ 'table_exists_wp_rankkernel_redirects', 'rankkernel_tables' ], $deleted );
 		$this->assertContains( [ 'table_exists_wp_rankkernel_404_log', 'rankkernel_tables' ], $deleted );
 	}
+
+	/**
+	 * Test uninstall removes a plugin-managed physical llms.txt.
+	 */
+	public function test_uninstall_removes_managed_llms_file(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', true );
+		}
+
+		$db         = new RedirectsMonitorUninstallStubDb();
+		$db->tables = [ 'wp_posts' ];
+
+		// Test installs the stub wpdb double here and restores it in tearDown.
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wpdb'] = $db;
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$store = [ 'rankkernel_llms_physical_path' => $temp ];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				if ( 'rankkernel_settings' === $key ) {
+					return [ 'purge_on_uninstall' => false ];
+				}
+
+				return array_key_exists( $key, $store ) ? $store[ $key ] : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$store ): bool {
+				$store[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( string $key ) use ( &$store ): bool {
+				unset( $store[ $key ] );
+
+				return true;
+			}
+		);
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $temp ): mixed {
+				if ( 'rankkernel/llms/physical_file' === $hook ) {
+					return $temp;
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'wp_rand' )->alias( static fn(): int => 12345 );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		require dirname( __DIR__, 2 ) . '/uninstall.php';
+
+		$this->assertFileDoesNotExist( $temp, 'Uninstall must remove the plugin-managed llms.txt.' );
+		$this->assertArrayNotHasKey( 'rankkernel_llms_physical_path', $store );
+	}
 }
