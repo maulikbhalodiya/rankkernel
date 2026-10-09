@@ -31,6 +31,37 @@ final class ModuleEnableMap {
 	private array $enabledSet = [];
 
 	/**
+	 * Normalize a stored value to a clean list of enabled ids.
+	 *
+	 * Both historic shapes are accepted: a plain list of ids, and an
+	 * id => bool map. Falsy map entries stay disabled, and anything that is
+	 * not a non-empty id is dropped. Writers must go through this so the two
+	 * toggle paths can never disagree on what the option means.
+	 *
+	 * @param mixed $raw Stored option value.
+	 * @return array<int, string> Enabled ids.
+	 */
+	public static function normalizeList( mixed $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$ids = [];
+
+		foreach ( $raw as $key => $value ) {
+			if ( is_int( $key ) ) {
+				if ( is_string( $value ) && '' !== $value ) {
+					$ids[] = $value;
+				}
+			} elseif ( is_string( $key ) && '' !== $key && $value ) {
+				$ids[] = $key;
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
 	 * Constructor, performs the single get_option read for the request.
 	 */
 	public function __construct() {
@@ -42,14 +73,8 @@ final class ModuleEnableMap {
 
 		$this->raw = $map;
 
-		foreach ( $map as $key => $value ) {
-			if ( is_int( $key ) ) {
-				if ( is_string( $value ) && '' !== $value ) {
-					$this->enabledSet[ $value ] = true;
-				}
-			} elseif ( is_string( $key ) && '' !== $key ) {
-				$this->enabledSet[ $key ] = (bool) $value;
-			}
+		foreach ( self::normalizeList( $map ) as $id ) {
+			$this->enabledSet[ $id ] = true;
 		}
 	}
 
