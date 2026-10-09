@@ -188,6 +188,40 @@ final class RestControllersTest extends TestCase {
 	}
 
 	/**
+	 * Test toggling with an assoc shaped stored option keeps siblings.
+	 */
+	public function test_modules_controller_preserves_siblings_from_assoc_shaped_option(): void {
+		Functions\when( 'get_option' )->justReturn(
+			[
+				'sitemaps' => true,
+				'robots'   => false,
+			]
+		);
+
+		$written = null;
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$written ): bool {
+				$written = $value;
+
+				return true;
+			}
+		);
+
+		$ctrl = new ModulesController();
+		$req  = $this->makeModulesRequest( true );
+
+		$res = $ctrl->toggleModule( $req );
+
+		$this->assertInstanceOf( \WP_REST_Response::class, $res );
+		$this->assertContains( 'metadata', $res->get_data()['modules'] ?? [] );
+		$this->assertContains( 'sitemaps', $res->get_data()['modules'] ?? [] );
+		$this->assertNotContains( 'robots', $res->get_data()['modules'] ?? [] );
+		$this->assertIsArray( $written );
+		$this->assertSame( [ 'sitemaps', 'metadata' ], array_values( $written ) );
+	}
+
+	/**
 	 * Test a planned module id is rejected by toggleModule with a clear error.
 	 */
 	public function test_modules_controller_planned_module_rejected(): void {

@@ -175,6 +175,43 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test toggling on with an assoc shaped stored option keeps siblings.
+	 */
+	public function test_toggle_preserves_siblings_from_assoc_shaped_option(): void {
+		$this->options['rankkernel_modules'] = [
+			'metadata' => true,
+			'sitemaps' => true,
+		];
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'robots';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertContains( 'robots', $this->options['rankkernel_modules'] );
+		$this->assertContains( 'metadata', $this->options['rankkernel_modules'] );
+		$this->assertContains( 'sitemaps', $this->options['rankkernel_modules'] );
+	}
+
+	/**
+	 * Test toggling off with an assoc shaped stored option keeps siblings.
+	 */
+	public function test_toggle_off_preserves_siblings_from_assoc_shaped_option(): void {
+		$this->options['rankkernel_modules'] = [
+			'metadata' => true,
+			'sitemaps' => true,
+		];
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'metadata';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertNotContains( 'metadata', $this->options['rankkernel_modules'] );
+		$this->assertContains( 'sitemaps', $this->options['rankkernel_modules'] );
+	}
+
+	/**
 	 * Test an unknown module id is ignored.
 	 */
 	public function test_toggle_ignores_unknown_module(): void {

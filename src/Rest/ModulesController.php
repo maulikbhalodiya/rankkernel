@@ -12,6 +12,7 @@ namespace RankKernel\Rest;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
 use WP_Error;
 use WP_REST_Request;
@@ -175,12 +176,7 @@ final class ModulesController {
 			$enabled = $normalized;
 		}
 
-		$current = get_option( self::OPTION, [] );
-		if ( ! is_array( $current ) ) {
-			$current = [];
-		}
-
-		$current = array_map( 'strval', $current );
+		$current = ModuleEnableMap::normalizeList( get_option( self::OPTION, [] ) );
 		$updated = $current;
 
 		if ( $enabled ) {

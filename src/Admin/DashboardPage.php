@@ -12,6 +12,7 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
 
 /**
@@ -238,22 +239,6 @@ final class DashboardPage {
 	 * @return string[] The result.
 	 */
 	private function enabledIds(): array {
-		$stored = get_option( 'rankkernel_modules', [] );
-
-		if ( ! is_array( $stored ) ) {
-			return [];
-		}
-
-		$enabled = [];
-
-		foreach ( $stored as $key => $value ) {
-			if ( is_string( $value ) ) {
-				$enabled[] = $value;
-			} elseif ( is_int( $key ) && true === $value ) {
-				$enabled[] = (string) $key;
-			}
-		}
-
-		return array_values( array_unique( $enabled ) );
+		return ModuleEnableMap::normalizeList( get_option( 'rankkernel_modules', [] ) );
 	}
 }
