@@ -364,8 +364,9 @@ test( 'successful toggle swaps the live submenu when markup differs', async () =
 	}
 
 	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li><li>Instant Indexing</li>' );
-	assert.equal( spoken.length, 1 );
-	assert.equal( spoken[ 0 ], 'Sidebar menu updated.' );
+	assert.equal( spoken.length, 2 );
+	assert.equal( spoken[ 0 ], 'Redirects module enabled.' );
+	assert.equal( spoken[ 1 ], 'Sidebar menu updated.' );
 	assert.equal( dom.rows[ 0 ].btn.getAttribute( 'aria-checked' ), 'true' );
 	assert.ok( dom.rows[ 0 ].btn.classList.contains( 'is-on' ) );
 
@@ -408,7 +409,8 @@ test( 'unchanged normalized markup leaves the submenu and announcement alone', a
 	}
 
 	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li><li>404 Monitor</li>' );
-	assert.equal( spoken.length, 0 );
+	assert.equal( spoken.length, 1 );
+	assert.equal( spoken[ 0 ], '404 module disabled.' );
 } );
 
 test( 'no menu refresh fires when the toggle POST fails', async () => {
@@ -481,7 +483,7 @@ test( 'a failed menu refresh leaves the menu untouched', async () => {
 	}
 
 	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li>' );
-	assert.equal( seen.spoken, undefined );
+	assert.equal( seen.spoken, 'Metadata module disabled.' );
 } );
 
 test( 'the last toggle wins while a refresh is in flight', async () => {
