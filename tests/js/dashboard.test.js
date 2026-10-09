@@ -36,6 +36,7 @@ function el( tagName, attrs = {}, text = '' ) {
 		id: attrs.id || '',
 		value: attrs.value || '',
 		textContent: text,
+		innerHTML: '',
 		children: [],
 		parentNode: null,
 		style: { display: '' },
@@ -145,6 +146,12 @@ function dashboardDom( modules ) {
 	body.appendChild( statIcon );
 	body.appendChild( bar );
 
+	const submissionList = el( 'ul', { className: 'wp-submenu' } );
+	submissionList.innerHTML = '<li>Dashboard</li><li>Modules</li>';
+	const toplevel = el( 'li', { id: 'toplevel_page_rankkernel' } );
+	toplevel.appendChild( submissionList );
+	body.appendChild( toplevel );
+
 	const byId = {
 		'rk-attention-count': attentionCount,
 		'rk-attention-tag': attentionTag,
@@ -152,7 +159,8 @@ function dashboardDom( modules ) {
 		'rk-attention-bar': bar,
 		'rk-attention-bar-count': barCount,
 		'rk-attention-bar-names': barNames,
-		'rk-attention-bar-text': barText
+		'rk-attention-bar-text': barText,
+		toplevel_page_rankkernel: toplevel
 	};
 
 	const document = {
@@ -162,7 +170,7 @@ function dashboardDom( modules ) {
 		addEventListener() {}
 	};
 
-	return { document, rows: all, bar, barCount, barNames, barText, attentionCount, statIcon };
+	return { document, rows: all, bar, barCount, barNames, barText, attentionCount, statIcon, submenu: submissionList };
 }
 
 function runDashboard( sandbox ) {
@@ -177,9 +185,11 @@ test( 'toggle POSTs to REST and flips switch plus attention in place', async () 
 	const calls = [];
 	const sandbox = {
 		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak() {} }, i18n: { __: ( t ) => t } },
 		fetch( url, opts ) {
 			calls.push( { url, opts } );
-			return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); }, text() { return Promise.resolve( '' ); } } );
 		}
 	};
 	sandbox.window = Object.assign( sandbox, {
@@ -198,11 +208,16 @@ test( 'toggle POSTs to REST and flips switch plus attention in place', async () 
 	await new Promise( ( r ) => setImmediate( r ) );
 
 	assert.equal( prevented, true );
-	assert.equal( calls.length, 1 );
-	assert.equal( calls[ 0 ].url, '/wp-json/rankkernel/v1/modules/redirects' );
-	assert.equal( calls[ 0 ].opts.method, 'POST' );
-	assert.equal( calls[ 0 ].opts.headers[ 'X-WP-Nonce' ], 'abc' );
-	assert.equal( calls[ 0 ].opts.body, JSON.stringify( { enabled: true } ) );
+	const posts = calls.filter( ( c ) => c.opts && 'POST' === c.opts.method );
+	assert.equal( posts.length, 1 );
+	assert.equal( posts[ 0 ].url, '/wp-json/rankkernel/v1/modules/redirects' );
+	assert.equal( posts[ 0 ].opts.headers[ 'X-WP-Nonce' ], 'abc' );
+	assert.equal( posts[ 0 ].opts.body, JSON.stringify( { enabled: true } ) );
+
+	// A successful toggle also reloads the current page to refresh the menu.
+	const gets = calls.filter( ( c ) => ! c.opts || ! c.opts.method );
+	assert.equal( gets.length, 1 );
+	assert.equal( gets[ 0 ].url, '/wp-admin/admin.php?page=rankkernel' );
 
 	assert.equal( row.btn.getAttribute( 'aria-checked' ), 'true' );
 	assert.ok( row.btn.classList.contains( 'is-on' ) );
@@ -277,4 +292,358 @@ test( 'planned modules are never wired', () => {
 
 	assert.equal( sandbox.document.querySelectorAll( 'form.rk-dashboard-module-toggle' ).length, 0 );
 	assert.equal( plannedBtn.getAttribute( 'aria-checked' ), 'false' );
+} );
+
+/**
+ * A DOMParser stub whose parse returns a "document" exposing the given
+ * markup as the rankkernel submenu contents.
+ */
+function DomParserStub( markup ) {
+	return function () {
+		return {
+			parseFromString() {
+				return {
+					getElementById( id ) {
+						if ( 'toplevel_page_rankkernel' !== id ) {
+							return null;
+						}
+
+						return {
+							querySelector() {
+								return { innerHTML: markup };
+							}
+						};
+					}
+				};
+			}
+		};
+	};
+}
+
+function deferred() {
+	let resolve;
+	let reject;
+	const promise = new Promise( ( res, rej ) => { resolve = res; reject = rej; } );
+	return { promise, resolve, reject };
+}
+
+test( 'successful toggle swaps the live submenu when markup differs', async () => {
+	const dom = dashboardDom( [ { id: 'redirects', label: 'Redirects', enabled: false } ] );
+	dom.submenu.innerHTML = '<li>Dashboard</li><li>Redirects</li>';
+	const spoken = [];
+	const calls = [];
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak( m ) { spoken.push( m ); } }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		fetch( url, opts ) {
+			calls.push( { url, opts } );
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			return Promise.resolve( { ok: true, text() { return Promise.resolve( '<li>Dashboard</li><li>Instant Indexing</li>' ); } } );
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.DOMParser = DomParserStub( '<li>Dashboard</li><li>Instant Indexing</li>' );
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li><li>Instant Indexing</li>' );
+	assert.equal( spoken.length, 1 );
+	assert.equal( spoken[ 0 ], 'Sidebar menu updated.' );
+	assert.equal( dom.rows[ 0 ].btn.getAttribute( 'aria-checked' ), 'true' );
+	assert.ok( dom.rows[ 0 ].btn.classList.contains( 'is-on' ) );
+
+	// Reduced motion: the swap is immediate, no fade styles applied.
+	assert.equal( dom.submenu.style.transition, undefined );
+} );
+
+test( 'unchanged normalized markup leaves the submenu and announcement alone', async () => {
+	const dom = dashboardDom( [ { id: '404', label: '404', enabled: true } ] );
+	dom.submenu.innerHTML = '<li>Dashboard</li><li>404 Monitor</li>';
+	const spoken = [];
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak( m ) { spoken.push( m ); } }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		fetch( url, opts ) {
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			return Promise.resolve( { ok: true, text() { return Promise.resolve( "\n <li>Dashboard</li>\n <li>404 Monitor</li>\n" ); } } );
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.DOMParser = DomParserStub( '\n <li>Dashboard</li>\n <li>404 Monitor</li>\n' );
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li><li>404 Monitor</li>' );
+	assert.equal( spoken.length, 0 );
+} );
+
+test( 'no menu refresh fires when the toggle POST fails', async () => {
+	const dom = dashboardDom( [ { id: 'robots', label: 'Robots', enabled: false } ] );
+	const calls = [];
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak() {} }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		fetch( url, opts ) {
+			calls.push( { url, opts } );
+			return Promise.resolve( { ok: false, status: 500 } );
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.DOMParser = DomParserStub( '<li>changed</li>' );
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( calls.length, 1 );
+	assert.equal( dom.rows[ 0 ].form.nativeSubmit, true );
+	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li><li>Modules</li>' );
+} );
+
+test( 'a failed menu refresh leaves the menu untouched', async () => {
+	const dom = dashboardDom( [ { id: 'metadata', label: 'Metadata', enabled: true } ] );
+	dom.submenu.innerHTML = '<li>Dashboard</li>';
+	const seen = {};
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak( m ) { seen.spoken = m; } }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		fetch( url, opts ) {
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			return Promise.reject( new Error( 'offline' ) );
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.DOMParser = DomParserStub( '<li>changed</li>' );
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>Dashboard</li>' );
+	assert.equal( seen.spoken, undefined );
+} );
+
+test( 'the last toggle wins while a refresh is in flight', async () => {
+	const dom = dashboardDom( [
+		{ id: 'metadata', label: 'Metadata', enabled: true },
+		{ id: 'redirects', label: 'Redirects', enabled: false }
+	] );
+	dom.submenu.innerHTML = '<li>original</li>';
+	const gets = [];
+	const controllers = [];
+	function AbortControllerStub() {
+		this.signal = { aborted: false };
+		this.abortCalls = 0;
+		controllers.push( this );
+	}
+	AbortControllerStub.prototype.abort = function () {
+		this.abortCalls++;
+		this.signal.aborted = true;
+	};
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak() {} }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		AbortController: AbortControllerStub,
+		fetch( url, opts ) {
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			const d = deferred();
+			gets.push( d );
+			return d.promise;
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.AbortController = AbortControllerStub;
+
+	let parsedFrom = null;
+	sandbox.window.DOMParser = function () {
+		return {
+			parseFromString( html ) {
+				parsedFrom = html;
+				return {
+					getElementById( id ) {
+						if ( 'toplevel_page_rankkernel' !== id ) {
+							return null;
+						}
+
+						return { querySelector: () => ( { innerHTML: html } ) };
+					}
+				};
+			}
+		};
+	};
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 4; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	dom.rows[ 1 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 4; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( gets.length, 2 );
+	assert.equal( controllers.length, 2 );
+	assert.equal( controllers[ 0 ].abortCalls, 1 );
+
+	// The stale first response is dropped even though it would differ.
+	gets[ 0 ].resolve( { ok: true, text() { return Promise.resolve( '<li>stale</li>' ); } } );
+
+	for ( let i = 0; i < 4; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>original</li>' );
+
+	gets[ 1 ].resolve( { ok: true, text() { return Promise.resolve( '<li>fresh</li>' ); } } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>fresh</li>' );
+} );
+
+test( 'reduced motion is honored when swapping the submenu', async () => {
+	const dom = dashboardDom( [ { id: 'metadata', label: 'Metadata', enabled: true } ] );
+	dom.submenu.innerHTML = '<li>old</li>';
+	const captured = {};
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak() {} }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: false }; },
+		fetch( url, opts ) {
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			return Promise.resolve( { ok: true, text() { return Promise.resolve( '<li>new</li>' ); } } );
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.DOMParser = DomParserStub( '<li>new</li>' );
+	sandbox.setTimeout = ( fn ) => { captured.fn = fn; return 1; };
+	sandbox.window.setTimeout = sandbox.setTimeout;
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	// With motion allowed the submenu starts faded out and the delayed swap was scheduled.
+	assert.equal( dom.submenu.style.opacity, '0' );
+	assert.equal( typeof captured.fn, 'function' );
+	assert.equal( dom.submenu.innerHTML, '<li>old</li>' );
+
+	captured.fn();
+
+	assert.equal( dom.submenu.innerHTML, '<li>new</li>' );
+	assert.equal( dom.submenu.style.opacity, '1' );
+} );
+
+test( 'menu refresh helpers are exposed for direct unit tests', () => {
+	const dom = dashboardDom( [] );
+	const sandbox = { document: dom.document, fetch() { throw new Error( 'no fetch' ); } };
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: 'u', restNonce: 'n' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+
+	runDashboard( sandbox );
+
+	const api = sandbox.rankkernelMenuRefresh;
+	assert.equal( typeof api.submenusEqual, 'function' );
+	// Inter-tag whitespace and padding are formatting noise: equal.
+	assert.equal( api.submenusEqual( '<li>a</li>\n<li>b</li>', '  <li>a</li><li>b</li> ' ), true );
+	// Inner-text spaces change the rendered label, so they stay different: a
+	// false "different" only triggers a harmless extra swap, while a false
+	// "equal" would skip a needed menu update.
+	assert.equal( api.submenusEqual( '<li> a </li>', '<li>a</li>' ), false );
+	assert.equal( api.submenusEqual( '<li>a</li>', '<li>b</li>' ), false );
+	assert.equal( api.normalizeHtml( ' <li>\n  a\n</li> ' ), '<li> a </li>' );
 } );
