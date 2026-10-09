@@ -228,11 +228,9 @@ final class Matcher {
 		$winner = null;
 		$bestId = PHP_INT_MAX;
 
+		// Performance optimization: candidate rules are pre-bucketed by match_type in pick_winner(),
+		// eliminating redundant match_type checks per iteration.
 		foreach ( $rules as $rule ) {
-			if ( 'exact' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
 			if ( (string) ( $rule['source'] ?? '' ) !== $path ) {
 				continue;
 			}
@@ -260,11 +258,9 @@ final class Matcher {
 		$bestLen = -1;
 		$bestId  = PHP_INT_MAX;
 
+		// Performance optimization: candidate rules are pre-bucketed by match_type in pick_winner(),
+		// eliminating redundant match_type checks per iteration.
 		foreach ( $rules as $rule ) {
-			if ( 'prefix' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
 			$source = (string) ( $rule['source'] ?? '' );
 
 			if ( '' === $source || ! str_starts_with( $path, $source ) ) {
@@ -295,11 +291,9 @@ final class Matcher {
 		$winner = null;
 		$bestId = PHP_INT_MAX;
 
+		// Performance optimization: candidate rules are pre-bucketed by match_type in pick_winner(),
+		// eliminating redundant match_type checks per iteration.
 		foreach ( $rules as $rule ) {
-			if ( 'wildcard' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
 			$source = (string) ( $rule['source'] ?? '' );
 
 			if ( '' === $source ) {
@@ -332,11 +326,9 @@ final class Matcher {
 		$winner = null;
 		$bestId = PHP_INT_MAX;
 
+		// Performance optimization: candidate rules are pre-bucketed by match_type in pick_winner(),
+		// eliminating redundant match_type checks per iteration.
 		foreach ( $rules as $rule ) {
-			if ( 'contains' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
 			$source = (string) ( $rule['source'] ?? '' );
 
 			if ( '' === $source || false === strpos( $path, $source ) ) {
@@ -365,11 +357,9 @@ final class Matcher {
 		$winner = null;
 		$bestId = PHP_INT_MAX;
 
+		// Performance optimization: candidate rules are pre-bucketed by match_type in pick_winner(),
+		// eliminating redundant match_type checks per iteration.
 		foreach ( $rules as $rule ) {
-			if ( 'suffix' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
 			$source = (string) ( $rule['source'] ?? '' );
 
 			if ( '' === $source || ! str_ends_with( $path, $source ) ) {
@@ -398,15 +388,8 @@ final class Matcher {
 	 * @return array<string, mixed>|null Winner or null.
 	 */
 	private static function pick_regex( string $path, array $rules ): ?array {
-		$candidates = [];
-
-		foreach ( $rules as $rule ) {
-			if ( 'regex' !== (string) ( $rule['match_type'] ?? '' ) ) {
-				continue;
-			}
-
-			$candidates[] = $rule;
-		}
+		// Performance optimization: rules are pre-bucketed by match_type in pick_winner().
+		$candidates = $rules;
 
 		usort(
 			$candidates,
