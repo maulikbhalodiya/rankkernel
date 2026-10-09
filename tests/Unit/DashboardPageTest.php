@@ -216,8 +216,9 @@ final class DashboardPageTest extends TestCase {
 	 * Test asset enqueue is gated to the dashboard screen.
 	 */
 	public function test_enqueue_is_gated(): void {
-		$registered = [];
-		$enqueued   = [];
+		$registered   = [];
+		$enqueued     = [];
+		$translatedJS = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registered ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
@@ -230,6 +231,11 @@ final class DashboardPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default', string $path = '' ) use ( &$translatedJS ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_set_script_translations signature.
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			function ( string $handle ) use ( &$enqueued ): void {
 				$enqueued[] = $handle;
@@ -256,6 +262,8 @@ final class DashboardPageTest extends TestCase {
 		// The toggle script posts to the REST module endpoint with a wp_rest nonce.
 		$this->assertSame( 'https://example.com/wp-json/rankkernel/v1/modules', $localized['rankkernelDashboard']['modulesUrl'] );
 		$this->assertSame( 'nonce:wp_rest', $localized['rankkernelDashboard']['restNonce'] );
+		// Script translations are registered with the rankkernel text domain.
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-dashboard-admin'] ?? '' );
 	}
 
 	/**

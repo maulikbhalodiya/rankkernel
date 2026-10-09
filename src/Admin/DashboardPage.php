@@ -117,6 +117,11 @@ final class DashboardPage {
 		$src = plugins_url( 'assets/js/dashboard-admin.js', RANKKERNEL_FILE );
 
 		wp_register_script( 'rankkernel-dashboard-admin', $src, [ 'wp-a11y', 'wp-i18n' ], \RankKernel\Plugin::version(), true );
+
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-dashboard-admin', 'rankkernel' );
+		}
+
 		wp_enqueue_script( 'rankkernel-dashboard-admin' );
 
 		if ( ! function_exists( 'wp_localize_script' ) ) {
