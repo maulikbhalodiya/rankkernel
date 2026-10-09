@@ -394,6 +394,74 @@ final class SupportDeliveryTest extends TestCase {
 	}
 
 	/**
+	 * ValidateScreenshot passes explicit $mimes array including JPEG extensions to wp_check_filetype_and_ext.
+	 */
+	public function test_validate_screenshot_passes_explicit_mimes(): void {
+		Functions\when( 'is_uploaded_file' )->justReturn( true );
+
+		$passedMimes = null;
+		Functions\when( 'wp_check_filetype_and_ext' )->alias(
+			static function ( string $path, string $name, ?array $mimes = null ) use ( &$passedMimes ): array {
+				$passedMimes = $mimes;
+
+				return [
+					'ext'  => 'jpg',
+					'type' => 'image/jpeg',
+				];
+			}
+		);
+
+		$result = SupportDelivery::validateScreenshot(
+			[
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+				'name'     => 'screenshot.jpg',
+				'type'     => 'image/jpeg',
+				'tmp_name' => '/tmp/screenshot.jpg',
+			]
+		);
+
+		$this->assertTrue( $result );
+		$this->assertIsArray( $passedMimes );
+		$this->assertSame( 'image/jpeg', $passedMimes['jpg|jpeg|jpe'] ?? null );
+	}
+
+	/**
+	 * StoreScreenshot passes explicit $mimes array to wp_handle_upload.
+	 */
+	public function test_store_screenshot_passes_explicit_mimes_to_handle_upload(): void {
+		Functions\when( 'wp_upload_dir' )->justReturn( [ 'basedir' => '/tmp/uploads' ] );
+
+		$capturedMimes = null;
+		Functions\when( 'wp_handle_upload' )->alias(
+			static function ( array $file, array $overrides ) use ( &$capturedMimes ): array {
+				$capturedMimes = $overrides['mimes'] ?? null;
+
+				return [
+					'file' => '/tmp/uploads/shot.jpg',
+					'url'  => 'http://example.org/uploads/shot.jpg',
+					'type' => 'image/jpeg',
+					'path' => '/tmp/uploads/shot.jpg',
+				];
+			}
+		);
+
+		$result = SupportDelivery::storeScreenshot(
+			[
+				'name'     => 'shot.jpg',
+				'type'     => 'image/jpeg',
+				'tmp_name' => '/tmp/shot.jpg',
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+			]
+		);
+
+		$this->assertSame( '/tmp/uploads/shot.jpg', $result );
+		$this->assertIsArray( $capturedMimes );
+		$this->assertSame( 'image/jpeg', $capturedMimes['jpg|jpeg|jpe'] ?? null );
+	}
+
+	/**
 	 * A successful send returns true.
 	 */
 	public function test_a_successful_send_returns_true(): void {
