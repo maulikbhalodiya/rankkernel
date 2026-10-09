@@ -2288,3 +2288,97 @@ test( 'the rebuilt pagination and clear filters literals exist in the PHP view',
 test( 'logPageNumbers does not shadow the global window object', () => {
 	assert.doesNotMatch( source( 'instant-indexing-admin.js' ), /var window\s*=/ );
 } );
+
+test( 'clear-log submit proceeds when the consequence confirm is accepted', () => {
+	const wired = [];
+	const form = {
+		getAttribute( name ) {
+			return 'data-rk-confirm' === name ? 'Clear everything?' : null;
+		},
+		addEventListener( type, handler ) {
+			wired.push( { type, handler } );
+		},
+		dispatchSubmit() {
+			let prevented = false;
+			const handler = wired.filter( ( w ) => 'submit' === w.type ).map( ( w ) => w.handler )[ 0 ];
+
+			handler( { preventDefault() { prevented = true; }, target: form } );
+
+			return prevented;
+		}
+	};
+	const sandbox = {
+		document: {
+			readyState: 'complete',
+			addEventListener() {},
+			querySelectorAll( selector ) {
+				return '.rk-instant-indexing form.rk-clear-form[data-rk-confirm]' === selector ? [ form ] : [];
+			},
+			querySelector() {
+				return null;
+			},
+			getElementById() {
+				return null;
+			}
+		},
+		rankkernelInstantIndexing: {}
+	};
+	sandbox.window = sandbox;
+	sandbox.window.confirm = () => true;
+	sandbox.window.setTimeout = ( callback ) => 0;
+	sandbox.window.clearTimeout = () => {};
+	sandbox.setTimeout = sandbox.window.setTimeout;
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	assert.equal( form.dispatchSubmit(), false, 'accepting the confirm must let the submit through' );
+} );
+
+test( 'clear-log submit is blocked when the consequence confirm is dismissed', () => {
+	let confirmMessage = '';
+	const wired = [];
+	const form = {
+		getAttribute( name ) {
+			return 'data-rk-confirm' === name ? 'Clear everything?' : null;
+		},
+		addEventListener( type, handler ) {
+			wired.push( { type, handler } );
+		},
+		dispatchSubmit() {
+			let prevented = false;
+			const handler = wired.filter( ( w ) => 'submit' === w.type ).map( ( w ) => w.handler )[ 0 ];
+
+			handler( { preventDefault() { prevented = true; }, target: form } );
+
+			return prevented;
+		}
+	};
+	const sandbox = {
+		document: {
+			readyState: 'complete',
+			addEventListener() {},
+			querySelectorAll( selector ) {
+				return '.rk-instant-indexing form.rk-clear-form[data-rk-confirm]' === selector ? [ form ] : [];
+			},
+			querySelector() {
+				return null;
+			},
+			getElementById() {
+				return null;
+			}
+		},
+		rankkernelInstantIndexing: {}
+	};
+	sandbox.window = sandbox;
+	sandbox.window.confirm = ( message ) => {
+		confirmMessage = message;
+
+		return false;
+	};
+	sandbox.window.setTimeout = ( callback ) => 0;
+	sandbox.window.clearTimeout = () => {};
+	sandbox.setTimeout = sandbox.window.setTimeout;
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	assert.equal( form.dispatchSubmit(), true, 'dismissing the confirm must block the submit' );
+	assert.equal( confirmMessage, 'Clear everything?', 'the forms own message must be asked' );
+} );

@@ -425,6 +425,28 @@
 	}
 
 	/**
+	 * Confirm destructive clear-log submits, mirroring the monitor page.
+	 *
+	 * The form carries its message in data-rk-confirm; without JavaScript
+	 * the submit proceeds as before, so this is enhancement only.
+	 */
+	function wireClearConfirm( scope ) {
+		var forms = scope.querySelectorAll( '.rk-instant-indexing form.rk-clear-form[data-rk-confirm]' );
+		var index;
+
+		for ( index = 0; index < forms.length; index++ ) {
+			forms[ index ].addEventListener( 'submit', function ( event ) {
+				var form = event.target || null;
+				var message = form && form.getAttribute ? form.getAttribute( 'data-rk-confirm' ) : '';
+
+				if ( ! window.confirm( message || __( 'Are you sure?', 'rankkernel' ) ) ) {
+					event.preventDefault();
+				}
+			} );
+		}
+	}
+
+	/**
 	 * Whether a collapsible panel is currently open.
 	 *
 	 * The hidden property is the state source, with the attribute as
@@ -1755,6 +1777,7 @@
 		if ( document.querySelectorAll ) {
 			wireDismiss( document );
 			wireAutoDismiss( document );
+			wireClearConfirm( document );
 		}
 
 		if ( document.querySelector ) {
