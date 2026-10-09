@@ -71,7 +71,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Full history, the guard compares the branch against its merge base.
           fetch-depth: 0
