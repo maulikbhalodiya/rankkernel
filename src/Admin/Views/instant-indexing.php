@@ -286,8 +286,8 @@ defined( 'ABSPATH' ) || exit;
 				 * never counted in stats, tabs or pagination totals.
 				 */
 				?>
-				<div class="rk-preview" aria-label="<?php echo esc_attr( __( 'Example preview', 'rankkernel' ) ); ?>">
-					<p class="rk-preview-label"><?php echo esc_html__( 'Example preview. These rows are illustrative and are not real submissions.', 'rankkernel' ); ?></p>
+				<div class="rk-preview" aria-labelledby="rk-preview-label">
+					<p class="rk-preview-label" id="rk-preview-label"><?php echo esc_html__( 'Example preview. These rows are illustrative and are not real submissions.', 'rankkernel' ); ?></p>
 					<div class="rk-ui-table-wrap">
 						<table class="rk-ui-table">
 							<thead>

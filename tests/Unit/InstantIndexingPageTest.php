@@ -2371,6 +2371,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'Example preview.', $html );
 		$this->assertStringContainsString( '<th scope="col" class="rk-col-actions">Actions</th>', $html );
 		$this->assertStringContainsString( '<td class="rk-col-actions"></td>', $html );
+		$this->assertStringContainsString( 'aria-labelledby="rk-preview-label"', $html );
+		$this->assertStringContainsString( 'id="rk-preview-label"', $html );
 	}
 
 	/**
