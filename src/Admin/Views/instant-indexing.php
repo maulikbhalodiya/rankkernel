@@ -263,7 +263,7 @@ defined( 'ABSPATH' ) || exit;
 					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ __( '%d entries', 'rankkernel' ), $stats['total'] ) ); ?></span>
 				</div>
 				<?php if ( $listHasRows ) : ?>
-					<form method="post" action="" class="rk-clear-form">
+					<form method="post" action="" class="rk-clear-form" data-rk-confirm="<?php echo esc_attr__( 'Clear the whole submission history? This cannot be undone.', 'rankkernel' ); ?>">
 						<?php wp_nonce_field( $nonceClear ); ?>
 						<input type="hidden" name="rankkernel_indexnow_action" value="clear" />
 						<span class="rk-clear-wrap">
