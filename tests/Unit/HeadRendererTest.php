@@ -341,6 +341,25 @@ final class HeadRendererTest extends TestCase {
 	}
 
 	/**
+	 * Test home description falls back to the site tagline.
+	 */
+	public function test_home_description_falls_back_to_tagline(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'home', 0, [ 'description' => '' ], [ 'description_template' => '' ] );
+		Functions\when( 'get_bloginfo' )->alias(
+			static function ( string $show = '' ): string {
+				return 'description' === $show ? 'Just another WordPress site' : 'My Site';
+			}
+		);
+		Functions\when( 'get_the_excerpt' )->justReturn( '' );
+		Functions\when( 'get_post_field' )->justReturn( '' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( 'name="description"', $out );
+		$this->assertStringContainsString( 'Just another WordPress site', $out );
+	}
+
+	/**
 	 * Test render canonical escaped.
 	 */
 	public function test_render_canonical_escaped(): void {
