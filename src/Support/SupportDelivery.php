@@ -228,14 +228,7 @@ final class SupportDelivery {
 
 		// The browser-supplied type is a hint, not evidence, so the file's own
 		// contents decide what it is.
-		$mimes = [
-			'jpg|jpeg|jpe' => 'image/jpeg',
-			'png'          => 'image/png',
-			'gif'          => 'image/gif',
-			'webp'         => 'image/webp',
-		];
-
-		$checked = wp_check_filetype_and_ext( $tmp, $name, $mimes );
+		$checked = wp_check_filetype_and_ext( $tmp, $name, SupportRequest::screenshotMimes() );
 
 		if ( ! empty( $checked['type'] ) ) {
 			$type = (string) $checked['type'];
@@ -265,17 +258,9 @@ final class SupportDelivery {
 			);
 		}
 
-		// Explicit MIME map ensuring jpg, jpeg, png, gif, webp are all accepted.
-		$mimes = [
-			'jpg|jpeg|jpe' => 'image/jpeg',
-			'png'          => 'image/png',
-			'gif'          => 'image/gif',
-			'webp'         => 'image/webp',
-		];
-
 		$overrides = [
 			'test_form' => false,
-			'mimes'     => $mimes,
+			'mimes'     => SupportRequest::screenshotMimes(),
 		];
 
 		// The stub types this as array, but the real function returns WP_Error
