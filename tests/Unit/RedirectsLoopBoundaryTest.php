@@ -97,6 +97,8 @@ final class RedirectsLoopBoundaryTest extends TestCase {
 		);
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		// Watcher tests simulate an administrator renaming flow.
+		Functions\when( 'current_user_can' )->justReturn( true );
 	}
 
 	/**

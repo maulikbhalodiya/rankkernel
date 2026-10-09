@@ -374,6 +374,30 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Count the active exact rules against the shared row budget.
+	 *
+	 * Exact rules bypass the pattern cap by design, so unattended writers
+	 * check this bound themselves instead of growing the table without limit.
+	 *
+	 * @return int Active exact rule count.
+	 */
+	public function count_exact_rules(): int {
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 0;
+		}
+
+		$table = RedirectTable::name();
+		$sql   = "SELECT COUNT(*) FROM `{$table}` WHERE is_active = 1 AND match_type = 'exact'";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, single bounded count with no user input.
+		$count = $db->get_var( $sql );
+
+		return (int) $count;
+	}
+
+	/**
 	 * Count active regex rules, the expensive bounded tier.
 	 *
 	 * @return int Active regex rule count.

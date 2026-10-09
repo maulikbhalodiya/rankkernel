@@ -101,10 +101,12 @@ final class SlugWatcher {
 	/**
 	 * Create one 301 when a post or page slug actually changed.
 	 *
-	 * Skips when the auto slug setting is off, when the post type is outside
-	 * posts and pages, for revisions and autosaves, when the slug is
+	 * Skips when the auto slug setting is off, when the writer lacks the
+	 * capability, when the post type is outside posts and pages, when the
+	 * result is not published, for revisions and autosaves, when the slug is
 	 * unchanged, when the source is already redirected, when the new rule
-	 * would resolve to itself, and when the new rule would create a cycle.
+	 * would resolve to itself, when the exact rule budget is full, and when
+	 * the new rule would create a cycle.
 	 * An inconclusive loop or chain analysis also refuses the automatic
 	 * creation: with no administrator in the loop to show the warning to,
 	 * fail closed instead of storing a possibly looping rule. Points
@@ -121,6 +123,14 @@ final class SlugWatcher {
 			return false;
 		}
 
+		// Every other write path into the redirect table requires
+		// manage_options. An unattended hook must not mint public 301s for
+		// writers who could never create one by hand, so contexts without an
+		// authorized user fail closed here.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
 		if ( ! is_object( $postAfter ) || ! is_object( $postBefore ) ) {
 			return false;
 		}
@@ -131,6 +141,13 @@ final class SlugWatcher {
 		$type = (string) ( $after['post_type'] ?? '' );
 
 		if ( ! in_array( $type, self::TYPES, true ) ) {
+			return false;
+		}
+
+		// Only published results have public URLs worth preserving. Drafts
+		// were never served, and un-publishing removes the destination, so
+		// neither transition creates a redirect.
+		if ( 'publish' !== (string) ( $after['post_status'] ?? '' ) ) {
 			return false;
 		}
 
@@ -183,6 +200,13 @@ final class SlugWatcher {
 		}
 
 		$target = $this->final_target( $proposed, $candidates, $newPath );
+
+		// Exact rules bypass the pattern cap by design, so the automatic path
+		// carries its own bound against the same budget. Without it one
+		// misbehaving writer could grow the table without limit.
+		if ( $this->repository->count_exact_rules() >= RedirectRepository::MAX_PATTERNS ) {
+			return false;
+		}
 
 		$newId = $this->repository->insert(
 			[

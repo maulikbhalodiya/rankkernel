@@ -123,6 +123,7 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		);
 		Functions\when( 'wp_is_post_revision' )->alias( fn (): bool => $this->isRevision );
 		Functions\when( 'wp_is_post_autosave' )->alias( fn (): bool => $this->isAutosave );
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook, mixed $callback, int $priority = 10, int $args = 1 ): bool {
 				$this->hooks[] = [
@@ -157,15 +158,17 @@ final class RedirectsSlugWatcherTest extends TestCase {
 	/**
 	 * Build a post object double.
 	 *
-	 * @param string $slug Slug.
-	 * @param string $type Type.
+	 * @param string $slug   Slug.
+	 * @param string $type   Type.
+	 * @param string $status Status, publish like a real rename.
 	 * @return object Post shaped object.
 	 */
-	private function makePost( string $slug, string $type = 'post' ): object {
+	private function makePost( string $slug, string $type = 'post', string $status = 'publish' ): object {
 		return (object) [
-			'ID'        => 5,
-			'post_type' => $type,
-			'post_name' => $slug,
+			'ID'          => 5,
+			'post_type'   => $type,
+			'post_name'   => $slug,
+			'post_status' => $status,
 		];
 	}
 
@@ -226,6 +229,68 @@ final class RedirectsSlugWatcherTest extends TestCase {
 		$this->assertTrue( $created );
 		$this->assertCount( 1, $this->db->rows );
 		$this->assertSame( '/old-page', $this->db->rows[1]['source'] );
+	}
+
+	/**
+	 * Test a writer without the capability creates nothing.
+	 */
+	public function test_refuses_without_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$created = $this->makeWatcher()->handle_post_updated(
+			5,
+			$this->makePost( 'new-slug' ),
+			$this->makePost( 'old-slug' )
+		);
+
+		$this->assertFalse( $created );
+		$this->assertCount( 0, $this->db->rows );
+	}
+
+	/**
+	 * Test renaming a draft creates nothing, its URL was never public.
+	 */
+	public function test_refuses_draft_rename(): void {
+		$created = $this->makeWatcher()->handle_post_updated(
+			5,
+			$this->makePost( 'new-slug', 'post', 'draft' ),
+			$this->makePost( 'old-slug', 'post', 'draft' )
+		);
+
+		$this->assertFalse( $created );
+		$this->assertCount( 0, $this->db->rows );
+	}
+
+	/**
+	 * Test un-publishing creates nothing.
+	 */
+	public function test_refuses_unpublish_transition(): void {
+		$created = $this->makeWatcher()->handle_post_updated(
+			5,
+			$this->makePost( 'new-slug', 'post', 'draft' ),
+			$this->makePost( 'old-slug', 'post', 'publish' )
+		);
+
+		$this->assertFalse( $created );
+		$this->assertCount( 0, $this->db->rows );
+	}
+
+	/**
+	 * Test creation stops when the exact rule budget is full.
+	 */
+	public function test_refuses_at_exact_cap(): void {
+		for ( $i = 0; $i < RedirectRepository::MAX_PATTERNS; $i++ ) {
+			$this->seedRule( '/old-' . $i, '/new-' . $i );
+		}
+
+		$created = $this->makeWatcher()->handle_post_updated(
+			5,
+			$this->makePost( 'new-slug' ),
+			$this->makePost( 'old-slug' )
+		);
+
+		$this->assertFalse( $created );
+		$this->assertCount( RedirectRepository::MAX_PATTERNS, $this->db->rows );
 	}
 
 	/**
