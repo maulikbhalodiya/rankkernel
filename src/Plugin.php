@@ -121,12 +121,13 @@ final class Plugin {
 		$migrationRunner = new MigrationRunner();
 
 		/**
-		 * Baseline migration, marks the initial schema-less baseline (v1 core
-		 * has zero required tables per blueprint §D.4).
+		 * Baseline migration, establishes the module tables through the same
+		 * diff path every later version uses, so the schema can evolve.
 		 */
 		$migrationRunner->register(
 			'0.1.0',
 			static function (): void {
+				MigrationRunner::baselineSchema();
 			}
 		);
 

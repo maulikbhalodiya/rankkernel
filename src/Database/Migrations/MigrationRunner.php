@@ -87,6 +87,20 @@ final class MigrationRunner {
 	}
 
 	/**
+	 * Run the 0.1.0 baseline schema for all module tables.
+	 *
+	 * Each table class diffs its own DDL, so this stays correct as columns
+	 * are added in later versions without touching this method.
+	 *
+	 * @return void
+	 */
+	public static function baselineSchema(): void {
+		\RankKernel\Modules\Monitor\LogTable::ensureTables();
+		\RankKernel\Modules\Redirects\RedirectTable::ensureTables();
+		\RankKernel\Modules\InstantIndexing\LogTable::ensureTables();
+	}
+
+	/**
 	 * Get current ledger version (cached after first read).
 	 *
 	 * @return string Stored version or "0.0.0" when ledger absent.
@@ -108,6 +122,27 @@ final class MigrationRunner {
 	}
 
 	/**
+	 * Release core of a version string, without any pre-release suffix.
+	 *
+	 * Test and development builds tag the constant (e.g. 0.1.0-test), and
+	 * version_compare ranks an unknown suffix below the bare release, which
+	 * would misread every normal run as a downgrade. Comparing release cores
+	 * keeps suffixed builds behaving like the release they track.
+	 *
+	 * @param string $version Full version.
+	 * @return string Leading numeric release.
+	 */
+	private static function baseVersion( string $version ): string {
+		$dash = strpos( $version, '-' );
+
+		if ( false === $dash ) {
+			return $version;
+		}
+
+		return substr( $version, 0, $dash );
+	}
+
+	/**
 	 * Run pending migrations in ascending version order.
 	 *
 	 * Fires on `init` priority 10. The ledger is persisted after each
@@ -125,6 +160,26 @@ final class MigrationRunner {
 	 */
 	public function maybeRun(): void {
 		$current = $this->currentVersion();
+
+		// A ledger newer than the running code means a downgrade. Migrations
+		// only run forward, so there is nothing safe to execute — but
+		// silently returning would hide a broken install, so the downgrade is
+		// announced loudly instead.
+		$code = self::baseVersion( \RankKernel\Plugin::version() );
+
+		if ( version_compare( self::baseVersion( $current ), $code, '>' ) ) {
+			do_action( 'rankkernel/migration/downgrade', $current, $code ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+			if ( function_exists( 'wp_trigger_error' ) ) {
+				wp_trigger_error(
+					__METHOD__,
+					sprintf( 'RankKernel database ledger %s is newer than plugin version %s; migrations skipped.', $current, $code ),
+					E_USER_WARNING
+				);
+			}
+
+			return;
+		}
 
 		// No migrations registered: sync ledger to plugin version if behind.
 		if ( [] === $this->migrations ) {
