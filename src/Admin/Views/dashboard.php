@@ -232,7 +232,8 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 					<div class="rk-dashboard-search">
 						<label class="screen-reader-text" for="rk-modules-search"><?php echo esc_html__( 'Search modules', 'rankkernel' ); ?></label>
 						<span class="rk-icon rk-dashboard-search-icon" aria-hidden="true">search</span>
-						<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" title="<?php echo esc_attr( __( 'Module search is not available in this version.', 'rankkernel' ) ); ?>" disabled />
+						<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" title="<?php echo esc_attr( __( 'Module search is not available in this version.', 'rankkernel' ) ); ?>" disabled aria-describedby="rk-modules-search-note" />
+						<span class="rk-dashboard-count-pill" id="rk-modules-search-note"><?php echo esc_html__( 'Soon', 'rankkernel' ); ?></span>
 					</div>
 				</div>
 
@@ -362,6 +363,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-danger" aria-hidden="true">cancel</span><span><?php echo esc_html__( 'Clear 404 Log', 'rankkernel' ); ?></span></span>
 						</button>
 					</div>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Shortcuts activate as their features land.', 'rankkernel' ); ?></p>
 				</div>
 
 				<?php /* SEO Health. Each row reads the enabled flag of one module, so no status here is invented. */ ?>

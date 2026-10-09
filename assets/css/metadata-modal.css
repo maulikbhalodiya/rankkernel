@@ -95,7 +95,7 @@
 	font-weight: 600;
 	gap: var(--rk-space-2);
 	justify-content: flex-start;
-	margin: 0 0 -2px;
+	margin: 0 0 calc(-1 * var(--rk-space-0));
 	min-height: 0;
 	min-width: 0;
 	padding: 0 0 10px;
@@ -199,7 +199,7 @@ contents boundary. */
 }
 
 .rk-preview-modal .rk-meta-field:not(.rk-image-field) > .rk-count-bar {
-	margin-top: 2px;
+	margin-top: var(--rk-space-0);
 	order: 2;
 }
 
@@ -237,15 +237,15 @@ contents boundary. */
 /* State badge: pill with hollow or filled dot, text never colour alone. */
 .rk-preview-modal .rk-meta-badge {
 	border: 1px solid var(--rk-color-border);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 500;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	line-height: 1.6;
 	padding: 1px 8px;
 }
 
 .rk-preview-modal .rk-meta-badge::before {
-	font-size: 9px;
+	font-size: var(--rk-font-size-2xs);
 	line-height: 1;
 }
 
@@ -383,7 +383,7 @@ contents boundary. */
 .rk-preview-modal .rk-field-status {
 	border: 1px solid transparent;
 	border-radius: var(--rk-radius-sm);
-	font-size: 10px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 600;
 	gap: 4px;
 	line-height: 1.7;
@@ -406,7 +406,7 @@ contents boundary. */
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 	margin-left: auto;
 	min-width: 0;
 }
@@ -414,10 +414,10 @@ contents boundary. */
 .rk-preview-modal .rk-field-actions .button {
 	border-radius: var(--rk-radius-sm);
 	box-shadow: none;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 500;
 	min-height: 0;
-	padding: 2px 6px;
+	padding: var(--rk-space-0) var(--rk-space-1h);
 }
 
 .rk-preview-modal .rk-field-reset {
@@ -438,7 +438,7 @@ contents boundary. */
 	color: var(--rk-color-text);
 	display: inline-flex;
 	gap: 4px;
-	padding: 2px 8px;
+	padding: var(--rk-space-0) var(--rk-space-2);
 }
 
 .rk-preview-modal .rk-token-toggle:hover:not(:disabled) {
@@ -495,7 +495,7 @@ contents boundary. */
 }
 
 .rk-preview-modal .rk-token-help {
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	margin: var(--rk-space-2) 0 10px;
 }
 
@@ -512,11 +512,11 @@ contents boundary. */
 
 .rk-preview-modal .rk-token-group-label {
 	color: var(--rk-color-text-muted);
-	font-size: 10px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 700;
 	grid-column: 1 / -1;
 	letter-spacing: 0.05em;
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 	text-transform: uppercase;
 }
 
@@ -529,11 +529,11 @@ contents boundary. */
 	display: flex;
 	flex: 0 0 auto;
 	flex-direction: row;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	gap: var(--rk-space-2);
 	justify-content: space-between;
 	min-height: 0;
-	padding: 2px 6px;
+	padding: var(--rk-space-0) var(--rk-space-1h);
 	text-align: start;
 	white-space: nowrap;
 	width: 100%;
@@ -547,14 +547,14 @@ contents boundary. */
 .rk-preview-modal .rk-token-name {
 	color: var(--rk-color-primary-active);
 	font-family: var(--rk-font-mono);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 700;
 	overflow-wrap: anywhere;
 }
 
 .rk-preview-modal .rk-token-desc {
 	color: var(--rk-color-text-muted);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -596,7 +596,7 @@ contents boundary. */
 	display: inline-flex;
 	flex: 0 0 auto;
 	gap: 0;
-	padding: 2px;
+	padding: var(--rk-space-0);
 }
 
 .rk-preview-modal .rk-meta-serp-tools .button,
@@ -606,16 +606,16 @@ contents boundary. */
 	border-radius: 999px;
 	box-shadow: none;
 	color: var(--rk-color-text-muted);
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	font-weight: 500;
 	line-height: 1.4;
 	min-height: 0;
-	padding: 2px 10px;
+	padding: var(--rk-space-0) 10px;
 	white-space: nowrap;
 }
 
 .rk-preview-modal .rk-social-switch .button {
-	padding: 2px 12px;
+	padding: var(--rk-space-0) var(--rk-space-3);
 }
 
 .rk-preview-modal .rk-meta-serp-tools .button:hover,
@@ -659,7 +659,7 @@ contents boundary. */
 	color: var(--rk-color-text-secondary);
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 }
 
 .rk-preview-modal .rk-meta-serp-url {
@@ -744,7 +744,7 @@ contents boundary. */
 	color: var(--rk-color-text-muted);
 	display: flex;
 	flex-wrap: wrap;
-	font-size: 11px;
+	font-size: var(--rk-font-size-2xs);
 	gap: var(--rk-space-2);
 	justify-content: space-between;
 	margin: var(--rk-space-1) 0 0;
@@ -754,7 +754,7 @@ contents boundary. */
 .rk-preview-modal .rk-modal-autosave-state {
 	align-items: center;
 	display: inline-flex;
-	gap: 6px;
+	gap: var(--rk-space-1h);
 }
 
 .rk-preview-modal .rk-modal-autosave-dot {
@@ -866,7 +866,7 @@ so they are matched by descendant selectors like the field grid above. */
 	font-size: var(--rk-font-size-xs);
 	font-weight: 500;
 	letter-spacing: 0.05em;
-	margin: 0 0 2px;
+	margin: 0 0 var(--rk-space-0);
 	order: -1;
 	text-transform: uppercase;
 }
