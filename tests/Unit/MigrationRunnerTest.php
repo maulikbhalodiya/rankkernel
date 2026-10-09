@@ -660,4 +660,75 @@ final class MigrationRunnerTest extends TestCase {
 		$this->assertSame( '0.1.0', $first );
 		$this->assertSame( '0.1.0', $second );
 	}
+
+	/**
+	 * Test a ledger newer than the code fires the downgrade path loudly.
+	 */
+	public function test_downgrade_fires_action_and_warns(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( MigrationRunner::LEDGER === $key ) {
+					return '0.2.0';
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$runner = new MigrationRunner();
+		$ran    = false;
+		$runner->register(
+			'0.1.0',
+			static function () use ( &$ran ): void {
+				$ran = true;
+			}
+		);
+
+		$fired = [];
+		Functions\when( 'do_action' )->alias(
+			static function ( string $hook, mixed ...$args ) use ( &$fired ): void {
+				$fired[] = [ $hook, $args ];
+			}
+		);
+
+		$warned = [];
+		Functions\when( 'wp_trigger_error' )->alias(
+			static function ( string $method, string $message, int $type ) use ( &$warned ): void {
+				$warned[] = [ $method, $message, $type ];
+			}
+		);
+
+		$runner->maybeRun();
+
+		$this->assertFalse( $ran, 'no migration runs on a downgraded install' );
+		$this->assertSame( [ [ 'rankkernel/migration/downgrade', [ '0.2.0', '0.1.0' ] ] ], $fired );
+		$this->assertCount( 1, $warned );
+		$this->assertSame( E_USER_WARNING, $warned[0][2] );
+	}
+
+	/**
+	 * Test the baseline schema ensures all three module tables.
+	 */
+	public function test_baseline_schema_ensures_all_three_tables(): void {
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored below.
+		$GLOBALS['wpdb'] = new MonitorFakeDb();
+
+		\RankKernel\Modules\Monitor\LogTable::resetCache();
+		\RankKernel\Modules\Redirects\RedirectTable::resetCache();
+		\RankKernel\Modules\InstantIndexing\LogTable::resetCache();
+
+		$calls = 0;
+		Functions\when( 'dbDelta' )->alias(
+			static function () use ( &$calls ): void {
+				++$calls;
+			}
+		);
+
+		MigrationRunner::baselineSchema();
+
+		$this->assertSame( 3, $calls, 'baseline runs the diff for all three tables' );
+
+		unset( $GLOBALS['wpdb'] );
+	}
 }
