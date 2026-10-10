@@ -507,12 +507,12 @@ final class LlmsFileWriterTest extends TestCase {
 			define( 'DISALLOW_FILE_EDIT', true );
 		}
 
-		$store = $this->stubManagedOption();
-
 		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
-		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
+
+		$this->path = $temp;
+		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
 		$result = $writer->delete();
@@ -534,12 +534,12 @@ final class LlmsFileWriterTest extends TestCase {
 			define( 'DISALLOW_FILE_MODS', true );
 		}
 
-		$store = $this->stubManagedOption();
-
 		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
-		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
+
+		$this->path = $temp;
+		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
 		$result = $writer->delete();
@@ -564,12 +564,12 @@ final class LlmsFileWriterTest extends TestCase {
 			define( 'DISALLOW_FILE_MODS', true );
 		}
 
-		$store = $this->stubManagedOption();
-
 		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
-		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
+
+		$this->path = $temp;
+		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
 		$result = $writer->delete();
