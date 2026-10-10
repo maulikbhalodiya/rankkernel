@@ -788,4 +788,77 @@ final class HowtoPieceTest extends TestCase {
 
 		$this->assertSame( '9 USD', $build['estimatedCost'] );
 	}
+
+	/**
+	 * Test memoization reuses results across isNeeded and build, and invalidates on meta change.
+	 */
+	public function test_memoization_reuses_results_and_invalidates_on_meta_change(): void {
+		$meta = [
+			'schema' => [
+				'howto' => [
+					'name'  => 'Initial Howto',
+					'steps' => [
+						[
+							'title' => 'Step 1',
+							'text'  => 'Do step 1.',
+							'image' => '',
+						],
+					],
+				],
+			],
+		];
+
+		$this->stubPostMeta( $meta );
+		$this->postContent = '<!-- wp:rankkernel/howto -->';
+
+		$parseCount = 0;
+		Functions\when( 'parse_blocks' )->alias(
+			function () use ( &$parseCount ): array {
+				++$parseCount;
+				return [];
+			}
+		);
+
+		$piece = new HowtoPiece();
+		$ctx1  = $this->makeContext( $this->singularQuery( 42 ) );
+
+		$this->assertTrue( $piece->isNeeded( $ctx1 ) );
+		$build1 = $piece->build( $ctx1 );
+
+		$this->assertSame( 'Initial Howto', $build1['name'] );
+		$this->assertSame( 1, $parseCount, 'parse_blocks should be called once during isNeeded/build' );
+
+		// Subsequent call with same context/meta/content should hit memo and not call parse_blocks again.
+		$build2 = $piece->build( $ctx1 );
+		$this->assertSame( 'Initial Howto', $build2['name'] );
+		$this->assertSame( 1, $parseCount, 'parse_blocks should not be called again on memo hit' );
+
+		// Mutate meta payload for a new request context with same query ID -> invalidates memo slot.
+		$metaUpdated = [
+			'schema' => [
+				'howto' => [
+					'name'  => 'Updated Howto',
+					'steps' => [
+						[
+							'title' => 'Updated Step',
+							'text'  => 'Do updated step.',
+							'image' => '',
+						],
+					],
+				],
+			],
+		];
+		$this->stubPostMeta( $metaUpdated );
+		$ctx2 = $this->makeContext( $this->singularQuery( 42 ) );
+
+		$build3 = $piece->build( $ctx2 );
+		$this->assertSame( 'Updated Howto', $build3['name'] );
+
+		// Mutate post content -> invalidates composite key and block hash, re-parsing blocks.
+		$this->postContent = '<!-- wp:rankkernel/howto {"v":2} -->';
+		$ctx3              = $this->makeContext( $this->singularQuery( 42 ) );
+
+		$build4 = $piece->build( $ctx3 );
+		$this->assertSame( 2, $parseCount, 'parse_blocks should be called again after content mutation' );
+	}
 }
