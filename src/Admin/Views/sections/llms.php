@@ -77,7 +77,7 @@ defined( 'ABSPATH' ) || exit;
 		<div class="rk-banner rk-banner-info">
 			<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">info</span><?php echo esc_html__( 'How to make llms.txt', 'rankkernel' ); ?></p>
 			<p><?php echo esc_html__( 'Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post.', 'rankkernel' ); ?></p>
-			<p><?php echo esc_html__( 'llms.txt is a community proposal, not a standard. See', 'rankkernel' ); ?> <a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'the official llms.txt site', 'rankkernel' ); ?></a>.</p>
+			<p><?php echo esc_html__( 'llms.txt is a community proposal, not a standard. See', 'rankkernel' ); ?> <a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'the official llms.txt site', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>.</p>
 		</div>
 
 		<?php if ( 'written' === $llmsNotice ) : ?>
