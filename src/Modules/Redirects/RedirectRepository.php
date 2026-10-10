@@ -100,6 +100,28 @@ final class RedirectRepository {
 	private static ?array $patternsMemo = null;
 
 	/**
+	 * Shared static request-level memoized single rows by ID across repository instances.
+	 *
+	 * Performance optimization: memoizes get($id) results across repository instances
+	 * within a single HTTP request execution thread to eliminate duplicate SQL queries during
+	 * bulk operations and cycle analysis.
+	 *
+	 * @var array<int, array<string, mixed>|null>
+	 */
+	private static array $rowMemo = [];
+
+	/**
+	 * Shared static request-level memoized cycle candidate rows across repository instances.
+	 *
+	 * Performance optimization: memoizes find_cycle_candidates() results across repository instances
+	 * within a single HTTP request execution thread to avoid repeated SQL queries during
+	 * cycle safety checks in bulk operations.
+	 *
+	 * @var array<int, array<string, mixed>>|null
+	 */
+	private static ?array $cycleCandidatesMemo = null;
+
+	/**
 	 * Safety analyzer for activation checks, fresh one when null.
 	 *
 	 * @var Validator|null
@@ -202,10 +224,19 @@ final class RedirectRepository {
 	}
 
 	/**
-	 * Reset static pattern memoization (primarily for tests).
+	 * Canonical method to reset static request-level memoization (primarily for unit tests and long-lived processes).
+	 */
+	public static function resetCache(): void {
+		self::$patternsMemo        = null;
+		self::$rowMemo             = [];
+		self::$cycleCandidatesMemo = null;
+	}
+
+	/**
+	 * Reset static pattern memoization (alias for resetCache maintained for interface parity).
 	 */
 	public static function resetMemo(): void {
-		self::$patternsMemo = null;
+		self::resetCache();
 	}
 
 	/**
@@ -273,13 +304,24 @@ final class RedirectRepository {
 	/**
 	 * Get one rule by id, for the admin edit screen.
 	 *
+	 * Performance optimization: memoizes retrieved rows by ID across calls in $rowMemo
+	 * to eliminate duplicate SQL queries during bulk activations and cycle checks.
+	 *
 	 * @param int $id Rule id.
 	 * @return array<string, mixed>|null Rule row or null.
 	 */
 	public function get( int $id ): ?array {
+		if ( $id <= 0 ) {
+			return null;
+		}
+
+		if ( array_key_exists( $id, self::$rowMemo ) ) {
+			return self::$rowMemo[ $id ];
+		}
+
 		$db = $this->connection();
 
-		if ( null === $db || $id <= 0 ) {
+		if ( null === $db ) {
 			return null;
 		}
 
@@ -290,7 +332,11 @@ final class RedirectRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$row = $db->get_row( $db->prepare( $sql, $id ), ARRAY_A );
 
-		return is_array( $row ) ? $row : null;
+		$result = is_array( $row ) ? $row : null;
+
+		self::$rowMemo[ $id ] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -817,9 +863,16 @@ final class RedirectRepository {
 	 * Excludes terminal codes, external targets cannot be proven at the SQL
 	 * layer, so callers filter or mark those branches inconclusive.
 	 *
+	 * Performance optimization: memoizes results in $cycleCandidatesMemo per request
+	 * execution thread to avoid executing identical SQL queries on every candidate during bulk activations.
+	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_cycle_candidates(): array {
+		if ( null !== self::$cycleCandidatesMemo ) {
+			return self::$cycleCandidatesMemo;
+		}
+
 		$db = $this->connection();
 
 		if ( null === $db ) {
@@ -844,6 +897,8 @@ final class RedirectRepository {
 				$out[] = $row;
 			}
 		}
+
+		self::$cycleCandidatesMemo = $out;
 
 		return $out;
 	}
@@ -1112,7 +1167,7 @@ final class RedirectRepository {
 	 * memory maps.
 	 */
 	private function touch(): void {
-		self::$patternsMemo = null;
+		self::resetCache();
 
 		if ( null !== $this->cache ) {
 			$this->cache->invalidate();
