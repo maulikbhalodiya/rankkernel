@@ -405,7 +405,7 @@ final class RedirectRepository {
 		}
 
 		$table = RedirectTable::name();
-		$sql   = "SELECT * FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC LIMIT %d";
+		$sql   = "SELECT id, match_type, source, target, code, is_active FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC LIMIT %d";
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, bounded pattern list with an integer limit and no user input.
 		$rows = $db->get_results( $db->prepare( $sql, self::MAX_PATTERNS ), ARRAY_A );
@@ -915,12 +915,38 @@ final class RedirectRepository {
 			return self::$cycleCandidatesMemo;
 		}
 
+		// Bounded batches keep one validation read small no matter how many
+		// rules exist; the merged set is identical to the unbounded read.
+		$out    = [];
+		$offset = 0;
+
+		do {
+			$batch  = $this->queryCandidateBatch( $db, self::EXPORT_BATCH, $offset );
+			$number = count( $batch );
+			$out    = array_merge( $out, $batch );
+			$offset = $offset + $number;
+		} while ( $number >= self::EXPORT_BATCH );
+
+		self::$cycleCandidatesMemo = $out;
+
+		return $out;
+	}
+
+	/**
+	 * Read one page of cycle candidate rows, id ordered.
+	 *
+	 * @param object $db     Active database handle.
+	 * @param int    $limit  Maximum rows in this page.
+	 * @param int    $offset Rows to skip.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function queryCandidateBatch( object $db, int $limit, int $offset ): array {
 		$table = RedirectTable::name();
 		$sql   = "SELECT id, match_type, source, target, code, is_active FROM `{$table}`"
-			. " WHERE is_active = 1 AND code IN ('301','302','307') AND target <> '' ORDER BY id ASC";
+			. " WHERE is_active = 1 AND code IN ('301','302','307') AND target <> '' ORDER BY id ASC LIMIT %d OFFSET %d";
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, code list is a fixed whitelist with no user input.
-		$rows = $db->get_results( $sql, ARRAY_A );
+		$rows = $db->get_results( $db->prepare( $sql, $limit, $offset ), ARRAY_A );
 
 		if ( ! is_array( $rows ) ) {
 			return [];
@@ -933,8 +959,6 @@ final class RedirectRepository {
 				$out[] = $row;
 			}
 		}
-
-		self::$cycleCandidatesMemo = $out;
 
 		return $out;
 	}

@@ -181,7 +181,7 @@ $rkGeneralRowNotes = [
 							</div>
 							<div class="rk-sitemap-row-control">
 								<div class="rk-sitemap-input-row">
-									<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="rk-sitemap-input rk-sitemap-input-small" min="1" max="50000" />
+									<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="rk-sitemap-input rk-sitemap-input-small" min="1" max="2000" />
 									<span class="rk-sitemap-input-suffix"><?php echo esc_html__( 'entries per file', 'rankkernel' ); ?></span>
 								</div>
 								<p class="rk-sitemap-row-hint"><?php echo esc_html__( 'Maximum number of links on each sitemap page. Default is 1,000. Maximum allowed by search protocol is 50,000.', 'rankkernel' ); ?></p>

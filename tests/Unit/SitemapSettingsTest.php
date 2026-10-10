@@ -135,7 +135,7 @@ final class SitemapSettingsTest extends TestCase {
 		$this->assertSame( 1, $this->options[ SitemapSettings::OPTION ]['items_per_page'] );
 
 		$settings->set( [ 'items_per_page' => 99999 ] );
-		$this->assertSame( 50000, $this->options[ SitemapSettings::OPTION ]['items_per_page'] );
+		$this->assertSame( 2000, $this->options[ SitemapSettings::OPTION ]['items_per_page'] );
 
 		$settings->set( [ 'items_per_page' => '1500' ] );
 		$this->assertSame( 1500, $this->options[ SitemapSettings::OPTION ]['items_per_page'] );
@@ -150,6 +150,20 @@ final class SitemapSettingsTest extends TestCase {
 		$settings->set( [ 'exclude_posts' => [ '3', -4, 0, 3, 'abc' ] ] );
 
 		$this->assertSame( [ 3, 4 ], $this->options[ SitemapSettings::OPTION ]['exclude_posts'] );
+	}
+
+	/**
+	 * Test id lists are capped so the autoloaded option stays bounded.
+	 */
+	public function test_id_lists_are_capped(): void {
+		$settings = new SitemapSettings();
+
+		$settings->set( [ 'exclude_posts' => range( 1, 600 ) ] );
+
+		$stored = $this->options[ SitemapSettings::OPTION ]['exclude_posts'];
+
+		$this->assertCount( 500, $stored );
+		$this->assertSame( range( 1, 500 ), $stored );
 	}
 
 	/**
