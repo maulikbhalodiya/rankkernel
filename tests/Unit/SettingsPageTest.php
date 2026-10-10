@@ -786,6 +786,33 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the llms section external link carries a screen reader hint.
+	 */
+	public function test_llms_section_new_tab_link_carries_screen_reader_hint(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section'] = 'llms';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'target="_blank"', $output );
+		$this->assertSame(
+			1,
+			substr_count( $output, '<span class="screen-reader-text">(opens in a new tab)</span>' ),
+			'the llms.txt target="_blank" link must carry the screen reader hint'
+		);
+	}
+
+	/**
 	 * Test the llms section renders the consistency warning when llms.txt is
 	 * on while an AI search crawler is blocked in robots.txt.
 	 */
