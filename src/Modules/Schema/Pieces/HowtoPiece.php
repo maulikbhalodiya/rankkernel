@@ -223,12 +223,18 @@ final class HowtoPiece implements PieceInterface {
 		$schema = $meta['schema'] ?? [];
 
 		if ( ! is_array( $schema ) ) {
+			$this->howtoMemoKey   = $key;
+			$this->howtoMemoValue = $out;
+
 			return $out;
 		}
 
 		$howto = $schema['howto'] ?? [];
 
 		if ( ! is_array( $howto ) ) {
+			$this->howtoMemoKey   = $key;
+			$this->howtoMemoValue = $out;
+
 			return $out;
 		}
 
@@ -244,32 +250,30 @@ final class HowtoPiece implements PieceInterface {
 
 		$rows = $howto['steps'] ?? [];
 
-		if ( ! is_array( $rows ) ) {
-			return $out;
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+
+				$title = isset( $row['title'] ) ? trim( (string) $row['title'] ) : '';
+				$text  = isset( $row['text'] ) ? trim( (string) $row['text'] ) : '';
+
+				if ( '' === $title && '' === $text ) {
+					continue;
+				}
+
+				$image = isset( $row['image'] ) ? self::safeImageUrl( (string) $row['image'] ) : '';
+
+				$out['steps'][] = [
+					'title' => $title,
+					'text'  => $text,
+					'image' => $image,
+				];
+			}
 		}
 
-		foreach ( $rows as $row ) {
-			if ( ! is_array( $row ) ) {
-				continue;
-			}
-
-			$title = isset( $row['title'] ) ? trim( (string) $row['title'] ) : '';
-			$text  = isset( $row['text'] ) ? trim( (string) $row['text'] ) : '';
-
-			if ( '' === $title && '' === $text ) {
-				continue;
-			}
-
-			$image = isset( $row['image'] ) ? self::safeImageUrl( (string) $row['image'] ) : '';
-
-			$out['steps'][] = [
-				'title' => $title,
-				'text'  => $text,
-				'image' => $image,
-			];
-		}
-
-		$block = $this->blockData( $ctx );
+		$block = $this->blockData( $ctx, $content );
 
 		if ( '' === $out['name'] ) {
 			$out['name'] = $block['title'];
@@ -327,10 +331,11 @@ final class HowtoPiece implements PieceInterface {
 	 * each, and steps collect in document order. Unknown block names
 	 * and malformed attrs are ignored.
 	 *
-	 * @param Context $ctx Request context.
+	 * @param Context $ctx     Request context.
+	 * @param string  $content Optional raw post content string.
 	 * @return array{title: string, description: string, totalTime: string, estimatedCost: string, tools: array<int, string>, materials: array<int, string>, steps: array<int, array{title: string, text: string, image: string}>}
 	 */
-	private function blockData( Context $ctx ): array {
+	private function blockData( Context $ctx, string $content = '' ): array {
 		$empty = [
 			'title'         => '',
 			'description'   => '',
@@ -351,13 +356,12 @@ final class HowtoPiece implements PieceInterface {
 			return $empty;
 		}
 
-		if ( ! function_exists( 'get_post_field' ) || ! function_exists( 'parse_blocks' ) ) {
-			return $empty;
+		if ( '' === $content && function_exists( 'get_post_field' ) ) {
+			$raw     = get_post_field( 'post_content', $postId );
+			$content = is_string( $raw ) ? $raw : '';
 		}
 
-		$content = get_post_field( 'post_content', $postId );
-
-		if ( ! is_string( $content ) || '' === trim( $content ) ) {
+		if ( '' === trim( $content ) || ! function_exists( 'parse_blocks' ) ) {
 			return $empty;
 		}
 

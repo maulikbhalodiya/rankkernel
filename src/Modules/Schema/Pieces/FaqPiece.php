@@ -157,19 +157,19 @@ final class FaqPiece implements PieceInterface {
 			return $this->questionsMemoValue;
 		}
 
-		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx ) );
+		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx, $content ) );
 		$seen   = [];
 		$valid  = [];
 
 		foreach ( $merged as $row ) {
-			$key = strtolower( trim( $row['question'] ) );
+			$questionKey = strtolower( trim( $row['question'] ) );
 
-			if ( '' === $key || isset( $seen[ $key ] ) ) {
+			if ( '' === $questionKey || isset( $seen[ $questionKey ] ) ) {
 				continue;
 			}
 
-			$seen[ $key ] = true;
-			$valid[]      = $row;
+			$seen[ $questionKey ] = true;
+			$valid[]              = $row;
 
 			if ( count( $valid ) >= 100 ) {
 				break;
@@ -242,10 +242,11 @@ final class FaqPiece implements PieceInterface {
 	 * (core/block entries holding a ref id) are not resolved here, so
 	 * only blocks present inline in the post content feed the graph.
 	 *
-	 * @param Context $ctx Request context.
+	 * @param Context $ctx     Request context.
+	 * @param string  $content Optional raw post content string.
 	 * @return array<int, array{question: string, answer: string}>
 	 */
-	private function blockQuestions( Context $ctx ): array {
+	private function blockQuestions( Context $ctx, string $content = '' ): array {
 		if ( 'post' !== $ctx->queriedType() ) {
 			return [];
 		}
@@ -256,13 +257,12 @@ final class FaqPiece implements PieceInterface {
 			return [];
 		}
 
-		if ( ! function_exists( 'get_post_field' ) || ! function_exists( 'parse_blocks' ) ) {
-			return [];
+		if ( '' === $content && function_exists( 'get_post_field' ) ) {
+			$raw     = get_post_field( 'post_content', $postId );
+			$content = is_string( $raw ) ? $raw : '';
 		}
 
-		$content = get_post_field( 'post_content', $postId );
-
-		if ( ! is_string( $content ) || '' === trim( $content ) ) {
+		if ( '' === trim( $content ) || ! function_exists( 'parse_blocks' ) ) {
 			return [];
 		}
 
