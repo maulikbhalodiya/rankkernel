@@ -99,7 +99,7 @@ class AuthorsProvider {
 		$placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
 
         // phpcs:ignore Generic.Files.LineLength.TooLong
-		$sql    = "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders)";
+		$sql    = "SELECT COUNT(DISTINCT post_author) FROM {$wpdb->posts} WHERE post_status = %s AND post_type IN ($placeholders) AND post_author <> 0";
 		$params = array_merge( [ 'publish' ], $types );
 		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
 		$args   = array_merge( [ $sql ], $params );

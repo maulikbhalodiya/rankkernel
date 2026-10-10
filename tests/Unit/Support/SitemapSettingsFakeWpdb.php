@@ -845,7 +845,10 @@ final class SitemapSettingsFakeWpdb {
 
 			$author = (int) ( $row['post_author'] ?? 0 );
 
-			if ( 0 === $author ) {
+			// Orphan rows belong to no author: the real COUNT(DISTINCT
+			// post_author) counts them unless the query excludes zero, so the
+			// double only skips them when the SQL carries that exclusion.
+			if ( 0 === $author && str_contains( $sql, 'post_author <> 0' ) ) {
 				continue;
 			}
 

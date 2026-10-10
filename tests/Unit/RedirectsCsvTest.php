@@ -221,9 +221,9 @@ final class RedirectsCsvTest extends TestCase {
 	}
 
 	/**
-	 * Test malformed rows rejected per row without corrupting others.
+	 * Test a malformed row blocks the whole import, nothing half applied.
 	 */
-	public function test_malformed_rows_rejected_per_row_without_corrupting_others(): void {
+	public function test_malformed_row_blocks_whole_import(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
 			"/good-one,/new-one,,,,\n" .
@@ -233,10 +233,10 @@ final class RedirectsCsvTest extends TestCase {
 
 		$result = $this->makeHandler()->import_csv( $path );
 
-		$this->assertSame( 2, $result['created'] );
+		$this->assertSame( 0, $result['created'] );
 		$this->assertCount( 1, $result['errors'] );
 		$this->assertSame( 3, $result['errors'][0]['row'] );
-		$this->assertCount( 2, $this->db->rows );
+		$this->assertCount( 0, $this->db->rows, 'a refused import writes nothing' );
 	}
 
 	/**
@@ -288,9 +288,9 @@ final class RedirectsCsvTest extends TestCase {
 	}
 
 	/**
-	 * Test loop row rejected while others save.
+	 * Test a loop row blocks the whole import, nothing half applied.
 	 */
-	public function test_loop_row_rejected_while_others_save(): void {
+	public function test_loop_row_blocks_whole_import(): void {
 		$this->seedRule( '/b', '/a' );
 
 		$path = $this->write_csv(
@@ -301,11 +301,50 @@ final class RedirectsCsvTest extends TestCase {
 
 		$result = $this->makeHandler()->import_csv( $path );
 
-		$this->assertSame( 1, $result['created'] );
+		$this->assertSame( 0, $result['created'] );
 		$this->assertCount( 1, $result['errors'] );
 		$this->assertSame( 2, $result['errors'][0]['row'] );
 		$this->assertStringContainsString( 'loop', strtolower( (string) $result['errors'][0]['reason'] ) );
-		$this->assertCount( 2, $this->db->rows );
+		$this->assertCount( 1, $this->db->rows, 'a refused import writes nothing' );
+	}
+
+	/**
+	 * Test dry run reports would-be outcomes and writes nothing.
+	 */
+	public function test_dry_run_reports_without_writing(): void {
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/a,/b,301,exact,yes,,\n" .
+			"/c,/d,301,exact,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path, false, CsvHandler::MAX_ROWS, true );
+
+		$this->assertTrue( $result['dry_run'] );
+		$this->assertSame( 2, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+		$this->assertCount( 0, $this->db->rows, 'a dry run writes nothing' );
+	}
+
+	/**
+	 * Test an unverifiable row is refused without force and taken with force.
+	 */
+	public function test_inconclusive_row_needs_force(): void {
+		$csv = "source,target,code,match_type,active,hits,last_accessed\n" .
+			"/uncertain,/dynamic/$1,301,exact,yes,,\n";
+
+		$plain = $this->makeHandler()->import_csv( $this->write_csv( $csv ) );
+
+		$this->assertSame( 0, $plain['created'] );
+		$this->assertCount( 1, $plain['errors'] );
+		$this->assertCount( 0, $this->db->rows );
+
+		$forced = $this->makeHandler()->import_csv( $this->write_csv( $csv ), false, CsvHandler::MAX_ROWS, false, true );
+
+		$this->assertSame( 1, $forced['created'] );
+		$this->assertSame( [], $forced['errors'] );
+		$this->assertSame( 1, $forced['forced'] );
+		$this->assertCount( 1, $this->db->rows );
 	}
 
 	/**
@@ -382,9 +421,11 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( 0, $result['created'] );
 		$this->assertSame( 0, $result['updated'] );
 		$this->assertSame( 0, $result['skipped'], 'a storage failure must not be reported as a duplicate skip' );
-		$this->assertCount( 1, $result['errors'] );
+		$this->assertCount( 2, $result['errors'] );
 		$this->assertSame( 2, $result['errors'][0]['row'] );
 		$this->assertSame( 'The redirect could not be saved. Please try again.', $result['errors'][0]['reason'] );
+		$this->assertSame( 0, $result['errors'][1]['row'] );
+		$this->assertStringContainsString( 'rolled back', $result['errors'][1]['reason'] );
 		$this->assertSame( [], $this->db->rows );
 	}
 
@@ -423,7 +464,7 @@ final class RedirectsCsvTest extends TestCase {
 	}
 
 	/**
-	 * Test row count limit stops the run.
+	 * Test the row count limit refuses the whole run, nothing half applied.
 	 */
 	public function test_row_count_limit_stops_the_run(): void {
 		$path = $this->write_csv(
@@ -435,10 +476,10 @@ final class RedirectsCsvTest extends TestCase {
 
 		$result = $this->makeHandler()->import_csv( $path, false, 2 );
 
-		$this->assertSame( 2, $result['created'] );
+		$this->assertSame( 0, $result['created'] );
 		$this->assertCount( 1, $result['errors'] );
 		$this->assertSame( 4, $result['errors'][0]['row'] );
-		$this->assertCount( 2, $this->db->rows );
+		$this->assertCount( 0, $this->db->rows, 'a refused import writes nothing' );
 	}
 
 	/**

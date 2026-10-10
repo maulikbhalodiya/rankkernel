@@ -699,6 +699,42 @@ final class SitemapSettingsProvidersTest extends TestCase {
 	}
 
 	/**
+	 * Test the authors count ignores orphan rows with no author.
+	 *
+	 * Entries drop a zero author id, so the count must exclude it too or
+	 * the set advertises an entry the page never lists.
+	 */
+	public function test_authors_count_ignores_orphan_rows_without_an_author(): void {
+		$this->db->postsRows = [
+			[
+				'ID'                => 1,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 7,
+				'post_modified_gmt' => '2026-01-03 00:00:00',
+			],
+			[
+				'ID'                => 2,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 0,
+				'post_modified_gmt' => '2026-01-04 00:00:00',
+			],
+		];
+
+		$settings = new SitemapSettings();
+		$provider = new AuthorsProvider( $settings );
+
+		$count   = $provider->getCount( 'authors' );
+		$entries = $provider->getEntries( 'authors', 1, 10 );
+
+		$this->assertSame( 1, $count, 'an orphan row belongs to no author' );
+		$this->assertCount( $count, $entries, 'the count and the entries must agree' );
+	}
+
+	/**
 	 * Test authors excluded roles and users absent.
 	 */
 	public function test_authors_excluded_roles_and_users_absent(): void {

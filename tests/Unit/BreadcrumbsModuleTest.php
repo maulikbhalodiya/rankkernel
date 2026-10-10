@@ -487,6 +487,53 @@ final class BreadcrumbsModuleTest extends TestCase {
 	}
 
 	/**
+	 * Test a hidden front page emits no trail instead of the incoming fallback.
+	 */
+	public function test_adapter_returns_empty_trail_for_hidden_front_page(): void {
+		$module = $this->bootWith( [ 'metadata', 'schema', 'breadcrumbs' ] );
+
+		// The builder takes the front page path off this global, same as production.
+		Functions\when( 'is_front_page' )->justReturn( true );
+
+		$incoming = [
+			[
+				'name' => 'Home',
+				'url'  => 'https://example.com/',
+			],
+		];
+
+		$ctx    = $this->makeContext( $this->makeHomeQuery() );
+		$result = $module->filterBreadcrumbTrail( $incoming, $ctx );
+
+		$this->assertSame( [], $result );
+	}
+
+	/**
+	 * Make a home query double.
+	 *
+	 * @return WP_Query The result.
+	 */
+	private function makeHomeQuery(): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( 0 )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( '' )->byDefault();
+		$q->shouldReceive( 'get_queried_object' )->andReturnNull()->byDefault();
+
+		return $q;
+	}
+
+	/**
 	 * Make a query double with no recognizable context.
 	 *
 	 * @return WP_Query The result.
