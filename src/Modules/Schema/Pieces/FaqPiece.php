@@ -46,6 +46,17 @@ final class FaqPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
+	 * Memoized valid questions keyed by context hash.
+	 *
+	 * Performance optimization: avoids repeating payload question extraction,
+	 * block parsing, merging, deduplication, and filtering between isNeeded()
+	 * and build() during schema graph generation.
+	 *
+	 * @var array<string, array<int, array{question: string, answer: string}>>
+	 */
+	private array $questionsMemo = [];
+
+	/**
 	 * Get piece id.
 	 *
 	 * @return string The result.
@@ -128,6 +139,12 @@ final class FaqPiece implements PieceInterface {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function questions( Context $ctx ): array {
+		$hash = $ctx->hash();
+
+		if ( array_key_exists( $hash, $this->questionsMemo ) ) {
+			return $this->questionsMemo[ $hash ];
+		}
+
 		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx ) );
 		$seen   = [];
 		$valid  = [];
@@ -146,6 +163,8 @@ final class FaqPiece implements PieceInterface {
 				break;
 			}
 		}
+
+		$this->questionsMemo[ $hash ] = $valid;
 
 		return $valid;
 	}

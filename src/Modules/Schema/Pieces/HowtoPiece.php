@@ -47,6 +47,17 @@ final class HowtoPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
+	 * Memoized HowTo data keyed by context hash.
+	 *
+	 * Performance optimization: avoids repeating payload and block HowTo data merging,
+	 * step deduplication, duration validation, and block parsing between isNeeded()
+	 * and build() during schema graph generation.
+	 *
+	 * @var array<string, array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}>
+	 */
+	private array $howtoMemo = [];
+
+	/**
 	 * Get piece id.
 	 *
 	 * @return string The result.
@@ -178,6 +189,12 @@ final class HowtoPiece implements PieceInterface {
 	 * @return array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}
 	 */
 	private function howto( Context $ctx ): array {
+		$hash = $ctx->hash();
+
+		if ( array_key_exists( $hash, $this->howtoMemo ) ) {
+			return $this->howtoMemo[ $hash ];
+		}
+
 		$out = [
 			'name'        => '',
 			'description' => '',
@@ -281,6 +298,8 @@ final class HowtoPiece implements PieceInterface {
 				$out['steps'][] = $blockStep;
 			}
 		}
+
+		$this->howtoMemo[ $hash ] = $out;
 
 		return $out;
 	}
