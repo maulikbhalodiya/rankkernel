@@ -2117,10 +2117,18 @@
 				next[ path ] = value;
 			} else if ( 0 === path.indexOf( 'robots.' ) ) {
 				next.robots[ path.slice( 7 ) ] = value;
-			} else if ( 0 === path.indexOf( 'og.' ) ) {
-				next.og[ path.slice( 3 ) ] = value;
-			} else if ( 0 === path.indexOf( 'twitter.' ) ) {
-				next.twitter[ path.slice( 8 ) ] = value;
+		} else if ( 0 === path.indexOf( 'og.' ) ) {
+			// Social images flow into img src assignments, so only http(s)
+			// URLs or empty ever reach the store, mirroring canonical.
+			if ( 'og.image' === path && ! isValidHttpUrl( value ) ) {
+				return;
+			}
+			next.og[ path.slice( 3 ) ] = value;
+		} else if ( 0 === path.indexOf( 'twitter.' ) ) {
+			if ( 'twitter.image' === path && ! isValidHttpUrl( value ) ) {
+				return;
+			}
+			next.twitter[ path.slice( 8 ) ] = value;
 			} else if ( 0 === path.indexOf( 'schema.fields.' ) ) {
 				var obj = schemaObject( next.schema );
 				var fields = {};
@@ -2867,10 +2875,14 @@
 									} catch ( e ) {
 										parsed = null;
 									}
-									if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
+								if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
+									if ( /<\/script/i.test( next ) ) {
+										setError( 'schema.customText', __( 'Custom JSON must not contain a script tag. Nothing was saved.', 'rankkernel' ) );
+									} else {
 										setError( 'schema.customText', '' );
 										setSchemaKey( 'custom', parsed );
-									} else {
+									}
+								} else {
 										setError( 'schema.customText', __( 'Custom JSON must be a valid JSON object. Nothing was saved.', 'rankkernel' ) );
 									}
 								}
