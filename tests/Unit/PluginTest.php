@@ -527,4 +527,15 @@ final class PluginTest extends TestCase {
 		\rankkernel_conflict_notice();
 		$this->assertStringContainsString( 'RankKernel detected another SEO plugin active', ob_get_clean() );
 	}
+
+	/**
+	 * Test the readme Tested up to matches the verified WordPress release.
+	 */
+	public function test_readme_tested_up_to_matches_verified_release(): void {
+		$root = dirname( __DIR__, 2 );
+
+		$readme_source = (string) file_get_contents( $root . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertSame( 1, preg_match( '/^Tested up to:\s*(\S+)/m', $readme_source, $readme_header ) );
+		$this->assertSame( '7.1', $readme_header[1], 'readme.txt must stay at the verified release, see issue #198 finding 1' );
+	}
 }
