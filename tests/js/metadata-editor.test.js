@@ -326,3 +326,16 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		/var __ = window\.wp && window\.wp\.i18n && window\.wp\.i18n\.__ \? window\.wp\.i18n\.__ : function \( text \) \{ return text; \};/
 	);
 } );
+
+test( 'the media select chain is guarded and falls back to the URL field', () => {
+	const code = source();
+
+	assert.ok(
+		code.includes( "attachment = frame.state().get( 'selection' ).first();" ),
+		'the select handler must still read the first selection'
+	);
+	assert.ok(
+		code.includes( '} catch ( error ) {\n\t\t\t\tattachment = null;\n\t\t\t}' ),
+		'a failing media frame must not escape the select callback'
+	);
+} );

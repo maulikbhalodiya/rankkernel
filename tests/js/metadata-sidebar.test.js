@@ -711,3 +711,26 @@ test( 'social images and custom JSON are gated before they reach the store', () 
 		'the shared gate allows empty plus http(s) and rejects scriptable schemes'
 	);
 } );
+
+test( 'silent store defaults log the failure and the FileReader path is guarded', () => {
+	const code = source();
+
+	[
+		'the post title',
+		'the post slug',
+		'the post content',
+		'the post id',
+		'the stored meta',
+		'the post type'
+	].forEach( ( what ) => {
+		assert.ok(
+			code.includes( "logStoreFailure( '" + what + "', e )" ),
+			'a failed ' + what + ' read must warn instead of failing silently'
+		);
+	} );
+
+	assert.ok(
+		code.includes( "'function' !== typeof FileReader" ),
+		'FileReader construction must be guarded before use'
+	);
+} );
