@@ -47,6 +47,13 @@ final class HowtoPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
+	 * Last evaluated context instance.
+	 *
+	 * @var Context|null
+	 */
+	private ?Context $howtoMemoContext = null;
+
+	/**
 	 * Memoized HowTo data key (single-slot cache).
 	 *
 	 * Performance optimization: single-slot cache keyed on context hash,
@@ -198,6 +205,10 @@ final class HowtoPiece implements PieceInterface {
 	 * @return array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}
 	 */
 	private function howto( Context $ctx ): array {
+		if ( null !== $this->howtoMemoContext && $this->howtoMemoContext === $ctx && null !== $this->howtoMemoValue ) {
+			return $this->howtoMemoValue;
+		}
+
 		$postId      = $ctx->queriedId();
 		$content     = ( $postId > 0 && function_exists( 'get_post_field' ) ) ? (string) get_post_field( 'post_content', $postId ) : '';
 		$meta        = $ctx->meta();
@@ -205,6 +216,8 @@ final class HowtoPiece implements PieceInterface {
 		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . md5( $content );
 
 		if ( null !== $this->howtoMemoKey && $this->howtoMemoKey === $key && null !== $this->howtoMemoValue ) {
+			$this->howtoMemoContext = $ctx;
+
 			return $this->howtoMemoValue;
 		}
 
@@ -223,8 +236,9 @@ final class HowtoPiece implements PieceInterface {
 		$schema = $meta['schema'] ?? [];
 
 		if ( ! is_array( $schema ) ) {
-			$this->howtoMemoKey   = $key;
-			$this->howtoMemoValue = $out;
+			$this->howtoMemoContext = $ctx;
+			$this->howtoMemoKey     = $key;
+			$this->howtoMemoValue   = $out;
 
 			return $out;
 		}
@@ -232,8 +246,9 @@ final class HowtoPiece implements PieceInterface {
 		$howto = $schema['howto'] ?? [];
 
 		if ( ! is_array( $howto ) ) {
-			$this->howtoMemoKey   = $key;
-			$this->howtoMemoValue = $out;
+			$this->howtoMemoContext = $ctx;
+			$this->howtoMemoKey     = $key;
+			$this->howtoMemoValue   = $out;
 
 			return $out;
 		}
@@ -316,8 +331,9 @@ final class HowtoPiece implements PieceInterface {
 			}
 		}
 
-		$this->howtoMemoKey   = $key;
-		$this->howtoMemoValue = $out;
+		$this->howtoMemoContext = $ctx;
+		$this->howtoMemoKey     = $key;
+		$this->howtoMemoValue   = $out;
 
 		return $out;
 	}

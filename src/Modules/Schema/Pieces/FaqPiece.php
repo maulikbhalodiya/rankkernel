@@ -46,6 +46,13 @@ final class FaqPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
+	 * Last evaluated context instance.
+	 *
+	 * @var Context|null
+	 */
+	private ?Context $questionsMemoContext = null;
+
+	/**
 	 * Memoized valid questions key (single-slot cache).
 	 *
 	 * Performance optimization: single-slot cache keyed on context hash,
@@ -147,6 +154,10 @@ final class FaqPiece implements PieceInterface {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function questions( Context $ctx ): array {
+		if ( null !== $this->questionsMemoContext && $this->questionsMemoContext === $ctx && null !== $this->questionsMemoValue ) {
+			return $this->questionsMemoValue;
+		}
+
 		$postId      = $ctx->queriedId();
 		$content     = ( $postId > 0 && function_exists( 'get_post_field' ) ) ? (string) get_post_field( 'post_content', $postId ) : '';
 		$meta        = $ctx->meta();
@@ -154,6 +165,8 @@ final class FaqPiece implements PieceInterface {
 		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . md5( $content );
 
 		if ( null !== $this->questionsMemoKey && $this->questionsMemoKey === $key && null !== $this->questionsMemoValue ) {
+			$this->questionsMemoContext = $ctx;
+
 			return $this->questionsMemoValue;
 		}
 
@@ -176,8 +189,9 @@ final class FaqPiece implements PieceInterface {
 			}
 		}
 
-		$this->questionsMemoKey   = $key;
-		$this->questionsMemoValue = $valid;
+		$this->questionsMemoContext = $ctx;
+		$this->questionsMemoKey     = $key;
+		$this->questionsMemoValue   = $valid;
 
 		return $valid;
 	}
