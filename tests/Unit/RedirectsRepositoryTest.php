@@ -401,6 +401,33 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test pattern rows select only the columns the matcher reads.
+	 */
+	public function test_all_patterns_selects_only_matcher_columns(): void {
+		RedirectRepository::resetCache();
+
+		$this->repo->insert(
+			[
+				'source'     => '/narrow',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$this->db->queries = [];
+
+		$patterns = $this->repo->all_patterns();
+
+		$this->assertCount( 1, $patterns );
+		$this->assertCount( 1, $this->db->queries );
+
+		$sql = $this->db->queries[0];
+
+		$this->assertStringContainsString( 'SELECT id, match_type, source, target, code, is_active', $sql );
+		$this->assertStringNotContainsString( 'SELECT *', $sql );
+	}
+
+	/**
 	 * Test paginate search filters sort counts.
 	 */
 	public function test_paginate_search_filters_sort_counts(): void {
@@ -832,5 +859,35 @@ final class RedirectsRepositoryTest extends TestCase {
 
 		$this->assertNull( $otherRepo->get( $id ), 'a row memoized from one handle must not serve another' );
 		$this->assertSame( [], $otherRepo->find_cycle_candidates(), 'candidates memoized from one handle must not serve another' );
+	}
+
+	/**
+	 * Test cycle candidates page large rule sets instead of one unbounded read.
+	 */
+	public function test_find_cycle_candidates_pages_large_rule_sets(): void {
+		RedirectRepository::resetCache();
+
+		for ( $i = 1; $i <= 501; $i++ ) {
+			$this->db->rows[ $i ] = [
+				'id'         => $i,
+				'match_type' => 'exact',
+				'source'     => '/s' . $i,
+				'target'     => '/t' . $i,
+				'code'       => '301',
+				'is_active'  => 1,
+			];
+		}
+
+		$this->db->nextId = 502;
+
+		$readsBefore = $this->db->reads;
+		$rows        = $this->repo->find_cycle_candidates();
+
+		$this->assertCount( 501, $rows, 'paging must return the whole set' );
+		$this->assertGreaterThan(
+			$readsBefore + 1,
+			$this->db->reads,
+			'candidates must page in batches, never single-query the whole set'
+		);
 	}
 }

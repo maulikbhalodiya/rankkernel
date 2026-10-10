@@ -100,6 +100,26 @@ final class KeywordIndexTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	/**
+	 * Test candidate titles are cache primed in one call before the loop.
+	 */
+	public function test_candidate_titles_are_primed_in_one_call(): void {
+		$db      = new AnalysisKeywordIndexFakeDb();
+		$db->ids = [ 11, 12 ];
+
+		$primed = null;
+		Functions\when( '_prime_post_caches' )->alias(
+			function ( array $ids ) use ( &$primed ): void {
+				$primed = $ids;
+			}
+		);
+
+		$titles = ( new KeywordIndex( $db ) )->usedElsewhere( 'red apples', 5 );
+
+		$this->assertSame( [ 'Post 11', 'Post 12' ], $titles );
+		$this->assertSame( [ 11, 12 ], $primed, 'one priming call must cover every candidate id' );
+	}
+
+	/**
 	 * Test the query excludes the post being edited and escapes the keyword.
 	 */
 	public function test_query_excludes_current_post_and_escapes_the_keyword(): void {

@@ -235,8 +235,8 @@ class IndexBuilder {
 			$perPage = 1;
 		}
 
-		if ( $perPage > 50000 ) {
-			$perPage = 50000;
+		if ( $perPage > 2000 ) {
+			$perPage = 2000;
 		}
 
 		return $perPage;

@@ -285,7 +285,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 	}
 
 	/**
-	 * Test exclude posts chunked beyond 500.
+	 * Test exclude posts capped at 500 still exclude in one chunk.
 	 */
 	public function test_exclude_posts_chunked_beyond_500(): void {
 		$this->db->postsRows = [
@@ -308,7 +308,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 
 		$this->assertSame( 0, $provider->getCount( 'post' ) );
 		$this->assertSame( [], $provider->getEntries( 'post', 1, 10 ) );
-		$this->assertSame( 2, substr_count( $this->db->lastSql, 'NOT IN' ) );
+		$this->assertSame( 1, substr_count( $this->db->lastSql, 'NOT IN' ) );
 	}
 
 	/**

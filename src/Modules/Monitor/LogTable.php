@@ -169,6 +169,8 @@ final class LogTable {
 			. 'last_accessed DATETIME NOT NULL,'
 			. 'PRIMARY KEY (id),'
 			. 'UNIQUE KEY uri_hash (uri_hash),'
+			. 'KEY hits (hits),'
+			. 'KEY created (created),'
 			. 'KEY last_accessed (last_accessed)'
 			. ") {$charset};";
 
