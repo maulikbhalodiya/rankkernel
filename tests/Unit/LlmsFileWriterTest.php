@@ -511,7 +511,6 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
 
-		$this->path = $temp;
 		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
@@ -538,7 +537,6 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
 
-		$this->path = $temp;
 		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
@@ -568,7 +566,6 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertIsString( $temp );
 		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
 
-		$this->path = $temp;
 		Functions\when( 'get_option' )->justReturn( $temp );
 
 		$writer = new LlmsFileWriter();
