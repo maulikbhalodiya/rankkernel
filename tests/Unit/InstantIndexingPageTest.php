@@ -130,6 +130,7 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn( string $v ): string => $v );
 		Functions\when( 'esc_attr__' )->alias( static fn( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
+		Functions\when( '_n' )->alias( static fn( string $s, string $p, int $n ): string => 1 === $n ? $s : $p );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias( static fn( bool $c, bool $e = true ): string => ( $c === $e ) ? ' checked' : '' );
