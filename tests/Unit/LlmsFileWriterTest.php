@@ -498,7 +498,7 @@ final class LlmsFileWriterTest extends TestCase {
 	}
 
 	/**
-	 * Test that DISALLOW_FILE_EDIT constant blocks deletion.
+	 * Test that DISALLOW_FILE_EDIT constant blocks deletion and leaves the file intact.
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
@@ -507,17 +507,25 @@ final class LlmsFileWriterTest extends TestCase {
 			define( 'DISALLOW_FILE_EDIT', true );
 		}
 
-		$this->stubManagedOption();
+		$store = $this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
+		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
 
 		$writer = new LlmsFileWriter();
 		$result = $writer->delete();
 
 		$this->assertFalse( $result['deleted'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileExists( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its temp file.
 	}
 
 	/**
-	 * Test that DISALLOW_FILE_MODS constant blocks deletion.
+	 * Test that DISALLOW_FILE_MODS constant blocks deletion and leaves the file intact.
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
@@ -526,12 +534,81 @@ final class LlmsFileWriterTest extends TestCase {
 			define( 'DISALLOW_FILE_MODS', true );
 		}
 
-		$this->stubManagedOption();
+		$store = $this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
+		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
 
 		$writer = new LlmsFileWriter();
 		$result = $writer->delete();
 
 		$this->assertFalse( $result['deleted'] );
 		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileExists( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its temp file.
+	}
+
+	/**
+	 * Test that both constants together block deletion and leave the file intact.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_both_constants_together_block_deletion(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$store = $this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		file_put_contents( $temp, "# Site\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file.
+		$store[ LlmsFileWriter::MANAGED_OPTION ] = $temp;
+
+		$writer = new LlmsFileWriter();
+		$result = $writer->delete();
+
+		$this->assertFalse( $result['deleted'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+		$this->assertFileExists( $temp );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its temp file.
+	}
+
+	/**
+	 * Test that constants defined as false do not block deletion and remove the file.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_constants_defined_as_false_do_not_block_deletion(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', false );
+		}
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', false );
+		}
+
+		$this->stubManagedOption();
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkllms' );
+		$this->assertIsString( $temp );
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its temp file.
+
+		$this->path = $temp;
+
+		$writer = new LlmsFileWriter();
+		$this->assertTrue( $writer->write( "# Site\n" )['written'] );
+		$this->assertFileExists( $temp );
+
+		$result = $writer->delete();
+
+		$this->assertTrue( $result['deleted'] );
+		$this->assertFileDoesNotExist( $temp );
 	}
 }
