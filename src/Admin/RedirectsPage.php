@@ -602,6 +602,34 @@ final class RedirectsPage {
 				count( $errors )
 			);
 
+			if ( ! empty( $importData['dry_run'] ) ) {
+				$importSummary = sprintf(
+					/* translators: %s: dry run result summary */
+					__( 'Dry run, nothing was saved. %s', 'rankkernel' ),
+					$importSummary
+				);
+			}
+
+			$forced = max( 0, (int) ( $importData['forced'] ?? 0 ) );
+
+			if ( $forced > 0 ) {
+				$importSummary .= ' ' . sprintf(
+					/* translators: %d: number of rows imported with an unverified chain */
+					__( '%d row(s) imported with an unverified chain at your request.', 'rankkernel' ),
+					$forced
+				);
+			}
+
+			$rolledBack = max( 0, (int) ( $importData['rolled_back'] ?? 0 ) );
+
+			if ( $rolledBack > 0 ) {
+				$importSummary .= ' ' . sprintf(
+					/* translators: %d: number of rolled back changes */
+					__( '%d change(s) rolled back.', 'rankkernel' ),
+					$rolledBack
+				);
+			}
+
 			foreach ( $errors as $importError ) {
 				if ( ! is_array( $importError ) ) {
 					continue;
@@ -1886,6 +1914,14 @@ final class RedirectsPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$updateExisting = isset( $_POST['rk_csv_update'] );
 
+		// Verified in requireAccess, checkbox presence is the value.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$dryRun = isset( $_POST['rk_csv_dry_run'] );
+
+		// Verified in requireAccess, checkbox presence is the value.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$forceUnverified = isset( $_POST['rk_csv_force'] );
+
 		// Verified in requireAccess, upload metadata is read then validated below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, upload metadata is read then validated below, upload metadata validated below, file contents never executed.
 		$file = $_FILES['rk_csv_file'] ?? null;
@@ -1953,7 +1989,7 @@ final class RedirectsPage {
 
 		$handler = new CsvHandler( $this->repository, $this->validator, $this->destinationValidator, $this->isUploadedFile );
 
-		$this->importResult = $handler->import_csv( $tmp, $updateExisting );
+		$this->importResult = $handler->import_csv( $tmp, $updateExisting, CsvHandler::MAX_ROWS, $dryRun, $forceUnverified );
 	}
 
 	/**

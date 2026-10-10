@@ -736,7 +736,7 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 	}
 
 	/**
-	 * CSV import classifies self, cycle, chain, inconclusive, and normal rows.
+	 * CSV import classifies self, cycle, chain, inconclusive, and normal rows, then refuses the whole file.
 	 */
 	public function test_csv_import_applies_shared_precedence(): void {
 		$this->seedRule( '/b', '/a' );
@@ -759,7 +759,7 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		);
 		$summary = $handler->import_csv( $path );
 
-		$this->assertSame( 2, $summary['created'], 'Only the provably safe rows import' );
+		$this->assertSame( 0, $summary['created'], 'a file with failing rows imports nothing' );
 		$this->assertCount( 3, $summary['errors'] );
 		$this->assertSame( 2, (int) $summary['errors'][0]['row'] );
 		$this->assertStringContainsString( 'same URL', (string) $summary['errors'][0]['reason'] );
@@ -768,19 +768,10 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		$this->assertSame( 5, (int) $summary['errors'][2]['row'] );
 		$this->assertStringContainsString( 'could not be fully verified', (string) $summary['errors'][2]['reason'] );
 
-		$warningsByRow = [];
-
-		foreach ( $summary['warnings'] as $warning ) {
-			if ( is_array( $warning ) ) {
-				$warningsByRow[ (int) $warning['row'] ] = (string) $warning['message'];
-			}
-		}
-
-		$this->assertArrayHasKey( 4, $warningsByRow );
-		$this->assertStringContainsString( 'Redirect chain detected', $warningsByRow[4] );
-		$this->assertStringContainsString( '/final', $warningsByRow[4] );
-		$this->assertArrayNotHasKey( 5, $warningsByRow, 'An unverifiable row is an error, not a warning' );
-		$this->assertArrayNotHasKey( 6, $warningsByRow );
+		// A refused import applied nothing, so no warnings outlive it. The
+		// chain warning is covered on a clean import in RedirectsCsvTest.
+		$this->assertSame( [], $summary['warnings'] );
+		$this->assertCount( 2, $this->db->rows, 'a refused import leaves the seeded rows untouched' );
 	}
 
 	/**
