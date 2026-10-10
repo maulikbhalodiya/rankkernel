@@ -737,6 +737,12 @@
 		return /^https?:\/\/\S+\.\S+/.test( String( value ).trim() );
 	}
 
+	function logStoreFailure( what, error ) {
+		if ( 'undefined' !== typeof window && window.console && 'function' === typeof window.console.warn ) {
+			window.console.warn( 'RankKernel SEO: reading ' + what + ' failed.', error );
+		}
+	}
+
 	// Guard the schema JSON import before FileReader pulls the whole file
 	// into memory. A file without a numeric size is left to the read path.
 	function schemaImportTooLarge( file ) {
@@ -1810,6 +1816,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'title' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post title', e );
 				return '';
 			}
 		}, [] );
@@ -1818,6 +1825,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'slug' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post slug', e );
 				return '';
 			}
 		}, [] );
@@ -1826,6 +1834,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'content' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post content', e );
 				return '';
 			}
 		}, [] );
@@ -2007,6 +2016,7 @@
 					return editor.getCurrentPostId();
 				}
 			} catch ( e ) {
+				logStoreFailure( 'the post id', e );
 				return 0;
 			}
 			return 0;
@@ -2060,6 +2070,7 @@
 				var edited = editor.getEditedPostAttribute( 'meta' );
 				return edited && edited[ META_KEY ] ? edited[ META_KEY ] : null;
 			} catch ( e ) {
+				logStoreFailure( 'the stored meta', e );
 				return null;
 			}
 		}, [] );
@@ -2070,6 +2081,7 @@
 					return editor.getEditedPostAttribute( 'type' ) || '';
 				}
 			} catch ( e ) {
+				logStoreFailure( 'the post type', e );
 				return '';
 			}
 			return '';
@@ -2945,11 +2957,15 @@
 									if ( ! file ) {
 										return;
 									}
-									if ( schemaImportTooLarge( file ) ) {
-										setError( 'schema.customText', __( 'Import file is larger than 2 MB, nothing was saved.', 'rankkernel' ) );
-										return;
-									}
-									var reader = new FileReader();
+								if ( schemaImportTooLarge( file ) ) {
+									setError( 'schema.customText', __( 'Import file is larger than 2 MB, nothing was saved.', 'rankkernel' ) );
+									return;
+								}
+								if ( 'function' !== typeof FileReader ) {
+									setError( 'schema.customText', __( 'Import file could not be read, nothing was saved.', 'rankkernel' ) );
+									return;
+								}
+								var reader = new FileReader();
 									reader.onload = function () {
 										var parsed = null;
 										try {

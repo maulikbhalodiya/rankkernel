@@ -262,6 +262,14 @@
 			}
 
 			target.searchParams.set( 'rk_partial', section || 'general' );
+
+			// Without fetch the call below throws before the promise chain
+			// attaches, so navigate instead of wedging the body busy.
+			if ( 'function' !== typeof window.fetch ) {
+				window.location.href = url;
+				return;
+			}
+
 			busy( true );
 
 			// A newer navigation must win, so an earlier response is dropped.
@@ -321,6 +329,14 @@
 
 			data.set( 'rk_partial', section );
 			data.set( marker, '1' );
+
+			// Without fetch the call below throws before the promise chain
+			// attaches, so submit normally instead of wedging the body busy.
+			if ( 'function' !== typeof window.fetch ) {
+				form.submit();
+				return;
+			}
+
 			busy( true );
 
 			// Bound the request so a stalled save falls back to form.submit()
