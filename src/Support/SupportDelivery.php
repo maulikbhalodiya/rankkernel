@@ -228,7 +228,7 @@ final class SupportDelivery {
 
 		// The browser-supplied type is a hint, not evidence, so the file's own
 		// contents decide what it is.
-		$checked = wp_check_filetype_and_ext( $tmp, $name );
+		$checked = wp_check_filetype_and_ext( $tmp, $name, SupportRequest::screenshotMimes() );
 
 		if ( ! empty( $checked['type'] ) ) {
 			$type = (string) $checked['type'];
@@ -258,19 +258,9 @@ final class SupportDelivery {
 			);
 		}
 
-		$types = SupportRequest::screenshotTypes();
-
-		// wp_handle_upload keys its allowlist by extension and stores the MIME
-		// type as the value, so the map is built extension first.
-		$mimes = [];
-
-		foreach ( $types as $type ) {
-			$mimes[ str_replace( 'image/', '', $type ) ] = $type;
-		}
-
 		$overrides = [
 			'test_form' => false,
-			'mimes'     => $mimes,
+			'mimes'     => SupportRequest::screenshotMimes(),
 		];
 
 		// The stub types this as array, but the real function returns WP_Error
