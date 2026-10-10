@@ -47,15 +47,24 @@ final class HowtoPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
-	 * Memoized HowTo data keyed by context hash.
+	 * Memoized HowTo data key (single-slot cache).
 	 *
-	 * Performance optimization: avoids repeating payload and block HowTo data merging,
+	 * Performance optimization: single-slot cache keyed on context hash,
+	 * meta payload serialization, and post content hash ensures O(1) memory bound
+	 * while avoiding repeating payload and block HowTo data merging,
 	 * step deduplication, duration validation, and block parsing between isNeeded()
-	 * and build() during schema graph generation.
+	 * and build().
 	 *
-	 * @var array<string, array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}>
+	 * @var string|null
 	 */
-	private array $howtoMemo = [];
+	private ?string $howtoMemoKey = null;
+
+	/**
+	 * Memoized HowTo data value.
+	 *
+	 * @var array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}|null
+	 */
+	private ?array $howtoMemoValue = null;
 
 	/**
 	 * Get piece id.
@@ -189,10 +198,14 @@ final class HowtoPiece implements PieceInterface {
 	 * @return array{name: string, description: string, steps: array<int, array{title: string, text: string, image: string}>, totalTime: string, cost: string, tools: array<int, string>, materials: array<int, string>}
 	 */
 	private function howto( Context $ctx ): array {
-		$hash = $ctx->hash();
+		$postId      = $ctx->queriedId();
+		$content     = ( $postId > 0 && function_exists( 'get_post_field' ) ) ? (string) get_post_field( 'post_content', $postId ) : '';
+		$meta        = $ctx->meta();
+		$metaEncoded = function_exists( 'wp_json_encode' ) ? (string) wp_json_encode( $meta ) : (string) json_encode( $meta ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fallback when WP is not loaded.
+		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . md5( $content );
 
-		if ( array_key_exists( $hash, $this->howtoMemo ) ) {
-			return $this->howtoMemo[ $hash ];
+		if ( null !== $this->howtoMemoKey && $this->howtoMemoKey === $key && null !== $this->howtoMemoValue ) {
+			return $this->howtoMemoValue;
 		}
 
 		$out = [
@@ -299,7 +312,8 @@ final class HowtoPiece implements PieceInterface {
 			}
 		}
 
-		$this->howtoMemo[ $hash ] = $out;
+		$this->howtoMemoKey   = $key;
+		$this->howtoMemoValue = $out;
 
 		return $out;
 	}

@@ -46,15 +46,23 @@ final class FaqPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
-	 * Memoized valid questions keyed by context hash.
+	 * Memoized valid questions key (single-slot cache).
 	 *
-	 * Performance optimization: avoids repeating payload question extraction,
-	 * block parsing, merging, deduplication, and filtering between isNeeded()
-	 * and build() during schema graph generation.
+	 * Performance optimization: single-slot cache keyed on context hash,
+	 * meta payload serialization, and post content hash ensures O(1) memory bound
+	 * while avoiding repeated block parsing and deduplication between
+	 * isNeeded() and build().
 	 *
-	 * @var array<string, array<int, array{question: string, answer: string}>>
+	 * @var string|null
 	 */
-	private array $questionsMemo = [];
+	private ?string $questionsMemoKey = null;
+
+	/**
+	 * Memoized valid questions value.
+	 *
+	 * @var array<int, array{question: string, answer: string}>|null
+	 */
+	private ?array $questionsMemoValue = null;
 
 	/**
 	 * Get piece id.
@@ -139,10 +147,14 @@ final class FaqPiece implements PieceInterface {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function questions( Context $ctx ): array {
-		$hash = $ctx->hash();
+		$postId      = $ctx->queriedId();
+		$content     = ( $postId > 0 && function_exists( 'get_post_field' ) ) ? (string) get_post_field( 'post_content', $postId ) : '';
+		$meta        = $ctx->meta();
+		$metaEncoded = function_exists( 'wp_json_encode' ) ? (string) wp_json_encode( $meta ) : (string) json_encode( $meta ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fallback when WP is not loaded.
+		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . md5( $content );
 
-		if ( array_key_exists( $hash, $this->questionsMemo ) ) {
-			return $this->questionsMemo[ $hash ];
+		if ( null !== $this->questionsMemoKey && $this->questionsMemoKey === $key && null !== $this->questionsMemoValue ) {
+			return $this->questionsMemoValue;
 		}
 
 		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx ) );
@@ -164,7 +176,8 @@ final class FaqPiece implements PieceInterface {
 			}
 		}
 
-		$this->questionsMemo[ $hash ] = $valid;
+		$this->questionsMemoKey   = $key;
+		$this->questionsMemoValue = $valid;
 
 		return $valid;
 	}
