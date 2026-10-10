@@ -496,4 +496,42 @@ final class LlmsFileWriterTest extends TestCase {
 		$this->assertFalse( $result['deleted'] );
 		$this->assertSame( 'missing', $result['reason'] );
 	}
+
+	/**
+	 * Test that DISALLOW_FILE_EDIT constant blocks deletion.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_edit_blocks_deletion(): void {
+		if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+			define( 'DISALLOW_FILE_EDIT', true );
+		}
+
+		$this->stubManagedOption();
+
+		$writer = new LlmsFileWriter();
+		$result = $writer->delete();
+
+		$this->assertFalse( $result['deleted'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+	}
+
+	/**
+	 * Test that DISALLOW_FILE_MODS constant blocks deletion.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_disallow_file_mods_blocks_deletion(): void {
+		if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+			define( 'DISALLOW_FILE_MODS', true );
+		}
+
+		$this->stubManagedOption();
+
+		$writer = new LlmsFileWriter();
+		$result = $writer->delete();
+
+		$this->assertFalse( $result['deleted'] );
+		$this->assertSame( 'not_writable', $result['reason'] );
+	}
 }

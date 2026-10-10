@@ -238,6 +238,16 @@ final class LlmsFileWriter {
 	 * @return array{deleted: bool, reason: string} Result and reason code.
 	 */
 	public function delete(): array {
+		if (
+			( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT )
+			|| ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS )
+		) {
+			return [
+				'deleted' => false,
+				'reason'  => 'not_writable',
+			];
+		}
+
 		$managed = function_exists( 'get_option' ) ? get_option( self::MANAGED_OPTION, '' ) : '';
 
 		if ( ! is_string( $managed ) || '' === $managed ) {
