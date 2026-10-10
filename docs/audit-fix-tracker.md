@@ -169,7 +169,7 @@
   Tests required: contributor-context write refused; draft rename creates nothing; un-publish
   removes the rule; cap enforced at N+1. Mutation-prove each gate.
 - [ ] **H-3 (High) — CSV import half-applies with no rollback, no dry-run, no override.**
-  Status: IN-REVIEW (#266, branch GH-261, with H-6/H-7).
+  Status: DONE (#266 merged).
   What breaks and why it matters: `import_csv()` validates and writes each row inside the loop
   (`CsvHandler.php:228, 573-577`), so rows 1..N-1 commit before row N fails — no transaction, no
   staging, no partial-import ledger, no dry-run parameter at all. Plus `detect_loop()` reports
@@ -240,7 +240,7 @@
   Fix steps: add a front-page title template (owner to confirm wording — propose "sitename –
   tagline" default, filterable). Tests: front page title no longer contains the CMS page title.
 - [ ] **H-6 (High) — homepage emits a self-referential 2-item BreadcrumbList.**
-  Status: IN-REVIEW (#266, branch GH-261).
+  Status: DONE (#266 merged).
   What breaks and why it matters: `TrailBuilder::buildFrontPage()` correctly returns `[]`
   (hide-on-front default), but `filterBreadcrumbTrail()` (`BreadcrumbsModule.php:332-333`)
   discards the legitimately empty trail and returns `sanitizeIncoming()` fallback — two ListItems
@@ -271,7 +271,7 @@
 ### Phase A4 — sitemaps (do together, one area)
 
 - [ ] **H-7 (High) — authors sitemap advertised in the index but serves an empty urlset.**
-  Status: IN-REVIEW (#266, branch GH-261).
+  Status: DONE (#266 merged).
   What breaks and why it matters: `getCount()` runs `COUNT(DISTINCT post_author)` with no
   `post_author <> 0` filter, so a site full of author-0 rows reports 1 and the set is admitted
   to the index — then `getEntries()` discards row 0 and returns nothing. Live result: HTTP 200
