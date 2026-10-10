@@ -812,4 +812,25 @@ final class RedirectsRepositoryTest extends TestCase {
 
 		$this->assertGreaterThan( $readsBefore, $readsAfter );
 	}
+
+	/**
+	 * Test memos never leak rows across database handles.
+	 */
+	public function test_memos_are_scoped_to_the_database_handle(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/shared',
+				'target' => '/target',
+			]
+		);
+
+		$this->assertSame( $this->repo->get( $id )['target'], '/target' );
+		$this->assertCount( 1, $this->repo->find_cycle_candidates() );
+
+		$otherDb   = new RedirectsFakeDb();
+		$otherRepo = new RedirectRepository( $otherDb );
+
+		$this->assertNull( $otherRepo->get( $id ), 'a row memoized from one handle must not serve another' );
+		$this->assertSame( [], $otherRepo->find_cycle_candidates(), 'candidates memoized from one handle must not serve another' );
+	}
 }

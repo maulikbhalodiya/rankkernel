@@ -122,6 +122,17 @@ final class RedirectRepository {
 	private static ?array $cycleCandidatesMemo = null;
 
 	/**
+	 * Identity of the database handle the static memos were built from.
+	 *
+	 * The memos are shared across instances, so a different handle must
+	 * flush them first: otherwise rows read from one database leak into
+	 * reads from another in long lived processes and test suites.
+	 *
+	 * @var int|null Object identity of the memo source handle.
+	 */
+	private static ?int $memoConnId = null;
+
+	/**
 	 * Safety analyzer for activation checks, fresh one when null.
 	 *
 	 * @var Validator|null
@@ -230,6 +241,27 @@ final class RedirectRepository {
 		self::$patternsMemo        = null;
 		self::$rowMemo             = [];
 		self::$cycleCandidatesMemo = null;
+		self::$memoConnId          = null;
+	}
+
+	/**
+	 * Flush the static memos when the database handle changed.
+	 *
+	 * Memoized rows belong to one handle: the first read against a new
+	 * handle discards everything the previous handle left behind, so a
+	 * shared process can never serve another database's rows. The common
+	 * case of one handle per request never flushes and keeps the full
+	 * memo win.
+	 *
+	 * @param object $db Active database handle.
+	 */
+	private function primeMemos( object $db ): void {
+		$id = spl_object_id( $db );
+
+		if ( self::$memoConnId !== $id ) {
+			self::resetCache();
+			self::$memoConnId = $id;
+		}
 	}
 
 	/**
@@ -315,14 +347,16 @@ final class RedirectRepository {
 			return null;
 		}
 
-		if ( array_key_exists( $id, self::$rowMemo ) ) {
-			return self::$rowMemo[ $id ];
-		}
-
 		$db = $this->connection();
 
 		if ( null === $db ) {
 			return null;
+		}
+
+		$this->primeMemos( $db );
+
+		if ( array_key_exists( $id, self::$rowMemo ) ) {
+			return self::$rowMemo[ $id ];
 		}
 
 		$table = RedirectTable::name();
@@ -869,14 +903,16 @@ final class RedirectRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_cycle_candidates(): array {
-		if ( null !== self::$cycleCandidatesMemo ) {
-			return self::$cycleCandidatesMemo;
-		}
-
 		$db = $this->connection();
 
 		if ( null === $db ) {
 			return [];
+		}
+
+		$this->primeMemos( $db );
+
+		if ( null !== self::$cycleCandidatesMemo ) {
+			return self::$cycleCandidatesMemo;
 		}
 
 		$table = RedirectTable::name();
