@@ -135,6 +135,7 @@ final class MonitorAdminTest extends TestCase {
 			}
 		);
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( '_n' )->alias( static fn ( string $s, string $p, int $n ): string => 1 === $n ? $s : $p );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( mixed $n ): string => number_format( (int) $n ) );
 		Functions\when( 'current_time' )->alias( static fn (): string => gmdate( 'Y-m-d H:i:s' ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
