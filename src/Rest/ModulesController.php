@@ -207,10 +207,7 @@ final class ModulesController {
 		return new WP_REST_Response(
 			[
 				'modules' => $updated,
-				'message' => esc_html__(
-					'Module status updated. Changes take effect on the next request.',
-					'rankkernel'
-				),
+				'message' => __( 'Module status updated. Changes take effect on the next request.', 'rankkernel' ),
 			],
 			200
 		);
