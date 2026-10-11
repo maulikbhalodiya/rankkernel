@@ -79,10 +79,12 @@ defined( 'ABSPATH' ) || exit;
 			<p><?php echo esc_html__( 'Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post.', 'rankkernel' ); ?></p>
 			<p>
 				<?php
-				printf(
-					/* translators: %s: link to the official llms.txt website */
-					esc_html__( 'llms.txt is a community proposal, not a standard. See %s.', 'rankkernel' ),
-					'<a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'the official llms.txt site', 'rankkernel' ) . '<span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'rankkernel' ) . '</span></a>'
+				echo wp_kses_post(
+					sprintf(
+						/* translators: %s: link to the official llms.txt website */
+						__( 'llms.txt is a community proposal, not a standard. See %s.', 'rankkernel' ),
+						'<a href="https://llmstxt.org/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'the official llms.txt site', 'rankkernel' ) . ' <span class="screen-reader-text">' . esc_html__( '(opens in a new tab)', 'rankkernel' ) . '</span></a>'
+					)
 				);
 				?>
 			</p>
