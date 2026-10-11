@@ -326,7 +326,7 @@ if ( $schemaDisabled ) {
 				</ul></div>
 			<?php endif; ?>
 			<h4><?php echo esc_html__( 'Test this page', 'rankkernel' ); ?></h4>
-			<p><a href="<?php echo esc_url( $schemaRichResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?></a> | <a href="<?php echo esc_url( $schemaValidatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?></a></p>
+			<p><a href="<?php echo esc_url( $schemaRichResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a> | <a href="<?php echo esc_url( $schemaValidatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a></p>
 			<h4><?php echo esc_html__( 'Import and export', 'rankkernel' ); ?></h4>
 			<p><a class="button" href="<?php echo esc_url( $schemaExportUrl ); ?>"><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></a></p>
 			<p><label for="rankkernel-meta-schema-import"><?php echo esc_html__( 'Import JSON', 'rankkernel' ); ?></label> <input type="file" id="rankkernel-meta-schema-import" name="rankkernel_schema_import" accept=".json,application/json" /></p>
