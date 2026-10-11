@@ -241,7 +241,7 @@ final class KeyFileServerTest extends TestCase {
 	}
 
 	/**
-	 * Test the response headers mark the key file plain text and noindex.
+	 * Test the response headers mark the key file plain text, noindex and nosniff.
 	 */
 	public function test_response_headers_mark_the_key_file_plain_text_and_noindex(): void {
 		$server  = new KeyFileServer( $this->settings );
@@ -251,6 +251,8 @@ final class KeyFileServerTest extends TestCase {
 		$this->assertStringContainsString( 'text/plain', $headers['Content-Type'], 'the key file must be served as plain text' );
 		$this->assertArrayHasKey( 'X-Robots-Tag', $headers, 'the key file response must carry an X-Robots-Tag header' );
 		$this->assertStringContainsString( 'noindex', $headers['X-Robots-Tag'], 'the key file must be served noindex' );
+		$this->assertArrayHasKey( 'X-Content-Type-Options', $headers, 'the key file response must carry an X-Content-Type-Options header' );
+		$this->assertSame( 'nosniff', $headers['X-Content-Type-Options'], 'the key file response must disable MIME-sniffing' );
 	}
 
 	/**
