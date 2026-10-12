@@ -904,6 +904,21 @@ final class MetadataBoxTest extends TestCase {
 	}
 
 	/**
+	 * Test links that open a new tab carry a screen reader hint.
+	 */
+	public function test_render_new_tab_links_carry_a_screen_reader_hint(): void {
+		$this->storedMeta = [];
+
+		$out = $this->renderBox();
+
+		$this->assertSame(
+			2,
+			substr_count( $out, '<span class="screen-reader-text">(opens in a new tab)</span>' ),
+			'both Rich Results and Schema Validator target="_blank" links must carry the screen reader hint'
+		);
+	}
+
+	/**
 	 * The Schema tab validation notice uses the shared notice component.
 	 *
 	 * Classic shares the design system with the sidebar, so validation
