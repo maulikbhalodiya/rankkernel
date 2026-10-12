@@ -293,7 +293,7 @@ final class Context {
 			return 'home';
 		}
 
-		if ( is_callable( [ $this->query, 'is_singular' ] ) && $this->query->is_singular() ) {
+		if ( $this->isSingular() ) {
 			$this->queriedTypeCache = 'post';
 
 			return 'post';
