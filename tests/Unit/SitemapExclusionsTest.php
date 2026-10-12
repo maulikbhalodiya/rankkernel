@@ -166,6 +166,25 @@ final class SitemapExclusionsTest extends TestCase {
 	}
 
 	/**
+	 * Test a flagged post is excluded even with a clean payload.
+	 */
+	public function test_flagged_post_excluded_without_like_payload(): void {
+		$this->seedPosts();
+
+		$this->db->postNoindexIds = [ 2 ];
+
+		$provider = new PostsProvider();
+
+		$this->assertSame( 1, $provider->getCount( 'post' ) );
+
+		$entries = $provider->getEntries( 'post', 1, 10 );
+		$locs    = array_column( $entries, 'loc' );
+
+		$this->assertNotContains( 'https://example.com/?p=2', $locs );
+		$this->assertContains( 'https://example.com/?p=3', $locs );
+	}
+
+	/**
 	 * Test password post excluded from entries and counts.
 	 */
 	public function test_password_post_excluded_from_entries_and_counts(): void {
@@ -208,6 +227,39 @@ final class SitemapExclusionsTest extends TestCase {
 			12 => [ 2 ],
 		];
 		$this->db->termmetaRows  = [ 10 => $noindex ];
+
+		Functions\when( 'get_term' )->alias( static fn ( int $id, string $t = '' ): object => (object) [ 'term_id' => $id ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_term signature.
+		Functions\when( 'is_wp_error' )->alias( static fn ( mixed $v ): bool => $v instanceof \WP_Error );
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_term_link signature.
+		Functions\when( 'get_term_link' )->alias( static fn ( mixed $t, string $tax = '' ): string => 'https://example.com/cat/' );
+
+		$provider = new TaxonomiesProvider();
+
+		$this->assertSame( 2, $provider->getCount( 'category' ) );
+
+		$entries = $provider->getEntries( 'category', 1, 10 );
+
+		$this->assertCount( 2, $entries );
+	}
+
+	/**
+	 * Test a flagged term is excluded even with a clean payload.
+	 */
+	public function test_flagged_term_excluded_without_like_payload(): void {
+		$this->seedPosts();
+
+		$this->db->termsList      = [ 10, 11, 12 ];
+		$this->db->termTaxonomy   = [
+			10 => 'category',
+			11 => 'category',
+			12 => 'category',
+		];
+		$this->db->relationships  = [
+			10 => [ 2 ],
+			11 => [ 3 ],
+			12 => [ 2 ],
+		];
+		$this->db->termNoindexIds = [ 11 ];
 
 		Functions\when( 'get_term' )->alias( static fn ( int $id, string $t = '' ): object => (object) [ 'term_id' => $id ] ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_term signature.
 		Functions\when( 'is_wp_error' )->alias( static fn ( mixed $v ): bool => $v instanceof \WP_Error );

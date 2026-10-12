@@ -13,6 +13,7 @@ namespace RankKernel\Modules\Sitemaps\Provider;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Metadata\NoindexFlag;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -115,8 +116,7 @@ class PostsProvider {
 
 		$sql = "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = %s AND p.post_status = %s"
 			. " AND p.post_password = ''"
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
-			. " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->postmeta, 'post_id', 'p.ID', '_rankkernel_meta_data' )
 			. $exclude;
 
 		$args = array_merge( [ $sql ], $params );
@@ -157,8 +157,7 @@ class PostsProvider {
 
 		$sql = "SELECT p.ID, p.post_modified_gmt, p.post_content FROM {$wpdb->posts} p WHERE p.post_type = %s"
 			. " AND p.post_status = %s AND p.post_password = ''"
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} m WHERE m.post_id = p.ID"
-			. " AND m.meta_key = '_rankkernel_meta_data' AND m.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->postmeta, 'post_id', 'p.ID', '_rankkernel_meta_data' )
 			. $exclude
 			. ' ORDER BY p.post_modified_gmt DESC, p.ID DESC LIMIT %d OFFSET %d';
 

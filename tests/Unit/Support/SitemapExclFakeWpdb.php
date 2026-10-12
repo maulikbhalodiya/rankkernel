@@ -87,6 +87,18 @@ final class SitemapExclFakeWpdb {
 	 * @var array<int, string>
 	 */
 	public array $termmetaRows = [];
+	/**
+	 * Post ids carrying a scalar noindex flag row.
+	 *
+	 * @var int[]
+	 */
+	public array $postNoindexIds = [];
+	/**
+	 * Term ids carrying a scalar noindex flag row.
+	 *
+	 * @var int[]
+	 */
+	public array $termNoindexIds = [];
 
 	/**
 	 * Last Sql.
@@ -242,6 +254,10 @@ final class SitemapExclFakeWpdb {
 			$id   = (int) ( $row['ID'] ?? 0 );
 			$meta = $this->postmetaRows[ $id ] ?? null;
 
+			if ( str_contains( $sql, '_rankkernel_noindex' ) && in_array( $id, $this->postNoindexIds, true ) ) {
+				continue;
+			}
+
 			if ( $this->likeExcludes( $meta, $like ) ) {
 				continue;
 			}
@@ -348,6 +364,10 @@ final class SitemapExclFakeWpdb {
 			}
 
 			$meta = $this->termmetaRows[ $termId ] ?? null;
+
+			if ( str_contains( $sql, '_rankkernel_noindex' ) && in_array( $termId, $this->termNoindexIds, true ) ) {
+				continue;
+			}
 
 			if ( $this->likeExcludes( $meta, $like ) ) {
 				continue;
