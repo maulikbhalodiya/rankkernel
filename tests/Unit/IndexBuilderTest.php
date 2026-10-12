@@ -98,6 +98,11 @@ final class IndexBuilderTest extends TestCase {
 		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
 		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
 
+		// Max modified fallback, overridden per test that asserts index dates.
+		$posts->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
+		$tax->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
+		$auth->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
+
 		Functions\when( 'apply_filters' )->alias(
 			static function ( string $hook, mixed $value ) use ( $perPage ): mixed {
 				if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
@@ -133,6 +138,36 @@ final class IndexBuilderTest extends TestCase {
 		$this->assertStringNotContainsString( 'page-sitemap', $xml, 'Empty sets must be skipped' );
 		$this->assertStringContainsString( 'category-sitemap.xml', $xml );
 		$this->assertStringContainsString( 'authors-sitemap.xml', $xml );
+	}
+
+	/**
+	 * Test index lastmod carries each set's newest date, never now.
+	 */
+	public function test_index_lastmod_carries_set_newest_date(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$tax   = Mockery::mock( TaxonomiesProvider::class );
+		$auth  = Mockery::mock( AuthorsProvider::class );
+
+		$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+		$posts->shouldReceive( 'getCount' )->with( 'post' )->andReturn( 5 )->byDefault();
+		$posts->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$posts->shouldReceive( 'getMaxLastmod' )->with( 'post' )->andReturn( '2026-08-24 10:00:00' )->byDefault();
+		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
+		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				return $value;
+			}
+		);
+
+		$builder = new IndexBuilder( $posts, $tax, $auth, '9.9.9-test' );
+		$xml     = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '2026-08-24', $xml, 'index lastmod must be the set newest date' );
+		$this->assertStringNotContainsString( '2026-01-01', $xml, 'index lastmod must never be now' );
 	}
 
 	/**

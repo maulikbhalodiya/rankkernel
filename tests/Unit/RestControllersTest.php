@@ -222,6 +222,34 @@ final class RestControllersTest extends TestCase {
 	}
 
 	/**
+	 * Test toggling sitemaps over REST invalidates the sitemap cache.
+	 */
+	public function test_rest_toggle_sitemaps_invalidates_sitemap_cache(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$written = [];
+
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key ) use ( &$written ): bool {
+				$written[] = $key;
+
+				return true;
+			}
+		);
+
+		$ctrl = new ModulesController();
+		$req  = Mockery::mock( \WP_REST_Request::class );
+		$req->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'sitemaps' );
+		$req->shouldReceive( 'get_json_params' )->andReturn( [ 'enabled' => true ] );
+		$req->shouldReceive( 'get_params' )->andReturn( [ 'enabled' => true ] );
+
+		$res = $ctrl->toggleModule( $req );
+
+		$this->assertInstanceOf( \WP_REST_Response::class, $res );
+		$this->assertContains( 'rankkernel_sitemap_validator_global', $written );
+	}
+
+	/**
 	 * Test a planned module id is rejected by toggleModule with a clear error.
 	 */
 	public function test_modules_controller_planned_module_rejected(): void {

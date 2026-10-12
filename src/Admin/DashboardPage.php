@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
+use RankKernel\Modules\Sitemaps\SitemapCache;
 
 /**
  * Renders the RankKernel dashboard of module cards and handles module toggles.
@@ -224,6 +225,10 @@ final class DashboardPage {
 
 			update_option( 'rankkernel_modules', array_values( array_unique( $enabled ) ) );
 			flush_rewrite_rules( false );
+
+			if ( 'sitemaps' === $rawId ) {
+				SitemapCache::invalidateAll();
+			}
 		}
 
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . '&settings-updated=1' ) );

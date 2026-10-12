@@ -544,4 +544,48 @@ final class SitemapCacheTest extends TestCase {
 			unset( $GLOBALS['wpdb'] );
 		}
 	}
+
+	/**
+	 * Test register hooks covers post deletion, not just saves.
+	 */
+	public function test_register_hooks_covers_post_deletion(): void {
+		$hooks = [];
+
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+
+				return true;
+			}
+		);
+
+		$cache = new SitemapCache();
+		$cache->registerHooks();
+
+		$this->assertContains( 'deleted_post', $hooks, 'permanent deletion must invalidate' );
+		$this->assertContains( 'trashed_post', $hooks, 'trashing must invalidate' );
+	}
+
+	/**
+	 * Test stored payloads carry a bounded TTL instead of living forever.
+	 */
+	public function test_store_uses_bounded_ttl(): void {
+		$ttls = [];
+
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( false );
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'set_transient' )->alias(
+			static function ( string $key, mixed $value, int $ttl = 0 ) use ( &$ttls ): bool {
+				$ttls[] = $ttl;
+
+				return true;
+			}
+		);
+
+		$cache = new SitemapCache();
+		$cache->store( 'post', 1, '<xml/>' );
+
+		$this->assertNotEmpty( $ttls );
+		$this->assertGreaterThan( 0, $ttls[0], 'payloads must expire' );
+	}
 }

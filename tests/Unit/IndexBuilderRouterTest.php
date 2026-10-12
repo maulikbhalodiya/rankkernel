@@ -75,16 +75,19 @@ final class IndexBuilderRouterTest extends TestCase {
 		$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
 		$posts->shouldReceive( 'getCount' )->with( 'post' )->andReturn( $postCount )->byDefault();
 		$posts->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$posts->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		$tax = Mockery::mock( TaxonomiesProvider::class );
 		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
 		$tax->shouldReceive( 'getCount' )->andReturn( 0 )->byDefault();
 		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		$auth = Mockery::mock( AuthorsProvider::class );
 		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
 		$auth->shouldReceive( 'getCount' )->andReturn( 0 )->byDefault();
 		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		return new IndexBuilder( $posts, $tax, $auth, '9.9.9-test' );
 	}
@@ -182,14 +185,17 @@ final class IndexBuilderRouterTest extends TestCase {
 				],
 			]
 		)->byDefault();
+		$posts->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		$tax = Mockery::mock( TaxonomiesProvider::class );
 		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
 		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		$auth = Mockery::mock( AuthorsProvider::class );
 		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
 		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getMaxLastmod' )->andReturn( '' )->byDefault();
 
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ): mixed => 1000 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress apply_filters signature.
 

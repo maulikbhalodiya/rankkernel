@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
+use RankKernel\Modules\Sitemaps\SitemapCache;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -203,6 +204,13 @@ final class ModulesController {
 		// Rewrite-based modules (sitemaps) register or drop rules depending
 		// on this list, so the cached rules must regenerate.
 		flush_rewrite_rules( false );
+
+		// The sitemap cache outlives the toggle: its invalidation hooks only
+		// run while the module is on, so a toggle that skips this leaves the
+		// pre-toggle XML served indefinitely.
+		if ( 'sitemaps' === $moduleId ) {
+			SitemapCache::invalidateAll();
+		}
 
 		return new WP_REST_Response(
 			[
