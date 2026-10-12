@@ -199,7 +199,7 @@
 ### Phase A3 — metadata / SEO output correctness (do together, one area)
 
 - [ ] **C-3 (Critical) — homepage emits `og:type=article` + article dates.**
-  Status: TODO.
+  Status: DONE (#258 merged).
   What breaks and why it matters: `Context.php:218` tests `is_singular()` before `:238`
   tests `is_front_page()`, and on a static front page both are true — so `/` emits
   `og:type=article` plus `article:published_time` and `WebPage.datePublished`. Facebook,
@@ -211,7 +211,7 @@
   Tests required: front page type is `home`, output has `og:type=website` and zero `article:*`
   tags; single post still emits `article` with dates. Mutation-prove by restoring the order.
 - [ ] **C-4 (Critical) — post-type archives get title = bare site name, all identical.**
-  Status: TODO.
+  Status: DONE (#258 merged).
   What breaks and why it matters: `Context::title()` (`:537`) branches on term and author
   archives only. `queriedType()` knows CPT archives (`permalink()` even handles them), but the
   title path falls through to `get_the_title($id)`/`single_post_title()` and then `''`, so the
@@ -225,7 +225,7 @@
   Tests required: CPT archive title carries the archive name; date archive likewise; term/author
   paths unchanged.
 - [ ] **H-4 (High) — no meta description on front page / posts index; tagline never read.**
-  Status: TODO.
+  Status: DONE (#258 merged).
   What breaks and why it matters: `resolveDescription()` ends at `return ''`, and grep shows
   zero `blogdescription` reads anywhere in `src/`. The homepage — the highest-CTR URL — ships
   no description tag even when the tagline is a perfectly good string. Do with C-3/C-4.
@@ -239,6 +239,7 @@
   on the front page instead.
   Fix steps: add a front-page title template (owner to confirm wording — propose "sitename –
   tagline" default, filterable). Tests: front page title no longer contains the CMS page title.
+  Status: DONE (#258 merged).
 - [ ] **H-6 (High) — homepage emits a self-referential 2-item BreadcrumbList.**
   Status: DONE (#266 merged).
   What breaks and why it matters: `TrailBuilder::buildFrontPage()` correctly returns `[]`
@@ -282,7 +283,7 @@
   a shared `author > 0` clause both use). Tests: all-zero-author dataset yields no authors set
   in the index at all; mixed dataset counts exactly the real authors.
 - [ ] **H-8 (High) — every sitemap index `lastmod` is "now".**
-  Status: TODO.
+  Status: DONE (#260 merged).
   What breaks and why it matters: `IndexBuilder.php:330` stamps
   `current_time('mysql', true)` inside the per-sitemap loop, so all index entries carry today
   while children carry real dates. Crawlers are told every file changed on every edit — the
@@ -290,7 +291,7 @@
   Fix steps: real per-file lastmod (max child lastmod per set, already available from the
   providers). Tests: index lastmods match child maxima, stable across unrelated edits.
 - [ ] **H-10 (High) — sitemap cache never expires and deletions never invalidate it.**
-  Status: TODO.
+  Status: DONE (#260 merged).
   What breaks and why it matters: `wp_cache_set(..., 0)` + `set_transient(..., 0)` (TTL 0 =
   never expires) and the hook list (`SitemapCache.php:262-272`) has `save_post`, terms, users,
   settings — but no `deleted_post` (WordPress does NOT fire `save_post` on delete). Trashed and
@@ -317,7 +318,7 @@
   image set identical before/after on fixture content; add a perf assertion if the harness
   allows, else record timings in the PR.
 - [ ] **H-21 (High) — sitemap toggle off/on never invalidates the sitemap cache.**
-  Status: TODO.
+  Status: DONE (#260 merged).
   What breaks and why it matters: both toggle paths call only `flush_rewrite_rules(false)`.
   The invalidation hooks register only while the module is ON, so while off nothing bumps the
   validator and the version valve is already satisfied. Sequence: toggle off → publish/delete →
