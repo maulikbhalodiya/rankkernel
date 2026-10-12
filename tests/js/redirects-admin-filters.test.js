@@ -384,3 +384,26 @@ test( 'tab click without fetch navigates instead of throwing', () => {
 		'without fetch the click must fall back to a normal navigation before any state is touched'
 	);
 } );
+
+test( 'a markerless fragment navigates instead of swapping the list', async () => {
+	const fixture = filterFixture();
+
+	const sandbox = run( fixture.document, config, ( url, options ) => {
+		return Promise.resolve( {
+			ok: true,
+			json: () => Promise.resolve( { success: true, data: { html: '<html><body>login</body></html>' } } )
+		} );
+	} );
+	sandbox.location = { href: '' };
+
+	fixture.tabEl.listeners.click( { preventDefault() {} } );
+
+	await flushPromises();
+	await flushPromises();
+
+	assert.equal(
+		sandbox.location.href,
+		'https://example.org/wp-admin/admin.php?page=rankkernel-redirects&rk_status=active',
+		'a foreign document must never land in the list through the swap'
+	);
+} );

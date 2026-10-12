@@ -421,6 +421,13 @@ function rankkernelAnnounce( text ) {
 					throw new Error( 'Unexpected response' );
 				}
 
+				// The fragment must carry the list section marker: a full
+				// HTML document (expired session, login screen) must never
+				// land in the list through an outerHTML swap.
+				if ( -1 === data.data.html.indexOf( 'id="rk-list-section"' ) ) {
+					throw new Error( 'Unexpected response' );
+				}
+
 				listWrap.outerHTML = data.data.html;
 
 					/* Re-acquire the reference after innerHTML swap. */

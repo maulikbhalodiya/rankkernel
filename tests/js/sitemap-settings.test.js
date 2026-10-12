@@ -79,8 +79,8 @@ function fakePanel( tabId ) {
 	};
 }
 
-function loadTabs( search, hash = '', withHistory = true ) {
-	const tabIds = [ 'general', 'post-types', 'taxonomies', 'authors' ];
+function loadTabs( search, hash = '', withHistory = true, extraIds = [] ) {
+	const tabIds = [ 'general', 'post-types', 'taxonomies', 'authors', ...extraIds ];
 	const links = tabIds.map( ( id ) =>
 		fakeTabLink( 'admin.php?page=rankkernel-sitemap&tab=' + id, id )
 	);
@@ -92,10 +92,13 @@ function loadTabs( search, hash = '', withHistory = true ) {
 	} );
 
 	const windowListeners = {};
+	const selectors = [];
 	const document = {
 		readyState: 'complete',
 		addEventListener() {},
 		querySelector( selector ) {
+			selectors.push( selector );
+
 			if ( '.rk-ui-tabs' === selector ) {
 				return {
 					querySelectorAll( sel ) {
@@ -107,6 +110,12 @@ function loadTabs( search, hash = '', withHistory = true ) {
 			const panelMatch = selector.match( /^\[data-rk-tab-panel="(.+)"\]$/ );
 
 			if ( panelMatch ) {
+				// A real querySelector throws on an unescaped quote, which
+				// is exactly what the escape guard must prevent.
+				if ( /(^|[^\\])"/.test( panelMatch[ 1 ] ) ) {
+					throw new SyntaxError( 'not a valid selector' );
+				}
+
 				return byId[ panelMatch[ 1 ] ] || null;
 			}
 
@@ -120,6 +129,11 @@ function loadTabs( search, hash = '', withHistory = true ) {
 	const sandbox = {
 		document,
 		location: { search, hash, href: '' },
+		CSS: {
+			escape( value ) {
+				return String( value ).replace( /["\\]/g, '\\$&' );
+			}
+		},
 		addEventListener( type, handler ) {
 			windowListeners[ type ] = handler;
 		}
@@ -138,7 +152,7 @@ function loadTabs( search, hash = '', withHistory = true ) {
 
 	vm.runInNewContext( source( 'sitemap-settings-admin.js' ), sandbox );
 
-	return { links, panels, byId, windowListeners, sandbox, api: sandbox.rankkernelSitemapSettings };
+	return { links, panels, byId, windowListeners, sandbox, selectors, api: sandbox.rankkernelSitemapSettings };
 }
 
 test( 'pickTab follows a known tab argument and falls back to the first tab', () => {
@@ -227,4 +241,15 @@ test( 'a hash target scrolls into view on load', () => {
 	const { byId } = loadTabs( '?tab=general', '#rk-sitemap-panel-general' );
 
 	assert.equal( byId.general.scrolled, true );
+} );
+
+test( 'a hostile tab id cannot break tab activation', () => {
+	const { links, byId, selectors } = loadTabs( '', '', true, [ 'a"b' ] );
+
+	assert.ok( links[ 0 ].classes.has( 'is-current' ), 'the first real tab still opens' );
+	assert.equal( byId.general.hidden, false );
+	assert.ok(
+		selectors.some( ( selector ) => selector.includes( 'a\\"b' ) ),
+		'the hostile id must reach the lookup escaped, never raw'
+	);
 } );

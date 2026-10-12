@@ -316,10 +316,36 @@
 		menuRefreshController = null;
 
 		var signal;
+		var fetchTimer = null;
 
 		if ( 'function' === typeof window.AbortController ) {
 			menuRefreshController = new window.AbortController();
 			signal = menuRefreshController.signal;
+
+			// A hung same origin response must not wedge the toggle: abort
+			// the refresh and leave the menu for the next full page load.
+			// The captured token and controller pin this timer to its own
+			// refresh, so a superseding toggle is never aborted or dropped.
+			if ( 'function' === typeof window.setTimeout ) {
+				var refreshToken = token;
+				var refreshController = menuRefreshController;
+
+				fetchTimer = window.setTimeout( function () {
+					if ( refreshToken !== menuRefreshToken ) {
+						return;
+					}
+
+					menuRefreshToken++;
+
+					if ( refreshController && 'function' === typeof refreshController.abort ) {
+						try {
+							refreshController.abort();
+						} catch ( error ) {
+							// Abort is best effort; the token guard drops stale results.
+						}
+					}
+				}, 15000 );
+			}
 		}
 
 		window.fetch( String( window.location.href ), {
@@ -332,6 +358,10 @@
 
 			return response.text();
 		} ).then( function ( html ) {
+			if ( fetchTimer && 'function' === typeof window.clearTimeout ) {
+				window.clearTimeout( fetchTimer );
+			}
+
 			if ( token !== menuRefreshToken ) {
 				return;
 			}
@@ -349,6 +379,10 @@
 
 			swapSubmenu( fresh );
 		} ).catch( function () {
+			if ( fetchTimer && 'function' === typeof window.clearTimeout ) {
+				window.clearTimeout( fetchTimer );
+			}
+
 			// Leave the menu as-is; the next full page load is correct.
 		} );
 	}

@@ -95,6 +95,13 @@
 					return;
 				}
 
+				// A compromised media filter could hand back a data or
+				// javascript scheme, so only http(s) and site relative
+				// paths reach the option field and the preview.
+				if ( ! /^https?:\/\//i.test( url ) && '/' !== url.charAt( 0 ) ) {
+					return;
+				}
+
 				input.value      = url;
 				preview.src      = url;
 				preview.style.display = '';
