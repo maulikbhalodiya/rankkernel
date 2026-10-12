@@ -202,6 +202,19 @@ final class RedirectsTableTest extends TestCase {
 	}
 
 	/**
+	 * Test enumerated columns use plain text types dbDelta stabilizes on.
+	 */
+	public function test_no_enum_columns_in_ddl(): void {
+		$this->db->tableExists = false;
+
+		RedirectTable::ensureTables();
+
+		$this->assertStringNotContainsString( 'ENUM(', $this->lastSql );
+		$this->assertStringContainsString( 'match_type VARCHAR', $this->lastSql );
+		$this->assertStringContainsString( 'code VARCHAR', $this->lastSql );
+	}
+
+	/**
 	 * Test no database fails open.
 	 */
 	public function test_no_database_fails_open(): void {

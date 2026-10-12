@@ -186,11 +186,11 @@ final class RedirectTable {
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
 		$sql     = "CREATE TABLE `{$table}` ("
 			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
-			. "match_type ENUM('exact','prefix','contains','suffix','wildcard','regex') NOT NULL DEFAULT 'exact',"
+			. "match_type VARCHAR(20) NOT NULL DEFAULT 'exact',"
 			. 'source_hash CHAR(64) NOT NULL,'
 			. 'source TEXT NOT NULL,'
 			. 'target TEXT NOT NULL,'
-			. "code ENUM('301','302','307','410','451') NOT NULL DEFAULT '301',"
+			. "code VARCHAR(10) NOT NULL DEFAULT '301',"
 			. 'hits BIGINT UNSIGNED NOT NULL DEFAULT 0,'
 			. 'is_active TINYINT(1) NOT NULL DEFAULT 1,'
 			. 'created DATETIME NOT NULL,'
