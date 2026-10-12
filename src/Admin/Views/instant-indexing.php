@@ -179,7 +179,7 @@ defined( 'ABSPATH' ) || exit;
 					<p class="rk-settings-text"><?php echo esc_html__( 'The key is generated on the server and is never shown here, so it cannot leak into your browser.', 'rankkernel' ); ?></p>
 					<p class="rk-settings-text">
 						<?php echo esc_html__( 'Key file:', 'rankkernel' ); ?>
-						<a class="rk-key-url" href="<?php echo esc_url( $keyFileUrl ); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr( __( 'Open the key file in a new tab', 'rankkernel' ) ); ?>"><?php echo esc_html( $keyFileUrl ); ?></a>
+						<a class="rk-key-url" href="<?php echo esc_url( $keyFileUrl ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $keyFileUrl ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
 					</p>
 					<p class="rk-settings-text"><?php echo esc_html__( 'Opening that URL should show only the key as plain text. A 404 or a login redirect means the file is not publicly reachable and verification will fail.', 'rankkernel' ); ?></p>
 					<div class="rk-key-actions">
