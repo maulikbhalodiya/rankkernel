@@ -857,6 +857,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-positive">3</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-negative">2</div>', $html );
 		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning">1</div>', $html );
+		$this->assertStringContainsString( 'Need retry', $html );
+		$this->assertStringContainsString( '<div class="rk-stat-value rk-stat-value-warning rk-stat-value-retry">1</div>', $html );
 		$this->assertStringContainsString( '>Rejected <span class="rk-ui-count">2</span>', $html );
 		$this->assertStringContainsString( 'rk-ui-pill-success">Accepted', $html );
 		$this->assertStringContainsString( 'rk-ui-pill-info">Key pending', $html );

@@ -16,7 +16,7 @@
  * @var array{type: string, message: string}|null $notice Submit outcome notice, null for none.
  * @var bool $keyConfigured   Whether a usable key is stored.
  * @var bool $autoSubmit      Whether automatic submission is on.
- * @var array{total: int, accepted: int, rejected: int, limited: int} $stats Stats strip numbers over the whole log table.
+ * @var array{total: int, accepted: int, rejected: int, limited: int, retry: int} $stats Stats strip numbers over the whole log table.
  * @var string $screenUrl     Screen URL without filter arguments.
  * @var InstantIndexingLogView $logView Log filters plus tabs plus pagination state.
  * @var array<int, array{key: string, label: string, url: string, count: int, current: bool}> $statusTabs Status tabs with real counts.
@@ -116,6 +116,11 @@ defined( 'ABSPATH' ) || exit;
 				<div class="rk-stat-label"><?php echo esc_html__( 'Rate limited', 'rankkernel' ); ?></div>
 				<div class="rk-stat-value rk-stat-value-warning"><?php echo esc_html( (string) $stats['limited'] ); ?></div>
 				<div class="rk-stat-caption"><?php echo esc_html__( '429 temporary status', 'rankkernel' ); ?></div>
+			</div>
+			<div class="rk-ui-card rk-stat">
+				<div class="rk-stat-label"><?php echo esc_html__( 'Need retry', 'rankkernel' ); ?></div>
+				<div class="rk-stat-value rk-stat-value-warning rk-stat-value-retry"><?php echo esc_html( (string) $stats['retry'] ); ?></div>
+				<div class="rk-stat-caption"><?php echo esc_html__( 'failed responses awaiting retry', 'rankkernel' ); ?></div>
 			</div>
 		</div>
 

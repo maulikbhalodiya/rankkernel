@@ -734,6 +734,22 @@ test( 'silent store defaults log the failure and the FileReader path is guarded'
 		'FileReader construction must be guarded before use'
 	);
 	assert.ok(
+		code.includes( 'storeReadFailed = false;' ),
+		'a successful write must clear the unreadable latch'
+	);
+	assert.ok(
+		code.includes( 'if ( storeReadFailed )' ),
+		'the checklist must not score when reads failed'
+	);
+	assert.ok(
+		code.includes( 'storeError || storeReadFailed ? el(' ),
+		'the sidebar must surface store failures above the tabs'
+	);
+
+	const storeGuards = code.match( /if \( ! requireStore\(\) \) \{/g ) || [];
+
+	assert.equal( storeGuards.length, 3, 'pushValue, saveSchema and writeMeta must all require the store' );
+	assert.ok(
 		code.includes( "! /^https?:\\/\\//i.test( src ) && '/' !== String( src ).charAt( 0 )" ),
 		'a scriptable picked image must route to onFail instead of onPick'
 	);

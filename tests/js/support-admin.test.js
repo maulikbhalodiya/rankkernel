@@ -43,7 +43,16 @@ const I18N = {
 	removeFile: 'Remove'
 };
 
-function load() {
+function load( overrides ) {
+	const config = Object.assign(
+		{
+			limits: LIMITS,
+			i18n: I18N,
+			categories: [ 'bug', 'suggestion', 'question' ]
+		},
+		overrides
+	);
+
 	const document = {
 		readyState: 'complete',
 		addEventListener() {},
@@ -60,11 +69,7 @@ function load() {
 
 	const sandbox = {
 		document,
-		rankkernelSupport: {
-			limits: LIMITS,
-			i18n: I18N,
-			categories: [ 'bug', 'suggestion', 'question' ]
-		}
+		rankkernelSupport: config
 	};
 
 	sandbox.window = sandbox;
@@ -276,5 +281,24 @@ test( 'a field reader passes text values straight through', () => {
 	assert.equal(
 		fieldValue( { dataset: { rkSupportField: 'subject' }, value: ' Sitemap ' } ),
 		' Sitemap '
+	);
+} );
+
+test( 'missing localization still reports readable errors', () => {
+	const { validate } = load( { i18n: {} } );
+
+	assert.ok( validate( 'subject', '' ).length > 0, 'an empty subject must still explain itself' );
+	assert.ok( validate( 'subject', 'abc' ).includes( '4' ), 'the minimum must still be filled in' );
+	assert.ok( validate( 'email', 'nope' ).length > 0 );
+	assert.ok( validate( 'consent', false ).length > 0 );
+} );
+
+test( 'delegated handlers guard non element event targets', () => {
+	const code = readFileSync( path.join( root, 'assets', 'js', 'support-admin.js' ), 'utf8' );
+
+	assert.equal(
+		( code.match( /if \( ! target \|\| ! target\.closest \) \{\s*return;\s*\}/g ) || [] ).length,
+		5,
+		'every delegated closest call must guard non element targets first'
 	);
 } );

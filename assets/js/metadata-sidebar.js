@@ -743,6 +743,17 @@
 		}
 	}
 
+	// Latched when a store read fails with the editor present, meaning a
+	// real failure rather than early initialization. Unlike the silent
+	// defaults, the latch survives to render so the panel can say the
+	// content could not be read instead of scoring empty fields. A reload
+	// or a successful write clears it.
+	var storeReadFailed = false;
+
+	function markStoreUnreadable() {
+		storeReadFailed = true;
+	}
+
 	// Guard the schema JSON import before FileReader pulls the whole file
 	// into memory. A file without a numeric size is left to the read path.
 	function schemaImportTooLarge( file ) {
@@ -1812,29 +1823,53 @@
 		// One primitive per subscription, so a change to an unrelated slice
 		// returns the same string and React bails out of the re-render.
 		var title = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return '';
+			}
+
+			try {
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'title' ) || '' ) : '';
 			} catch ( e ) {
 				logStoreFailure( 'the post title', e );
+				markStoreUnreadable();
 				return '';
 			}
 		}, [] );
 		var slug = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return '';
+			}
+
+			try {
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'slug' ) || '' ) : '';
 			} catch ( e ) {
 				logStoreFailure( 'the post slug', e );
+				markStoreUnreadable();
 				return '';
 			}
 		}, [] );
 		var content = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return '';
+			}
+
+			try {
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'content' ) || '' ) : '';
 			} catch ( e ) {
 				logStoreFailure( 'the post content', e );
+				markStoreUnreadable();
 				return '';
 			}
 		}, [] );
@@ -1924,6 +1959,12 @@
 			return el( 'p', { className: 'description' }, __( 'Add a focus keyword to run the content analysis.', 'rankkernel' ) );
 		}
 
+		// A failed store read would score empty fields and report a wrong
+		// band, so the panel says so instead of scoring.
+		if ( storeReadFailed ) {
+			return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, __( 'The post content could not be read, so the analysis cannot run. Reload the editor and try again.', 'rankkernel' ) );
+		}
+
 		if ( '' !== error ) {
 			return el( 'p', { className: 'description rk-analysis-error', role: 'status' }, error );
 		}
@@ -2010,13 +2051,21 @@
 
 	function RankKernelSidebar( props ) {
 		var postId = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return 0;
+			}
+
+			try {
 				if ( editor && editor.getCurrentPostId ) {
 					return editor.getCurrentPostId();
 				}
 			} catch ( e ) {
 				logStoreFailure( 'the post id', e );
+				markStoreUnreadable();
 				return 0;
 			}
 			return 0;
@@ -2062,8 +2111,15 @@
 		var setSocialNetwork = socialState[ 1 ];
 
 		var stored = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return null;
+			}
+
+			try {
 				if ( ! editor || ! editor.getEditedPostAttribute ) {
 					return null;
 				}
@@ -2071,17 +2127,26 @@
 				return edited && edited[ META_KEY ] ? edited[ META_KEY ] : null;
 			} catch ( e ) {
 				logStoreFailure( 'the stored meta', e );
+				markStoreUnreadable();
 				return null;
 			}
 		}, [] );
 		var postType = useSelect( function ( select ) {
+			var editor = null;
+
 			try {
-				var editor = select( 'core/editor' );
+				editor = select( 'core/editor' );
+			} catch ( e ) {
+				return '';
+			}
+
+			try {
 				if ( editor && editor.getEditedPostAttribute ) {
 					return editor.getEditedPostAttribute( 'type' ) || '';
 				}
 			} catch ( e ) {
 				logStoreFailure( 'the post type', e );
+				markStoreUnreadable();
 				return '';
 			}
 			return '';
@@ -2097,13 +2162,26 @@
 		var errorsState = useState( {} );
 		var errors = errorsState[ 0 ];
 		var setErrors = errorsState[ 1 ];
+		var storeErrorState = useState( '' );
+		var storeError = storeErrorState[ 0 ];
+		var setStoreError = storeErrorState[ 1 ];
 		var timersRef = useRef( {} );
 		var timers = timersRef.current || {};
 
 		// Every store write funnels through here so the REST payload shape is
 		// normalized in exactly one place.
+		function requireStore() {
+			if ( editPost ) {
+				storeReadFailed = false;
+				return true;
+			}
+
+			setStoreError( __( 'Changes cannot be saved because the editor store is unavailable. Reload the editor and try again.', 'rankkernel' ) );
+			return false;
+		}
+
 		function writeMeta( next ) {
-			if ( ! editPost ) {
+			if ( ! requireStore() ) {
 				return;
 			}
 			var payload = {};
@@ -2112,7 +2190,7 @@
 		}
 
 		function pushValue( path, value ) {
-			if ( ! editPost ) {
+			if ( ! requireStore() ) {
 				return;
 			}
 			var next = withMeta( meta );
@@ -2273,7 +2351,7 @@
 		}
 
 		function saveSchema( nextSchema ) {
-			if ( ! editPost ) {
+			if ( ! requireStore() ) {
 				return;
 			}
 			var next = withMeta( meta );
@@ -3105,6 +3183,11 @@
 		return el(
 			'div',
 			{ className: 'rk-meta rk-side' },
+			storeError || storeReadFailed ? el(
+				'p',
+				{ className: 'rk-error', role: 'alert' },
+				storeError || __( 'The post content could not be read, so scores and previews may be wrong. Reload the editor and try again.', 'rankkernel' )
+			) : null,
 			el(
 				'div',
 				{ role: 'tablist', 'aria-label': __( 'SEO settings sections', 'rankkernel' ), className: 'rk-meta-tabs' },

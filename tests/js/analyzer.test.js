@@ -203,3 +203,17 @@ test( 'the score rounds like PHP where the percentage lands just under a half po
 	assert.equal( result.score, 58 );
 	assert.equal( result.band, 'improve' );
 } );
+
+test( 'raw html past the budget scores like its leading slice', () => {
+	assert.equal( Analyzer.MAX_HTML_CHARS, 500000 );
+
+	const huge = '<p>' + 'word '.repeat( 200000 ) + '</p>';
+	const input = { keywords: [ 'word' ], title: 't', description: 'd', slug: 's', html: huge };
+
+	assert.ok( huge.length > Analyzer.MAX_HTML_CHARS, 'the fixture must exceed the budget' );
+
+	const full = Analyzer.analyze( input );
+	const sliced = Analyzer.analyze( Object.assign( {}, input, { html: huge.slice( 0, Analyzer.MAX_HTML_CHARS ) } ) );
+
+	assert.deepEqual( full, sliced );
+} );
