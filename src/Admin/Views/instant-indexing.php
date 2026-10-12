@@ -260,7 +260,7 @@ defined( 'ABSPATH' ) || exit;
 			<div class="rk-ui-card-header">
 				<div class="rk-ui-card-header-left">
 					<h2 class="rk-ui-card-title"><?php echo esc_html__( 'Submission history', 'rankkernel' ); ?></h2>
-					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ __( '%d entries', 'rankkernel' ), $stats['total'] ) ); ?></span>
+					<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of log entries */ _n( '%d entry', '%d entries', $stats['total'], 'rankkernel' ), $stats['total'] ) ); ?></span>
 				</div>
 				<?php if ( $listHasRows ) : ?>
 					<form method="post" action="" class="rk-clear-form" data-rk-confirm="<?php echo esc_attr__( 'Clear the whole submission history? This cannot be undone.', 'rankkernel' ); ?>">

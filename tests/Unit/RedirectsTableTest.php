@@ -186,6 +186,22 @@ final class RedirectsTableTest extends TestCase {
 	}
 
 	/**
+	 * Test the admin sort columns are indexed.
+	 */
+	public function test_admin_sort_columns_are_indexed(): void {
+		$this->db->tableExists = false;
+
+		RedirectTable::ensureTables();
+
+		$this->assertStringContainsString( 'PRIMARY KEY (id)', $this->lastSql );
+		$this->assertStringContainsString( 'UNIQUE KEY match_source (match_type, source_hash)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY is_active (is_active)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY hits (hits)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY created (created)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY last_accessed (last_accessed)', $this->lastSql );
+	}
+
+	/**
 	 * Test no database fails open.
 	 */
 	public function test_no_database_fails_open(): void {

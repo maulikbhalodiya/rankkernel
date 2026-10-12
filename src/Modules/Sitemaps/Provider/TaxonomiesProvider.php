@@ -13,6 +13,7 @@ namespace RankKernel\Modules\Sitemaps\Provider;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Metadata\NoindexFlag;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -44,6 +45,45 @@ class TaxonomiesProvider {
 	private const META_KEY = '_rankkernel_term_data';
 
 	/**
+	 * Instance-level memoized term counts by settings hash and taxonomy.
+	 *
+	 * @var array<string, array<string, int>>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Instance-level memoized taxonomy sets by settings hash.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private array $setsMemo = [];
+
+	/**
+	 * Reset instance-level memoization cache.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+		$this->setsMemo  = [];
+	}
+
+	/**
+	 * Compute fingerprint of current settings for memo keying.
+	 *
+	 * @return string Settings fingerprint.
+	 */
+	private function settingsHash(): string {
+		if ( null === $this->settings ) {
+			return 'default';
+		}
+
+		$encoded = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $this->settings->all() )
+			: json_encode( $this->settings->all() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		return md5( is_string( $encoded ) ? $encoded : '' );
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * Null settings mean defaults and touch no globals, which keeps
@@ -61,9 +101,17 @@ class TaxonomiesProvider {
 	 * @return string[] The result.
 	 */
 	public function getSets(): array {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->setsMemo[ $hash ] ) ) {
+			return $this->setsMemo[ $hash ];
+		}
+
 		$taxonomies = get_taxonomies( [ 'public' => true ], 'names' );
 
 		if ( ! is_array( $taxonomies ) ) {
+			$this->setsMemo[ $hash ] = [];
+
 			return [];
 		}
 
@@ -78,6 +126,8 @@ class TaxonomiesProvider {
 			)
 		);
 
+		$this->setsMemo[ $hash ] = $sets;
+
 		return $sets;
 	}
 
@@ -91,7 +141,15 @@ class TaxonomiesProvider {
 	 * @return int The result.
 	 */
 	public function getCount( string $taxonomy ): int {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->countMemo[ $hash ][ $taxonomy ] ) ) {
+			return $this->countMemo[ $hash ][ $taxonomy ];
+		}
+
 		if ( ! ( $this->settings?->isTypeEnabled( 'tax', $taxonomy ) ?? true ) ) {
+			$this->countMemo[ $hash ][ $taxonomy ] = 0;
+
 			return 0;
 		}
 
@@ -102,11 +160,16 @@ class TaxonomiesProvider {
 		}
 
 		if ( $this->includeEmptyTerms() ) {
-			return $this->getCountIncludingEmpty( $taxonomy );
+			$count                                 = $this->getCountIncludingEmpty( $taxonomy );
+			$this->countMemo[ $hash ][ $taxonomy ] = $count;
+
+			return $count;
 		}
 
 		$publicTypes = get_post_types( [ 'public' => true ], 'names' );
 		if ( ! is_array( $publicTypes ) || [] === $publicTypes ) {
+			$this->countMemo[ $hash ][ $taxonomy ] = 0;
+
 			return 0;
 		}
 
@@ -115,6 +178,8 @@ class TaxonomiesProvider {
         // phpcs:ignore Generic.Files.LineLength.TooLong
 		$types = array_values( array_filter( $publicTypes, static fn ( mixed $v ): bool => is_string( $v ) && '' !== $v ) );
 		if ( [] === $types ) {
+			$this->countMemo[ $hash ][ $taxonomy ] = 0;
+
 			return 0;
 		}
 
@@ -128,16 +193,17 @@ class TaxonomiesProvider {
 			. " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
 			. " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 			. " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' )
 			. $exclude;
 
 		$args = array_merge( [ $sql ], $params );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
 
-		return (int) $count;
+		$this->countMemo[ $hash ][ $taxonomy ] = $count;
+
+		return $count;
 	}
 
 	/**
@@ -218,8 +284,7 @@ class TaxonomiesProvider {
 		$sql = "SELECT COUNT(*) FROM {$wpdb->terms} t"
 			. " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
 			. ' WHERE tt.taxonomy = %s'
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' )
 			. $exclude;
 
 		$args = array_merge( [ $sql ], $params );
@@ -274,8 +339,7 @@ class TaxonomiesProvider {
 				. " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
 				. " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 				. " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-				. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-				. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+				. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' );
 
 			$params  = array_merge( [ $taxonomy, 'publish' ], $types, [ $like ] );
 			$exclude = $this->excludeClause( $this->excludedTermIds(), 't.term_id', $params );
@@ -409,8 +473,7 @@ class TaxonomiesProvider {
 			. " LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 			. " AND p.post_status = %s AND p.post_type IN ($placeholders)"
 			. ' WHERE tt.taxonomy = %s'
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' );
 
 		$params  = array_merge( [ 'publish' ], $types, [ $taxonomy, $like ] );
 		$exclude = $this->excludeClause( $this->excludedTermIds(), 't.term_id', $params );

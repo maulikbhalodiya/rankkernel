@@ -105,7 +105,11 @@ final class CsvHandler {
 	 * escapes. Enforces the file size cap and the row count cap. Streams in
 	 * bounded batches so a large file stays within memory. Each row is
 	 * validated before its own write, so a malformed row can never corrupt
-	 * the rows around it and a partial duplicate is never left behind.
+	 * the rows around it and a partial duplicate is never left behind. The
+	 * run is two phase: every row validates first, and nothing is written
+	 * while any row fails, so a bad file can never leave a half applied
+	 * import behind. A dry run stops after validation and reports what the
+	 * write phase would do.
 	 *
 	 * The path must also pass the upload probe, an is_uploaded_file check by
 	 * default. The admin caller already probes before it calls here, this is
@@ -115,15 +119,20 @@ final class CsvHandler {
 	 * @param string $path           Absolute path to the uploaded CSV file.
 	 * @param bool   $updateExisting Whether an identical rule is updated instead of skipped.
 	 * @param int    $maxRows        Row cap for this run, defaults to MAX_ROWS.
-	 * @return array{created: int, updated: int, skipped: int, errors: list<array{row: int, reason: string}>, warnings: list<array{row: int, message: string}>} Per row results.
+	 * @param bool   $dryRun          Validate only, write nothing.
+	 * @param bool   $forceUnverified Accept inconclusive chains at operator request.
+	 * @return array{created: int, updated: int, skipped: int, errors: list<array{row: int, reason: string}>, warnings: list<array{row: int, message: string}>, dry_run: bool, forced: int, rolled_back: int} Per row results.
 	 */
-	public function import_csv( string $path, bool $updateExisting = false, int $maxRows = self::MAX_ROWS ): array {
+	public function import_csv( string $path, bool $updateExisting = false, int $maxRows = self::MAX_ROWS, bool $dryRun = false, bool $forceUnverified = false ): array {
 		$summary = [
-			'created'  => 0,
-			'updated'  => 0,
-			'skipped'  => 0,
-			'errors'   => [],
-			'warnings' => [],
+			'created'     => 0,
+			'updated'     => 0,
+			'skipped'     => 0,
+			'errors'      => [],
+			'warnings'    => [],
+			'dry_run'     => $dryRun,
+			'forced'      => 0,
+			'rolled_back' => 0,
 		];
 
 		$probe = $this->isUploadedFile;
@@ -188,6 +197,7 @@ final class CsvHandler {
 
 		$rowNumber = 1;
 		$processed = 0;
+		$jobs      = [];
 
 		while ( true ) {
 			$fields = fgetcsv( $handle );
@@ -225,27 +235,10 @@ final class CsvHandler {
 
 			++$processed;
 
-			$result = $this->import_row( $this->row_cells( $fields ), $rowNumber, $updateExisting );
-
-			if ( 'created' === $result['status'] ) {
-				++$summary['created'];
-			} elseif ( 'updated' === $result['status'] ) {
-				++$summary['updated'];
-			} elseif ( 'skipped' === $result['status'] ) {
-				++$summary['skipped'];
-			} else {
-				$summary['errors'][] = [
-					'row'    => $rowNumber,
-					'reason' => $result['reason'],
-				];
-			}
-
-			if ( '' !== $result['warning'] ) {
-				$summary['warnings'][] = [
-					'row'     => $rowNumber,
-					'message' => $result['warning'],
-				];
-			}
+			$jobs[] = [
+				'cells'     => $this->row_cells( $fields ),
+				'rowNumber' => $rowNumber,
+			];
 
 			if ( 0 === ( $processed % self::BATCH_SIZE ) ) {
 				$this->breathe();
@@ -256,11 +249,172 @@ final class CsvHandler {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $handle );
 
+		// Phase one validates every row and writes nothing. A single failure
+		// stops the import here, so a bad file can never leave rows behind.
+		// Would-be counts are tallied as validation proceeds, so both a
+		// refused import and a dry run report what was found.
+		$validated = [];
+
+		foreach ( $jobs as $job ) {
+			$result = $this->import_row( $job['cells'], $job['rowNumber'], $updateExisting, true, $forceUnverified );
+
+			if ( 'error' === $result['status'] ) {
+				$summary['errors'][] = [
+					'row'    => $job['rowNumber'],
+					'reason' => $result['reason'],
+				];
+
+				continue;
+			}
+
+			if ( 'skipped' === $result['status'] ) {
+				++$summary['skipped'];
+
+				continue;
+			}
+
+			if ( 'updated' === $result['status'] ) {
+				++$summary['updated'];
+			} else {
+				++$summary['created'];
+			}
+
+			$validated[] = [
+				'cells'     => $job['cells'],
+				'rowNumber' => $job['rowNumber'],
+			];
+
+			if ( '' !== $result['warning'] ) {
+				$summary['warnings'][] = [
+					'row'     => $job['rowNumber'],
+					'message' => $result['warning'],
+				];
+			}
+
+			if ( ! empty( $result['forced'] ) ) {
+				++$summary['forced'];
+			}
+		}
+
+		if ( [] !== $summary['errors'] || $dryRun ) {
+			if ( [] !== $summary['errors'] ) {
+				// A refused import applied nothing: counts describe applied
+				// outcomes only, so the would-be tallies reset here. The
+				// errors list still names every failing row.
+				$summary['created']  = 0;
+				$summary['updated']  = 0;
+				$summary['skipped']  = 0;
+				$summary['warnings'] = [];
+				$summary['forced']   = 0;
+			}
+
+			return $summary;
+		}
+
+		// Phase two writes the validated rows and retallies write outcomes
+		// from zero, so the report describes what happened, not what was
+		// predicted. Skips need no write, so the phase one skip count stands
+		// and phase two only adds more. Warnings describe writes, so they
+		// ret tally too. A storage failure this late can only be the database
+		// or a cap race, and everything written so far in this run is rolled
+		// back so the import stays all or nothing.
+		$summary['created']  = 0;
+		$summary['updated']  = 0;
+		$summary['warnings'] = [];
+		$summary['forced']   = 0;
+
+		$createdIds = [];
+		$snapshots  = [];
+
+		foreach ( $validated as $index => $job ) {
+			if ( 0 === ( $index % self::BATCH_SIZE ) ) {
+				$this->breathe();
+			}
+
+			$result = $this->import_row( $job['cells'], $job['rowNumber'], $updateExisting, false, $forceUnverified );
+
+			if ( 'created' === $result['status'] ) {
+				++$summary['created'];
+
+				if ( isset( $result['row_id'] ) && $result['row_id'] > 0 ) {
+					$createdIds[] = (int) $result['row_id'];
+				}
+			} elseif ( 'updated' === $result['status'] ) {
+				++$summary['updated'];
+
+				if ( isset( $result['row_id'] ) && $result['row_id'] > 0 && isset( $result['snapshot'] ) ) {
+					$snapshots[ (int) $result['row_id'] ] = $result['snapshot'];
+				}
+			} elseif ( 'skipped' === $result['status'] ) {
+				++$summary['skipped'];
+			} else {
+				$summary['rolled_back'] = $this->rollbackImport( $createdIds, $snapshots );
+				$summary['created']     = 0;
+				$summary['updated']     = 0;
+				// Warnings describe applied writes ("was saved"), so they go
+				// with the rolled back rows rather than outliving them.
+				$summary['warnings'] = [];
+				$summary['forced']   = 0;
+				$summary['errors'][] = [
+					'row'    => $job['rowNumber'],
+					'reason' => $result['reason'],
+				];
+				$summary['errors'][] = [
+					'row'    => 0,
+					'reason' => sprintf(
+						/* translators: %d: number of rolled back changes */
+						__( 'Import stopped on a storage failure; %d earlier changes from this file were rolled back.', 'rankkernel' ),
+						$summary['rolled_back']
+					),
+				];
+
+				break;
+			}
+
+			if ( '' !== $result['warning'] ) {
+				$summary['warnings'][] = [
+					'row'     => $job['rowNumber'],
+					'message' => $result['warning'],
+				];
+			}
+
+			if ( ! empty( $result['forced'] ) ) {
+				++$summary['forced'];
+			}
+		}
+
 		if ( $summary['created'] > 0 || $summary['updated'] > 0 ) {
 			RedirectCache::invalidateAll();
 		}
 
 		return $summary;
+	}
+
+	/**
+	 * Roll back one import run: delete created rows, restore updated ones.
+	 *
+	 * @param array<int, int>                   $createdIds Created row ids, in write order.
+	 * @param array<int, array<string, string>> $snapshots  Pre-update field snapshots keyed by row id.
+	 * @return int Number of rows restored or removed.
+	 */
+	private function rollbackImport( array $createdIds, array $snapshots ): int {
+		$undone = 0;
+
+		foreach ( $createdIds as $createdId ) {
+			if ( $this->repository->delete( $createdId ) ) {
+				++$undone;
+			}
+		}
+
+		foreach ( $snapshots as $snapshotId => $snapshotRow ) {
+			if ( $this->repository->update( $snapshotId, $snapshotRow ) ) {
+				++$undone;
+			}
+		}
+
+		RedirectCache::invalidateAll();
+
+		return $undone;
 	}
 
 	/**
@@ -451,14 +605,18 @@ final class CsvHandler {
 	 * Runs the full pipeline before any write: normalization, code and match
 	 * type checks, destination policy, regex compile test, duplicate handling
 	 * on match type plus source hash, loop rejection, then chain warning. The
-	 * write happens only after every check passes.
+	 * write happens only after every check passes. In dry run mode every
+	 * check runs but nothing is written, and the chain warning reads as a
+	 * would-be outcome.
 	 *
-	 * @param array<int, string> $cells          Contract cells in header order.
-	 * @param int                $rowNumber      One based file row number for reports.
-	 * @param bool               $updateExisting Whether an identical rule is updated instead of skipped.
-	 * @return array{status: string, reason: string, warning: string} Single row outcome.
+	 * @param array<int, string> $cells           Contract cells in header order.
+	 * @param int                $rowNumber       One based file row number for reports.
+	 * @param bool               $updateExisting  Whether an identical rule is updated instead of skipped.
+	 * @param bool               $dryRun          Validate only, write nothing.
+	 * @param bool               $forceUnverified Accept inconclusive chains at operator request.
+	 * @return array{status: string, reason: string, warning: string, forced?: bool, row_id?: int, snapshot?: array<string, string>|null} Single row outcome.
 	 */
-	private function import_row( array $cells, int $rowNumber, bool $updateExisting ): array {
+	private function import_row( array $cells, int $rowNumber, bool $updateExisting, bool $dryRun = false, bool $forceUnverified = false ): array {
 		$sourceRaw = self::sanitize_cell( $cells[0] );
 		$targetRaw = self::sanitize_cell( $cells[1] );
 
@@ -570,10 +728,32 @@ final class CsvHandler {
 		// inconclusive row can carry a loop the detector never saw. Importing
 		// it reported success and then looped at request time with no server
 		// side bound.
+		$forced = false;
+
 		if ( $safety['loop']['inconclusive'] || $safety['chain']['inconclusive'] ) {
-			return $this->row_error(
-				__( 'The redirect chain could not be fully verified, so the rule was refused because a loop cannot be ruled out. Save an exact source and target, then add the rule.', 'rankkernel' )
-			);
+			// An explicit operator override accepts the unproven chain, exactly
+			// like the add form's escape hatch, and is recorded the same way.
+			// Without it the row is refused, because a loop cannot be ruled out.
+			if ( ! $forceUnverified ) {
+				return $this->row_error(
+					__( 'The redirect chain could not be fully verified, so the rule was refused because a loop cannot be ruled out. Save an exact source and target, then add the rule.', 'rankkernel' )
+				);
+			}
+
+			$forced = true;
+
+			if ( function_exists( 'do_action' ) ) {
+				do_action(
+					// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, follows the rankkernel/redirect slash namespaced diagnostics.
+					'rankkernel/redirect/unverified_override',
+					[
+						'source'     => $source,
+						'target'     => $checked['destination'],
+						'match_type' => $matchType,
+						'verdict'    => 'inconclusive',
+					]
+				);
+			}
 		}
 
 		if ( 'regex' === $matchType && RegexSafety::isUnsafe( Normalizer::normalizeSource( $source, $matchType ) ) ) {
@@ -621,7 +801,24 @@ final class CsvHandler {
 			'is_active'  => $isActive,
 		];
 
-		if ( $editingId > 0 ) {
+		$snapshot = null;
+		$rowId    = 0;
+
+		if ( $dryRun ) {
+			$status = $editingId > 0 ? 'updated' : 'created';
+		} elseif ( $editingId > 0 ) {
+			$before = $this->repository->get( $editingId );
+
+			if ( is_array( $before ) ) {
+				$snapshot = [];
+
+				foreach ( [ 'source', 'match_type', 'target', 'code', 'is_active' ] as $field ) {
+					if ( array_key_exists( $field, $before ) ) {
+						$snapshot[ $field ] = $before[ $field ];
+					}
+				}
+			}
+
 			$saved = $this->repository->update( $editingId, $row );
 
 			if ( ! $saved ) {
@@ -629,6 +826,7 @@ final class CsvHandler {
 			}
 
 			$status = 'updated';
+			$rowId  = $editingId;
 		} else {
 			$newId = $this->repository->insert( $row );
 
@@ -641,17 +839,26 @@ final class CsvHandler {
 			}
 
 			$status = 'created';
+			$rowId  = $newId;
 		}
 
 		$warning = '';
 		$chain   = $safety['chain'];
 
 		if ( $chain['has_chain'] && [] !== $chain['chain'] ) {
-			$warning = sprintf(
-				/* translators: %s: redirect chain path */
-				__( 'Redirect chain detected: %s. The row was saved.', 'rankkernel' ),
-				implode( ' → ', $chain['chain'] )
-			);
+			if ( $dryRun ) {
+				$warning = sprintf(
+					/* translators: %s: redirect chain path */
+					__( 'Redirect chain detected: %s. The row would be saved.', 'rankkernel' ),
+					implode( ' → ', $chain['chain'] )
+				);
+			} else {
+				$warning = sprintf(
+					/* translators: %s: redirect chain path */
+					__( 'Redirect chain detected: %s. The row was saved.', 'rankkernel' ),
+					implode( ' → ', $chain['chain'] )
+				);
+			}
 
 			if ( is_string( $chain['final'] ) && '' !== $chain['final'] ) {
 				$warning .= ' ' . sprintf(
@@ -662,10 +869,18 @@ final class CsvHandler {
 			}
 		}
 
+		if ( $forced ) {
+			$forcedNote = __( 'Imported with an unverified chain at operator request.', 'rankkernel' );
+			$warning    = '' === $warning ? $forcedNote : $warning . ' ' . $forcedNote;
+		}
+
 		return [
-			'status'  => $status,
-			'reason'  => '',
-			'warning' => $warning,
+			'status'   => $status,
+			'reason'   => '',
+			'warning'  => $warning,
+			'forced'   => $forced,
+			'row_id'   => $rowId,
+			'snapshot' => $snapshot,
 		];
 	}
 

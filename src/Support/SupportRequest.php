@@ -105,17 +105,26 @@ final class SupportRequest {
 	}
 
 	/**
+	 * Extension pattern to MIME type map accepted as screenshots.
+	 *
+	 * @return array<string, string> Extension pattern to MIME type.
+	 */
+	public static function screenshotMimes(): array {
+		return [
+			'jpg|jpeg|jpe' => 'image/jpeg',
+			'png'          => 'image/png',
+			'gif'          => 'image/gif',
+			'webp'         => 'image/webp',
+		];
+	}
+
+	/**
 	 * Image types accepted as a screenshot.
 	 *
 	 * @return array<int, string> Accepted MIME types.
 	 */
 	public static function screenshotTypes(): array {
-		return [
-			'image/jpeg',
-			'image/png',
-			'image/gif',
-			'image/webp',
-		];
+		return array_values( array_unique( self::screenshotMimes() ) );
 	}
 
 	/**

@@ -94,9 +94,14 @@ class IndexBuilder {
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
-		$this->postsInstance          = null;
-		$this->taxonomiesInstance     = null;
-		$this->authorsInstance        = null;
+
+		$this->postsInstance?->resetCache();
+		$this->taxonomiesInstance?->resetCache();
+		$this->authorsInstance?->resetCache();
+
+		$this->postsInstance      = null;
+		$this->taxonomiesInstance = null;
+		$this->authorsInstance    = null;
 	}
 
 	/**
@@ -235,8 +240,8 @@ class IndexBuilder {
 			$perPage = 1;
 		}
 
-		if ( $perPage > 50000 ) {
-			$perPage = 50000;
+		if ( $perPage > 2000 ) {
+			$perPage = 2000;
 		}
 
 		return $perPage;

@@ -315,7 +315,8 @@ class BreadcrumbsModule implements ModuleInterface {
 	 *
 	 * Drops visible only items (pagination, flagged schema_excluded)
 	 * and maps the rest to name and url entries for BreadcrumbPiece.
-	 * An empty builder trail keeps the incoming fallback untouched.
+	 * An empty builder trail keeps the incoming fallback untouched, except
+	 * a front page hidden on purpose emits nothing.
 	 * Never emits JSON-LD.
 	 *
 	 * @param mixed $trail Incoming trail entries.
@@ -330,6 +331,14 @@ class BreadcrumbsModule implements ModuleInterface {
 		$items = $this->buildTrail( $ctx );
 
 		if ( [] === $items ) {
+			// The builder took the front page path and deliberately emitted
+			// nothing, so falling back to the incoming trail would fabricate
+			// a trail the builder refused to produce. Every other empty
+			// builder output keeps the incoming fallback untouched.
+			if ( function_exists( 'is_front_page' ) && is_front_page() ) {
+				return [];
+			}
+
 			return $this->sanitizeIncoming( $trail );
 		}
 

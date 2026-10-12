@@ -93,6 +93,13 @@ final class KeywordIndex {
 			return [];
 		}
 
+		$ids = array_values( array_filter( array_map( 'intval', $ids ), static fn ( int $id ): bool => $id > 0 ) );
+
+		// One priming call instead of one query per title in the loop below.
+		if ( [] !== $ids && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $ids );
+		}
+
 		$titles = [];
 
 		foreach ( $ids as $id ) {

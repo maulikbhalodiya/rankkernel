@@ -208,6 +208,8 @@ final class MonitorTableTest extends TestCase {
 		$this->assertStringContainsString( 'last_accessed DATETIME NOT NULL', $this->lastSql );
 		$this->assertStringContainsString( 'PRIMARY KEY (id)', $this->lastSql );
 		$this->assertStringContainsString( 'UNIQUE KEY uri_hash (uri_hash)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY hits (hits)', $this->lastSql );
+		$this->assertStringContainsString( 'KEY created (created)', $this->lastSql );
 		$this->assertStringContainsString( 'KEY last_accessed (last_accessed)', $this->lastSql );
 	}
 

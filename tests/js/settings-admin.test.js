@@ -125,7 +125,9 @@ function partialFor( url ) {
 	return partial( url.includes( 'social' ) ? 'social' : 'general' );
 }
 
-function settingsFixture() {
+function settingsFixture( options ) {
+	const hasFetchOverride = Boolean( options ) && 'fetch' in options;
+	const fetchOverride = hasFetchOverride ? options.fetch : null;
 	const readyHandlers = [];
 	const clickHandlers = [];
 	const current = {};
@@ -284,7 +286,7 @@ function settingsFixture() {
 			windowListeners[ type ] = handler;
 		},
 		wp,
-		fetch( url ) {
+		fetch: hasFetchOverride ? fetchOverride : function ( url ) {
 			fetchCalls.push( url );
 
 			return Promise.resolve( {
@@ -531,4 +533,26 @@ test( 'an error-shaped 200 partial without the save marker is not swapped and fa
 	assert.equal( fixture.body.innerHTML, '' );
 	assert.deepEqual( fixture.spoken, [] );
 	assert.equal( fixture.location.href, socialUrl );
+} );
+
+test( 'section navigation without fetch falls back to navigation', async () => {
+	const fixture = settingsFixture( { fetch: undefined } );
+
+	await fixture.swap( fixture.social );
+
+	assert.equal( fixture.fetchCalls.length, 0, 'no fetch attempt may throw before the fallback' );
+	assert.equal( fixture.location.href, socialUrl );
+} );
+
+test( 'section save without fetch submits the form without going busy', () => {
+	const fixture = settingsFixture( { fetch: undefined } );
+
+	fixture.click( element( { attrs: { name: 'rk_robots_save' } } ) );
+
+	assert.equal( fixture.form.submitted, 1, 'the save path must submit the form like its existing failure branch' );
+	assert.equal(
+		fixture.body.classList.contains( 'rk-settings-is-busy' ),
+		false,
+		'the body must never wedge busy when fetch is absent'
+	);
 } );

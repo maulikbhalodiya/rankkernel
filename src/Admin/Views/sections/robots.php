@@ -86,9 +86,9 @@ defined( 'ABSPATH' ) || exit;
 							<?php foreach ( $robotGroup['crawlers'] as $robotCrawler ) : ?>
 								<div class="rk-crawler-card">
 									<label class="rk-ui-form-label" for="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>"><?php echo esc_html( $robotCrawler['label'] ); ?></label>
-									<p class="rk-ui-hint rk-crawler-note"><?php echo esc_html( $robotCrawler['note'] ); ?></p>
+									<p class="rk-ui-hint rk-crawler-note" id="rk-robots-desc-<?php echo esc_attr( $robotCrawler['slug'] ); ?>"><?php echo esc_html( $robotCrawler['note'] ); ?></p>
 									<div class="rk-ui-select-wrap">
-										<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]" class="rk-ui-select">
+										<select id="rk-robots-<?php echo esc_attr( $robotCrawler['slug'] ); ?>" name="rk_robots_policy[<?php echo esc_attr( $robotCrawler['slug'] ); ?>]" class="rk-ui-select" aria-describedby="rk-robots-desc-<?php echo esc_attr( $robotCrawler['slug'] ); ?>">
 											<option value="allow"<?php echo 'allow' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Allow', 'rankkernel' ); ?></option>
 											<option value="block"<?php echo 'block' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Block', 'rankkernel' ); ?></option>
 											<option value="custom"<?php echo 'custom' === $robotCrawler['policy'] ? ' selected="selected"' : ''; ?>><?php echo esc_html__( 'Custom', 'rankkernel' ); ?></option>

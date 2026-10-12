@@ -285,7 +285,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 	}
 
 	/**
-	 * Test exclude posts chunked beyond 500.
+	 * Test exclude posts capped at 500 still exclude in one chunk.
 	 */
 	public function test_exclude_posts_chunked_beyond_500(): void {
 		$this->db->postsRows = [
@@ -308,7 +308,7 @@ final class SitemapSettingsProvidersTest extends TestCase {
 
 		$this->assertSame( 0, $provider->getCount( 'post' ) );
 		$this->assertSame( [], $provider->getEntries( 'post', 1, 10 ) );
-		$this->assertSame( 2, substr_count( $this->db->lastSql, 'NOT IN' ) );
+		$this->assertSame( 1, substr_count( $this->db->lastSql, 'NOT IN' ) );
 	}
 
 	/**
@@ -699,6 +699,42 @@ final class SitemapSettingsProvidersTest extends TestCase {
 	}
 
 	/**
+	 * Test the authors count ignores orphan rows with no author.
+	 *
+	 * Entries drop a zero author id, so the count must exclude it too or
+	 * the set advertises an entry the page never lists.
+	 */
+	public function test_authors_count_ignores_orphan_rows_without_an_author(): void {
+		$this->db->postsRows = [
+			[
+				'ID'                => 1,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 7,
+				'post_modified_gmt' => '2026-01-03 00:00:00',
+			],
+			[
+				'ID'                => 2,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_password'     => '',
+				'post_author'       => 0,
+				'post_modified_gmt' => '2026-01-04 00:00:00',
+			],
+		];
+
+		$settings = new SitemapSettings();
+		$provider = new AuthorsProvider( $settings );
+
+		$count   = $provider->getCount( 'authors' );
+		$entries = $provider->getEntries( 'authors', 1, 10 );
+
+		$this->assertSame( 1, $count, 'an orphan row belongs to no author' );
+		$this->assertCount( $count, $entries, 'the count and the entries must agree' );
+	}
+
+	/**
 	 * Test authors excluded roles and users absent.
 	 */
 	public function test_authors_excluded_roles_and_users_absent(): void {
@@ -784,5 +820,29 @@ final class SitemapSettingsProvidersTest extends TestCase {
 
 		$this->assertStringContainsString( '<sitemapindex', $xml );
 		$this->assertStringContainsString( 'post-sitemap3.xml', $xml );
+	}
+
+	/**
+	 * Test provider memoization and resetCache().
+	 */
+	public function test_provider_memoization_and_reset_cache(): void {
+		$this->seedPosts();
+		$settings = new SitemapSettings();
+
+		$postsProvider = new PostsProvider( $settings );
+		$count1        = $postsProvider->getCount( 'post' );
+		$queryCount1   = count( $this->db->queries );
+
+		// Second call must hit memo with 0 additional queries.
+		$count2      = $postsProvider->getCount( 'post' );
+		$queryCount2 = count( $this->db->queries );
+
+		$this->assertSame( $count1, $count2 );
+		$this->assertSame( $queryCount1, $queryCount2 );
+
+		// resetCache clears memo and forces re-query.
+		$postsProvider->resetCache();
+		$postsProvider->getCount( 'post' );
+		$this->assertGreaterThan( $queryCount2, count( $this->db->queries ) );
 	}
 }

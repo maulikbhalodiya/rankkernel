@@ -354,6 +354,11 @@ final class SettingsPage {
 
 			// Derived from the settings already loaded above: no extra query and no write.
 			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
+
+			$settingsSections[] = [
+				'id'    => 'htaccess',
+				'label' => __( '.htaccess', 'rankkernel' ),
+			];
 		}
 
 		$htaccessFile      = new HtaccessFile();
@@ -365,10 +370,6 @@ final class SettingsPage {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
 		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
 
-		$settingsSections[] = [
-			'id'    => 'htaccess',
-			'label' => __( '.htaccess', 'rankkernel' ),
-		];
 		$settingsSections[] = [
 			'id'    => 'advanced',
 			'label' => __( 'Advanced', 'rankkernel' ),
@@ -630,9 +631,10 @@ final class SettingsPage {
 			);
 		}
 
-		// The .htaccess save is a distinct action on the same form.
+		// The .htaccess save is a distinct action on the same form, gated
+		// like the robots and llms actions: a disabled module writes nothing.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
-		if ( isset( $_POST['rk_htaccess_save'] ) ) {
+		if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_htaccess_save'] ) ) {
 			$this->saveHtaccess();
 			return;
 		}

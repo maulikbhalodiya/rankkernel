@@ -637,6 +637,20 @@ $rkMatchBadgeMap = [
 								</label>
 							</div>
 
+							<div class="rk-csv-check-row">
+								<label class="rk-form-check">
+									<input type="checkbox" name="rk_csv_dry_run" value="1" />
+									<span><?php echo esc_html__( 'Dry run only. Validate the file and report what would happen without saving anything.', 'rankkernel' ); ?></span>
+								</label>
+							</div>
+
+							<div class="rk-csv-check-row">
+								<label class="rk-form-check">
+									<input type="checkbox" name="rk_csv_force" value="1" />
+									<span><?php echo esc_html__( 'Import rows whose chain could not be fully verified. Use only when you accept that a loop cannot be ruled out.', 'rankkernel' ); ?></span>
+								</label>
+							</div>
+
 							<?php submit_button( __( 'Import Redirects', 'rankkernel' ), 'secondary', 'rankkernel_redirect_import', false ); ?>
 						</form>
 

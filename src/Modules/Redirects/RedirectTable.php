@@ -197,7 +197,10 @@ final class RedirectTable {
 			. 'last_accessed DATETIME NULL DEFAULT NULL,'
 			. 'PRIMARY KEY (id),'
 			. 'UNIQUE KEY match_source (match_type, source_hash),'
-			. 'KEY is_active (is_active)'
+			. 'KEY is_active (is_active),'
+			. 'KEY hits (hits),'
+			. 'KEY created (created),'
+			. 'KEY last_accessed (last_accessed)'
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {

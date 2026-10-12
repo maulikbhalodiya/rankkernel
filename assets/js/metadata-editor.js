@@ -764,8 +764,14 @@
 			multiple: false
 		} );
 		frame.on( 'select', function () {
-			var attachment = frame.state().get( 'selection' ).first();
+			var attachment = null;
+			try {
+				attachment = frame.state().get( 'selection' ).first();
+			} catch ( error ) {
+				attachment = null;
+			}
 			if ( ! attachment ) {
+				urlField.focus();
 				return;
 			}
 			var json = attachment.toJSON();

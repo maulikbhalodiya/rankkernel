@@ -401,6 +401,33 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test pattern rows select only the columns the matcher reads.
+	 */
+	public function test_all_patterns_selects_only_matcher_columns(): void {
+		RedirectRepository::resetCache();
+
+		$this->repo->insert(
+			[
+				'source'     => '/narrow',
+				'target'     => '/x',
+				'match_type' => 'prefix',
+			]
+		);
+
+		$this->db->queries = [];
+
+		$patterns = $this->repo->all_patterns();
+
+		$this->assertCount( 1, $patterns );
+		$this->assertCount( 1, $this->db->queries );
+
+		$sql = $this->db->queries[0];
+
+		$this->assertStringContainsString( 'SELECT id, match_type, source, target, code, is_active', $sql );
+		$this->assertStringNotContainsString( 'SELECT *', $sql );
+	}
+
+	/**
 	 * Test paginate search filters sort counts.
 	 */
 	public function test_paginate_search_filters_sort_counts(): void {
@@ -700,5 +727,167 @@ final class RedirectsRepositoryTest extends TestCase {
 
 		$this->assertCount( 1, $this->repo->export_rows( [], 1 ) );
 		$this->assertCount( 2, $this->repo->export_rows( [], 10 ) );
+	}
+
+	/**
+	 * Test get row memoizes across calls and invalidates on write.
+	 */
+	public function test_get_row_memoizes_and_invalidates_on_write(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/memo-a',
+				'target' => '/target-a',
+			]
+		);
+
+		$readsBefore = $this->db->reads;
+		$first       = $this->repo->get( $id );
+		$readsFirst  = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+		$this->assertIsArray( $first );
+
+		// Second call reuses memoized row without triggering DB read.
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->get( $id );
+		$readsSecond = $this->db->reads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
+		$this->assertSame( $first, $second );
+
+		// Write operation invalidates $rowMemo.
+		$this->repo->update( $id, [ 'target' => '/target-updated' ] );
+
+		$readsWrite = $this->db->reads;
+		$third      = $this->repo->get( $id );
+		$readsThird = $this->db->reads;
+
+		$this->assertGreaterThan( $readsWrite, $readsThird );
+		$this->assertSame( '/target-updated', $third['target'] ?? '' );
+	}
+
+	/**
+	 * Test find_cycle_candidates memoizes across calls and invalidates on write.
+	 */
+	public function test_find_cycle_candidates_memoizes_and_invalidates_on_write(): void {
+		$this->repo->insert(
+			[
+				'source' => '/cycle-a',
+				'target' => '/cycle-b',
+				'code'   => '301',
+			]
+		);
+
+		$readsBefore = $this->db->reads;
+		$first       = $this->repo->find_cycle_candidates();
+		$readsFirst  = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsFirst );
+		$this->assertCount( 1, $first );
+
+		// Subsequent call reuses memoized candidates without triggering DB read.
+		$secondRepo  = new RedirectRepository( $this->db );
+		$second      = $secondRepo->find_cycle_candidates();
+		$readsSecond = $this->db->reads;
+
+		$this->assertSame( $readsFirst, $readsSecond );
+		$this->assertSame( $first, $second );
+
+		// Inserting a new active candidate invalidates cycle candidates memo.
+		$this->repo->insert(
+			[
+				'source' => '/cycle-c',
+				'target' => '/cycle-d',
+				'code'   => '301',
+			]
+		);
+
+		$readsWrite = $this->db->reads;
+		$third      = $this->repo->find_cycle_candidates();
+		$readsThird = $this->db->reads;
+
+		$this->assertGreaterThan( $readsWrite, $readsThird );
+		$this->assertCount( 2, $third );
+	}
+
+	/**
+	 * Test resetCache resets all static memoized properties.
+	 */
+	public function test_reset_cache_resets_all_static_memos(): void {
+		$id = $this->repo->insert(
+			[
+				'source'     => '/pattern-1*',
+				'target'     => '/target-1',
+				'match_type' => 'prefix',
+				'code'       => '301',
+			]
+		);
+
+		$this->repo->get( $id );
+		$this->repo->all_patterns();
+		$this->repo->find_cycle_candidates();
+
+		$readsBefore = $this->db->reads;
+
+		RedirectRepository::resetCache();
+
+		$this->repo->get( $id );
+		$this->repo->all_patterns();
+		$this->repo->find_cycle_candidates();
+
+		$readsAfter = $this->db->reads;
+
+		$this->assertGreaterThan( $readsBefore, $readsAfter );
+	}
+
+	/**
+	 * Test memos never leak rows across database handles.
+	 */
+	public function test_memos_are_scoped_to_the_database_handle(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/shared',
+				'target' => '/target',
+			]
+		);
+
+		$this->assertSame( $this->repo->get( $id )['target'], '/target' );
+		$this->assertCount( 1, $this->repo->find_cycle_candidates() );
+
+		$otherDb   = new RedirectsFakeDb();
+		$otherRepo = new RedirectRepository( $otherDb );
+
+		$this->assertNull( $otherRepo->get( $id ), 'a row memoized from one handle must not serve another' );
+		$this->assertSame( [], $otherRepo->find_cycle_candidates(), 'candidates memoized from one handle must not serve another' );
+	}
+
+	/**
+	 * Test cycle candidates page large rule sets instead of one unbounded read.
+	 */
+	public function test_find_cycle_candidates_pages_large_rule_sets(): void {
+		RedirectRepository::resetCache();
+
+		for ( $i = 1; $i <= 501; $i++ ) {
+			$this->db->rows[ $i ] = [
+				'id'         => $i,
+				'match_type' => 'exact',
+				'source'     => '/s' . $i,
+				'target'     => '/t' . $i,
+				'code'       => '301',
+				'is_active'  => 1,
+			];
+		}
+
+		$this->db->nextId = 502;
+
+		$readsBefore = $this->db->reads;
+		$rows        = $this->repo->find_cycle_candidates();
+
+		$this->assertCount( 501, $rows, 'paging must return the whole set' );
+		$this->assertGreaterThan(
+			$readsBefore + 1,
+			$this->db->reads,
+			'candidates must page in batches, never single-query the whole set'
+		);
 	}
 }

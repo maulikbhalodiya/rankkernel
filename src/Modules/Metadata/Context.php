@@ -215,6 +215,14 @@ final class Context {
 			return '404';
 		}
 
+		if ( is_callable( [ $this->query, 'is_home' ] ) && $this->query->is_home() ) {
+			return 'home';
+		}
+
+		if ( is_callable( [ $this->query, 'is_front_page' ] ) && $this->query->is_front_page() ) {
+			return 'home';
+		}
+
 		if ( is_callable( [ $this->query, 'is_singular' ] ) && $this->query->is_singular() ) {
 			return 'post';
 		}
@@ -222,21 +230,12 @@ final class Context {
 		if ( is_callable( [ $this->query, 'is_category' ] ) && $this->query->is_category() ) {
 			return 'term';
 		}
-
 		if ( is_callable( [ $this->query, 'is_tag' ] ) && $this->query->is_tag() ) {
 			return 'term';
 		}
 
 		if ( is_callable( [ $this->query, 'is_tax' ] ) && $this->query->is_tax() ) {
 			return 'term';
-		}
-
-		if ( is_callable( [ $this->query, 'is_home' ] ) && $this->query->is_home() ) {
-			return 'home';
-		}
-
-		if ( is_callable( [ $this->query, 'is_front_page' ] ) && $this->query->is_front_page() ) {
-			return 'home';
 		}
 
 		if ( is_callable( [ $this->query, 'is_archive' ] ) && $this->query->is_archive() ) {
@@ -535,6 +534,22 @@ final class Context {
 	 * @return string The result.
 	 */
 	public function title(): string {
+		// The front page and posts index carry no page title of their own:
+		// the CMS page title ("Home") was never written as a headline, so it
+		// resolves to nothing and the template falls back to the site name
+		// instead of printing "Home".
+		if ( 'home' === $this->queriedType() ) {
+			return '';
+		}
+
+		if ( 'archive' === $this->queriedType() ) {
+			$archiveTitle = $this->archiveTitle();
+
+			if ( '' !== $archiveTitle ) {
+				return $archiveTitle;
+			}
+		}
+
 		if ( 'term' === $this->queriedType() ) {
 			$term = $this->termName();
 
@@ -566,6 +581,55 @@ final class Context {
 
 			if ( is_string( $t ) && '' !== $t ) {
 				return $t;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Title for a post type or date archive.
+	 *
+	 * Mirrors TrailBuilder::cptArchiveItem()'s label chain (labels name, then
+	 * label, then the post type slug) without coupling metadata output to the
+	 * breadcrumbs module. Date archives fall back to the core archive title.
+	 *
+	 * @return string Archive title, empty when none resolves.
+	 */
+	private function archiveTitle(): string {
+		if ( is_callable( [ $this->query, 'is_post_type_archive' ] ) && $this->query->is_post_type_archive() ) {
+			$postType = null;
+
+			if ( is_callable( [ $this->query, 'get' ] ) ) {
+				$postType = $this->query->get( 'post_type' );
+			}
+
+			if ( is_string( $postType ) && '' !== $postType && function_exists( 'get_post_type_object' ) ) {
+				$object = get_post_type_object( $postType );
+
+				if ( is_object( $object ) && is_object( $object->labels ) ) {
+					$vars  = (array) $object->labels;
+					$name  = isset( $vars['name'] ) ? trim( (string) $vars['name'] ) : '';
+					$label = trim( (string) $object->label );
+
+					if ( '' !== $name ) {
+						return $name;
+					}
+
+					if ( '' !== $label ) {
+						return $label;
+					}
+
+					return $postType;
+				}
+			}
+		}
+
+		if ( function_exists( 'get_the_archive_title' ) ) {
+			$title = get_the_archive_title();
+
+			if ( is_string( $title ) && '' !== trim( $title ) ) {
+				return trim( $title );
 			}
 		}
 

@@ -369,3 +369,18 @@ test( 'dropdown change during an in-flight refresh falls back to form.submit()',
 	assert.equal( fixture.submits.length, 1, 'the native form submit must run as the fallback' );
 	assert.equal( fetchCalls.length, 1 );
 } );
+
+test( 'tab click without fetch navigates instead of throwing', () => {
+	const fixture = filterFixture();
+
+	const sandbox = run( fixture.document, config, undefined );
+	sandbox.location = { href: '' };
+
+	fixture.tabEl.listeners.click( { preventDefault() {} } );
+
+	assert.equal(
+		sandbox.location.href,
+		'https://example.org/wp-admin/admin.php?page=rankkernel-redirects&rk_status=active',
+		'without fetch the click must fall back to a normal navigation before any state is touched'
+	);
+} );

@@ -673,3 +673,64 @@ test( 'every fixed user-facing literal is a direct translation argument', () => 
 	assert.ok( ! code.includes( "'Headline is required for ' + type" ), 'the headline message must not concatenate' );
 	assert.ok( ! code.includes( 'var labels = { startDate:' ), 'the duplicate label map must be gone' );
 } );
+
+test( 'social images and custom JSON are gated before they reach the store', () => {
+	const code = source();
+
+	assert.ok(
+		code.includes( "'og.image' === path && ! isValidHttpUrl( value )" ),
+		'og.image writes must pass the URL gate'
+	);
+	assert.ok(
+		code.includes( "'twitter.image' === path && ! isValidHttpUrl( value )" ),
+		'twitter.image writes must pass the URL gate'
+	);
+	assert.ok(
+		code.includes( '/<\\/script/i.test( next )' ),
+		'custom JSON with a script breakout must be refused before save'
+	);
+	assert.ok(
+		code.includes( "'Custom JSON must not contain a script tag. Nothing was saved.'" ),
+		'the script breakout refusal needs its own notice'
+	);
+
+	const sandbox = sandboxFor();
+	vm.runInNewContext(
+		functionSource( code, 'isValidHttpUrl' ) + '\nresult = [' +
+			'\nisValidHttpUrl( "" ),' +
+			'\nisValidHttpUrl( "https://example.com/a.png" ),' +
+			'\nisValidHttpUrl( "javascript:alert(1)" ),' +
+			'\nisValidHttpUrl( "data:image/png;base64,x" )' +
+			'\n];',
+		sandbox
+	);
+
+	assert.deepEqual(
+		plain( sandbox.result ),
+		[ true, true, false, false ],
+		'the shared gate allows empty plus http(s) and rejects scriptable schemes'
+	);
+} );
+
+test( 'silent store defaults log the failure and the FileReader path is guarded', () => {
+	const code = source();
+
+	[
+		'the post title',
+		'the post slug',
+		'the post content',
+		'the post id',
+		'the stored meta',
+		'the post type'
+	].forEach( ( what ) => {
+		assert.ok(
+			code.includes( "logStoreFailure( '" + what + "', e )" ),
+			'a failed ' + what + ' read must warn instead of failing silently'
+		);
+	} );
+
+	assert.ok(
+		code.includes( "'function' !== typeof FileReader" ),
+		'FileReader construction must be guarded before use'
+	);
+} );

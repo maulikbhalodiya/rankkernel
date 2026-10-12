@@ -64,6 +64,13 @@ final class RedirectsFakeDb {
 	public int $ruleReads = 0;
 
 	/**
+	 * Read queries in order, so tests can pin the emitted SQL shape.
+	 *
+	 * @var string[]
+	 */
+	public array $queries = [];
+
+	/**
 	 * Write query count.
 	 *
 	 * @var int
@@ -193,6 +200,7 @@ final class RedirectsFakeDb {
 	 */
 	public function get_results( string $query, mixed $output = 'ARRAY_A' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->reads;
+		$this->queries[] = $query;
 		$this->noteRuleRead( $query );
 
 		return $this->filterRows( $query );

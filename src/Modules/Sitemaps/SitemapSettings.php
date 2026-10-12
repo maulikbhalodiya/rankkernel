@@ -25,6 +25,11 @@ final class SitemapSettings {
 	public const OPTION = 'rankkernel_sitemap_settings';
 
 	/**
+	 * Maximum stored exclusion ids per list, matching the query chunk size.
+	 */
+	private const MAX_EXCLUDE_IDS = 500;
+
+	/**
 	 * Fixed setting keys (dynamic per type keys are matched by pattern).
 	 *
 	 * @var string[]
@@ -215,8 +220,8 @@ final class SitemapSettings {
 				$perPage = 1;
 			}
 
-			if ( $perPage > 50000 ) {
-				$perPage = 50000;
+			if ( $perPage > 2000 ) {
+				$perPage = 2000;
 			}
 
 			return $perPage;
@@ -258,7 +263,11 @@ final class SitemapSettings {
 			}
 		}
 
-		return array_values( array_unique( $ids ) );
+		$ids = array_values( array_unique( $ids ) );
+
+		// The option autoloads on every request, so exclusion lists stay
+		// bounded: the query layer already chunks past this same size.
+		return array_slice( $ids, 0, self::MAX_EXCLUDE_IDS );
 	}
 
 	/**

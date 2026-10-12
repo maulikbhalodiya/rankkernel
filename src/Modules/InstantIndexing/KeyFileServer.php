@@ -156,8 +156,9 @@ final class KeyFileServer {
 	 */
 	public function responseHeaders(): array {
 		return [
-			'Content-Type' => 'text/plain; charset=utf-8',
-			'X-Robots-Tag' => 'noindex, nofollow',
+			'Content-Type'           => 'text/plain; charset=utf-8',
+			'X-Robots-Tag'           => 'noindex, nofollow',
+			'X-Content-Type-Options' => 'nosniff',
 		];
 	}
 

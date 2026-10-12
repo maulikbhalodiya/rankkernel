@@ -535,7 +535,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 				 */
 				?>
 				<h3 class="rk-tracked-title" id="rk-log-heading"><?php echo esc_html__( 'Tracked 404s', 'rankkernel' ); ?></h3>
-				<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of tracked 404 entries */ __( '%d entries', 'rankkernel' ), $listTotal ) ); ?></span>
+				<span class="rk-entry-count"><?php echo esc_html( sprintf( /* translators: %d: number of tracked 404 entries */ _n( '%d entry', '%d entries', $listTotal, 'rankkernel' ), $listTotal ) ); ?></span>
 			</div>
 			<form method="get" action="<?php echo esc_url( $searchFormUrl ); ?>" class="rk-tracked-search" role="search" aria-label="<?php echo esc_attr__( 'Search tracked 404 addresses', 'rankkernel' ); ?>">
 				<input type="hidden" name="page" value="<?php echo esc_attr( $listSlug ); ?>" />
@@ -789,7 +789,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 				</div>
 
 				<div class="rk-log-footer">
-					<span class="rk-showing"><?php echo esc_html( sprintf( /* translators: %d: total number of 404 entries */ __( '%d items', 'rankkernel' ), $listTotal ) ); ?></span>
+					<span class="rk-showing"><?php echo esc_html( sprintf( /* translators: %d: total number of 404 entries */ _n( '%d item', '%d items', $listTotal, 'rankkernel' ), $listTotal ) ); ?></span>
 					<?php if ( $pagination['has'] ) : ?>
 						<nav class="rk-pages-bottom" aria-label="<?php echo esc_attr__( '404 log pages', 'rankkernel' ); ?>">
 							<span class="rk-paging-text"><?php echo esc_html( $pagination['label'] ); ?></span>

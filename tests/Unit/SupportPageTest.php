@@ -483,7 +483,7 @@ final class SupportPageTest extends TestCase {
 		( new SupportPage() )->maybeHandleSave();
 
 		$this->assertSame( 'image/png', $this->uploadMimes['png'] );
-		$this->assertSame( 'image/jpeg', $this->uploadMimes['jpeg'] );
+		$this->assertSame( 'image/jpeg', $this->uploadMimes['jpg|jpeg|jpe'] );
 		$this->assertArrayNotHasKey( 'image/png', $this->uploadMimes );
 	}
 

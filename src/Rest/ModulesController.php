@@ -98,7 +98,7 @@ final class ModulesController {
 
 		return new WP_Error(
 			'rest_forbidden',
-			esc_html__( 'Sorry, you are not allowed to manage RankKernel modules.', 'rankkernel' ),
+			__( 'Sorry, you are not allowed to manage RankKernel modules.', 'rankkernel' ),
 			[ 'status' => 403 ]
 		);
 	}
@@ -116,7 +116,7 @@ final class ModulesController {
 
 		return new WP_Error(
 			'rankkernel_invalid_module',
-			esc_html__( 'Unknown module id.', 'rankkernel' ),
+			__( 'Unknown module id.', 'rankkernel' ),
 			[ 'status' => 400 ]
 		);
 	}
@@ -133,7 +133,7 @@ final class ModulesController {
 		if ( ! ModuleRegistry::has( $moduleId ) ) {
 			return new WP_Error(
 				'rankkernel_invalid_module',
-				esc_html__( 'Unknown module id.', 'rankkernel' ),
+				__( 'Unknown module id.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -141,7 +141,7 @@ final class ModulesController {
 		if ( ModuleRegistry::isPlanned( $moduleId ) ) {
 			return new WP_Error(
 				'rankkernel_module_planned',
-				esc_html__( 'This module is planned and cannot be enabled yet.', 'rankkernel' ),
+				__( 'This module is planned and cannot be enabled yet.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -154,7 +154,7 @@ final class ModulesController {
 		if ( ! is_array( $params ) || ! array_key_exists( 'enabled', $params ) ) {
 			return new WP_Error(
 				'rankkernel_missing_enabled',
-				esc_html__( 'Missing required field: enabled.', 'rankkernel' ),
+				__( 'Missing required field: enabled.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -169,7 +169,7 @@ final class ModulesController {
 			if ( null === $normalized ) {
 				return new WP_Error(
 					'rest_invalid_param',
-					esc_html__( 'Invalid value for enabled: must be boolean.', 'rankkernel' ),
+					__( 'Invalid value for enabled: must be boolean.', 'rankkernel' ),
 					[ 'status' => 400 ]
 				);
 			}
@@ -196,7 +196,7 @@ final class ModulesController {
 		if ( $updated !== $current && ! update_option( self::OPTION, $updated ) ) {
 			return new WP_Error(
 				'rankkernel_storage_failed',
-				esc_html__( 'The module status could not be saved.', 'rankkernel' ),
+				__( 'The module status could not be saved.', 'rankkernel' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -215,10 +215,7 @@ final class ModulesController {
 		return new WP_REST_Response(
 			[
 				'modules' => $updated,
-				'message' => esc_html__(
-					'Module status updated. Changes take effect on the next request.',
-					'rankkernel'
-				),
+				'message' => __( 'Module status updated. Changes take effect on the next request.', 'rankkernel' ),
 			],
 			200
 		);

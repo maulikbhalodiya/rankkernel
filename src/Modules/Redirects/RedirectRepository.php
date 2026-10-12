@@ -100,6 +100,39 @@ final class RedirectRepository {
 	private static ?array $patternsMemo = null;
 
 	/**
+	 * Shared static request-level memoized single rows by ID across repository instances.
+	 *
+	 * Performance optimization: memoizes get($id) results across repository instances
+	 * within a single HTTP request execution thread to eliminate duplicate SQL queries during
+	 * bulk operations and cycle analysis.
+	 *
+	 * @var array<int, array<string, mixed>|null>
+	 */
+	private static array $rowMemo = [];
+
+	/**
+	 * Shared static request-level memoized cycle candidate rows across repository instances.
+	 *
+	 * Performance optimization: memoizes find_cycle_candidates() results across repository instances
+	 * within a single HTTP request execution thread to avoid repeated SQL queries during
+	 * cycle safety checks in bulk operations.
+	 *
+	 * @var array<int, array<string, mixed>>|null
+	 */
+	private static ?array $cycleCandidatesMemo = null;
+
+	/**
+	 * Identity of the database handle the static memos were built from.
+	 *
+	 * The memos are shared across instances, so a different handle must
+	 * flush them first: otherwise rows read from one database leak into
+	 * reads from another in long lived processes and test suites.
+	 *
+	 * @var int|null Object identity of the memo source handle.
+	 */
+	private static ?int $memoConnId = null;
+
+	/**
 	 * Safety analyzer for activation checks, fresh one when null.
 	 *
 	 * @var Validator|null
@@ -202,10 +235,40 @@ final class RedirectRepository {
 	}
 
 	/**
-	 * Reset static pattern memoization (primarily for tests).
+	 * Canonical method to reset static request-level memoization (primarily for unit tests and long-lived processes).
+	 */
+	public static function resetCache(): void {
+		self::$patternsMemo        = null;
+		self::$rowMemo             = [];
+		self::$cycleCandidatesMemo = null;
+		self::$memoConnId          = null;
+	}
+
+	/**
+	 * Flush the static memos when the database handle changed.
+	 *
+	 * Memoized rows belong to one handle: the first read against a new
+	 * handle discards everything the previous handle left behind, so a
+	 * shared process can never serve another database's rows. The common
+	 * case of one handle per request never flushes and keeps the full
+	 * memo win.
+	 *
+	 * @param object $db Active database handle.
+	 */
+	private function primeMemos( object $db ): void {
+		$id = spl_object_id( $db );
+
+		if ( self::$memoConnId !== $id ) {
+			self::resetCache();
+			self::$memoConnId = $id;
+		}
+	}
+
+	/**
+	 * Reset static pattern memoization (alias for resetCache maintained for interface parity).
 	 */
 	public static function resetMemo(): void {
-		self::$patternsMemo = null;
+		self::resetCache();
 	}
 
 	/**
@@ -273,14 +336,27 @@ final class RedirectRepository {
 	/**
 	 * Get one rule by id, for the admin edit screen.
 	 *
+	 * Performance optimization: memoizes retrieved rows by ID across calls in $rowMemo
+	 * to eliminate duplicate SQL queries during bulk activations and cycle checks.
+	 *
 	 * @param int $id Rule id.
 	 * @return array<string, mixed>|null Rule row or null.
 	 */
 	public function get( int $id ): ?array {
+		if ( $id <= 0 ) {
+			return null;
+		}
+
 		$db = $this->connection();
 
-		if ( null === $db || $id <= 0 ) {
+		if ( null === $db ) {
 			return null;
+		}
+
+		$this->primeMemos( $db );
+
+		if ( array_key_exists( $id, self::$rowMemo ) ) {
+			return self::$rowMemo[ $id ];
 		}
 
 		$table = RedirectTable::name();
@@ -290,7 +366,11 @@ final class RedirectRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$row = $db->get_row( $db->prepare( $sql, $id ), ARRAY_A );
 
-		return is_array( $row ) ? $row : null;
+		$result = is_array( $row ) ? $row : null;
+
+		self::$rowMemo[ $id ] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -325,7 +405,7 @@ final class RedirectRepository {
 		}
 
 		$table = RedirectTable::name();
-		$sql   = "SELECT * FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC LIMIT %d";
+		$sql   = "SELECT id, match_type, source, target, code, is_active FROM `{$table}` WHERE is_active = 1 AND match_type != 'exact' ORDER BY id ASC LIMIT %d";
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, bounded pattern list with an integer limit and no user input.
 		$rows = $db->get_results( $db->prepare( $sql, self::MAX_PATTERNS ), ARRAY_A );
@@ -817,6 +897,9 @@ final class RedirectRepository {
 	 * Excludes terminal codes, external targets cannot be proven at the SQL
 	 * layer, so callers filter or mark those branches inconclusive.
 	 *
+	 * Performance optimization: memoizes results in $cycleCandidatesMemo per request
+	 * execution thread to avoid executing identical SQL queries on every candidate during bulk activations.
+	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_cycle_candidates(): array {
@@ -826,12 +909,44 @@ final class RedirectRepository {
 			return [];
 		}
 
+		$this->primeMemos( $db );
+
+		if ( null !== self::$cycleCandidatesMemo ) {
+			return self::$cycleCandidatesMemo;
+		}
+
+		// Bounded batches keep one validation read small no matter how many
+		// rules exist; the merged set is identical to the unbounded read.
+		$out    = [];
+		$offset = 0;
+
+		do {
+			$batch  = $this->queryCandidateBatch( $db, self::EXPORT_BATCH, $offset );
+			$number = count( $batch );
+			$out    = array_merge( $out, $batch );
+			$offset = $offset + $number;
+		} while ( $number >= self::EXPORT_BATCH );
+
+		self::$cycleCandidatesMemo = $out;
+
+		return $out;
+	}
+
+	/**
+	 * Read one page of cycle candidate rows, id ordered.
+	 *
+	 * @param object $db     Active database handle.
+	 * @param int    $limit  Maximum rows in this page.
+	 * @param int    $offset Rows to skip.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function queryCandidateBatch( object $db, int $limit, int $offset ): array {
 		$table = RedirectTable::name();
 		$sql   = "SELECT id, match_type, source, target, code, is_active FROM `{$table}`"
-			. " WHERE is_active = 1 AND code IN ('301','302','307') AND target <> '' ORDER BY id ASC";
+			. " WHERE is_active = 1 AND code IN ('301','302','307') AND target <> '' ORDER BY id ASC LIMIT %d OFFSET %d";
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, code list is a fixed whitelist with no user input.
-		$rows = $db->get_results( $sql, ARRAY_A );
+		$rows = $db->get_results( $db->prepare( $sql, $limit, $offset ), ARRAY_A );
 
 		if ( ! is_array( $rows ) ) {
 			return [];
@@ -1112,7 +1227,7 @@ final class RedirectRepository {
 	 * memory maps.
 	 */
 	private function touch(): void {
-		self::$patternsMemo = null;
+		self::resetCache();
 
 		if ( null !== $this->cache ) {
 			$this->cache->invalidate();

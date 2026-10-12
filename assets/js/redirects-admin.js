@@ -362,6 +362,14 @@ function rankkernelAnnounce( text ) {
 			return;
 		}
 
+		// Without fetch the call below throws synchronously before the
+		// promise chain attaches, wedging the loading state, so fall back
+		// to a normal navigation before touching any state.
+		if ( 'function' !== typeof window.fetch ) {
+			window.location.href = filterUrl;
+			return;
+		}
+
 		ajaxActive = true;
 
 		/* Extract just the query-string params the server needs. */

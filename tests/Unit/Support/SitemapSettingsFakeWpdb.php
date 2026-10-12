@@ -109,6 +109,18 @@ final class SitemapSettingsFakeWpdb {
 	 */
 	public array $termmetaRows = [];
 	/**
+	 * Post ids carrying a scalar noindex flag row.
+	 *
+	 * @var int[]
+	 */
+	public array $postNoindexIds = [];
+	/**
+	 * Term ids carrying a scalar noindex flag row.
+	 *
+	 * @var int[]
+	 */
+	public array $termNoindexIds = [];
+	/**
 	 * Users Rows.
 	 *
 	 * @var array<int, string>
@@ -452,6 +464,12 @@ final class SitemapSettingsFakeWpdb {
 				continue;
 			}
 
+			// Flagged rows are excluded by the fast path predicate; unflagged
+			// rows still fall through to the LIKE fallback below.
+			if ( str_contains( $sql, '_rankkernel_noindex' ) && in_array( $id, $this->postNoindexIds, true ) ) {
+				continue;
+			}
+
 			$meta = $this->postmetaRows[ $id ] ?? null;
 
 			if ( $this->likeExcludes( $meta, $like ) ) {
@@ -576,6 +594,10 @@ final class SitemapSettingsFakeWpdb {
 			}
 
 			if ( in_array( $termId, $not, true ) ) {
+				continue;
+			}
+
+			if ( str_contains( $sql, '_rankkernel_noindex' ) && in_array( $termId, $this->termNoindexIds, true ) ) {
 				continue;
 			}
 
@@ -845,7 +867,10 @@ final class SitemapSettingsFakeWpdb {
 
 			$author = (int) ( $row['post_author'] ?? 0 );
 
-			if ( 0 === $author ) {
+			// Orphan rows belong to no author: the real COUNT(DISTINCT
+			// post_author) counts them unless the query excludes zero, so the
+			// double only skips them when the SQL carries that exclusion.
+			if ( 0 === $author && str_contains( $sql, 'post_author <> 0' ) ) {
 				continue;
 			}
 

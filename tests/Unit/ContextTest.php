@@ -461,6 +461,7 @@ final class ContextTest extends TestCase {
 		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
 		$q->shouldReceive( 'is_archive' )->andReturn( true )->byDefault();
 		$q->shouldReceive( 'is_author' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_post_type_archive' )->andReturn( false )->byDefault();
 		$q->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
 		$q->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $id ] )->byDefault();
 		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
@@ -640,5 +641,111 @@ final class ContextTest extends TestCase {
 		$ctx      = new Context( $query, $settings );
 
 		$this->assertSame( 'The real excerpt.', $ctx->excerpt() );
+	}
+
+	/**
+	 * Make a static front page query: a singular page that is also the front.
+	 *
+	 * @param int $id Page id.
+	 * @return WP_Query The result.
+	 */
+	private function makeQueryFrontPage( int $id = 67 ): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+		return $q;
+	}
+
+	/**
+	 * Test a static front page types as home, not as a post.
+	 */
+	public function test_static_front_page_types_as_home(): void {
+		$query = $this->makeQueryFrontPage();
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+	}
+
+	/**
+	 * Test the front page title drops the CMS page title.
+	 */
+	public function test_front_page_title_drops_cms_page_title(): void {
+		$query = $this->makeQueryFrontPage();
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'get_the_title' )->justReturn( 'Home' );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( '', $ctx->title() );
+	}
+
+	/**
+	 * Make a post type archive query.
+	 *
+	 * @param string $postType Post type.
+	 * @return WP_Query The result.
+	 */
+	private function makeQueryPostTypeArchive( string $postType = 'project' ): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_post_type_archive' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( 0 )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+		$q->shouldReceive( 'get' )->with( 'post_type' )->andReturn( $postType )->byDefault();
+		return $q;
+	}
+
+	/**
+	 * Test a post type archive title uses the post type label.
+	 */
+	public function test_post_type_archive_title_uses_post_type_label(): void {
+		$query = $this->makeQueryPostTypeArchive( 'project' );
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'get_post_type_object' )->alias(
+			static function (): object {
+				return (object) [
+					'labels'      => (object) [ 'name' => 'Work' ],
+					'label'       => 'Projects',
+					'has_archive' => true,
+				];
+			}
+		);
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'archive', $ctx->queriedType() );
+		$this->assertSame( 'Work', $ctx->title() );
 	}
 }

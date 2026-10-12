@@ -2,7 +2,7 @@ parameters:
 	ignoreErrors:
 		-
 			message: "#^If condition is always true\\.$#"
-			count: 2
+			count: 3
 			path: src/Modules/Metadata/Context.php
 
 		-

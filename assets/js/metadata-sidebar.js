@@ -737,6 +737,12 @@
 		return /^https?:\/\/\S+\.\S+/.test( String( value ).trim() );
 	}
 
+	function logStoreFailure( what, error ) {
+		if ( 'undefined' !== typeof window && window.console && 'function' === typeof window.console.warn ) {
+			window.console.warn( 'RankKernel SEO: reading ' + what + ' failed.', error );
+		}
+	}
+
 	// Guard the schema JSON import before FileReader pulls the whole file
 	// into memory. A file without a numeric size is left to the read path.
 	function schemaImportTooLarge( file ) {
@@ -1810,6 +1816,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'title' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post title', e );
 				return '';
 			}
 		}, [] );
@@ -1818,6 +1825,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'slug' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post slug', e );
 				return '';
 			}
 		}, [] );
@@ -1826,6 +1834,7 @@
 				var editor = select( 'core/editor' );
 				return editor && editor.getEditedPostAttribute ? ( editor.getEditedPostAttribute( 'content' ) || '' ) : '';
 			} catch ( e ) {
+				logStoreFailure( 'the post content', e );
 				return '';
 			}
 		}, [] );
@@ -2007,6 +2016,7 @@
 					return editor.getCurrentPostId();
 				}
 			} catch ( e ) {
+				logStoreFailure( 'the post id', e );
 				return 0;
 			}
 			return 0;
@@ -2060,6 +2070,7 @@
 				var edited = editor.getEditedPostAttribute( 'meta' );
 				return edited && edited[ META_KEY ] ? edited[ META_KEY ] : null;
 			} catch ( e ) {
+				logStoreFailure( 'the stored meta', e );
 				return null;
 			}
 		}, [] );
@@ -2070,6 +2081,7 @@
 					return editor.getEditedPostAttribute( 'type' ) || '';
 				}
 			} catch ( e ) {
+				logStoreFailure( 'the post type', e );
 				return '';
 			}
 			return '';
@@ -2117,10 +2129,18 @@
 				next[ path ] = value;
 			} else if ( 0 === path.indexOf( 'robots.' ) ) {
 				next.robots[ path.slice( 7 ) ] = value;
-			} else if ( 0 === path.indexOf( 'og.' ) ) {
-				next.og[ path.slice( 3 ) ] = value;
-			} else if ( 0 === path.indexOf( 'twitter.' ) ) {
-				next.twitter[ path.slice( 8 ) ] = value;
+		} else if ( 0 === path.indexOf( 'og.' ) ) {
+			// Social images flow into img src assignments, so only http(s)
+			// URLs or empty ever reach the store, mirroring canonical.
+			if ( 'og.image' === path && ! isValidHttpUrl( value ) ) {
+				return;
+			}
+			next.og[ path.slice( 3 ) ] = value;
+		} else if ( 0 === path.indexOf( 'twitter.' ) ) {
+			if ( 'twitter.image' === path && ! isValidHttpUrl( value ) ) {
+				return;
+			}
+			next.twitter[ path.slice( 8 ) ] = value;
 			} else if ( 0 === path.indexOf( 'schema.fields.' ) ) {
 				var obj = schemaObject( next.schema );
 				var fields = {};
@@ -2867,10 +2887,14 @@
 									} catch ( e ) {
 										parsed = null;
 									}
-									if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
+								if ( parsed && 'object' === typeof parsed && ! Array.isArray( parsed ) ) {
+									if ( /<\/script/i.test( next ) ) {
+										setError( 'schema.customText', __( 'Custom JSON must not contain a script tag. Nothing was saved.', 'rankkernel' ) );
+									} else {
 										setError( 'schema.customText', '' );
 										setSchemaKey( 'custom', parsed );
-									} else {
+									}
+								} else {
 										setError( 'schema.customText', __( 'Custom JSON must be a valid JSON object. Nothing was saved.', 'rankkernel' ) );
 									}
 								}
@@ -2933,11 +2957,15 @@
 									if ( ! file ) {
 										return;
 									}
-									if ( schemaImportTooLarge( file ) ) {
-										setError( 'schema.customText', __( 'Import file is larger than 2 MB, nothing was saved.', 'rankkernel' ) );
-										return;
-									}
-									var reader = new FileReader();
+								if ( schemaImportTooLarge( file ) ) {
+									setError( 'schema.customText', __( 'Import file is larger than 2 MB, nothing was saved.', 'rankkernel' ) );
+									return;
+								}
+								if ( 'function' !== typeof FileReader ) {
+									setError( 'schema.customText', __( 'Import file could not be read, nothing was saved.', 'rankkernel' ) );
+									return;
+								}
+								var reader = new FileReader();
 									reader.onload = function () {
 										var parsed = null;
 										try {
