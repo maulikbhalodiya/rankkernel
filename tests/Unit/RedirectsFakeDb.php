@@ -64,6 +64,13 @@ final class RedirectsFakeDb {
 	public int $ruleReads = 0;
 
 	/**
+	 * Prepare calls carrying no placeholder, which core flags.
+	 *
+	 * @var int
+	 */
+	public int $barePrepares = 0;
+
+	/**
 	 * Read queries in order, so tests can pin the emitted SQL shape.
 	 *
 	 * @var string[]
@@ -129,6 +136,12 @@ final class RedirectsFakeDb {
 	 * @return string The result.
 	 */
 	public function prepare( string $query, mixed ...$args ): string {
+		// Core raises _doing_it_wrong for placeholder-free prepare calls,
+		// so the double counts them for tests to assert none happen.
+		if ( 1 !== preg_match( '/%[sdf]/', $query ) ) {
+			++$this->barePrepares;
+		}
+
 		foreach ( $args as $arg ) {
 			$posS = strpos( $query, '%s' );
 			$posD = strpos( $query, '%d' );

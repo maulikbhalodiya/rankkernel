@@ -490,6 +490,25 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test unfiltered counts never call prepare without placeholders.
+	 */
+	public function test_unfiltered_counts_avoid_bare_prepare(): void {
+		$this->repo->insert(
+			[
+				'source' => '/alpha',
+				'target' => '/x',
+			]
+		);
+
+		$this->db->barePrepares = 0;
+
+		$page = $this->repo->paginate( [ 'per_page' => 10 ] );
+
+		$this->assertSame( 1, $page['total'] );
+		$this->assertSame( 0, $this->db->barePrepares, 'a placeholder-free COUNT must not route through prepare' );
+	}
+
+	/**
 	 * Test bulk activate deactivate delete.
 	 */
 	public function test_bulk_activate_deactivate_delete(): void {

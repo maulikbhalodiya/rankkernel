@@ -180,7 +180,7 @@ final class CsvHandler {
 			return $summary;
 		}
 
-		$header = fgetcsv( $handle );
+		$header = fgetcsv( $handle, 0, ',', '"', '' );
 
 		if ( ! is_array( $header ) || ! $this->header_matches( $header ) ) {
 			// Paired with the streaming fopen above, part of the same read.
@@ -200,7 +200,7 @@ final class CsvHandler {
 		$jobs      = [];
 
 		while ( true ) {
-			$fields = fgetcsv( $handle );
+			$fields = fgetcsv( $handle, 0, ',', '"', '' );
 
 			if ( false === $fields ) {
 				break;

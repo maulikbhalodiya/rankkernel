@@ -1296,7 +1296,18 @@ final class RedirectRepository {
 		}
 
 		$table = RedirectTable::name();
-		$args  = array_merge( [ "SELECT COUNT(*) FROM `{$table}` {$filtered[0]}" ], $filtered[1] );
+		$sql   = "SELECT COUNT(*) FROM `{$table}` {$filtered[0]}";
+
+		// Core raises _doing_it_wrong for placeholder-free prepare calls,
+		// so a filterless COUNT runs its static query directly.
+		if ( [] === $filtered[1] ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom redirect tables have no core API, static count with no user input.
+			$count = $db->get_var( $sql );
+
+			return (int) $count;
+		}
+
+		$args = array_merge( [ $sql ], $filtered[1] );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, count query with placeholders through prepare unpacking.
 		$count = $db->get_var( $db->prepare( ...$args ) );
