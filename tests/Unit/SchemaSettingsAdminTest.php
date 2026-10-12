@@ -468,6 +468,23 @@ final class SchemaSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test the save button uses the save glyph, not download.
+	 */
+	public function test_save_button_uses_save_glyph_not_download(): void {
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$matched = preg_match( '/<button[^>]*name="rankkernel_schema_save"[^>]*>(.*?)<\/button>/s', $html, $found );
+
+		$this->assertSame( 1, $matched, 'the schema save button must render' );
+		$this->assertStringContainsString( 'check_circle', $found[1] );
+		$this->assertStringNotContainsString( 'download', $found[1], 'download means export, not save' );
+	}
+
+	/**
 	 * Every described control must carry its own association, and every target must exist.
 	 *
 	 * Asserting that an aria-describedby value appears somewhere in the markup is not
