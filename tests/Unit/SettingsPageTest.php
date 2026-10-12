@@ -1118,7 +1118,7 @@ final class SettingsPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'id="rk-section-webmaster"', $output );
 		$this->assertStringNotContainsString( 'id="rk-section-general"', $output );
-		$this->assertStringContainsString( 'section=htaccess', $output );
+		$this->assertStringNotContainsString( 'section=htaccess', $output );
 	}
 
 	/**
@@ -1132,7 +1132,7 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $value ): string => trim( $value ) );
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
 
-		$this->stubCrawlPage( [] );
+		$this->stubCrawlPage( [ 'robots' ] );
 
 		$_GET['section'] = 'htaccess';
 
@@ -1145,6 +1145,163 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
 		$this->assertStringContainsString( 'rk-banner-danger', $output );
 		$this->assertStringNotContainsString( 'notice notice-warning', $output );
+	}
+
+	/**
+	 * Test robots, llms and htaccess sections hide when the module is off.
+	 */
+	public function test_robots_llms_htaccess_sections_hidden_when_robots_off(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [] );
+
+		$_GET['section'] = 'htaccess';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'section=robots', $output );
+		$this->assertStringNotContainsString( 'section=llms', $output );
+		$this->assertStringNotContainsString( 'section=htaccess', $output );
+		$this->assertStringNotContainsString( 'id="rk-section-htaccess"', $output );
+	}
+
+	/**
+	 * Test the htaccess section renders when the module is enabled.
+	 */
+	public function test_htaccess_section_renders_when_enabled(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section'] = 'htaccess';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'section=htaccess', $output );
+		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
+	}
+
+	/**
+	 * Test the htaccess save writes the file when the module is enabled.
+	 */
+	public function test_htaccess_save_writes_when_enabled(): void {
+		$path = sys_get_temp_dir() . '/rkht_' . uniqid() . '.htaccess';
+
+		if ( ! defined( 'ABSPATH' ) ) {
+			define( 'ABSPATH', '/tmp/' );
+		}
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $path ): mixed {
+				if ( 'rankkernel/htaccess/path' === $hook ) {
+					return $path;
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$GLOBALS['is_apache'] = true; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test toggles Apache detection for the htaccess save path, unset after the save.
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'htaccess';
+		$_POST                     = [
+			'_wpnonce'            => 'valid',
+			'rk_htaccess_save'    => '1',
+			'rk_htaccess_content' => '# RankKernel test',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		unset( $GLOBALS['is_apache'] );
+
+		$this->assertFileExists( $path );
+		$this->assertStringContainsString( '# RankKernel test', (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
+
+		unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+	}
+
+	/**
+	 * Test the htaccess save is refused when the module is off.
+	 */
+	public function test_htaccess_save_refused_when_robots_off(): void {
+		$path = sys_get_temp_dir() . '/rkht_' . uniqid() . '.htaccess';
+
+		if ( ! defined( 'ABSPATH' ) ) {
+			define( 'ABSPATH', '/tmp/' );
+		}
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $path ): mixed {
+				if ( 'rankkernel/htaccess/path' === $hook ) {
+					return $path;
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$GLOBALS['is_apache'] = true; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test toggles Apache detection for the htaccess save path, unset after the save.
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'htaccess';
+		$_POST                     = [
+			'_wpnonce'            => 'valid',
+			'rk_htaccess_save'    => '1',
+			'rk_htaccess_content' => '# RankKernel test',
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		unset( $GLOBALS['is_apache'] );
+
+		$this->assertFileDoesNotExist( $path, 'a disabled module must not write the file' );
 	}
 
 	/**
