@@ -37,6 +37,27 @@ final class Context {
 	private ?string $hashCache = null;
 
 	/**
+	 * Cached queried type string (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $queriedTypeCache = null;
+
+	/**
+	 * Cached queried object ID (null = not yet computed).
+	 *
+	 * @var int|null
+	 */
+	private ?int $queriedIdCache = null;
+
+	/**
+	 * Cached singular flag (null = not yet computed).
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $isSingularCache = null;
+
+	/**
 	 * Memoized resolved templates by (hash|field).
 	 *
 	 * @var array<string, string>
@@ -141,12 +162,23 @@ final class Context {
 	/**
 	 * Whether the current query is singular.
 	 *
+	 * Performance optimization: memoizes singular state within the Context instance
+	 * to eliminate repeated calls to WP_Query::is_singular() during tag and schema rendering.
+	 *
 	 * @return bool The result.
 	 */
 	public function isSingular(): bool {
-		if ( is_callable( [ $this->query, 'is_singular' ] ) ) {
-			return (bool) $this->query->is_singular();
+		if ( null !== $this->isSingularCache ) {
+			return $this->isSingularCache;
 		}
+
+		if ( is_callable( [ $this->query, 'is_singular' ] ) ) {
+			$this->isSingularCache = (bool) $this->query->is_singular();
+
+			return $this->isSingularCache;
+		}
+
+		$this->isSingularCache = false;
 
 		return false;
 	}
@@ -154,25 +186,40 @@ final class Context {
 	/**
 	 * Queried object ID.
 	 *
+	 * Performance optimization: memoizes queried object ID within the Context instance
+	 * to eliminate repeated WP_Query or global get_queried_object_id() calls across tags.
+	 *
 	 * @return int The result.
 	 */
 	public function queriedId(): int {
+		if ( null !== $this->queriedIdCache ) {
+			return $this->queriedIdCache;
+		}
+
 		if ( is_callable( [ $this->query, 'get_queried_object_id' ] ) ) {
 			$id = $this->query->get_queried_object_id();
 
 			if ( is_int( $id ) ) {
+				$this->queriedIdCache = $id;
+
 				return $id;
 			}
 
 			if ( is_numeric( $id ) ) {
-				return (int) $id;
+				$this->queriedIdCache = (int) $id;
+
+				return $this->queriedIdCache;
 			}
 		}
 
 		// Fallback to global.
 		if ( function_exists( 'get_queried_object_id' ) ) {
-			return (int) get_queried_object_id();
+			$this->queriedIdCache = (int) get_queried_object_id();
+
+			return $this->queriedIdCache;
 		}
+
+		$this->queriedIdCache = 0;
 
 		return 0;
 	}
@@ -180,17 +227,28 @@ final class Context {
 	/**
 	 * Queried type: 'post'|'term'|'home'|'search'|'404'|'feed'|'archive'|'preview'|...
 	 *
+	 * Performance optimization: memoizes queried type within the Context instance
+	 * to avoid evaluating 12+ WP_Query conditional checks on every metadata lookup.
+	 *
 	 * @return string The result.
 	 */
 	public function queriedType(): string {
+		if ( null !== $this->queriedTypeCache ) {
+			return $this->queriedTypeCache;
+		}
+
 		// Previews are not indexable URLs, treat as dedicated type.
 		if ( function_exists( 'is_preview' ) && is_preview() ) {
+			$this->queriedTypeCache = 'preview';
+
 			return 'preview';
 		}
 
 		// Query preview check, tolerant of Mockery mocks without expectation.
 		try {
 			if ( is_callable( [ $this->query, 'is_preview' ] ) && $this->query->is_preview() ) {
+				$this->queriedTypeCache = 'preview';
+
 				return 'preview';
 			}
 		} catch ( \Throwable $e ) {
@@ -200,47 +258,71 @@ final class Context {
 
 		// Check feed first, is_feed may be true alongside other conditionals.
 		if ( is_callable( [ $this->query, 'is_feed' ] ) && $this->query->is_feed() ) {
+			$this->queriedTypeCache = 'feed';
+
 			return 'feed';
 		}
 
 		if ( function_exists( 'is_feed' ) && is_feed() ) {
+			$this->queriedTypeCache = 'feed';
+
 			return 'feed';
 		}
 
 		if ( is_callable( [ $this->query, 'is_search' ] ) && $this->query->is_search() ) {
+			$this->queriedTypeCache = 'search';
+
 			return 'search';
 		}
 
 		if ( is_callable( [ $this->query, 'is_404' ] ) && $this->query->is_404() ) {
+			$this->queriedTypeCache = '404';
+
 			return '404';
 		}
 
 		if ( is_callable( [ $this->query, 'is_home' ] ) && $this->query->is_home() ) {
+			$this->queriedTypeCache = 'home';
+
 			return 'home';
 		}
 
 		if ( is_callable( [ $this->query, 'is_front_page' ] ) && $this->query->is_front_page() ) {
+			$this->queriedTypeCache = 'home';
+
 			return 'home';
 		}
 
 		if ( is_callable( [ $this->query, 'is_singular' ] ) && $this->query->is_singular() ) {
+			$this->queriedTypeCache = 'post';
+
 			return 'post';
 		}
 
 		if ( is_callable( [ $this->query, 'is_category' ] ) && $this->query->is_category() ) {
+			$this->queriedTypeCache = 'term';
+
 			return 'term';
 		}
 		if ( is_callable( [ $this->query, 'is_tag' ] ) && $this->query->is_tag() ) {
+			$this->queriedTypeCache = 'term';
+
 			return 'term';
 		}
 
 		if ( is_callable( [ $this->query, 'is_tax' ] ) && $this->query->is_tax() ) {
+			$this->queriedTypeCache = 'term';
+
 			return 'term';
 		}
 
 		if ( is_callable( [ $this->query, 'is_archive' ] ) && $this->query->is_archive() ) {
+			$this->queriedTypeCache = 'archive';
+
 			return 'archive';
 		}
+
+		$this->queriedTypeCache = 'home';
 
 		return 'home';
 	}
