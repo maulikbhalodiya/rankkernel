@@ -45,6 +45,45 @@ class PostsProvider {
 	private const META_KEY = '_rankkernel_meta_data';
 
 	/**
+	 * Instance-level memoized post counts by settings hash and post type.
+	 *
+	 * @var array<string, array<string, int>>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Instance-level memoized post type sets by settings hash.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private array $setsMemo = [];
+
+	/**
+	 * Reset instance-level memoization cache.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+		$this->setsMemo  = [];
+	}
+
+	/**
+	 * Compute fingerprint of current settings for memo keying.
+	 *
+	 * @return string Settings fingerprint.
+	 */
+	private function settingsHash(): string {
+		if ( null === $this->settings ) {
+			return 'default';
+		}
+
+		$encoded = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $this->settings->all() )
+			: json_encode( $this->settings->all() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		return md5( is_string( $encoded ) ? $encoded : '' );
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * Null settings mean defaults and touch no globals, which keeps
@@ -62,9 +101,17 @@ class PostsProvider {
 	 * @return string[] The result.
 	 */
 	public function getSets(): array {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->setsMemo[ $hash ] ) ) {
+			return $this->setsMemo[ $hash ];
+		}
+
 		$postTypes = get_post_types( [ 'public' => true ], 'names' );
 
 		if ( ! is_array( $postTypes ) ) {
+			$this->setsMemo[ $hash ] = [];
+
 			return [];
 		}
 
@@ -85,6 +132,8 @@ class PostsProvider {
 			)
 		);
 
+		$this->setsMemo[ $hash ] = $sets;
+
 		return $sets;
 	}
 
@@ -95,11 +144,21 @@ class PostsProvider {
 	 * @return int The result.
 	 */
 	public function getCount( string $postType ): int {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->countMemo[ $hash ][ $postType ] ) ) {
+			return $this->countMemo[ $hash ][ $postType ];
+		}
+
 		if ( 'attachment' === $postType ) {
+			$this->countMemo[ $hash ][ $postType ] = 0;
+
 			return 0;
 		}
 
 		if ( ! ( $this->settings?->isTypeEnabled( 'pt', $postType ) ?? true ) ) {
+			$this->countMemo[ $hash ][ $postType ] = 0;
+
 			return 0;
 		}
 
@@ -122,9 +181,11 @@ class PostsProvider {
 		$args = array_merge( [ $sql ], $params );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
 
-		return (int) $count;
+		$this->countMemo[ $hash ][ $postType ] = $count;
+
+		return $count;
 	}
 
 	/**

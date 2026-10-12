@@ -818,4 +818,28 @@ final class SitemapSettingsProvidersTest extends TestCase {
 		$this->assertStringContainsString( '<sitemapindex', $xml );
 		$this->assertStringContainsString( 'post-sitemap3.xml', $xml );
 	}
+
+	/**
+	 * Test provider memoization and resetCache().
+	 */
+	public function test_provider_memoization_and_reset_cache(): void {
+		$this->seedPosts();
+		$settings = new SitemapSettings();
+
+		$postsProvider = new PostsProvider( $settings );
+		$count1        = $postsProvider->getCount( 'post' );
+		$queryCount1   = count( $this->db->queries );
+
+		// Second call must hit memo with 0 additional queries.
+		$count2      = $postsProvider->getCount( 'post' );
+		$queryCount2 = count( $this->db->queries );
+
+		$this->assertSame( $count1, $count2 );
+		$this->assertSame( $queryCount1, $queryCount2 );
+
+		// resetCache clears memo and forces re-query.
+		$postsProvider->resetCache();
+		$postsProvider->getCount( 'post' );
+		$this->assertGreaterThan( $queryCount2, count( $this->db->queries ) );
+	}
 }

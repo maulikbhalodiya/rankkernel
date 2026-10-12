@@ -25,6 +25,45 @@ use RankKernel\Modules\Sitemaps\SitemapSettings;
  */
 class AuthorsProvider {
 	/**
+	 * Instance-level memoized author counts by settings hash and set name.
+	 *
+	 * @var array<string, array<string, int>>
+	 */
+	private array $countMemo = [];
+
+	/**
+	 * Instance-level memoized author sets by settings hash.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private array $setsMemo = [];
+
+	/**
+	 * Reset instance-level memoization cache.
+	 */
+	public function resetCache(): void {
+		$this->countMemo = [];
+		$this->setsMemo  = [];
+	}
+
+	/**
+	 * Compute fingerprint of current settings for memo keying.
+	 *
+	 * @return string Settings fingerprint.
+	 */
+	private function settingsHash(): string {
+		if ( null === $this->settings ) {
+			return 'default';
+		}
+
+		$encoded = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $this->settings->all() )
+			: json_encode( $this->settings->all() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		return md5( is_string( $encoded ) ? $encoded : '' );
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * Null settings mean defaults and touch no globals, which keeps
@@ -42,17 +81,29 @@ class AuthorsProvider {
 	 * @return string[] The result.
 	 */
 	public function getSets(): array {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->setsMemo[ $hash ] ) ) {
+			return $this->setsMemo[ $hash ];
+		}
+
 		if ( ! (bool) ( $this->settings?->get( 'authors_sitemap', true ) ?? true ) ) {
+			$this->setsMemo[ $hash ] = [];
+
 			return [];
 		}
 
 		$count = $this->getCount( 'authors' );
 
 		if ( 0 === $count ) {
+			$this->setsMemo[ $hash ] = [];
+
 			return [];
 		}
 
-		return [ 'authors' ];
+		$this->setsMemo[ $hash ] = [ 'authors' ];
+
+		return $this->setsMemo[ $hash ];
 	}
 
 	/**
@@ -66,11 +117,21 @@ class AuthorsProvider {
 	 * @return int The result.
 	 */
 	public function getCount( string $set ): int {
+		$hash = $this->settingsHash();
+
+		if ( isset( $this->countMemo[ $hash ][ $set ] ) ) {
+			return $this->countMemo[ $hash ][ $set ];
+		}
+
 		if ( 'authors' !== $set ) {
+			$this->countMemo[ $hash ][ $set ] = 0;
+
 			return 0;
 		}
 
 		if ( ! (bool) ( $this->settings?->get( 'authors_sitemap', true ) ?? true ) ) {
+			$this->countMemo[ $hash ][ $set ] = 0;
+
 			return 0;
 		}
 
@@ -81,18 +142,25 @@ class AuthorsProvider {
 		}
 
 		if ( (bool) ( $this->settings?->get( 'authors_include_empty', false ) ?? false ) ) {
-			return $this->getCountIncludingEmpty();
+			$count                            = $this->getCountIncludingEmpty();
+			$this->countMemo[ $hash ][ $set ] = $count;
+
+			return $count;
 		}
 
 		// Authors of public content only: internal types (flamingo, forms,
 		// oembed cache) publish rows that must not create author entries.
 		$publicTypes = get_post_types( [ 'public' => true ], 'names' );
 		if ( ! is_array( $publicTypes ) || [] === $publicTypes ) {
+			$this->countMemo[ $hash ][ $set ] = 0;
+
 			return 0;
 		}
 
 		$types = array_values( array_filter( $publicTypes, static fn ( mixed $v ): bool => is_string( $v ) && '' !== $v ) );
 		if ( [] === $types ) {
+			$this->countMemo[ $hash ][ $set ] = 0;
+
 			return 0;
 		}
 
@@ -104,8 +172,10 @@ class AuthorsProvider {
 		$sql   .= $this->authorExclusionClauses( 'post_author', $params );
 		$args   = array_merge( [ $sql ], $params );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- sitemap tables have no core API, query uses placeholders with prepare through argument unpacking.
-		$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );
-		return (int) $count;
+		$count                            = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );
+		$this->countMemo[ $hash ][ $set ] = $count;
+
+		return $count;
 	}
 
 	/**

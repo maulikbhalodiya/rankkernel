@@ -94,9 +94,14 @@ class IndexBuilder {
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
-		$this->postsInstance          = null;
-		$this->taxonomiesInstance     = null;
-		$this->authorsInstance        = null;
+
+		$this->postsInstance?->resetCache();
+		$this->taxonomiesInstance?->resetCache();
+		$this->authorsInstance?->resetCache();
+
+		$this->postsInstance      = null;
+		$this->taxonomiesInstance = null;
+		$this->authorsInstance    = null;
 	}
 
 	/**
