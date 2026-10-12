@@ -174,8 +174,11 @@ register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );
 function rankkernel_seo_conflicts_map(): array {
 	return array(
 		'wordpress-seo/wordpress-seo.php'             => 'Yoast SEO',
+		'wordpress-seo-premium/wp-seo-premium.php'    => 'Yoast SEO Premium',
 		'seo-by-rank-math/rank-math.php'              => 'Rank Math',
+		'seo-by-rank-math-pro/rank-math-pro.php'      => 'Rank Math PRO',
 		'wp-seopress/seopress.php'                    => 'SEOPress',
+		'wp-seopress-pro/seopress-pro.php'            => 'SEOPress PRO',
 		'all-in-one-seo-pack/all_in_one_seo_pack.php' => 'All in One SEO',
 		'autodescription/autodescription.php'         => 'The SEO Framework',
 		'slim-seo/slim-seo.php'                       => 'Slim SEO',
