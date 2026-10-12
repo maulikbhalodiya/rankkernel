@@ -163,6 +163,74 @@ test( 'schema-settings announces logo selection and removal', () => {
 	assert.deepEqual( spoken, [ 'Organization logo updated.', 'Organization logo removed.' ] );
 } );
 
+test( 'a scriptable media URL is refused and never reaches the field', () => {
+	const spoken = [];
+	let selectHandler = null;
+
+	const logoInput = fakeElement( 'input', { id: 'rk-org-logo' } );
+	const logoPreview = fakeElement( 'img', { id: 'rk-org-logo-preview' } );
+
+	const nodes = {
+		'rk-org-logo-select': fakeElement( 'button', { id: 'rk-org-logo-select' } ),
+		'rk-org-logo': logoInput,
+		'rk-org-logo-preview': logoPreview
+	};
+
+	const document = {
+		readyState: 'complete',
+		getElementById( id ) {
+			return nodes[ id ] || null;
+		},
+		addEventListener() {}
+	};
+
+	const wp = {
+		media() {
+			return {
+				on( event, handler ) {
+					if ( 'select' === event ) {
+						selectHandler = handler;
+					}
+				},
+				open() {},
+				state() {
+					return {
+						get() {
+							return {
+								first() {
+									return {
+										get( key ) {
+											return 'url' === key ? 'javascript:alert(1)' : null;
+										}
+									};
+								}
+							};
+						}
+					};
+				}
+			};
+		},
+		a11y: {
+			speak( msg ) {
+				spoken.push( msg );
+			}
+		}
+	};
+
+	const sandbox = { document, wp };
+	sandbox.window = sandbox;
+
+	vm.runInNewContext( source( 'schema-settings.js' ), sandbox );
+
+	nodes[ 'rk-org-logo-select' ].fire( 'click' );
+	if ( selectHandler ) {
+		selectHandler();
+	}
+
+	assert.equal( logoInput.value, '', 'a scriptable scheme must never reach the option field' );
+	assert.deepEqual( spoken, [], 'a refused selection announces nothing' );
+} );
+
 test( 'schema-settings announces social profile chip additions and removals', () => {
 	const spoken = [];
 

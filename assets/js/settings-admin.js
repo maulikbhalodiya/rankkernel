@@ -101,11 +101,15 @@
 					var url = attachment.get( 'url' );
 					var id = attachment.get( 'id' );
 
-					if ( 'string' !== typeof url || '' === url || ! id ) {
-						return;
-					}
+				if ( 'string' !== typeof url || '' === url || ! id ) {
+					return;
+				}
 
-					image.value = url;
+				if ( ! /^https?:\/\//i.test( url ) && '/' !== url.charAt( 0 ) ) {
+					return;
+				}
+
+				image.value = url;
 					imageId.value = String( id );
 
 					if ( preview ) {

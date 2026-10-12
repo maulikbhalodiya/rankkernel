@@ -114,7 +114,17 @@
 		var byId = {};
 
 		Array.prototype.forEach.call( ids, function ( id ) {
-			var panel = document.querySelector( '[data-rk-tab-panel="' + id + '"]' );
+			// An unescaped quote in the id throws inside querySelector and
+			// breaks every tab, so escape first and keep the id lookup.
+			var panel = null;
+
+			if ( window.CSS && 'function' === typeof window.CSS.escape ) {
+				try {
+					panel = document.querySelector( '[data-rk-tab-panel="' + window.CSS.escape( id ) + '"]' );
+				} catch ( error ) {
+					panel = null;
+				}
+			}
 
 			if ( ! panel ) {
 				panel = document.getElementById( 'rk-sitemap-panel-' + id );

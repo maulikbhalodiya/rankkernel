@@ -733,4 +733,12 @@ test( 'silent store defaults log the failure and the FileReader path is guarded'
 		code.includes( "'function' !== typeof FileReader" ),
 		'FileReader construction must be guarded before use'
 	);
+	assert.ok(
+		code.includes( "! /^https?:\\/\\//i.test( src ) && '/' !== String( src ).charAt( 0 )" ),
+		'a scriptable picked image must route to onFail instead of onPick'
+	);
+	assert.ok(
+		code.includes( "if ( /<\\/script/i.test( JSON.stringify( parsed ) ) )" ),
+		'the import path must refuse script breakouts like the typed path'
+	);
 } );

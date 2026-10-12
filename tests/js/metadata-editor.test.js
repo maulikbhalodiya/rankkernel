@@ -338,4 +338,8 @@ test( 'the media select chain is guarded and falls back to the URL field', () =>
 		code.includes( '} catch ( error ) {\n\t\t\t\tattachment = null;\n\t\t\t}' ),
 		'a failing media frame must not escape the select callback'
 	);
+	assert.ok(
+		code.includes( "! /^https?:\\/\\//i.test( src ) && '/' !== String( src ).charAt( 0 )" ),
+		'a scriptable media URL must fall back to the URL field instead of saving'
+	);
 } );

@@ -1432,15 +1432,15 @@
 					if ( ! attachment ) {
 						return;
 					}
-					var json = attachment.toJSON();
-					var src = ( json.sizes && json.sizes.full && json.sizes.full.url ) || json.url || '';
-					if ( '' === String( src ).trim() ) {
-						if ( onFail ) {
-							onFail();
-						}
-						return;
+				var json = attachment.toJSON();
+				var src = ( json.sizes && json.sizes.full && json.sizes.full.url ) || json.url || '';
+				if ( '' === String( src ).trim() || ( ! /^https?:\/\//i.test( src ) && '/' !== String( src ).charAt( 0 ) ) ) {
+					if ( onFail ) {
+						onFail();
 					}
-					onPick( src, json.id || 0 );
+					return;
+				}
+				onPick( src, json.id || 0 );
 				} catch ( e ) {
 					if ( onFail ) {
 						onFail();
@@ -2973,11 +2973,15 @@
 										} catch ( e ) {
 											parsed = null;
 										}
-										if ( ! parsed || 'object' !== typeof parsed || Array.isArray( parsed ) ) {
-											setError( 'schema.customText', __( 'Import file was invalid, nothing was saved.', 'rankkernel' ) );
-											return;
-										}
-										setError( 'schema.customText', '' );
+									if ( ! parsed || 'object' !== typeof parsed || Array.isArray( parsed ) ) {
+										setError( 'schema.customText', __( 'Import file was invalid, nothing was saved.', 'rankkernel' ) );
+										return;
+									}
+									if ( /<\/script/i.test( JSON.stringify( parsed ) ) ) {
+										setError( 'schema.customText', __( 'Custom JSON must not contain a script tag. Nothing was saved.', 'rankkernel' ) );
+										return;
+									}
+									setError( 'schema.customText', '' );
 										clearDraft( 'schema.customText' );
 										saveSchema( parsed );
 									};

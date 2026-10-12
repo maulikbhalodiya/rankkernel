@@ -649,3 +649,97 @@ test( 'menu refresh helpers are exposed for direct unit tests', () => {
 	assert.equal( api.submenusEqual( '<li>a</li>', '<li>b</li>' ), false );
 	assert.equal( api.normalizeHtml( ' <li>\n  a\n</li> ' ), '<li> a </li>' );
 } );
+
+test( 'a foreign document yields no submenu markup to swap', () => {
+	const dom = dashboardDom( [] );
+	const sandbox = { document: dom.document, fetch() { throw new Error( 'no fetch' ); } };
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: 'u', restNonce: 'n' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.DOMParser = function () {
+		return {
+			parseFromString() {
+				return {
+					getElementById() { return null; },
+					querySelector() { return null; }
+				};
+			}
+		};
+	};
+
+	runDashboard( sandbox );
+
+	assert.equal(
+		sandbox.rankkernelMenuRefresh.extractSubmenuHtml( '<html><body>login</body></html>' ),
+		null,
+		'a document without the rankkernel submenu must swap nothing'
+	);
+} );
+
+test( 'a hung menu refresh aborts on timeout and leaves the menu', async () => {
+	const dom = dashboardDom( [ { id: 'metadata', label: 'Metadata', enabled: true } ] );
+	dom.submenu.innerHTML = '<li>original</li>';
+	const gets = [];
+	const controllers = [];
+	function AbortControllerStub() {
+		this.signal = { aborted: false };
+		this.abortCalls = 0;
+		controllers.push( this );
+	}
+	AbortControllerStub.prototype.abort = function () {
+		this.abortCalls++;
+		this.signal.aborted = true;
+	};
+	const timeouts = [];
+	const sandbox = {
+		document: dom.document,
+		location: { href: '/wp-admin/admin.php?page=rankkernel' },
+		wp: { a11y: { speak() {} }, i18n: { __: ( t ) => t } },
+		matchMedia() { return { matches: true }; },
+		AbortController: AbortControllerStub,
+		fetch( url, opts ) {
+			if ( opts && 'POST' === opts.method ) {
+				return Promise.resolve( { ok: true, json() { return Promise.resolve( {} ); } } );
+			}
+
+			const d = deferred();
+			gets.push( d );
+			return d.promise;
+		}
+	};
+	sandbox.window = sandbox;
+	sandbox.rankkernelDashboard = { modulesUrl: '/wp-json/rankkernel/v1/modules', restNonce: 'abc' };
+	sandbox.window.rankkernelDashboard = sandbox.rankkernelDashboard;
+	sandbox.window.fetch = sandbox.fetch;
+	sandbox.window.location = sandbox.location;
+	sandbox.window.matchMedia = sandbox.matchMedia;
+	sandbox.window.wp = sandbox.wp;
+	sandbox.window.AbortController = AbortControllerStub;
+	sandbox.window.DOMParser = DomParserStub( '<li>fresh</li>' );
+	sandbox.setTimeout = ( fn ) => { timeouts.push( fn ); return timeouts.length; };
+	sandbox.window.setTimeout = sandbox.setTimeout;
+	sandbox.clearTimeout = () => {};
+	sandbox.window.clearTimeout = sandbox.clearTimeout;
+
+	runDashboard( sandbox );
+
+	dom.rows[ 0 ].form.dispatch( 'submit', { preventDefault() {} } );
+
+	for ( let i = 0; i < 4; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( timeouts.length, 1, 'the refresh must arm a timeout' );
+
+	timeouts[ 0 ]();
+
+	assert.equal( controllers[ 0 ].abortCalls, 1, 'the hung refresh must abort' );
+
+	gets[ 0 ].resolve( { ok: true, text() { return Promise.resolve( '<li>fresh</li>' ); } } );
+
+	for ( let i = 0; i < 6; i++ ) {
+		await new Promise( ( r ) => setImmediate( r ) );
+	}
+
+	assert.equal( dom.submenu.innerHTML, '<li>original</li>', 'a response arriving after the abort must not swap the menu' );
+} );

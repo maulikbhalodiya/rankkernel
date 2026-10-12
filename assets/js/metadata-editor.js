@@ -776,6 +776,10 @@
 			}
 			var json = attachment.toJSON();
 			var src = ( json.sizes && json.sizes.full && json.sizes.full.url ) || json.url || '';
+			if ( '' === String( src ).trim() || ( ! /^https?:\/\//i.test( src ) && '/' !== String( src ).charAt( 0 ) ) ) {
+				urlField.focus();
+				return;
+			}
 			urlField.value = src;
 			if ( idField ) {
 				idField.value = json.id || '';

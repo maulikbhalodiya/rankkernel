@@ -349,6 +349,22 @@ test( 'media picker remains bound after a settings section swap and a second int
 	assert.equal( fixture.fetchCalls.length, 3 );
 } );
 
+test( 'a scriptable media URL is refused and leaves the field alone', async () => {
+	const fixture = settingsFixture();
+
+	await fixture.swap( fixture.social );
+
+	fixture.frame.attachment = {
+		get( name ) {
+			return name === 'id' ? 202 : 'data:image/png;base64,evil';
+		}
+	};
+	fixture.click( fixture.current.select );
+	fixture.frame.selectHandler();
+
+	assert.equal( fixture.current.image.value, '', 'a data scheme must never reach the image field' );
+} );
+
 test( 'a nav link with a malformed href falls back to normal navigation', () => {
 	const fixture = settingsFixture();
 	const badHref = 'http://[invalid';
