@@ -46,6 +46,32 @@ final class FaqPiece implements PieceInterface {
 	private string $blockHash = '';
 
 	/**
+	 * Last evaluated context instance.
+	 *
+	 * @var Context|null
+	 */
+	private ?Context $questionsMemoContext = null;
+
+	/**
+	 * Memoized valid questions key (single-slot cache).
+	 *
+	 * Performance optimization: single-slot cache keyed on context hash,
+	 * meta payload serialization, and post content hash ensures O(1) memory bound
+	 * while avoiding repeated block parsing and deduplication between
+	 * isNeeded() and build().
+	 *
+	 * @var string|null
+	 */
+	private ?string $questionsMemoKey = null;
+
+	/**
+	 * Memoized valid questions value.
+	 *
+	 * @var array<int, array{question: string, answer: string}>|null
+	 */
+	private ?array $questionsMemoValue = null;
+
+	/**
 	 * Get piece id.
 	 *
 	 * @return string The result.
@@ -128,24 +154,44 @@ final class FaqPiece implements PieceInterface {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function questions( Context $ctx ): array {
-		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx ) );
+		if ( null !== $this->questionsMemoContext && $this->questionsMemoContext === $ctx && null !== $this->questionsMemoValue ) {
+			return $this->questionsMemoValue;
+		}
+
+		$postId      = $ctx->queriedId();
+		$content     = ( $postId > 0 && function_exists( 'get_post_field' ) ) ? (string) get_post_field( 'post_content', $postId ) : '';
+		$meta        = $ctx->meta();
+		$metaEncoded = function_exists( 'wp_json_encode' ) ? (string) wp_json_encode( $meta ) : (string) json_encode( $meta ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fallback when WP is not loaded.
+		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . md5( $content );
+
+		if ( null !== $this->questionsMemoKey && $this->questionsMemoKey === $key && null !== $this->questionsMemoValue ) {
+			$this->questionsMemoContext = $ctx;
+
+			return $this->questionsMemoValue;
+		}
+
+		$merged = array_merge( self::payloadQuestions( $ctx ), $this->blockQuestions( $ctx, $content ) );
 		$seen   = [];
 		$valid  = [];
 
 		foreach ( $merged as $row ) {
-			$key = strtolower( trim( $row['question'] ) );
+			$questionKey = strtolower( trim( $row['question'] ) );
 
-			if ( '' === $key || isset( $seen[ $key ] ) ) {
+			if ( '' === $questionKey || isset( $seen[ $questionKey ] ) ) {
 				continue;
 			}
 
-			$seen[ $key ] = true;
-			$valid[]      = $row;
+			$seen[ $questionKey ] = true;
+			$valid[]              = $row;
 
 			if ( count( $valid ) >= 100 ) {
 				break;
 			}
 		}
+
+		$this->questionsMemoContext = $ctx;
+		$this->questionsMemoKey     = $key;
+		$this->questionsMemoValue   = $valid;
 
 		return $valid;
 	}
@@ -210,10 +256,11 @@ final class FaqPiece implements PieceInterface {
 	 * (core/block entries holding a ref id) are not resolved here, so
 	 * only blocks present inline in the post content feed the graph.
 	 *
-	 * @param Context $ctx Request context.
+	 * @param Context $ctx     Request context.
+	 * @param string  $content Optional raw post content string.
 	 * @return array<int, array{question: string, answer: string}>
 	 */
-	private function blockQuestions( Context $ctx ): array {
+	private function blockQuestions( Context $ctx, string $content = '' ): array {
 		if ( 'post' !== $ctx->queriedType() ) {
 			return [];
 		}
@@ -224,13 +271,12 @@ final class FaqPiece implements PieceInterface {
 			return [];
 		}
 
-		if ( ! function_exists( 'get_post_field' ) || ! function_exists( 'parse_blocks' ) ) {
-			return [];
+		if ( '' === $content && function_exists( 'get_post_field' ) ) {
+			$raw     = get_post_field( 'post_content', $postId );
+			$content = is_string( $raw ) ? $raw : '';
 		}
 
-		$content = get_post_field( 'post_content', $postId );
-
-		if ( ! is_string( $content ) || '' === trim( $content ) ) {
+		if ( '' === trim( $content ) || ! function_exists( 'parse_blocks' ) ) {
 			return [];
 		}
 
