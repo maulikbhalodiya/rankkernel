@@ -21,8 +21,9 @@
 - Breadcrumbs
 - Redirects
 - 404 Monitor
-- Robots.txt editors
+- Robots.txt, llms.txt and .htaccess editors
 - Instant Indexing (IndexNow)
+- Support screen with site diagnostics
 - REST API (`rankkernel/v1`): settings + module toggles
 - Versioned migrations with a safe failure ledger
 - Guarded bootstrap, activation requirement checks, uninstall purge

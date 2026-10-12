@@ -21,9 +21,10 @@ RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress, all fre
 * Breadcrumbs
 * Redirects
 * 404 monitor
-* Robots.txt editors
+* Robots.txt, llms.txt and .htaccess editors
 * IndexNow instant indexing
 * REST API (`rankkernel/v1`)
+* Support screen with site diagnostics
 * Versioned migrations
 * Uninstall purge
 
