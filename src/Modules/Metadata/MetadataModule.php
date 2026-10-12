@@ -178,5 +178,14 @@ final class MetadataModule implements ModuleInterface {
 	public function boot(): void {
 		$renderer = new HeadRenderer( $this->settings );
 		$renderer->boot();
+
+		// Scalar noindex flags stay in agreement with payloads no matter
+		// which path wrote them: classic editor, REST, or programmatic.
+		add_action( 'added_post_meta', [ NoindexFlag::class, 'onPostMetaWrite' ], 10, 4 );
+		add_action( 'updated_post_meta', [ NoindexFlag::class, 'onPostMetaWrite' ], 10, 4 );
+		add_action( 'deleted_post_meta', [ NoindexFlag::class, 'onPostMetaDelete' ], 10, 4 );
+		add_action( 'added_term_meta', [ NoindexFlag::class, 'onTermMetaWrite' ], 10, 4 );
+		add_action( 'updated_term_meta', [ NoindexFlag::class, 'onTermMetaWrite' ], 10, 4 );
+		add_action( 'deleted_term_meta', [ NoindexFlag::class, 'onTermMetaDelete' ], 10, 4 );
 	}
 }

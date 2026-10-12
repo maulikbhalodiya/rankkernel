@@ -13,6 +13,7 @@ namespace RankKernel\Modules\Sitemaps\Provider;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Metadata\NoindexFlag;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -128,8 +129,7 @@ class TaxonomiesProvider {
 			. " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
 			. " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 			. " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' )
 			. $exclude;
 
 		$args = array_merge( [ $sql ], $params );
@@ -163,8 +163,7 @@ class TaxonomiesProvider {
 		$sql = "SELECT COUNT(*) FROM {$wpdb->terms} t"
 			. " INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id"
 			. ' WHERE tt.taxonomy = %s'
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)"
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' )
 			. $exclude;
 
 		$args = array_merge( [ $sql ], $params );
@@ -219,8 +218,7 @@ class TaxonomiesProvider {
 				. " INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id"
 				. " INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 				. " WHERE tt.taxonomy = %s AND p.post_status = %s AND p.post_type IN ($placeholders)"
-				. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-				. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+				. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' );
 
 			$params  = array_merge( [ $taxonomy, 'publish' ], $types, [ $like ] );
 			$exclude = $this->excludeClause( $this->excludedTermIds(), 't.term_id', $params );
@@ -354,8 +352,7 @@ class TaxonomiesProvider {
 			. " LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id"
 			. " AND p.post_status = %s AND p.post_type IN ($placeholders)"
 			. ' WHERE tt.taxonomy = %s'
-			. " AND NOT EXISTS (SELECT 1 FROM {$wpdb->termmeta} tm WHERE tm.term_id = t.term_id"
-			. " AND tm.meta_key = '_rankkernel_term_data' AND tm.meta_value LIKE %s)";
+			. NoindexFlag::exclusionSql( $wpdb->termmeta, 'term_id', 't.term_id', '_rankkernel_term_data' );
 
 		$params  = array_merge( [ 'publish' ], $types, [ $taxonomy, $like ] );
 		$exclude = $this->excludeClause( $this->excludedTermIds(), 't.term_id', $params );

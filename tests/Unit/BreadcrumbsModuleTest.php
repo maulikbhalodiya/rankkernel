@@ -322,7 +322,18 @@ final class BreadcrumbsModuleTest extends TestCase {
 		$module = $this->bootWith( [ 'metadata', 'schema', 'breadcrumbs' ] );
 
 		$this->assertTrue( $module->isEnabled() );
-		$this->assertSame( [ 'wp_head' ], $this->actions );
+		$this->assertSame(
+			[
+				'wp_head',
+				'added_post_meta',
+				'updated_post_meta',
+				'deleted_post_meta',
+				'added_term_meta',
+				'updated_term_meta',
+				'deleted_term_meta',
+			],
+			$this->actions
+		);
 
 		$trailFilters = array_values(
 			array_filter(
