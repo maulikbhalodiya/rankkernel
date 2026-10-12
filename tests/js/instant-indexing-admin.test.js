@@ -1646,6 +1646,31 @@ test( 'the log loader returns quietly when its elements are absent', () => {
 	assert.equal( sandbox.window.rankkernelInstantIndexing.logLoader.categoryFor( 200 ), 'accepted', 'the pure helpers still load' );
 } );
 
+test( 'retry rows surface in the stats strip counts', () => {
+	const sandbox = {
+		document: {
+			readyState: 'complete',
+			addEventListener() {},
+			querySelector() { return null; },
+			querySelectorAll() { return []; },
+			getElementById() { return null; }
+		},
+		location: { href: 'https://example.com/wp-admin/admin.php?page=rankkernel-instant-indexing' },
+		setTimeout() { return 0; },
+		clearTimeout() {}
+	};
+
+	sandbox.window = sandbox;
+
+	vm.runInNewContext( source( 'instant-indexing-admin.js' ), sandbox );
+
+	const stats = sandbox.window.rankkernelInstantIndexing.logLoader.statsFromCounts(
+		{ all: 7, accepted: 3, pending: 1, rejected: 2, limited: 0, retry: 1 }
+	);
+
+	assert.equal( stats.retry, 1, 'a retry row must surface instead of vanishing from the strip' );
+} );
+
 test( 'a log submit without the localized REST config navigates normally', () => {
 	const fixture = mountLog( { logUrl: '', restNonce: '' } );
 

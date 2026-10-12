@@ -155,6 +155,7 @@ final class InstantIndexingLogViewTest extends TestCase {
 				'accepted' => 2,
 				'rejected' => 2,
 				'limited'  => 1,
+				'retry'    => 1,
 			],
 			InstantIndexingOutcomes::statsFromCounts(
 				[

@@ -66,6 +66,13 @@
 	// not mistake the cut for a bug.
 	var MAX_ANALYZE_SENTENCES = 1000;
 
+	// Raw HTML budget before any regex pass. plainText, headings, links and
+	// the rest each scan the whole input, so one huge paste would freeze
+	// the editor thread on every debounced run. Past the budget the leading
+	// slice scores exactly like the full document would have up to the cut,
+	// the same deliberate trade as the sentence cap above.
+	var MAX_HTML_CHARS = 500000;
+
 	var WEIGHTS = {
 		keyword_in_title: 36, keyword_in_description: 2, keyword_in_slug: 5, keyword_in_opening: 3,
 		keyword_in_content: 3, keyword_in_subheading: 3, keyword_in_image_alt: 2, keyword_density: 6,
@@ -704,6 +711,11 @@
 
 	function extract( input ) {
 		var html = input.html == null ? '' : String( input.html );
+
+		if ( html.length > MAX_HTML_CHARS ) {
+			html = html.slice( 0, MAX_HTML_CHARS );
+		}
+
 		var capped = capText( TextStats.plainText( html ) );
 		return {
 			html: html,
@@ -775,6 +787,7 @@
 		RULES_VERSION: RULES_VERSION,
 		WEIGHTS: WEIGHTS,
 		MAX_ANALYZE_SENTENCES: MAX_ANALYZE_SENTENCES,
+		MAX_HTML_CHARS: MAX_HTML_CHARS,
 		analyze: analyze
 	};
 } ) );

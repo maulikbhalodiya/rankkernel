@@ -851,7 +851,8 @@
 			total: total,
 			accepted: num( counts.accepted ) + num( counts.pending ),
 			rejected: num( counts.rejected ),
-			limited: num( counts.limited )
+			limited: num( counts.limited ),
+			retry: num( counts.retry )
 		};
 	}
 
@@ -1373,6 +1374,7 @@
 		setValue( '.rk-stat-value-positive', stats.accepted );
 		setValue( '.rk-stat-value-negative', stats.rejected );
 		setValue( '.rk-stat-value-warning', stats.limited );
+		setValue( '.rk-stat-value-retry', stats.retry );
 
 		var entryCount = card.querySelector( '.rk-entry-count' );
 

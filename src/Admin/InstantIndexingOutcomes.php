@@ -183,11 +183,10 @@ final class InstantIndexingOutcomes {
 	 * The query layer supplies the counts, so the strip covers the whole
 	 * table rather than a page. Accepted is the accepted plus pending
 	 * count, rejected is the rejected count, limited is the limited
-	 * count, and total is every row including the retry category, which
-	 * has no card of its own.
+	 * count, retry is the retry count, and total is every row.
 	 *
 	 * @param array<string, int> $counts Category counts keyed by category slug plus all.
-	 * @return array{total: int, accepted: int, rejected: int, limited: int} The result.
+	 * @return array{total: int, accepted: int, rejected: int, limited: int, retry: int} The result.
 	 */
 	public static function statsFromCounts( array $counts ): array {
 		return [
@@ -195,6 +194,7 @@ final class InstantIndexingOutcomes {
 			'accepted' => (int) ( $counts[ self::CATEGORY_ACCEPTED ] ?? 0 ) + (int) ( $counts[ self::CATEGORY_PENDING ] ?? 0 ),
 			'rejected' => (int) ( $counts[ self::CATEGORY_REJECTED ] ?? 0 ),
 			'limited'  => (int) ( $counts[ self::CATEGORY_LIMITED ] ?? 0 ),
+			'retry'    => (int) ( $counts[ self::CATEGORY_RETRY ] ?? 0 ),
 		];
 	}
 }

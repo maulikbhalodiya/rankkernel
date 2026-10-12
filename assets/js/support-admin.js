@@ -18,6 +18,36 @@
 	var categories = config.categories || [];
 
 	/**
+	 * Fallback strings when localization is absent.
+	 *
+	 * The server localizes every message, but if the config never arrives
+	 * the validator must still speak instead of returning undefined.
+	 */
+	var FALLBACK_STRINGS = {
+		subjectRequired: 'Please enter a subject.',
+		subjectMin: 'The subject must be at least %d characters.',
+		subjectMax: 'The subject must be %d characters or fewer.',
+		messageRequired: 'Please enter a message.',
+		messageMin: 'The message must be at least %d characters.',
+		messageMax: 'The message must be %d characters or fewer.',
+		emailRequired: 'Please enter an email address.',
+		emailInvalid: 'That email address does not look valid.',
+		categoryRequired: 'Please choose a category.',
+		consentRequired: 'Please confirm consent.',
+		screenshotTooLarge: 'That screenshot is too large.',
+		screenshotType: 'Unsupported screenshot type.',
+		screenshotTooMany: 'Too many screenshots (max %d).',
+		filesSelected: '%d files selected'
+	};
+
+	/**
+	 * Localized message with a fallback that always reads.
+	 */
+	function msg( value, key ) {
+		return 'string' === typeof value && '' !== value ? value : FALLBACK_STRINGS[ key ];
+	}
+
+	/**
 	 * Replaces %d in a translated string with a number.
 	 *
 	 * @param {string} text Template with a single %d.
@@ -124,15 +154,15 @@
 			var max = limits.subjectMax || 150;
 
 			if ( 0 === subject.length ) {
-				return i18n.subjectRequired;
+				return msg( i18n.subjectRequired, 'subjectRequired' );
 			}
 
 			if ( subject.length < min ) {
-				return fill( i18n.subjectMin, min );
+				return fill( msg( i18n.subjectMin, 'subjectMin' ), min );
 			}
 
 			if ( subject.length > max ) {
-				return fill( i18n.subjectMax, max );
+				return fill( msg( i18n.subjectMax, 'subjectMax' ), max );
 			}
 		}
 
@@ -142,15 +172,15 @@
 			var bodyMax = limits.messageMax || 5000;
 
 			if ( 0 === body.length ) {
-				return i18n.messageRequired;
+				return msg( i18n.messageRequired, 'messageRequired' );
 			}
 
 			if ( body.length < bodyMin ) {
-				return fill( i18n.messageMin, bodyMin );
+				return fill( msg( i18n.messageMin, 'messageMin' ), bodyMin );
 			}
 
 			if ( body.length > bodyMax ) {
-				return fill( i18n.messageMax, bodyMax );
+				return fill( msg( i18n.messageMax, 'messageMax' ), bodyMax );
 			}
 		}
 
@@ -158,38 +188,38 @@
 			var address = String( value || '' ).trim();
 
 			if ( '' === address ) {
-				return i18n.emailRequired;
+				return msg( i18n.emailRequired, 'emailRequired' );
 			}
 
 			if ( ! /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test( address ) ) {
-				return i18n.emailInvalid;
+				return msg( i18n.emailInvalid, 'emailInvalid' );
 			}
 		}
 
 		if ( 'category' === key && categories.indexOf( value ) === -1 ) {
-			return i18n.categoryRequired;
+			return msg( i18n.categoryRequired, 'categoryRequired' );
 		}
 
 		if ( 'consent' === key && ! value ) {
-			return i18n.consentRequired;
+			return msg( i18n.consentRequired, 'consentRequired' );
 		}
 
 		if ( 'screenshot' === key && value && value.length ) {
 			var maxCount = limits.screenshotMaxCount || 5;
 
 			if ( value.length > maxCount ) {
-				return fill( i18n.screenshotTooMany, maxCount );
+				return fill( msg( i18n.screenshotTooMany, 'screenshotTooMany' ), maxCount );
 			}
 
 			for ( var i = 0; i < value.length; i++ ) {
 				var shot = value[ i ];
 
 				if ( shot.size > ( limits.screenshotMaxBytes || 2097152 ) ) {
-					return i18n.screenshotTooLarge;
+					return msg( i18n.screenshotTooLarge, 'screenshotTooLarge' );
 				}
 
 				if ( [ 'image/png', 'image/jpeg', 'image/gif', 'image/webp' ].indexOf( shot.type ) === -1 ) {
-					return i18n.screenshotType;
+					return msg( i18n.screenshotType, 'screenshotType' );
 				}
 			}
 		}
@@ -338,7 +368,7 @@
 					fileName.textContent = shots[ 0 ].name;
 					fileName.classList.add( 'has-file' );
 				} else if ( shots.length > 1 ) {
-					fileName.textContent = fill( i18n.filesSelected, shots.length );
+					fileName.textContent = fill( msg( i18n.filesSelected, 'filesSelected' ), shots.length );
 					fileName.classList.add( 'has-file' );
 				} else {
 					fileName.textContent = emptyText();
@@ -396,7 +426,13 @@
 
 		if ( shotField ) {
 			form.addEventListener( 'change', function ( event ) {
-				var field = event.target.closest( '[data-rk-support-field="screenshot"]' );
+				var target = event.target;
+
+				if ( ! target || ! target.closest ) {
+					return;
+				}
+
+				var field = target.closest( '[data-rk-support-field="screenshot"]' );
 
 				if ( ! field || ! field.files || ! shotStore ) {
 					renderShots();
@@ -414,7 +450,13 @@
 
 			if ( fileList ) {
 				fileList.addEventListener( 'click', function ( event ) {
-					var button = event.target.closest( '[data-rk-support-remove]' );
+					var target = event.target;
+
+					if ( ! target || ! target.closest ) {
+						return;
+					}
+
+					var button = target.closest( '[data-rk-support-remove]' );
 
 					if ( ! button || ! shotStore || ! shotField.files ) {
 						return;
@@ -449,7 +491,13 @@
 		);
 
 		form.addEventListener( 'input', function ( event ) {
-			var field = event.target.closest( '[data-rk-support-field]' );
+			var target = event.target;
+
+			if ( ! target || ! target.closest ) {
+				return;
+			}
+
+			var field = target.closest( '[data-rk-support-field]' );
 
 			if ( ! field ) {
 				return;
@@ -467,7 +515,13 @@
 		} );
 
 		form.addEventListener( 'change', function ( event ) {
-			var field = event.target.closest( '[data-rk-support-field]' );
+			var target = event.target;
+
+			if ( ! target || ! target.closest ) {
+				return;
+			}
+
+			var field = target.closest( '[data-rk-support-field]' );
 
 			if ( field && [ 'select-one', 'checkbox', 'file' ].indexOf( field.type ) !== -1 ) {
 				validateField( field );
@@ -477,7 +531,13 @@
 		form.addEventListener(
 			'blur',
 			function ( event ) {
-				var field = event.target.closest( '[data-rk-support-field]' );
+				var target = event.target;
+
+				if ( ! target || ! target.closest ) {
+					return;
+				}
+
+				var field = target.closest( '[data-rk-support-field]' );
 
 				if ( field ) {
 					validateField( field );

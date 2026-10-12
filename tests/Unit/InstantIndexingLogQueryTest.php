@@ -689,6 +689,7 @@ final class InstantIndexingLogQueryTest extends TestCase {
 				'accepted' => 200,
 				'rejected' => 50,
 				'limited'  => 0,
+				'retry'    => 0,
 			],
 			$stats,
 			'the stats strip must describe the full table'
@@ -716,10 +717,25 @@ final class InstantIndexingLogQueryTest extends TestCase {
 				'accepted' => 1,
 				'rejected' => 1,
 				'limited'  => 1,
+				'retry'    => 0,
 			],
 			$stats,
 			'the stats strip must describe every row, not the filtered view'
 		);
+	}
+
+	/**
+	 * Test retry rows appear in the stats strip.
+	 */
+	public function test_retry_rows_appear_in_the_stats_strip(): void {
+		$this->seed( 200 );
+		$this->seed( 500 );
+
+		$stats = InstantIndexingOutcomes::statsFromCounts( LogQuery::fromInput( [] )->statusCounts() );
+
+		$this->assertSame( 2, $stats['total'] );
+		$this->assertSame( 1, $stats['accepted'] );
+		$this->assertSame( 1, $stats['retry'], 'a 500 row must surface instead of vanishing from the strip' );
 	}
 
 	/**
