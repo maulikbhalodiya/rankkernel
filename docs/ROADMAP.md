@@ -21,9 +21,9 @@
 
 | | |
 |---|---|
-| Version | 0.1.0 · main @ 8769302 · 1772 tests / 7204 assertions · `phpcs` clean · `phpstan` level 6 clean · JS suite 175/175 |
+| Version | 0.1.0 · main @ 3d02c6d · 2077 tests / 8084 assertions · `phpcs` clean · `phpstan` level 6 clean · JS suite 313/313 |
 | Parity audit | 379 features catalogued at the research gate (2026-09-15): 78 DONE, 19 PARTIAL, 82 PLANNED, 163 MISSING, 14 EXTERNAL, 23 N/A. **Not yet recounted since**: the admin UI, editor, Content Analysis, Instant Indexing and crawl-signals work that landed after the gate, so the DONE figure is now understated. |
-| Done | Phase 0, Phase 1, Phase 2 core (2.1 to 2.5), 2.7 head engine + metadata editor, 1.2 Crawl Signals, 1.3.3 Content Analysis, 1.5.1 Instant Indexing, 1.4.1 Admin shell, all 7 admin screens on the design system, editor sidebar + Edit Snippet modal, 6 audits closed |
+| Done | Phase 0, Phase 1, Phase 2 core (2.1 to 2.5), 2.7 head engine + metadata editor, 1.2 Crawl Signals, 1.3.3 Content Analysis, 1.5.1 Instant Indexing, 1.4.1 Admin shell, all 7 admin screens on the design system, editor sidebar + Edit Snippet modal, 6 audits closed; since: support screen, CSV all-or-nothing import with dry run, breadcrumb front-page fix, authors orphan count, repository memo scoping, readme Tested-up-to lock, social/security JS hardening, fetch fallbacks, sitemap perf batch (paging, keys, caps), noindex flag sync, menu/page gating with robots-sections toggle, release review findings closed |
 | Next | See the **Functionality tracker** below. Immediate priorities: (1) `.htaccess` WordPress marker block protection, the only shipped feature with a real safety gap. (2) Decide whether to keep or drop the remaining Phase D and E extras. (3) Begin STEP 2 release verification once Phase D and E are triaged. |
 | Gate | Feature gap research gate completed 2026-09-15; roadmap reorganised into the 4-step sequence |
 | Token | `~/.config/rankkernel/.gh-token` (90d) · pushes via SSH alias `github-maulik-repo` |
