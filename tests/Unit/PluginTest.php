@@ -317,6 +317,44 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Detection covers premium basenames, not just free ones.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_detection_covers_premium_basenames(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_activate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$store = array(
+			'rankkernel_modules'      => array( 'metadata' ),
+			'rankkernel_settings'     => array(),
+			'rankkernel_db_version'   => '0.0.0',
+			'active_plugins'          => array(
+				'seo-by-rank-math-pro/rank-math-pro.php',
+				'wordpress-seo-premium/wp-seo-premium.php',
+				'wp-seopress-pro/seopress-pro.php',
+			),
+			'active_sitewide_plugins' => array(),
+		);
+		$this->stub_option_store( $store );
+
+		\rankkernel_activate();
+
+		$this->assertSame(
+			array( 'Yoast SEO Premium', 'Rank Math PRO', 'SEOPress PRO' ),
+			$store['rankkernel_conflict_notice'] ?? null,
+			'Premium editions must be detected by their own basenames'
+		);
+	}
+
+	/**
 	 * Activation schedules the daily 404 prune exactly once.
 	 *
 	 * Runs in a separate process because it loads rankkernel.php and defines
