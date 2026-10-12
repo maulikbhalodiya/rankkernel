@@ -130,7 +130,7 @@ $rkPluginVersion = Plugin::version();
 			<div class="rk-ui-page-header-actions rk-schema-header-actions">
 				<a class="rk-ui-btn rk-ui-btn-secondary rk-schema-header-link" href="<?php echo esc_url( $richResultsUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">search</span><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?><span class="rk-icon rk-schema-arrow" aria-hidden="true">arrow_right</span><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
 				<a class="rk-ui-btn rk-ui-btn-secondary rk-schema-header-link" href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?><span class="rk-icon rk-schema-arrow" aria-hidden="true">arrow_right</span><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
-				<button type="submit" name="rankkernel_schema_save" value="<?php echo esc_attr( __( 'Save Schema Settings', 'rankkernel' ) ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Save Settings', 'rankkernel' ); ?></button>
+						<button type="submit" name="rankkernel_schema_save" value="<?php echo esc_attr( __( 'Save Schema Settings', 'rankkernel' ) ); ?>" class="rk-ui-btn rk-ui-btn-primary"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Save Settings', 'rankkernel' ); ?></button>
 			</div>
 		</header>
 
