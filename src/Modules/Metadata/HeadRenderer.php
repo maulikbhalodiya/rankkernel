@@ -424,6 +424,17 @@ final class HeadRenderer {
 			}
 		}
 
+		// Last resort on the front page and posts index only: the site
+		// tagline. Singles without excerpts stay undescribed rather than
+		// repeating one tagline across every URL.
+		if ( 'home' === $ctx->queriedType() && function_exists( 'get_bloginfo' ) ) {
+			$tagline = trim( (string) get_bloginfo( 'description' ) );
+
+			if ( '' !== $tagline ) {
+				return $tagline;
+			}
+		}
+
 		return '';
 	}
 
