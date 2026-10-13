@@ -141,7 +141,7 @@ final class AdminMenuTest extends TestCase {
 				'manage_options',
 				'rankkernel',
 				\Mockery::type( 'callable' ),
-				'dashicons-search',
+				\Mockery::pattern( '/^data:image\/svg\+xml;base64,[A-Za-z0-9+\/=]+$/' ),
 				80
 			)
 			->andReturn( 'toplevel_page_rankkernel' );
@@ -181,6 +181,42 @@ final class AdminMenuTest extends TestCase {
 			->andReturn( true );
 
 		$menu->addMenuPage();
+	}
+
+	/**
+	 * Test the menu icon is an inline ranking SVG data URI.
+	 */
+	public function test_menu_icon_is_inline_ranking_svg(): void {
+		$captured = [];
+
+		Functions\when( 'add_menu_page' )->alias(
+			static function ( ...$args ) use ( &$captured ): string {
+				$captured = $args;
+
+				return 'toplevel_page_rankkernel';
+			}
+		);
+		Functions\when( 'add_submenu_page' )->justReturn( 'toplevel_page_rankkernel' );
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
+		$menu->addMenuPage();
+
+		$icon = $captured[5] ?? '';
+		$this->assertIsString( $icon );
+		$this->assertStringStartsWith( 'data:image/svg+xml;base64,', $icon );
+		$this->assertStringNotContainsString( 'dashicons', $icon );
+
+		$svg = base64_decode( substr( $icon, strlen( 'data:image/svg+xml;base64,' ) ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- test decodes the icon data URI it just captured, no obfuscation involved.
+		$this->assertIsString( $svg );
+		$this->assertStringContainsString( '<svg', $svg );
+		$this->assertStringContainsString( 'viewBox="0 0 20 20"', $svg );
+		$this->assertStringContainsString( '<path', $svg );
+		$this->assertSame( 2, substr_count( $svg, '<path' ) );
+		// No external references, the icon must be fully self contained.
+		$withoutNs = (string) str_replace( 'xmlns="http://www.w3.org/2000/svg"', '', $svg );
+		$this->assertStringNotContainsString( 'http', $withoutNs );
+		$this->assertStringNotContainsString( 'href', $withoutNs );
 	}
 
 	/**

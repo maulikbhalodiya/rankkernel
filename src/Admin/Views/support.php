@@ -273,7 +273,7 @@ $rk_error_block = static function ( string $key ) use ( $rk_error ): void {
 							aria-describedby="<?php echo esc_attr( $rk_describedby( 'screenshot', 'rk-support-screenshot-hint' ) ); ?>"
 							<?php $rk_error_attrs( 'screenshot' ); ?>
 						/>
-						<label class="rk-ui-btn rk-ui-btn-secondary rk-support-browse" for="rk-support-screenshot"><span class="rk-icon" aria-hidden="true">download</span><?php esc_html_e( 'Browse files', 'rankkernel' ); ?></label>
+						<label class="rk-ui-btn rk-ui-btn-secondary rk-support-browse" for="rk-support-screenshot"><span class="rk-icon" aria-hidden="true">upload</span><?php esc_html_e( 'Browse files', 'rankkernel' ); ?></label>
 					</div>
 					<?php $rk_error_block( 'screenshot' ); ?>
 					<ul class="rk-support-file-list" data-rk-support-file-list hidden></ul>
@@ -336,13 +336,13 @@ $rk_error_block = static function ( string $key ) use ( $rk_error ): void {
 		</div>
 		<div class="rk-ui-card rk-support-kb-card">
 			<div class="rk-ui-card-body">
-				<p class="rk-support-kb-title"><span class="rk-icon" aria-hidden="true">tune</span><?php esc_html_e( 'Instant Indexing API', 'rankkernel' ); ?></p>
+				<p class="rk-support-kb-title"><span class="rk-icon" aria-hidden="true">send</span><?php esc_html_e( 'Instant Indexing API', 'rankkernel' ); ?></p>
 				<p class="rk-ui-hint"><?php esc_html_e( 'Service accounts and IndexNow validation handshakes.', 'rankkernel' ); ?></p>
 			</div>
 		</div>
 		<div class="rk-ui-card rk-support-kb-card">
 			<div class="rk-ui-card-body">
-				<p class="rk-support-kb-title"><span class="rk-icon" aria-hidden="true">assessment</span><?php esc_html_e( 'Changelog and releases', 'rankkernel' ); ?></p>
+				<p class="rk-support-kb-title"><span class="rk-icon" aria-hidden="true">info</span><?php esc_html_e( 'Changelog and releases', 'rankkernel' ); ?></p>
 				<p class="rk-ui-hint"><?php esc_html_e( 'Update manifests, bug fixes, and release revisions.', 'rankkernel' ); ?></p>
 			</div>
 		</div>

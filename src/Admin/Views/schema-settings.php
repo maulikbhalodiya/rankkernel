@@ -483,7 +483,7 @@ $rkPluginVersion = Plugin::version();
 						<?php /* Author entity output toggle, field name and value unchanged. */ ?>
 						<div class="rk-schema-toggle-row">
 							<div class="rk-schema-toggle-text">
-								<span class="rk-schema-toggle-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">add</span></span>
+								<span class="rk-schema-toggle-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true">shield</span></span>
 								<span class="rk-schema-toggle-copy">
 									<span class="rk-schema-toggle-title"><?php echo esc_html__( 'Author Entity', 'rankkernel' ); ?></span>
 									<span class="rk-schema-toggle-desc"><?php echo esc_html__( 'Adds the post author as a Person entity in the schema graph.', 'rankkernel' ); ?></span>

@@ -79,6 +79,19 @@ final class AdminMenu {
 	private ?InstantIndexingPage $instantIndexingPage = null;
 
 	/**
+	 * Menu icon SVG body, climbing steps with a star on the top one.
+	 *
+	 * Kept black so core menu opacity styling keeps it legible on
+	 * every admin color scheme.
+	 *
+	 * @var string
+	 */
+	private const MENU_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+		. '<path d="M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z" fill="#000"/>'
+		. '<path d="M12.5 1.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#000"/>'
+		. '</svg>';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore        $store     Settings store.
@@ -273,6 +286,13 @@ final class AdminMenu {
 	}
 
 	/**
+	 * Build the menu icon data URI from the inline SVG.
+	 */
+	private function menuIconUrl(): string {
+		return 'data:image/svg+xml;base64,' . base64_encode( self::MENU_ICON_SVG ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- encodes the inline menu icon SVG above into a data URI, no obfuscation involved.
+	}
+
+	/**
 	 * Register the RankKernel top-level menu.
 	 */
 	public function addMenuPage(): void {
@@ -282,7 +302,7 @@ final class AdminMenu {
 			'manage_options',
 			DashboardPage::SLUG,
 			[ $this, 'renderDashboard' ],
-			'dashicons-search',
+			$this->menuIconUrl(),
 			80
 		);
 
