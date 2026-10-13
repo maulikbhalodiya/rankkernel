@@ -214,6 +214,29 @@ final class MonitorTableTest extends TestCase {
 	}
 
 	/**
+	 * Test each definition sits on its own line for dbDelta.
+	 */
+	public function test_ddl_places_each_definition_on_its_own_line(): void {
+		$this->db->tableExists = false;
+
+		LogTable::ensureTables();
+
+		foreach ( [
+			'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,',
+			'uri_hash CHAR(64) NOT NULL,',
+			'PRIMARY KEY (id),',
+			'UNIQUE KEY uri_hash (uri_hash),',
+			'KEY last_accessed (last_accessed)',
+		] as $fragment ) {
+			$this->assertMatchesRegularExpression(
+				'/\n\s*' . preg_quote( $fragment, '/' ) . '/',
+				$this->lastSql,
+				$fragment . ' must start its own line or dbDelta misattributes defaults'
+			);
+		}
+	}
+
+	/**
 	 * Test no database fails open.
 	 */
 	public function test_no_database_fails_open(): void {

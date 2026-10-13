@@ -215,6 +215,29 @@ final class RedirectsTableTest extends TestCase {
 	}
 
 	/**
+	 * Test each definition sits on its own line for dbDelta.
+	 */
+	public function test_ddl_places_each_definition_on_its_own_line(): void {
+		$this->db->tableExists = false;
+
+		RedirectTable::ensureTables();
+
+		foreach ( [
+			'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,',
+			'match_type VARCHAR(20)',
+			'PRIMARY KEY (id),',
+			'UNIQUE KEY match_source (match_type, source_hash),',
+			'KEY hits (hits),',
+		] as $fragment ) {
+			$this->assertMatchesRegularExpression(
+				'/\n\s*' . preg_quote( $fragment, '/' ) . '/',
+				$this->lastSql,
+				$fragment . ' must start its own line or dbDelta misattributes defaults'
+			);
+		}
+	}
+
+	/**
 	 * Test no database fails open.
 	 */
 	public function test_no_database_fails_open(): void {

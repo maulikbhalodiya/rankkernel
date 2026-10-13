@@ -147,18 +147,20 @@ final class LogTable {
 
 		$table   = self::name();
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
-		$sql     = "CREATE TABLE `{$table}` ("
-			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
-			. 'url TEXT NOT NULL,'
-			. "host VARCHAR(255) NOT NULL DEFAULT '',"
-			. 'code SMALLINT UNSIGNED NOT NULL DEFAULT 0,'
-			. "source VARCHAR(20) NOT NULL DEFAULT '',"
-			. "message VARCHAR(500) NOT NULL DEFAULT '',"
-			. 'created DATETIME NOT NULL,'
-			. 'PRIMARY KEY (id),'
-			. 'KEY created (created),'
-			. 'KEY code (code),'
-			. 'KEY source (source)'
+		// dbDelta splits definitions on newlines: one definition per line
+		// keeps its parser from attributing one column's default to another.
+		$sql = "CREATE TABLE `{$table}` (\n"
+			. "id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n"
+			. "url TEXT NOT NULL,\n"
+			. "host VARCHAR(255) NOT NULL DEFAULT '',\n"
+			. "code SMALLINT UNSIGNED NOT NULL DEFAULT 0,\n"
+			. "source VARCHAR(20) NOT NULL DEFAULT '',\n"
+			. "message VARCHAR(500) NOT NULL DEFAULT '',\n"
+			. "created DATETIME NOT NULL,\n"
+			. "PRIMARY KEY (id),\n"
+			. "KEY created (created),\n"
+			. "KEY code (code),\n"
+			. "KEY source (source)\n"
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {
