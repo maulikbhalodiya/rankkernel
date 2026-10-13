@@ -439,15 +439,16 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the brand tile renders the Stairway Star mark, not the old magnifier.
+	 * Test the brand tile renders the Trends mark, not the old magnifier or steps.
 	 */
-	public function test_render_brand_tile_uses_stairway_star_logo(): void {
+	public function test_render_brand_tile_uses_trends_logo(): void {
 		ob_start();
 		( new DashboardPage() )->render();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<span class="rk-dashboard-logo"', $output );
-		$this->assertStringContainsString( 'M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z', $output );
+		$this->assertStringContainsString( 'M5.5 4.75C5.5 4.33579 5.16421 4 4.75 4', $output );
+		$this->assertStringNotContainsString( 'M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z', $output );
 		$this->assertStringNotContainsString( '<span class="rk-dashboard-logo" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></span>', $output );
 	}
 
