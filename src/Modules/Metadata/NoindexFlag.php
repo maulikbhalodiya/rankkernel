@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Metadata;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Keeps a scalar noindex flag beside each SEO payload.
  *
