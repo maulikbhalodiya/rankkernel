@@ -71,6 +71,11 @@
 	font-size: 20px;
 }
 
+.rk-dashboard .rk-dashboard-logo svg {
+	width: 20px;
+	height: 20px;
+}
+
 /* The design sets the page title one step above the shared 22 pixel default. */
 .rk-dashboard .rk-ui-page-title {
 	font-size: 24px;

@@ -145,7 +145,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 		<header class="rk-ui-card rk-ui-page-header">
 			<div class="rk-ui-page-header-text">
 				<div class="rk-ui-page-header-title-row">
-					<span class="rk-dashboard-logo" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></span>
+					<span class="rk-dashboard-logo" aria-hidden="true"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z" fill="currentColor"/><path d="M12.5 1.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg></span>
 					<h2 class="rk-ui-page-title"><?php echo esc_html__( 'RankKernel', 'rankkernel' ); ?></h2>
 					<span class="rk-ui-pill rk-ui-pill-info"><?php echo esc_html( sprintf( /* translators: %s: the plugin version number. */ __( 'v%s', 'rankkernel' ), RANKKERNEL_VERSION ) ); ?></span>
 				</div>
