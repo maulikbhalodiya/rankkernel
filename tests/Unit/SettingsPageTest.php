@@ -1607,6 +1607,7 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 		$captured = [];
 		Functions\when( 'update_user_meta' )->alias(
 			static function ( int $userId, string $key, mixed $value ) use ( &$captured ): bool {
@@ -1726,6 +1727,7 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'update_user_meta' )->justReturn( false );
 		Functions\expect( 'wp_die' )->once()->andReturnUsing(
 			static function (): void {
@@ -1772,6 +1774,30 @@ final class SettingsPageTest extends TestCase {
 		call_user_func( $hooks['personal_options_update'][0], 42 );
 
 		$this->assertFalse( $called, 'an array shaped handle must be ignored, not passed to the sanitiser' );
+	}
+
+	/**
+	 * Test the profile field succeeds without error when the handle is unchanged.
+	 */
+	public function test_user_profile_field_succeeds_when_handle_is_unchanged(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		( new UserProfileField() )->register();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'authorhandle' );
+		Functions\expect( 'update_user_meta' )->never();
+		Functions\expect( 'wp_die' )->never();
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => '@authorhandle',
+		];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+		$this->assertTrue( true );
 	}
 
 	/**
