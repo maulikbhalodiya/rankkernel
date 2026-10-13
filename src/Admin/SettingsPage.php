@@ -24,6 +24,7 @@ use RankKernel\Modules\Robots\LlmsSettings;
 use RankKernel\Modules\Robots\RobotsBuilder;
 use RankKernel\Modules\Robots\RobotsDirectives;
 use RankKernel\Modules\Robots\RobotsSettings;
+use RankKernel\Modules\Sitemaps\Router;
 use RankKernel\Settings\SettingsStore;
 
 /**
@@ -41,8 +42,14 @@ final class SettingsPage {
 
 	/**
 	 * Representative core block used for the robots.txt preview.
+	 *
+	 * Built dynamically so the Sitemap line carries this site's real index
+	 * URL. A hardcoded example.com placeholder once leaked into saved
+	 * overrides through the prefilled editor, poisoning live robots.txt.
 	 */
-	private const ROBOTS_PREVIEW_CORE = "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: https://example.com/sitemap_index.xml\n";
+	private function previewCoreBlock(): string {
+		return "User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php\nSitemap: " . Router::indexUrl() . "\n";
+	}
 
 	/**
 	 * Section requested as a partial, for the AJAX section loader.
@@ -328,7 +335,7 @@ final class SettingsPage {
 				}
 			}
 
-			$robotGenerated = ( new RobotsBuilder() )->build( self::ROBOTS_PREVIEW_CORE, true, $robotPolicies, '' );
+			$robotGenerated = ( new RobotsBuilder() )->build( $this->previewCoreBlock(), true, $robotPolicies, '' );
 			$robotEffective = ( '' !== trim( $robotOverride ) ) ? ( rtrim( trim( $robotOverride ) ) . "\n" ) : $robotGenerated;
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 

@@ -110,6 +110,7 @@ class Router {
 		// nested init priority 1 hook would never fire (its moment passed).
 		$this->addRewriteRules();
 		add_filter( 'query_vars', [ $this, 'addQueryVars' ] );
+		add_filter( 'rewrite_rules_array', [ $this, 'stripStaleSitemapRules' ] );
 		add_action( 'pre_get_posts', [ $this, 'intercept' ], 1 );
 		add_filter( 'redirect_canonical', [ $this, 'disableCanonical' ], 10, 1 );
 	}
@@ -122,6 +123,41 @@ class Router {
         // phpcs:ignore Generic.Files.LineLength.TooLong
 		add_rewrite_rule( '^([^.]+)-sitemap([0-9]+)?\.xml$', 'index.php?rankkernel_sitemap=$matches[1]&rankkernel_sitemap_n=$matches[2]', 'top' );
 		add_rewrite_rule( '^([a-z]+)?-?sitemap\.xsl$', 'index.php?rankkernel_sitemap_xsl=1', 'top' );
+	}
+
+	/**
+	 * Strip stale competing rules for our sitemap filenames.
+	 *
+	 * Deactivated SEO plugins (Rank Math leaves sitemap_index.xml behind)
+	 * keep rules that match our filenames but point at the unprefixed
+	 * sitemap query vars, so they win the match and 404. Any rule for one
+	 * of our three shapes that does not target our prefixed query vars is
+	 * removed. Core wp-sitemap rules use different filenames and are kept.
+	 *
+	 * @param array<string, string> $rules Rewrite regex to query map.
+	 * @return array<string, string> The result.
+	 */
+	public function stripStaleSitemapRules( array $rules ): array {
+		foreach ( $rules as $regex => $query ) {
+			if ( str_contains( (string) $query, 'rankkernel_sitemap' ) ) {
+				continue;
+			}
+
+			if ( ! is_string( $regex ) || str_contains( $regex, 'wp-sitemap' ) ) {
+				continue;
+			}
+
+			$flat = str_replace( '\\', '', $regex );
+
+			if ( str_contains( $flat, 'sitemap_index.xml' )
+				|| 1 === preg_match( '/-sitemap.*\.xml/', $flat )
+				|| str_contains( $flat, 'sitemap.xsl' )
+			) {
+				unset( $rules[ $regex ] );
+			}
+		}
+
+		return $rules;
 	}
 
 	/**

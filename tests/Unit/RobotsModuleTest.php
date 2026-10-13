@@ -98,6 +98,15 @@ final class RobotsModuleTest extends TestCase {
 			}
 		);
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( mixed $key = '', mixed $value = '', string $url = '' ): string {
+				$pairs = is_array( $key ) ? $key : [ (string) $key => $value ];
+				$base  = is_array( $key ) && is_string( $value ) ? $value : $url;
+				$sep   = str_contains( $base, '?' ) ? '&' : '?';
+
+				return $base . $sep . http_build_query( $pairs );
+			}
+		);
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
 				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
@@ -165,6 +174,7 @@ final class RobotsModuleTest extends TestCase {
 	 */
 	public function test_filter_blocks_and_allows(): void {
 		$this->options['rankkernel_modules']         = [ 'robots' ];
+		$this->options['permalink_structure']        = '/%postname%/';
 		$this->options['rankkernel_robots_settings'] = [
 			'mode'     => 'default',
 			'crawlers' => [
@@ -183,6 +193,28 @@ final class RobotsModuleTest extends TestCase {
 		$this->assertStringContainsString( "User-agent: OAI-SearchBot\nAllow: /", $out );
 		$this->assertStringContainsString( 'Sitemap: https://example.com/sitemap_index.xml', $out );
 		$this->assertSame( 1, substr_count( $out, 'Sitemap:' ) );
+	}
+
+	/**
+	 * Test a saved override carrying the old example.com placeholder is
+	 * healed to the real index URL at render time.
+	 */
+	public function test_filter_heals_example_sitemap_in_override(): void {
+		$this->options['rankkernel_modules']         = [ 'robots' ];
+		$this->options['permalink_structure']        = '/%postname%/';
+		$this->options['rankkernel_robots_settings'] = [
+			'mode'     => 'default',
+			'crawlers' => [],
+			'override' => "User-agent: *\nDisallow: /wp-admin/\nSitemap: http://example.com/sitemap_index.xml\n",
+		];
+
+		$module = new RobotsModule();
+		$module->boot();
+
+		$out = $module->filterRobots( "User-agent: *\nDisallow: /wp-admin/\n", true );
+
+		$this->assertStringContainsString( 'Sitemap: https://example.com/sitemap_index.xml', $out );
+		$this->assertStringNotContainsString( 'http://example.com', $out );
 	}
 
 	/**

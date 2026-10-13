@@ -86,6 +86,38 @@ final class RouterTest extends TestCase {
 	}
 
 	/**
+	 * Test stale competing rules are stripped while ours and core stay.
+	 */
+	public function test_strip_stale_sitemap_rules(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$cache   = Mockery::mock( SitemapCache::class );
+		$xsl     = Mockery::mock( XslStylesheet::class );
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		$rules = [
+			'sitemap_index\\.xml$'             => 'index.php?sitemap=1',
+			'([^/]+?)-sitemap([0-9]+)?\\.xml$' => 'index.php?sitemap=$matches[1]&sitemap_n=$matches[2]',
+			'([a-z]+)?-?sitemap\\.xsl$'        => 'index.php?xsl=$matches[1]',
+			'^sitemap_index\\.xml$'            => 'index.php?rankkernel_sitemap=index',
+			'^wp-sitemap\\.xml$'               => 'index.php?sitemap=index',
+			'^wp-sitemap-posts-post-1\\.xml$'  => 'index.php?sitemap=posts&sitemap-subtype=post&paged=1',
+			'category/(.+?)/?$'                => 'index.php?category_name=$matches[1]',
+		];
+
+		$clean = $router->stripStaleSitemapRules( $rules );
+
+		$this->assertArrayNotHasKey( 'sitemap_index\\.xml$', $clean );
+		$this->assertArrayNotHasKey( '([^/]+?)-sitemap([0-9]+)?\\.xml$', $clean );
+		$this->assertArrayNotHasKey( '([a-z]+)?-?sitemap\\.xsl$', $clean );
+		$this->assertArrayHasKey( '^sitemap_index\\.xml$', $clean );
+		$this->assertArrayHasKey( '^wp-sitemap\\.xml$', $clean );
+		$this->assertArrayHasKey( '^wp-sitemap-posts-post-1\\.xml$', $clean );
+		$this->assertArrayHasKey( 'category/(.+?)/?$', $clean );
+		$this->assertCount( 4, $clean );
+	}
+
+	/**
 	 * Test query vars added.
 	 */
 	public function test_query_vars_added(): void {
