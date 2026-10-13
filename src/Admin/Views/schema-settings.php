@@ -24,9 +24,9 @@
  * rendered because they would need one form and one nonce per section.
  *
  * Two blocks exist for composition only and never claim live data. The
- * JSON-LD preview renders a clearly labelled example graph, because the real
- * graph is generated when a page is requested and is not available on this
- * screen, and the profile URL field keeps the real textarea as its control,
+ * JSON-LD preview renders the live graph built from the saved settings,
+ * because the builder runs on a home context on this screen, and the
+ * profile URL field keeps the real textarea as its control,
  * with the chips and add row as a JavaScript enhancement on top of it.
  *
  * @package RankKernel
@@ -498,31 +498,33 @@ $rkPluginVersion = Plugin::version();
 					</div>
 				</section>
 
-				<?php
-				/*
-				 * Section 7: JSON-LD preview. The graph is generated on a page
-				 * request, not on this screen, so the code block renders a
-				 * clearly labelled example instead of a fabricated fragment,
-				 * and the buttons that would need new clipboard or download
-				 * handlers stay disabled. Open in Validator is the real
-				 * controller URL.
-				 */
-				?>
-				<section class="rk-ui-card rk-schema-section" id="section-preview" hidden>
-					<div class="rk-ui-card-header rk-schema-section-head">
-						<div class="rk-schema-section-head-text">
-							<div class="rk-schema-preview-title-row">
-								<h3 class="rk-ui-card-title"><?php echo esc_html__( 'JSON-LD Preview', 'rankkernel' ); ?></h3>
-								<span class="rk-schema-preview-chip"><span class="rk-schema-preview-dot" aria-hidden="true"></span><?php echo esc_html__( 'Example', 'rankkernel' ); ?></span>
-							</div>
-							<p class="rk-ui-sub"><?php echo esc_html__( 'A sample of the graph shape the plugin prints in the page head.', 'rankkernel' ); ?></p>
+			<?php
+			/*
+			 * Section 7: JSON-LD preview. The graph below is generated from
+			 * the saved settings by the same builder the frontend uses, so
+			 * Copy JSON and Export JSON act on that live graph through the
+			 * page script. The buttons only render while a graph exists, so
+			 * the page never shows an enabled control with nothing to copy.
+			 * Open in Validator is the real controller URL.
+			 */
+			?>
+			<section class="rk-ui-card rk-schema-section" id="section-preview" hidden>
+				<div class="rk-ui-card-header rk-schema-section-head">
+					<div class="rk-schema-section-head-text">
+						<div class="rk-schema-preview-title-row">
+							<h3 class="rk-ui-card-title"><?php echo esc_html__( 'JSON-LD Preview', 'rankkernel' ); ?></h3>
+							<span class="rk-schema-preview-chip"><span class="rk-schema-preview-dot" aria-hidden="true"></span><?php echo esc_html__( 'Example', 'rankkernel' ); ?></span>
 						</div>
-						<div class="rk-schema-preview-actions">
-							<button type="button" class="rk-ui-btn rk-ui-btn-secondary rk-ui-btn-disabled" disabled aria-disabled="true"><span class="rk-icon" aria-hidden="true">code_blocks</span><?php echo esc_html__( 'Copy JSON', 'rankkernel' ); ?></button>
-							<button type="button" class="rk-ui-btn rk-ui-btn-secondary rk-ui-btn-disabled" disabled aria-disabled="true"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></button>
-							<a class="rk-ui-btn rk-schema-validator-link" href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Open in Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
-						</div>
+						<p class="rk-ui-sub"><?php echo esc_html__( 'A sample of the graph shape the plugin prints in the page head.', 'rankkernel' ); ?></p>
 					</div>
+					<div class="rk-schema-preview-actions">
+						<?php if ( '' !== $previewJson ) : ?>
+						<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-schema-copy-json"><span class="rk-icon" aria-hidden="true">code_blocks</span><?php echo esc_html__( 'Copy JSON', 'rankkernel' ); ?></button>
+						<button type="button" class="rk-ui-btn rk-ui-btn-secondary" id="rk-schema-export-json"><span class="rk-icon" aria-hidden="true">download</span><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></button>
+						<?php endif; ?>
+						<a class="rk-ui-btn rk-schema-validator-link" href="<?php echo esc_url( $validatorUrl ); ?>" target="_blank" rel="noopener"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Open in Validator', 'rankkernel' ); ?><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
+					</div>
+				</div>
 
 					<div class="rk-ui-card-body rk-schema-preview-body">
 						<div class="rk-ui-notice rk-ui-notice-info">
@@ -533,9 +535,9 @@ $rkPluginVersion = Plugin::version();
 						<?php if ( '' !== $previewJson ) : ?>
 						<p class="rk-ui-hint rk-schema-preview-example"><?php echo esc_html__( 'Live preview. This graph is generated from your settings by the same builder the frontend uses.', 'rankkernel' ); ?></p>
 
-						<div class="rk-schema-codeblock">
-							<pre class="rk-schema-code"><code><?php echo esc_html( $previewJson ); ?></code></pre>
-						</div>
+					<div class="rk-schema-codeblock">
+						<pre class="rk-schema-code"><code id="rk-schema-preview-code"><?php echo esc_html( $previewJson ); ?></code></pre>
+					</div>
 
 						<p class="rk-schema-preview-meta">
 							<span><?php echo esc_html( sprintf( /* translators: %d: number of schema nodes in the preview. */ __( 'Live graph: %d nodes', 'rankkernel' ), count( is_array( $previewGraph['@graph'] ?? null ) ? $previewGraph['@graph'] : array() ) ) ); ?></span>

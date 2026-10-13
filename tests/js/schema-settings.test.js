@@ -472,3 +472,146 @@ test( 'a hash change after load moves the open section', () => {
 	assert.equal( harness.sections[ 0 ].hidden, true );
 	assert.equal( harness.sections[ 2 ].hidden, false );
 } );
+
+function previewHarness( { clipboardText = null, execResult = true } = {} ) {
+	const spoken = [];
+	const copied = [];
+	const created = [];
+
+	const code = { textContent: '{"@context":"https://schema.org"}' };
+	const copyButton = fakeElement( 'button', { id: 'rk-schema-copy-json' } );
+	const exportButton = fakeElement( 'button', { id: 'rk-schema-export-json' } );
+
+	const nodes = {
+		'rk-schema-copy-json': copyButton,
+		'rk-schema-export-json': exportButton,
+		'rk-schema-preview-code': code
+	};
+
+	const body = {
+		appended: [],
+		appendChild( child ) {
+			this.appended.push( child );
+			child.parentNode = this;
+			return child;
+		},
+		removeChild( child ) {
+			child.parentNode = null;
+			return child;
+		}
+	};
+
+	const document = {
+		readyState: 'complete',
+		body,
+		getElementById( id ) {
+			return nodes[ id ] || null;
+		},
+		addEventListener() {},
+		querySelector() {
+			return null;
+		},
+		createElement( tag ) {
+			const el = fakeElement( tag );
+			created.push( el );
+			return el;
+		},
+		execCommand( command ) {
+			copied.push( command );
+			return execResult;
+		}
+	};
+
+	const sandbox = {
+		document,
+		wp: {
+			a11y: {
+				speak( msg ) {
+					spoken.push( msg );
+				}
+			}
+		},
+		URL: {
+			created: [],
+			revoked: [],
+			createObjectURL( blob ) {
+				this.created.push( blob );
+				return 'blob:preview';
+			},
+			revokeObjectURL( url ) {
+				this.revoked.push( url );
+			}
+		},
+		Blob: function ( parts ) {
+			this.parts = parts;
+		}
+	};
+	sandbox.window = sandbox;
+
+	if ( null !== clipboardText ) {
+		sandbox.navigator = {
+			clipboard: {
+				writeText( text ) {
+					copied.push( text );
+					return {
+						then( onOk ) {
+							onOk();
+						}
+					};
+				}
+			}
+		};
+	}
+
+	vm.runInNewContext( source( 'schema-settings.js' ), sandbox );
+
+	return { sandbox, spoken, copied, created, body, code, copyButton, exportButton };
+}
+
+test( 'schema-settings copies the preview JSON through the clipboard API', () => {
+	const harness = previewHarness( { clipboardText: true } );
+
+	harness.copyButton.fire( 'click' );
+
+	assert.deepEqual( harness.copied, [ '{"@context":"https://schema.org"}' ] );
+	assert.deepEqual( harness.spoken, [ 'Preview JSON copied to clipboard.' ] );
+} );
+
+test( 'schema-settings falls back to execCommand without a clipboard API', () => {
+	const harness = previewHarness();
+
+	harness.copyButton.fire( 'click' );
+
+	assert.deepEqual( harness.copied, [ 'copy' ] );
+	assert.deepEqual( harness.spoken, [ 'Preview JSON copied to clipboard.' ] );
+	assert.equal( harness.created[ 0 ].value, '{"@context":"https://schema.org"}' );
+	assert.equal( harness.created[ 0 ].parentNode, null );
+} );
+
+test( 'schema-settings downloads the preview JSON on export', () => {
+	const harness = previewHarness();
+
+	const link = harness.created;
+	harness.exportButton.fire( 'click' );
+
+	assert.equal( link.length, 1 );
+	assert.equal( link[ 0 ].download, 'rankkernel-schema.json' );
+	assert.equal( link[ 0 ].href, 'blob:preview' );
+	assert.equal( link[ 0 ].parentNode, null );
+
+	assert.deepEqual( harness.spoken, [ 'Preview JSON downloaded.' ] );
+	assert.deepEqual( harness.sandbox.URL.revoked, [ 'blob:preview' ] );
+	assert.equal( harness.sandbox.URL.created[ 0 ].parts.length, 1 );
+	assert.equal( harness.sandbox.URL.created[ 0 ].parts[ 0 ], '{"@context":"https://schema.org"}' );
+} );
+
+test( 'schema-settings copy and export refuse an empty preview', () => {
+	const harness = previewHarness();
+	const api = harness.sandbox.window.rankkernelSchemaSettings;
+
+	harness.code.textContent = '';
+
+	assert.equal( api.copyPreviewJson( harness.code ), false );
+	assert.equal( api.exportPreviewJson( harness.code ), false );
+	assert.deepEqual( harness.spoken, [] );
+} );

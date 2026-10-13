@@ -651,6 +651,20 @@ final class SchemaSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test render preview buttons copy and download the live graph.
+	 */
+	public function test_render_preview_buttons_are_working(): void {
+		ob_start();
+		$this->makePage()->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-schema-copy-json"', $html );
+		$this->assertStringContainsString( 'id="rk-schema-export-json"', $html );
+		$this->assertStringContainsString( 'id="rk-schema-preview-code"', $html );
+		$this->assertStringNotContainsString( 'rk-ui-btn-disabled', $html );
+	}
+
+	/**
 	 * Test the page renders the save failed notice from the failure flag.
 	 */
 	public function test_render_shows_the_save_failed_notice(): void {

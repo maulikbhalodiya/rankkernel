@@ -493,6 +493,22 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'data-rk-tab-panel="taxonomies"', $html );
 		$this->assertStringContainsString( 'data-rk-tab-panel="authors"', $html );
 		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
+		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
 		$this->assertStringContainsString( '<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>', $html );
+	}
+
+	/**
+	 * Test render submit button links the Search Console sitemaps screen.
+	 */
+	public function test_render_submit_button_links_search_console(): void {
+		$page = $this->makePage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'https://search.google.com/search-console/sitemaps?resource_id=', $html );
+		$this->assertStringContainsString( rawurlencode( 'https://example.com/' ), $html );
+		$this->assertStringNotContainsString( 'Not available in RankKernel', $html );
 	}
 }
