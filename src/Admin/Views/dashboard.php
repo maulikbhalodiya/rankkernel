@@ -236,7 +236,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 				</div>
 
 				<nav class="rk-ui-tabs rk-dashboard-tabs" aria-label="<?php echo esc_attr( __( 'Module lists', 'rankkernel' ) ); ?>">
-					<a class="rk-ui-tab is-current" href="#rk-modules-active"><?php echo esc_html__( 'Active', 'rankkernel' ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $rk_available_count ); ?></span></a>
+					<a class="rk-ui-tab is-current" href="#rk-modules-active" aria-current="page"><?php echo esc_html__( 'Active', 'rankkernel' ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $rk_available_count ); ?></span></a>
 					<a class="rk-ui-tab" href="#rk-modules-planned"><?php echo esc_html__( 'Planned', 'rankkernel' ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $rk_planned_count ); ?></span></a>
 				</nav>
 
