@@ -300,35 +300,6 @@ final class ContextTest extends TestCase {
 	}
 
 	/**
-	 * Test repeated type, id and singular reads hit the query once.
-	 */
-	public function test_repeated_query_helpers_hit_the_query_once(): void {
-		$query = Mockery::mock( WP_Query::class );
-		$query->shouldReceive( 'is_preview' )->once()->andReturn( false );
-		$query->shouldReceive( 'is_feed' )->once()->andReturn( false );
-		$query->shouldReceive( 'is_search' )->once()->andReturn( false );
-		$query->shouldReceive( 'is_404' )->once()->andReturn( false );
-		$query->shouldReceive( 'is_home' )->once()->andReturn( true );
-		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_singular' )->once()->andReturn( false );
-		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'get_queried_object_id' )->once()->andReturn( 7 );
-		$query->shouldReceive( 'get' )->andReturn( null )->byDefault();
-
-		$ctx = new Context( $query, new SettingsStore() );
-
-		$this->assertSame( 'home', $ctx->queriedType() );
-		$this->assertSame( 'home', $ctx->queriedType() );
-		$this->assertSame( 7, $ctx->queriedId() );
-		$this->assertSame( 7, $ctx->queriedId() );
-		$this->assertFalse( $ctx->isSingular() );
-		$this->assertFalse( $ctx->isSingular() );
-	}
-
-	/**
 	 * Test permalink home for home type.
 	 */
 	public function test_permalink_home_for_home_type(): void {
@@ -776,5 +747,49 @@ final class ContextTest extends TestCase {
 
 		$this->assertSame( 'archive', $ctx->queriedType() );
 		$this->assertSame( 'Work', $ctx->title() );
+	}
+
+	/**
+	 * Test repeated query helpers hit the query once for both home and singular queries.
+	 */
+	public function test_repeated_query_helpers_hit_the_query_once(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_preview' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_feed' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_search' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_404' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_home' )->once()->andReturn( true );
+		$query->shouldReceive( 'get_queried_object_id' )->once()->andReturn( 0 );
+
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$settings = new SettingsStore();
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( 0, $ctx->queriedId() );
+		$this->assertSame( 0, $ctx->queriedId() );
+
+		// Singular query test case verifying strict once() call on is_singular and delegation.
+		$singularQuery = Mockery::mock( WP_Query::class );
+		$singularQuery->shouldReceive( 'is_preview' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_feed' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_search' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_404' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_home' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_front_page' )->once()->andReturn( false );
+		$singularQuery->shouldReceive( 'is_singular' )->once()->andReturn( true );
+		$singularQuery->shouldReceive( 'get_queried_object_id' )->once()->andReturn( 42 );
+
+		$ctxSingular = new Context( $singularQuery, $settings );
+
+		$this->assertSame( 'post', $ctxSingular->queriedType() );
+		$this->assertSame( 'post', $ctxSingular->queriedType() );
+		$this->assertTrue( $ctxSingular->isSingular() );
+		$this->assertTrue( $ctxSingular->isSingular() );
+		$this->assertSame( 42, $ctxSingular->queriedId() );
+		$this->assertSame( 42, $ctxSingular->queriedId() );
 	}
 }
