@@ -43,9 +43,9 @@ final class SitemapSettingsPage {
 	 */
 	private const TAB_ICONS = [
 		'general'    => 'settings',
-		'post-types' => 'inbox',
+		'post-types' => 'tune',
 		'taxonomies' => 'link',
-		'authors'    => 'shield',
+		'authors'    => 'info',
 	];
 
 	/**

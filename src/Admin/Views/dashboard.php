@@ -145,7 +145,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 		<header class="rk-ui-card rk-ui-page-header">
 			<div class="rk-ui-page-header-text">
 				<div class="rk-ui-page-header-title-row">
-					<span class="rk-dashboard-logo" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></span>
+					<span class="rk-dashboard-logo" aria-hidden="true"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z" fill="currentColor"/><path d="M12.5 1.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg></span>
 					<h2 class="rk-ui-page-title"><?php echo esc_html__( 'RankKernel', 'rankkernel' ); ?></h2>
 					<span class="rk-ui-pill rk-ui-pill-info"><?php echo esc_html( sprintf( /* translators: %s: the plugin version number. */ __( 'v%s', 'rankkernel' ), RANKKERNEL_VERSION ) ); ?></span>
 				</div>
@@ -240,8 +240,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 					<div class="rk-dashboard-search">
 						<label class="screen-reader-text" for="rk-modules-search"><?php echo esc_html__( 'Search modules', 'rankkernel' ); ?></label>
 						<span class="rk-icon rk-dashboard-search-icon" aria-hidden="true">search</span>
-						<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" title="<?php echo esc_attr( __( 'Module search is not available in this version.', 'rankkernel' ) ); ?>" disabled aria-describedby="rk-modules-search-note" />
-						<span class="rk-dashboard-count-pill" id="rk-modules-search-note"><?php echo esc_html__( 'Soon', 'rankkernel' ); ?></span>
+					<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" title="<?php echo esc_attr( __( 'Module search is not available in this version.', 'rankkernel' ) ); ?>" disabled />
 					</div>
 				</div>
 

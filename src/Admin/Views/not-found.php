@@ -502,7 +502,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 				<div class="rk-stat rk-stat-recent">
 					<div class="rk-stat-top">
 						<span class="rk-stat-label"><?php echo esc_html__( 'Most recent', 'rankkernel' ); ?></span>
-						<span class="rk-stat-icon rk-stat-icon-recent" aria-hidden="true"><span class="rk-icon">download</span></span>
+						<span class="rk-stat-icon rk-stat-icon-recent" aria-hidden="true"><span class="rk-icon">link</span></span>
 					</div>
 					<div class="rk-stat-value rk-stat-value-recent"><?php echo '' === $summaryRecentSeen ? esc_html__( 'Unknown', 'rankkernel' ) : esc_html( $summaryRecentSeen ); ?></div>
 					<div class="rk-stat-caption"><?php echo esc_html__( 'most recent 404', 'rankkernel' ); ?></div>

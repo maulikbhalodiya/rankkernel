@@ -1766,7 +1766,7 @@
 						'aria-label': __( 'Insert keywords you want to rank for.', 'rankkernel' ),
 						title: __( 'Insert keywords you want to rank for.', 'rankkernel' )
 					},
-					'help_outline'
+					'help'
 				)
 			),
 			el(

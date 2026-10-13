@@ -533,6 +533,10 @@
 	padding: 0 var(--rk-space-6);
 	border-block-end: 1px solid var(--rk-color-border);
 	overflow-x: auto;
+	/* The current tab pulls its underline one pixel over the row border, so
+	clip the vertical axis. Without this the overlap forces a vertical
+	scrollbar and the row grows taller than a single tab. */
+	overflow-y: hidden;
 }
 
 .rk-ui .rk-ui-tab {

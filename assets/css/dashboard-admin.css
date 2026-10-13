@@ -34,15 +34,13 @@
 
 /* The WordPress .wrap margin already indents the page. The inner shell owns
    the vertical rhythm, one 16 pixel step between blocks, matching the design's
-   stack. The 1240 pixel cap is the design's container width; below it the
-   shell fills the column. The right padding mirrors the Instant Indexing
-   shell, so both screens end at the same edge. */
+   stack. The shell fills the available column width with no cap. The right
+   padding mirrors the Instant Indexing shell, so both screens end at the same
+   edge. */
 .rk-dashboard .rk-dashboard-inner {
 	display: flex;
 	flex-direction: column;
 	gap: var(--rk-space-4);
-	max-width: 1240px;
-	margin-inline: auto;
 	padding: var(--rk-space-4) var(--rk-space-6) var(--rk-space-6) 0;
 	box-sizing: border-box;
 }
@@ -69,6 +67,11 @@
 
 .rk-dashboard .rk-dashboard-logo .rk-icon {
 	font-size: 20px;
+}
+
+.rk-dashboard .rk-dashboard-logo svg {
+	width: 20px;
+	height: 20px;
 }
 
 /* The design sets the page title one step above the shared 22 pixel default. */
@@ -355,6 +358,12 @@
 	inset-inline-start: 10px;
 	inset-block-start: 50%;
 	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	line-height: 1;
 	color: var(--rk-color-text-muted);
 	font-size: 16px;
 	pointer-events: none;
