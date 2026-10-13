@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleRegistry;
+use RankKernel\Modules\Sitemaps\Router;
 use RankKernel\Modules\Sitemaps\SitemapCache;
 
 /**
@@ -185,6 +186,28 @@ final class DashboardPage {
 		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
 
 		$cards = $this->cards();
+
+		/*
+		 * Quick Action targets. Every destination is handled by its own
+		 * screen, so the dashboard only links or posts to it: the sitemap
+		 * and robots links open the front end, the export link carries the
+		 * nonce the redirects handler verifies, and the clear form posts
+		 * the marker plus nonce the 404 handler verifies.
+		 */
+		$rk_enabled_ids  = [];
+		$rk_sitemap_url  = Router::indexUrl();
+		$rk_robots_url   = home_url( '/robots.txt' );
+		$rk_export_url   = RedirectsPage::exportUrl();
+		$rk_404_form_url = admin_url( 'admin.php?page=' . NotFoundPage::SLUG );
+
+		// Nonce action the 404 clear form posts, owned by NotFoundPage.
+		$rk_404_nonce_action = NotFoundPage::NONCE_CLEAR;
+
+		foreach ( $cards as $rk_card ) {
+			if ( ! empty( $rk_card['enabled'] ) && empty( $rk_card['planned'] ) ) {
+				$rk_enabled_ids[] = (string) $rk_card['id'];
+			}
+		}
 
 		require __DIR__ . '/Views/dashboard.php';
 	}

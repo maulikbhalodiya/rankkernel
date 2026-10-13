@@ -25,16 +25,26 @@
  *   zero.
  * - The SEO Health rows read the same enabled flags.
  *
- * The Quick Actions card and the module search have no handler on this screen,
- * so both render static and disabled rather than dead on click. The module
- * toggles are real: every row posts the module id the form always posted.
- * Planned modules render a disabled switch and never post to the toggle.
+ * The module toggles are real: every row posts the module id the form always
+ * posted. Planned modules render a disabled switch and never post.
+ * The Quick Actions card links each shortcut to the screen that handles
+ * it: the sitemap and robots links open the front end, the export link
+ * carries the nonce the redirects screen verifies, and the clear control
+ * posts the marker plus nonce the 404 screen verifies. A shortcut stays
+ * disabled while its module is switched off. The module search filters
+ * the card lists live on this screen.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
  *
- * @var bool  $settingsUpdated Whether the module toggled notice renders.
+ * @var bool     $settingsUpdated Whether the module toggled notice renders.
  * @var array<int, array{id: string, label: string, description: string, enabled: bool, settingsUrl: string, planned: bool}> $cards Module cards.
+ * @var string[] $rk_enabled_ids Enabled, non-planned module ids.
+ * @var string   $rk_sitemap_url Front end sitemap index URL.
+ * @var string   $rk_robots_url Front end robots.txt URL.
+ * @var string   $rk_export_url Nonced redirects CSV export URL.
+ * @var string   $rk_404_form_url 404 monitor screen URL, the clear form posts here.
+ * @var string   $rk_404_nonce_action Nonce action the clear form posts.
  */
 
 declare(strict_types=1);
@@ -338,30 +348,58 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
 			<aside class="rk-dashboard-side">
 
-				<?php /* Quick Actions. Every action the design shows is present so the composition matches, and each is disabled because this screen has no handler for it yet. See docs/DESIGN-WIRING-BACKLOG.md for the logic each one would reuse. */ ?>
+				<?php /* Quick Actions. Each shortcut is handled by its own screen, so the card only links or posts to it. A shortcut stays disabled while its module is switched off. */ ?>
 				<div class="rk-ui-card rk-dashboard-side-card">
 					<div class="rk-dashboard-card-head">
 						<h2 class="rk-dashboard-card-title"><?php echo esc_html__( 'Quick Actions', 'rankkernel' ); ?></h2>
 						<span class="rk-dashboard-card-tag"><?php echo esc_html__( 'Tools', 'rankkernel' ); ?></span>
 					</div>
 					<div class="rk-dashboard-tool-list">
-						<button type="button" class="rk-dashboard-tool" disabled>
-							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-primary" aria-hidden="true">swap_vert</span><span><?php echo esc_html__( 'Flush Sitemap Cache', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( 'POST', 'rankkernel' ); ?></span>
-						</button>
-						<button type="button" class="rk-dashboard-tool" disabled>
-							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-positive" aria-hidden="true">download</span><span><?php echo esc_html__( 'Export Redirects CSV', 'rankkernel' ); ?></span></span>
-							<span class="rk-dashboard-tool-tag"><?php echo esc_html__( '.csv', 'rankkernel' ); ?></span>
-						</button>
-						<button type="button" class="rk-dashboard-tool" disabled>
-							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-muted" aria-hidden="true">link</span><span><?php echo esc_html__( 'View robots.txt', 'rankkernel' ); ?></span></span>
-							<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
-						</button>
-						<button type="button" class="rk-dashboard-tool rk-dashboard-tool-danger" disabled>
-							<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-danger" aria-hidden="true">cancel</span><span><?php echo esc_html__( 'Clear 404 Log', 'rankkernel' ); ?></span></span>
-						</button>
+						<?php if ( in_array( 'sitemaps', $rk_enabled_ids, true ) ) : ?>
+							<a class="rk-dashboard-tool" href="<?php echo esc_url( $rk_sitemap_url ); ?>" target="_blank" rel="noopener">
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-primary" aria-hidden="true">swap_vert</span><span><?php echo esc_html__( 'View XML Sitemap', 'rankkernel' ); ?></span></span>
+								<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
+							</a>
+						<?php else : ?>
+							<button type="button" class="rk-dashboard-tool" disabled>
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-primary" aria-hidden="true">swap_vert</span><span><?php echo esc_html__( 'View XML Sitemap', 'rankkernel' ); ?></span></span>
+							</button>
+						<?php endif; ?>
+						<?php if ( in_array( 'redirects', $rk_enabled_ids, true ) ) : ?>
+							<a class="rk-dashboard-tool" href="<?php echo esc_url( $rk_export_url ); ?>">
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-positive" aria-hidden="true">download</span><span><?php echo esc_html__( 'Export Redirects CSV', 'rankkernel' ); ?></span></span>
+								<span class="rk-dashboard-tool-tag"><?php echo esc_html__( '.csv', 'rankkernel' ); ?></span>
+							</a>
+						<?php else : ?>
+							<button type="button" class="rk-dashboard-tool" disabled>
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-positive" aria-hidden="true">download</span><span><?php echo esc_html__( 'Export Redirects CSV', 'rankkernel' ); ?></span></span>
+								<span class="rk-dashboard-tool-tag"><?php echo esc_html__( '.csv', 'rankkernel' ); ?></span>
+							</button>
+						<?php endif; ?>
+						<?php if ( in_array( 'robots', $rk_enabled_ids, true ) ) : ?>
+							<a class="rk-dashboard-tool" href="<?php echo esc_url( $rk_robots_url ); ?>" target="_blank" rel="noopener">
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-muted" aria-hidden="true">link</span><span><?php echo esc_html__( 'View robots.txt', 'rankkernel' ); ?></span></span>
+								<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
+							</a>
+						<?php else : ?>
+							<button type="button" class="rk-dashboard-tool" disabled>
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-muted" aria-hidden="true">link</span><span><?php echo esc_html__( 'View robots.txt', 'rankkernel' ); ?></span></span>
+							</button>
+						<?php endif; ?>
+						<?php if ( in_array( '404', $rk_enabled_ids, true ) ) : ?>
+							<form class="rk-dashboard-tool-form" method="post" action="<?php echo esc_url( $rk_404_form_url ); ?>">
+								<?php wp_nonce_field( $rk_404_nonce_action ); ?>
+								<button type="submit" name="rankkernel_404_clear" value="1" class="rk-dashboard-tool rk-dashboard-tool-danger">
+									<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-danger" aria-hidden="true">cancel</span><span><?php echo esc_html__( 'Clear 404 Log', 'rankkernel' ); ?></span></span>
+								</button>
+							</form>
+						<?php else : ?>
+							<button type="button" class="rk-dashboard-tool rk-dashboard-tool-danger" disabled>
+								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-danger" aria-hidden="true">cancel</span><span><?php echo esc_html__( 'Clear 404 Log', 'rankkernel' ); ?></span></span>
+							</button>
+						<?php endif; ?>
 					</div>
-					<p class="rk-ui-hint"><?php echo esc_html__( 'Shortcuts activate as their features land.', 'rankkernel' ); ?></p>
+					<p class="rk-ui-hint"><?php echo esc_html__( 'Shortcuts open their own screens. A shortcut stays off while its module is off.', 'rankkernel' ); ?></p>
 				</div>
 
 				<?php /* SEO Health. Each row reads the enabled flag of one module, so no status here is invented. */ ?>

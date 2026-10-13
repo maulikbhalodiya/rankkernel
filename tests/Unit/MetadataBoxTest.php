@@ -119,6 +119,8 @@ final class MetadataBoxTest extends TestCase {
 		);
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
+		Functions\when( 'admin_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'wp_nonce_url' )->alias( static fn ( string $url, string $action = '' ): string => $url . '&_wpnonce=test' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_nonce_url signature.
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
 				return $this->options[ $key ] ?? $fallback;

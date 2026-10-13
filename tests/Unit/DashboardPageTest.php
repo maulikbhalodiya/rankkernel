@@ -104,7 +104,19 @@ final class DashboardPageTest extends TestCase {
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->alias(
+			static function ( string $action = '' ): string {
+				echo 'nonce-field:' . $action; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub mirrors wp_nonce_field echoing the field.
+				return 'nonce-field:' . $action;
+			}
+		);
+		Functions\when( 'wp_nonce_url' )->alias( static fn ( string $url, string $action = '' ): string => $url . '&_wpnonce=nonce:' . $action );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( mixed $key = [], mixed $value = '', string $url = '' ): string {
+				$args = is_array( $key ) ? $key : [ (string) $key => $value ];
+				return $url . '?' . http_build_query( $args );
+			}
+		);
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress esc_html__ signature.
 		Functions\when( '__' )->alias( static fn ( string $text, string $domain = 'default' ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
 		Functions\when( '_n' )->alias(
@@ -375,5 +387,54 @@ final class DashboardPageTest extends TestCase {
 
 		$this->assertStringContainsString( '<a class="rk-ui-tab is-current" href="#rk-modules-active" aria-current="page">', $output );
 		$this->assertStringNotContainsString( 'href="#rk-modules-planned" aria-current', $output );
+	}
+
+	/**
+	 * Test the export shortcut links the verified redirects download when enabled.
+	 */
+	public function test_quick_action_export_links_verified_download_when_redirects_enabled(): void {
+		$this->options['rankkernel_modules'] = [ 'metadata', 'sitemaps', 'redirects' ];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'page=rankkernel-redirects', $output );
+		$this->assertStringContainsString( 'rk_action=export', $output );
+		$this->assertStringContainsString( '_wpnonce=nonce:rankkernel_redirect_export', $output );
+	}
+
+	/**
+	 * Test the clear shortcut posts the verified marker to the 404 screen when enabled.
+	 */
+	public function test_quick_action_clear_posts_verified_marker_when_404_enabled(): void {
+		$this->options['rankkernel_modules'] = [ 'metadata', 'sitemaps', '404' ];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<form class="rk-dashboard-tool-form" method="post" action="https://example.com/wp-admin/admin.php?page=rankkernel-404">', $output );
+		$this->assertStringContainsString( 'nonce-field:rankkernel_404_clear', $output );
+		$this->assertStringContainsString( 'name="rankkernel_404_clear"', $output );
+	}
+
+	/**
+	 * Test shortcuts stay disabled while their module is switched off.
+	 */
+	public function test_quick_actions_stay_disabled_while_module_off(): void {
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		// Sitemaps is enabled in the fixture, so its shortcut links out.
+		$this->assertStringContainsString( 'rankkernel_sitemap=index', $output );
+		$this->assertStringContainsString( 'View XML Sitemap', $output );
+		// Redirects, robots and 404 are off, so no verified destination renders.
+		$this->assertStringNotContainsString( 'rk_action=export', $output );
+		$this->assertStringNotContainsString( 'rankkernel_404_clear', $output );
+		$this->assertStringNotContainsString( '/robots.txt', $output );
+		// The retired flush-cache shortcut is gone.
+		$this->assertStringNotContainsString( 'Flush Sitemap Cache', $output );
 	}
 }
