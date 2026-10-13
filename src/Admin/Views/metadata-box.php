@@ -249,8 +249,8 @@ if ( $schemaDisabled ) {
 			</fieldset>
 			<p>
 				<label for="rankkernel-meta-robots-max-snippet"><?php echo esc_html__( 'Max snippet', 'rankkernel' ); ?></label>
-				<input type="number" id="rankkernel-meta-robots-max-snippet" class="small-text" name="rankkernel_meta_robots[max_snippet]" value="<?php echo esc_attr( $maxSnippet ); ?>" min="-1" step="1" />
-				<span class="description"><?php echo esc_html__( 'Blank means unlimited.', 'rankkernel' ); ?></span>
+				<input type="number" id="rankkernel-meta-robots-max-snippet" class="small-text" name="rankkernel_meta_robots[max_snippet]" value="<?php echo esc_attr( $maxSnippet ); ?>" min="-1" step="1" aria-describedby="rankkernel-meta-robots-max-snippet-help" />
+				<span class="description" id="rankkernel-meta-robots-max-snippet-help"><?php echo esc_html__( 'Blank means unlimited.', 'rankkernel' ); ?></span>
 			</p>
 			<p>
 				<label for="rankkernel-meta-robots-max-image-preview"><?php echo esc_html__( 'Max image preview', 'rankkernel' ); ?></label>
@@ -262,8 +262,8 @@ if ( $schemaDisabled ) {
 			</p>
 			<p>
 				<label for="rankkernel-meta-robots-max-video-preview"><?php echo esc_html__( 'Max video preview', 'rankkernel' ); ?></label>
-				<input type="number" id="rankkernel-meta-robots-max-video-preview" class="small-text" name="rankkernel_meta_robots[max_video_preview]" value="<?php echo esc_attr( $maxVideoPreview ); ?>" min="-1" step="1" />
-				<span class="description"><?php echo esc_html__( 'Seconds. Blank means unlimited.', 'rankkernel' ); ?></span>
+				<input type="number" id="rankkernel-meta-robots-max-video-preview" class="small-text" name="rankkernel_meta_robots[max_video_preview]" value="<?php echo esc_attr( $maxVideoPreview ); ?>" min="-1" step="1" aria-describedby="rankkernel-meta-robots-max-video-preview-help" />
+				<span class="description" id="rankkernel-meta-robots-max-video-preview-help"><?php echo esc_html__( 'Seconds. Blank means unlimited.', 'rankkernel' ); ?></span>
 			</p>
 		</details>
 
@@ -284,7 +284,7 @@ if ( $schemaDisabled ) {
 			<p class="rk-classic-schema-status" data-rk-schema-status="1" data-rk-schema-auto="<?php echo esc_attr( $schemaAutoLabel ); ?>"><?php echo esc_html( $schemaStatusText ); ?></p>
 			<p>
 				<label for="rankkernel-meta-schema-type"><?php echo esc_html__( 'Schema type', 'rankkernel' ); ?></label>
-				<select id="rankkernel-meta-schema-type" name="rankkernel_schema_type">
+				<select id="rankkernel-meta-schema-type" name="rankkernel_schema_type"<?php echo '' !== $schemaPostType ? ' aria-describedby="rankkernel-meta-schema-type-help"' : ''; ?>>
 					<option value=""<?php echo selected( $schemaSelected, '', false ); ?>><?php echo esc_html( $schemaAutoLabel ); ?></option>
 					<?php foreach ( $schemaTypeOptions as $schemaTypeOption ) : ?>
 						<option value="<?php echo esc_attr( $schemaTypeOption['value'] ); ?>"<?php echo selected( $schemaSelected, $schemaTypeOption['value'], false ); ?>><?php echo esc_html( $schemaTypeOption['label'] ); ?></option>
@@ -292,7 +292,7 @@ if ( $schemaDisabled ) {
 				</select>
 			</p>
 			<?php if ( '' !== $schemaPostType ) : ?>
-				<p class="description"><?php echo esc_html__( 'Automatic uses the default type set for this post type in Schema settings.', 'rankkernel' ); ?></p>
+				<p class="description" id="rankkernel-meta-schema-type-help"><?php echo esc_html__( 'Automatic uses the default type set for this post type in Schema settings.', 'rankkernel' ); ?></p>
 			<?php endif; ?>
 			<p><label for="rankkernel-meta-schema-disabled"><input type="checkbox" id="rankkernel-meta-schema-disabled" name="rankkernel_schema_disabled" value="1"<?php echo checked( $schemaDisabled, true, false ); ?> /> <?php echo esc_html__( 'Disable schema output for this post', 'rankkernel' ); ?></label></p>
 		</section>
@@ -312,8 +312,8 @@ if ( $schemaDisabled ) {
 			<summary><?php echo esc_html__( 'Advanced', 'rankkernel' ); ?></summary>
 			<p>
 				<label for="rankkernel-meta-schema-custom"><?php echo esc_html__( 'Custom JSON', 'rankkernel' ); ?></label>
-				<textarea id="rankkernel-meta-schema-custom" class="large-text code" rows="6" name="rankkernel_schema_custom"><?php echo esc_textarea( $schemaCustomJson ); ?></textarea>
-				<span class="description"><?php echo esc_html__( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ); ?></span>
+				<textarea id="rankkernel-meta-schema-custom" class="large-text code" rows="6" name="rankkernel_schema_custom" aria-describedby="rankkernel-meta-schema-custom-help"><?php echo esc_textarea( $schemaCustomJson ); ?></textarea>
+				<span class="description" id="rankkernel-meta-schema-custom-help"><?php echo esc_html__( 'Optional, for advanced use. A valid JSON object typed here is added to the schema output as is.', 'rankkernel' ); ?></span>
 			</p>
 			<h4><?php echo esc_html__( 'Validation', 'rankkernel' ); ?></h4>
 			<?php if ( [] === $schemaValidationMessages ) : ?>
@@ -329,8 +329,8 @@ if ( $schemaDisabled ) {
 			<p><a href="<?php echo esc_url( $schemaRichResultsUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Rich Results Test', 'rankkernel' ); ?> <span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a> | <a href="<?php echo esc_url( $schemaValidatorUrl ); ?>" target="_blank" rel="noopener"><?php echo esc_html__( 'Schema Validator', 'rankkernel' ); ?> <span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a></p>
 			<h4><?php echo esc_html__( 'Import and export', 'rankkernel' ); ?></h4>
 			<p><a class="button" href="<?php echo esc_url( $schemaExportUrl ); ?>"><?php echo esc_html__( 'Export JSON', 'rankkernel' ); ?></a></p>
-			<p><label for="rankkernel-meta-schema-import"><?php echo esc_html__( 'Import JSON', 'rankkernel' ); ?></label> <input type="file" id="rankkernel-meta-schema-import" name="rankkernel_schema_import" accept=".json,application/json" /></p>
-			<p class="description"><?php echo esc_html__( 'Upload a file previously exported with the Export JSON button above.', 'rankkernel' ); ?></p>
+			<p><label for="rankkernel-meta-schema-import"><?php echo esc_html__( 'Import JSON', 'rankkernel' ); ?></label> <input type="file" id="rankkernel-meta-schema-import" name="rankkernel_schema_import" accept=".json,application/json" aria-describedby="rankkernel-meta-schema-import-help" /></p>
+			<p class="description" id="rankkernel-meta-schema-import-help"><?php echo esc_html__( 'Upload a file previously exported with the Export JSON button above.', 'rankkernel' ); ?></p>
 		</details>
 	</div>
 
@@ -359,8 +359,8 @@ if ( $schemaDisabled ) {
 			</div>
 			<p>
 				<label for="rankkernel-meta-og-type"><?php echo esc_html__( 'Open Graph type', 'rankkernel' ); ?></label>
-				<input type="text" id="rankkernel-meta-og-type" class="regular-text" name="rankkernel_meta_og[type]" value="<?php echo esc_attr( $ogType ); ?>" />
-				<span class="description"><?php echo esc_html__( 'Blank inherits (article for posts, website for pages).', 'rankkernel' ); ?></span>
+				<input type="text" id="rankkernel-meta-og-type" class="regular-text" name="rankkernel_meta_og[type]" value="<?php echo esc_attr( $ogType ); ?>" aria-describedby="rankkernel-meta-og-type-help" />
+				<span class="description" id="rankkernel-meta-og-type-help"><?php echo esc_html__( 'Blank inherits (article for posts, website for pages).', 'rankkernel' ); ?></span>
 			</p>
 		</details>
 
