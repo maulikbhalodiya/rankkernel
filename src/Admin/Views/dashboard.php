@@ -145,7 +145,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 		<header class="rk-ui-card rk-ui-page-header">
 			<div class="rk-ui-page-header-text">
 				<div class="rk-ui-page-header-title-row">
-					<span class="rk-dashboard-logo" aria-hidden="true"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z" fill="currentColor"/><path d="M12.5 1.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="currentColor"/></svg></span>
+					<span class="rk-dashboard-logo" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M5.5 4.75C5.5 4.33579 5.16421 4 4.75 4C4.33579 4 4 4.33579 4 4.75V13.25C4 14.7688 5.23122 16 6.75 16H15.25C15.6642 16 16 15.6642 16 15.25C16 14.8358 15.6642 14.5 15.25 14.5H6.75C6.05964 14.5 5.5 13.9404 5.5 13.25V4.75ZM11.75 6.75C11.75 7.16421 12.0858 7.5 12.5 7.5H13.4393L11 9.93934L9.53033 8.46967C9.23744 8.17678 8.76256 8.17678 8.46967 8.46967L6.96967 9.96967C6.67678 10.2626 6.67678 10.7374 6.96967 11.0303C7.26256 11.3232 7.73744 11.3232 8.03033 11.0303L9 10.0607L10.4697 11.5303C10.7626 11.8232 11.2374 11.8232 11.5303 11.5303L14.5 8.56066V9.57692C14.5 9.99114 14.8358 10.3269 15.25 10.3269C15.6642 10.3269 16 9.99114 16 9.57692V6.75C16 6.33579 15.6642 6 15.25 6H12.5C12.0858 6 11.75 6.33579 11.75 6.75Z" fill="#605E5C"></path></svg></span>
 					<h2 class="rk-ui-page-title"><?php echo esc_html__( 'RankKernel', 'rankkernel' ); ?></h2>
 					<span class="rk-ui-pill rk-ui-pill-info"><?php echo esc_html( sprintf( /* translators: %s: the plugin version number. */ __( 'v%s', 'rankkernel' ), RANKKERNEL_VERSION ) ); ?></span>
 				</div>

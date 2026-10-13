@@ -410,6 +410,129 @@
 		}
 	} );
 
+	function previewJsonText( code ) {
+		if ( ! code || 'string' !== typeof code.textContent ) {
+			return '';
+		}
+
+		return code.textContent;
+	}
+
+	function copyPreviewJson( code ) {
+		var text = previewJsonText( code );
+
+		if ( '' === text ) {
+			return false;
+		}
+
+		var nav = window.navigator || {};
+
+		if ( nav.clipboard && 'function' === typeof nav.clipboard.writeText ) {
+			nav.clipboard.writeText( text ).then( function () {
+				rankkernelAnnounce( __( 'Preview JSON copied to clipboard.', 'rankkernel' ) );
+			}, function () {
+				fallbackCopyPreviewJson( text );
+			} );
+		} else {
+			fallbackCopyPreviewJson( text );
+		}
+
+		return true;
+	}
+
+	function fallbackCopyPreviewJson( text ) {
+		var area = document.createElement( 'textarea' );
+		var done = false;
+
+		area.value = text;
+
+		if ( document.body && 'function' === typeof document.body.appendChild ) {
+			document.body.appendChild( area );
+		}
+
+		if ( 'function' === typeof area.select ) {
+			area.select();
+		}
+
+		try {
+			done = 'function' === typeof document.execCommand ? document.execCommand( 'copy' ) : false;
+		} catch ( error ) {
+			done = false;
+		}
+
+		if ( area.parentNode && 'function' === typeof area.parentNode.removeChild ) {
+			area.parentNode.removeChild( area );
+		}
+
+		if ( done ) {
+			rankkernelAnnounce( __( 'Preview JSON copied to clipboard.', 'rankkernel' ) );
+		} else {
+			rankkernelAnnounce( __( 'Copy failed. Select the preview text manually.', 'rankkernel' ) );
+		}
+
+		return done;
+	}
+
+	function exportPreviewJson( code ) {
+		var text = previewJsonText( code );
+
+		if ( '' === text ) {
+			return false;
+		}
+
+		if ( 'function' !== typeof Blob || ! window.URL || 'function' !== typeof window.URL.createObjectURL ) {
+			return false;
+		}
+
+		var url = window.URL.createObjectURL( new Blob( [ text ], { type: 'application/ld+json' } ) );
+		var link = document.createElement( 'a' );
+
+		link.href = url;
+		link.download = 'rankkernel-schema.json';
+
+		if ( document.body && 'function' === typeof document.body.appendChild ) {
+			document.body.appendChild( link );
+		}
+
+		if ( 'function' === typeof link.click ) {
+			link.click();
+		}
+
+		if ( link.parentNode && 'function' === typeof link.parentNode.removeChild ) {
+			link.parentNode.removeChild( link );
+		}
+
+		if ( 'function' === typeof window.URL.revokeObjectURL ) {
+			window.URL.revokeObjectURL( url );
+		}
+
+		rankkernelAnnounce( __( 'Preview JSON downloaded.', 'rankkernel' ) );
+
+		return true;
+	}
+
+	ready( function () {
+		if ( 'function' !== typeof document.getElementById ) {
+			return;
+		}
+
+		var copyButton = document.getElementById( 'rk-schema-copy-json' );
+		var exportButton = document.getElementById( 'rk-schema-export-json' );
+		var code = document.getElementById( 'rk-schema-preview-code' );
+
+		if ( ! copyButton || ! exportButton || ! code ) {
+			return;
+		}
+
+		copyButton.addEventListener( 'click', function () {
+			copyPreviewJson( code );
+		} );
+
+		exportButton.addEventListener( 'click', function () {
+			exportPreviewJson( code );
+		} );
+	} );
+
 	if ( 'undefined' !== typeof window ) {
 		if ( ! window.rankkernelSchemaSettings ) {
 			window.rankkernelSchemaSettings = {};
@@ -417,5 +540,7 @@
 
 		window.rankkernelSchemaSettings.pickSection = pickSection;
 		window.rankkernelSchemaSettings.sectionIds = sectionIds;
+		window.rankkernelSchemaSettings.copyPreviewJson = copyPreviewJson;
+		window.rankkernelSchemaSettings.exportPreviewJson = exportPreviewJson;
 	}
 } )();

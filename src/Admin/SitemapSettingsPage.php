@@ -156,6 +156,10 @@ final class SitemapSettingsPage {
 		$indexUrl      = Router::indexUrl();
 		$pluginVersion = Plugin::version();
 
+		// Search Console sitemaps report deep link for this site, so the
+		// Submit button opens the exact screen where the index URL is pasted.
+		$submitGoogleUrl = 'https://search.google.com/search-console/sitemaps?resource_id=' . rawurlencode( home_url( '/' ) );
+
 		$tabLabels = [
 			'general'    => __( 'General', 'rankkernel' ),
 			'post-types' => __( 'Post Types', 'rankkernel' ),

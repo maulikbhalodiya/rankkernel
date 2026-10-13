@@ -16,13 +16,14 @@
  * runs, so the address bar tab parameter remains the no-JS and deep-link
  * fallback.
  *
- * Two controls in the design have no backing feature in this product. The
- * "Submit to Google" button renders disabled beside the sitemap index URL
- * because it would otherwise be a control that does nothing, and the design's
- * "Discard Changes" text action is omitted for the same reason. Everything
- * else derives from real controller data. Checkboxes stay inside labels that
- * carry their visible sentence, so each one keeps a real accessible name and
- * the rows are labelled groups around them.
+ * One control in the design has no in-plugin backing feature. The
+ * "Submit to Google" button opens the Search Console sitemaps report for
+ * this site, because submission needs the site owner signed in and cannot
+ * run from this screen, and the design's "Discard Changes" text action is
+ * omitted for the same reason. Everything else derives from real
+ * controller data. Checkboxes stay inside labels that carry their visible
+ * sentence, so each one keeps a real accessible name and the rows are
+ * labelled groups around them.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -36,6 +37,7 @@
  * @var bool   $showTaxonomies        Whether the Taxonomies tab panel starts open.
  * @var bool   $showAuthors           Whether the Authors tab panel starts open.
  * @var string $indexUrl              Sitemap index URL.
+ * @var string $submitGoogleUrl       Search Console sitemaps report URL for this site.
  * @var string $itemsPerPage          Links per sitemap value.
  * @var array<int, array<string, mixed>> $generalRows General tab rows.
  * @var array<int, array{key: string, label: string, enabled: bool, url: string, slug: string}> $postTypeRows Post type rows.
@@ -156,9 +158,11 @@ $rkGeneralRowNotes = [
 					<?php
 					/*
 					 * The sitemap index callout. The URL chip is the real link
-					 * the page has always rendered for the index. The design's
-					 * "Submit to Google" button has no backing feature here, so
-					 * it renders disabled rather than pretending to submit.
+					 * the page has always rendered for the index. Submit to
+					 * Google opens the Search Console sitemaps report for this
+					 * site, where the index URL above is pasted, because
+					 * submission needs the site owner signed in and cannot run
+					 * from this screen.
 					 */
 					?>
 					<div class="rk-sitemap-callout">
@@ -170,7 +174,7 @@ $rkGeneralRowNotes = [
 							</div>
 							<p class="rk-sitemap-callout-note"><?php echo esc_html__( 'Your primary index sitemap. Submit this exact URL to Google Search Console and Bing Webmaster Tools.', 'rankkernel' ); ?></p>
 						</div>
-						<button type="button" class="rk-ui-btn rk-ui-btn-secondary rk-sitemap-callout-action" disabled aria-disabled="true" title="<?php echo esc_attr__( 'Not available in RankKernel.', 'rankkernel' ); ?>"><span><?php echo esc_html__( 'Submit to Google', 'rankkernel' ); ?></span><span class="rk-icon" aria-hidden="true">arrow_right</span></button>
+						<a class="rk-ui-btn rk-ui-btn-secondary rk-sitemap-callout-action" href="<?php echo esc_url( $submitGoogleUrl ); ?>" target="_blank" rel="noopener"><span><?php echo esc_html__( 'Submit to Google', 'rankkernel' ); ?></span><span class="rk-icon" aria-hidden="true">arrow_right</span><span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span></a>
 					</div>
 
 					<div class="rk-sitemap-rows">

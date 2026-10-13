@@ -212,7 +212,9 @@ final class AdminMenuTest extends TestCase {
 		$this->assertStringContainsString( '<svg', $svg );
 		$this->assertStringContainsString( 'viewBox="0 0 20 20"', $svg );
 		$this->assertStringContainsString( '<path', $svg );
-		$this->assertSame( 2, substr_count( $svg, '<path' ) );
+		$this->assertSame( 1, substr_count( $svg, '<path' ) );
+		$this->assertStringContainsString( 'aria-label="Trends"', $svg );
+		$this->assertStringContainsString( 'fill="#605E5C"', $svg );
 		// No external references, the icon must be fully self contained.
 		$withoutNs = (string) str_replace( 'xmlns="http://www.w3.org/2000/svg"', '', $svg );
 		$this->assertStringNotContainsString( 'http', $withoutNs );
