@@ -743,3 +743,118 @@ test( 'a hung menu refresh aborts on timeout and leaves the menu', async () => {
 
 	assert.equal( dom.submenu.innerHTML, '<li>original</li>', 'a response arriving after the abort must not swap the menu' );
 } );
+
+/**
+ * Build the module search DOM subset: one input, two groups of cards,
+ * and the hidden empty note.
+ */
+function searchDom() {
+	const body = el( 'div' );
+	const input = el( 'input', { id: 'rk-modules-search', type: 'search' } );
+	input.value = '';
+	input.disabled = false;
+	body.appendChild( input );
+
+	const groups = [];
+	const rows = [];
+
+	[
+		{ id: 'rk-modules-active', cards: [ [ 'Metadata', 'Titles and meta' ], [ 'Redirects', 'URL forwarding' ] ] },
+		{ id: 'rk-modules-planned', cards: [ [ 'Backlinks', 'Link profile soon' ] ] }
+	].forEach( ( g ) => {
+		const group = el( 'div', { id: g.id, className: 'rk-dashboard-module-group' } );
+		g.cards.forEach( ( c ) => {
+			const row = el( 'div', { className: 'rk-dashboard-module' } );
+			row.appendChild( el( 'div', { className: 'rk-dashboard-module-title' }, c[ 0 ] ) );
+			row.appendChild( el( 'div', { className: 'rk-dashboard-module-desc' }, c[ 1 ] ) );
+			group.appendChild( row );
+			rows.push( row );
+		} );
+		body.appendChild( group );
+		groups.push( group );
+	} );
+
+	const empty = el( 'p', { id: 'rk-modules-empty', className: 'rk-dashboard-modules-empty' }, 'No modules match this search.' );
+	empty.setAttribute( 'hidden', '' );
+	body.appendChild( empty );
+
+	const document = {
+		readyState: 'complete',
+		getElementById( id ) {
+			if ( 'rk-modules-search' === id ) { return input; }
+			if ( 'rk-modules-empty' === id ) { return empty; }
+			return null;
+		},
+		querySelectorAll( selector ) { return findAll( body, selector ); },
+		addEventListener() {}
+	};
+
+	return { document, input, groups, rows, empty };
+}
+
+function runSearch( dom, spoken ) {
+	const sandbox = {
+		document: dom.document,
+		wp: { a11y: { speak( text ) { spoken.push( text ); } }, i18n: { __: ( t ) => t } }
+	};
+	sandbox.window = sandbox;
+	runDashboard( sandbox );
+}
+
+function hiddenOf( node ) {
+	return node.getAttribute( 'hidden' );
+}
+
+test( 'module search filters cards and hides emptied groups', () => {
+	const dom = searchDom();
+	const spoken = [];
+	runSearch( dom, spoken );
+
+	dom.input.value = 'redirect';
+	dom.input.dispatch( 'input' );
+
+	assert.equal( hiddenOf( dom.rows[ 0 ] ), '' );
+	assert.equal( hiddenOf( dom.rows[ 1 ] ), null );
+	assert.equal( hiddenOf( dom.rows[ 2 ] ), '' );
+	assert.equal( hiddenOf( dom.groups[ 0 ] ), null );
+	assert.equal( hiddenOf( dom.groups[ 1 ] ), '' );
+	assert.equal( hiddenOf( dom.empty ), '' );
+	assert.ok( spoken.length > 0 );
+} );
+
+test( 'module search matches descriptions and shows the empty note', () => {
+	const dom = searchDom();
+	runSearch( dom, [] );
+
+	dom.input.value = 'link profile';
+	dom.input.dispatch( 'input' );
+
+	assert.equal( hiddenOf( dom.rows[ 2 ] ), null );
+	assert.equal( hiddenOf( dom.rows[ 0 ] ), '' );
+
+	dom.input.value = 'zzz-no-such-module';
+	dom.input.dispatch( 'input' );
+
+	assert.equal( hiddenOf( dom.rows[ 0 ] ), '' );
+	assert.equal( hiddenOf( dom.rows[ 1 ] ), '' );
+	assert.equal( hiddenOf( dom.rows[ 2 ] ), '' );
+	assert.equal( hiddenOf( dom.groups[ 0 ] ), '' );
+	assert.equal( hiddenOf( dom.groups[ 1 ] ), '' );
+	assert.equal( hiddenOf( dom.empty ), null );
+} );
+
+test( 'clearing the module search restores every card', () => {
+	const dom = searchDom();
+	runSearch( dom, [] );
+
+	dom.input.value = 'meta';
+	dom.input.dispatch( 'input' );
+	assert.equal( hiddenOf( dom.rows[ 1 ] ), '' );
+
+	dom.input.value = '';
+	dom.input.dispatch( 'input' );
+
+	dom.rows.forEach( ( row ) => assert.equal( hiddenOf( row ), null ) );
+	dom.groups.forEach( ( group ) => assert.equal( hiddenOf( group ), null ) );
+	assert.equal( hiddenOf( dom.empty ), '' );
+} );

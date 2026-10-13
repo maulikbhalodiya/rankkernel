@@ -451,7 +451,84 @@
 		} );
 	}
 
+	/**
+	 * Haystack for one module card: title plus description, lowercased.
+	 */
+	function moduleSearchText( row ) {
+		var title = row.querySelector( '.rk-dashboard-module-title' );
+		var desc = row.querySelector( '.rk-dashboard-module-desc' );
+		var text = ( title ? title.textContent : '' ) + ' ' + ( desc ? desc.textContent : '' );
+		return String( text || '' ).toLowerCase();
+	}
+
+	/**
+	 * Filter the rendered module cards in place. Both groups stay in the
+	 * DOM; cards that miss hide, groups left with zero visible cards hide,
+	 * and the empty note shows only when nothing matches.
+	 */
+	function applyModuleSearch( query ) {
+		var q = String( query || '' ).trim().toLowerCase();
+
+		var rows = document.querySelectorAll( '.rk-dashboard-module' );
+		var total = rows.length;
+		var visible = 0;
+		var i;
+
+		for ( i = 0; i < total; i++ ) {
+			var show = ! q || moduleSearchText( rows[ i ] ).indexOf( q ) !== -1;
+			if ( show ) {
+				visible++;
+				rows[ i ].removeAttribute( 'hidden' );
+			} else {
+				rows[ i ].setAttribute( 'hidden', '' );
+			}
+		}
+
+		var groups = document.querySelectorAll( '.rk-dashboard-module-group' );
+		for ( i = 0; i < groups.length; i++ ) {
+			var cards = groups[ i ].querySelectorAll( '.rk-dashboard-module' );
+			var groupVisible = false;
+			for ( var j = 0; j < cards.length; j++ ) {
+				if ( null === cards[ j ].getAttribute( 'hidden' ) ) {
+					groupVisible = true;
+					break;
+				}
+			}
+			if ( groupVisible ) {
+				groups[ i ].removeAttribute( 'hidden' );
+			} else {
+				groups[ i ].setAttribute( 'hidden', '' );
+			}
+		}
+
+		var empty = document.getElementById ? document.getElementById( 'rk-modules-empty' ) : null;
+		if ( empty ) {
+			if ( 0 === visible && total > 0 ) {
+				empty.removeAttribute( 'hidden' );
+			} else {
+				empty.setAttribute( 'hidden', '' );
+			}
+		}
+
+		dashboardAnnounce( sprintf( __( '%s modules shown.', 'rankkernel' ), visible + ' of ' + total ) );
+	}
+
+	/**
+	 * Wire the module search input when it is usable.
+	 */
+	function bindModuleSearch() {
+		var input = document.getElementById ? document.getElementById( 'rk-modules-search' ) : null;
+		if ( ! input || input.disabled || 'function' !== typeof input.addEventListener ) {
+			return;
+		}
+		input.addEventListener( 'input', function () {
+			applyModuleSearch( input.value );
+		} );
+	}
+
 	function bind() {
+		bindModuleSearch();
+
 		var forms = document.querySelectorAll( 'form.rk-dashboard-module-toggle' );
 
 		for ( var i = 0; i < forms.length; i++ ) {

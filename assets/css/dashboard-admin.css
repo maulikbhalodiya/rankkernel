@@ -476,6 +476,18 @@
 	transition: background 0.15s;
 }
 
+.rk-dashboard .rk-dashboard-module[hidden],
+.rk-dashboard .rk-dashboard-module-group[hidden] {
+	display: none;
+}
+
+.rk-dashboard .rk-dashboard-modules-empty {
+	margin: 0;
+	padding: var(--rk-space-5);
+	color: var(--rk-color-text-muted);
+	font-size: var(--rk-font-size-sm);
+}
+
 /* The planned list already sits on the subtle surface, so only available rows
    take the hover. */
 .rk-dashboard .rk-dashboard-module:not(.rk-dashboard-module-planned):hover {
