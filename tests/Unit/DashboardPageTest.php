@@ -364,4 +364,16 @@ final class DashboardPageTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="Turn off Metadata Engine module"', $output );
 		$this->assertStringContainsString( 'aria-label="Turn on Robots.txt &amp; .htaccess module"', $output );
 	}
+
+	/**
+	 * Test the active module tab exposes aria-current like the sibling tab sets.
+	 */
+	public function test_render_marks_active_module_tab_current(): void {
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<a class="rk-ui-tab is-current" href="#rk-modules-active" aria-current="page">', $output );
+		$this->assertStringNotContainsString( 'href="#rk-modules-planned" aria-current', $output );
+	}
 }
