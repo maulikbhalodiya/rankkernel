@@ -75,6 +75,11 @@ final class SitemapSettingsAdminTest extends TestCase {
 		Functions\when( 'esc_textarea' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
 		Functions\when( '__' )->alias( static fn ( string $v, string $d = '' ): string => $v ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
+		Functions\when( '_n' )->alias(
+			static function ( string $single, string $plural, int $number, string $domain = 'default' ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress _n signature.
+				return 1 === $number ? $single : $plural;
+			}
+		);
 		Functions\when( 'admin_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-admin/' . ltrim( $p, '/' ) );
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn ( mixed $k = '', mixed $v = '', string $u = '' ): string => $u . ( str_contains( $u, '?' ) ? '&' : '?' ) . (string) $k . '=' . (string) $v );

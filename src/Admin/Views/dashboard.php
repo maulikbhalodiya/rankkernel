@@ -109,13 +109,11 @@ $rk_module_icons = [
 	'headless'         => 'link',
 ];
 
-$rk_attention_label = 1 === $rk_attention_count
-	? __( '1 optional module is off', 'rankkernel' )
-	: sprintf(
-		/* translators: %d: number of optional, available modules that are switched off. */
-		__( '%d optional modules are off', 'rankkernel' ),
-		$rk_attention_count
-	);
+$rk_attention_label = sprintf(
+	/* translators: %d: number of optional, available modules that are switched off. */
+	_n( '%d optional module is off', '%d optional modules are off', $rk_attention_count, 'rankkernel' ),
+	$rk_attention_count
+);
 
 $rk_attention_body = sprintf(
 	/* translators: %s: comma separated list of module names. */

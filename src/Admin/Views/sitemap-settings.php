@@ -244,13 +244,11 @@ $rkGeneralRowNotes = [
 			</div>
 		<?php
 		$rkPostTypeCount      = count( $postTypeRows );
-		$rkPostTypeCountLabel = 1 === $rkPostTypeCount
-			? __( '1 post type registered', 'rankkernel' )
-			: sprintf(
-				/* translators: %d: number of registered public post types. */
-				__( '%d post types registered', 'rankkernel' ),
-				$rkPostTypeCount
-			);
+		$rkPostTypeCountLabel = sprintf(
+			/* translators: %d: number of registered public post types. */
+			_n( '%d post type registered', '%d post types registered', $rkPostTypeCount, 'rankkernel' ),
+			$rkPostTypeCount
+		);
 		?>
 		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-post-types" data-rk-tab-panel="post-types"<?php echo $showPostTypes ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
@@ -311,13 +309,11 @@ $rkGeneralRowNotes = [
 			</div>
 		<?php
 		$rkTaxonomyCount      = count( $taxonomyRows );
-		$rkTaxonomyCountLabel = 1 === $rkTaxonomyCount
-			? __( '1 taxonomy registered', 'rankkernel' )
-			: sprintf(
-				/* translators: %d: number of registered public taxonomies. */
-				__( '%d taxonomies registered', 'rankkernel' ),
-				$rkTaxonomyCount
-			);
+		$rkTaxonomyCountLabel = sprintf(
+			/* translators: %d: number of registered public taxonomies. */
+			_n( '%d taxonomy registered', '%d taxonomies registered', $rkTaxonomyCount, 'rankkernel' ),
+			$rkTaxonomyCount
+		);
 		?>
 		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-taxonomies" data-rk-tab-panel="taxonomies"<?php echo $showTaxonomies ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
