@@ -626,6 +626,30 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the robots preview Sitemap line uses the router URL, never a
+	 * hardcoded example.com placeholder that could leak into saved rows.
+	 */
+	public function test_robots_preview_sitemap_line_uses_router_url(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section'] = 'robots';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rankkernel_sitemap=index', $output );
+		$this->assertStringNotContainsString( 'example.com/sitemap_index.xml', $output );
+	}
+
+	/**
 	 * Test the robots settings save with the settings form.
 	 */
 	public function test_robots_settings_saved(): void {
@@ -738,6 +762,15 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
 		Functions\when( 'wp_rand' )->justReturn( 12345 );
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( mixed $key = '', mixed $value = '', string $url = '' ): string {
+				$pairs = is_array( $key ) ? $key : [ (string) $key => $value ];
+				$base  = is_array( $key ) && is_string( $value ) ? $value : $url;
+				$sep   = str_contains( $base, '?' ) ? '&' : '?';
+
+				return $base . $sep . http_build_query( $pairs );
+			}
+		);
 		Functions\when( 'sanitize_key' )->alias(
 			static function ( string $key ): string {
 				return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $key ) );

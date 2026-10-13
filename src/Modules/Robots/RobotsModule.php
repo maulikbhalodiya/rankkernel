@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
+use RankKernel\Modules\Sitemaps\Router;
 
 /**
  * Crawl Signals module: virtual robots.txt and per-crawler AI policy.
@@ -257,7 +258,26 @@ class RobotsModule implements ModuleInterface {
 		$policies = CrawlerPolicy::sanitizeMap( $settings->get( 'crawlers', [] ) );
 		$override = (string) $settings->get( 'override', '' );
 
-		return $builder->build( $output, true, $policies, $override );
+		$text = $builder->build( $output, true, $policies, $override );
+
+		return $this->healExampleSitemap( $text );
+	}
+
+	/**
+	 * Replace placeholder Sitemap lines with this site's real index URL.
+	 *
+	 * Saved overrides predate the dynamic preview and can carry the old
+	 * example.com placeholder, which would otherwise ship verbatim in
+	 * live robots.txt. Healing at render time fixes stored rows without
+	 * requiring a re-save.
+	 *
+	 * @param string $text Robots.txt document.
+	 * @return string The result.
+	 */
+	private function healExampleSitemap( string $text ): string {
+		$healed = preg_replace( '/^Sitemap:\s*https?:\/\/example\.com\/.*$/mi', 'Sitemap: ' . Router::indexUrl(), $text );
+
+		return is_string( $healed ) ? $healed : $text;
 	}
 
 	/**

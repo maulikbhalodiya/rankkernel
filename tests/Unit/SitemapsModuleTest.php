@@ -183,15 +183,19 @@ final class SitemapsModuleTest extends TestCase {
 		Functions\when( 'add_rewrite_rule' )->justReturn( true );
 
 		$flushes = 0;
-		$stored  = '';
+		$stored  = [];
+		$tokens  = [
+			'rankkernel_rewrite_rules_version',
+			'rankkernel_sitemap_stale_purge',
+		];
 
 		Functions\when( 'get_option' )->alias(
-			static function ( string $key, mixed $fallback = false ) use ( &$stored ): mixed {
+			static function ( string $key, mixed $fallback = false ) use ( &$stored, $tokens ): mixed {
 				if ( 'rankkernel_modules' === $key ) {
 					return [ 'sitemaps' ];
 				}
-				if ( 'rankkernel_rewrite_rules_version' === $key ) {
-					return '' !== $stored ? $stored : $fallback;
+				if ( in_array( $key, $tokens, true ) ) {
+					return '' !== ( $stored[ $key ] ?? '' ) ? $stored[ $key ] : $fallback;
 				}
 				return $fallback;
 			}
@@ -204,9 +208,9 @@ final class SitemapsModuleTest extends TestCase {
 		);
 
 		Functions\when( 'update_option' )->alias(
-			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$stored ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
-				if ( 'rankkernel_rewrite_rules_version' === $key ) {
-					$stored = (string) $value;
+			static function ( string $key, mixed $value, mixed $autoload = null ) use ( &$stored, $tokens ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress update_option signature.
+				if ( in_array( $key, $tokens, true ) ) {
+					$stored[ $key ] = (string) $value;
 				}
 				return true;
 			}
@@ -216,7 +220,8 @@ final class SitemapsModuleTest extends TestCase {
 		$module->boot();
 
 		$this->assertSame( 1, $flushes, 'First boot without a stored version must flush once' );
-		$this->assertSame( RANKKERNEL_VERSION, $stored );
+		$this->assertSame( RANKKERNEL_VERSION, $stored['rankkernel_rewrite_rules_version'] ?? '' );
+		$this->assertSame( RANKKERNEL_VERSION, $stored['rankkernel_sitemap_stale_purge'] ?? '' );
 
 		$second = new SitemapsModule();
 		$second->boot();

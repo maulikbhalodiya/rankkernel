@@ -181,12 +181,29 @@ class SitemapsModule implements ModuleInterface {
 
 		// One flush per plugin version: rewrite rules registered above must
 		// reach the cached rules array (a fresh install or upgrade has stale
-		// cached rules without them, which 404s every sitemap URL).
+		// cached rules without them, which 404s every sitemap URL). The
+		// stale-rule purge below joins the same flush instead of
+		// triggering a second one: flush_rewrite_rules is expensive.
+		$needsFlush   = false;
 		$rulesVersion = get_option( 'rankkernel_rewrite_rules_version', '' );
 
 		if ( \RankKernel\Plugin::version() !== $rulesVersion ) {
-			flush_rewrite_rules( false );
 			update_option( 'rankkernel_rewrite_rules_version', \RankKernel\Plugin::version(), false );
+			$needsFlush = true;
+		}
+
+		// One-time purge of stale competing rules (deactivated SEO plugins
+		// leave sitemap_index.xml behind, which 404s our pretty URLs until
+		// the cached rules array regenerates through the strip filter).
+		$purged = get_option( 'rankkernel_sitemap_stale_purge', '' );
+
+		if ( \RankKernel\Plugin::version() !== $purged ) {
+			update_option( 'rankkernel_sitemap_stale_purge', \RankKernel\Plugin::version(), false );
+			$needsFlush = true;
+		}
+
+		if ( $needsFlush ) {
+			flush_rewrite_rules( false );
 		}
 	}
 

@@ -44,9 +44,9 @@ final class NotFoundPage {
 	public const HOOK_SUFFIX = 'rankkernel_page_rankkernel-404';
 
 	/**
-	 * Nonce action for the clear log form.
+	 * Nonce action for the clear log form, shared with the dashboard shortcut.
 	 */
-	private const NONCE_CLEAR = 'rankkernel_404_clear';
+	public const NONCE_CLEAR = 'rankkernel_404_clear';
 
 	/**
 	 * Nonce action for single row links.

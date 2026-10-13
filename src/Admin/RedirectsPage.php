@@ -580,7 +580,7 @@ final class RedirectsPage {
 			);
 		}
 
-		$exportUrl        = wp_nonce_url( $this->pageUrl( [ 'rk_action' => 'export' ] ), self::NONCE_EXPORT );
+		$exportUrl        = self::exportUrl();
 		$importData       = $this->importResult;
 		$showImportReport = is_array( $importData );
 		$importSummary    = '';
@@ -2387,6 +2387,18 @@ final class RedirectsPage {
 		$result = add_query_arg( $clean, $url );
 
 		return $result;
+	}
+
+	/**
+	 * Nonced CSV export download URL, usable from any admin screen.
+	 *
+	 * The export handler verifies the capability plus this nonce itself, so
+	 * linking here from the dashboard needs no handler on that screen.
+	 *
+	 * @return string The result.
+	 */
+	public static function exportUrl(): string {
+		return wp_nonce_url( admin_url( 'admin.php?page=' . self::SLUG . '&rk_action=export' ), self::NONCE_EXPORT );
 	}
 
 	/**

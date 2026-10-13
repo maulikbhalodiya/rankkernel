@@ -649,9 +649,10 @@
 	white-space: nowrap;
 }
 
-/* Quick Actions. Every control in the card is disabled: no handler exists for
-   any of them on this screen. The reduced opacity is the disabled affordance,
-   and disabled controls are exempt from the text contrast rule. */
+/* Quick Actions. A linked or posted shortcut is a full affordance control,
+   while a shortcut whose module is switched off keeps the disabled look:
+   reduced opacity is the disabled affordance, and disabled controls are
+   exempt from the text contrast rule. */
 .rk-dashboard .rk-dashboard-tool-list {
 	display: flex;
 	flex-direction: column;
@@ -673,6 +674,26 @@
 	font-weight: 500;
 	text-align: start;
 	box-sizing: border-box;
+}
+
+.rk-dashboard a.rk-dashboard-tool {
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.rk-dashboard a.rk-dashboard-tool:hover {
+	background: var(--rk-color-surface-subtle);
+}
+
+.rk-dashboard .rk-dashboard-tool-form {
+	margin: 0;
+}
+
+.rk-dashboard .rk-dashboard-tool-form .rk-dashboard-tool {
+	cursor: pointer;
+}
+
+.rk-dashboard .rk-dashboard-tool[disabled] {
 	opacity: 0.58;
 	cursor: not-allowed;
 }
