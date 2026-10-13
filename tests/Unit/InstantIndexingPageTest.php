@@ -1478,6 +1478,8 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'href="' . $url . '"', $html );
 		$this->assertStringContainsString( 'target="_blank"', $html );
 		$this->assertStringContainsString( 'rel="noopener noreferrer"', $html );
+		$this->assertStringContainsString( '<span class="screen-reader-text">(opens in a new tab)</span>', $html );
+		$this->assertStringNotContainsString( 'aria-label="Open the key file in a new tab"', $html, 'visible text plus hint replaces the aria-label-only link' );
 		$this->assertContains( 'Verify key file', $labels, 'the verify control must render with its own label' );
 		$this->assertStringContainsString( 'name="rankkernel_indexnow_action" value="verify"', $html );
 		$this->assertStringContainsString( 'should show only the key as plain text', $html );
