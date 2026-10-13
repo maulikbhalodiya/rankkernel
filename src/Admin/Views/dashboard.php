@@ -201,7 +201,6 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 						<?php endif; ?>
 					</div>
 					<div class="rk-dashboard-stat-label"><?php echo esc_html__( 'available modules switched off', 'rankkernel' ); ?></div>
-					<a class="rk-dashboard-stat-link" href="#rk-modules"><?php echo esc_html__( 'View Modules', 'rankkernel' ); ?><span class="rk-icon" aria-hidden="true">arrow_right</span></a>
 				</div>
 				<div class="rk-dashboard-stat-icon <?php echo $rk_attention_count > 0 ? 'rk-dashboard-stat-icon-neutral' : 'rk-dashboard-stat-icon-positive'; ?>" id="rk-attention-stat-icon" aria-hidden="true"><span class="rk-icon" aria-hidden="true"><?php echo $rk_attention_count > 0 ? 'info' : 'check_circle'; ?></span></div>
 			</div>
@@ -240,7 +239,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 					<div class="rk-dashboard-search">
 						<label class="screen-reader-text" for="rk-modules-search"><?php echo esc_html__( 'Search modules', 'rankkernel' ); ?></label>
 						<span class="rk-icon rk-dashboard-search-icon" aria-hidden="true">search</span>
-					<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" title="<?php echo esc_attr( __( 'Module search is not available in this version.', 'rankkernel' ) ); ?>" disabled />
+					<input type="search" id="rk-modules-search" class="rk-dashboard-search-input" placeholder="<?php echo esc_attr( __( 'Search modules...', 'rankkernel' ) ); ?>" autocomplete="off" />
 					</div>
 				</div>
 
@@ -341,6 +340,8 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 							<?php endforeach; ?>
 						</div>
 					</div>
+
+					<p class="rk-dashboard-modules-empty" id="rk-modules-empty" hidden><?php echo esc_html__( 'No modules match this search.', 'rankkernel' ); ?></p>
 
 				</div>
 			</section>

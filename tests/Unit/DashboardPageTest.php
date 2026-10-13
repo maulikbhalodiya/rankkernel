@@ -452,14 +452,19 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the disabled module search carries no Soon note.
+	 * Test the module search renders enabled with an empty state, and the
+	 * stat card carries no same-page View Modules link.
 	 */
-	public function test_render_module_search_has_no_soon_note(): void {
+	public function test_render_module_search_is_usable_and_stat_has_no_redundant_link(): void {
 		ob_start();
 		( new DashboardPage() )->render();
 		$output = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'id="rk-modules-search"', $output );
+		$this->assertStringNotContainsString( 'Module search is not available', $output );
 		$this->assertStringNotContainsString( 'rk-modules-search-note', $output );
-		$this->assertStringNotContainsString( '>Soon<', $output );
+		$this->assertStringContainsString( 'id="rk-modules-empty"', $output );
+		$this->assertStringNotContainsString( 'rk-dashboard-stat-link', $output );
+		$this->assertStringNotContainsString( 'View Modules', $output );
 	}
 }
