@@ -450,4 +450,16 @@ final class DashboardPageTest extends TestCase {
 		$this->assertStringContainsString( 'M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z', $output );
 		$this->assertStringNotContainsString( '<span class="rk-dashboard-logo" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></span>', $output );
 	}
+
+	/**
+	 * Test the disabled module search carries no Soon note.
+	 */
+	public function test_render_module_search_has_no_soon_note(): void {
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'rk-modules-search-note', $output );
+		$this->assertStringNotContainsString( '>Soon<', $output );
+	}
 }
