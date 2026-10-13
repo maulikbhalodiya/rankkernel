@@ -300,6 +300,35 @@ final class ContextTest extends TestCase {
 	}
 
 	/**
+	 * Test repeated type, id and singular reads hit the query once.
+	 */
+	public function test_repeated_query_helpers_hit_the_query_once(): void {
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_preview' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_feed' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_search' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_404' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_home' )->once()->andReturn( true );
+		$query->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_singular' )->once()->andReturn( false );
+		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'get_queried_object_id' )->once()->andReturn( 7 );
+		$query->shouldReceive( 'get' )->andReturn( null )->byDefault();
+
+		$ctx = new Context( $query, new SettingsStore() );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( 7, $ctx->queriedId() );
+		$this->assertSame( 7, $ctx->queriedId() );
+		$this->assertFalse( $ctx->isSingular() );
+		$this->assertFalse( $ctx->isSingular() );
+	}
+
+	/**
 	 * Test permalink home for home type.
 	 */
 	public function test_permalink_home_for_home_type(): void {
