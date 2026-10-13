@@ -184,23 +184,26 @@ final class RedirectTable {
 
 		$table   = self::name();
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
-		$sql     = "CREATE TABLE `{$table}` ("
-			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
-			. "match_type VARCHAR(20) NOT NULL DEFAULT 'exact',"
-			. 'source_hash CHAR(64) NOT NULL,'
-			. 'source TEXT NOT NULL,'
-			. 'target TEXT NOT NULL,'
-			. "code VARCHAR(10) NOT NULL DEFAULT '301',"
-			. 'hits BIGINT UNSIGNED NOT NULL DEFAULT 0,'
-			. 'is_active TINYINT(1) NOT NULL DEFAULT 1,'
-			. 'created DATETIME NOT NULL,'
-			. 'last_accessed DATETIME NULL DEFAULT NULL,'
-			. 'PRIMARY KEY (id),'
-			. 'UNIQUE KEY match_source (match_type, source_hash),'
-			. 'KEY is_active (is_active),'
-			. 'KEY hits (hits),'
-			. 'KEY created (created),'
-			. 'KEY last_accessed (last_accessed)'
+
+		// dbDelta splits definitions on newlines: one definition per line
+		// keeps its parser from attributing one column's default to another.
+		$sql = "CREATE TABLE `{$table}` (\n"
+			. "id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n"
+			. "match_type VARCHAR(20) NOT NULL DEFAULT 'exact',\n"
+			. "source_hash CHAR(64) NOT NULL,\n"
+			. "source TEXT NOT NULL,\n"
+			. "target TEXT NOT NULL,\n"
+			. "code VARCHAR(10) NOT NULL DEFAULT '301',\n"
+			. "hits BIGINT UNSIGNED NOT NULL DEFAULT 0,\n"
+			. "is_active TINYINT(1) NOT NULL DEFAULT 1,\n"
+			. "created DATETIME NOT NULL,\n"
+			. "last_accessed DATETIME NULL DEFAULT NULL,\n"
+			. "PRIMARY KEY (id),\n"
+			. "UNIQUE KEY match_source (match_type, source_hash),\n"
+			. "KEY is_active (is_active),\n"
+			. "KEY hits (hits),\n"
+			. "KEY created (created),\n"
+			. "KEY last_accessed (last_accessed)\n"
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {

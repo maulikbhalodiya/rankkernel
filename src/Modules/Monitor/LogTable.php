@@ -158,20 +158,22 @@ final class LogTable {
 
 		$table   = self::name();
 		$charset = method_exists( $wpdb, 'get_charset_collate' ) ? (string) $wpdb->get_charset_collate() : '';
-		$sql     = "CREATE TABLE `{$table}` ("
-			. 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,'
-			. 'uri_hash CHAR(64) NOT NULL,'
-			. 'uri TEXT NOT NULL,'
-			. 'hits BIGINT UNSIGNED NOT NULL DEFAULT 0,'
-			. "referer VARCHAR(255) NOT NULL DEFAULT '',"
-			. "user_agent VARCHAR(255) NOT NULL DEFAULT '',"
-			. 'created DATETIME NOT NULL,'
-			. 'last_accessed DATETIME NOT NULL,'
-			. 'PRIMARY KEY (id),'
-			. 'UNIQUE KEY uri_hash (uri_hash),'
-			. 'KEY hits (hits),'
-			. 'KEY created (created),'
-			. 'KEY last_accessed (last_accessed)'
+		// dbDelta splits definitions on newlines: one definition per line
+		// keeps its parser from attributing one column's default to another.
+		$sql = "CREATE TABLE `{$table}` (\n"
+			. "id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n"
+			. "uri_hash CHAR(64) NOT NULL,\n"
+			. "uri TEXT NOT NULL,\n"
+			. "hits BIGINT UNSIGNED NOT NULL DEFAULT 0,\n"
+			. "referer VARCHAR(255) NOT NULL DEFAULT '',\n"
+			. "user_agent VARCHAR(255) NOT NULL DEFAULT '',\n"
+			. "created DATETIME NOT NULL,\n"
+			. "last_accessed DATETIME NOT NULL,\n"
+			. "PRIMARY KEY (id),\n"
+			. "UNIQUE KEY uri_hash (uri_hash),\n"
+			. "KEY hits (hits),\n"
+			. "KEY created (created),\n"
+			. "KEY last_accessed (last_accessed)\n"
 			. ") {$charset};";
 
 		if ( function_exists( 'dbDelta' ) ) {
