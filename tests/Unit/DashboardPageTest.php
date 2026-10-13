@@ -439,7 +439,8 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
-	 * Test the brand tile renders the Trends mark, not the old magnifier or steps.
+	 * Test the brand tile renders the Trends mark in the tile foreground
+	 * color, not a hardcoded gray that dies on the blue tile.
 	 */
 	public function test_render_brand_tile_uses_trends_logo(): void {
 		ob_start();
@@ -448,6 +449,8 @@ final class DashboardPageTest extends TestCase {
 
 		$this->assertStringContainsString( '<span class="rk-dashboard-logo"', $output );
 		$this->assertStringContainsString( 'M5.5 4.75C5.5 4.33579 5.16421 4 4.75 4', $output );
+		$this->assertStringContainsString( 'fill="currentColor"></path></svg></span>', $output );
+		$this->assertStringNotContainsString( '605E5C', $output );
 		$this->assertStringNotContainsString( 'M1.5 17.5v-3h4.5v-3h4.5V8h4v9.5z', $output );
 		$this->assertStringNotContainsString( '<span class="rk-dashboard-logo" aria-hidden="true"><span class="rk-icon" aria-hidden="true">search</span></span>', $output );
 	}
