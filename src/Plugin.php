@@ -19,6 +19,7 @@ use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Analysis\AnalysisModule;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\InstantIndexing\InstantIndexingModule;
+use RankKernel\Modules\Importer\ImporterModule;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
@@ -149,8 +150,9 @@ final class Plugin {
 			add_action( 'admin_menu', [ $adminMenu, 'addSchemaPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
-			add_action( 'admin_menu', [ $adminMenu, 'addInstantIndexingPage' ] );
-			add_action( 'admin_menu', [ $adminMenu, 'addSupportPage' ] );
+		add_action( 'admin_menu', [ $adminMenu, 'addInstantIndexingPage' ] );
+		add_action( 'admin_menu', [ $adminMenu, 'addImporterPage' ] );
+		add_action( 'admin_menu', [ $adminMenu, 'addSupportPage' ] );
 
 			/*
 			 * AJAX handler for the redirect list partial refresh.
@@ -215,6 +217,10 @@ final class Plugin {
 		// stand between an install and any outbound request).
 		$instantIndexingModule = new InstantIndexingModule( $enableMap );
 		$moduleManager->register( $instantIndexingModule );
+
+		// Importer module (optional, default off, admin screen only).
+		$importerModule = new ImporterModule( $enableMap );
+		$moduleManager->register( $importerModule );
 
 		add_action( 'init', [ $migrationRunner, 'maybeRun' ], 10 );
 

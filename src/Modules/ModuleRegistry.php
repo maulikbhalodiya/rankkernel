@@ -44,7 +44,7 @@ final class ModuleRegistry {
 	 *
 	 * @var string[]
 	 */
-	public const PLANNED = [ 'image-seo', 'gutenberg', 'ai', 'headless', 'importer' ];
+	public const PLANNED = [ 'image-seo', 'gutenberg', 'ai', 'headless' ];
 
 	/**
 	 * Get all modules as id => label.
