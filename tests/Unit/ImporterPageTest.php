@@ -111,9 +111,21 @@ final class ImporterPageTest extends TestCase {
 			[
 				new ImportControllerStubReader(
 					[
-						[ 'id' => 1, 'type' => 'post', 'data' => [] ],
-						[ 'id' => 2, 'type' => 'post', 'data' => [] ],
-						[ 'id' => 3, 'type' => 'post', 'data' => [] ],
+						[
+							'id'   => 1,
+							'type' => 'post',
+							'data' => [],
+						],
+						[
+							'id'   => 2,
+							'type' => 'post',
+							'data' => [],
+						],
+						[
+							'id'   => 3,
+							'type' => 'post',
+							'data' => [],
+						],
 					]
 				),
 			]

@@ -1,4 +1,10 @@
 <?php
+/**
+ * Redirect mapper, source-plugin rows into repository rows.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
 
 declare(strict_types=1);
 
@@ -93,10 +99,10 @@ final class RedirectMapper {
 	 * @param string $source Source path or pattern.
 	 * @param string $target Target URL.
 	 * @param int    $code Status code.
-	 * @param string $match Match type, exact or regex.
+	 * @param string $matchType Match type, exact or regex.
 	 * @return array<string, mixed> Mapped or skipped row.
 	 */
-	private static function buildRow( string $source, string $target, int $code, string $match ): array {
+	private static function buildRow( string $source, string $target, int $code, string $matchType ): array {
 		if ( ! in_array( $code, self::ALLOWED_CODES, true ) ) {
 			return self::skipRow( $source, 'unsupported status code ' . $code );
 		}
@@ -105,7 +111,7 @@ final class RedirectMapper {
 			'source'     => $source,
 			'target'     => $target,
 			'code'       => $code,
-			'match_type' => $match,
+			'match_type' => $matchType,
 		];
 	}
 

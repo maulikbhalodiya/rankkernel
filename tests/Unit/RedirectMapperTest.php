@@ -1,8 +1,14 @@
 <?php
+/**
+ * Redirect mapper tests.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
 
 declare(strict_types=1);
 
-namespace RankKernel\Tests;
+namespace RankKernel\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Importer\RedirectMapper;

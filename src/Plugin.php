@@ -150,9 +150,9 @@ final class Plugin {
 			add_action( 'admin_menu', [ $adminMenu, 'addSchemaPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addRedirectsPage' ] );
 			add_action( 'admin_menu', [ $adminMenu, 'addMonitorPage' ] );
-		add_action( 'admin_menu', [ $adminMenu, 'addInstantIndexingPage' ] );
-		add_action( 'admin_menu', [ $adminMenu, 'addImporterPage' ] );
-		add_action( 'admin_menu', [ $adminMenu, 'addSupportPage' ] );
+			add_action( 'admin_menu', [ $adminMenu, 'addInstantIndexingPage' ] );
+			add_action( 'admin_menu', [ $adminMenu, 'addImporterPage' ] );
+			add_action( 'admin_menu', [ $adminMenu, 'addSupportPage' ] );
 
 			/*
 			 * AJAX handler for the redirect list partial refresh.

@@ -349,7 +349,7 @@ final class ImporterFakeDb {
 	 * @param mixed       $output Ignored, rows always come back as arrays.
 	 * @return array<int, array<string, mixed>> The rows.
 	 */
-	public function get_results( ?string $query = null, mixed $output = null ): array {
+	public function get_results( ?string $query = null, mixed $output = null ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
 		$sql                = stripslashes( (string) $query );
 		[ $offset, $count ] = $this->parseLimit( $sql );
 
@@ -371,8 +371,8 @@ final class ImporterFakeDb {
 					if ( '' === $prefix || str_starts_with( (string) $key, $prefix ) ) {
 						$rows[] = [
 							'post_id'    => $id,
-							'meta_key'   => $key,
-							'meta_value' => $value,
+							'meta_key'   => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- fake result column name, no query involved.
+							'meta_value' => $value, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- fake result column name, no query involved.
 						];
 					}
 				}
@@ -391,8 +391,8 @@ final class ImporterFakeDb {
 					if ( '' === $prefix || str_starts_with( (string) $key, $prefix ) ) {
 						$rows[] = [
 							'term_id'    => $id,
-							'meta_key'   => $key,
-							'meta_value' => $value,
+							'meta_key'   => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- fake result column name, no query involved.
+							'meta_value' => $value, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- fake result column name, no query involved.
 						];
 					}
 				}

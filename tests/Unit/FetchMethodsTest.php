@@ -48,6 +48,7 @@ final class FetchMethodsTest extends TestCase {
 	 */
 	private function seedOptions( array $options ): void {
 		Functions\when( 'get_option' )->alias(
+			// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- stub mirrors the WordPress get_option signature.
 			static function ( $name, $default = false ) use ( $options ) {
 				return array_key_exists( (string) $name, $options ) ? $options[ (string) $name ] : $default;
 			}

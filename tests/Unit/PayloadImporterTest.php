@@ -71,7 +71,14 @@ final class PayloadImporterTest extends TestCase {
 			'skip'
 		);
 
-		$this->assertSame( [ 'applied' => 1, 'skipped' => 1, 'failed' => 0 ], $result );
+		$this->assertSame(
+			[
+				'applied' => 1,
+				'skipped' => 1,
+				'failed'  => 0,
+			],
+			$result
+		);
 		$this->assertSame( 'Mine', $captured['title'] );
 		$this->assertSame( 'Imported desc', $captured['description'] );
 	}
@@ -105,7 +112,14 @@ final class PayloadImporterTest extends TestCase {
 			'overwrite'
 		);
 
-		$this->assertSame( [ 'applied' => 1, 'skipped' => 0, 'failed' => 0 ], $result );
+		$this->assertSame(
+			[
+				'applied' => 1,
+				'skipped' => 0,
+				'failed'  => 0,
+			],
+			$result
+		);
 		$this->assertSame( 'Imported', $captured['title'] );
 	}
 
@@ -126,7 +140,14 @@ final class PayloadImporterTest extends TestCase {
 			'skip'
 		);
 
-		$this->assertSame( [ 'applied' => 0, 'skipped' => 0, 'failed' => 1 ], $result );
+		$this->assertSame(
+			[
+				'applied' => 0,
+				'skipped' => 0,
+				'failed'  => 1,
+			],
+			$result
+		);
 	}
 
 	/**
@@ -137,6 +158,13 @@ final class PayloadImporterTest extends TestCase {
 
 		$result = PayloadImporter::applyRows( [], 'skip' );
 
-		$this->assertSame( [ 'applied' => 0, 'skipped' => 0, 'failed' => 0 ], $result );
+		$this->assertSame(
+			[
+				'applied' => 0,
+				'skipped' => 0,
+				'failed'  => 0,
+			],
+			$result
+		);
 	}
 }

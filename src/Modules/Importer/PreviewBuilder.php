@@ -31,6 +31,7 @@ final class PreviewBuilder {
 	 * @param array<string, mixed>                                                                                     $sitewideRaw   Raw sitewide option, shape depends on source.
 	 * @param array<int, array<string, mixed>>                                                                         $redirectRaw   Raw redirect rows, shape depends on source.
 	 * @param string                                                                                                   $mode          Conflict mode, skip or overwrite.
+	 * @throws \InvalidArgumentException When the mode or source is unknown.
 	 * @return array{rows: Row[], skipped: Row[]} The row lists.
 	 */
 	public static function buildPreview( string $source, array $posts, array $terms, array $sitewideRaw, array $redirectRaw, string $mode ): array {
@@ -163,7 +164,7 @@ final class PreviewBuilder {
 			$old     = $existing[ $field ];
 			$default = $defaults[ $field ] ?? null;
 
-			if ( $old != $default && $old != $value ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison -- stored payloads mix int and string scalars, strict comparison would flag phantom conflicts.
+			if ( $old != $default && $old != $value ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- stored payloads mix int and string scalars, strict comparison would flag phantom conflicts.
 				$conflicts[ $field ] = $old;
 			}
 		}

@@ -130,6 +130,7 @@ final class ImporterModuleTest extends TestCase {
 	public function test_rest_callback_registers_preview_and_run_routes(): void {
 		$routes = [];
 		Functions\when( 'register_rest_route' )->alias(
+			// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- stub mirrors the register_rest_route signature.
 			static function ( string $namespace, string $route ) use ( &$routes ): bool {
 				$routes[] = $namespace . $route;
 				return true;
