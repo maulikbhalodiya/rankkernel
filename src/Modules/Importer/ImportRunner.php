@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace RankKernel\Modules\Importer;
 
 use InvalidArgumentException;
+use RankKernel\Modules\Redirects\Normalizer;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Settings\SettingsStore;
 
@@ -28,11 +29,6 @@ final class ImportRunner {
 	 * @var string[]
 	 */
 	private const KINDS = [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk' ];
-
-	/**
-	 * Maximum ids one bulk enumeration pulls; larger sets import in slices.
-	 */
-	private const BULK_IDS_MAX = 10000;
 
 	/**
 	 * Source readers by id.
@@ -85,10 +81,10 @@ final class ImportRunner {
 	 * @param int                  $offset   Chunk offset.
 	 * @param int                  $limit    Chunk size.
 	 * @param string               $mode     Conflict mode, skip or overwrite.
-	 * @param array<int|string>    $excludes Excluded ref ids, redirect source urls for redirects.
-	 * @param array<string, mixed> $options  Sitewide choices or the bulk rule.
+	 * @param string[]             $excludes Excluded row identities, post:{id}, term:{taxonomy}:{id}, redirect:{match}:{source}.
+	 * @param array<string, mixed> $options  Nested choices map for sitewide, rule identity string for bulk.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
-	 * @throws InvalidArgumentException When source, kind, mode or limit is invalid.
+	 * @throws InvalidArgumentException When source, kind, mode, limit, exclusion, choice or rule is invalid.
 	 */
 	public function run( string $source, string $kind, int $offset, int $limit, string $mode, array $excludes = [], array $options = [] ): array {
 		if ( ! isset( $this->readers[ $source ] ) ) {
@@ -125,7 +121,38 @@ final class ImportRunner {
 			return $this->runRedirects( $reader, $source, $mode, $excludes );
 		}
 
-		return $this->runBulk( $source, $offset, $limit, $mode, $options );
+		return $this->runBulk( $reader, $source, $offset, $limit, $mode, $options );
+	}
+
+	/**
+	 * Validate exclusion identities for one chunk kind.
+	 *
+	 * Posts and terms arrive in slices, so a chunk can only check the
+	 * identity shape: exact matching happens per row below, and an
+	 * identity from another slice simply matches nothing here. Redirects
+	 * re-derive their full set every call, so they validate strictly at
+	 * the call site instead of using this helper.
+	 *
+	 * @param array<int|string> $excludes Raw exclusion values.
+	 * @param string            $kind     Chunk kind, post or term.
+	 * @return array<string, true> Identity lookup set.
+	 * @throws InvalidArgumentException When an identity is malformed.
+	 */
+	private static function exclusionSet( array $excludes, string $kind ): array {
+		$pattern = 'term' === $kind ? '/^term:[A-Za-z0-9_\-]+:\d+$/' : '/^post:\d+$/';
+		$set     = [];
+
+		foreach ( $excludes as $exclude ) {
+			$identity = (string) $exclude;
+
+			if ( 1 !== preg_match( $pattern, $identity ) ) {
+				throw new InvalidArgumentException( 'Unknown exclusion.' );
+			}
+
+			$set[ $identity ] = true;
+		}
+
+		return $set;
 	}
 
 	/**
@@ -136,10 +163,11 @@ final class ImportRunner {
 	 * @param int               $offset   Chunk offset.
 	 * @param int               $limit    Chunk size.
 	 * @param string            $mode     Conflict mode.
-	 * @param array<int|string> $excludes Excluded post ids.
+	 * @param array<int|string> $excludes Excluded post identities, post:{id}.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 */
 	private function runPosts( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes ): array {
+		$excluded     = self::exclusionSet( $excludes, 'post' );
 		$items        = $reader->fetchPosts( $offset, $limit );
 		$withExisting = [];
 
@@ -152,7 +180,7 @@ final class ImportRunner {
 		$apply   = [];
 
 		foreach ( $preview['rows'] as $row ) {
-			if ( in_array( $row->refId, $excludes, true ) ) {
+			if ( isset( $excluded[ $row->identity ] ) ) {
 				continue;
 			}
 
@@ -178,10 +206,11 @@ final class ImportRunner {
 	 * @param int               $offset   Chunk offset.
 	 * @param int               $limit    Chunk size.
 	 * @param string            $mode     Conflict mode.
-	 * @param array<int|string> $excludes Excluded term ids.
+	 * @param array<int|string> $excludes Excluded term identities, term:{taxonomy}:{id}.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 */
 	private function runTerms( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes ): array {
+		$excluded     = self::exclusionSet( $excludes, 'term' );
 		$items        = $reader->fetchTerms( $offset, $limit );
 		$withExisting = [];
 
@@ -194,7 +223,7 @@ final class ImportRunner {
 		$apply   = [];
 
 		foreach ( $preview['rows'] as $row ) {
-			if ( in_array( $row->refId, $excludes, true ) ) {
+			if ( isset( $excluded[ $row->identity ] ) ) {
 				continue;
 			}
 
@@ -215,19 +244,23 @@ final class ImportRunner {
 	/**
 	 * Apply the chosen sitewide candidates.
 	 *
+	 * Choices arrive nested under options choices as slot to candidate
+	 * identity, sitewide:{slot}:{source}. Every choice is validated
+	 * against the re-derived candidate set, so a stale or forged value
+	 * throws instead of writing an unseen template. Slots without a
+	 * choice stay unchanged.
+	 *
 	 * @param SourceReader         $reader  Source reader.
 	 * @param string               $source  Source id.
 	 * @param string               $mode    Conflict mode.
-	 * @param array<string, mixed> $options Sitewide choices by slot.
+	 * @param array<string, mixed> $options Run options with the choices map.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 * @throws InvalidArgumentException When a slot choice is unknown.
 	 */
 	private function runSitewide( SourceReader $reader, string $source, string $mode, array $options ): array {
 		$preview = PreviewBuilder::buildPreview( $source, [], [], $reader->fetchSitewideRaw(), [], $mode );
-		$choices = $options;
-
-		unset( $choices['rule'] );
-		$counts = [
+		$choices = is_array( $options['choices'] ?? null ) ? $options['choices'] : [];
+		$counts  = [
 			'applied' => 0,
 			'skipped' => 0,
 			'failed'  => 0,
@@ -242,27 +275,11 @@ final class ImportRunner {
 				continue;
 			}
 
-			$bySlot[ $row->slot ][] = $row;
+			$bySlot[ $row->slot ][ $row->identity ] = $row;
 		}
 
-		foreach ( $bySlot as $slot => $candidates ) {
-			$names = [];
-
-			foreach ( $candidates as $candidate ) {
-				$sourceName = is_string( $candidate->fields['candidate_source'] ?? null ) ? $candidate->fields['candidate_source'] : '';
-
-				if ( '' !== $sourceName ) {
-					$names[] = $sourceName;
-				}
-			}
-
-			if ( isset( $choices[ $slot ] ) && ! in_array( (string) $choices[ $slot ], $names, true ) ) {
-				throw new InvalidArgumentException( 'Unknown sitewide choice.' );
-			}
-		}
-
-		foreach ( array_keys( $choices ) as $slot ) {
-			if ( ! isset( $bySlot[ (string) $slot ] ) ) {
+		foreach ( $choices as $slot => $identity ) {
+			if ( ! isset( $bySlot[ (string) $slot ] ) || ! isset( $bySlot[ (string) $slot ][ (string) $identity ] ) ) {
 				throw new InvalidArgumentException( 'Unknown sitewide choice.' );
 			}
 		}
@@ -274,24 +291,8 @@ final class ImportRunner {
 				continue;
 			}
 
-			$wanted = (string) $choices[ $slot ];
-			$picked = null;
-
-			foreach ( $candidates as $candidate ) {
-				$sourceName = is_string( $candidate->fields['candidate_source'] ?? null ) ? $candidate->fields['candidate_source'] : '';
-
-				if ( $sourceName === $wanted ) {
-					$picked = $candidate;
-
-					break;
-				}
-			}
-
-			if ( null === $picked ) {
-				continue;
-			}
-
-			$value = $picked->fields['value'] ?? '';
+			$picked = $candidates[ (string) $choices[ $slot ] ];
+			$value  = $picked->fields['value'] ?? '';
 
 			if ( ! is_string( $value ) || '' === $value ) {
 				++$counts['skipped'];
@@ -316,11 +317,17 @@ final class ImportRunner {
 	/**
 	 * Insert redirect rows through the repository.
 	 *
+	 * Exclusions are validated against the full re-derived set, so an
+	 * unknown identity throws instead of passing silently. Rows that
+	 * already exist are counted skipped, which makes repeated chunks
+	 * and retried runs idempotent.
+	 *
 	 * @param SourceReader      $reader   Source reader.
 	 * @param string            $source   Source id.
 	 * @param string            $mode     Conflict mode.
-	 * @param array<int|string> $excludes Excluded redirect source urls.
+	 * @param array<int|string> $excludes Excluded redirect identities, redirect:{match}:{source}.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
+	 * @throws InvalidArgumentException When an exclusion is unknown.
 	 */
 	private function runRedirects( SourceReader $reader, string $source, string $mode, array $excludes ): array {
 		$preview = PreviewBuilder::buildPreview( $source, [], [], [], $reader->fetchRedirectsRaw(), $mode );
@@ -331,15 +338,42 @@ final class ImportRunner {
 			'done'    => true,
 			'total'   => $reader->detect()['redirects'],
 		];
+		$skip    = [];
+
+		$valid = [];
 
 		foreach ( $preview['rows'] as $row ) {
-			if ( 'redirect' !== $row->kind ) {
+			if ( 'redirect' === $row->kind ) {
+				$valid[ $row->identity ] = $row;
+			}
+		}
+
+		foreach ( $excludes as $exclude ) {
+			if ( ! isset( $valid[ (string) $exclude ] ) ) {
+				throw new InvalidArgumentException( 'Unknown redirect exclusion.' );
+			}
+
+			$skip[ (string) $exclude ] = true;
+		}
+
+		foreach ( $valid as $identity => $row ) {
+			if ( isset( $skip[ $identity ] ) ) {
+				++$counts['skipped'];
+
 				continue;
 			}
 
-			$from = (string) ( $row->fields['source'] ?? '' );
+			$matchType  = (string) ( $row->fields['match_type'] ?? 'exact' );
+			$from       = (string) ( $row->fields['source'] ?? '' );
+			$normalized = Normalizer::normalizeSource( $from, $matchType );
 
-			if ( in_array( $from, $excludes, true ) ) {
+			if ( '' === $normalized || Normalizer::isBlockedSource( $normalized ) ) {
+				++$counts['skipped'];
+
+				continue;
+			}
+
+			if ( null !== $this->redirects->find( $matchType, Normalizer::hash( $matchType, $normalized ) ) ) {
 				++$counts['skipped'];
 
 				continue;
@@ -350,7 +384,7 @@ final class ImportRunner {
 					'source'     => $from,
 					'target'     => (string) ( $row->fields['target'] ?? '' ),
 					'code'       => (int) ( $row->fields['code'] ?? 301 ),
-					'match_type' => (string) ( $row->fields['match_type'] ?? 'exact' ),
+					'match_type' => $matchType,
 					'is_active'  => 1,
 				]
 			);
@@ -368,33 +402,53 @@ final class ImportRunner {
 	/**
 	 * Stamp one bulk noindex rule over a local id slice.
 	 *
+	 * The rule arrives as its preview identity, bulk:{kind}:{type},
+	 * and is validated against the re-derived mapper rules, so a
+	 * forged type can never stamp unrelated content. Ids enumerate
+	 * in bounded slices through BulkScope, never one capped array.
+	 *
+	 * @param SourceReader         $reader  Source reader.
 	 * @param string               $source  Source id.
 	 * @param int                  $offset  Chunk offset.
 	 * @param int                  $limit   Chunk size.
 	 * @param string               $mode    Conflict mode.
-	 * @param array<string, mixed> $options Bulk rule wrapper.
+	 * @param array<string, mixed> $options Bulk rule wrapper with the rule identity.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 * @throws InvalidArgumentException When the bulk rule is unknown.
 	 */
-	private function runBulk( string $source, int $offset, int $limit, string $mode, array $options ): array {
-		$rule = is_array( $options['rule'] ?? null ) ? $options['rule'] : [];
+	private function runBulk( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $options ): array {
+		$identity = is_string( $options['rule'] ?? null ) ? $options['rule'] : '';
+		$preview  = PreviewBuilder::buildPreview( $source, [], [], $reader->fetchSitewideRaw(), [], $mode );
+		$valid    = [];
 
-		if ( ( $rule['kind'] ?? '' ) !== 'post' && ( $rule['kind'] ?? '' ) !== 'term' ) {
+		foreach ( $preview['rows'] as $row ) {
+			if ( $row->bulk && '' !== $row->identity ) {
+				$valid[] = $row->identity;
+			}
+		}
+
+		if ( '' === $identity || ! in_array( $identity, $valid, true ) ) {
 			throw new InvalidArgumentException( 'Unknown bulk rule.' );
 		}
 
-		$type = (string) ( $rule['type'] ?? '' );
+		$parts = explode( ':', $identity );
+		$kind  = $parts[1] ?? '';
+		$type  = $parts[2] ?? '';
 
-		if ( '' === $type ) {
-			throw new InvalidArgumentException( 'Unknown bulk rule.' );
+		if ( null !== $this->bulkEnumerator ) {
+			$all   = call_user_func( $this->bulkEnumerator, $kind, $type );
+			$all   = is_array( $all ) ? array_map( 'intval', $all ) : [];
+			$total = count( $all );
+			$slice = array_slice( $all, $offset, $limit );
+		} else {
+			$total = BulkScope::count( $kind, $type );
+			$slice = BulkScope::ids( $kind, $type, $offset, $limit );
 		}
 
-		$ids   = $this->bulkIds( (string) $rule['kind'], $type );
-		$slice = array_slice( $ids, $offset, $limit );
 		$apply = [];
 
 		foreach ( $slice as $id ) {
-			$apply[] = 'post' === $rule['kind']
+			$apply[] = 'post' === $kind
 				? [
 					'post_id' => $id,
 					'fields'  => [ 'robots' => [ 'index' => false ] ],
@@ -405,62 +459,13 @@ final class ImportRunner {
 				];
 		}
 
-		$counts = 'post' === $rule['kind']
+		$counts = 'post' === $kind
 			? PayloadImporter::applyRows( $apply, $mode )
 			: PayloadImporter::applyTermRows( $apply, $mode );
 
-		$counts['done']  = $offset + $limit >= count( $ids );
-		$counts['total'] = count( $ids );
+		$counts['done']  = $offset + $limit >= $total;
+		$counts['total'] = $total;
 
 		return $counts;
-	}
-
-	/**
-	 * List local ids of one post type or taxonomy.
-	 *
-	 * @param string $kind Post or term.
-	 * @param string $type Post type or taxonomy.
-	 * @return int[] The ids.
-	 */
-	private function bulkIds( string $kind, string $type ): array {
-		if ( null !== $this->bulkEnumerator ) {
-			$ids = call_user_func( $this->bulkEnumerator, $kind, $type );
-
-			return is_array( $ids ) ? array_map( 'intval', $ids ) : [];
-		}
-
-		if ( ! function_exists( 'get_posts' ) ) {
-			return [];
-		}
-
-		if ( 'term' === $kind ) {
-			if ( ! function_exists( 'get_terms' ) ) {
-				return [];
-			}
-
-			return array_map(
-				'intval',
-				get_terms(
-					[
-						'taxonomy'   => $type,
-						'hide_empty' => false,
-						'fields'     => 'ids',
-						'number'     => self::BULK_IDS_MAX,
-					]
-				)
-			);
-		}
-
-		return array_map(
-			'intval',
-			get_posts(
-				[
-					'post_type'      => $type,
-					'posts_per_page' => self::BULK_IDS_MAX,
-					'offset'         => 0,
-					'fields'         => 'ids',
-				]
-			)
-		);
 	}
 }

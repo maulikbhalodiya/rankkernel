@@ -142,9 +142,10 @@ final class ImporterPageTest extends TestCase {
 	/**
 	 * Test the run path markup matches the page script contract.
 	 *
-	 * Preview rows container, conflict mode radio defaulting to skip,
-	 * run button, progress bar, announce region and error box must all
-	 * exist or the script has nothing to drive.
+	 * Per-kind section mounts, the confirmation panel, conflict mode
+	 * radio defaulting to skip, run button, progress bar, announce
+	 * region and error box must all exist or the script has nothing
+	 * to drive.
 	 */
 	public function test_render_has_run_path_markup(): void {
 		$page = new ImporterPage();
@@ -153,7 +154,11 @@ final class ImporterPageTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'data-rk-importer-rows', $html );
+		foreach ( [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk', 'skipped' ] as $section ) {
+			$this->assertStringContainsString( 'data-rk-importer-section="' . $section . '"', $html );
+		}
+
+		$this->assertStringContainsString( 'data-rk-importer-confirm="1"', $html );
 		$this->assertStringContainsString( 'name="rk-importer-mode"', $html );
 		$this->assertStringContainsString( 'data-rk-importer-run', $html );
 		$this->assertStringContainsString( 'data-rk-importer-bar', $html );

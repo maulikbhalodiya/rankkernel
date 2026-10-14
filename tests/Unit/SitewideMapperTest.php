@@ -125,4 +125,70 @@ final class SitewideMapperTest extends TestCase {
 		$this->assertSame( '%%title%% %%sep%% %%sitename%%', $result['candidates'][0]['value'] );
 		$this->assertSame( [], $result['noindex_rules'] );
 	}
+
+	/**
+	 * AIOSEO nested advanced robotsMeta noindex becomes a post rule.
+	 */
+	public function test_aioseo_nested_robots_meta_noindex(): void {
+		$result = SitewideMapper::mapAioseo(
+			[],
+			[
+				'post' => [
+					'title'    => '#post_title',
+					'advanced' => [
+						'robotsMeta' => [
+							'default' => false,
+							'noindex' => true,
+						],
+					],
+				],
+			]
+		);
+
+		$this->assertSame(
+			[
+				[
+					'kind'  => 'post',
+					'type'  => 'post',
+					'index' => false,
+				],
+			],
+			$result['noindex_rules']
+		);
+	}
+
+	/**
+	 * AIOSEO taxonomy templates become taxonomy sourced candidates and term rules.
+	 */
+	public function test_aioseo_taxonomy_templates(): void {
+		$result = SitewideMapper::mapAioseo(
+			[],
+			[],
+			[
+				'category' => [
+					'title'           => '#taxonomy_title #separator_sa #site_title',
+					'metaDescription' => '#taxonomy_description',
+					'advanced'        => [
+						'robotsMeta' => [
+							'default' => false,
+							'noindex' => true,
+						],
+					],
+				],
+			]
+		);
+
+		$sources = array_column( $result['candidates'], 'source' );
+		$this->assertContains( 'taxonomy:category', $sources );
+		$this->assertSame(
+			[
+				[
+					'kind'  => 'term',
+					'type'  => 'category',
+					'index' => false,
+				],
+			],
+			$result['noindex_rules']
+		);
+	}
 }

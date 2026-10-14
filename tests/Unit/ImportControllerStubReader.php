@@ -27,12 +27,21 @@ final class ImportControllerStubReader implements SourceReader {
 	private array $posts;
 
 	/**
+	 * Raw sitewide blob.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $sitewide;
+
+	/**
 	 * Build the double.
 	 *
-	 * @param array<int, array{id: int, type: string, data: array<string, mixed>}> $posts Post items.
+	 * @param array<int, array{id: int, type: string, data: array<string, mixed>}> $posts    Post items.
+	 * @param array<string, mixed>                                                 $sitewide Raw sitewide blob.
 	 */
-	public function __construct( array $posts = [] ) {
-		$this->posts = $posts;
+	public function __construct( array $posts = [], array $sitewide = [] ) {
+		$this->posts    = $posts;
+		$this->sitewide = $sitewide;
 	}
 
 	/**
@@ -90,12 +99,12 @@ final class ImportControllerStubReader implements SourceReader {
 	}
 
 	/**
-	 * Fetch the raw sitewide blob, always empty.
+	 * Fetch the raw sitewide blob.
 	 *
 	 * @return array<string, mixed> The raw blob.
 	 */
 	public function fetchSitewideRaw(): array {
-		return [];
+		return $this->sitewide;
 	}
 
 	/**

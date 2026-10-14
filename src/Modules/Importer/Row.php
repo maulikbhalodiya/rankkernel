@@ -32,6 +32,7 @@ final class Row {
 	 * @param string               $slot          Sitewide slot name, empty otherwise.
 	 * @param bool                 $recommended   True for the recommended slot candidate.
 	 * @param bool                 $bulk          True for rules applied to many posts at run time.
+	 * @param string               $identity      Stable unique id for exclusions and choices: post:{id}, term:{taxonomy}:{id}, sitewide:{slot}:{source}, bulk:{kind}:{type}, redirect:{match}:{source}. Empty on skipped rows, which are never excludable.
 	 */
 	public function __construct(
 		public readonly string $kind,
@@ -44,6 +45,7 @@ final class Row {
 		public readonly string $skippedReason = '',
 		public readonly string $slot = '',
 		public readonly bool $recommended = false,
-		public readonly bool $bulk = false
+		public readonly bool $bulk = false,
+		public readonly string $identity = ''
 	) {}
 }

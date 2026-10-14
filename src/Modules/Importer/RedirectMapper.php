@@ -58,7 +58,10 @@ final class RedirectMapper {
 	 * Map Rank Math redirection table rows.
 	 *
 	 * Each row carries sources (pattern plus comparison pairs), url_to,
-	 * header_code and status (active or inactive).
+	 * header_code and status (active or inactive). The sources column
+	 * stores a PHP serialized list in the live table, so it decodes
+	 * here; anything unreadable becomes a named skip, never a corrupt
+	 * row built from string offsets.
 	 *
 	 * @param array<int, array<string, mixed>> $rows Raw table rows.
 	 * @return array<int, array<string, mixed>> Mapped rows.
@@ -71,8 +74,8 @@ final class RedirectMapper {
 				continue;
 			}
 
-			$sources = $row['sources'] ?? [];
-			$first   = is_array( $sources ) ? ( $sources[0] ?? [] ) : [];
+			$sources = self::decodeSources( $row['sources'] ?? [] );
+			$first   = $sources[0] ?? [];
 			$first   = is_array( $first ) ? $first : [];
 
 			if ( 'active' !== ( $row['status'] ?? '' ) ) {
@@ -94,7 +97,32 @@ final class RedirectMapper {
 	}
 
 	/**
+	 * Decode a Rank Math sources column to its pair list.
+	 *
+	 * @param mixed $raw Raw column value.
+	 * @return array<int, mixed> Decoded pairs, empty when unreadable.
+	 */
+	private static function decodeSources( mixed $raw ): array {
+		if ( is_array( $raw ) ) {
+			return $raw;
+		}
+
+		if ( ! is_string( $raw ) || ! str_starts_with( $raw, 'a:' ) ) {
+			return [];
+		}
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- decodes the source plugin redirect column with object creation disabled, same precedent as MetaPayload.
+		$decoded = unserialize( $raw, [ 'allowed_classes' => false ] );
+
+		return is_array( $decoded ) ? $decoded : [];
+	}
+
+	/**
 	 * Build one mapped row, or a skip row for unsupported codes.
+	 *
+	 * Empty sources and targets can never insert through the
+	 * repository, so they surface as named skips instead of takable
+	 * rows the run would silently refuse.
 	 *
 	 * @param string $source Source path or pattern.
 	 * @param string $target Target URL.
@@ -103,6 +131,14 @@ final class RedirectMapper {
 	 * @return array<string, mixed> Mapped or skipped row.
 	 */
 	private static function buildRow( string $source, string $target, int $code, string $matchType ): array {
+		if ( '' === $source ) {
+			return self::skipRow( $source, 'empty redirect source' );
+		}
+
+		if ( '' === $target ) {
+			return self::skipRow( $source, 'empty redirect target' );
+		}
+
 		if ( ! in_array( $code, self::ALLOWED_CODES, true ) ) {
 			return self::skipRow( $source, 'unsupported status code ' . $code );
 		}
@@ -130,7 +166,11 @@ final class RedirectMapper {
 	}
 
 	/**
-	 * Drop later rows repeating an already mapped source.
+	 * Name later rows repeating an already mapped redirect.
+	 *
+	 * Repeats stay visible as named skips instead of vanishing, and
+	 * the match key includes the match type so an exact rule and a
+	 * regex rule may honestly coexist on one source.
 	 *
 	 * Skipped rows never dedupe: every skip reason stays visible.
 	 *
@@ -147,12 +187,15 @@ final class RedirectMapper {
 				continue;
 			}
 
-			if ( isset( $seen[ $row['source'] ] ) ) {
+			$key = (string) ( $row['match_type'] ?? 'exact' ) . '|' . (string) ( $row['source'] ?? '' );
+
+			if ( isset( $seen[ $key ] ) ) {
+				$unique[] = self::skipRow( (string) ( $row['source'] ?? '' ), 'duplicate redirect source in the same import' );
 				continue;
 			}
 
-			$seen[ $row['source'] ] = true;
-			$unique[]               = $row;
+			$seen[ $key ] = true;
+			$unique[]     = $row;
 		}
 
 		return $unique;

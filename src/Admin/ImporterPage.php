@@ -120,10 +120,13 @@ final class ImporterPage {
 	}
 
 	/**
-	 * Render the Preview plus Run markup the page script drives.
+	 * Render the Preview plus Confirm plus Run markup the page script drives.
 	 *
-	 * Preview rows arrive from the REST endpoint, so the table body
-	 * starts empty; the mode radio defaults to skip existing values.
+	 * Each kind renders into its own section mount so large previews
+	 * page without flooding the browser; sitewide candidates and bulk
+	 * rules get their own selection controls. The confirmation panel
+	 * stays empty until the script fills the pre-run summary, and the
+	 * mode radio defaults to skip existing values.
 	 */
 	private function renderRunPath(): void {
 		?>
@@ -132,17 +135,10 @@ final class ImporterPage {
 			<label><input type="radio" name="rk-importer-mode" value="skip" checked> <?php echo esc_html__( 'Skip existing values', 'rankkernel' ); ?></label>
 			<label><input type="radio" name="rk-importer-mode" value="overwrite"> <?php echo esc_html__( 'Overwrite with incoming values', 'rankkernel' ); ?></label>
 		</fieldset>
-		<table class="widefat rk-importer-preview">
-			<thead>
-				<tr>
-					<th><?php echo esc_html__( 'Change', 'rankkernel' ); ?></th>
-					<th><?php echo esc_html__( 'Kind', 'rankkernel' ); ?></th>
-					<th><?php echo esc_html__( 'Notes', 'rankkernel' ); ?></th>
-					<th><?php echo esc_html__( 'Exclude', 'rankkernel' ); ?></th>
-				</tr>
-			</thead>
-			<tbody data-rk-importer-rows="1"></tbody>
-		</table>
+		<?php foreach ( [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk', 'skipped' ] as $section ) : ?>
+			<div class="rk-importer-section" data-rk-importer-section="<?php echo esc_attr( $section ); ?>"></div>
+		<?php endforeach; ?>
+		<div class="rk-importer-confirm" data-rk-importer-confirm="1"></div>
 		<button type="button" class="button button-primary" data-rk-importer-run="1"><?php echo esc_html__( 'Run import', 'rankkernel' ); ?></button>
 		<div class="rk-importer-progress" data-rk-importer-progress="1"><div class="rk-importer-bar" data-rk-importer-bar="1"></div></div>
 		<div class="rk-importer-announce" data-rk-importer-announce="1" aria-live="polite"></div>

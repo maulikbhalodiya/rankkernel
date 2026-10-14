@@ -193,15 +193,18 @@ final class SitewideMapper {
 	/**
 	 * Map AIOSEO global and per-type appearance to candidates and rules.
 	 *
-	 * The robotsMeta shape (default/noindex flags) was not dumped live
-	 * during Phase 0; verify against a live AIOSEO install during the
-	 * Phase 5 end-to-end pass and adjust this method if it differs.
+	 * The robotsMeta block nests under each type advanced section in
+	 * AIOSEO 5, verified live: searchAppearance postTypes {type}
+	 * advanced robotsMeta {default, noindex, ...}, same shape under
+	 * taxonomies {taxonomy}. A flat robotsMeta sibling still reads as
+	 * a fallback for older option shapes.
 	 *
 	 * @param array<string, mixed> $appearance The searchAppearance section.
 	 * @param array<string, mixed> $postTypes The dynamic postTypes section.
+	 * @param array<string, mixed> $taxonomies The dynamic taxonomies section.
 	 * @return array{candidates: array<int, array{slot: string, source: string, value: string, unknowns: string[], recommended: bool}>, noindex_rules: array<int, array{kind: string, type: string, index: bool}>, skipped: array<int, array{label: string, reason: string}>} The mapping.
 	 */
-	public static function mapAioseo( array $appearance, array $postTypes ): array {
+	public static function mapAioseo( array $appearance, array $postTypes, array $taxonomies = [] ): array {
 		$candidates = [];
 		$rules      = [];
 		$skipped    = [];
@@ -232,12 +235,45 @@ final class SitewideMapper {
 				];
 			}
 
-			$robots = $settings['robotsMeta'] ?? null;
-
-			if ( is_array( $robots ) && true === ( $robots['noindex'] ?? false ) ) {
+			if ( self::aioseoNoindexed( $settings ) ) {
 				$rules[] = [
 					'kind'  => 'post',
 					'type'  => $type,
+					'index' => false,
+				];
+			}
+		}
+
+		foreach ( $taxonomies as $taxonomy => $settings ) {
+			if ( ! is_string( $taxonomy ) || ! is_array( $settings ) ) {
+				continue;
+			}
+
+			foreach ( [
+				'title'           => 'title_template',
+				'metaDescription' => 'description_template',
+			] as $field => $slot ) {
+				$raw = $settings[ $field ] ?? '';
+
+				if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+					continue;
+				}
+
+				[ $value, $unknowns ] = TokenTranslator::translateAioseo( $raw );
+
+				$candidates[] = [
+					'slot'        => $slot,
+					'source'      => 'taxonomy:' . $taxonomy,
+					'value'       => $value,
+					'unknowns'    => $unknowns,
+					'recommended' => false,
+				];
+			}
+
+			if ( self::aioseoNoindexed( $settings ) ) {
+				$rules[] = [
+					'kind'  => 'term',
+					'type'  => $taxonomy,
 					'index' => false,
 				];
 			}
@@ -271,6 +307,20 @@ final class SitewideMapper {
 			'noindex_rules' => $rules,
 			'skipped'       => [],
 		];
+	}
+
+	/**
+	 * Whether an AIOSEO type section turns noindex on.
+	 *
+	 * @param array<string, mixed> $settings Post type or taxonomy settings.
+	 * @return bool True when explicitly noindexed.
+	 */
+	private static function aioseoNoindexed( array $settings ): bool {
+		$advanced = is_array( $settings['advanced'] ?? null ) ? $settings['advanced'] : [];
+		$robots   = is_array( $advanced['robotsMeta'] ?? null ) ? $advanced['robotsMeta'] : ( is_array( $settings['robotsMeta'] ?? null ) ? $settings['robotsMeta'] : [] );
+		$flag     = $robots['noindex'] ?? false;
+
+		return true === $flag || 1 === $flag || '1' === $flag;
 	}
 
 	/**

@@ -132,7 +132,7 @@ final class RedirectMapperTest extends TestCase {
 	}
 
 	/**
-	 * Duplicate sources inside one batch dedupe to a single row.
+	 * Duplicate sources inside one batch keep one row and name the repeat.
 	 */
 	public function test_duplicate_sources_dedupe(): void {
 		$rows = RedirectMapper::mapYoast(
@@ -152,7 +152,75 @@ final class RedirectMapperTest extends TestCase {
 			]
 		);
 
-		$this->assertCount( 1, $rows );
+		$this->assertCount( 2, $rows );
 		$this->assertSame( '/one', $rows[0]['target'] );
+		$this->assertArrayHasKey( 'skip_reason', $rows[1] );
+		$this->assertStringContainsString( 'duplicate', $rows[1]['skip_reason'] );
+	}
+
+	/**
+	 * Serialized Rank Math sources decode like the live table stores them.
+	 */
+	public function test_map_rank_math_serialized_sources(): void {
+		$rows = RedirectMapper::mapRankMath(
+			[
+				[
+					'sources'     => 'a:1:{i:0;a:3:{s:6:"ignore";s:4:"case";s:7:"pattern";s:16:"qrolic-services/";s:10:"comparison";s:5:"exact";}}',
+					'url_to'      => '/services/',
+					'header_code' => 301,
+					'status'      => 'active',
+				],
+			]
+		);
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( 'qrolic-services/', $rows[0]['source'] );
+		$this->assertSame( '/services/', $rows[0]['target'] );
+		$this->assertArrayNotHasKey( 'skip_reason', $rows[0] );
+	}
+
+	/**
+	 * Empty sources and targets are named skips, never takable rows.
+	 */
+	public function test_empty_source_and_target_skipped(): void {
+		$rows = RedirectMapper::mapYoast(
+			[
+				[
+					'origin' => '',
+					'url'    => '/somewhere',
+					'type'   => '301',
+					'format' => 'plain',
+				],
+				[
+					'origin' => '/nowhere',
+					'url'    => '',
+					'type'   => '301',
+					'format' => 'plain',
+				],
+			]
+		);
+
+		$this->assertCount( 2, $rows );
+		$this->assertArrayHasKey( 'skip_reason', $rows[0] );
+		$this->assertArrayHasKey( 'skip_reason', $rows[1] );
+	}
+
+	/**
+	 * Unreadable Rank Math sources are named skips, never silent corruption.
+	 */
+	public function test_non_array_sources_skipped(): void {
+		$rows = RedirectMapper::mapRankMath(
+			[
+				[
+					'sources'     => 'not-a-serialized-array',
+					'url_to'      => '/modern',
+					'header_code' => 301,
+					'status'      => 'active',
+				],
+			]
+		);
+
+		$this->assertCount( 1, $rows );
+		$this->assertArrayHasKey( 'skip_reason', $rows[0] );
 	}
 }

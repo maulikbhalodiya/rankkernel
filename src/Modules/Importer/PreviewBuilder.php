@@ -83,9 +83,11 @@ final class PreviewBuilder {
 		if ( 'term' === $kind ) {
 			$taxonomy = (string) ( $item['taxonomy'] ?? '' );
 			$mapped   = self::mapTerm( $source, $data, $sitewideRaw, $taxonomy );
+			$identity = 'term:' . $taxonomy . ':' . $id;
 		} else {
-			$type   = (string) ( $item['type'] ?? '' );
-			$mapped = self::mapPost( $source, $data, $sitewideRaw, $type );
+			$type     = (string) ( $item['type'] ?? '' );
+			$mapped   = self::mapPost( $source, $data, $sitewideRaw, $type );
+			$identity = 'post:' . $id;
 		}
 
 		if ( [] === $mapped['mapped'] && [] === $mapped['warnings'] ) {
@@ -96,7 +98,7 @@ final class PreviewBuilder {
 
 		$conflicts = 'skip' === $mode ? self::findConflicts( $mapped['mapped'], $existing ) : [];
 
-		$rows[] = new Row( $kind, $source, $id, $label, $mapped['mapped'], $conflicts, $mapped['warnings'] );
+		$rows[] = new Row( $kind, $source, $id, $label, $mapped['mapped'], $conflicts, $mapped['warnings'], '', '', false, false, $identity );
 	}
 
 	/**
@@ -186,7 +188,8 @@ final class PreviewBuilder {
 		} elseif ( 'aioseo' === $source ) {
 			$mapped = SitewideMapper::mapAioseo(
 				is_array( $sitewideRaw['appearance'] ?? null ) ? $sitewideRaw['appearance'] : [],
-				is_array( $sitewideRaw['postTypes'] ?? null ) ? $sitewideRaw['postTypes'] : []
+				is_array( $sitewideRaw['postTypes'] ?? null ) ? $sitewideRaw['postTypes'] : [],
+				is_array( $sitewideRaw['taxonomies'] ?? null ) ? $sitewideRaw['taxonomies'] : []
 			);
 		} else {
 			$mapped = SitewideMapper::mapYoast( $sitewideRaw );
@@ -206,7 +209,9 @@ final class PreviewBuilder {
 				$candidate['unknowns'],
 				'',
 				$candidate['slot'],
-				$candidate['recommended']
+				$candidate['recommended'],
+				false,
+				'sitewide:' . $candidate['slot'] . ':' . $candidate['source']
 			);
 		}
 
@@ -216,13 +221,18 @@ final class PreviewBuilder {
 				$source,
 				0,
 				'All ' . $rule['type'] . ' ' . $rule['kind'] . 's: noindex',
-				[ 'robots' => [ 'index' => $rule['index'] ] ],
+				[
+					'rule_kind' => $rule['kind'],
+					'rule_type' => $rule['type'],
+					'robots'    => [ 'index' => $rule['index'] ],
+				],
 				[],
 				[],
 				'',
 				'',
 				false,
-				true
+				true,
+				'bulk:' . $rule['kind'] . ':' . $rule['type']
 			);
 		}
 
@@ -257,7 +267,9 @@ final class PreviewBuilder {
 				continue;
 			}
 
-			$rows[] = new Row( 'redirect', $source, 0, (string) $row['source'], $row );
+			$matchType = (string) ( $row['match_type'] ?? 'exact' );
+
+			$rows[] = new Row( 'redirect', $source, 0, (string) $row['source'], $row, [], [], '', '', false, false, 'redirect:' . $matchType . ':' . (string) $row['source'] );
 		}
 	}
 }

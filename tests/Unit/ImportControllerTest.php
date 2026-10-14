@@ -199,6 +199,190 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test preview paginates post rows with stable totals.
+	 */
+	public function test_preview_paginates_posts(): void {
+		$posts = [
+			[
+				'id'   => 7,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Seven' ],
+			],
+			[
+				'id'   => 8,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Eight' ],
+			],
+			[
+				'id'   => 9,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Nine' ],
+			],
+		];
+
+		[ $ctrl ] = $this->makeController( $posts );
+		$first    = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'posts',
+					'offset' => 0,
+					'limit'  => 2,
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $first );
+		$firstData = $first->get_data();
+		$this->assertCount( 2, $firstData['rows'] );
+		$this->assertSame( 7, $firstData['rows'][0]['refId'] );
+		$this->assertTrue( $firstData['hasMore'] );
+		$this->assertSame( 3, $firstData['kindTotal'] );
+
+		$second = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'posts',
+					'offset' => 2,
+					'limit'  => 2,
+				]
+			)
+		);
+
+		$secondData = $second->get_data();
+		$this->assertCount( 1, $secondData['rows'] );
+		$this->assertSame( 9, $secondData['rows'][0]['refId'] );
+		$this->assertFalse( $secondData['hasMore'] );
+	}
+
+	/**
+	 * Test preview rejects an unknown kind.
+	 */
+	public function test_preview_invalid_kind_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'widgets',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test preview clamps an oversized page.
+	 */
+	public function test_preview_limit_is_clamped(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'posts',
+					'limit'  => 9999,
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $res );
+		$this->assertArrayHasKey( 'limit', $res->get_data() );
+		$this->assertLessThanOrEqual( 100, $res->get_data()['limit'] );
+	}
+
+	/**
+	 * Test sitewide preview carries candidates plus counted bulk rules.
+	 */
+	public function test_preview_sitewide_returns_candidates_and_counted_bulk(): void {
+		Functions\when( 'wp_count_posts' )->justReturn(
+			(object) [
+				'publish' => 4,
+				'draft'   => 1,
+			]
+		);
+
+		$runner = new ImportControllerStubRunner();
+		$ctrl   = new ImportController(
+			[
+				'yoast' => new ImportControllerStubReader(
+					[],
+					[
+						'title-post'   => '%%title%%',
+						'noindex-post' => true,
+					]
+				),
+			],
+			static function () use ( $runner ): ImportControllerStubRunner {
+				return $runner;
+			}
+		);
+		$res    = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'sitewide',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $res );
+		$data = $res->get_data();
+
+		$candidates = array_values( array_filter( $data['rows'], static fn( $row ) => '' !== ( $row['slot'] ?? '' ) ) );
+		$this->assertCount( 1, $candidates );
+		$this->assertSame( 'sitewide:title_template:post', $candidates[0]['identity'] );
+
+		$bulks = array_values( array_filter( $data['rows'], static fn( $row ) => true === ( $row['bulk'] ?? false ) ) );
+		$this->assertCount( 1, $bulks );
+		$this->assertSame( 'bulk:post:post', $bulks[0]['identity'] );
+		$this->assertSame( 5, $bulks[0]['affected'] );
+	}
+
+	/**
+	 * Test run maps runner failures to a structured 400.
+	 */
+	public function test_run_maps_runner_exceptions_to_400(): void {
+		$ctrl = new ImportController(
+			[ 'yoast' => new ImportControllerStubReader() ],
+			static function (): object {
+				return new class() {
+					/**
+					 * Always fail like an invalid selection would.
+					 *
+					 * @throws \InvalidArgumentException Always.
+					 */
+					public function run(): void {
+						throw new \InvalidArgumentException( 'Unknown bulk rule.' );
+					}
+				};
+			}
+		);
+		$res  = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'bulk',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
 	 * Test run rejects an unknown source.
 	 */
 	public function test_run_unknown_source_returns_400(): void {

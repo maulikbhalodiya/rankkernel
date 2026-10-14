@@ -99,6 +99,7 @@ final class ImportRunnerTest extends TestCase {
 					'title-post'    => '%%title%% %%sep%% %%sitename%%',
 					'title-page'    => '%%title%%',
 					'metadesc-post' => '%%excerpt%%',
+					'noindex-post'  => true,
 				];
 			}
 
@@ -247,7 +248,7 @@ final class ImportRunnerTest extends TestCase {
 	}
 
 	/**
-	 * Excluded ref ids are skipped without touching storage.
+	 * Excluded identities are skipped without touching storage.
 	 */
 	public function test_excludes_skip_rows(): void {
 		Functions\when( 'get_post_meta' )->justReturn( [] );
@@ -255,10 +256,29 @@ final class ImportRunnerTest extends TestCase {
 
 		[ $runner ] = $this->runner();
 
-		$result = $runner->run( 'yoast', 'posts', 0, 50, 'skip', [ 11 ] );
+		$result = $runner->run( 'yoast', 'posts', 0, 50, 'skip', [ 'post:11' ] );
 
 		$this->assertSame( 1, $result['applied'] );
 		$this->assertSame( 1, $result['skipped'] );
+	}
+
+	/**
+	 * Term exclusions carry taxonomy and id, malformed values throw.
+	 */
+	public function test_term_excludes_use_taxonomy_identities(): void {
+		Functions\when( 'get_term_meta' )->justReturn( [] );
+		Functions\when( 'update_term_meta' )->justReturn( true );
+
+		[ $runner ] = $this->runner();
+
+		$result = $runner->run( 'yoast', 'terms', 0, 50, 'skip', [ 'term:category:21' ] );
+
+		$this->assertSame( 0, $result['applied'] );
+		$this->assertSame( 1, $result['skipped'] );
+
+		$this->expectException( \InvalidArgumentException::class );
+
+		$runner->run( 'yoast', 'terms', 0, 50, 'skip', [ 'bogus' ] );
 	}
 
 	/**
@@ -279,7 +299,7 @@ final class ImportRunnerTest extends TestCase {
 
 		[ $runner ] = $this->runner();
 
-		$result = $runner->run( 'yoast', 'sitewide', 0, 50, 'skip', [], [ 'title_template' => 'page' ] );
+		$result = $runner->run( 'yoast', 'sitewide', 0, 50, 'skip', [], [ 'choices' => [ 'title_template' => 'sitewide:title_template:page' ] ] );
 
 		$this->assertSame( 1, $result['applied'] );
 		$this->assertTrue( $result['done'] );
@@ -294,7 +314,7 @@ final class ImportRunnerTest extends TestCase {
 
 		$this->expectException( \InvalidArgumentException::class );
 
-		$runner->run( 'yoast', 'sitewide', 0, 50, 'skip', [], [ 'title_template' => 'nope' ] );
+		$runner->run( 'yoast', 'sitewide', 0, 50, 'skip', [], [ 'choices' => [ 'title_template' => 'sitewide:title_template:nope' ] ] );
 	}
 
 	/**
@@ -311,6 +331,103 @@ final class ImportRunnerTest extends TestCase {
 
 		$this->assertSame( 1, $result['applied'] );
 		$this->assertTrue( $result['done'] );
+	}
+
+	/**
+	 * Redirect exclusions match the redirect identity, unknown ones throw.
+	 */
+	public function test_redirects_exclude_by_identity(): void {
+		[ $runner, $db ] = $this->runner();
+
+		$GLOBALS['wpdb'] = $db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double.
+
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$result = $runner->run( 'yoast', 'redirects', 0, 50, 'skip', [ 'redirect:exact:/old' ] );
+
+		$this->assertSame( 0, $result['applied'] );
+		$this->assertSame( 1, $result['skipped'] );
+
+		$this->expectException( \InvalidArgumentException::class );
+
+		$runner->run( 'yoast', 'redirects', 0, 50, 'skip', [ 'redirect:exact:/missing' ] );
+	}
+
+	/**
+	 * Repeating a redirect chunk attempts no second write.
+	 *
+	 * The attempt counter proves the runner consults find() before
+	 * writing: a broken lookup would attempt the insert again even
+	 * though the unique constraint would still refuse the duplicate.
+	 */
+	public function test_redirects_retry_is_idempotent(): void {
+		[ $runner, $db ] = $this->runner();
+
+		$GLOBALS['wpdb'] = $db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double.
+
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$first = $runner->run( 'yoast', 'redirects', 0, 50, 'skip' );
+
+		$this->assertSame( 1, $first['applied'] );
+		$this->assertSame( 1, $db->insertAttempts );
+
+		$second = $runner->run( 'yoast', 'redirects', 0, 50, 'skip' );
+
+		$this->assertSame( 0, $second['applied'] );
+		$this->assertSame( 1, $second['skipped'] );
+		$this->assertSame( 1, $db->insertAttempts );
+	}
+
+	/**
+	 * Build a runner with a canned bulk id list.
+	 *
+	 * @return ImportRunner The runner.
+	 */
+	private function bulkRunner(): ImportRunner {
+		return new ImportRunner(
+			[ 'yoast' => $this->reader() ],
+			new RedirectRepository( new RedirectsFakeDb() ),
+			new SettingsStore(),
+			static function ( string $kind, string $type ): array {
+				return 'post' === $kind && 'post' === $type ? [ 41, 42 ] : [];
+			}
+		);
+	}
+
+	/**
+	 * A selected bulk rule stamps its targets and reports totals.
+	 */
+	public function test_bulk_applies_selected_rule(): void {
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+
+		$runner = $this->bulkRunner();
+
+		$result = $runner->run( 'yoast', 'bulk', 0, 50, 'skip', [], [ 'rule' => 'bulk:post:post' ] );
+
+		$this->assertSame( 2, $result['applied'] );
+		$this->assertSame( 2, $result['total'] );
+		$this->assertTrue( $result['done'] );
+	}
+
+	/**
+	 * Bulk run rejects an unknown or missing rule instead of guessing.
+	 */
+	public function test_bulk_rejects_unknown_rule(): void {
+		$runner = $this->bulkRunner();
+
+		try {
+			$runner->run( 'yoast', 'bulk', 0, 50, 'skip', [], [ 'rule' => 'bulk:post:nope' ] );
+
+			$this->fail( 'Expected an InvalidArgumentException for an unknown bulk rule.' );
+		} catch ( \InvalidArgumentException $e ) {
+			$this->assertNotSame( '', $e->getMessage() );
+		}
+
+		$this->expectException( \InvalidArgumentException::class );
+
+		$runner->run( 'yoast', 'bulk', 0, 50, 'skip' );
 	}
 
 	/**

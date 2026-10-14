@@ -12,6 +12,7 @@ namespace RankKernel\Rest;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Importer\BulkScope;
 use RankKernel\Modules\Importer\ImportRunner;
 use RankKernel\Modules\Importer\PayloadImporter;
 use RankKernel\Modules\Importer\PreviewBuilder;
@@ -51,6 +52,13 @@ final class ImportController {
 	 * @var string[]
 	 */
 	private const KINDS = [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk' ];
+
+	/**
+	 * Valid preview kinds, same set as chunk kinds.
+	 *
+	 * @var string[]
+	 */
+	private const PREVIEW_KINDS = [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk' ];
 
 	/**
 	 * Valid conflict modes.
@@ -210,7 +218,12 @@ final class ImportController {
 	}
 
 	/**
-	 * Preview the first chunk of importable rows.
+	 * Preview one page of importable rows.
+	 *
+	 * Posts, terms and redirects page through offset and limit so the
+	 * browser never holds an unbounded list; sitewide and bulk sets
+	 * are small enough to return whole. Bulk rule rows carry their
+	 * affected local object count.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error The result.
@@ -222,49 +235,142 @@ final class ImportController {
 			return $reader;
 		}
 
-		$mode = $this->modeFor( $this->bodyParams( $request ) );
+		$params = $this->bodyParams( $request );
+		$mode   = $this->modeFor( $params );
 		if ( $mode instanceof WP_Error ) {
 			return $mode;
 		}
 
+		$kind = isset( $params['kind'] ) ? sanitize_text_field( (string) $params['kind'] ) : 'posts';
+
+		if ( ! in_array( $kind, self::PREVIEW_KINDS, true ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_kind',
+				__( 'Invalid preview kind.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
+		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
+		$limit  = max( 1, min( self::PREVIEW_LIMIT, $limit ) );
+
 		$totals = $reader->detect();
-
-		$posts = [];
-		foreach ( $reader->fetchPosts( 0, self::PREVIEW_LIMIT ) as $item ) {
-			$item['existing'] = PayloadImporter::readPost( $item['id'] );
-			$posts[]          = $item;
-		}
-
-		$terms = [];
-		foreach ( $reader->fetchTerms( 0, self::PREVIEW_LIMIT ) as $item ) {
-			$item['existing'] = PayloadImporter::readTerm( $item['id'] );
-			$terms[]          = $item;
-		}
-
-		$preview = PreviewBuilder::buildPreview(
-			$source,
-			$posts,
-			$terms,
-			$reader->fetchSitewideRaw(),
-			$reader->fetchRedirectsRaw(),
-			$mode
-		);
-
-		$rows = [];
-		foreach ( $preview['rows'] as $row ) {
-			$rows[] = get_object_vars( $row );
-		}
+		$page   = $this->previewPage( $reader, $source, $kind, $offset, $limit, $mode, $totals );
 
 		return new WP_REST_Response(
-			[
-				'source'  => $source,
-				'mode'    => $mode,
-				'totals'  => $totals,
-				'rows'    => $rows,
-				'skipped' => $preview['skipped'],
-			],
+			array_merge(
+				[
+					'source' => $source,
+					'mode'   => $mode,
+					'kind'   => $kind,
+					'offset' => $offset,
+					'limit'  => $limit,
+					'totals' => $totals,
+				],
+				$page
+			),
 			200
 		);
+	}
+
+	/**
+	 * Build one preview page for a kind.
+	 *
+	 * @param SourceReader         $reader  Source reader.
+	 * @param string               $source  Source id.
+	 * @param string               $kind    Preview kind.
+	 * @param int                  $offset  Page offset.
+	 * @param int                  $limit   Page size.
+	 * @param string               $mode    Conflict mode.
+	 * @param array<string, mixed> $totals  Detect totals.
+	 * @return array{rows: array<int, array<string, mixed>>, skipped: array<int, mixed>, hasMore: bool, kindTotal: int} The page.
+	 */
+	private function previewPage( SourceReader $reader, string $source, string $kind, int $offset, int $limit, string $mode, array $totals ): array {
+		if ( 'posts' === $kind || 'terms' === $kind ) {
+			$raw   = 'posts' === $kind ? $reader->fetchPosts( $offset, $limit ) : $reader->fetchTerms( $offset, $limit );
+			$items = [];
+
+			foreach ( $raw as $item ) {
+				$item['existing'] = 'posts' === $kind ? PayloadImporter::readPost( (int) $item['id'] ) : PayloadImporter::readTerm( (int) $item['id'] );
+				$items[]          = $item;
+			}
+
+			$preview = PreviewBuilder::buildPreview(
+				$source,
+				'posts' === $kind ? $items : [],
+				'terms' === $kind ? $items : [],
+				[],
+				[],
+				$mode
+			);
+
+			return [
+				'rows'      => self::rowArrays( $preview['rows'] ),
+				'skipped'   => $preview['skipped'],
+				'hasMore'   => count( $items ) >= $limit,
+				'kindTotal' => (int) ( $totals[ $kind ] ?? 0 ),
+			];
+		}
+
+		if ( 'redirects' === $kind ) {
+			$preview = PreviewBuilder::buildPreview( $source, [], [], [], $reader->fetchRedirectsRaw(), $mode );
+			$rows    = self::rowArrays( $preview['rows'] );
+
+			return [
+				'rows'      => array_slice( $rows, $offset, $limit ),
+				'skipped'   => $preview['skipped'],
+				'hasMore'   => $offset + $limit < count( $rows ),
+				'kindTotal' => count( $rows ),
+			];
+		}
+
+		$preview = PreviewBuilder::buildPreview( $source, [], [], $reader->fetchSitewideRaw(), [], $mode );
+		$rows    = self::rowArrays( $preview['rows'] );
+
+		if ( 'bulk' === $kind ) {
+			$rows = array_values( array_filter( $rows, static fn( $row ) => true === ( $row['bulk'] ?? false ) ) );
+
+			return [
+				'rows'      => $rows,
+				'skipped'   => [],
+				'hasMore'   => false,
+				'kindTotal' => count( $rows ),
+			];
+		}
+
+		return [
+			'rows'      => $rows,
+			'skipped'   => $preview['skipped'],
+			'hasMore'   => false,
+			'kindTotal' => count( $rows ) + count( $preview['skipped'] ),
+		];
+	}
+
+	/**
+	 * Map rows to arrays, enriching bulk rows with affected counts.
+	 *
+	 * @param array<int, object> $rows Preview rows.
+	 * @return array<int, array<string, mixed>> The row arrays.
+	 */
+	private static function rowArrays( array $rows ): array {
+		$out = [];
+
+		foreach ( $rows as $row ) {
+			$vars = get_object_vars( $row );
+
+			if ( true === ( $vars['bulk'] ?? false ) ) {
+				$fields           = is_array( $vars['fields'] ?? null ) ? $vars['fields'] : [];
+				$vars['affected'] = BulkScope::count(
+					(string) ( $fields['rule_kind'] ?? '' ),
+					(string) ( $fields['rule_type'] ?? '' )
+				);
+			}
+
+			$out[] = $vars;
+		}
+
+		return $out;
 	}
 
 	/**
@@ -297,19 +403,38 @@ final class ImportController {
 
 		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
 		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
-		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
 		$limit  = max( 1, min( self::RUN_LIMIT_MAX, $limit ) );
 
 		$excludes = ( isset( $params['excludes'] ) && is_array( $params['excludes'] ) ) ? array_values( array_filter( array_map( 'strval', $params['excludes'] ) ) ) : [];
 		$options  = [];
-		foreach ( [ 'choices', 'rule' ] as $key ) {
-			if ( isset( $params[ $key ] ) && is_array( $params[ $key ] ) ) {
-				$options[ $key ] = $params[ $key ];
+
+		if ( isset( $params['choices'] ) && is_array( $params['choices'] ) ) {
+			$choices = [];
+
+			foreach ( $params['choices'] as $slot => $identity ) {
+				if ( is_string( $identity ) ) {
+					$choices[ sanitize_text_field( (string) $slot ) ] = sanitize_text_field( $identity );
+				}
 			}
+
+			$options['choices'] = $choices;
+		}
+
+		if ( isset( $params['rule'] ) && is_string( $params['rule'] ) ) {
+			$options['rule'] = sanitize_text_field( $params['rule'] );
 		}
 
 		$factory = $this->runnerFactory;
-		$result  = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options );
+
+		try {
+			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options );
+		} catch ( \InvalidArgumentException $e ) {
+			return new WP_Error(
+				'rankkernel_invalid_run',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
+		}
 
 		return new WP_REST_Response( $result, 200 );
 	}

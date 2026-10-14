@@ -202,4 +202,63 @@ final class PreviewBuilderTest extends TestCase {
 
 		PreviewBuilder::buildPreview( 'yoast', [], [], [], [], 'merge' );
 	}
+
+	/**
+	 * Test every takable row carries a stable unique identity.
+	 */
+	public function test_takable_rows_carry_stable_unique_identities(): void {
+		$result = PreviewBuilder::buildPreview(
+			'yoast',
+			[
+				[
+					'id'       => 7,
+					'type'     => 'post',
+					'data'     => [ '_yoast_wpseo_title' => 'My Title' ],
+					'existing' => [],
+				],
+			],
+			[
+				[
+					'id'       => 9,
+					'taxonomy' => 'category',
+					'data'     => [ 'wpseo_title' => 'Cats' ],
+					'existing' => [],
+				],
+			],
+			[
+				'title-post'   => '%%title%%',
+				'title-page'   => 'Page %%title%%',
+				'noindex-post' => true,
+			],
+			[
+				[
+					'origin' => '/a',
+					'url'    => '/b',
+					'type'   => '301',
+					'format' => 'plain',
+				],
+				[
+					'origin' => '/c',
+					'url'    => '/d',
+					'type'   => '302',
+					'format' => 'regex',
+				],
+			],
+			'skip'
+		);
+
+		$identities = array_map( static fn( $row ) => $row->identity, $result['rows'] );
+
+		$this->assertContains( 'post:7', $identities );
+		$this->assertContains( 'term:category:9', $identities );
+		$this->assertContains( 'sitewide:title_template:post', $identities );
+		$this->assertContains( 'sitewide:title_template:page', $identities );
+		$this->assertContains( 'bulk:post:post', $identities );
+		$this->assertContains( 'redirect:exact:/a', $identities );
+		$this->assertContains( 'redirect:regex:/c', $identities );
+		$this->assertSame( $identities, array_unique( $identities ) );
+		foreach ( $identities as $identity ) {
+			$this->assertNotSame( '', $identity );
+		}
+	}
 }

@@ -167,4 +167,81 @@ final class PayloadImporterTest extends TestCase {
 			$result
 		);
 	}
+
+	/**
+	 * Test a malformed stored payload imports cleanly instead of fataling.
+	 */
+	public function test_malformed_stored_payload_imports_cleanly(): void {
+		Functions\when( 'get_post_meta' )->justReturn( 'garbage-string' );
+
+		$captured = null;
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress update_post_meta signature.
+				$captured = $value;
+
+				return true;
+			}
+		);
+
+		$result = PayloadImporter::applyRows(
+			[
+				[
+					'post_id' => 7,
+					'fields'  => [ 'title' => 'Imported' ],
+				],
+			],
+			'skip'
+		);
+
+		$this->assertSame( 1, $result['applied'] );
+		$this->assertSame( 'Imported', $captured['title'] );
+	}
+
+	/**
+	 * Test known fields the import does not manage survive the write.
+	 */
+	public function test_unmanaged_known_fields_survive_import(): void {
+		Functions\when( 'get_post_meta' )->justReturn(
+			[
+				'title'       => 'Mine',
+				'description' => '',
+				'robots'      => [
+					'index'  => true,
+					'follow' => false,
+				],
+				'og'          => [
+					'title' => 'OG Mine',
+				],
+				'flags'       => [
+					'pillar' => true,
+				],
+			]
+		);
+
+		$captured = null;
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$captured ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress update_post_meta signature.
+				$captured = $value;
+
+				return true;
+			}
+		);
+
+		$result = PayloadImporter::applyRows(
+			[
+				[
+					'post_id' => 7,
+					'fields'  => [ 'description' => 'Imported desc' ],
+				],
+			],
+			'skip'
+		);
+
+		$this->assertSame( 1, $result['applied'] );
+		$this->assertSame( 'Mine', $captured['title'] );
+		$this->assertSame( 'Imported desc', $captured['description'] );
+		$this->assertFalse( $captured['robots']['follow'] );
+		$this->assertSame( 'OG Mine', $captured['og']['title'] );
+		$this->assertTrue( $captured['flags']['pillar'] );
+	}
 }
