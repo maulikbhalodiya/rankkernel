@@ -633,4 +633,27 @@ final class AdminMenuTest extends TestCase {
 		$this->assertNoBounce( [ $menu, 'renderMonitor' ] );
 		$this->assertNoBounce( [ $menu, 'renderInstantIndexing' ] );
 	}
+
+	/**
+	 * The importer page ships wired with all three source readers.
+	 *
+	 * Dropping the readers argument in AdminMenu would render an empty
+	 * Detect step on the live screen while every unit pin still passes,
+	 * so this test renders through the real getter.
+	 */
+	public function test_importer_page_ships_with_source_readers(): void {
+		$this->options['wpseo_titles'] = [ 'title-post' => '%%title%%' ];
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the double, no tearDown restore needed for a global nothing else reads.
+		$GLOBALS['wpdb'] = new ImporterFakeDb( [ 5 ], [], false );
+
+		ob_start();
+		$this->menuWith( [ 'importer' ] )->getImporterPage()->render();
+		$html = (string) ob_get_clean();
+
+		unset( $GLOBALS['wpdb'] );
+
+		$this->assertStringContainsString( 'Yoast SEO', $html );
+		$this->assertStringContainsString( '>1<', $html );
+		$this->assertStringContainsString( 'Nothing to import', $html );
+	}
 }
