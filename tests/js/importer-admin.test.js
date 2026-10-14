@@ -316,6 +316,9 @@ test( 'run shows a summary first and writes nothing until confirmed', async () =
 	await ticks( 2 );
 	assert.equal( calls.filter( ( c ) => /\/run$/.test( c.url ) ).length, 0 );
 	assert.match( dom.confirm.innerHTML, /Confirm import/ );
+	assert.match( dom.confirm.innerHTML, /Conflict mode/ );
+	assert.match( dom.confirm.innerHTML, /skip/ );
+	assert.match( dom.confirm.innerHTML, /Bulk rules chosen/ );
 	assert.match( dom.runBtn.textContent, /Confirm/ );
 	dom.runBtn.dispatch( 'click' );
 	await ticks( 12 );

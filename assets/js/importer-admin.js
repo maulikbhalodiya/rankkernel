@@ -250,20 +250,43 @@
 		return state.bulk.selected.length;
 	}
 
-	function confirmHtml() {
+	function confirmHtml( modeStr ) {
 		var lines = [];
 		lines.push( __( 'Source: ', 'rankkernel' ) + state.source );
+		lines.push( __( 'Conflict mode: ', 'rankkernel' ) + modeStr );
 		[ 'posts', 'terms', 'redirects' ].forEach( function ( kind ) {
 			var page = state.pages[ kind ];
 			if ( page ) {
 				lines.push( kind + ': ' + page.kindTotal + __( ' eligible, ', 'rankkernel' ) + excludeCountFor( kind ) + __( ' excluded', 'rankkernel' ) );
 			}
 		} );
+		var conflictCount = 0;
+		var skippedCount = 0;
+		KINDS.forEach( function ( kind ) {
+			var page = state.pages[ kind ];
+			if ( ! page ) {
+				return;
+			}
+			( page.rows || [] ).forEach( function ( row ) {
+				if ( row.conflicts && Object.keys( row.conflicts ).length > 0 ) {
+					conflictCount += 1;
+				}
+			} );
+			skippedCount += ( page.skipped || [] ).length;
+		} );
+		lines.push( __( 'Rows with conflicts in the loaded preview: ', 'rankkernel' ) + conflictCount );
+		lines.push( __( 'Unsupported or skipped in the loaded preview: ', 'rankkernel' ) + skippedCount );
 		var sitewide = state.pages.sitewide;
 		if ( sitewide ) {
 			lines.push( __( 'Sitewide templates: ', 'rankkernel' ) + sitewide.rows.length + __( ' candidates, ', 'rankkernel' ) + Object.keys( state.sitewide.selected ).length + __( ' chosen', 'rankkernel' ) );
 		}
+		Object.keys( state.sitewide.selected ).forEach( function ( slot ) {
+			lines.push( slot + ': ' + state.sitewide.selected[ slot ] );
+		} );
 		lines.push( __( 'Bulk rules chosen: ', 'rankkernel' ) + selectedRuleCount() );
+		state.bulk.selected.forEach( function ( identity ) {
+			lines.push( identity );
+		} );
 		lines.push( __( 'Exclusions: ', 'rankkernel' ) + excludeList().length );
 		return '<ul><li>' + lines.map( esc ).join( '</li><li>' ) + '</li></ul>';
 	}
@@ -295,7 +318,7 @@
 		state.confirmed = true;
 		var panel = root.querySelector( '[data-rk-importer-confirm]' );
 		if ( panel ) {
-			panel.innerHTML = '<h3>' + esc( __( 'Confirm import', 'rankkernel' ) ) + '</h3>' + confirmHtml();
+			panel.innerHTML = '<h3>' + esc( __( 'Confirm import', 'rankkernel' ) ) + '</h3>' + confirmHtml( mode( root ) );
 		}
 		var runBtn = root.querySelector( '[data-rk-importer-run]' );
 		if ( runBtn ) {

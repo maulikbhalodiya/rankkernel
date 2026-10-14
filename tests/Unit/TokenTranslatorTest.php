@@ -78,6 +78,31 @@ final class TokenTranslatorTest extends TestCase {
 	}
 
 	/**
+	 * Test malformed, repeated and mixed tokens never interpolate silently.
+	 */
+	public function test_malformed_repeated_and_mixed_tokens(): void {
+		[ $value, $unknown ] = TokenTranslator::translateYoast( 'Shop %%bogus%% twice %%bogus%% and %%title%%' );
+
+		$this->assertSame( 'Shop %%bogus%% twice %%bogus%% and %%title%%', $value );
+		$this->assertSame( [ '%%bogus%%' ], $unknown );
+
+		[ $openValue, $openUnknown ] = TokenTranslator::translateYoast( 'Hello %%title' );
+
+		$this->assertSame( 'Hello %%title', $openValue );
+		$this->assertSame( [], $openUnknown );
+
+		[ $emptyValue, $emptyUnknown ] = TokenTranslator::translateYoast( '' );
+
+		$this->assertSame( '', $emptyValue );
+		$this->assertSame( [], $emptyUnknown );
+
+		[ $rmValue, $rmUnknown ] = TokenTranslator::translateRankMath( '%title% and %bogus% plus 100%' );
+
+		$this->assertSame( '%%title%% and %%bogus%% plus 100%', $rmValue );
+		$this->assertSame( [ '%%bogus%%' ], $rmUnknown );
+	}
+
+	/**
 	 * Test AIOSEO hash tokens translate through the Yoast name map.
 	 */
 	public function test_aioseo_tokens_translate(): void {
