@@ -105,6 +105,13 @@ final class TagsReplacer {
 	 * @return string Resolved string.
 	 */
 	private function doReplace( Context $ctx, string $template ): string {
+		// Performance optimization: fast-path check for token delimiters ('%%') to skip
+		// preg_match_all regex token extraction and replacement overhead when template
+		// strings do not contain token placeholders.
+		if ( ! str_contains( $template, '%%' ) ) {
+			return $template;
+		}
+
 		// Performance optimization: parse the template for token placeholders and
 		// selectively resolve only tokens present in it, avoiding expensive unneeded
 		// operations (e.g., category DB queries, author meta, excerpt formatting).
