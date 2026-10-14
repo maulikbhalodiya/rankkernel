@@ -2505,4 +2505,31 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-per-page-desc"', $html );
 		$this->assertStringContainsString( 'id="rk-per-page-hint"', $html );
 	}
+
+	/**
+	 * Pagination renders disabled spans on boundaries (e.g. Page 1 Previous).
+	 */
+	public function test_pagination_renders_disabled_spans_on_boundaries(): void {
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$this->seedRule( '/p-' . (string) $i, '/target-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		// Render Page 1.
+		$html = $this->renderPage( $page );
+
+		// Page 1 top and bottom "Previous" controls must render as disabled spans with aria-disabled.
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Previous</span>', $html );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Previous</span>', $html );
+
+		// Render Page 2.
+		$_GET      = [ 'rk_paged' => '2' ];
+		$htmlPage2 = $this->renderPage( $page );
+
+		// Page 2 top and bottom "Next" controls must render as disabled spans with aria-disabled.
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+	}
 }
