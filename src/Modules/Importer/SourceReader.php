@@ -47,20 +47,22 @@ interface SourceReader {
 	 * Source shaped data only; the run phase attaches our stored
 	 * payload for conflict marking, so readers never read our tables.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, type: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchPosts( int $offset, int $limit ): array;
+	public function fetchPosts( int $offset, int $limit, string $search = '' ): array;
 
 	/**
 	 * Fetch one term chunk in stable id order.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchTerms( int $offset, int $limit ): array;
+	public function fetchTerms( int $offset, int $limit, string $search = '' ): array;
 
 	/**
 	 * Fetch the raw sitewide blob the mapper accepts.

@@ -214,8 +214,8 @@ final class ImportControllerTest extends TestCase {
 
 		Functions\when( 'get_post' )->alias(
 			static function ( int $id ): \WP_Post {
-				$post       = new \WP_Post();
-				$post->ID   = $id;
+				$post             = new \WP_Post();
+				$post->ID         = $id;
 				$post->post_title = 'Live Hello';
 
 				return $post;
@@ -324,7 +324,7 @@ final class ImportControllerTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_taxonomy' )->alias(
-			static function ( string $taxonomy ): \WP_Taxonomy {
+			static function ( string $taxonomy ): \WP_Taxonomy { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 				return new \WP_Taxonomy();
 			}
 		);
@@ -332,7 +332,19 @@ final class ImportControllerTest extends TestCase {
 
 		$runner = new ImportControllerStubRunner();
 		$ctrl   = new ImportController(
-			[ 'yoast' => new ImportControllerStubReader( [], [], [ [ 'id' => 21, 'taxonomy' => 'category', 'data' => [ 'wpseo_title' => 'Cats' ] ] ] ) ],
+			[
+				'yoast' => new ImportControllerStubReader(
+					[],
+					[],
+					[
+						[
+							'id'       => 21,
+							'taxonomy' => 'category',
+							'data'     => [ 'wpseo_title' => 'Cats' ],
+						],
+					]
+				),
+			],
 			static function () use ( $runner ): ImportControllerStubRunner {
 				return $runner;
 			}

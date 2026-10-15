@@ -580,7 +580,7 @@ test( 'next marks reviewed and advances, back returns keeping it', async () => {
 	assert.match( nav.innerHTML, /aria-current="step"/ );
 } );
 
-test( 'skip marks reviewed and jump guards unvisited kinds', async () => {
+test( 'free jumping allows any kind at any time', async () => {
 	const dom = importerDom();
 	const spoken = [];
 	const calls = [];
@@ -591,13 +591,8 @@ test( 'skip marks reviewed and jump guards unvisited kinds', async () => {
 	const before = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
 	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'bulk' } ) } );
 	await ticks( 2 );
-	const guarded = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
-	assert.equal( guarded, before );
-	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
-	await ticks( 2 );
-	const nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
-	assert.ok( /data-reviewed="1"/.test( nav.innerHTML ) );
-	assert.ok( spoken.some( ( t ) => /skipped/.test( t ) ) );
+	const jumped = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
+	assert.notEqual( jumped, before );
 } );
 
 test( 'exclude-all checks loaded rows and clear removes them', async () => {

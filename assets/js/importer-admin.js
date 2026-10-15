@@ -42,7 +42,8 @@
 		wizardView: 'kind',
 		reviewed: {},
 		visitedMax: -1,
-		completed: false
+		completed: false,
+		queries: {}
 	};
 
 	function esc( text ) {
@@ -170,14 +171,23 @@
 			return;
 		}
 		var excludedCount = excludeCountFor( kind );
+		var query = state.queries[ kind ] || '';
 		var toolbar = '<div class="rk-importer-kind-toolbar">';
 		toolbar += '<label><input type="checkbox" data-rk-importer-exclude-all data-rk-importer-exclude-all-toggle="1"' + ( ( page.rows || [] ).length > 0 && loadedExcludedCount( kind ) === ( page.rows || [] ).length ? ' checked' : '' ) + '> ' + esc( __( 'Exclude all', 'rankkernel' ) ) + '</label>';
 		toolbar += ' <button type="button" data-rk-importer-clear data-rk-importer-clear-excludes="1">' + esc( __( 'Clear', 'rankkernel' ) ) + '</button>';
+		if ( [ 'posts', 'terms', 'redirects' ].indexOf( kind ) !== -1 ) {
+			toolbar += ' <input type="search" data-rk-importer-search="' + esc( kind ) + '" value="' + esc( query ) + '" placeholder="' + esc( __( 'Search', 'rankkernel' ) ) + '">';
+			toolbar += ' <button type="button" data-rk-importer-search-clear="' + esc( kind ) + '">' + esc( __( 'Clear search', 'rankkernel' ) ) + '</button>';
+		}
 		toolbar += ' <span data-rk-importer-exclude-count="' + esc( kind ) + '">' + excludedCount + ' of ' + page.kindTotal + ' ' + esc( __( 'excluded', 'rankkernel' ) ) + '</span>';
 		toolbar += '</div>';
 
 		if ( ! ( page.rows || [] ).length ) {
-			mount.innerHTML = toolbar + '<p class="rk-importer-kind-empty">' + esc( __( 'Nothing to review for this kind.', 'rankkernel' ) ) + '</p>';
+			var emptyMsg = __( 'Nothing to review for this kind.', 'rankkernel' );
+			if ( query ) {
+				emptyMsg = __( 'No results for', 'rankkernel' ) + ' "' + query + '"';
+			}
+			mount.innerHTML = toolbar + '<p class="rk-importer-kind-empty">' + esc( emptyMsg ) + '</p>';
 			return;
 		}
 		var html = toolbar + '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
@@ -236,15 +246,17 @@
 			mount.innerHTML = '';
 			return;
 		}
-		var html = '<h3>' + esc( __( 'Not imported', 'rankkernel' ) ) + ' (' + skipped.length + ')</h3><ul>';
+		var html = '<h3>' + esc( __( 'Not imported', 'rankkernel' ) ) + ' (' + skipped.length + ')</h3><ul class="rk-importer-skipped-list">';
 		skipped.forEach( function ( row ) {
 			html += '<li>' + esc( ( row.label || row.kind ) + ': ' + ( row.skippedReason || '' ) ) + '</li>';
 		} );
 		mount.innerHTML = html + '</ul>';
 	}
 
-	function previewKind( root, source, kind, offset ) {
-		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: offset, limit: PAGE } ).then( function ( data ) {
+	function previewKind( root, source, kind, offset, q ) {
+		var query = ( q === undefined ? ( state.queries[ kind ] || '' ) : q );
+		state.queries[ kind ] = query;
+		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: offset, limit: PAGE, q: query } ).then( function ( data ) {
 			state.pages[ kind ] = {
 				rows: data.rows || [],
 				skipped: data.skipped || [],
@@ -313,7 +325,7 @@
 			var current = ( state.wizardView === 'kind' && i === state.currentKindIndex );
 			var visited = i <= state.visitedMax;
 			html += '<li class="rk-importer-kind-step" data-rk-importer-kind-step="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( current ? ' aria-current="step"' : '' ) + ( ( 'reviewed' === status || 'done' === status ) ? ' data-reviewed="1"' : '' ) + '>';
-			html += '<button type="button" data-rk-importer-kind-jump="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( visited ? '' : ' disabled' ) + '>' + esc( wizardTitle( kind ) ) + '</button>';
+			html += '<button type="button" data-rk-importer-kind-jump="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '">' + esc( wizardTitle( kind ) ) + '</button>';
 			html += ' <span class="rk-importer-kind-count">' + ( page ? count : '' ) + '</span>';
 			html += ' <span class="rk-importer-kind-status">' + esc( current ? 'current' : status ) + '</span>';
 			if ( 'reviewed' === status || 'done' === status ) {
@@ -406,9 +418,6 @@
 		if ( idx === -1 ) {
 			return;
 		}
-		if ( idx > state.visitedMax ) {
-			return;
-		}
 		showKind( root, idx );
 	}
 
@@ -497,6 +506,7 @@
 		state.bulk = { rows: [], selected: [] };
 		state.kinds = {};
 		state.report = null;
+		state.queries = {};
 	}
 
 	function selectedRuleCount() {
@@ -772,7 +782,7 @@
 		var parts = String( spec ).split( ':' );
 		var kind = parts[ 0 ];
 		var offset = parseInt( parts[ 1 ], 10 ) || 0;
-		previewKind( root, state.source, kind, offset ).then( function () {
+		previewKind( root, state.source, kind, offset, state.queries[ kind ] || '' ).then( function () {
 			renderKindSection( root, kind, TITLES[ kind ] || kind );
 		} ).catch( function () {
 			fail( root, __( 'Preview request failed.', 'rankkernel' ) );
@@ -840,12 +850,45 @@
 				clearLoadedExcludes( root, KINDS[ state.currentKindIndex ] );
 				return;
 			}
+			var searchClear = target.getAttribute( 'data-rk-importer-search-clear' );
+			if ( searchClear ) {
+				state.queries[ searchClear ] = '';
+				previewKind( root, state.source, searchClear, 0, '' ).then( function () {
+					renderKindSection( root, searchClear, TITLES[ searchClear ] || searchClear );
+				} ).catch( function () {
+					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
+				} );
+				return;
+			}
 			var exclAllBtn = target.getAttribute( 'data-rk-importer-exclude-all' );
 			if ( exclAllBtn !== null && 'BUTTON' === target.tagName ) {
 				applyExcludeAllLoaded( root, KINDS[ state.currentKindIndex ], true );
 				return;
 			}
 		} );
+		root.addEventListener( 'input', function ( event ) {
+			var target = event && event.target;
+			if ( ! target || ! target.getAttribute ) {
+				return;
+			}
+			var kind = target.getAttribute( 'data-rk-importer-search' );
+			if ( ! kind ) {
+				return;
+			}
+			if ( state.searchTimers && state.searchTimers[ kind ] ) {
+				clearTimeout( state.searchTimers[ kind ] );
+			}
+			state.searchTimers = state.searchTimers || {};
+			state.searchTimers[ kind ] = setTimeout( function () {
+				state.queries[ kind ] = target.value || '';
+				previewKind( root, state.source, kind, 0, state.queries[ kind ] ).then( function () {
+					renderKindSection( root, kind, TITLES[ kind ] || kind );
+				} ).catch( function () {
+					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
+				} );
+			}, 300 );
+		} );
+
 		root.addEventListener( 'change', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {

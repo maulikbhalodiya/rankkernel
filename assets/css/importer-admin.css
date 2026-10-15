@@ -562,7 +562,18 @@
 	transition: width 0.2s ease;
 }
 
-.rk-importer .rk-importer-announce,
+.rk-importer .rk-importer-announce {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect( 0, 0, 0, 0 );
+	white-space: nowrap;
+	border: 0;
+}
+
 .rk-importer .rk-importer-error {
 	margin: var(--rk-space-3) 0;
 	font-size: var(--rk-font-size-sm);
@@ -836,11 +847,17 @@
 	white-space: nowrap;
 }
 
+.rk-importer .rk-importer-skipped-list {
+	max-height: calc( var(--rk-space-6) * 4 );
+	overflow: auto;
+	margin: 0;
+}
+
 .rk-importer .rk-importer-wizard-nav {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--rk-space-2);
-	margin: var(--rk-space-4) 0 0;
+	margin: var(--rk-space-4) 0 var(--rk-space-4);
 }
 
 .rk-importer .rk-importer-wizard-nav button {

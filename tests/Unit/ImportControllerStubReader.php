@@ -43,9 +43,9 @@ final class ImportControllerStubReader implements SourceReader {
 	/**
 	 * Build the double.
 	 *
-	 * @param array<int, array{id: int, type: string, data: array<string, mixed>}>       $posts    Post items.
-	 * @param array<string, mixed>                                                        $sitewide Raw sitewide blob.
-	 * @param array<int, array{id: int, taxonomy: string, data: array<string, mixed>}>   $terms    Term items.
+	 * @param array<int, array{id: int, type: string, data: array<string, mixed>}>     $posts    Post items.
+	 * @param array<string, mixed>                                                     $sitewide Raw sitewide blob.
+	 * @param array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> $terms    Term items.
 	 */
 	public function __construct( array $posts = [], array $sitewide = [], array $terms = [] ) {
 		$this->posts    = $posts;
@@ -88,22 +88,24 @@ final class ImportControllerStubReader implements SourceReader {
 	/**
 	 * Fetch one post chunk.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, type: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchPosts( int $offset, int $limit ): array {
+	public function fetchPosts( int $offset, int $limit, string $search = '' ): array {
 		return array_slice( $this->posts, $offset, $limit );
 	}
 
 	/**
 	 * Fetch one term chunk.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchTerms( int $offset, int $limit ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- double mirrors the SourceReader signature.
+	public function fetchTerms( int $offset, int $limit, string $search = '' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- double mirrors the SourceReader signature.
 		return array_slice( $this->terms, $offset, $limit );
 	}
 

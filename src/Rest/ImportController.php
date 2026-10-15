@@ -116,6 +116,11 @@ final class ImportController {
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					],
+					'q'      => [
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
 				],
 			]
 		);
@@ -255,8 +260,11 @@ final class ImportController {
 		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
 		$limit  = max( 1, min( self::PREVIEW_LIMIT, $limit ) );
 
+		$q = isset( $params['q'] ) ? sanitize_text_field( (string) $params['q'] ) : '';
+		$q = substr( $q, 0, 100 );
+
 		$totals = $reader->detect();
-		$page   = $this->previewPage( $reader, $source, $kind, $offset, $limit, $mode, $totals );
+		$page   = $this->previewPage( $reader, $source, $kind, $offset, $limit, $mode, $totals, $q );
 
 		return new WP_REST_Response(
 			array_merge(
@@ -267,6 +275,7 @@ final class ImportController {
 					'offset' => $offset,
 					'limit'  => $limit,
 					'totals' => $totals,
+					'q'      => $q,
 				],
 				$page
 			),
@@ -284,11 +293,12 @@ final class ImportController {
 	 * @param int                  $limit   Page size.
 	 * @param string               $mode    Conflict mode.
 	 * @param array<string, mixed> $totals  Detect totals.
+	 * @param string               $search  Optional search string.
 	 * @return array{rows: array<int, array<string, mixed>>, skipped: array<int, mixed>, hasMore: bool, kindTotal: int} The page.
 	 */
-	private function previewPage( SourceReader $reader, string $source, string $kind, int $offset, int $limit, string $mode, array $totals ): array {
+	private function previewPage( SourceReader $reader, string $source, string $kind, int $offset, int $limit, string $mode, array $totals, string $search = '' ): array {
 		if ( 'posts' === $kind || 'terms' === $kind ) {
-			$raw   = 'posts' === $kind ? $reader->fetchPosts( $offset, $limit ) : $reader->fetchTerms( $offset, $limit );
+			$raw   = 'posts' === $kind ? $reader->fetchPosts( $offset, $limit, $search ) : $reader->fetchTerms( $offset, $limit, $search );
 			$items = [];
 
 			foreach ( $raw as $item ) {
@@ -314,7 +324,28 @@ final class ImportController {
 		}
 
 		if ( 'redirects' === $kind ) {
-			$preview = PreviewBuilder::buildPreview( $source, [], [], [], $reader->fetchRedirectsRaw(), $mode );
+			$raw    = $reader->fetchRedirectsRaw();
+			$search = trim( $search );
+
+			if ( '' !== $search ) {
+				$needle = mb_strtolower( $search );
+				$raw    = array_values(
+					array_filter(
+						$raw,
+						static function ( $row ) use ( $needle ): bool {
+							foreach ( $row as $value ) {
+								if ( is_string( $value ) && str_contains( mb_strtolower( $value ), $needle ) ) {
+									return true;
+								}
+							}
+
+							return false;
+						}
+					)
+				);
+			}
+
+			$preview = PreviewBuilder::buildPreview( $source, [], [], [], $raw, $mode );
 			$rows    = self::rowArrays( $preview['rows'] );
 
 			return [

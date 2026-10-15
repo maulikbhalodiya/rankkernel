@@ -125,21 +125,37 @@ final class YoastReader implements SourceReader {
 	/**
 	 * Fetch one post chunk with types and legacy meta rows.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, type: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchPosts( int $offset, int $limit ): array {
-		$db   = $this->db();
-		$like = $this->likeEscape( '_yoast_wpseo_' ) . '%';
-		$ids  = $db->get_col(
-			$db->prepare(
-				"SELECT DISTINCT post_id FROM {$db->postmeta} WHERE meta_key LIKE %s ORDER BY post_id ASC LIMIT %d, %d",
-				$like,
-				$offset,
-				$limit
-			)
-		);
+	public function fetchPosts( int $offset, int $limit, string $search = '' ): array {
+		$db     = $this->db();
+		$like   = $this->likeEscape( '_yoast_wpseo_' ) . '%';
+		$search = trim( $search );
+
+		if ( '' === $search ) {
+			$ids = $db->get_col(
+				$db->prepare(
+					"SELECT DISTINCT post_id FROM {$db->postmeta} WHERE meta_key LIKE %s ORDER BY post_id ASC LIMIT %d, %d",
+					$like,
+					$offset,
+					$limit
+				)
+			);
+		} else {
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$ids       = $db->get_col(
+				$db->prepare(
+					"SELECT DISTINCT pm.post_id FROM {$db->postmeta} pm JOIN {$db->posts} p ON p.ID = pm.post_id WHERE pm.meta_key LIKE %s AND p.post_title LIKE %s ORDER BY pm.post_id ASC LIMIT %d, %d",
+					$like,
+					$titleLike,
+					$offset,
+					$limit
+				)
+			);
+		}
 
 		if ( ! is_array( $ids ) || [] === $ids ) {
 			return [];
@@ -186,11 +202,12 @@ final class YoastReader implements SourceReader {
 	/**
 	 * Fetch one term chunk flattened from the taxonomy meta option.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchTerms( int $offset, int $limit ): array {
+	public function fetchTerms( int $offset, int $limit, string $search = '' ): array {
 		$tax  = get_option( 'wpseo_taxonomy_meta', [] );
 		$flat = [];
 
@@ -212,6 +229,28 @@ final class YoastReader implements SourceReader {
 					];
 				}
 			}
+		}
+
+		$search = trim( $search );
+
+		if ( '' !== $search && [] !== $flat ) {
+			$db        = $this->db();
+			$ids       = array_values( array_unique( array_map( static fn( $item ) => (int) $item['id'], $flat ) ) );
+			$in        = implode( ',', array_map( 'intval', $ids ) );
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$allowed   = $db->get_col(
+				$db->prepare(
+					"SELECT term_id FROM {$db->terms} WHERE term_id IN ({$in}) AND name LIKE %s",
+					$titleLike
+				)
+			);
+			$allowed   = array_map( 'intval', is_array( $allowed ) ? $allowed : [] );
+			$flat      = array_values(
+				array_filter(
+					$flat,
+					static fn( $item ): bool => in_array( (int) $item['id'], $allowed, true )
+				)
+			);
 		}
 
 		return array_slice( $flat, $offset, $limit );
