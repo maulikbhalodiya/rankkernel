@@ -576,4 +576,14 @@ final class PluginTest extends TestCase {
 		$this->assertSame( 1, preg_match( '/^Tested up to:\s*(\S+)/m', $readme_source, $readme_header ) );
 		$this->assertSame( '7.1', $readme_header[1], 'readme.txt must stay at the verified release, see issue #198 finding 1' );
 	}
+
+	/**
+	 * Test the readme uses the plural External Services section header for WordPress.org compliance.
+	 */
+	public function test_readme_contains_external_services_header(): void {
+		$root = dirname( __DIR__, 2 );
+
+		$readme_source = (string) file_get_contents( $root . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
+		$this->assertStringContainsString( '== External Services ==', $readme_source, 'readme.txt must use plural == External Services == header' );
+	}
 }

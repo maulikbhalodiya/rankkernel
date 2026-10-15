@@ -49,7 +49,7 @@ Plugin settings are stored in the site's options as configuration. This includes
 
 When the Instant Indexing module is enabled, submitting a URL sends that URL plus your IndexNow API key, which is stored in the site's own options, to https://api.indexnow.org/indexnow. Submission happens only when you submit manually or publish content with the module enabled; nothing is sent otherwise.
 
-== External Service ==
+== External Services ==
 
 RankKernel contacts two external services, and only with your explicit action:
 
