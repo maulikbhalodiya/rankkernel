@@ -133,6 +133,7 @@ function importerDom() {
 	} );
 	const confirm = el( 'div', { 'data-rk-importer-confirm': '1' } );
 	const runBtn = el( 'button', { 'data-rk-importer-run': '1' }, 'Run import' );
+	const rescanBtn = el( 'button', { 'data-rk-importer-rescan': '1' }, 'Rescan Database' );
 	const progress = el( 'div', { 'data-rk-importer-progress': '1' } );
 	const bar = el( 'div', { 'data-rk-importer-bar': '1' } );
 	const announce = el( 'div', { 'data-rk-importer-announce': '1' } );
@@ -143,6 +144,7 @@ function importerDom() {
 	rootEl.appendChild( modeOverwrite );
 	rootEl.appendChild( confirm );
 	rootEl.appendChild( runBtn );
+	rootEl.appendChild( rescanBtn );
 	rootEl.appendChild( progress );
 	rootEl.appendChild( announce );
 	rootEl.appendChild( errorBox );
@@ -155,14 +157,14 @@ function importerDom() {
 		addEventListener() {}
 	};
 
-	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, bar, announce, errorBox, stepDetect, stepPreview, stepRun };
+	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, rescanBtn, bar, announce, errorBox, stepDetect, stepPreview, stepRun };
 }
 
 function runImporter( sandbox ) {
 	vm.runInNewContext( source( 'importer-admin.js' ), sandbox );
 }
 
-function sandboxFor( dom, fetchImpl, spoken ) {
+function sandboxFor( dom, fetchImpl, spoken, reloaded ) {
 	const sandbox = {
 		document: dom.document,
 		wp: { a11y: { speak( text ) { spoken.push( text ); } }, i18n: { __: ( t ) => t } },
@@ -170,7 +172,8 @@ function sandboxFor( dom, fetchImpl, spoken ) {
 	};
 	sandbox.window = Object.assign( sandbox, {
 		rankkernelImporter: { restBase: '/wp-json/rankkernel/v1/import', restNonce: 'abc' },
-		fetch: sandbox.fetch
+		fetch: sandbox.fetch,
+		location: { reload() { if ( reloaded ) { reloaded.count += 1; } } }
 	} );
 	return sandbox;
 }
@@ -483,4 +486,17 @@ test( 'steps indicator classes update on transitions', async () => {
 	await ticks( 12 );
 	assert.equal( dom.stepPreview.getAttribute( 'class' ), 'is-complete' );
 	assert.equal( dom.stepRun.getAttribute( 'class' ), 'is-current' );
+} );
+
+test( 'rescan button reloads the page for a fresh detect', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const reloaded = { count: 0 };
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken, reloaded );
+	runImporter( sandbox );
+	dom.rescanBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.equal( reloaded.count, 1 );
+	assert.equal( calls.filter( ( c ) => /\/preview$|\/run$/.test( c.url ) ).length, 0 );
 } );

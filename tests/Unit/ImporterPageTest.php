@@ -167,4 +167,61 @@ final class ImporterPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-rk-importer-announce', $html );
 		$this->assertStringContainsString( 'data-rk-importer-error', $html );
 	}
+
+	/**
+	 * Test the header follows the shared submenu pattern with a working rescan.
+	 *
+	 * Title row plus version chip plus one helper sentence plus a single
+	 * rescan action, no custom breadcrumb or tagline, and no inline
+	 * onclick handlers anywhere in the markup.
+	 */
+	public function test_render_uses_shared_header_and_rescan_action(): void {
+		$page = new ImporterPage();
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-ui-page-header', $html );
+		$this->assertStringContainsString( 'rk-ui-page-title', $html );
+		$this->assertStringContainsString( 'rk-version-chip', $html );
+		$this->assertStringContainsString( 'data-rk-importer-rescan="1"', $html );
+		$this->assertStringNotContainsString( 'onclick=', $html );
+		$this->assertStringNotContainsString( 'rk-importer-breadcrumb', $html );
+
+		$h1Position     = strpos( $html, 'screen-reader-text' );
+		$headerPosition = strpos( $html, 'rk-ui-page-header' );
+
+		$this->assertNotFalse( $h1Position );
+		$this->assertNotFalse( $headerPosition );
+		$this->assertLessThan( $headerPosition, $h1Position );
+		$this->assertStringContainsString( 'rk-importer-guide', $html );
+	}
+
+	/**
+	 * Test avatars use token variant classes instead of inline colors.
+	 */
+	public function test_render_avatars_use_variant_classes(): void {
+		$page = new ImporterPage(
+			[
+				new ImportControllerStubReader(
+					[
+						[
+							'id'   => 1,
+							'type' => 'post',
+							'data' => [],
+						],
+					]
+				),
+			]
+		);
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'rk-importer-avatar ', $html );
+		$this->assertStringContainsString( 'rk-importer-avatar-pink', $html );
+		$this->assertStringNotContainsString( 'rk-importer-avatar" style=', $html );
+	}
 }

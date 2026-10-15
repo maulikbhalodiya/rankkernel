@@ -546,6 +546,12 @@
 				run( root, runBtn );
 			} );
 		}
+		var rescanBtn = root.querySelector( '[data-rk-importer-rescan]' );
+		if ( rescanBtn ) {
+			rescanBtn.addEventListener( 'click', function () {
+				window.location.reload();
+			} );
+		}
 		root.addEventListener( 'click', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {

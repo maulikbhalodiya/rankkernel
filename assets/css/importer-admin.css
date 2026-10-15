@@ -13,47 +13,82 @@
    Steps indicator
    ========================================================================== */
 
+/* ==========================================================================
+   Steps indicator: three state cards in a row.
+   ========================================================================== */
+
 .rk-importer .rk-importer-steps {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--rk-space-2);
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--rk-space-3);
 	list-style: none;
 	margin: var(--rk-space-4) 0;
 	padding: 0;
 }
 
 .rk-importer .rk-importer-steps li {
+	display: flex;
+	gap: var(--rk-space-3);
+	align-items: flex-start;
+	padding: var(--rk-space-4);
+	border-radius: var(--rk-radius-lg);
+	font-size: var(--rk-font-size-sm);
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text-muted);
+	border: 1px solid var(--rk-color-border);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-step-number {
 	flex: 0 0 auto;
+	width: var(--rk-space-6);
+	height: var(--rk-space-6);
+	border-radius: 50%;
 	display: inline-flex;
 	align-items: center;
-	gap: var(--rk-space-2);
-	padding: var(--rk-space-2) var(--rk-space-4);
-	border-radius: var(--rk-radius-md);
-	font-size: var(--rk-font-size-sm);
+	justify-content: center;
+	font-size: var(--rk-font-size-xs);
 	font-weight: 600;
 	background: var(--rk-color-surface-muted);
-	color: var(--rk-color-text-secondary);
+	color: var(--rk-color-text-muted);
 	border: 1px solid var(--rk-color-border);
 }
 
+.rk-importer .rk-importer-step-label {
+	display: block;
+	font-weight: 600;
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-importer .rk-importer-step-desc {
+	margin: var(--rk-space-1) 0 0;
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
 .rk-importer .rk-importer-steps li.is-current {
+	border: 2px solid var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+}
+
+.rk-importer .rk-importer-steps li.is-current .rk-importer-step-number {
 	background: var(--rk-color-primary);
 	color: var(--rk-color-surface);
 	border-color: var(--rk-color-primary);
 }
 
-.rk-importer .rk-importer-steps li.is-complete {
-	background: var(--rk-color-secondary-1-soft);
-	color: var(--rk-color-secondary-1);
-	border-color: var(--rk-tint-positive-border);
+.rk-importer .rk-importer-steps li.is-current .rk-importer-step-label {
+	color: var(--rk-color-text);
 }
 
-.rk-importer .rk-importer-steps li.is-complete::before {
-	font-family: inherit;
-	content: "\2713";
-	font-size: var(--rk-font-size-md);
-	line-height: 1;
-	font-weight: 400;
+.rk-importer .rk-importer-steps li.is-complete .rk-importer-step-number {
+	background: var(--rk-color-secondary-1);
+	color: var(--rk-color-surface);
+	border-color: var(--rk-color-secondary-1);
+}
+
+.rk-importer .rk-importer-steps li.is-complete .rk-importer-step-label {
+	color: var(--rk-color-secondary-1);
 }
 
 /* ==========================================================================
@@ -89,6 +124,319 @@
 }
 
 /* ==========================================================================
+   Conflict mode cards
+   ========================================================================== */
+
+.rk-importer .rk-importer-modes {
+	margin: var(--rk-space-4) 0;
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	background: var(--rk-color-surface);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-modes legend {
+	padding: 0 var(--rk-space-2);
+	font-weight: 600;
+	color: var(--rk-color-text);
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-importer .rk-importer-modes-helper {
+	margin: var(--rk-space-2) 0 var(--rk-space-3);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-importer .rk-importer-applies {
+	display: block;
+	margin-bottom: var(--rk-space-3);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-importer .rk-importer-modes-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--rk-space-3);
+}
+
+.rk-importer .rk-importer-mode-card {
+	display: block;
+	margin: 0;
+	padding: var(--rk-space-4);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-md);
+	background: var(--rk-color-surface);
+	cursor: pointer;
+	font-size: var(--rk-font-size-sm);
+}
+
+.rk-importer .rk-importer-mode-card:has(input:checked) {
+	border: 2px solid var(--rk-color-primary);
+	background: var(--rk-color-primary-soft);
+}
+
+.rk-importer .rk-importer-mode-title {
+	font-weight: 600;
+	color: var(--rk-color-text);
+}
+
+.rk-importer .rk-importer-badge {
+	display: inline-block;
+	margin-left: var(--rk-space-2);
+	padding: 0 var(--rk-space-2);
+	border-radius: var(--rk-radius-sm);
+	font-size: var(--rk-font-size-2xs);
+	font-weight: 600;
+}
+
+.rk-importer .rk-importer-badge-positive {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+	border: 1px solid var(--rk-tint-positive-border);
+}
+
+.rk-importer .rk-importer-badge-warning {
+	background: var(--rk-color-secondary-3-soft);
+	color: var(--rk-color-secondary-3-strong);
+	border: 1px solid var(--rk-tint-warning-border);
+}
+
+.rk-importer .rk-importer-mode-desc {
+	margin: var(--rk-space-2) 0 0 1.4em;
+	color: var(--rk-color-text-secondary);
+}
+
+/* ==========================================================================
+   Detect card: source table, avatars, pills, footer
+   ========================================================================== */
+
+.rk-importer .rk-importer-detect-card {
+	margin: var(--rk-space-4) 0;
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-card-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--rk-space-3);
+	margin-bottom: var(--rk-space-3);
+}
+
+.rk-importer .rk-importer-card-header h2 {
+	margin: 0;
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-importer .rk-importer-card-helper {
+	margin: var(--rk-space-1) 0 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-importer .rk-importer-table-wrap {
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+.rk-importer .rk-importer-detect th {
+	text-transform: uppercase;
+	font-size: var(--rk-font-size-2xs);
+	letter-spacing: 0.04em;
+	color: var(--rk-color-text-muted);
+}
+
+.rk-importer .rk-importer-num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.rk-importer .rk-importer-source-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-3);
+	min-width: 0;
+}
+
+/* Avatar variants use fixed token pairs, so no source color hardcodes hex. */
+.rk-importer .rk-importer-avatar {
+	flex: 0 0 auto;
+	width: var(--rk-space-6);
+	height: var(--rk-space-6);
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 700;
+	border: 1px solid;
+}
+
+.rk-importer .rk-importer-avatar-pink {
+	background: var(--rk-color-secondary-4-soft);
+	color: var(--rk-color-secondary-4-strong);
+	border-color: var(--rk-tint-error-border);
+}
+
+.rk-importer .rk-importer-avatar-blue {
+	background: var(--rk-color-primary-soft);
+	color: var(--rk-color-primary-active);
+	border-color: var(--rk-tint-primary-border);
+}
+
+.rk-importer .rk-importer-avatar-teal {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+	border-color: var(--rk-tint-positive-border);
+}
+
+.rk-importer .rk-importer-avatar-gray {
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	border-color: var(--rk-color-border-strong);
+}
+
+.rk-importer .rk-importer-source-name {
+	font-weight: 600;
+	color: var(--rk-color-text);
+}
+
+.rk-importer .rk-importer-version-badge {
+	display: inline-block;
+	margin-left: var(--rk-space-2);
+	padding: 0 var(--rk-space-2);
+	border-radius: var(--rk-radius-sm);
+	font-size: var(--rk-font-size-2xs);
+	font-weight: 600;
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	border: 1px solid var(--rk-color-border);
+}
+
+.rk-importer .rk-importer-storage {
+	display: block;
+	font-family: var(--rk-font-mono);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-importer .rk-importer-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--rk-space-2);
+}
+
+.rk-importer .rk-importer-pill {
+	display: inline-block;
+	padding: var(--rk-space-1) var(--rk-space-3);
+	border-radius: 999px;
+	font-size: var(--rk-font-size-xs);
+	font-weight: 600;
+	border: 1px solid;
+	white-space: nowrap;
+}
+
+.rk-importer .rk-importer-pill-ready {
+	background: var(--rk-color-secondary-1-soft);
+	color: var(--rk-color-secondary-1);
+	border-color: var(--rk-tint-positive-border);
+}
+
+.rk-importer .rk-importer-pill-muted {
+	background: var(--rk-color-surface-muted);
+	color: var(--rk-color-text-muted);
+	border-color: var(--rk-color-border-strong);
+}
+
+.rk-importer .rk-importer-preview-btn {
+	padding: var(--rk-space-1) var(--rk-space-3);
+	border-radius: var(--rk-radius-sm);
+	font-size: var(--rk-font-size-sm);
+	font-weight: 600;
+	cursor: pointer;
+	background: var(--rk-color-surface);
+	color: var(--rk-color-text-secondary);
+	border: 1px solid var(--rk-color-border-strong);
+}
+
+.rk-importer .rk-importer-preview-btn-primary {
+	background: var(--rk-color-primary);
+	color: var(--rk-color-surface);
+	border-color: var(--rk-color-primary);
+}
+
+.rk-importer .rk-importer-preview-btn-primary:hover {
+	background: var(--rk-color-primary-hover);
+}
+
+.rk-importer .rk-importer-preview-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.rk-importer .rk-importer-detect-footer {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: var(--rk-space-2);
+	margin-top: var(--rk-space-3);
+	font-size: var(--rk-font-size-xs);
+	color: var(--rk-color-text-muted);
+}
+
+.rk-importer .rk-importer-scan-stats {
+	font-family: var(--rk-font-mono);
+	white-space: nowrap;
+}
+
+.rk-importer .rk-importer-info-box {
+	margin: var(--rk-space-4) 0;
+	padding: var(--rk-space-3) var(--rk-space-4);
+	border-radius: var(--rk-radius-md);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+	background: var(--rk-color-primary-soft);
+	border: 1px solid var(--rk-tint-primary-border);
+}
+
+.rk-importer .rk-importer-confirm {
+	margin: var(--rk-space-4) 0;
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-confirm:empty {
+	display: none;
+}
+
+.rk-importer .rk-importer-confirm h3 {
+	margin: 0 0 var(--rk-space-3);
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-importer .rk-importer-confirm ul {
+	margin: 0;
+	padding-left: var(--rk-space-6);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+}
+
+/* ==========================================================================
    Run path
    ========================================================================== */
 
@@ -121,6 +469,10 @@
 	border: 1px solid var(--rk-color-border);
 	border-radius: var(--rk-radius-lg);
 	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-section:empty {
+	display: none;
 }
 
 .rk-importer .rk-importer-section h3 {
@@ -249,6 +601,39 @@
 	color: var(--rk-color-text-secondary);
 }
 
+.rk-importer .rk-importer-guide {
+	margin: var(--rk-space-4) 0;
+	padding: var(--rk-space-4) var(--rk-space-6);
+	background: var(--rk-color-surface);
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-lg);
+	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-guide h2 {
+	margin: 0 0 var(--rk-space-2);
+	font-size: var(--rk-font-size-md);
+	font-weight: 700;
+	color: var(--rk-color-text);
+}
+
+.rk-importer .rk-importer-guide-steps {
+	margin: 0 0 var(--rk-space-2);
+	padding-left: var(--rk-space-6);
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-secondary);
+}
+
+.rk-importer .rk-importer-guide-steps li + li {
+	margin-top: var(--rk-space-1);
+}
+
+.rk-importer .rk-importer-guide-hint {
+	margin: 0;
+	font-size: var(--rk-font-size-sm);
+	color: var(--rk-color-text-muted);
+}
+
 /* Long unbroken strings (identities, slot names in confirm/final report). */
 .rk-importer .rk-importer-confirm,
 .rk-importer .rk-importer-confirm ul,
@@ -304,9 +689,21 @@
 }
 
 @media (max-width: 480px) {
-	.rk-importer .rk-importer-steps li {
-		flex: 1 1 100%;
-		justify-content: center;
+	.rk-importer .rk-importer-steps {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-importer .rk-importer-modes-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rk-importer .rk-importer-detect-card,
+	.rk-importer .rk-importer-confirm {
+		padding: var(--rk-space-3);
+	}
+
+	.rk-importer .rk-importer-actions {
+		flex-wrap: wrap;
 	}
 
 	.rk-importer .rk-importer-modes label {
