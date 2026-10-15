@@ -40,6 +40,8 @@ final class ImportControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_post_meta' )->justReturn( false );
 		Functions\when( 'get_term_meta' )->justReturn( false );
+		Functions\when( 'get_post' )->justReturn( false );
+		Functions\when( 'get_term' )->justReturn( false );
 		Functions\when( '__' )->alias(
 			static function ( string $text ): string {
 				return $text;
@@ -196,6 +198,159 @@ final class ImportControllerTest extends TestCase {
 		$this->assertSame( 1, $data['totals']['posts'] );
 		$this->assertNotEmpty( $data['rows'] );
 		$this->assertSame( 7, $data['rows'][0]['refId'] );
+	}
+
+	/**
+	 * Test preview rows carry the live post title plus edit link.
+	 */
+	public function test_preview_post_row_carries_title_and_edit_link(): void {
+		$posts = [
+			[
+				'id'   => 7,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Hello' ],
+			],
+		];
+
+		Functions\when( 'get_post' )->alias(
+			static function ( int $id ): \WP_Post {
+				$post       = new \WP_Post();
+				$post->ID   = $id;
+				$post->post_title = 'Live Hello';
+
+				return $post;
+			}
+		);
+		Functions\when( 'get_the_title' )->alias( static fn ( $post ): string => $post instanceof \WP_Post ? $post->post_title : '' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_the_title signature.
+		Functions\when( 'get_edit_post_link' )->alias( static fn ( int $id ): string => 'https://example.test/wp-admin/post.php?post=' . $id . '&action=edit' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_edit_post_link signature.
+
+		[ $ctrl ] = $this->makeController( $posts );
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+				]
+			)
+		);
+
+		$data = $res->get_data();
+		$this->assertSame( 'Live Hello', $data['rows'][0]['title'] );
+		$this->assertSame( 'https://example.test/wp-admin/post.php?post=7&action=edit', $data['rows'][0]['editUrl'] );
+	}
+
+	/**
+	 * Test missing posts fall back to the id label without a link.
+	 */
+	public function test_preview_missing_post_has_no_title_or_link(): void {
+		$posts = [
+			[
+				'id'   => 8,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Ghost' ],
+			],
+		];
+
+		Functions\when( 'get_post' )->justReturn( false );
+
+		[ $ctrl ] = $this->makeController( $posts );
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+				]
+			)
+		);
+
+		$data = $res->get_data();
+		$this->assertSame( '', $data['rows'][0]['title'] );
+		$this->assertSame( '', $data['rows'][0]['editUrl'] );
+		$this->assertSame( 8, $data['rows'][0]['refId'] );
+	}
+
+	/**
+	 * Test users without edit rights get no title or link.
+	 */
+	public function test_preview_without_edit_rights_has_no_title_or_link(): void {
+		$posts = [
+			[
+				'id'   => 7,
+				'type' => 'post',
+				'data' => [ '_yoast_wpseo_title' => 'Hello' ],
+			],
+		];
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_post' )->alias(
+			static function ( int $id ): \WP_Post {
+				$post             = new \WP_Post();
+				$post->ID         = $id;
+				$post->post_title = 'Live Hello';
+
+				return $post;
+			}
+		);
+		Functions\when( 'get_the_title' )->justReturn( 'Live Hello' );
+		Functions\when( 'get_edit_post_link' )->justReturn( 'https://example.test/wp-admin/post.php?post=7&action=edit' );
+
+		[ $ctrl ] = $this->makeController( $posts );
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+				]
+			)
+		);
+
+		$data = $res->get_data();
+		$this->assertSame( '', $data['rows'][0]['title'] );
+		$this->assertSame( '', $data['rows'][0]['editUrl'] );
+	}
+
+	/**
+	 * Test preview term rows carry the term name plus edit link.
+	 */
+	public function test_preview_term_row_carries_name_and_edit_link(): void {
+		Functions\when( 'get_term' )->alias(
+			static function ( int $id ): \WP_Term {
+				$term           = new \WP_Term();
+				$term->term_id  = $id;
+				$term->name     = 'Live Cats';
+				$term->taxonomy = 'category';
+
+				return $term;
+			}
+		);
+		Functions\when( 'get_taxonomy' )->alias(
+			static function ( string $taxonomy ): \WP_Taxonomy {
+				return new \WP_Taxonomy();
+			}
+		);
+		Functions\when( 'get_edit_term_link' )->alias( static fn (): string => 'https://example.test/wp-admin/term.php?taxonomy=category&tag_ID=21' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_edit_term_link signature.
+
+		$runner = new ImportControllerStubRunner();
+		$ctrl   = new ImportController(
+			[ 'yoast' => new ImportControllerStubReader( [], [], [ [ 'id' => 21, 'taxonomy' => 'category', 'data' => [ 'wpseo_title' => 'Cats' ] ] ] ) ],
+			static function () use ( $runner ): ImportControllerStubRunner {
+				return $runner;
+			}
+		);
+		$res    = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'mode'   => 'skip',
+					'kind'   => 'terms',
+				]
+			)
+		);
+
+		$data = $res->get_data();
+		$this->assertSame( 'term:category:21', $data['rows'][0]['identity'] );
+		$this->assertSame( 'Live Cats (category)', $data['rows'][0]['title'] );
+		$this->assertSame( 'https://example.test/wp-admin/term.php?taxonomy=category&tag_ID=21', $data['rows'][0]['editUrl'] );
 	}
 
 	/**

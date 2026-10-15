@@ -367,10 +367,94 @@ final class ImportController {
 				);
 			}
 
+			if ( 'post' === ( $vars['kind'] ?? '' ) || 'term' === ( $vars['kind'] ?? '' ) ) {
+				$vars += self::objectLabel( (string) $vars['kind'], (int) $vars['refId'] );
+			}
+
 			$out[] = $vars;
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Resolve the human title and edit link for a post or term row.
+	 *
+	 * Display only: identities, fields and conflict logic never see
+	 * these values. Missing or uneditable objects fall back to an
+	 * empty pair so the row keeps its Post {id} label without a link.
+	 * Values travel raw in JSON and are escaped at render time.
+	 *
+	 * @param string $kind  Row kind, post or term.
+	 * @param int    $refId Post or term id.
+	 * @return array{title: string, editUrl: string} The display pair.
+	 */
+	private static function objectLabel( string $kind, int $refId ): array {
+		if ( $refId < 1 || ! function_exists( 'current_user_can' ) ) {
+			return [
+				'title'   => '',
+				'editUrl' => '',
+			];
+		}
+
+		if ( 'term' === $kind ) {
+			if ( ! function_exists( 'get_term' ) ) {
+				return [
+					'title'   => '',
+					'editUrl' => '',
+				];
+			}
+
+			$term = get_term( $refId );
+
+			if ( ! $term instanceof \WP_Term ) {
+				return [
+					'title'   => '',
+					'editUrl' => '',
+				];
+			}
+
+			$taxonomy = function_exists( 'get_taxonomy' ) ? get_taxonomy( $term->taxonomy ) : null;
+			$cap      = ( $taxonomy instanceof \WP_Taxonomy ) ? $taxonomy->cap->manage_terms : '';
+
+			if ( '' === $cap || ! current_user_can( $cap ) ) {
+				return [
+					'title'   => '',
+					'editUrl' => '',
+				];
+			}
+
+			$link = function_exists( 'get_edit_term_link' ) ? (string) get_edit_term_link( $refId, $term->taxonomy, 'post' ) : '';
+
+			return [
+				'title'   => $term->name . ' (' . $term->taxonomy . ')',
+				'editUrl' => $link,
+			];
+		}
+
+		if ( ! function_exists( 'get_post' ) || ! current_user_can( 'edit_post', $refId ) ) {
+			return [
+				'title'   => '',
+				'editUrl' => '',
+			];
+		}
+
+		$post = get_post( $refId );
+
+		if ( ! $post instanceof \WP_Post ) {
+			return [
+				'title'   => '',
+				'editUrl' => '',
+			];
+		}
+
+		$title = function_exists( 'get_the_title' ) ? (string) get_the_title( $post ) : '';
+		$link  = function_exists( 'get_edit_post_link' ) ? (string) get_edit_post_link( $refId, 'raw' ) : '';
+
+		return [
+			'title'   => $title,
+			'editUrl' => $link,
+		];
 	}
 
 	/**

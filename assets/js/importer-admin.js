@@ -115,7 +115,11 @@
 		var checked = state.excludes[ row.identity ] ? ' checked' : '';
 		var disabled = row.skippedReason ? ' disabled' : '';
 		var check = '<label><input type="checkbox" data-rk-importer-exclude value="' + esc( row.identity ) + '"' + checked + disabled + '> ' + esc( __( 'Exclude', 'rankkernel' ) ) + '</label>';
-		return '<tr><td>' + esc( row.label ) + '</td><td>' + esc( row.kind ) + '</td><td>' + notes.join( '<br>' ) + '</td><td>' + check + '</td></tr>';
+		var name = esc( row.label );
+		if ( row.title && row.editUrl ) {
+			name = '<a href="' + esc( row.editUrl ) + '" target="_blank" rel="noopener">' + esc( row.title ) + '</a><br><span>' + esc( row.label ) + '</span>';
+		}
+		return '<tr><td>' + name + '</td><td>' + esc( row.kind ) + '</td><td>' + notes.join( '<br>' ) + '</td><td>' + check + '</td></tr>';
 	}
 
 	function pagerHtml( kind, page ) {

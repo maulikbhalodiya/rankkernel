@@ -515,6 +515,30 @@ test( 'preview enables the run button', async () => {
 	assert.equal( dom.runBtn.disabled, false );
 } );
 
+test( 'titled rows render escaped links opening in a new tab', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, ( url, opts ) => {
+		calls.push( { url, opts } );
+		const body = JSON.parse( opts.body );
+		if ( /\/preview$/.test( url ) && 'posts' === body.kind ) {
+			return okJson( previewBody( 'posts', [
+				Object.assign( postRow( 7, 'Seven' ), { title: 'Live Seven', editUrl: 'https://example.test/wp-admin/post.php?post=7&action=edit' } ),
+				Object.assign( postRow( 8, 'Eight' ), { title: '<script>alert(1)</script>', editUrl: 'https://example.test/?x="quoted"' } )
+			], { kindTotal: 2 } ) );
+		}
+		return okJson( previewBody( body.kind, [] ) );
+	}, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /<a href="https:\/\/example\.test\/wp-admin\/post\.php\?post=7&amp;action=edit" target="_blank" rel="noopener">Live Seven<\/a>/ );
+	assert.match( dom.sections.posts.innerHTML, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/ );
+	assert.ok( ! /<script>alert/.test( dom.sections.posts.innerHTML ) );
+	assert.match( dom.sections.posts.innerHTML, /Post 7/ );
+} );
+
 test( 'wizard nav lists kinds with current first and none reviewed', async () => {
 	const dom = importerDom();
 	const spoken = [];
