@@ -45,6 +45,7 @@ function el( tagName, attrs = {}, text = '' ) {
 		parentNode: null,
 		style: { display: '' },
 		appendChild( child ) { child.parentNode = node; node.children.push( child ); return child; },
+		insertBefore( child, ref ) { child.parentNode = node; const at = ref ? node.children.indexOf( ref ) : -1; if ( at === -1 ) { node.children.push( child ); } else { node.children.splice( at, 0, child ); } return child; },
 		querySelector( selector ) { return find( node, selector ); },
 		querySelectorAll( selector ) { return findAll( node, selector ); },
 		addEventListener( type, handler ) { ( listeners[ type ] = listeners[ type ] || [] ).push( handler ); },
@@ -154,6 +155,7 @@ function importerDom() {
 		readyState: 'complete',
 		querySelector( selector ) { return find( body, selector ); },
 		querySelectorAll( selector ) { return findAll( body, selector ); },
+		createElement( tag ) { return el( tag ); },
 		addEventListener() {}
 	};
 
@@ -499,4 +501,104 @@ test( 'rescan button reloads the page for a fresh detect', async () => {
 	await ticks( 2 );
 	assert.equal( reloaded.count, 1 );
 	assert.equal( calls.filter( ( c ) => /\/preview$|\/run$/.test( c.url ) ).length, 0 );
+} );
+
+test( 'wizard nav lists kinds with current first and none reviewed', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( nav );
+	assert.match( nav.innerHTML, /posts/ );
+	assert.match( nav.innerHTML, /terms/ );
+	assert.match( nav.innerHTML, /redirects/ );
+	assert.match( nav.innerHTML, /sitewide/ );
+	assert.match( nav.innerHTML, /bulk/ );
+	assert.match( nav.innerHTML, /aria-current="step"/ );
+	assert.match( nav.innerHTML, />current</ );
+	assert.equal( ( nav.innerHTML.match( /data-reviewed="1"/g ) || [] ).length, 0 );
+} );
+
+test( 'next marks reviewed and advances, back returns keeping it', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const next = () => dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	const back = () => dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-back': '1' } ) } );
+	next();
+	await ticks( 2 );
+	let nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( /data-rk-importer-kind="posts"[^>]*data-reviewed="1"|data-reviewed="1"[^>]*data-rk-importer-kind="posts"/.test( nav.innerHTML ) );
+	back();
+	await ticks( 2 );
+	nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( /data-rk-importer-kind="posts"[^>]*data-reviewed="1"|data-reviewed="1"[^>]*data-rk-importer-kind="posts"/.test( nav.innerHTML ) );
+	assert.match( nav.innerHTML, /aria-current="step"/ );
+} );
+
+test( 'skip marks reviewed and jump guards unvisited kinds', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const before = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'bulk' } ) } );
+	await ticks( 2 );
+	const guarded = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
+	assert.equal( guarded, before );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	const nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( /data-reviewed="1"/.test( nav.innerHTML ) );
+	assert.ok( spoken.some( ( t ) => /skipped/.test( t ) ) );
+} );
+
+test( 'exclude-all checks loaded rows and clear removes them', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude-all': '', checked: true }, '', true ) } );
+	await ticks( 2 );
+	assert.match( dom.sections.posts.innerHTML, /2 of 3 excluded/ );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const firstRun = calls.find( ( c ) => /\/run$/.test( c.url ) );
+	assert.ok( firstRun.body.excludes.includes( 'post:7' ) );
+	assert.ok( firstRun.body.excludes.includes( 'post:8' ) );
+} );
+
+test( 'confirm lists per-kind decisions after walking all kinds', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	for ( let i = 0; i < 5; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /Confirm import/ );
+	assert.match( dom.confirm.innerHTML, /posts/ );
+	assert.match( dom.confirm.innerHTML, /Bulk rules chosen/ );
 } );

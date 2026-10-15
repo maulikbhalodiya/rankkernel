@@ -308,10 +308,10 @@
 			}
 			var current = ( state.wizardView === 'kind' && i === state.currentKindIndex );
 			var visited = i <= state.visitedMax;
-			html += '<li class="rk-importer-kind-step" data-rk-importer-kind-step="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( current ? ' aria-current="step"' : '' ) + '>';
+			html += '<li class="rk-importer-kind-step" data-rk-importer-kind-step="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( current ? ' aria-current="step"' : '' ) + ( ( 'reviewed' === status || 'done' === status ) ? ' data-reviewed="1"' : '' ) + '>';
 			html += '<button type="button" data-rk-importer-kind-jump="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( visited ? '' : ' disabled' ) + '>' + esc( wizardTitle( kind ) ) + '</button>';
 			html += ' <span class="rk-importer-kind-count">' + ( page ? count : '' ) + '</span>';
-			html += ' <span class="rk-importer-kind-status">' + esc( status ) + '</span>';
+			html += ' <span class="rk-importer-kind-status">' + esc( current ? 'current' : status ) + '</span>';
 			if ( 'reviewed' === status || 'done' === status ) {
 				html += ' <span class="rk-importer-kind-check" aria-hidden="true">&#10003;</span>';
 			}
