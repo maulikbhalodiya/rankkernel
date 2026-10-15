@@ -469,7 +469,6 @@
 
 .rk-importer .rk-importer-modes label {
 	display: inline-flex;
-	align-items: center;
 	gap: var(--rk-space-2);
 	margin-right: var(--rk-space-4);
 	font-size: var(--rk-font-size-sm);
