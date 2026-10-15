@@ -541,6 +541,76 @@ test( 'titled rows render escaped links opening in a new tab', async () => {
 	assert.match( dom.sections.posts.innerHTML, /Post 7/ );
 } );
 
+test( 'edge steps omit dead nav buttons', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const controls = () => dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ).innerHTML;
+	assert.ok( controls().indexOf( 'Back' ) === -1 );
+	assert.ok( controls().indexOf( 'Next' ) !== -1 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	assert.ok( controls().indexOf( 'Next' ) === -1 );
+	assert.ok( controls().indexOf( 'Back' ) !== -1 );
+	assert.ok( controls().indexOf( 'Skip kind' ) !== -1 );
+} );
+
+test( 'skipped kinds stay out of the run and show in confirm', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /will not import/ );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const kinds = calls.filter( ( c ) => /\/run$/.test( c.url ) ).map( ( c ) => c.body.kind );
+	assert.ok( kinds.length > 0 );
+	assert.ok( kinds.indexOf( 'posts' ) === -1 );
+} );
+
+test( 'next after skip re-includes the kind', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'posts' } ) } );
+	await ticks( 2 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	await ticks( 2 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const kinds = calls.filter( ( c ) => /\/run$/.test( c.url ) ).map( ( c ) => c.body.kind );
+	assert.ok( kinds.indexOf( 'posts' ) !== -1 );
+} );
+
 test( 'wizard chrome stays hidden until preview loads', async () => {
 	const dom = importerDom();
 	const spoken = [];

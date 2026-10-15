@@ -278,9 +278,6 @@
 
 	function ensureWizardControls( root ) {
 		var mount = root.querySelector( '[data-rk-importer-wizard-nav]' );
-		if ( mount && mount.querySelector( '[data-rk-importer-next]' ) ) {
-			return;
-		}
 		if ( ! mount ) {
 			if ( ! document || typeof document.createElement !== 'function' ) {
 				return;
@@ -290,9 +287,20 @@
 			mount.setAttribute( 'data-rk-importer-wizard-nav', '1' );
 			root.appendChild( mount );
 		}
-		mount.innerHTML = '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>' +
-			' <button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1">' + esc( __( 'Skip kind', 'rankkernel' ) ) + '</button>' +
-			' <button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
+		var confirming = 'confirm' === state.wizardView;
+		var first = ! confirming && 0 === state.currentKindIndex;
+		var last = ! confirming && state.currentKindIndex === KINDS.length - 1;
+		var html = '';
+		if ( ! first ) {
+			html += '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>';
+		}
+		if ( ! confirming ) {
+			html += ' <button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1">' + esc( __( 'Skip kind', 'rankkernel' ) ) + '</button>';
+		}
+		if ( ! last && ! confirming ) {
+			html += ' <button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
+		}
+		mount.innerHTML = html;
 	}
 
 	function renderWizardNav( root ) {
@@ -390,6 +398,7 @@
 			var current = KINDS[ state.currentKindIndex ];
 			if ( current ) {
 				state.reviewed[ current ] = true;
+				delete state.skippedKinds[ current ];
 				announce( root, current + ' ' + __( 'reviewed', 'rankkernel' ) );
 			}
 		}
@@ -420,9 +429,14 @@
 		var current = KINDS[ state.currentKindIndex ];
 		if ( current ) {
 			state.reviewed[ current ] = true;
-			announce( root, current + ' ' + __( 'skipped', 'rankkernel' ) );
+			state.skippedKinds[ current ] = true;
+			announce( root, current + ' ' + __( 'skipped, will not import', 'rankkernel' ) );
 		}
-		advanceKind( root );
+		var nextIndex = state.currentKindIndex + 1;
+		if ( nextIndex > KINDS.length ) {
+			nextIndex = KINDS.length;
+		}
+		showKind( root, nextIndex );
 	}
 
 	function jumpKind( root, kind ) {
@@ -518,6 +532,7 @@
 		state.running = false;
 		state.confirmed = false;
 		state.excludes = {};
+		state.skippedKinds = {};
 		state.pages = {};
 		state.sitewide = { rows: [], selected: {} };
 		state.bulk = { rows: [], selected: [] };
@@ -567,6 +582,10 @@
 		state.bulk.selected.forEach( function ( identity ) {
 			lines.push( identity );
 		} );
+		var skippedKinds = Object.keys( state.skippedKinds || {} );
+		if ( skippedKinds.length > 0 ) {
+			lines.push( __( 'Kinds skipped, will not import: ', 'rankkernel' ) + skippedKinds.join( ', ' ) );
+		}
 		lines.push( __( 'Exclusions: ', 'rankkernel' ) + excludeList().length );
 		return '<ul><li>' + lines.map( esc ).join( '</li><li>' ) + '</li></ul>';
 	}
@@ -703,6 +722,9 @@
 	function runPlan( root, source ) {
 		var chain = Promise.resolve();
 		[ 'posts', 'terms', 'sitewide', 'redirects' ].forEach( function ( kind ) {
+			if ( state.skippedKinds[ kind ] ) {
+				return;
+			}
 			chain = chain.then( function () {
 				var options = {};
 				if ( 'sitewide' === kind ) {
@@ -711,11 +733,13 @@
 				return runKind( root, source, kind, 0, options );
 			} );
 		} );
-		state.bulk.selected.forEach( function ( identity ) {
-			chain = chain.then( function () {
-				return runKind( root, source, 'bulk', 0, { rule: identity } );
+		if ( ! state.skippedKinds.bulk ) {
+			state.bulk.selected.forEach( function ( identity ) {
+				chain = chain.then( function () {
+					return runKind( root, source, 'bulk', 0, { rule: identity } );
+				} );
 			} );
-		} );
+		}
 		return chain;
 	}
 
