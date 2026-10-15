@@ -186,12 +186,12 @@ $rkListMatchBadgeMap = [
 						<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 						<?php else : ?>
-							<a class="button disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+							<span class="button disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
 						<?php endif; ?>
 						<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 						<?php else : ?>
-							<a class="button disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+							<span class="button disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
 						<?php endif; ?>
 					<?php endif; ?>
 					<span class="rk-items-count"><?php echo esc_html( $totalLabel ); ?></span>
@@ -335,7 +335,7 @@ $rkListMatchBadgeMap = [
 							<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
 							<?php endif; ?>
 							<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
 								<?php if ( '' === $pageEntry['url'] ) : ?>
@@ -349,7 +349,7 @@ $rkListMatchBadgeMap = [
 							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 							<?php else : ?>
-								<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
 							<?php endif; ?>
 						</div>
 					<?php endif; ?>

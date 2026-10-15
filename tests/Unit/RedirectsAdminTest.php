@@ -2505,4 +2505,27 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-per-page-desc"', $html );
 		$this->assertStringContainsString( 'id="rk-per-page-hint"', $html );
 	}
+
+	/**
+	 * Disabled pagination controls render span elements with aria-disabled="true".
+	 */
+	public function test_disabled_pagination_controls_render_aria_disabled_spans(): void {
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$this->seedRule( '/old-' . (string) $i, '/new-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		// Page 1: prevUrl is empty, nextUrl is present.
+		$htmlPage1 = $this->renderPage( $page );
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Previous</span>', $htmlPage1 );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Previous</span>', $htmlPage1 );
+
+		// Page 2: prevUrl is present, nextUrl is empty.
+		$_GET      = [ 'rk_paged' => '2' ];
+		$htmlPage2 = $this->renderPage( $page );
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+	}
 }
