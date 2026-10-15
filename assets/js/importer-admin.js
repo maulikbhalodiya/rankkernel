@@ -277,19 +277,22 @@
 	}
 
 	function ensureWizardControls( root ) {
-		if ( root.querySelector( '[data-rk-importer-wizard-nav]' ) ) {
+		var mount = root.querySelector( '[data-rk-importer-wizard-nav]' );
+		if ( mount && mount.querySelector( '[data-rk-importer-next]' ) ) {
 			return;
 		}
-		if ( ! document || typeof document.createElement !== 'function' ) {
-			return;
+		if ( ! mount ) {
+			if ( ! document || typeof document.createElement !== 'function' ) {
+				return;
+			}
+			mount = document.createElement( 'div' );
+			mount.className = 'rk-importer-wizard-nav';
+			mount.setAttribute( 'data-rk-importer-wizard-nav', '1' );
+			root.appendChild( mount );
 		}
-		var el = document.createElement( 'div' );
-		el.className = 'rk-importer-wizard-nav';
-		el.setAttribute( 'data-rk-importer-wizard-nav', '1' );
-		el.innerHTML = '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>' +
+		mount.innerHTML = '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>' +
 			' <button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1">' + esc( __( 'Skip kind', 'rankkernel' ) ) + '</button>' +
 			' <button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
-		root.appendChild( el );
 	}
 
 	function renderWizardNav( root ) {
@@ -380,6 +383,9 @@
 	}
 
 	function advanceKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
 		if ( state.wizardView === 'kind' ) {
 			var current = KINDS[ state.currentKindIndex ];
 			if ( current ) {
@@ -395,6 +401,9 @@
 	}
 
 	function prevKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
 		if ( state.currentKindIndex <= 0 ) {
 			return;
 		}
@@ -402,6 +411,9 @@
 	}
 
 	function skipKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
 		if ( state.wizardView !== 'kind' ) {
 			return;
 		}
@@ -414,6 +426,9 @@
 	}
 
 	function jumpKind( root, kind ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
 		var idx = kindIndex( kind );
 		if ( idx === -1 ) {
 			return;
@@ -486,6 +501,7 @@
 			showKind( root, 0 );
 			setStep( root, 'rk-importer-step-detect', 'is-complete' );
 			setStep( root, 'rk-importer-step-preview', 'is-current' );
+			state.previewLoaded = true;
 			var runGate = root.querySelector( '[data-rk-importer-run]' );
 			if ( runGate ) {
 				runGate.disabled = false;
@@ -498,6 +514,7 @@
 
 	function resetState( source ) {
 		state.source = source;
+		state.previewLoaded = false;
 		state.running = false;
 		state.confirmed = false;
 		state.excludes = {};
@@ -806,7 +823,6 @@
 				run( root, runBtn );
 			} );
 		}
-		ensureWizardControls( root );
 		var rescanBtn = root.querySelector( '[data-rk-importer-rescan]' );
 		if ( rescanBtn ) {
 			rescanBtn.addEventListener( 'click', function () {

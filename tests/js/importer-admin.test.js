@@ -133,6 +133,8 @@ function importerDom() {
 		rootEl.appendChild( sections[ kind ] );
 	} );
 	const confirm = el( 'div', { 'data-rk-importer-confirm': '1' } );
+	const kindNav = el( 'ol', { 'data-rk-importer-kind-nav': '1', 'data-rk-importer-kind-stepper': '1' } );
+	rootEl.appendChild( kindNav );
 	const runBtn = el( 'button', { 'data-rk-importer-run': '1' }, 'Run import' );
 	const rescanBtn = el( 'button', { 'data-rk-importer-rescan': '1' }, 'Rescan Database' );
 	const progress = el( 'div', { 'data-rk-importer-progress': '1' } );
@@ -537,6 +539,26 @@ test( 'titled rows render escaped links opening in a new tab', async () => {
 	assert.match( dom.sections.posts.innerHTML, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/ );
 	assert.ok( ! /<script>alert/.test( dom.sections.posts.innerHTML ) );
 	assert.match( dom.sections.posts.innerHTML, /Post 7/ );
+} );
+
+test( 'wizard chrome stays hidden until preview loads', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ), null );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'terms' } ) } );
+	await ticks( 2 );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ), null );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML, '' );
+	assert.ok( ! spoken.some( ( t ) => /reviewed|skipped/.test( t ) ) );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.ok( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ) );
+	assert.match( dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML, /posts/ );
 } );
 
 test( 'wizard nav lists kinds with current first and none reviewed', async () => {

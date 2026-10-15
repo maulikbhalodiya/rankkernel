@@ -763,6 +763,10 @@
 	flex-wrap: wrap;
 }
 
+.rk-importer .rk-importer-kind-nav:empty {
+	display: none;
+}
+
 .rk-importer .rk-importer-kind-nav li {
 	display: inline-flex;
 	align-items: center;
@@ -858,6 +862,10 @@
 	flex-wrap: wrap;
 	gap: var(--rk-space-2);
 	margin: var(--rk-space-4) 0 var(--rk-space-4);
+}
+
+.rk-importer .rk-importer-wizard-nav:empty {
+	display: none;
 }
 
 .rk-importer .rk-importer-wizard-nav button {
