@@ -66,6 +66,13 @@ function fakeTarget( attrs, value, checked ) {
 }
 
 function matches( node, selector ) {
+	if ( selector.startsWith( '#' ) ) {
+		return node.getAttribute( 'id' ) === selector.slice( 1 );
+	}
+	if ( selector.startsWith( '.' ) ) {
+		const classes = ( node.getAttribute( 'class' ) || '' ).split( /\s+/ );
+		return classes.indexOf( selector.slice( 1 ) ) !== -1;
+	}
 	let pseudo = null;
 	const hash = selector.indexOf( ':' );
 	if ( hash !== -1 ) {
@@ -108,6 +115,14 @@ function findAll( node, selector ) {
 function importerDom() {
 	const body = el( 'div' );
 	const rootEl = el( 'div', { 'data-rk-importer-root': '1' } );
+	const steps = el( 'ol', { class: 'rk-importer-steps' } );
+	const stepDetect = el( 'li', { id: 'rk-importer-step-detect' }, 'Detect' );
+	const stepPreview = el( 'li', { id: 'rk-importer-step-preview' }, 'Preview' );
+	const stepRun = el( 'li', { id: 'rk-importer-step-run' }, 'Run' );
+	steps.appendChild( stepDetect );
+	steps.appendChild( stepPreview );
+	steps.appendChild( stepRun );
+	rootEl.appendChild( steps );
 	const previewBtn = el( 'button', { 'data-rk-importer-preview': 'yoast' }, 'Preview' );
 	const modeSkip = el( 'input', { name: 'rk-importer-mode', value: 'skip', checked: true } );
 	const modeOverwrite = el( 'input', { name: 'rk-importer-mode', value: 'overwrite' } );
@@ -140,7 +155,7 @@ function importerDom() {
 		addEventListener() {}
 	};
 
-	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, bar, announce, errorBox };
+	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, bar, announce, errorBox, stepDetect, stepPreview, stepRun };
 }
 
 function runImporter( sandbox ) {
@@ -449,4 +464,23 @@ test( 'a mid run failure stops the chain with a partial report', async () => {
 	assert.equal( calls.filter( ( c ) => /\/run$/.test( c.url ) && 'terms' === c.body.kind ).length, 0 );
 	assert.match( dom.confirm.innerHTML, /stopped/i );
 	assert.equal( dom.runBtn.disabled, false );
+} );
+
+test( 'steps indicator classes update on transitions', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	assert.equal( dom.stepDetect.getAttribute( 'class' ), null );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.stepDetect.getAttribute( 'class' ), 'is-complete' );
+	assert.equal( dom.stepPreview.getAttribute( 'class' ), 'is-current' );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.stepPreview.getAttribute( 'class' ), 'is-complete' );
+	assert.equal( dom.stepRun.getAttribute( 'class' ), 'is-current' );
 } );

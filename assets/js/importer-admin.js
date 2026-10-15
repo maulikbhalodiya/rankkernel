@@ -56,6 +56,13 @@
 		}
 	}
 
+	function setStep( root, id, className ) {
+		var step = root.querySelector( '#' + id );
+		if ( step ) {
+			step.setAttribute( 'class', className );
+		}
+	}
+
 	function fail( root, text ) {
 		var box = root.querySelector( '[data-rk-importer-error]' );
 		if ( box ) {
@@ -228,6 +235,8 @@
 			} );
 			renderSkipped( root, skipped );
 			resetConfirm( root );
+			setStep( root, 'rk-importer-step-detect', 'is-complete' );
+			setStep( root, 'rk-importer-step-preview', 'is-current' );
 			announce( root, __( 'Preview ready. Review the sections, then run the import.', 'rankkernel' ) );
 		} ).catch( function () {
 			fail( root, __( 'Preview request failed.', 'rankkernel' ) );
@@ -463,6 +472,8 @@
 		runBtn.disabled = true;
 		state.kinds = {};
 		setProgress( root, 0 );
+		setStep( root, 'rk-importer-step-preview', 'is-complete' );
+		setStep( root, 'rk-importer-step-run', 'is-current' );
 		return runPlan( root, source ).then( function () {
 			setProgress( root, 100 );
 			var panel = root.querySelector( '[data-rk-importer-confirm]' );
@@ -477,6 +488,7 @@
 			}
 			fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
 		} ).then( function () {
+			setStep( root, 'rk-importer-step-run', 'is-current' );
 			state.running = false;
 			runBtn.disabled = false;
 			resetConfirmPartial( root );

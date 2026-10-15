@@ -36,8 +36,7 @@
 	border: 1px solid var(--rk-color-border);
 }
 
-.rk-importer .rk-importer-steps li.is-current,
-.rk-importer .rk-importer-steps li:first-child {
+.rk-importer .rk-importer-steps li.is-current {
 	background: var(--rk-color-primary);
 	color: var(--rk-color-surface);
 	border-color: var(--rk-color-primary);
@@ -214,6 +213,13 @@
 	padding: var(--rk-space-3) var(--rk-space-4);
 }
 
+.rk-importer .rk-importer-error:empty {
+	display: none;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
 .rk-importer .rk-importer-confirm {
 	margin: var(--rk-space-4) 0;
 }
@@ -243,13 +249,41 @@
 	color: var(--rk-color-text-secondary);
 }
 
+/* Long unbroken strings (identities, slot names in confirm/final report). */
+.rk-importer .rk-importer-confirm,
+.rk-importer .rk-importer-confirm ul,
+.rk-importer .rk-importer-confirm li,
+.rk-importer .rk-importer-confirm h3,
+.rk-importer .rk-importer-detect th,
+.rk-importer .rk-importer-detect td,
+.rk-importer .rk-importer-section .widefat th,
+.rk-importer .rk-importer-section .widefat td {
+	overflow-wrap: anywhere;
+}
+
+/* Flex children that may shrink. */
+.rk-importer .rk-importer-steps li,
+.rk-importer .rk-importer-pager > * {
+	min-width: 0;
+}
+
+/* Focus visible for pager buttons and inputs. */
+.rk-importer .rk-importer-pager button:focus-visible,
+.rk-importer input:focus-visible,
+.rk-importer select:focus-visible,
+.rk-importer textarea:focus-visible,
+.rk-importer button:focus-visible {
+	outline: 2px solid var(--rk-color-focus);
+	outline-offset: 2px;
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 782px) {
 	.rk-importer .rk-importer-detect {
-		display: block;
+		display: table;
 		overflow-x: auto;
 		max-width: 100%;
 	}
@@ -263,7 +297,7 @@
 	}
 
 	.rk-importer .rk-importer-section .widefat {
-		display: block;
+		display: table;
 		overflow-x: auto;
 		max-width: 100%;
 	}
@@ -290,5 +324,12 @@
 	.rk-importer .rk-importer-pager {
 		flex-direction: column;
 		align-items: flex-start;
+	}
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+	.rk-importer .rk-importer-bar {
+		transition: none;
 	}
 }
