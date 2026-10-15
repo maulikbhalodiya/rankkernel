@@ -104,18 +104,24 @@ final class ImporterPage {
 			<section class="rk-importer-steps-card">
 				<ol class="rk-importer-steps" role="list">
 					<li id="rk-importer-step-detect" class="is-current">
-						<span class="rk-importer-step-number">1</span>
-						<span class="rk-importer-step-label"><?php echo esc_html__( 'Detect', 'rankkernel' ); ?></span>
+						<div class="rk-importer-step-top">
+							<span class="rk-importer-step-number" aria-hidden="true">1</span>
+							<span class="rk-importer-step-label"><?php echo esc_html__( 'Detect', 'rankkernel' ); ?></span>
+						</div>
 						<p class="rk-importer-step-desc"><?php echo esc_html__( 'Scanned active and dormant SEO database tables', 'rankkernel' ); ?></p>
 					</li>
 					<li id="rk-importer-step-preview">
-						<span class="rk-importer-step-number">2</span>
-						<span class="rk-importer-step-label"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></span>
+						<div class="rk-importer-step-top">
+							<span class="rk-importer-step-number" aria-hidden="true">2</span>
+							<span class="rk-importer-step-label"><?php echo esc_html__( 'Preview', 'rankkernel' ); ?></span>
+						</div>
 						<p class="rk-importer-step-desc"><?php echo esc_html__( 'Review items, post types and taxonomy mapping', 'rankkernel' ); ?></p>
 					</li>
 					<li id="rk-importer-step-run">
-						<span class="rk-importer-step-number">3</span>
-						<span class="rk-importer-step-label"><?php echo esc_html__( 'Run', 'rankkernel' ); ?></span>
+						<div class="rk-importer-step-top">
+							<span class="rk-importer-step-number" aria-hidden="true">3</span>
+							<span class="rk-importer-step-label"><?php echo esc_html__( 'Run', 'rankkernel' ); ?></span>
+						</div>
 						<p class="rk-importer-step-desc"><?php echo esc_html__( 'Execute batch import', 'rankkernel' ); ?></p>
 					</li>
 				</ol>
@@ -159,16 +165,20 @@ final class ImporterPage {
 			<p class="rk-importer-modes-helper"><?php echo esc_html__( 'Choose how RankKernel handles SEO metadata when a post, page, or term already has data in both databases.', 'rankkernel' ); ?></p>
 			<span class="rk-importer-applies"><?php echo esc_html__( 'Applies to all selected sources', 'rankkernel' ); ?></span>
 			<div class="rk-importer-modes-grid">
-				<label class="rk-importer-mode-card is-selected">
-					<input type="radio" name="rk-importer-mode" value="skip" checked>
-					<span class="rk-importer-mode-title"><?php echo esc_html__( 'Skip existing values', 'rankkernel' ); ?></span>
-					<span class="rk-importer-badge rk-importer-badge-positive"><?php echo esc_html__( 'Recommended', 'rankkernel' ); ?></span>
+				<label class="rk-importer-mode-card">
+					<div class="rk-importer-mode-top">
+						<input type="radio" name="rk-importer-mode" value="skip" checked>
+						<span class="rk-importer-mode-title"><?php echo esc_html__( 'Skip existing values', 'rankkernel' ); ?></span>
+						<span class="rk-importer-badge rk-importer-badge-positive"><?php echo esc_html__( 'Recommended', 'rankkernel' ); ?></span>
+					</div>
 					<p class="rk-importer-mode-desc"><?php echo esc_html__( 'Preserves all existing RankKernel metadata. Only imports missing fields, empty snippets, or unmapped redirects. Safe and non-destructive.', 'rankkernel' ); ?></p>
 				</label>
 				<label class="rk-importer-mode-card">
-					<input type="radio" name="rk-importer-mode" value="overwrite">
-					<span class="rk-importer-mode-title"><?php echo esc_html__( 'Overwrite with incoming values', 'rankkernel' ); ?></span>
-					<span class="rk-importer-badge rk-importer-badge-warning"><?php echo esc_html__( 'Overwrite', 'rankkernel' ); ?></span>
+					<div class="rk-importer-mode-top">
+						<input type="radio" name="rk-importer-mode" value="overwrite">
+						<span class="rk-importer-mode-title"><?php echo esc_html__( 'Overwrite with incoming values', 'rankkernel' ); ?></span>
+						<span class="rk-importer-badge rk-importer-badge-warning"><?php echo esc_html__( 'Overwrite', 'rankkernel' ); ?></span>
+					</div>
 					<p class="rk-importer-mode-desc"><?php echo esc_html__( 'Replaces current RankKernel metadata with data found in the source plugin. Ideal for full migrations to match legacy configurations one to one.', 'rankkernel' ); ?></p>
 				</label>
 			</div>

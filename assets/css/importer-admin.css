@@ -28,8 +28,9 @@
 
 .rk-importer .rk-importer-steps li {
 	display: flex;
-	gap: var(--rk-space-3);
-	align-items: flex-start;
+	flex-direction: column;
+	text-align: center;
+	gap: var(--rk-space-2);
 	padding: var(--rk-space-4);
 	border-radius: var(--rk-radius-lg);
 	font-size: var(--rk-font-size-sm);
@@ -37,6 +38,13 @@
 	color: var(--rk-color-text-muted);
 	border: 1px solid var(--rk-color-border);
 	box-shadow: var(--rk-shadow-sm);
+}
+
+.rk-importer .rk-importer-step-top {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-5);
 }
 
 .rk-importer .rk-importer-step-number {
@@ -163,7 +171,9 @@
 }
 
 .rk-importer .rk-importer-mode-card {
-	display: block;
+	display: flex;
+	flex-direction: column;
+	text-align: center;
 	margin: 0;
 	padding: var(--rk-space-4);
 	border: 1px solid var(--rk-color-border);
@@ -176,6 +186,13 @@
 .rk-importer .rk-importer-mode-card:has(input:checked) {
 	border: 2px solid var(--rk-color-primary);
 	background: var(--rk-color-primary-soft);
+}
+
+.rk-importer .rk-importer-mode-top {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--rk-space-5);
 }
 
 .rk-importer .rk-importer-mode-title {
@@ -205,7 +222,7 @@
 }
 
 .rk-importer .rk-importer-mode-desc {
-	margin: var(--rk-space-2) 0 0 1.4em;
+	margin: var(--rk-space-2) 0 0;
 	color: var(--rk-color-text-secondary);
 }
 
