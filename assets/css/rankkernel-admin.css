@@ -52,7 +52,8 @@ may fetch a font from an external host. */
 .rk-instant-indexing,
 .rk-schema-settings,
 .rk-sitemap-settings,
-.rk-support {
+.rk-support,
+.rk-importer {
 	/* One global UI face for every RankKernel surface. */
 	font-family: var(--rk-font-sans);
 

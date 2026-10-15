@@ -57,7 +57,7 @@ final class ImporterPage {
 	 */
 	public function render(): void {
 		?>
-		<div class="wrap rk-importer" data-rk-importer-root="1">
+		<div class="wrap rk-importer rk-ui" data-rk-importer-root="1">
 			<h1><?php echo esc_html__( 'Importer', 'rankkernel' ); ?></h1>
 			<ol class="rk-importer-steps">
 				<li id="rk-importer-step-detect"><?php echo esc_html__( 'Detect', 'rankkernel' ); ?></li>
@@ -159,13 +159,32 @@ final class ImporterPage {
 			return;
 		}
 
+		if ( ! function_exists( 'plugins_url' ) ) {
+			return;
+		}
+
+		$version = \RankKernel\Plugin::version();
+
+		AdminStyles::enqueueTokenLayer( (string) RANKKERNEL_FILE );
+		AdminStyles::enqueueUiLayer( (string) RANKKERNEL_FILE );
+
+		$css = plugins_url( 'assets/css/importer-admin.css', (string) RANKKERNEL_FILE );
+
+		if ( function_exists( 'wp_register_style' ) ) {
+			wp_register_style( 'rankkernel-importer-admin', $css, [ AdminStyles::TOKEN_HANDLE, AdminStyles::UI_HANDLE ], $version );
+		}
+
+		if ( function_exists( 'wp_enqueue_style' ) ) {
+			wp_enqueue_style( 'rankkernel-importer-admin' );
+		}
+
 		if ( ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) ) {
 			return;
 		}
 
-		$src = function_exists( 'plugins_url' ) ? (string) plugins_url( 'assets/js/importer-admin.js', RANKKERNEL_FILE ) : '';
+		$src = (string) plugins_url( 'assets/js/importer-admin.js', RANKKERNEL_FILE );
 
-		wp_register_script( 'rankkernel-importer-admin', $src, [ 'wp-a11y', 'wp-i18n' ], \RankKernel\Plugin::version(), true );
+		wp_register_script( 'rankkernel-importer-admin', $src, [ 'wp-a11y', 'wp-i18n' ], $version, true );
 
 		if ( function_exists( 'wp_set_script_translations' ) ) {
 			wp_set_script_translations( 'rankkernel-importer-admin', 'rankkernel' );

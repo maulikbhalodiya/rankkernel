@@ -74,6 +74,8 @@ final class ImporterPageTest extends TestCase {
 		$enqueued  = [];
 		$localized = [];
 
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			function ( string $handle ) use ( &$enqueued ): void {
