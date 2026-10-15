@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Importer;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Enumerate local objects for bulk noindex rules in bounded slices.
  *
