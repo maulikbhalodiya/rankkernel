@@ -323,7 +323,7 @@ final class ImporterPage {
 			<button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1"><?php echo esc_html__( 'Skip kind', 'rankkernel' ); ?></button>
 			<button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></button>
 		</div>
-		<button type="button" class="button button-primary" data-rk-importer-run="1"><?php echo esc_html__( 'Run import', 'rankkernel' ); ?></button>
+		<button type="button" class="button button-primary" data-rk-importer-run="1" disabled title="<?php echo esc_attr__( 'Preview a source first, then review each kind before running.', 'rankkernel' ); ?>"><?php echo esc_html__( 'Run import', 'rankkernel' ); ?></button>
 		<div class="rk-importer-progress" data-rk-importer-progress="1"><div class="rk-importer-bar" data-rk-importer-bar="1"></div></div>
 		<div class="rk-importer-announce" data-rk-importer-announce="1" aria-live="polite"></div>
 		<div class="rk-importer-error" data-rk-importer-error="1" role="alert"></div>

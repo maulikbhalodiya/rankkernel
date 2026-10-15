@@ -503,6 +503,18 @@ test( 'rescan button reloads the page for a fresh detect', async () => {
 	assert.equal( calls.filter( ( c ) => /\/preview$|\/run$/.test( c.url ) ).length, 0 );
 } );
 
+test( 'preview enables the run button', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.runBtn.disabled = true;
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.runBtn.disabled, false );
+} );
+
 test( 'wizard nav lists kinds with current first and none reviewed', async () => {
 	const dom = importerDom();
 	const spoken = [];

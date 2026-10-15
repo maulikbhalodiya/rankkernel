@@ -473,6 +473,10 @@
 			showKind( root, 0 );
 			setStep( root, 'rk-importer-step-detect', 'is-complete' );
 			setStep( root, 'rk-importer-step-preview', 'is-current' );
+			var runGate = root.querySelector( '[data-rk-importer-run]' );
+			if ( runGate ) {
+				runGate.disabled = false;
+			}
 			announce( root, __( 'Preview ready. Review the sections, then run the import.', 'rankkernel' ) );
 		} ).catch( function () {
 			fail( root, __( 'Preview request failed.', 'rankkernel' ) );

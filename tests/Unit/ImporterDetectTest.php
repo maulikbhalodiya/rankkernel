@@ -38,6 +38,7 @@ final class ImporterDetectTest extends TestCase {
 		Functions\when( 'esc_html__' )->alias( static fn ( $text ): string => (string) $text );
 		Functions\when( 'esc_html' )->alias( static fn ( $text ): string => (string) $text );
 		Functions\when( 'esc_attr' )->alias( static fn ( $text ): string => (string) $text );
+		Functions\when( 'esc_attr__' )->alias( static fn ( $text ): string => (string) $text );
 		Functions\when( '__' )->alias( static fn ( $text ): string => (string) $text );
 	}
 
