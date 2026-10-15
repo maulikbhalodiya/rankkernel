@@ -313,10 +313,16 @@ final class ImporterPage {
 	 */
 	private function renderRunPath(): void {
 		?>
+		<ol class="rk-importer-kind-nav" data-rk-importer-kind-nav="1" data-rk-importer-kind-stepper="1"></ol>
 		<?php foreach ( [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk', 'skipped' ] as $section ) : ?>
 			<div class="rk-importer-section" data-rk-importer-section="<?php echo esc_attr( $section ); ?>"></div>
 		<?php endforeach; ?>
 		<div class="rk-importer-confirm" data-rk-importer-confirm="1"></div>
+		<div class="rk-importer-wizard-nav" data-rk-importer-wizard-nav="1">
+			<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1"><?php echo esc_html__( 'Back', 'rankkernel' ); ?></button>
+			<button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1"><?php echo esc_html__( 'Skip kind', 'rankkernel' ); ?></button>
+			<button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></button>
+		</div>
 		<button type="button" class="button button-primary" data-rk-importer-run="1"><?php echo esc_html__( 'Run import', 'rankkernel' ); ?></button>
 		<div class="rk-importer-progress" data-rk-importer-progress="1"><div class="rk-importer-bar" data-rk-importer-bar="1"></div></div>
 		<div class="rk-importer-announce" data-rk-importer-announce="1" aria-live="polite"></div>

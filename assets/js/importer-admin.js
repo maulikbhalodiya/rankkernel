@@ -22,7 +22,7 @@
 		? window.wp.i18n.__
 		: function ( text ) { return text; };
 
-	var KINDS = [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk' ];
+	var KINDS = [ 'posts', 'terms', 'redirects', 'sitewide', 'bulk' ];
 	var TITLES = { posts: 'Posts', terms: 'Terms', sitewide: 'Sitewide', redirects: 'Redirects', bulk: 'Bulk' };
 	var PREFIXES = { posts: 'post:', terms: 'term:', redirects: 'redirect:' };
 	var PAGE = 50;
@@ -37,7 +37,12 @@
 		sitewide: { rows: [], selected: {} },
 		bulk: { rows: [], selected: [] },
 		kinds: {},
-		report: null
+		report: null,
+		currentKindIndex: -1,
+		wizardView: 'kind',
+		reviewed: {},
+		visitedMax: -1,
+		completed: false
 	};
 
 	function esc( text ) {
@@ -125,6 +130,31 @@
 		return html + '</div>';
 	}
 
+	function loadedExcludedCount( kind ) {
+		var page = state.pages[ kind ];
+		if ( ! page ) {
+			return 0;
+		}
+		var count = 0;
+		( page.rows || [] ).forEach( function ( row ) {
+			if ( state.excludes[ row.identity ] ) {
+				count += 1;
+			}
+		} );
+		return count;
+	}
+
+	function totalExcludedForKind( kind ) {
+		var count = 0;
+		excludeList().forEach( function ( identity ) {
+			var prefix = kindPrefix( kind );
+			if ( identity.indexOf( prefix ) === 0 ) {
+				count += 1;
+			}
+		} );
+		return count;
+	}
+
 	function renderKindSection( root, kind, title ) {
 		var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
 		if ( ! mount ) {
@@ -135,7 +165,18 @@
 			mount.innerHTML = '';
 			return;
 		}
-		var html = '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
+		var excludedCount = excludeCountFor( kind );
+		var toolbar = '<div class="rk-importer-kind-toolbar">';
+		toolbar += '<label><input type="checkbox" data-rk-importer-exclude-all data-rk-importer-exclude-all-toggle="1"' + ( ( page.rows || [] ).length > 0 && loadedExcludedCount( kind ) === ( page.rows || [] ).length ? ' checked' : '' ) + '> ' + esc( __( 'Exclude all', 'rankkernel' ) ) + '</label>';
+		toolbar += ' <button type="button" data-rk-importer-clear data-rk-importer-clear-excludes="1">' + esc( __( 'Clear', 'rankkernel' ) ) + '</button>';
+		toolbar += ' <span data-rk-importer-exclude-count="' + esc( kind ) + '">' + excludedCount + ' of ' + page.kindTotal + ' ' + esc( __( 'excluded', 'rankkernel' ) ) + '</span>';
+		toolbar += '</div>';
+
+		if ( ! ( page.rows || [] ).length ) {
+			mount.innerHTML = toolbar + '<p class="rk-importer-kind-empty">' + esc( __( 'Nothing to review for this kind.', 'rankkernel' ) ) + '</p>';
+			return;
+		}
+		var html = toolbar + '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
 		html += '<table class="widefat"><tbody>';
 		page.rows.forEach( function ( row ) { html += rowHtml( row ); } );
 		html += '</tbody></table>';
@@ -211,6 +252,189 @@
 		} );
 	}
 
+	function kindIndex( kind ) {
+		return KINDS.indexOf( kind );
+	}
+
+	function wizardTitle( kind ) {
+		return TITLES[ kind ] || kind;
+	}
+
+	function ensureWizardControls( root ) {
+		if ( root.querySelector( '[data-rk-importer-wizard-nav]' ) ) {
+			return;
+		}
+		if ( ! document || typeof document.createElement !== 'function' ) {
+			return;
+		}
+		var el = document.createElement( 'div' );
+		el.className = 'rk-importer-wizard-nav';
+		el.setAttribute( 'data-rk-importer-wizard-nav', '1' );
+		el.innerHTML = '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>' +
+			' <button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1">' + esc( __( 'Skip kind', 'rankkernel' ) ) + '</button>' +
+			' <button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
+		root.appendChild( el );
+	}
+
+	function renderWizardNav( root ) {
+		var nav = root.querySelector( '[data-rk-importer-kind-nav]' ) || root.querySelector( '[data-rk-importer-kind-stepper]' );
+		if ( ! nav ) {
+			if ( ! document || typeof document.createElement !== 'function' ) {
+				return;
+			}
+			nav = document.createElement( 'ol' );
+			nav.className = 'rk-importer-kind-nav';
+			nav.setAttribute( 'data-rk-importer-kind-nav', '1' );
+			nav.setAttribute( 'data-rk-importer-kind-stepper', '1' );
+			var firstSection = root.querySelector( '[data-rk-importer-section]' );
+			if ( firstSection ) {
+				root.insertBefore( nav, firstSection );
+			} else {
+				root.appendChild( nav );
+			}
+		}
+		var html = '';
+		KINDS.forEach( function ( kind, i ) {
+			var count = 0;
+			var page = state.pages[ kind ];
+			if ( page ) {
+				count = page.kindTotal;
+			}
+			var status = 'pending';
+			if ( state.completed ) {
+				status = 'done';
+			} else if ( Object.prototype.hasOwnProperty.call( state.reviewed, kind ) ) {
+				status = 'reviewed';
+			}
+			var current = ( state.wizardView === 'kind' && i === state.currentKindIndex );
+			var visited = i <= state.visitedMax;
+			html += '<li class="rk-importer-kind-step" data-rk-importer-kind-step="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( current ? ' aria-current="step"' : '' ) + '>';
+			html += '<button type="button" data-rk-importer-kind-jump="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( visited ? '' : ' disabled' ) + '>' + esc( wizardTitle( kind ) ) + '</button>';
+			html += ' <span class="rk-importer-kind-count">' + ( page ? count : '' ) + '</span>';
+			html += ' <span class="rk-importer-kind-status">' + esc( status ) + '</span>';
+			if ( 'reviewed' === status || 'done' === status ) {
+				html += ' <span class="rk-importer-kind-check" aria-hidden="true">&#10003;</span>';
+			}
+			html += '</li>';
+		} );
+		nav.innerHTML = html;
+	}
+
+	function showKind( root, index ) {
+		if ( index < 0 || index > KINDS.length ) {
+			return;
+		}
+		if ( index === KINDS.length ) {
+			state.wizardView = 'confirm';
+			state.currentKindIndex = KINDS.length;
+			KINDS.forEach( function ( kind ) {
+				var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
+				if ( mount ) {
+					mount.style.display = 'none';
+				}
+			} );
+			renderWizardNav( root );
+			ensureWizardControls( root );
+			announce( root, __( 'Confirmation summary', 'rankkernel' ) );
+			return;
+		}
+		state.wizardView = 'kind';
+		state.currentKindIndex = index;
+		if ( index > state.visitedMax ) {
+			state.visitedMax = index;
+		}
+		KINDS.forEach( function ( kind, i ) {
+			var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
+			if ( mount ) {
+				mount.style.display = ( i === index ) ? '' : 'none';
+			}
+		} );
+		var kind = KINDS[ index ];
+		var title = wizardTitle( kind );
+		renderKindSection( root, kind, title );
+		if ( 'sitewide' === kind ) {
+			renderSitewide( root );
+		}
+		if ( 'bulk' === kind ) {
+			renderBulk( root );
+		}
+		renderWizardNav( root );
+		ensureWizardControls( root );
+		announce( root, kind + ': ' + ( state.pages[ kind ] ? state.pages[ kind ].kindTotal : 0 ) );
+	}
+
+	function advanceKind( root ) {
+		if ( state.wizardView === 'kind' ) {
+			var current = KINDS[ state.currentKindIndex ];
+			if ( current ) {
+				state.reviewed[ current ] = true;
+				announce( root, current + ' ' + __( 'reviewed', 'rankkernel' ) );
+			}
+		}
+		var nextIndex = state.currentKindIndex + 1;
+		if ( nextIndex > KINDS.length ) {
+			nextIndex = KINDS.length;
+		}
+		showKind( root, nextIndex );
+	}
+
+	function prevKind( root ) {
+		if ( state.currentKindIndex <= 0 ) {
+			return;
+		}
+		showKind( root, state.currentKindIndex - 1 );
+	}
+
+	function skipKind( root ) {
+		if ( state.wizardView !== 'kind' ) {
+			return;
+		}
+		var current = KINDS[ state.currentKindIndex ];
+		if ( current ) {
+			state.reviewed[ current ] = true;
+			announce( root, current + ' ' + __( 'skipped', 'rankkernel' ) );
+		}
+		advanceKind( root );
+	}
+
+	function jumpKind( root, kind ) {
+		var idx = kindIndex( kind );
+		if ( idx === -1 ) {
+			return;
+		}
+		if ( idx > state.visitedMax ) {
+			return;
+		}
+		showKind( root, idx );
+	}
+
+	function applyExcludeAllLoaded( root, kind, checked ) {
+		var page = state.pages[ kind ];
+		if ( ! page ) {
+			return;
+		}
+		( page.rows || [] ).forEach( function ( row ) {
+			if ( checked ) {
+				state.excludes[ row.identity ] = true;
+			} else {
+				delete state.excludes[ row.identity ];
+			}
+		} );
+		renderKindSection( root, kind, wizardTitle( kind ) );
+		if ( 'sitewide' === kind ) {
+			renderSitewide( root );
+		}
+		if ( 'bulk' === kind ) {
+			renderBulk( root );
+		}
+		resetConfirm( root );
+		announce( root, excludeCountFor( kind ) + ' of ' + ( page.kindTotal || 0 ) + ' ' + __( 'excluded', 'rankkernel' ) );
+	}
+
+	function clearLoadedExcludes( root, kind ) {
+		applyExcludeAllLoaded( root, kind, false );
+	}
+
 	function preview( root, source ) {
 		resetState( source );
 		return previewKind( root, source, 'posts', 0 ).then( function () {
@@ -227,14 +451,26 @@
 			renderKindSection( root, 'posts', __( 'Posts', 'rankkernel' ) );
 			renderKindSection( root, 'terms', __( 'Terms', 'rankkernel' ) );
 			renderKindSection( root, 'redirects', __( 'Redirects', 'rankkernel' ) );
+			renderKindSection( root, 'sitewide', __( 'Sitewide', 'rankkernel' ) );
 			renderSitewide( root );
 			renderBulk( root );
+			renderKindSection( root, 'bulk', __( 'Bulk', 'rankkernel' ) );
 			var skipped = [];
 			[ 'posts', 'terms', 'redirects', 'sitewide' ].forEach( function ( kind ) {
-				( state.pages[ kind ].skipped || [] ).forEach( function ( row ) { skipped.push( row ); } );
+				if ( state.pages[ kind ] ) {
+					( state.pages[ kind ].skipped || [] ).forEach( function ( row ) { skipped.push( row ); } );
+				}
 			} );
 			renderSkipped( root, skipped );
 			resetConfirm( root );
+			state.currentKindIndex = 0;
+			state.wizardView = 'kind';
+			state.reviewed = {};
+			state.visitedMax = 0;
+			state.completed = false;
+			ensureWizardControls( root );
+			renderWizardNav( root );
+			showKind( root, 0 );
 			setStep( root, 'rk-importer-step-detect', 'is-complete' );
 			setStep( root, 'rk-importer-step-preview', 'is-current' );
 			announce( root, __( 'Preview ready. Review the sections, then run the import.', 'rankkernel' ) );
@@ -300,8 +536,12 @@
 		return '<ul><li>' + lines.map( esc ).join( '</li><li>' ) + '</li></ul>';
 	}
 
+	function kindPrefix( kind ) {
+		return PREFIXES[ kind ] || ( kind + ':' );
+	}
+
 	function excludeCountFor( kind ) {
-		var prefix = PREFIXES[ kind ] || ( kind + ':' );
+		var prefix = kindPrefix( kind );
 		var count = 0;
 		excludeList().forEach( function ( identity ) {
 			if ( identity.indexOf( prefix ) === 0 ) {
@@ -476,6 +716,8 @@
 		setStep( root, 'rk-importer-step-run', 'is-current' );
 		return runPlan( root, source ).then( function () {
 			setProgress( root, 100 );
+			state.completed = true;
+			renderWizardNav( root );
 			var panel = root.querySelector( '[data-rk-importer-confirm]' );
 			if ( panel ) {
 				panel.innerHTML = '<h3>' + esc( __( 'Import complete', 'rankkernel' ) ) + '</h3>' + finalReport( root );
@@ -546,6 +788,7 @@
 				run( root, runBtn );
 			} );
 		}
+		ensureWizardControls( root );
 		var rescanBtn = root.querySelector( '[data-rk-importer-rescan]' );
 		if ( rescanBtn ) {
 			rescanBtn.addEventListener( 'click', function () {
@@ -559,12 +802,49 @@
 			}
 			var page = target.getAttribute( 'data-rk-importer-page' );
 			if ( page ) {
+				collectCheckedExcludes( root );
 				onPager( root, page );
+				renderKindSection( root, String( page ).split( ':' )[ 0 ], TITLES[ String( page ).split( ':' )[ 0 ] ] || String( page ).split( ':' )[ 0 ] );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-back' ) !== null || target.getAttribute( 'data-rk-importer-prev' ) !== null ) {
+				prevKind( root );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-next' ) !== null || target.getAttribute( 'data-rk-importer-kind-next' ) !== null ) {
+				advanceKind( root );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-skip' ) !== null || target.getAttribute( 'data-rk-importer-skip-kind' ) !== null ) {
+				skipKind( root );
+				return;
+			}
+			var jump = target.getAttribute( 'data-rk-importer-kind-jump' ) || target.getAttribute( 'data-rk-importer-kind' );
+			if ( jump && ( target.tagName === 'BUTTON' || target.getAttribute( 'data-rk-importer-kind-jump' ) ) ) {
+				// Only jump when clicking nav button/item, avoid section mounts.
+				if ( KINDS.indexOf( jump ) !== -1 ) {
+					jumpKind( root, jump );
+					return;
+				}
+			}
+			var clearAttr = target.getAttribute( 'data-rk-importer-clear' ) || target.getAttribute( 'data-rk-importer-clear-excludes' );
+			if ( clearAttr !== null ) {
+				clearLoadedExcludes( root, KINDS[ state.currentKindIndex ] );
+				return;
+			}
+			var exclAllBtn = target.getAttribute( 'data-rk-importer-exclude-all' );
+			if ( exclAllBtn !== null && 'BUTTON' === target.tagName ) {
+				applyExcludeAllLoaded( root, KINDS[ state.currentKindIndex ], true );
+				return;
 			}
 		} );
 		root.addEventListener( 'change', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-exclude-all' ) !== null ) {
+				applyExcludeAllLoaded( root, KINDS[ state.currentKindIndex ], !! target.checked );
 				return;
 			}
 			if ( target.getAttribute( 'data-rk-importer-exclude' ) !== null ) {
