@@ -399,16 +399,19 @@ final class HeadRenderer {
 	 * @return string The result.
 	 */
 	private function resolveDescription( Context $ctx, array $meta ): string {
-		$hash = $ctx->hash();
+		$hash      = $ctx->hash();
+		$isStdMeta = ( $meta === $ctx->meta() );
 
-		if ( array_key_exists( $hash, $this->resolvedDescriptionMemo ) ) {
+		if ( $isStdMeta && array_key_exists( $hash, $this->resolvedDescriptionMemo ) ) {
 			return $this->resolvedDescriptionMemo[ $hash ];
 		}
 
 		$desc = isset( $meta['description'] ) ? trim( (string) $meta['description'] ) : '';
 
 		if ( '' !== $desc ) {
-			$this->resolvedDescriptionMemo[ $hash ] = $desc;
+			if ( $isStdMeta ) {
+				$this->resolvedDescriptionMemo[ $hash ] = $desc;
+			}
 
 			return $desc;
 		}
@@ -420,9 +423,13 @@ final class HeadRenderer {
 			$resolved = $this->replacer->replace( $ctx, $tpl, 'description' );
 
 			if ( '' !== trim( $resolved ) ) {
-				$this->resolvedDescriptionMemo[ $hash ] = trim( $resolved );
+				$result = trim( $resolved );
 
-				return $this->resolvedDescriptionMemo[ $hash ];
+				if ( $isStdMeta ) {
+					$this->resolvedDescriptionMemo[ $hash ] = $result;
+				}
+
+				return $result;
 			}
 		}
 
@@ -431,7 +438,9 @@ final class HeadRenderer {
 			$excerpt = $ctx->excerpt();
 
 			if ( '' !== $excerpt ) {
-				$this->resolvedDescriptionMemo[ $hash ] = $excerpt;
+				if ( $isStdMeta ) {
+					$this->resolvedDescriptionMemo[ $hash ] = $excerpt;
+				}
 
 				return $excerpt;
 			}
@@ -439,17 +448,24 @@ final class HeadRenderer {
 			$termDesc = get_term_field( 'description', $ctx->queriedId() );
 
 			if ( is_string( $termDesc ) && '' !== trim( $termDesc ) ) {
-				$clean = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $termDesc ) : strip_tags( $termDesc ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- strip_tags fallback preserves inner text where wp_kses_post and wp_strip_all_tags are unavailable, matching the MetaPayload fallback.
+				$clean  = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $termDesc ) : strip_tags( $termDesc ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- strip_tags fallback preserves inner text where wp_kses_post and wp_strip_all_tags are unavailable, matching the MetaPayload fallback.
+				$result = trim( $clean );
 
-				$this->resolvedDescriptionMemo[ $hash ] = trim( $clean );
+				if ( $isStdMeta ) {
+					$this->resolvedDescriptionMemo[ $hash ] = $result;
+				}
 
-				return $this->resolvedDescriptionMemo[ $hash ];
+				return $result;
 			}
 
 			if ( ! is_wp_error( $termDesc ) && is_string( $termDesc ) ) {
-				$this->resolvedDescriptionMemo[ $hash ] = trim( $termDesc );
+				$result = trim( $termDesc );
 
-				return $this->resolvedDescriptionMemo[ $hash ];
+				if ( $isStdMeta ) {
+					$this->resolvedDescriptionMemo[ $hash ] = $result;
+				}
+
+				return $result;
 			}
 		}
 
@@ -460,13 +476,17 @@ final class HeadRenderer {
 			$tagline = trim( (string) get_bloginfo( 'description' ) );
 
 			if ( '' !== $tagline ) {
-				$this->resolvedDescriptionMemo[ $hash ] = $tagline;
+				if ( $isStdMeta ) {
+					$this->resolvedDescriptionMemo[ $hash ] = $tagline;
+				}
 
 				return $tagline;
 			}
 		}
 
-		$this->resolvedDescriptionMemo[ $hash ] = '';
+		if ( $isStdMeta ) {
+			$this->resolvedDescriptionMemo[ $hash ] = '';
+		}
 
 		return '';
 	}
