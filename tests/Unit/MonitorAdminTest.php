@@ -163,6 +163,7 @@ final class MonitorAdminTest extends TestCase {
 		Functions\when( 'wp_register_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_register_script' )->justReturn( null );
+		Functions\when( 'wp_set_script_translations' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 	}
 

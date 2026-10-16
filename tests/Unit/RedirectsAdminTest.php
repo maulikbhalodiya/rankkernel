@@ -1528,6 +1528,7 @@ final class RedirectsAdminTest extends TestCase {
 				];
 			}
 		);
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( string $handle ) use ( &$enqueuedScripts ): void {
 				$enqueuedScripts[] = $handle;
@@ -1568,6 +1569,7 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'wp_register_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->alias(
 			static function ( string $handle, string $name, array $data ) use ( &$localized ): bool {
