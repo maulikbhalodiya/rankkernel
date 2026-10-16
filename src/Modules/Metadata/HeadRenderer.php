@@ -66,6 +66,16 @@ final class HeadRenderer {
 	private array $resolvedTitleMemo = [];
 
 	/**
+	 * Memoized resolved descriptions keyed by context hash.
+	 *
+	 * Performance optimization: avoids re-evaluating description template replacement and fallback
+	 * evaluation chains across multiple passes (render, renderOgTags, and renderTwitterTags) in a single request.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $resolvedDescriptionMemo = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore     $settings Settings store.
@@ -381,14 +391,25 @@ final class HeadRenderer {
 	/**
 	 * Resolve description with fallback chain.
 	 *
+	 * Performance optimization: memoizes resolved description by Context hash to avoid
+	 * redundant description template evaluation and fallback checks across render passes.
+	 *
 	 * @param Context              $ctx  Context.
 	 * @param array<string, mixed> $meta Meta payload.
 	 * @return string The result.
 	 */
 	private function resolveDescription( Context $ctx, array $meta ): string {
+		$hash = $ctx->hash();
+
+		if ( array_key_exists( $hash, $this->resolvedDescriptionMemo ) ) {
+			return $this->resolvedDescriptionMemo[ $hash ];
+		}
+
 		$desc = isset( $meta['description'] ) ? trim( (string) $meta['description'] ) : '';
 
 		if ( '' !== $desc ) {
+			$this->resolvedDescriptionMemo[ $hash ] = $desc;
+
 			return $desc;
 		}
 
@@ -399,7 +420,9 @@ final class HeadRenderer {
 			$resolved = $this->replacer->replace( $ctx, $tpl, 'description' );
 
 			if ( '' !== trim( $resolved ) ) {
-				return trim( $resolved );
+				$this->resolvedDescriptionMemo[ $hash ] = trim( $resolved );
+
+				return $this->resolvedDescriptionMemo[ $hash ];
 			}
 		}
 
@@ -408,6 +431,8 @@ final class HeadRenderer {
 			$excerpt = $ctx->excerpt();
 
 			if ( '' !== $excerpt ) {
+				$this->resolvedDescriptionMemo[ $hash ] = $excerpt;
+
 				return $excerpt;
 			}
 		} elseif ( 'term' === $ctx->queriedType() ) {
@@ -416,11 +441,15 @@ final class HeadRenderer {
 			if ( is_string( $termDesc ) && '' !== trim( $termDesc ) ) {
 				$clean = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $termDesc ) : strip_tags( $termDesc ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- strip_tags fallback preserves inner text where wp_kses_post and wp_strip_all_tags are unavailable, matching the MetaPayload fallback.
 
-				return trim( $clean );
+				$this->resolvedDescriptionMemo[ $hash ] = trim( $clean );
+
+				return $this->resolvedDescriptionMemo[ $hash ];
 			}
 
 			if ( ! is_wp_error( $termDesc ) && is_string( $termDesc ) ) {
-				return trim( $termDesc );
+				$this->resolvedDescriptionMemo[ $hash ] = trim( $termDesc );
+
+				return $this->resolvedDescriptionMemo[ $hash ];
 			}
 		}
 
@@ -431,9 +460,13 @@ final class HeadRenderer {
 			$tagline = trim( (string) get_bloginfo( 'description' ) );
 
 			if ( '' !== $tagline ) {
+				$this->resolvedDescriptionMemo[ $hash ] = $tagline;
+
 				return $tagline;
 			}
 		}
+
+		$this->resolvedDescriptionMemo[ $hash ] = '';
 
 		return '';
 	}
