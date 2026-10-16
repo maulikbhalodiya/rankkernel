@@ -1506,6 +1506,7 @@ final class RedirectsAdminTest extends TestCase {
 		$registeredScripts = [];
 		$enqueuedStyles    = [];
 		$enqueuedScripts   = [];
+		$translatedJS      = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles, &$styleDeps ): void {
@@ -1528,7 +1529,11 @@ final class RedirectsAdminTest extends TestCase {
 				];
 			}
 		);
-		Functions\when( 'wp_set_script_translations' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( string $handle ) use ( &$enqueuedScripts ): void {
 				$enqueuedScripts[] = $handle;
@@ -1542,8 +1547,10 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertSame( [], $enqueuedStyles );
 		$this->assertSame( [], $registeredScripts );
 		$this->assertSame( [], $enqueuedScripts );
+		$this->assertSame( [], $translatedJS );
 
 		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-redirects-admin'] ?? null );
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredStyles );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedStyles );
