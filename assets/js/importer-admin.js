@@ -25,7 +25,7 @@
 	var KINDS = [ 'posts', 'terms', 'redirects', 'sitewide', 'bulk' ];
 	var TITLES = { posts: 'Posts', terms: 'Terms', sitewide: 'Sitewide', redirects: 'Redirects', bulk: 'Bulk' };
 	var PREFIXES = { posts: 'post:', terms: 'term:', redirects: 'redirect:' };
-	var PAGE = 50;
+	var PREVIEW_LIMIT = 5000;
 	var CHUNK = 100;
 
 	var state = {
@@ -123,18 +123,6 @@
 		return '<tr><td>' + name + '</td><td>' + esc( row.kind ) + '</td><td>' + notes.join( '<br>' ) + '</td><td>' + check + '</td></tr>';
 	}
 
-	function pagerHtml( kind, page ) {
-		var html = '<div class="rk-importer-pager" data-rk-importer-pager="' + esc( kind ) + '">';
-		html += '<span>' + esc( __( 'Showing ', 'rankkernel' ) + page.rows.length + __( ' of ', 'rankkernel' ) + page.kindTotal ) + '</span>';
-		if ( page.offset > 0 ) {
-			html += ' <button type="button" data-rk-importer-page="' + esc( kind ) + ':' + Math.max( 0, page.offset - PAGE ) + '">' + esc( __( 'Previous', 'rankkernel' ) ) + '</button>';
-		}
-		if ( page.hasMore ) {
-			html += ' <button type="button" data-rk-importer-page="' + esc( kind ) + ':' + ( page.offset + PAGE ) + '">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
-		}
-		return html + '</div>';
-	}
-
 	function loadedExcludedCount( kind ) {
 		var page = state.pages[ kind ];
 		if ( ! page ) {
@@ -191,10 +179,13 @@
 			return;
 		}
 		var html = toolbar + '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
-		html += '<table class="widefat"><tbody>';
+		html += '<div class="rk-importer-row-scroll"><table class="widefat"><tbody>';
 		page.rows.forEach( function ( row ) { html += rowHtml( row ); } );
-		html += '</tbody></table>';
-		html += pagerHtml( kind, page );
+		html += '</tbody></table></div>';
+		html += '<p class="rk-importer-row-count">' + ( page.rows || [] ).length + ' ' + esc( __( 'rows, scroll to review', 'rankkernel' ) ) + '</p>';
+		if ( page.hasMore ) {
+			html += '<p class="rk-importer-truncation-note">' + esc( __( 'Only the first ', 'rankkernel' ) + PREVIEW_LIMIT + __( ' rows are shown (server cap). Use search to find specific rows.', 'rankkernel' ) ) + '</p>';
+		}
 		mount.innerHTML = html;
 	}
 
@@ -256,7 +247,7 @@
 	function previewKind( root, source, kind, offset, q ) {
 		var query = ( q === undefined ? ( state.queries[ kind ] || '' ) : q );
 		state.queries[ kind ] = query;
-		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: offset, limit: PAGE, q: query } ).then( function ( data ) {
+		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: 0, limit: PREVIEW_LIMIT, q: query } ).then( function ( data ) {
 			state.pages[ kind ] = {
 				rows: data.rows || [],
 				skipped: data.skipped || [],
@@ -819,17 +810,6 @@
 		return '';
 	}
 
-	function onPager( root, spec ) {
-		var parts = String( spec ).split( ':' );
-		var kind = parts[ 0 ];
-		var offset = parseInt( parts[ 1 ], 10 ) || 0;
-		previewKind( root, state.source, kind, offset, state.queries[ kind ] || '' ).then( function () {
-			renderKindSection( root, kind, TITLES[ kind ] || kind );
-		} ).catch( function () {
-			fail( root, __( 'Preview request failed.', 'rankkernel' ) );
-		} );
-	}
-
 	function bind( root ) {
 		var previews = root.querySelectorAll( '[data-rk-importer-preview]' );
 		for ( var i = 0; i < previews.length; i++ ) {
@@ -856,13 +836,6 @@
 		root.addEventListener( 'click', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {
-				return;
-			}
-			var page = target.getAttribute( 'data-rk-importer-page' );
-			if ( page ) {
-				collectCheckedExcludes( root );
-				onPager( root, page );
-				renderKindSection( root, String( page ).split( ':' )[ 0 ], TITLES[ String( page ).split( ':' )[ 0 ] ] || String( page ).split( ':' )[ 0 ] );
 				return;
 			}
 			if ( target.getAttribute( 'data-rk-importer-back' ) !== null || target.getAttribute( 'data-rk-importer-prev' ) !== null ) {

@@ -39,7 +39,7 @@ final class ImportController {
 	/**
 	 * Preview item cap per kind.
 	 */
-	public const PREVIEW_LIMIT = 100;
+	public const PREVIEW_LIMIT_MAX = 5000;
 
 	/**
 	 * Run chunk size cap.
@@ -258,7 +258,7 @@ final class ImportController {
 
 		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
 		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
-		$limit  = max( 1, min( self::PREVIEW_LIMIT, $limit ) );
+		$limit  = max( 1, min( self::PREVIEW_LIMIT_MAX, $limit ) );
 
 		$q = isset( $params['q'] ) ? sanitize_text_field( (string) $params['q'] ) : '';
 		$q = substr( $q, 0, 100 );

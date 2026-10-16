@@ -462,7 +462,7 @@ final class ImportControllerTest extends TestCase {
 
 		$this->assertInstanceOf( WP_REST_Response::class, $res );
 		$this->assertArrayHasKey( 'limit', $res->get_data() );
-		$this->assertLessThanOrEqual( 100, $res->get_data()['limit'] );
+		$this->assertLessThanOrEqual( 5000, $res->get_data()['limit'] );
 	}
 
 	/**

@@ -259,7 +259,7 @@ test( 'preview loads every kind and renders sections with pagers', async () => {
 	const kinds = calls.filter( ( c ) => /\/preview$/.test( c.url ) ).map( ( c ) => c.body.kind );
 	assert.deepEqual( kinds, [ 'posts', 'terms', 'redirects', 'sitewide', 'bulk' ] );
 	assert.match( dom.sections.posts.innerHTML, /Post 7/ );
-	assert.match( dom.sections.posts.innerHTML, /data-rk-importer-page="posts:50"/ );
+	assert.match( dom.sections.posts.innerHTML, /rows, scroll to review/ );
 	assert.match( dom.sections.sitewide.innerHTML, /title_template from post/ );
 	assert.match( dom.sections.bulk.innerHTML, /bulk:post:post/ );
 	assert.ok( spoken.some( ( t ) => /Preview ready/.test( t ) ) );
@@ -274,10 +274,6 @@ test( 'exclusions survive paging', async () => {
 	dom.previewBtn.dispatch( 'click' );
 	await ticks( 12 );
 	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude': '' }, 'post:7', true ) } );
-	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-page': 'posts:50' } ) } );
-	await ticks( 4 );
-	const second = calls.filter( ( c ) => /\/preview$/.test( c.url ) && 'posts' === c.body.kind ).pop();
-	assert.equal( second.body.offset, 50 );
 	dom.runBtn.dispatch( 'click' );
 	await ticks( 2 );
 	dom.runBtn.dispatch( 'click' );
