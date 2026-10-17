@@ -2412,4 +2412,47 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringContainsString( 'rk-ui-notice-error', $html );
 		$this->assertStringContainsString( 'Could not retry. The stored URL host does not match this site.', $html );
 	}
+
+	/**
+	 * Test disabled pagination links render as focusable anchors inside a nav landmark.
+	 *
+	 * Unnavigable Previous or Next pagination links must render as focusable
+	 * anchor tags with role="link", aria-disabled="true", and tabindex="0" rather
+	 * than non-focusable span tags to maintain focus order and communicate
+	 * disabled state to assistive technologies.
+	 */
+	public function test_render_pagination_disabled_controls_are_focusable_anchors_inside_nav_landmark(): void {
+		// Seed enough entries to trigger pagination.
+		for ( $i = 0; $i < 25; $i++ ) {
+			$this->settings->logEntry( 'https://example.com/post-' . $i, 200, 'manual', 'Accepted.' );
+		}
+
+		// First page (page 1): Previous is disabled, Next is enabled.
+		$_GET = [
+			'page'     => InstantIndexingPage::SLUG,
+			'rk_paged' => '1',
+		];
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<nav class="rk-ui-page-nums" aria-label="Submission log pages">', $html );
+		$this->assertStringContainsString( '<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0">Previous</a>', $html );
+		$this->assertStringNotContainsString( '<span class="rk-ui-page-link is-disabled"', $html );
+
+		// Second page (page 2): Previous is enabled, Next is disabled.
+		$_GET = [
+			'page'     => InstantIndexingPage::SLUG,
+			'rk_paged' => '2',
+		];
+
+		ob_start();
+		$page->render();
+		$htmlPage2 = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0">Next</a>', $htmlPage2 );
+		$this->assertStringNotContainsString( '<span class="rk-ui-page-link is-disabled"', $htmlPage2 );
+	}
 }
