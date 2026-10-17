@@ -629,4 +629,71 @@ final class TagsReplacerTest extends TestCase {
 			'A callback on the all hook must still receive the complete supported token map.'
 		);
 	}
+
+	/**
+	 * Test delimiterless template skips filter and token resolution when unobserved.
+	 *
+	 * @return void
+	 */
+	public function test_delimiterless_template_skips_filter_and_resolvers_when_unobserved(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$filterCalled = false;
+		$titleCalled  = false;
+
+		Functions\when( 'has_filter' )->justReturn( false );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value = null ) use ( &$filterCalled ): mixed {
+				if ( 'rankkernel/tokens' === $hook ) {
+					$filterCalled = true;
+				}
+
+				return $value;
+			}
+		);
+		Functions\when( 'get_the_title' )->alias(
+			static function () use ( &$titleCalled ): string {
+				$titleCalled = true;
+
+				return 'Title';
+			}
+		);
+
+		$template = 'Plain Static Title Without Delimiters';
+		$result   = $replacer->replace( $ctx, $template, 'title' );
+
+		$this->assertSame( $template, $result );
+		$this->assertFalse( $filterCalled, 'apply_filters must not be called when template lacks delimiters and no filter is registered.' );
+		$this->assertFalse( $titleCalled, 'Token resolvers must not be called when template lacks delimiters.' );
+	}
+
+	/**
+	 * Test delimiterless template executes token filter when registered.
+	 *
+	 * @return void
+	 */
+	public function test_delimiterless_template_runs_filter_when_observed(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$filterCalled = false;
+
+		Functions\when( 'has_filter' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value = null ) use ( &$filterCalled ): mixed {
+				if ( 'rankkernel/tokens' === $hook ) {
+					$filterCalled = true;
+				}
+
+				return $value;
+			}
+		);
+
+		$template = 'Plain Static Title Without Delimiters';
+		$result   = $replacer->replace( $ctx, $template, 'title' );
+
+		$this->assertSame( $template, $result );
+		$this->assertTrue( $filterCalled, 'apply_filters must run when a token filter is registered even if template lacks delimiters.' );
+	}
 }
