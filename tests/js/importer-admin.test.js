@@ -45,6 +45,7 @@ function el( tagName, attrs = {}, text = '' ) {
 		parentNode: null,
 		style: { display: '' },
 		appendChild( child ) { child.parentNode = node; node.children.push( child ); return child; },
+		insertBefore( child, ref ) { child.parentNode = node; const at = ref ? node.children.indexOf( ref ) : -1; if ( at === -1 ) { node.children.push( child ); } else { node.children.splice( at, 0, child ); } return child; },
 		querySelector( selector ) { return find( node, selector ); },
 		querySelectorAll( selector ) { return findAll( node, selector ); },
 		addEventListener( type, handler ) { ( listeners[ type ] = listeners[ type ] || [] ).push( handler ); },
@@ -66,6 +67,13 @@ function fakeTarget( attrs, value, checked ) {
 }
 
 function matches( node, selector ) {
+	if ( selector.startsWith( '#' ) ) {
+		return node.getAttribute( 'id' ) === selector.slice( 1 );
+	}
+	if ( selector.startsWith( '.' ) ) {
+		const classes = ( node.getAttribute( 'class' ) || '' ).split( /\s+/ );
+		return classes.indexOf( selector.slice( 1 ) ) !== -1;
+	}
 	let pseudo = null;
 	const hash = selector.indexOf( ':' );
 	if ( hash !== -1 ) {
@@ -108,6 +116,14 @@ function findAll( node, selector ) {
 function importerDom() {
 	const body = el( 'div' );
 	const rootEl = el( 'div', { 'data-rk-importer-root': '1' } );
+	const steps = el( 'ol', { class: 'rk-importer-steps' } );
+	const stepDetect = el( 'li', { id: 'rk-importer-step-detect' }, 'Detect' );
+	const stepPreview = el( 'li', { id: 'rk-importer-step-preview' }, 'Preview' );
+	const stepRun = el( 'li', { id: 'rk-importer-step-run' }, 'Run' );
+	steps.appendChild( stepDetect );
+	steps.appendChild( stepPreview );
+	steps.appendChild( stepRun );
+	rootEl.appendChild( steps );
 	const previewBtn = el( 'button', { 'data-rk-importer-preview': 'yoast' }, 'Preview' );
 	const modeSkip = el( 'input', { name: 'rk-importer-mode', value: 'skip', checked: true } );
 	const modeOverwrite = el( 'input', { name: 'rk-importer-mode', value: 'overwrite' } );
@@ -117,7 +133,10 @@ function importerDom() {
 		rootEl.appendChild( sections[ kind ] );
 	} );
 	const confirm = el( 'div', { 'data-rk-importer-confirm': '1' } );
+	const kindNav = el( 'ol', { 'data-rk-importer-kind-nav': '1', 'data-rk-importer-kind-stepper': '1' } );
+	rootEl.appendChild( kindNav );
 	const runBtn = el( 'button', { 'data-rk-importer-run': '1' }, 'Run import' );
+	const rescanBtn = el( 'button', { 'data-rk-importer-rescan': '1' }, 'Rescan Database' );
 	const progress = el( 'div', { 'data-rk-importer-progress': '1' } );
 	const bar = el( 'div', { 'data-rk-importer-bar': '1' } );
 	const announce = el( 'div', { 'data-rk-importer-announce': '1' } );
@@ -128,6 +147,7 @@ function importerDom() {
 	rootEl.appendChild( modeOverwrite );
 	rootEl.appendChild( confirm );
 	rootEl.appendChild( runBtn );
+	rootEl.appendChild( rescanBtn );
 	rootEl.appendChild( progress );
 	rootEl.appendChild( announce );
 	rootEl.appendChild( errorBox );
@@ -137,17 +157,18 @@ function importerDom() {
 		readyState: 'complete',
 		querySelector( selector ) { return find( body, selector ); },
 		querySelectorAll( selector ) { return findAll( body, selector ); },
+		createElement( tag ) { return el( tag ); },
 		addEventListener() {}
 	};
 
-	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, bar, announce, errorBox };
+	return { document, rootEl, previewBtn, modeSkip, modeOverwrite, sections, confirm, runBtn, rescanBtn, bar, announce, errorBox, stepDetect, stepPreview, stepRun };
 }
 
 function runImporter( sandbox ) {
 	vm.runInNewContext( source( 'importer-admin.js' ), sandbox );
 }
 
-function sandboxFor( dom, fetchImpl, spoken ) {
+function sandboxFor( dom, fetchImpl, spoken, reloaded ) {
 	const sandbox = {
 		document: dom.document,
 		wp: { a11y: { speak( text ) { spoken.push( text ); } }, i18n: { __: ( t ) => t } },
@@ -155,7 +176,8 @@ function sandboxFor( dom, fetchImpl, spoken ) {
 	};
 	sandbox.window = Object.assign( sandbox, {
 		rankkernelImporter: { restBase: '/wp-json/rankkernel/v1/import', restNonce: 'abc' },
-		fetch: sandbox.fetch
+		fetch: sandbox.fetch,
+		location: { reload() { if ( reloaded ) { reloaded.count += 1; } } }
 	} );
 	return sandbox;
 }
@@ -449,4 +471,257 @@ test( 'a mid run failure stops the chain with a partial report', async () => {
 	assert.equal( calls.filter( ( c ) => /\/run$/.test( c.url ) && 'terms' === c.body.kind ).length, 0 );
 	assert.match( dom.confirm.innerHTML, /stopped/i );
 	assert.equal( dom.runBtn.disabled, false );
+} );
+
+test( 'steps indicator classes update on transitions', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	assert.equal( dom.stepDetect.getAttribute( 'class' ), null );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.stepDetect.getAttribute( 'class' ), 'is-complete' );
+	assert.equal( dom.stepPreview.getAttribute( 'class' ), 'is-current' );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.stepPreview.getAttribute( 'class' ), 'is-complete' );
+	assert.equal( dom.stepRun.getAttribute( 'class' ), 'is-current' );
+} );
+
+test( 'rescan button reloads the page for a fresh detect', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const reloaded = { count: 0 };
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken, reloaded );
+	runImporter( sandbox );
+	dom.rescanBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.equal( reloaded.count, 1 );
+	assert.equal( calls.filter( ( c ) => /\/preview$|\/run$/.test( c.url ) ).length, 0 );
+} );
+
+test( 'preview enables the run button', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.runBtn.disabled = true;
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.equal( dom.runBtn.disabled, false );
+} );
+
+test( 'titled rows render escaped links opening in a new tab', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, ( url, opts ) => {
+		calls.push( { url, opts } );
+		const body = JSON.parse( opts.body );
+		if ( /\/preview$/.test( url ) && 'posts' === body.kind ) {
+			return okJson( previewBody( 'posts', [
+				Object.assign( postRow( 7, 'Seven' ), { title: 'Live Seven', editUrl: 'https://example.test/wp-admin/post.php?post=7&action=edit' } ),
+				Object.assign( postRow( 8, 'Eight' ), { title: '<script>alert(1)</script>', editUrl: 'https://example.test/?x="quoted"' } )
+			], { kindTotal: 2 } ) );
+		}
+		return okJson( previewBody( body.kind, [] ) );
+	}, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /<a href="https:\/\/example\.test\/wp-admin\/post\.php\?post=7&amp;action=edit" target="_blank" rel="noopener">Live Seven<\/a>/ );
+	assert.match( dom.sections.posts.innerHTML, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/ );
+	assert.ok( ! /<script>alert/.test( dom.sections.posts.innerHTML ) );
+	assert.match( dom.sections.posts.innerHTML, /Post 7/ );
+} );
+
+test( 'edge steps omit dead nav buttons', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const controls = () => dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ).innerHTML;
+	assert.ok( controls().indexOf( 'Back' ) === -1 );
+	assert.ok( controls().indexOf( 'Next' ) !== -1 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	assert.ok( controls().indexOf( 'Next' ) === -1 );
+	assert.ok( controls().indexOf( 'Back' ) !== -1 );
+	assert.ok( controls().indexOf( 'Skip kind' ) !== -1 );
+} );
+
+test( 'skipped kinds stay out of the run and show in confirm', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /will not import/ );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const kinds = calls.filter( ( c ) => /\/run$/.test( c.url ) ).map( ( c ) => c.body.kind );
+	assert.ok( kinds.length > 0 );
+	assert.ok( kinds.indexOf( 'posts' ) === -1 );
+} );
+
+test( 'next after skip re-includes the kind', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'posts' } ) } );
+	await ticks( 2 );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	await ticks( 2 );
+	for ( let i = 0; i < 4; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const kinds = calls.filter( ( c ) => /\/run$/.test( c.url ) ).map( ( c ) => c.body.kind );
+	assert.ok( kinds.indexOf( 'posts' ) !== -1 );
+} );
+
+test( 'wizard chrome stays hidden until preview loads', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ), null );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'terms' } ) } );
+	await ticks( 2 );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ), null );
+	assert.equal( dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML, '' );
+	assert.ok( ! spoken.some( ( t ) => /reviewed|skipped/.test( t ) ) );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.ok( dom.rootEl.querySelector( '[data-rk-importer-wizard-nav]' ) );
+	assert.match( dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML, /posts/ );
+} );
+
+test( 'wizard nav lists kinds with current first and none reviewed', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( nav );
+	assert.match( nav.innerHTML, /posts/ );
+	assert.match( nav.innerHTML, /terms/ );
+	assert.match( nav.innerHTML, /redirects/ );
+	assert.match( nav.innerHTML, /sitewide/ );
+	assert.match( nav.innerHTML, /bulk/ );
+	assert.match( nav.innerHTML, /aria-current="step"/ );
+	assert.match( nav.innerHTML, />current</ );
+	assert.equal( ( nav.innerHTML.match( /data-reviewed="1"/g ) || [] ).length, 0 );
+} );
+
+test( 'next marks reviewed and advances, back returns keeping it', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const next = () => dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+	const back = () => dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-back': '1' } ) } );
+	next();
+	await ticks( 2 );
+	let nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( /data-rk-importer-kind="posts"[^>]*data-reviewed="1"|data-reviewed="1"[^>]*data-rk-importer-kind="posts"/.test( nav.innerHTML ) );
+	back();
+	await ticks( 2 );
+	nav = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' );
+	assert.ok( /data-rk-importer-kind="posts"[^>]*data-reviewed="1"|data-reviewed="1"[^>]*data-rk-importer-kind="posts"/.test( nav.innerHTML ) );
+	assert.match( nav.innerHTML, /aria-current="step"/ );
+} );
+
+test( 'free jumping allows any kind at any time', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const before = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-kind-jump': 'bulk' } ) } );
+	await ticks( 2 );
+	const jumped = dom.rootEl.querySelector( '[data-rk-importer-kind-nav]' ).innerHTML;
+	assert.notEqual( jumped, before );
+} );
+
+test( 'exclude-all checks loaded rows and clear removes them', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude-all': '', checked: true }, '', true ) } );
+	await ticks( 2 );
+	assert.match( dom.sections.posts.innerHTML, /2 of 3 excluded/ );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const firstRun = calls.find( ( c ) => /\/run$/.test( c.url ) );
+	assert.ok( firstRun.body.excludes.includes( 'post:7' ) );
+	assert.ok( firstRun.body.excludes.includes( 'post:8' ) );
+} );
+
+test( 'confirm lists per-kind decisions after walking all kinds', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	for ( let i = 0; i < 5; i++ ) {
+		dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-next': '1' } ) } );
+		await ticks( 2 );
+	}
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /Confirm import/ );
+	assert.match( dom.confirm.innerHTML, /posts/ );
+	assert.match( dom.confirm.innerHTML, /Bulk rules chosen/ );
 } );

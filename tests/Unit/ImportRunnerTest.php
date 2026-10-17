@@ -51,10 +51,11 @@ final class ImportRunnerTest extends TestCase {
 			/**
 			 * Canned post chunk.
 			 *
-			 * @param int $offset Chunk offset.
-			 * @param int $limit  Chunk size.
+			 * @param int    $offset Chunk offset.
+			 * @param int    $limit  Chunk size.
+			 * @param string $search Search filter.
 			 */
-			public function fetchPosts( int $offset, int $limit ): array {
+			public function fetchPosts( int $offset, int $limit, string $search = '' ): array {
 				if ( 0 !== $offset ) {
 					return [];
 				}
@@ -76,10 +77,11 @@ final class ImportRunnerTest extends TestCase {
 			/**
 			 * Canned term chunk.
 			 *
-			 * @param int $offset Chunk offset.
-			 * @param int $limit  Chunk size.
+			 * @param int    $offset Chunk offset.
+			 * @param int    $limit  Chunk size.
+			 * @param string $search Search filter.
 			 */
-			public function fetchTerms( int $offset, int $limit ): array {
+			public function fetchTerms( int $offset, int $limit, string $search = '' ): array {
 				if ( 0 !== $offset ) {
 					return [];
 				}

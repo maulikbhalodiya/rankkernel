@@ -22,7 +22,7 @@
 		? window.wp.i18n.__
 		: function ( text ) { return text; };
 
-	var KINDS = [ 'posts', 'terms', 'sitewide', 'redirects', 'bulk' ];
+	var KINDS = [ 'posts', 'terms', 'redirects', 'sitewide', 'bulk' ];
 	var TITLES = { posts: 'Posts', terms: 'Terms', sitewide: 'Sitewide', redirects: 'Redirects', bulk: 'Bulk' };
 	var PREFIXES = { posts: 'post:', terms: 'term:', redirects: 'redirect:' };
 	var PAGE = 50;
@@ -37,7 +37,13 @@
 		sitewide: { rows: [], selected: {} },
 		bulk: { rows: [], selected: [] },
 		kinds: {},
-		report: null
+		report: null,
+		currentKindIndex: -1,
+		wizardView: 'kind',
+		reviewed: {},
+		visitedMax: -1,
+		completed: false,
+		queries: {}
 	};
 
 	function esc( text ) {
@@ -53,6 +59,13 @@
 		}
 		if ( window.wp && window.wp.a11y && 'function' === typeof window.wp.a11y.speak ) {
 			window.wp.a11y.speak( text, 'polite' );
+		}
+	}
+
+	function setStep( root, id, className ) {
+		var step = root.querySelector( '#' + id );
+		if ( step ) {
+			step.setAttribute( 'class', className );
 		}
 	}
 
@@ -103,7 +116,11 @@
 		var checked = state.excludes[ row.identity ] ? ' checked' : '';
 		var disabled = row.skippedReason ? ' disabled' : '';
 		var check = '<label><input type="checkbox" data-rk-importer-exclude value="' + esc( row.identity ) + '"' + checked + disabled + '> ' + esc( __( 'Exclude', 'rankkernel' ) ) + '</label>';
-		return '<tr><td>' + esc( row.label ) + '</td><td>' + esc( row.kind ) + '</td><td>' + notes.join( '<br>' ) + '</td><td>' + check + '</td></tr>';
+		var name = esc( row.label );
+		if ( row.title && row.editUrl ) {
+			name = '<a href="' + esc( row.editUrl ) + '" target="_blank" rel="noopener">' + esc( row.title ) + '</a><br><span>' + esc( row.label ) + '</span>';
+		}
+		return '<tr><td>' + name + '</td><td>' + esc( row.kind ) + '</td><td>' + notes.join( '<br>' ) + '</td><td>' + check + '</td></tr>';
 	}
 
 	function pagerHtml( kind, page ) {
@@ -118,6 +135,31 @@
 		return html + '</div>';
 	}
 
+	function loadedExcludedCount( kind ) {
+		var page = state.pages[ kind ];
+		if ( ! page ) {
+			return 0;
+		}
+		var count = 0;
+		( page.rows || [] ).forEach( function ( row ) {
+			if ( state.excludes[ row.identity ] ) {
+				count += 1;
+			}
+		} );
+		return count;
+	}
+
+	function totalExcludedForKind( kind ) {
+		var count = 0;
+		excludeList().forEach( function ( identity ) {
+			var prefix = kindPrefix( kind );
+			if ( identity.indexOf( prefix ) === 0 ) {
+				count += 1;
+			}
+		} );
+		return count;
+	}
+
 	function renderKindSection( root, kind, title ) {
 		var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
 		if ( ! mount ) {
@@ -128,7 +170,27 @@
 			mount.innerHTML = '';
 			return;
 		}
-		var html = '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
+		var excludedCount = excludeCountFor( kind );
+		var query = state.queries[ kind ] || '';
+		var toolbar = '<div class="rk-importer-kind-toolbar">';
+		toolbar += '<label><input type="checkbox" data-rk-importer-exclude-all data-rk-importer-exclude-all-toggle="1"' + ( ( page.rows || [] ).length > 0 && loadedExcludedCount( kind ) === ( page.rows || [] ).length ? ' checked' : '' ) + '> ' + esc( __( 'Exclude all', 'rankkernel' ) ) + '</label>';
+		toolbar += ' <button type="button" data-rk-importer-clear data-rk-importer-clear-excludes="1">' + esc( __( 'Clear', 'rankkernel' ) ) + '</button>';
+		if ( [ 'posts', 'terms', 'redirects' ].indexOf( kind ) !== -1 ) {
+			toolbar += ' <input type="search" data-rk-importer-search="' + esc( kind ) + '" value="' + esc( query ) + '" placeholder="' + esc( __( 'Search', 'rankkernel' ) ) + '">';
+			toolbar += ' <button type="button" data-rk-importer-search-clear="' + esc( kind ) + '">' + esc( __( 'Clear search', 'rankkernel' ) ) + '</button>';
+		}
+		toolbar += ' <span data-rk-importer-exclude-count="' + esc( kind ) + '">' + excludedCount + ' of ' + page.kindTotal + ' ' + esc( __( 'excluded', 'rankkernel' ) ) + '</span>';
+		toolbar += '</div>';
+
+		if ( ! ( page.rows || [] ).length ) {
+			var emptyMsg = __( 'Nothing to review for this kind.', 'rankkernel' );
+			if ( query ) {
+				emptyMsg = __( 'No results for', 'rankkernel' ) + ' "' + query + '"';
+			}
+			mount.innerHTML = toolbar + '<p class="rk-importer-kind-empty">' + esc( emptyMsg ) + '</p>';
+			return;
+		}
+		var html = toolbar + '<h3>' + esc( title ) + ' (' + page.kindTotal + ')</h3>';
 		html += '<table class="widefat"><tbody>';
 		page.rows.forEach( function ( row ) { html += rowHtml( row ); } );
 		html += '</tbody></table>';
@@ -184,15 +246,17 @@
 			mount.innerHTML = '';
 			return;
 		}
-		var html = '<h3>' + esc( __( 'Not imported', 'rankkernel' ) ) + ' (' + skipped.length + ')</h3><ul>';
+		var html = '<h3>' + esc( __( 'Not imported', 'rankkernel' ) ) + ' (' + skipped.length + ')</h3><ul class="rk-importer-skipped-list">';
 		skipped.forEach( function ( row ) {
 			html += '<li>' + esc( ( row.label || row.kind ) + ': ' + ( row.skippedReason || '' ) ) + '</li>';
 		} );
 		mount.innerHTML = html + '</ul>';
 	}
 
-	function previewKind( root, source, kind, offset ) {
-		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: offset, limit: PAGE } ).then( function ( data ) {
+	function previewKind( root, source, kind, offset, q ) {
+		var query = ( q === undefined ? ( state.queries[ kind ] || '' ) : q );
+		state.queries[ kind ] = query;
+		return post( cfg.restBase + '/' + source + '/preview', { mode: mode( root ), kind: kind, offset: offset, limit: PAGE, q: query } ).then( function ( data ) {
 			state.pages[ kind ] = {
 				rows: data.rows || [],
 				skipped: data.skipped || [],
@@ -202,6 +266,215 @@
 			};
 			return data;
 		} );
+	}
+
+	function kindIndex( kind ) {
+		return KINDS.indexOf( kind );
+	}
+
+	function wizardTitle( kind ) {
+		return TITLES[ kind ] || kind;
+	}
+
+	function ensureWizardControls( root ) {
+		var mount = root.querySelector( '[data-rk-importer-wizard-nav]' );
+		if ( ! mount ) {
+			if ( ! document || typeof document.createElement !== 'function' ) {
+				return;
+			}
+			mount = document.createElement( 'div' );
+			mount.className = 'rk-importer-wizard-nav';
+			mount.setAttribute( 'data-rk-importer-wizard-nav', '1' );
+			root.appendChild( mount );
+		}
+		var confirming = 'confirm' === state.wizardView;
+		var first = ! confirming && 0 === state.currentKindIndex;
+		var last = ! confirming && state.currentKindIndex === KINDS.length - 1;
+		var html = '';
+		if ( ! first ) {
+			html += '<button type="button" data-rk-importer-back="1" data-rk-importer-prev="1">' + esc( __( 'Back', 'rankkernel' ) ) + '</button>';
+		}
+		if ( ! confirming ) {
+			html += ' <button type="button" data-rk-importer-skip="1" data-rk-importer-skip-kind="1">' + esc( __( 'Skip kind', 'rankkernel' ) ) + '</button>';
+		}
+		if ( ! last && ! confirming ) {
+			html += ' <button type="button" data-rk-importer-next="1" data-rk-importer-kind-next="1">' + esc( __( 'Next', 'rankkernel' ) ) + '</button>';
+		}
+		mount.innerHTML = html;
+	}
+
+	function renderWizardNav( root ) {
+		var nav = root.querySelector( '[data-rk-importer-kind-nav]' ) || root.querySelector( '[data-rk-importer-kind-stepper]' );
+		if ( ! nav ) {
+			if ( ! document || typeof document.createElement !== 'function' ) {
+				return;
+			}
+			nav = document.createElement( 'ol' );
+			nav.className = 'rk-importer-kind-nav';
+			nav.setAttribute( 'data-rk-importer-kind-nav', '1' );
+			nav.setAttribute( 'data-rk-importer-kind-stepper', '1' );
+			var firstSection = root.querySelector( '[data-rk-importer-section]' );
+			if ( firstSection ) {
+				root.insertBefore( nav, firstSection );
+			} else {
+				root.appendChild( nav );
+			}
+		}
+		var html = '';
+		KINDS.forEach( function ( kind, i ) {
+			var count = 0;
+			var page = state.pages[ kind ];
+			if ( page ) {
+				count = page.kindTotal;
+			}
+			var status = 'pending';
+			if ( state.completed ) {
+				status = 'done';
+			} else if ( Object.prototype.hasOwnProperty.call( state.reviewed, kind ) ) {
+				status = 'reviewed';
+			}
+			var current = ( state.wizardView === 'kind' && i === state.currentKindIndex );
+			var visited = i <= state.visitedMax;
+			html += '<li class="rk-importer-kind-step" data-rk-importer-kind-step="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '"' + ( current ? ' aria-current="step"' : '' ) + ( ( 'reviewed' === status || 'done' === status ) ? ' data-reviewed="1"' : '' ) + '>';
+			html += '<button type="button" data-rk-importer-kind-jump="' + esc( kind ) + '" data-rk-importer-kind="' + esc( kind ) + '">' + esc( wizardTitle( kind ) ) + '</button>';
+			html += ' <span class="rk-importer-kind-count">' + ( page ? count : '' ) + '</span>';
+			html += ' <span class="rk-importer-kind-status">' + esc( current ? 'current' : status ) + '</span>';
+			if ( 'reviewed' === status || 'done' === status ) {
+				html += ' <span class="rk-importer-kind-check" aria-hidden="true">&#10003;</span>';
+			}
+			html += '</li>';
+		} );
+		nav.innerHTML = html;
+	}
+
+	function showKind( root, index ) {
+		if ( index < 0 || index > KINDS.length ) {
+			return;
+		}
+		if ( index === KINDS.length ) {
+			state.wizardView = 'confirm';
+			state.currentKindIndex = KINDS.length;
+			KINDS.forEach( function ( kind ) {
+				var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
+				if ( mount ) {
+					mount.style.display = 'none';
+				}
+			} );
+			renderWizardNav( root );
+			ensureWizardControls( root );
+			announce( root, __( 'Confirmation summary', 'rankkernel' ) );
+			return;
+		}
+		state.wizardView = 'kind';
+		state.currentKindIndex = index;
+		if ( index > state.visitedMax ) {
+			state.visitedMax = index;
+		}
+		KINDS.forEach( function ( kind, i ) {
+			var mount = root.querySelector( '[data-rk-importer-section="' + kind + '"]' );
+			if ( mount ) {
+				mount.style.display = ( i === index ) ? '' : 'none';
+			}
+		} );
+		var kind = KINDS[ index ];
+		var title = wizardTitle( kind );
+		renderKindSection( root, kind, title );
+		if ( 'sitewide' === kind ) {
+			renderSitewide( root );
+		}
+		if ( 'bulk' === kind ) {
+			renderBulk( root );
+		}
+		renderWizardNav( root );
+		ensureWizardControls( root );
+		announce( root, kind + ': ' + ( state.pages[ kind ] ? state.pages[ kind ].kindTotal : 0 ) );
+	}
+
+	function advanceKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
+		if ( state.wizardView === 'kind' ) {
+			var current = KINDS[ state.currentKindIndex ];
+			if ( current ) {
+				state.reviewed[ current ] = true;
+				delete state.skippedKinds[ current ];
+				announce( root, current + ' ' + __( 'reviewed', 'rankkernel' ) );
+			}
+		}
+		var nextIndex = state.currentKindIndex + 1;
+		if ( nextIndex > KINDS.length ) {
+			nextIndex = KINDS.length;
+		}
+		showKind( root, nextIndex );
+	}
+
+	function prevKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
+		if ( state.currentKindIndex <= 0 ) {
+			return;
+		}
+		showKind( root, state.currentKindIndex - 1 );
+	}
+
+	function skipKind( root ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
+		if ( state.wizardView !== 'kind' ) {
+			return;
+		}
+		var current = KINDS[ state.currentKindIndex ];
+		if ( current ) {
+			state.reviewed[ current ] = true;
+			state.skippedKinds[ current ] = true;
+			announce( root, current + ' ' + __( 'skipped, will not import', 'rankkernel' ) );
+		}
+		var nextIndex = state.currentKindIndex + 1;
+		if ( nextIndex > KINDS.length ) {
+			nextIndex = KINDS.length;
+		}
+		showKind( root, nextIndex );
+	}
+
+	function jumpKind( root, kind ) {
+		if ( ! state.previewLoaded ) {
+			return;
+		}
+		var idx = kindIndex( kind );
+		if ( idx === -1 ) {
+			return;
+		}
+		showKind( root, idx );
+	}
+
+	function applyExcludeAllLoaded( root, kind, checked ) {
+		var page = state.pages[ kind ];
+		if ( ! page ) {
+			return;
+		}
+		( page.rows || [] ).forEach( function ( row ) {
+			if ( checked ) {
+				state.excludes[ row.identity ] = true;
+			} else {
+				delete state.excludes[ row.identity ];
+			}
+		} );
+		renderKindSection( root, kind, wizardTitle( kind ) );
+		if ( 'sitewide' === kind ) {
+			renderSitewide( root );
+		}
+		if ( 'bulk' === kind ) {
+			renderBulk( root );
+		}
+		resetConfirm( root );
+		announce( root, excludeCountFor( kind ) + ' of ' + ( page.kindTotal || 0 ) + ' ' + __( 'excluded', 'rankkernel' ) );
+	}
+
+	function clearLoadedExcludes( root, kind ) {
+		applyExcludeAllLoaded( root, kind, false );
 	}
 
 	function preview( root, source ) {
@@ -220,14 +493,33 @@
 			renderKindSection( root, 'posts', __( 'Posts', 'rankkernel' ) );
 			renderKindSection( root, 'terms', __( 'Terms', 'rankkernel' ) );
 			renderKindSection( root, 'redirects', __( 'Redirects', 'rankkernel' ) );
+			renderKindSection( root, 'sitewide', __( 'Sitewide', 'rankkernel' ) );
 			renderSitewide( root );
 			renderBulk( root );
+			renderKindSection( root, 'bulk', __( 'Bulk', 'rankkernel' ) );
 			var skipped = [];
 			[ 'posts', 'terms', 'redirects', 'sitewide' ].forEach( function ( kind ) {
-				( state.pages[ kind ].skipped || [] ).forEach( function ( row ) { skipped.push( row ); } );
+				if ( state.pages[ kind ] ) {
+					( state.pages[ kind ].skipped || [] ).forEach( function ( row ) { skipped.push( row ); } );
+				}
 			} );
 			renderSkipped( root, skipped );
 			resetConfirm( root );
+			state.currentKindIndex = 0;
+			state.wizardView = 'kind';
+			state.reviewed = {};
+			state.visitedMax = 0;
+			state.completed = false;
+			ensureWizardControls( root );
+			renderWizardNav( root );
+			showKind( root, 0 );
+			setStep( root, 'rk-importer-step-detect', 'is-complete' );
+			setStep( root, 'rk-importer-step-preview', 'is-current' );
+			state.previewLoaded = true;
+			var runGate = root.querySelector( '[data-rk-importer-run]' );
+			if ( runGate ) {
+				runGate.disabled = false;
+			}
 			announce( root, __( 'Preview ready. Review the sections, then run the import.', 'rankkernel' ) );
 		} ).catch( function () {
 			fail( root, __( 'Preview request failed.', 'rankkernel' ) );
@@ -236,14 +528,17 @@
 
 	function resetState( source ) {
 		state.source = source;
+		state.previewLoaded = false;
 		state.running = false;
 		state.confirmed = false;
 		state.excludes = {};
+		state.skippedKinds = {};
 		state.pages = {};
 		state.sitewide = { rows: [], selected: {} };
 		state.bulk = { rows: [], selected: [] };
 		state.kinds = {};
 		state.report = null;
+		state.queries = {};
 	}
 
 	function selectedRuleCount() {
@@ -287,12 +582,20 @@
 		state.bulk.selected.forEach( function ( identity ) {
 			lines.push( identity );
 		} );
+		var skippedKinds = Object.keys( state.skippedKinds || {} );
+		if ( skippedKinds.length > 0 ) {
+			lines.push( __( 'Kinds skipped, will not import: ', 'rankkernel' ) + skippedKinds.join( ', ' ) );
+		}
 		lines.push( __( 'Exclusions: ', 'rankkernel' ) + excludeList().length );
 		return '<ul><li>' + lines.map( esc ).join( '</li><li>' ) + '</li></ul>';
 	}
 
+	function kindPrefix( kind ) {
+		return PREFIXES[ kind ] || ( kind + ':' );
+	}
+
 	function excludeCountFor( kind ) {
-		var prefix = PREFIXES[ kind ] || ( kind + ':' );
+		var prefix = kindPrefix( kind );
 		var count = 0;
 		excludeList().forEach( function ( identity ) {
 			if ( identity.indexOf( prefix ) === 0 ) {
@@ -419,6 +722,9 @@
 	function runPlan( root, source ) {
 		var chain = Promise.resolve();
 		[ 'posts', 'terms', 'sitewide', 'redirects' ].forEach( function ( kind ) {
+			if ( state.skippedKinds[ kind ] ) {
+				return;
+			}
 			chain = chain.then( function () {
 				var options = {};
 				if ( 'sitewide' === kind ) {
@@ -427,11 +733,13 @@
 				return runKind( root, source, kind, 0, options );
 			} );
 		} );
-		state.bulk.selected.forEach( function ( identity ) {
-			chain = chain.then( function () {
-				return runKind( root, source, 'bulk', 0, { rule: identity } );
+		if ( ! state.skippedKinds.bulk ) {
+			state.bulk.selected.forEach( function ( identity ) {
+				chain = chain.then( function () {
+					return runKind( root, source, 'bulk', 0, { rule: identity } );
+				} );
 			} );
-		} );
+		}
 		return chain;
 	}
 
@@ -463,8 +771,12 @@
 		runBtn.disabled = true;
 		state.kinds = {};
 		setProgress( root, 0 );
+		setStep( root, 'rk-importer-step-preview', 'is-complete' );
+		setStep( root, 'rk-importer-step-run', 'is-current' );
 		return runPlan( root, source ).then( function () {
 			setProgress( root, 100 );
+			state.completed = true;
+			renderWizardNav( root );
 			var panel = root.querySelector( '[data-rk-importer-confirm]' );
 			if ( panel ) {
 				panel.innerHTML = '<h3>' + esc( __( 'Import complete', 'rankkernel' ) ) + '</h3>' + finalReport( root );
@@ -477,6 +789,7 @@
 			}
 			fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
 		} ).then( function () {
+			setStep( root, 'rk-importer-step-run', 'is-current' );
 			state.running = false;
 			runBtn.disabled = false;
 			resetConfirmPartial( root );
@@ -510,7 +823,7 @@
 		var parts = String( spec ).split( ':' );
 		var kind = parts[ 0 ];
 		var offset = parseInt( parts[ 1 ], 10 ) || 0;
-		previewKind( root, state.source, kind, offset ).then( function () {
+		previewKind( root, state.source, kind, offset, state.queries[ kind ] || '' ).then( function () {
 			renderKindSection( root, kind, TITLES[ kind ] || kind );
 		} ).catch( function () {
 			fail( root, __( 'Preview request failed.', 'rankkernel' ) );
@@ -534,6 +847,12 @@
 				run( root, runBtn );
 			} );
 		}
+		var rescanBtn = root.querySelector( '[data-rk-importer-rescan]' );
+		if ( rescanBtn ) {
+			rescanBtn.addEventListener( 'click', function () {
+				window.location.reload();
+			} );
+		}
 		root.addEventListener( 'click', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {
@@ -541,12 +860,82 @@
 			}
 			var page = target.getAttribute( 'data-rk-importer-page' );
 			if ( page ) {
+				collectCheckedExcludes( root );
 				onPager( root, page );
+				renderKindSection( root, String( page ).split( ':' )[ 0 ], TITLES[ String( page ).split( ':' )[ 0 ] ] || String( page ).split( ':' )[ 0 ] );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-back' ) !== null || target.getAttribute( 'data-rk-importer-prev' ) !== null ) {
+				prevKind( root );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-next' ) !== null || target.getAttribute( 'data-rk-importer-kind-next' ) !== null ) {
+				advanceKind( root );
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-skip' ) !== null || target.getAttribute( 'data-rk-importer-skip-kind' ) !== null ) {
+				skipKind( root );
+				return;
+			}
+			var jump = target.getAttribute( 'data-rk-importer-kind-jump' ) || target.getAttribute( 'data-rk-importer-kind' );
+			if ( jump && ( target.tagName === 'BUTTON' || target.getAttribute( 'data-rk-importer-kind-jump' ) ) ) {
+				// Only jump when clicking nav button/item, avoid section mounts.
+				if ( KINDS.indexOf( jump ) !== -1 ) {
+					jumpKind( root, jump );
+					return;
+				}
+			}
+			var clearAttr = target.getAttribute( 'data-rk-importer-clear' ) || target.getAttribute( 'data-rk-importer-clear-excludes' );
+			if ( clearAttr !== null ) {
+				clearLoadedExcludes( root, KINDS[ state.currentKindIndex ] );
+				return;
+			}
+			var searchClear = target.getAttribute( 'data-rk-importer-search-clear' );
+			if ( searchClear ) {
+				state.queries[ searchClear ] = '';
+				previewKind( root, state.source, searchClear, 0, '' ).then( function () {
+					renderKindSection( root, searchClear, TITLES[ searchClear ] || searchClear );
+				} ).catch( function () {
+					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
+				} );
+				return;
+			}
+			var exclAllBtn = target.getAttribute( 'data-rk-importer-exclude-all' );
+			if ( exclAllBtn !== null && 'BUTTON' === target.tagName ) {
+				applyExcludeAllLoaded( root, KINDS[ state.currentKindIndex ], true );
+				return;
 			}
 		} );
+		root.addEventListener( 'input', function ( event ) {
+			var target = event && event.target;
+			if ( ! target || ! target.getAttribute ) {
+				return;
+			}
+			var kind = target.getAttribute( 'data-rk-importer-search' );
+			if ( ! kind ) {
+				return;
+			}
+			if ( state.searchTimers && state.searchTimers[ kind ] ) {
+				clearTimeout( state.searchTimers[ kind ] );
+			}
+			state.searchTimers = state.searchTimers || {};
+			state.searchTimers[ kind ] = setTimeout( function () {
+				state.queries[ kind ] = target.value || '';
+				previewKind( root, state.source, kind, 0, state.queries[ kind ] ).then( function () {
+					renderKindSection( root, kind, TITLES[ kind ] || kind );
+				} ).catch( function () {
+					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
+				} );
+			}, 300 );
+		} );
+
 		root.addEventListener( 'change', function ( event ) {
 			var target = event && event.target;
 			if ( ! target || ! target.getAttribute ) {
+				return;
+			}
+			if ( target.getAttribute( 'data-rk-importer-exclude-all' ) !== null ) {
+				applyExcludeAllLoaded( root, KINDS[ state.currentKindIndex ], !! target.checked );
 				return;
 			}
 			if ( target.getAttribute( 'data-rk-importer-exclude' ) !== null ) {

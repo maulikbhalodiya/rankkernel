@@ -125,21 +125,37 @@ final class RankMathReader implements SourceReader {
 	/**
 	 * Fetch one post chunk with types and rank_math_ meta rows.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, type: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchPosts( int $offset, int $limit ): array {
-		$db   = $this->db();
-		$like = $this->likeEscape( 'rank_math_' ) . '%';
-		$ids  = $db->get_col(
-			$db->prepare(
-				"SELECT DISTINCT post_id FROM {$db->postmeta} WHERE meta_key LIKE %s ORDER BY post_id ASC LIMIT %d, %d",
-				$like,
-				$offset,
-				$limit
-			)
-		);
+	public function fetchPosts( int $offset, int $limit, string $search = '' ): array {
+		$db     = $this->db();
+		$like   = $this->likeEscape( 'rank_math_' ) . '%';
+		$search = trim( $search );
+
+		if ( '' === $search ) {
+			$ids = $db->get_col(
+				$db->prepare(
+					"SELECT DISTINCT post_id FROM {$db->postmeta} WHERE meta_key LIKE %s ORDER BY post_id ASC LIMIT %d, %d",
+					$like,
+					$offset,
+					$limit
+				)
+			);
+		} else {
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$ids       = $db->get_col(
+				$db->prepare(
+					"SELECT DISTINCT pm.post_id FROM {$db->postmeta} pm JOIN {$db->posts} p ON p.ID = pm.post_id WHERE pm.meta_key LIKE %s AND p.post_title LIKE %s ORDER BY pm.post_id ASC LIMIT %d, %d",
+					$like,
+					$titleLike,
+					$offset,
+					$limit
+				)
+			);
+		}
 
 		if ( ! is_array( $ids ) || [] === $ids ) {
 			return [];
@@ -186,23 +202,42 @@ final class RankMathReader implements SourceReader {
 	/**
 	 * Fetch one term chunk with taxonomies and rank_math_ meta rows.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchTerms( int $offset, int $limit ): array {
-		$db   = $this->db();
-		$like = $this->likeEscape( 'rank_math_' ) . '%';
-		$ids  = $db->get_col(
+	public function fetchTerms( int $offset, int $limit, string $search = '' ): array {
+		$db     = $this->db();
+		$like   = $this->likeEscape( 'rank_math_' ) . '%';
+		$search = trim( $search );
+
+		$allIds = $db->get_col(
 			$db->prepare(
-				"SELECT DISTINCT term_id FROM {$db->termmeta} WHERE meta_key LIKE %s ORDER BY term_id ASC LIMIT %d, %d",
-				$like,
-				$offset,
-				$limit
+				"SELECT DISTINCT term_id FROM {$db->termmeta} WHERE meta_key LIKE %s",
+				$like
 			)
 		);
 
-		if ( ! is_array( $ids ) || [] === $ids ) {
+		$allIds = array_values( array_unique( array_map( 'intval', is_array( $allIds ) ? $allIds : [] ) ) );
+		sort( $allIds );
+
+		if ( '' !== $search && [] !== $allIds ) {
+			$in        = implode( ',', $allIds );
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$allowed   = $db->get_col(
+				$db->prepare(
+					"SELECT term_id FROM {$db->terms} WHERE term_id IN ({$in}) AND name LIKE %s",
+					$titleLike
+				)
+			);
+			$allowed   = array_map( 'intval', is_array( $allowed ) ? $allowed : [] );
+			$allIds    = array_values( array_intersect( $allIds, $allowed ) );
+		}
+
+		$ids = array_slice( $allIds, $offset, $limit );
+
+		if ( [] === $ids ) {
 			return [];
 		}
 

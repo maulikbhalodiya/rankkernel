@@ -179,6 +179,25 @@ if (! class_exists('WP_Post')) {
     }
 }
 
+if (! class_exists('WP_Term')) {
+    class WP_Term {
+        public int $term_id = 0;
+        public string $name = '';
+        public string $slug = '';
+        public string $taxonomy = '';
+    }
+}
+
+if (! class_exists('WP_Taxonomy')) {
+    class WP_Taxonomy {
+        /** @var object */
+        public $cap;
+        public function __construct() {
+            $this->cap = (object) [ 'manage_terms' => 'manage_categories' ];
+        }
+    }
+}
+
 if (! class_exists('WP_Query')) {
     class WP_Query {
         /** @var array<string,mixed> */

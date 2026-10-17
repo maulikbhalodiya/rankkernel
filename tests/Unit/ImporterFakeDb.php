@@ -336,6 +336,10 @@ final class ImporterFakeDb {
 		$ids = array_values( array_unique( $ids ) );
 		sort( $ids );
 
+		if ( ! str_contains( strtoupper( $sql ), 'LIMIT' ) ) {
+			return array_slice( $ids, $offset );
+		}
+
 		return array_slice( $ids, $offset, $count );
 	}
 

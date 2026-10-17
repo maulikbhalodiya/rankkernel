@@ -126,17 +126,28 @@ final class AioseoReader implements SourceReader {
 	/**
 	 * Fetch one post chunk from the owned posts table with types.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, type: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchPosts( int $offset, int $limit ): array {
-		$db    = $this->db();
-		$table = $db->prefix . 'aioseo_posts';
-		$rows  = $db->get_results(
-			$db->prepare( "SELECT * FROM {$table} ORDER BY post_id ASC LIMIT %d, %d", $offset, $limit ),
-			ARRAY_A
-		);
+	public function fetchPosts( int $offset, int $limit, string $search = '' ): array {
+		$db     = $this->db();
+		$table  = $db->prefix . 'aioseo_posts';
+		$search = trim( $search );
+
+		if ( '' === $search ) {
+			$rows = $db->get_results(
+				$db->prepare( "SELECT * FROM {$table} ORDER BY post_id ASC LIMIT %d, %d", $offset, $limit ),
+				ARRAY_A
+			);
+		} else {
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$rows      = $db->get_results(
+				$db->prepare( "SELECT ap.* FROM {$table} ap JOIN {$db->posts} p ON p.ID = ap.post_id WHERE p.post_title LIKE %s ORDER BY ap.post_id ASC LIMIT %d, %d", $titleLike, $offset, $limit ),
+				ARRAY_A
+			);
+		}
 
 		if ( ! is_array( $rows ) || [] === $rows ) {
 			return [];
@@ -175,23 +186,41 @@ final class AioseoReader implements SourceReader {
 	 * stripped of the _aioseo_ prefix so the row mapper sees the bare
 	 * column shape it already accepts.
 	 *
-	 * @param int $offset Chunk offset.
-	 * @param int $limit Chunk size.
+	 * @param int    $offset Chunk offset.
+	 * @param int    $limit Chunk size.
+	 * @param string $search Optional search string.
 	 * @return array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> The items.
 	 */
-	public function fetchTerms( int $offset, int $limit ): array {
-		$db   = $this->db();
-		$like = $this->likeEscape( '_aioseo_' ) . '%';
-		$ids  = $db->get_col(
+	public function fetchTerms( int $offset, int $limit, string $search = '' ): array {
+		$db     = $this->db();
+		$like   = $this->likeEscape( '_aioseo_' ) . '%';
+		$search = trim( $search );
+
+		$allIds = $db->get_col(
 			$db->prepare(
-				"SELECT DISTINCT term_id FROM {$db->termmeta} WHERE meta_key LIKE %s ORDER BY term_id ASC LIMIT %d, %d",
-				$like,
-				$offset,
-				$limit
+				"SELECT DISTINCT term_id FROM {$db->termmeta} WHERE meta_key LIKE %s",
+				$like
 			)
 		);
+		$allIds = array_values( array_unique( array_map( 'intval', is_array( $allIds ) ? $allIds : [] ) ) );
+		sort( $allIds );
 
-		if ( ! is_array( $ids ) || [] === $ids ) {
+		if ( '' !== $search && [] !== $allIds ) {
+			$in        = implode( ',', $allIds );
+			$titleLike = '%' . $this->likeEscape( $search ) . '%';
+			$allowed   = $db->get_col(
+				$db->prepare(
+					"SELECT term_id FROM {$db->terms} WHERE term_id IN ({$in}) AND name LIKE %s",
+					$titleLike
+				)
+			);
+			$allowed   = array_map( 'intval', is_array( $allowed ) ? $allowed : [] );
+			$allIds    = array_values( array_intersect( $allIds, $allowed ) );
+		}
+
+		$ids = array_slice( $allIds, $offset, $limit );
+
+		if ( [] === $ids ) {
 			return [];
 		}
 
