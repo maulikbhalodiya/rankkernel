@@ -142,7 +142,10 @@ class RedirectsModule implements ModuleInterface {
 			return;
 		}
 
-		RedirectTable::ensureTables();
+		// Performance optimization: check fast cached existence before running expensive ensureTables / dbDelta schema diffs on every request.
+		if ( ! RedirectTable::exists() ) {
+			RedirectTable::ensureTables();
+		}
 
 		$settings = new RedirectsSettings();
 		$settings->ensureSchema();

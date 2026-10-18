@@ -158,7 +158,10 @@ final class InstantIndexingModule implements ModuleInterface {
 			return;
 		}
 
-		LogTable::ensureTables();
+		// Performance optimization: check fast cached existence before running expensive ensureTables / dbDelta schema diffs on every request.
+		if ( ! LogTable::exists() ) {
+			LogTable::ensureTables();
+		}
 
 		$this->settings()->ensureKey();
 	}

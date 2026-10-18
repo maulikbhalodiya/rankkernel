@@ -135,7 +135,10 @@ class MonitorModule implements ModuleInterface {
 			return;
 		}
 
-		LogTable::ensureTables();
+		// Performance optimization: check fast cached existence before running expensive ensureTables / dbDelta schema diffs on every request.
+		if ( ! LogTable::exists() ) {
+			LogTable::ensureTables();
+		}
 
 		$settings = new MonitorSettings();
 		$settings->ensureSchema();
