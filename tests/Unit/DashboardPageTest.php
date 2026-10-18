@@ -430,6 +430,7 @@ final class DashboardPageTest extends TestCase {
 		// Sitemaps is enabled in the fixture, so its shortcut links out.
 		$this->assertStringContainsString( 'rankkernel_sitemap=index', $output );
 		$this->assertStringContainsString( 'View XML Sitemap', $output );
+		$this->assertStringContainsString( '<span class="screen-reader-text">(opens in a new tab)</span>', $output );
 		// Redirects, robots and 404 are off, so no verified destination renders.
 		$this->assertStringNotContainsString( 'rk_action=export', $output );
 		$this->assertStringNotContainsString( 'rankkernel_404_clear', $output );
