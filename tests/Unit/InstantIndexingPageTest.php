@@ -135,6 +135,7 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias( static fn( bool $c, bool $e = true ): string => ( $c === $e ) ? ' checked' : '' );
 		Functions\when( 'selected' )->alias( static fn( bool $c, bool $e = true ): string => ( $c === $e ) ? ' selected' : '' );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
 		Functions\when( 'wp_die' )->alias(
 			static function (): void {
@@ -1112,11 +1113,19 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( [], $registeredStyles, 'the stylesheet must not register on another screen' );
 		$this->assertSame( [], $enqueuedStyles, 'the stylesheet must not enqueue on another screen' );
 
+		$translatedJS = [];
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
+
 		$page->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
 
 		$handle = 'rankkernel-instant-indexing-admin';
 
 		$this->assertArrayHasKey( $handle, $registeredScripts );
+		$this->assertSame( 'rankkernel', $translatedJS[ $handle ] ?? null, 'script translations must be registered with rankkernel text domain' );
 		$this->assertContains( $handle, $enqueuedScripts );
 		$this->assertTrue( $registeredScripts[ $handle ]['in_footer'], 'the script must load in the footer' );
 		$this->assertStringContainsString( 'instant-indexing-admin.js', $registeredScripts[ $handle ]['src'] );

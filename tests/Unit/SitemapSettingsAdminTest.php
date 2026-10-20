@@ -112,6 +112,8 @@ final class SitemapSettingsAdminTest extends TestCase {
 				];
 			}
 		);
+		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $p ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
+		Functions\when( 'wp_set_script_translations' )->justReturn( null );
 		Functions\when( 'get_editable_roles' )->alias(
 			static fn (): array => [
 				'administrator' => [ 'name' => 'Administrator' ],
@@ -495,6 +497,29 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
 		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
 		$this->assertStringContainsString( '<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>', $html );
+	}
+
+	/**
+	 * Test enqueueAssets registers script translations for sitemap settings script.
+	 */
+	public function test_enqueue_assets_registers_script_translations(): void {
+		$translatedJS = [];
+
+		Functions\when( 'wp_register_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->justReturn( null );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'wp_localize_script' )->justReturn( null );
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
+
+		$page = $this->makePage();
+		$page->enqueueAssets( SitemapSettingsPage::HOOK_SUFFIX );
+
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-sitemap-settings'] ?? null );
 	}
 
 	/**
