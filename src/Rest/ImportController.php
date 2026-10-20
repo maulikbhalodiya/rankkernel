@@ -110,16 +110,42 @@ final class ImportController {
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'mode'   => [
 						'required'          => false,
 						'type'              => 'string',
+						'enum'              => self::MODES,
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'kind'   => [
+						'required'          => false,
+						'type'              => 'string',
+						'enum'              => self::PREVIEW_KINDS,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'offset' => [
+						'required'          => false,
+						'type'              => 'integer',
+						'minimum'           => 0,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'limit'  => [
+						'required'          => false,
+						'type'              => 'integer',
+						'minimum'           => 1,
+						'maximum'           => self::PREVIEW_LIMIT,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'q'      => [
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
 			]
@@ -132,20 +158,58 @@ final class ImportController {
 				'callback'            => [ $this, 'runChunk' ],
 				'permission_callback' => [ $this, 'checkPermission' ],
 				'args'                => [
-					'source' => [
+					'source'   => [
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'kind'   => [
+					'kind'     => [
 						'required'          => true,
 						'type'              => 'string',
+						'enum'              => self::KINDS,
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'mode'   => [
+					'mode'     => [
+						'required'          => false,
+						'type'              => 'string',
+						'enum'              => self::MODES,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'offset'   => [
+						'required'          => false,
+						'type'              => 'integer',
+						'minimum'           => 0,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'limit'    => [
+						'required'          => false,
+						'type'              => 'integer',
+						'minimum'           => 1,
+						'maximum'           => self::RUN_LIMIT_MAX,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'excludes' => [
+						'required'          => false,
+						'type'              => 'array',
+						'items'             => [ 'type' => 'string' ],
+						'sanitize_callback' => 'rest_sanitize_request_arg',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'choices'  => [
+						'required'          => false,
+						'type'              => 'object',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'rule'     => [
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
 			]
