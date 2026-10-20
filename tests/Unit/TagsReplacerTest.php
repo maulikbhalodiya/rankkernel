@@ -31,6 +31,7 @@ final class TagsReplacerTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		Functions\when( '__' )->alias( static fn ( string $v, string $d = '' ): string => $v ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'esc_url_raw' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : '' );
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
@@ -695,5 +696,44 @@ final class TagsReplacerTest extends TestCase {
 
 		$this->assertSame( $template, $result );
 		$this->assertTrue( $filterCalled, 'apply_filters must run when a token filter is registered even if template lacks delimiters.' );
+	}
+
+	/**
+	 * Test page token resolution is translatable and uses rankkernel text domain.
+	 *
+	 * @return void
+	 */
+	public function test_page_token_is_translatable(): void {
+		$ctx      = $this->makeContext( $this->makeQuery( 42, 'post' ) );
+		$replacer = new TagsReplacer();
+
+		$textDomainUsed = null;
+
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $queryVar, mixed $fallback = '' ): mixed {
+				if ( 'paged' === $queryVar ) {
+					return 3;
+				}
+
+				if ( 'max_num_pages' === $queryVar ) {
+					return 10;
+				}
+
+				return $fallback;
+			}
+		);
+
+		Functions\when( '__' )->alias(
+			static function ( string $text, string $domain = 'default' ) use ( &$textDomainUsed ): string {
+				$textDomainUsed = $domain;
+
+				return $text;
+			}
+		);
+
+		$result = $replacer->replace( $ctx, '%%page%%', 'page_field' );
+
+		$this->assertSame( 'Page 3 of 10', $result );
+		$this->assertSame( 'rankkernel', $textDomainUsed, 'The __() translation helper must be invoked with text domain rankkernel.' );
 	}
 }

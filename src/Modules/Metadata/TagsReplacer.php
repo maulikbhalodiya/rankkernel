@@ -350,17 +350,31 @@ final class TagsReplacer {
 
 		if ( $paged > 1 ) {
 			if ( $max > 1 ) {
-				return sprintf( 'Page %d of %d', $paged, $max );
+				return sprintf(
+					/* translators: 1: current page number, 2: total page count */
+					__( 'Page %1$d of %2$d', 'rankkernel' ),
+					$paged,
+					$max
+				);
 			}
 
 			// Try to get max from global WP_Query.
 			global $wp_query;
 
 			if ( isset( $wp_query ) && isset( $wp_query->max_num_pages ) && (int) $wp_query->max_num_pages > 1 ) {
-				return sprintf( 'Page %d of %d', $paged, (int) $wp_query->max_num_pages );
+				return sprintf(
+					/* translators: 1: current page number, 2: total page count */
+					__( 'Page %1$d of %2$d', 'rankkernel' ),
+					$paged,
+					(int) $wp_query->max_num_pages
+				);
 			}
 
-			return sprintf( 'Page %d', $paged );
+			return sprintf(
+				/* translators: %d: current page number */
+				__( 'Page %d', 'rankkernel' ),
+				$paged
+			);
 		}
 
 		return '';
