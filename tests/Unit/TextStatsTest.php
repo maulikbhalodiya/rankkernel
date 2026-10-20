@@ -33,6 +33,7 @@ final class TextStatsTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		TextStats::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -180,5 +181,20 @@ final class TextStatsTest extends TestCase {
 		$this->assertSame( 1, TextStats::readingTime( 0 ) );
 		$this->assertSame( 1, TextStats::readingTime( 200 ) );
 		$this->assertSame( 2, TextStats::readingTime( 201 ) );
+	}
+
+	/**
+	 * Test memoized results and resetCache().
+	 */
+	public function test_memoization_and_reset_cache(): void {
+		$text   = 'One, two. Three! Four?';
+		$first  = TextStats::words( $text );
+		$second = TextStats::words( $text );
+		$this->assertSame( $first, $second );
+
+		TextStats::resetCache();
+
+		$third = TextStats::words( $text );
+		$this->assertSame( $first, $third );
 	}
 }

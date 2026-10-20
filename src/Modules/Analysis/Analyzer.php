@@ -139,6 +139,9 @@ final class Analyzer {
 	 * @return array<string, mixed> Score, band, checks and per keyword results.
 	 */
 	public function analyze( array $input ): array {
+		KeywordMatcher::resetCache();
+		TextStats::resetCache();
+
 		$keywords = $this->keywords( $input );
 
 		if ( [] === $keywords ) {
