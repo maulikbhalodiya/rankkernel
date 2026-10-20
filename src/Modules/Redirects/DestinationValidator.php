@@ -29,6 +29,22 @@ final class DestinationValidator {
 	private const FALLBACK_PROTOCOLS = [ 'http', 'https' ];
 
 	/**
+	 * Static request-level memoization cache for the home host.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $homeHostCache = null;
+
+	/**
+	 * Reset in-memory static cache (primarily for unit tests and long-lived processes).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$homeHostCache = null;
+	}
+
+	/**
 	 * Validate a destination.
 	 *
 	 * Terminal codes 410 and 451 accept an empty target. Redirect codes
@@ -214,25 +230,41 @@ final class DestinationValidator {
 	/**
 	 * Lowercase host of the home URL, empty when unavailable.
 	 *
+	 * Performance optimization: memoizes the parsed home host in static memory for the duration of
+	 * the current request execution thread so repeated destination validations do not repeatedly
+	 * invoke home_url('/') or wp_parse_url().
+	 *
 	 * @return string Home host or empty string.
 	 */
 	private function homeHost(): string {
+		if ( null !== self::$homeHostCache ) {
+			return self::$homeHostCache;
+		}
+
 		if ( ! function_exists( 'home_url' ) ) {
+			self::$homeHostCache = '';
+
 			return '';
 		}
 
 		$home = home_url( '/' );
 
 		if ( ! is_string( $home ) || '' === $home ) {
+			self::$homeHostCache = '';
+
 			return '';
 		}
 
 		$host = wp_parse_url( $home, PHP_URL_HOST );
 
 		if ( ! is_string( $host ) ) {
+			self::$homeHostCache = '';
+
 			return '';
 		}
 
-		return strtolower( $host );
+		self::$homeHostCache = strtolower( $host );
+
+		return self::$homeHostCache;
 	}
 }

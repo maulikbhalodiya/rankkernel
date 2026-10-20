@@ -24,6 +24,7 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		DestinationValidator::resetCache();
 
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
@@ -38,6 +39,7 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		DestinationValidator::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
