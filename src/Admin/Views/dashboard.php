@@ -359,6 +359,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 							<a class="rk-dashboard-tool" href="<?php echo esc_url( $rk_sitemap_url ); ?>" target="_blank" rel="noopener">
 								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-primary" aria-hidden="true">swap_vert</span><span><?php echo esc_html__( 'View XML Sitemap', 'rankkernel' ); ?></span></span>
 								<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
+								<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span>
 							</a>
 						<?php else : ?>
 							<button type="button" class="rk-dashboard-tool" disabled>
@@ -380,6 +381,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 							<a class="rk-dashboard-tool" href="<?php echo esc_url( $rk_robots_url ); ?>" target="_blank" rel="noopener">
 								<span class="rk-dashboard-tool-main"><span class="rk-icon rk-dashboard-tool-icon rk-dashboard-tool-icon-muted" aria-hidden="true">link</span><span><?php echo esc_html__( 'View robots.txt', 'rankkernel' ); ?></span></span>
 								<span class="rk-icon rk-dashboard-tool-launch" aria-hidden="true">arrow_right</span>
+								<span class="screen-reader-text"><?php echo esc_html__( '(opens in a new tab)', 'rankkernel' ); ?></span>
 							</a>
 						<?php else : ?>
 							<button type="button" class="rk-dashboard-tool" disabled>
