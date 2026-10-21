@@ -67,3 +67,12 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 
 = 0.1.0 =
 Initial release.
+
+== Developer filters ==
+
+RankKernel exposes a small public hook family for sitemaps.
+
+* `rankkernel/sitemap/loc`, filter the `<loc>` of one sitemap entry.
+  Args: `$loc` (string, generated URL), `$set` (string set name: public post type names such as 'post' or 'page', raw taxonomy names such as 'category' or 'post_tag', or 'authors'), `$page` (int, 1-based). Return rules: a valid absolute http(s) URL replaces the loc; a non-empty invalid string falls back to the original; '' skips the entry (page/index counts come from provider counts, not filtered results, so an all-skipped page can still be advertised); a non-string return is ignored. Images and lastmod are unaffected. Excluded content cannot be restored. When callbacks are registered, per-page entries XML bypasses the cache and rebuilds per request. Callbacks must not throw (a throw renders "Sitemap unavailable.").
+* `rankkernel/sitemap/entries_per_page`, filter entries per page (int, clamped 1..2000).
+* Cache family: `rankkernel/sitemap/enable_cache` (bool).
