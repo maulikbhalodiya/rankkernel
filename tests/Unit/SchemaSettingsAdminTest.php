@@ -85,6 +85,8 @@ final class SchemaSettingsAdminTest extends TestCase {
 		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/wp-content/plugins/rankkernel/' . $p );
 		Functions\when( 'wp_register_script' )->justReturn( null );
 		Functions\when( 'wp_register_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_set_script_translations' )->justReturn( null );
 		Functions\when( 'esc_url_raw' )->alias(
 			static function ( string $v ): string {
 				$v = trim( $v );
@@ -956,6 +958,26 @@ final class SchemaSettingsAdminTest extends TestCase {
 				]
 			)
 		);
+	}
+
+	/**
+	 * Test enqueueAssets registers script translations for schema settings script.
+	 */
+	public function test_enqueue_assets_registers_script_translations(): void {
+		$translatedJS = [];
+
+		Functions\when( 'wp_enqueue_media' )->justReturn( null );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
+
+		$page = $this->makePage();
+		$page->enqueueAssets( SchemaSettingsPage::HOOK_SUFFIX );
+
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-schema-settings'] ?? null );
 	}
 
 	/**
