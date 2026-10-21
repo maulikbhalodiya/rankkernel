@@ -1424,6 +1424,10 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'value="42"', $output );
 		$this->assertStringContainsString( 'value="rankkernel"', $output );
 		$this->assertStringContainsString( 'id="rk-social-default-image-select"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-twitter-site-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-twitter-site-hint"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-social-profiles-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-social-profiles-hint"', $output );
 	}
 
 	/**
