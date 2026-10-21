@@ -424,7 +424,25 @@ class IndexBuilder {
 		$xml     .= ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
 
 		foreach ( $entries as $entry ) {
-			$loc = (string) $entry['loc'];
+			/**
+			 * Filter the <loc> value for a sitemap entry.
+			 *
+			 * Allows overriding the URL emitted for an individual sitemap entry.
+			 * Return a string loc to replace it, or '' to skip the entry entirely.
+			 * Any non-string return value is ignored and the original loc is kept.
+			 * Eligibility/exclusion already happened in the providers.
+			 *
+			 * @param string $loc  The entry URL as generated.
+			 * @param string $set  The sitemap set name.
+			 * @param int    $page The 1-based page number.
+			 * @return string The (possibly overridden) loc, or '' to skip.
+			 */
+			$loc = apply_filters( 'rankkernel/sitemap/loc', (string) $entry['loc'], $set, $page ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+			if ( ! is_string( $loc ) ) {
+				$loc = (string) $entry['loc'];
+			}
+
 			if ( '' === $loc ) {
 				continue;
 			}

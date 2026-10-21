@@ -420,4 +420,257 @@ final class IndexBuilderTest extends TestCase {
 			$this->assertNotSame( $first, $reflection->invoke( $builder ), $method . ' must create a fresh instance after resetCache' );
 		}
 	}
+
+	/**
+	 * Test entries xml is byte-identical when no loc filter is registered.
+	 */
+	public function test_entries_xml_loc_filter_not_registered_byte_identical(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+		$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+		$posts->shouldReceive( 'getEntries' )->andReturn(
+			[
+				[
+					'loc'     => 'https://example.com/hello/',
+					'lastmod' => '2026-01-01T00:00:00+00:00',
+					'images'  => [ 'https://example.com/image.jpg' ],
+				],
+			]
+		)->byDefault();
+
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ): mixed {
+				if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+					return 1000;
+				}
+				return $value;
+			}
+		);
+
+		$builder = new IndexBuilder( $posts, $tax, $auth );
+		$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+		$expected = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+			. '<?xml-stylesheet type="text/xsl" href="https://example.com/sitemap.xsl?ver=0.1.0-test"?>' . "\n"
+			. '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n"
+			. '  <url>' . "\n"
+			. '    <loc>https://example.com/hello/</loc>' . "\n"
+			. '    <lastmod>2026-01-01T00:00:00+00:00</lastmod>' . "\n"
+			. '    <image:image>' . "\n"
+			. '      <image:loc>https://example.com/image.jpg</image:loc>' . "\n"
+			. '    </image:image>' . "\n"
+			. '  </url>' . "\n"
+			. '</urlset>';
+
+		$this->assertSame( $expected, $xml );
+	}
+
+	/**
+	 * Test loc filter callback replaces loc and receives set and page.
+	 */
+	public function test_entries_xml_loc_filter_replaces_loc(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+		$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+		$posts->shouldReceive( 'getEntries' )->andReturn(
+			[
+				[
+					'loc'     => 'https://example.com/hello/',
+					'lastmod' => '',
+					'images'  => [],
+				],
+			]
+		)->byDefault();
+
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		$registered = [];
+		$received   = null;
+
+		Functions\when( 'add_filter' )->alias(
+			static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+				$registered[ $hook ][] = $callback;
+				return true;
+			}
+		);
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered ): mixed {
+				if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+					return 1000;
+				}
+				if ( isset( $registered[ $hook ] ) ) {
+					foreach ( $registered[ $hook ] as $callback ) {
+						$value = $callback( $value, ...$args );
+					}
+				}
+				return $value;
+			}
+		);
+
+		add_filter(
+			'rankkernel/sitemap/loc',
+			static function ( mixed $loc, mixed $set, mixed $page ) use ( &$received ): string {
+				$received = [ $set, $page ];
+				return 'https://example.com/overridden/';
+			},
+			10,
+			3
+		);
+
+		$builder = new IndexBuilder( $posts, $tax, $auth );
+		$xml     = $builder->buildEntriesXml( 'post', 2 );
+
+		$this->assertStringContainsString( '<loc>https://example.com/overridden/</loc>', $xml );
+		$this->assertSame( [ 'post', 2 ], $received );
+	}
+
+	/**
+	 * Test non-string loc filter returns keep original URL.
+	 */
+	public function test_entries_xml_loc_filter_non_string_keeps_original(): void {
+		foreach ( [ 123, null, [ 'x' ] ] as $retval ) {
+			$posts = Mockery::mock( PostsProvider::class );
+			$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+			$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+			$posts->shouldReceive( 'getEntries' )->andReturn(
+				[
+					[
+						'loc'     => 'https://example.com/hello/',
+						'lastmod' => '',
+						'images'  => [],
+					],
+				]
+			)->byDefault();
+
+			$tax = Mockery::mock( TaxonomiesProvider::class );
+			$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$auth = Mockery::mock( AuthorsProvider::class );
+			$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$registered = [];
+			Functions\when( 'add_filter' )->alias(
+				static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+					$registered[ $hook ][] = $callback;
+					return true;
+				}
+			);
+			Functions\when( 'apply_filters' )->alias(
+				static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered, $retval ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+					if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+						return 1000;
+					}
+					if ( 'rankkernel/sitemap/loc' === $hook && isset( $registered[ $hook ] ) ) {
+						return $retval;
+					}
+					return $value;
+				}
+			);
+
+			add_filter(
+				'rankkernel/sitemap/loc',
+				static function ( mixed $loc ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors WordPress signature.
+					return null;
+				},
+				10,
+				3
+			);
+
+			// Override apply_filters return to the desired non-string via closure scope impossible; instead rely on callback return value.
+			// Re-register a callback that returns the specific non-string.
+			$registered = [];
+			add_filter(
+				'rankkernel/sitemap/loc',
+				static function ( mixed $loc ) use ( $retval ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors WordPress signature.
+					return $retval;
+				},
+				10,
+				3
+			);
+
+			$builder = new IndexBuilder( $posts, $tax, $auth );
+			$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+			$this->assertStringContainsString( '<loc>https://example.com/hello/</loc>', $xml, 'non-string return must keep original' );
+		}
+	}
+
+	/**
+	 * Test empty-string loc filter return skips entry.
+	 */
+	public function test_entries_xml_loc_filter_empty_skips_entry(): void {
+		$posts = Mockery::mock( PostsProvider::class );
+		$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+		$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+		$posts->shouldReceive( 'getEntries' )->andReturn(
+			[
+				[
+					'loc'     => 'https://example.com/hello/',
+					'lastmod' => '',
+					'images'  => [],
+				],
+			]
+		)->byDefault();
+
+		$tax = Mockery::mock( TaxonomiesProvider::class );
+		$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		$auth = Mockery::mock( AuthorsProvider::class );
+		$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		$registered = [];
+		Functions\when( 'add_filter' )->alias(
+			static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+				$registered[ $hook ][] = $callback;
+				return true;
+			}
+		);
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered ): mixed {
+				if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+					return 1000;
+				}
+				if ( isset( $registered[ $hook ] ) ) {
+					foreach ( $registered[ $hook ] as $callback ) {
+						$value = $callback( $value, ...$args );
+					}
+				}
+				return $value;
+			}
+		);
+
+		add_filter(
+			'rankkernel/sitemap/loc',
+			static function ( mixed $loc ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors WordPress signature.
+				return '';
+			},
+			10,
+			3
+		);
+
+		$builder = new IndexBuilder( $posts, $tax, $auth );
+		$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+		$this->assertStringNotContainsString( '<url>', $xml );
+		$this->assertStringNotContainsString( 'https://example.com/hello/', $xml );
+	}
 }
