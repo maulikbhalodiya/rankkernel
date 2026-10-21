@@ -158,6 +158,25 @@ final class LlmsRouterTest extends TestCase {
 	}
 
 	/**
+	 * Test a registered post types filter keeps the document out of the
+	 * shared cache, so a request dependent callback cannot be cached for
+	 * every visitor.
+	 */
+	public function test_registered_post_types_filter_bypasses_the_cache(): void {
+		Functions\when( 'has_filter' )->alias(
+			static function ( string $hook ): bool {
+				return 'rankkernel_llms_post_types' === $hook;
+			}
+		);
+
+		$router = $this->router();
+		$first  = $router->content();
+
+		$this->assertStringContainsString( '# Example Site', $first );
+		$this->assertSame( [], $this->transients, 'a filtered document must not be cached' );
+	}
+
+	/**
 	 * Test the markdown response headers include nosniff.
 	 */
 	public function test_response_headers_include_nosniff(): void {
