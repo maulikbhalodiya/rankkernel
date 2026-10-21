@@ -1,0 +1,10 @@
+/**
+ * RankKernel admin no-JavaScript fallback styles.
+ *
+ * @package RankKernel
+ * @license GPL-2.0-or-later
+ */
+
+.rk-sitemap-panel[hidden]{display:block}
+.rk-monitor .rk-monitor-settings[hidden]{display:block}
+.rk-schema-section[hidden]{display:block}
