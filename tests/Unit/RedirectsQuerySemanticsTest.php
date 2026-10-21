@@ -281,6 +281,38 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 	}
 
 	/**
+	 * Test a query with control characters is stripped before it reaches
+	 * the Location header.
+	 */
+	public function test_incoming_query_drops_control_characters(): void {
+		$this->seedExact( '/old', '/new' );
+
+		$_SERVER['REQUEST_URI'] = "/old?x=1\r\nSet-Cookie: a=b&y=2";
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects );
+		$this->assertSame( '/new?x=1Set-Cookie: a=b&y=2', $this->redirects[0]['location'] );
+		$this->assertStringNotContainsString( "\r", $this->redirects[0]['location'] );
+		$this->assertStringNotContainsString( "\n", $this->redirects[0]['location'] );
+	}
+
+	/**
+	 * Test a very long query is capped before it reaches the Location
+	 * header.
+	 */
+	public function test_incoming_query_is_capped(): void {
+		$this->seedExact( '/old', '/new' );
+
+		$_SERVER['REQUEST_URI'] = '/old?q=' . str_repeat( 'a', 900 );
+
+		$this->dispatcher()->maybeRedirect();
+
+		$this->assertCount( 1, $this->redirects );
+		$this->assertLessThanOrEqual( 520, strlen( $this->redirects[0]['location'] ) );
+	}
+
+	/**
 	 * Test destination query wins over incoming.
 	 */
 	public function test_destination_query_wins_over_incoming(): void {
