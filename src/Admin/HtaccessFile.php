@@ -52,7 +52,9 @@ final class HtaccessFile {
 		// A null byte makes later filesystem calls raise a ValueError, and a
 		// relative path would be resolved against the current working directory
 		// rather than the site root, so neither can be checked for containment.
-		if ( false !== strpos( $path, "\0" ) || '/' !== $path[0] ) {
+		$isAbsolute = '/' === $path[0] || 1 === preg_match( '/^[A-Za-z]:[\\\\\/]/', $path );
+
+		if ( false !== strpos( $path, "\0" ) || ! $isAbsolute ) {
 			return $fallback;
 		}
 

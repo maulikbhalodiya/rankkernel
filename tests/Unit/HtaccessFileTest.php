@@ -187,6 +187,27 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test a Windows drive-letter path inside the root is accepted.
+	 */
+	public function test_windows_drive_letter_path_inside_root_is_accepted(): void {
+		$existing = tempnam( ABSPATH, 'rk_existing_' );
+
+		$this->assertIsString( $existing );
+
+		$winPath    = 'C:' . $existing;
+		$this->path = $winPath;
+
+		if ( 'C:' !== substr( ABSPATH, 0, 2 ) ) {
+			// On non-Windows OS, realpath('C:/tmp/...') returns false, so path() falls back.
+			$this->assertSame( ABSPATH . '.htaccess', ( new HtaccessFile() )->path() );
+		} else {
+			$this->assertSame( $winPath, ( new HtaccessFile() )->path() );
+		}
+
+		unlink( $existing ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+	}
+
+	/**
 	 * Test an out of tree filter path falls back to the default path.
 	 */
 	public function test_out_of_tree_filter_path_falls_back_to_default(): void {
