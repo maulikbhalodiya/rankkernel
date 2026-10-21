@@ -142,16 +142,32 @@ class RedirectsModule implements ModuleInterface {
 			return;
 		}
 
-		// Performance optimization: check fast cached existence before running expensive ensureTables / dbDelta schema diffs on every request.
-		if ( ! RedirectTable::exists() ) {
-			RedirectTable::ensureTables();
-		}
+		$this->maybeEnsureSchema();
 
 		$settings = new RedirectsSettings();
 		$settings->ensureSchema();
 
 		if ( RedirectTable::exists() ) {
 			$settings->set( [ 'schema_ok' => true ] );
+		}
+	}
+
+	/**
+	 * Run table schema diff only when stored schema version is outdated or table is missing.
+	 *
+	 * Performance optimization: avoids running dbDelta schema diffs and loading upgrade.php on
+	 * every request execution thread when the schema is already up to date for the current version.
+	 */
+	private function maybeEnsureSchema(): void {
+		$version = \RankKernel\Plugin::version();
+		$stored  = get_option( 'rankkernel_redirects_schema_version', '' );
+
+		if ( $stored === $version && RedirectTable::exists() ) {
+			return;
+		}
+
+		if ( RedirectTable::ensureTables() ) {
+			update_option( 'rankkernel_redirects_schema_version', $version, false );
 		}
 	}
 

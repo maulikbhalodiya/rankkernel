@@ -176,4 +176,27 @@ final class RedirectsModuleTest extends TestCase {
 			'register must not invalidate the match cache on every request'
 		);
 	}
+
+	/**
+	 * Test schema version ledger check skips ensureTables when version matches and table exists.
+	 */
+	public function test_schema_version_check_skips_ensure_tables_when_up_to_date(): void {
+		$version = \RankKernel\Plugin::version();
+		$options = [
+			'rankkernel_modules'                  => [ 'redirects' ],
+			'rankkernel_redirects_schema_version' => $version,
+		];
+
+		Functions\when( 'get_option' )->alias(
+			static fn ( string $key, mixed $fallback = false ): mixed => $options[ $key ] ?? $fallback
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+
+		Functions\expect( 'dbDelta' )->never();
+
+		$module = new RedirectsModule();
+		$module->register();
+
+		$this->assertSame( $version, $options['rankkernel_redirects_schema_version'] );
+	}
 }

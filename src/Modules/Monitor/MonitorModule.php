@@ -135,13 +135,29 @@ class MonitorModule implements ModuleInterface {
 			return;
 		}
 
-		// Performance optimization: check fast cached existence before running expensive ensureTables / dbDelta schema diffs on every request.
-		if ( ! LogTable::exists() ) {
-			LogTable::ensureTables();
-		}
+		$this->maybeEnsureSchema();
 
 		$settings = new MonitorSettings();
 		$settings->ensureSchema();
+	}
+
+	/**
+	 * Run log table schema diff only when stored schema version is outdated or table is missing.
+	 *
+	 * Performance optimization: avoids running dbDelta schema diffs and loading upgrade.php on
+	 * every request execution thread when the schema is already up to date for the current version.
+	 */
+	private function maybeEnsureSchema(): void {
+		$version = \RankKernel\Plugin::version();
+		$stored  = get_option( 'rankkernel_404_schema_version', '' );
+
+		if ( $stored === $version && LogTable::exists() ) {
+			return;
+		}
+
+		if ( LogTable::ensureTables() ) {
+			update_option( 'rankkernel_404_schema_version', $version, false );
+		}
 	}
 
 	/**
