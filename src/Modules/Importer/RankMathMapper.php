@@ -6,9 +6,10 @@
  * partial payload fields out. No database or WordPress calls here,
  * so the mapping stays unit testable with fixture arrays. Rank Math
  * stores robots as full directive words (index, noindex, follow,
- * nofollow, noarchive, noimageindex, nosnippet); an empty or missing
- * array means the post inherits the sitewide default, which lives in
- * the titles option under pt_{type}_robots.
+ * nofollow, noarchive, noimageindex, nosnippet) in a serialized
+ * array, so the raw meta column is decoded before the words are read.
+ * An empty or missing value means the post inherits the sitewide
+ * default, which lives in the titles option under pt_{type}_robots.
  *
  * @package RankKernel
  */
@@ -156,14 +157,20 @@ final class RankMathMapper {
 	 * default need no row: writing our own default back would flood
 	 * the preview with no-op changes.
 	 *
+	 * Index and follow are neutral on purpose. Rank Math stores the
+	 * resolved directive set on the post, so a post that merely mirrors
+	 * the sitewide default already carries an index directive, and the
+	 * stored value cannot tell an inherited index from one the author
+	 * picked on a noindex default site. The sitewide default therefore
+	 * decides, and the importer follows it.
+	 *
 	 * @param array<string, mixed> $meta      Bare meta values keyed by meta key.
 	 * @param array<string, mixed> $sitewide  The rank-math-options-titles option array.
 	 * @param string               $robotsKey Sitewide robots key for the fallback.
 	 * @return array{0: array<string, mixed>, 1: string[]} The result.
 	 */
 	private static function mapRobots( array $meta, array $sitewide, string $robotsKey ): array {
-		$raw = $meta['rank_math_robots'] ?? [];
-		$raw = is_array( $raw ) ? array_values( array_map( 'strval', $raw ) ) : [];
+		$raw = self::directives( $meta['rank_math_robots'] ?? null );
 
 		$warnings = [];
 		foreach ( $raw as $directive ) {
@@ -175,8 +182,7 @@ final class RankMathMapper {
 		$consequential = array_values( array_diff( $raw, self::NEUTRAL ) );
 		$hasOwn        = [] !== array_intersect( $consequential, array_merge( [ 'noindex', 'nofollow' ], self::FLAGGED ) );
 
-		$sitewideRobots = $sitewide[ $robotsKey ] ?? [];
-		$sitewideRobots = is_array( $sitewideRobots ) ? $sitewideRobots : [];
+		$sitewideRobots = self::directives( $sitewide[ $robotsKey ] ?? null );
 		$index          = ! in_array( 'noindex', $sitewideRobots, true );
 
 		if ( in_array( 'noindex', $raw, true ) ) {
@@ -200,6 +206,138 @@ final class RankMathMapper {
 		}
 
 		return [ $robots, $warnings ];
+	}
+
+	/**
+	 * Decode a stored robots value to its directive list.
+	 *
+	 * Rank Math stores robots as an array of directive names, so the
+	 * postmeta column holds a serialized array. The decoded array, a
+	 * single directive word and an unreadable value are all accepted,
+	 * and anything unreadable yields no directives, which leaves the
+	 * post on the sitewide default.
+	 *
+	 * The keyed shape is read as directive => on. Rank Math only ever
+	 * writes the plain list, or its own normaliser shape of directive
+	 * => true, so a keyed value of false is read as the directive being
+	 * off. That is a tolerant reading, not a format Rank Math produces.
+	 *
+	 * @param mixed $raw Stored robots value.
+	 * @return string[] Directive names.
+	 */
+	private static function directives( mixed $raw ): array {
+		if ( is_array( $raw ) ) {
+			return self::directiveNames( $raw );
+		}
+
+		if ( ! is_string( $raw ) ) {
+			return [];
+		}
+
+		$trimmed = trim( $raw );
+
+		if ( '' === $trimmed ) {
+			return [];
+		}
+
+		if ( str_starts_with( $trimmed, 'a:' ) ) {
+			return self::directiveNames( self::decodeArray( $trimmed ) );
+		}
+
+		return self::directiveNames( [ $trimmed ] );
+	}
+
+	/**
+	 * Decode a serialized array without instantiating objects.
+	 *
+	 * The value comes from a third party table, so object creation stays
+	 * disabled and a malformed payload yields an empty array instead of
+	 * a warning. Same precedent as the redirect mapper.
+	 *
+	 * @param string $raw Serialized value.
+	 * @return array<int|string, mixed> Decoded array, empty when unreadable.
+	 */
+	private static function decodeArray( string $raw ): array {
+		if ( ! preg_match( '/^a:\d+:\{.*\}$/s', $raw ) ) {
+			return [];
+		}
+
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- swallows the warning a malformed third party value raises, the value is untrusted.
+		set_error_handler(
+			static function (): bool {
+				return true;
+			}
+		);
+
+		try {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- decodes the source plugin robots column with object creation disabled, same precedent as RedirectMapper.
+			$decoded = unserialize( $raw, [ 'allowed_classes' => false ] );
+		} finally {
+			restore_error_handler();
+		}
+
+		return is_array( $decoded ) ? $decoded : [];
+	}
+
+	/**
+	 * Normalise a decoded robots array to its directive names.
+	 *
+	 * Rank Math writes a plain list of names. Its own normaliser turns
+	 * that list into directive => true, so the keyed shape is read as
+	 * well: the key names the directive and the value says whether the
+	 * directive is on.
+	 *
+	 * @param array<int|string, mixed> $raw Decoded robots array.
+	 * @return string[] Directive names.
+	 */
+	private static function directiveNames( array $raw ): array {
+		$out = [];
+
+		foreach ( $raw as $key => $value ) {
+			if ( is_int( $key ) ) {
+				$name = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+				if ( '' !== $name ) {
+					$out[] = $name;
+				}
+
+				continue;
+			}
+
+			$name = strtolower( trim( (string) $key ) );
+
+			if ( '' === $name || ! self::directiveOn( $value ) ) {
+				continue;
+			}
+
+			$out[] = $name;
+		}
+
+		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * Whether a keyed robots value marks its directive as on.
+	 *
+	 * @param mixed $value Decoded value.
+	 * @return bool The result.
+	 */
+	private static function directiveOn( mixed $value ): bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return 0 !== (int) $value;
+		}
+
+		if ( ! is_string( $value ) ) {
+			return false;
+		}
+
+		$value = strtolower( trim( $value ) );
+
+		return '' !== $value && '0' !== $value && 'false' !== $value;
 	}
 
 	/**

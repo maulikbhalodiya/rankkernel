@@ -13,6 +13,8 @@ namespace RankKernel\Rest;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Importer\BulkScope;
+use RankKernel\Modules\Importer\ImportLock;
+use RankKernel\Modules\Importer\ImportRunException;
 use RankKernel\Modules\Importer\ImportRunner;
 use RankKernel\Modules\Importer\PayloadImporter;
 use RankKernel\Modules\Importer\PreviewBuilder;
@@ -39,7 +41,7 @@ final class ImportController {
 	/**
 	 * Preview item cap per kind.
 	 */
-	public const PREVIEW_LIMIT = 100;
+	public const PREVIEW_LIMIT_MAX = 5000;
 
 	/**
 	 * Run chunk size cap.
@@ -68,6 +70,14 @@ final class ImportController {
 	private const MODES = [ 'skip', 'overwrite' ];
 
 	/**
+	 * Shape of a run id.
+	 *
+	 * A run id names the run that owns the source lock, so it has to
+	 * survive a round trip through a request body unchanged.
+	 */
+	public const RUN_ID_PATTERN = '/^[A-Za-z0-9_-]{8,64}$/';
+
+	/**
 	 * Source readers by id.
 	 *
 	 * @var array<string, SourceReader>
@@ -82,16 +92,25 @@ final class ImportController {
 	private $runnerFactory;
 
 	/**
+	 * Run lock, one run per source.
+	 *
+	 * @var ImportLock
+	 */
+	private ImportLock $lock;
+
+	/**
 	 * Build the controller.
 	 *
 	 * @param array<string, SourceReader> $readers       Source readers by id.
 	 * @param callable|null               $runnerFactory Builds the runner.
+	 * @param ImportLock|null             $lock          Run lock.
 	 */
-	public function __construct( array $readers, ?callable $runnerFactory = null ) {
+	public function __construct( array $readers, ?callable $runnerFactory = null, ?ImportLock $lock = null ) {
 		$this->readers       = $readers;
 		$this->runnerFactory = $runnerFactory ?? static function (): ImportRunner {
 			return new ImportRunner( [], new RedirectRepository(), new SettingsStore() );
 		};
+		$this->lock          = $lock ?? new ImportLock();
 	}
 
 	/**
@@ -137,7 +156,7 @@ final class ImportController {
 						'required'          => false,
 						'type'              => 'integer',
 						'minimum'           => 1,
-						'maximum'           => self::PREVIEW_LIMIT,
+						'maximum'           => self::PREVIEW_LIMIT_MAX,
 						'sanitize_callback' => 'absint',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -208,6 +227,37 @@ final class ImportController {
 					'rule'     => [
 						'required'          => false,
 						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'run_id'   => [
+						'required'          => true,
+						'type'              => 'string',
+						'pattern'           => self::RUN_ID_PATTERN,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			]
+		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/import/(?P<source>[a-z-]+)/release',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'release' ],
+				'permission_callback' => [ $this, 'checkPermission' ],
+				'args'                => [
+					'source' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'run_id' => [
+						'required'          => true,
+						'type'              => 'string',
+						'pattern'           => self::RUN_ID_PATTERN,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -322,7 +372,7 @@ final class ImportController {
 
 		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
 		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
-		$limit  = max( 1, min( self::PREVIEW_LIMIT, $limit ) );
+		$limit  = max( 1, min( self::PREVIEW_LIMIT_MAX, $limit ) );
 
 		$q = isset( $params['q'] ) ? sanitize_text_field( (string) $params['q'] ) : '';
 		$q = substr( $q, 0, 100 );
@@ -388,35 +438,20 @@ final class ImportController {
 		}
 
 		if ( 'redirects' === $kind ) {
-			$raw    = $reader->fetchRedirectsRaw();
-			$search = trim( $search );
-
-			if ( '' !== $search ) {
-				$needle = mb_strtolower( $search );
-				$raw    = array_values(
-					array_filter(
-						$raw,
-						static function ( $row ) use ( $needle ): bool {
-							foreach ( $row as $value ) {
-								if ( is_string( $value ) && str_contains( mb_strtolower( $value ), $needle ) ) {
-									return true;
-								}
-							}
-
-							return false;
-						}
-					)
-				);
-			}
-
+			$raw     = $reader->fetchRedirectsRaw();
 			$preview = PreviewBuilder::buildPreview( $source, [], [], [], $raw, $mode );
 			$rows    = self::rowArrays( $preview['rows'] );
+			$visible = self::filterRows( $rows, $search );
 
 			return [
-				'rows'      => array_slice( $rows, $offset, $limit ),
+				'rows'      => array_slice( $visible, $offset, $limit ),
 				'skipped'   => $preview['skipped'],
-				'hasMore'   => $offset + $limit < count( $rows ),
-				'kindTotal' => count( $rows ),
+				'hasMore'   => $offset + $limit < count( $visible ),
+				// The eligible count is the number of source rows the
+				// mapper produced, the mapped rows plus the mapped skips,
+				// so a search never changes it and the run total is the
+				// same number.
+				'kindTotal' => count( $rows ) + count( $preview['skipped'] ),
 			];
 		}
 
@@ -440,6 +475,49 @@ final class ImportController {
 			'hasMore'   => false,
 			'kindTotal' => count( $rows ) + count( $preview['skipped'] ),
 		];
+	}
+
+	/**
+	 * Filter preview rows by a search term.
+	 *
+	 * The search looks at every readable value of a row, including the
+	 * mapped fields, so a redirect is found by its source or its target.
+	 *
+	 * @param array<int, array<string, mixed>> $rows   Preview rows.
+	 * @param string                           $search Search term.
+	 * @return array<int, array<string, mixed>> The rows that match.
+	 */
+	private static function filterRows( array $rows, string $search ): array {
+		$search = trim( $search );
+
+		if ( '' === $search ) {
+			return $rows;
+		}
+
+		$needle = mb_strtolower( $search );
+
+		return array_values(
+			array_filter(
+				$rows,
+				static function ( array $row ) use ( $needle ): bool {
+					foreach ( $row as $value ) {
+						if ( is_string( $value ) && str_contains( mb_strtolower( $value ), $needle ) ) {
+							return true;
+						}
+
+						if ( is_array( $value ) ) {
+							foreach ( $value as $item ) {
+								if ( is_string( $item ) && str_contains( mb_strtolower( $item ), $needle ) ) {
+									return true;
+								}
+							}
+						}
+					}
+
+					return false;
+				}
+			)
+		);
 	}
 
 	/**
@@ -603,18 +681,76 @@ final class ImportController {
 			$options['rule'] = sanitize_text_field( $params['rule'] );
 		}
 
+		$runId = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+
+		if ( 1 !== preg_match( self::RUN_ID_PATTERN, $runId ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_run_id',
+				__( 'A valid run id is required.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		if ( ! $this->lock->claim( $runId ) ) {
+			return new WP_Error(
+				'rankkernel_import_busy',
+				__( 'Another import run is already active. Wait for it to finish, then try again.', 'rankkernel' ),
+				[ 'status' => 409 ]
+			);
+		}
+
 		$factory = $this->runnerFactory;
 
 		try {
-			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options );
+			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options, $runId );
 		} catch ( \InvalidArgumentException $e ) {
 			return new WP_Error(
 				'rankkernel_invalid_run',
 				$e->getMessage(),
 				[ 'status' => 400 ]
 			);
+		} catch ( ImportRunException $e ) {
+			return new WP_Error(
+				'rankkernel_run_failed',
+				$e->getMessage(),
+				[
+					'status'  => 500,
+					'partial' => $e->counts(),
+				]
+			);
 		}
 
 		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Release the source lock a finished run still holds.
+	 *
+	 * The lock is global, so one run at a time covers every source. Only
+	 * the run that owns the lock can release it, so a late release from a
+	 * finished run never frees a lock a later run has taken.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error The result.
+	 */
+	public function release( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$source = sanitize_text_field( (string) $request->get_param( 'source' ) );
+		$reader = $this->readerFor( $source );
+		if ( $reader instanceof WP_Error ) {
+			return $reader;
+		}
+
+		$params = $this->bodyParams( $request );
+		$runId  = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+
+		if ( 1 !== preg_match( self::RUN_ID_PATTERN, $runId ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_run_id',
+				__( 'A valid run id is required.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return new WP_REST_Response( [ 'released' => $this->lock->release( $runId ) ], 200 );
 	}
 }

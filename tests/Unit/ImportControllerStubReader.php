@@ -41,16 +41,25 @@ final class ImportControllerStubReader implements SourceReader {
 	private array $sitewide;
 
 	/**
+	 * Raw redirect rows.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $redirects;
+
+	/**
 	 * Build the double.
 	 *
 	 * @param array<int, array{id: int, type: string, data: array<string, mixed>}>     $posts    Post items.
 	 * @param array<string, mixed>                                                     $sitewide Raw sitewide blob.
 	 * @param array<int, array{id: int, taxonomy: string, data: array<string, mixed>}> $terms    Term items.
+	 * @param array<int, array<string, mixed>>                                         $redirects Raw redirect rows.
 	 */
-	public function __construct( array $posts = [], array $sitewide = [], array $terms = [] ) {
-		$this->posts    = $posts;
-		$this->sitewide = $sitewide;
-		$this->terms    = $terms;
+	public function __construct( array $posts = [], array $sitewide = [], array $terms = [], array $redirects = [] ) {
+		$this->posts     = $posts;
+		$this->sitewide  = $sitewide;
+		$this->terms     = $terms;
+		$this->redirects = $redirects;
 	}
 
 	/**
@@ -119,11 +128,11 @@ final class ImportControllerStubReader implements SourceReader {
 	}
 
 	/**
-	 * Fetch raw redirect rows, always empty.
+	 * Fetch raw redirect rows.
 	 *
 	 * @return array<int, array<string, mixed>> The raw rows.
 	 */
 	public function fetchRedirectsRaw(): array {
-		return [];
+		return $this->redirects;
 	}
 }

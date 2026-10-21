@@ -14,10 +14,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Counts AIOSEO importable rows: the aioseo_posts table, _aioseo_*
- * termmeta, the options blob, and the Pro-only redirects table.
+ * termmeta and the options blob.
  *
- * Redirects live in a Pro-only table, so the free tier always reports
- * zero there and the Preview phase names that gap explicitly.
+ * Redirects live in a Pro only table that this reader cannot read, so
+ * the count is always zero and the preview never promises rows that
+ * cannot arrive.
  */
 final class AioseoReader implements SourceReader {
 	/**
@@ -109,11 +110,10 @@ final class AioseoReader implements SourceReader {
 
 		$settings = get_option( 'aioseo_options', false ) !== false;
 
-		$redirectsTable = $db->prefix . 'aioseo_redirects';
-		$redirectsExist = $db->get_var( $db->prepare( 'SHOW TABLES LIKE %s', $redirectsTable ) );
-		$redirects      = null !== $redirectsExist
-			? (int) $db->get_var( "SELECT COUNT(*) FROM {$redirectsTable}" )
-			: 0;
+		// Redirects live in a Pro only table that this reader cannot read,
+		// so the count stays zero. A count the preview cannot deliver
+		// would tell the owner that rows are waiting that never arrive.
+		$redirects = 0;
 
 		return [
 			'posts'     => $posts,

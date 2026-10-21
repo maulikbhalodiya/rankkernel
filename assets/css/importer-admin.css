@@ -518,29 +518,37 @@
 	border-bottom: 0;
 }
 
-.rk-importer .rk-importer-pager {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--rk-space-3);
-	margin-top: var(--rk-space-3);
+.rk-importer .rk-importer-row-scroll {
+	max-height: calc( var(--rk-space-6) * 9 );
+	overflow: auto;
+	border: 1px solid var(--rk-color-border);
+	border-radius: var(--rk-radius-sm);
+	background: var(--rk-color-surface);
+	scrollbar-width: thin;
+}
+
+.rk-importer .rk-importer-row-scroll table.widefat {
+	margin: 0;
+}
+
+.rk-importer .rk-importer-row-scroll th {
+	position: sticky;
+	top: 0;
+	background: var(--rk-color-surface-subtle);
+	z-index: 1;
+}
+
+.rk-importer .rk-importer-row-count {
+	margin-top: var(--rk-space-2);
 	font-size: var(--rk-font-size-xs);
 	color: var(--rk-color-text-muted);
 }
 
-.rk-importer .rk-importer-pager button {
-	padding: var(--rk-space-1) var(--rk-space-3);
-	border: 1px solid var(--rk-color-border-strong);
-	border-radius: var(--rk-radius-sm);
-	background: var(--rk-color-surface);
-	color: var(--rk-color-text-secondary);
+.rk-importer .rk-importer-truncation-note {
+	margin-top: var(--rk-space-2);
 	font-size: var(--rk-font-size-xs);
-	cursor: pointer;
-}
-
-.rk-importer .rk-importer-pager button:hover {
-	background: var(--rk-color-surface-subtle);
-	color: var(--rk-color-text);
+	color: var(--rk-color-text-muted);
+	font-style: italic;
 }
 
 /* ==========================================================================

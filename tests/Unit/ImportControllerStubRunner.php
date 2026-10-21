@@ -34,10 +34,11 @@ final class ImportControllerStubRunner {
 	 * @param string               $mode     Conflict mode.
 	 * @param array<int, string>   $excludes Excluded ref ids.
 	 * @param array<string, mixed> $options  Extra options.
+	 * @param string               $owner    Run id that owns the import lock.
 	 * @return array<string, mixed> The result.
 	 */
-	public function run( string $source, string $kind, int $offset, int $limit, string $mode, array $excludes = [], array $options = [] ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- double records every argument into lastArgs via compact below, which the sniff cannot see.
-		$this->lastArgs = compact( 'source', 'kind', 'offset', 'limit', 'mode', 'excludes', 'options' );
+	public function run( string $source, string $kind, int $offset, int $limit, string $mode, array $excludes = [], array $options = [], string $owner = '' ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- double records every argument into lastArgs via compact below, which the sniff cannot see.
+		$this->lastArgs = compact( 'source', 'kind', 'offset', 'limit', 'mode', 'excludes', 'options', 'owner' );
 
 		return [
 			'applied' => 2,

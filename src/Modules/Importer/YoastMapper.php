@@ -7,7 +7,9 @@
  * so the mapping stays unit testable with fixture arrays. The robots
  * triple follows the semantics Rank Math's own Yoast importer uses:
  * zero or a missing key falls back to the sitewide default, one is
- * noindex, two forces index over a noindex default.
+ * noindex, two forces index over a noindex default. The nofollow row
+ * uses the same rule, one is nofollow and zero means follow, so a
+ * stored zero is never read as a nofollow.
  *
  * @package RankKernel
  */
@@ -84,7 +86,7 @@ final class YoastMapper {
 			$mapped['flags']['breadcrumb_title'] = $crumb;
 		}
 
-		if ( '' !== self::string( $meta, '_yoast_wpseo_is_cornerstone' ) ) {
+		if ( self::flagOn( self::string( $meta, '_yoast_wpseo_is_cornerstone' ) ) ) {
 			$mapped['flags']['cornerstone'] = true;
 		}
 
@@ -220,10 +222,15 @@ final class YoastMapper {
 	 * @return array<string, mixed> The result.
 	 */
 	private static function mapRobots( array $meta, array $sitewide, string $postType ): array {
-		$triple = self::string( $meta, '_yoast_wpseo_meta-robots-noindex' );
-		$hasOwn = '' !== $triple
-			|| '' !== self::string( $meta, '_yoast_wpseo_meta-robots-nofollow' )
-			|| '' !== self::string( $meta, '_yoast_wpseo_meta-robots-adv' );
+		$triple   = self::string( $meta, '_yoast_wpseo_meta-robots-noindex' );
+		$nofollow = self::string( $meta, '_yoast_wpseo_meta-robots-nofollow' );
+		$advanced = self::advancedDirectives( self::string( $meta, '_yoast_wpseo_meta-robots-adv' ) );
+
+		// Yoast stores zero for "inherit the post type default" and for
+		// "follow", so only a one is a directive of its own.
+		$hasOwn = in_array( $triple, [ '1', '2' ], true )
+			|| '1' === $nofollow
+			|| [] !== $advanced;
 
 		if ( '1' === $triple ) {
 			$index = false;
@@ -239,22 +246,55 @@ final class YoastMapper {
 
 		$robots = [ 'index' => $index ];
 
-		if ( '' !== self::string( $meta, '_yoast_wpseo_meta-robots-nofollow' ) ) {
+		if ( '1' === $nofollow ) {
 			$robots['follow'] = false;
 		}
 
-		$adv = self::string( $meta, '_yoast_wpseo_meta-robots-adv' );
-		if ( '' !== $adv ) {
-			foreach ( explode( ',', $adv ) as $directive ) {
-				$directive = trim( $directive );
-
-				if ( in_array( $directive, [ 'noarchive', 'noimageindex', 'nosnippet' ], true ) ) {
-					$robots[ $directive ] = true;
-				}
-			}
+		foreach ( $advanced as $directive ) {
+			$robots[ $directive ] = true;
 		}
 
 		return $robots;
+	}
+
+	/**
+	 * Parse the advanced robots comma list.
+	 *
+	 * Yoast keeps the chosen advanced directives in one comma separated
+	 * value. Unknown entries are dropped, and an empty list means the
+	 * post carries no advanced directive.
+	 *
+	 * @param string $raw Raw advanced robots value.
+	 * @return string[] Known directive names.
+	 */
+	private static function advancedDirectives( string $raw ): array {
+		$out = [];
+
+		foreach ( explode( ',', $raw ) as $directive ) {
+			$directive = strtolower( trim( $directive ) );
+
+			if ( in_array( $directive, [ 'noarchive', 'noimageindex', 'nosnippet' ], true ) ) {
+				$out[] = $directive;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Whether a Yoast flag value marks the flag as on.
+	 *
+	 * Yoast writes one for a set flag and zero for a clear one, and its
+	 * own save path casts the legacy true word to one. Anything else,
+	 * including an empty value, means the flag is off.
+	 *
+	 * @param string $value Raw flag value.
+	 * @return bool The result.
+	 */
+	private static function flagOn( string $value ): bool {
+		$value = strtolower( trim( $value ) );
+
+		return '1' === $value || 'true' === $value;
 	}
 
 	/**

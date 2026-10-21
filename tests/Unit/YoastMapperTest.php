@@ -78,12 +78,16 @@ final class YoastMapperTest extends TestCase {
 
 	/**
 	 * Test the sitewide default applies when the post row carries a zero.
+	 *
+	 * A zero means "inherit the post type default", so an indexed
+	 * default needs no robots row at all and a noindex default still
+	 * has to be written.
 	 */
 	public function test_zero_falls_back_to_sitewide_default(): void {
 		$meta = [ '_yoast_wpseo_meta-robots-noindex' => '0' ];
 
 		$indexed = YoastMapper::mapPost( $meta, [ 'noindex-post' => false ], 'post' );
-		$this->assertTrue( $indexed['mapped']['robots']['index'] );
+		$this->assertArrayNotHasKey( 'robots', $indexed['mapped'] );
 
 		$noindexed = YoastMapper::mapPost( $meta, [ 'noindex-post' => true ], 'post' );
 		$this->assertFalse( $noindexed['mapped']['robots']['index'] );
@@ -138,5 +142,86 @@ final class YoastMapperTest extends TestCase {
 
 		$this->assertSame( '%%title%% %%cf_color%%', $result['mapped']['title'] );
 		$this->assertSame( [ 'title: unknown token %%cf_color%%' ], $result['warnings'] );
+	}
+
+	/**
+	 * Test a stored zero nofollow row means follow, not nofollow.
+	 *
+	 * Yoast writes zero for a cleared flag and one for a set flag, so a
+	 * zero must never import as a nofollow.
+	 */
+	public function test_zero_nofollow_is_not_read_as_nofollow(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_meta-robots-nofollow' => '0' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'robots', $result['mapped'] );
+	}
+
+	/**
+	 * Test an empty nofollow row means follow, not nofollow.
+	 */
+	public function test_empty_nofollow_is_not_read_as_nofollow(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_meta-robots-nofollow' => '' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'robots', $result['mapped'] );
+	}
+
+	/**
+	 * Test a one nofollow row maps to nofollow.
+	 */
+	public function test_one_nofollow_maps_to_no_follow(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_meta-robots-nofollow' => '1' ],
+			[],
+			'post'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['follow'] );
+	}
+
+	/**
+	 * Test a stored zero cornerstone row is not read as cornerstone.
+	 */
+	public function test_zero_cornerstone_is_not_read_as_cornerstone(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_is_cornerstone' => '0' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'flags', $result['mapped'] );
+	}
+
+	/**
+	 * Test the legacy false cornerstone word is not read as cornerstone.
+	 */
+	public function test_false_cornerstone_is_not_read_as_cornerstone(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_is_cornerstone' => 'false' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'flags', $result['mapped'] );
+	}
+
+	/**
+	 * Test a one cornerstone row maps to cornerstone.
+	 */
+	public function test_one_cornerstone_maps_to_cornerstone(): void {
+		$result = YoastMapper::mapPost(
+			[ '_yoast_wpseo_is_cornerstone' => '1' ],
+			[],
+			'post'
+		);
+
+		$this->assertTrue( $result['mapped']['flags']['cornerstone'] );
 	}
 }

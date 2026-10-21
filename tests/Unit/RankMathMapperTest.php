@@ -99,4 +99,104 @@ final class RankMathMapperTest extends TestCase {
 		$this->assertTrue( $result['mapped']['robots']['nosnippet'] );
 		$this->assertSame( [ 'robots: unknown directive bogus' ], $result['warnings'] );
 	}
+
+	/**
+	 * Test a serialized robots list maps noindex and nofollow.
+	 *
+	 * Rank Math stores robots as a serialized array of directive names,
+	 * so the raw postmeta column is a serialized string.
+	 */
+	public function test_serialized_robots_list_maps_noindex_and_nofollow(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => 'a:2:{i:0;s:7:"noindex";i:1;s:8:"nofollow";}' ],
+			[],
+			'post'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['index'] );
+		$this->assertFalse( $result['mapped']['robots']['follow'] );
+	}
+
+	/**
+	 * Test a serialized robots map shape maps noindex.
+	 *
+	 * Rank Math normalises its robots list into directive => true, so
+	 * the keyed shape can be stored as well.
+	 */
+	public function test_serialized_robots_keyed_shape_maps_noindex(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => 'a:2:{s:7:"noindex";b:1;s:8:"nofollow";b:1;}' ],
+			[],
+			'post'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['index'] );
+		$this->assertFalse( $result['mapped']['robots']['follow'] );
+	}
+
+	/**
+	 * Test a serialized robots value with a disabled directive is ignored.
+	 */
+	public function test_serialized_robots_disabled_directive_is_ignored(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => 'a:2:{s:5:"index";b:0;s:8:"nofollow";b:0;}' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'robots', $result['mapped'] );
+	}
+
+	/**
+	 * Test a malformed serialized robots value is ignored safely.
+	 */
+	public function test_malformed_serialized_robots_is_ignored(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => 'a:1:{s:7:"noindex";s:5:"brok' ],
+			[],
+			'post'
+		);
+
+		$this->assertArrayNotHasKey( 'robots', $result['mapped'] );
+		$this->assertSame( [], $result['warnings'] );
+	}
+
+	/**
+	 * Test a scalar robots word maps as one directive.
+	 */
+	public function test_scalar_robots_word_maps(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => 'noindex' ],
+			[],
+			'post'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['index'] );
+	}
+
+	/**
+	 * Test an empty robots value leaves the post on the sitewide default.
+	 */
+	public function test_empty_robots_value_uses_the_sitewide_default(): void {
+		$result = RankMathMapper::mapPost(
+			[ 'rank_math_robots' => '' ],
+			[ 'pt_post_robots' => [ 'noindex' ] ],
+			'post'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['index'] );
+	}
+
+	/**
+	 * Test a serialized robots value maps a term as well.
+	 */
+	public function test_serialized_robots_maps_a_term(): void {
+		$result = RankMathMapper::mapTerm(
+			[ 'rank_math_robots' => 'a:1:{i:0;s:7:"noindex";}' ],
+			[],
+			'category'
+		);
+
+		$this->assertFalse( $result['mapped']['robots']['index'] );
+	}
 }
