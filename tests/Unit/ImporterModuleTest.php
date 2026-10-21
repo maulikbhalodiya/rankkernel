@@ -125,7 +125,7 @@ final class ImporterModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test the boot callback registers both import routes.
+	 * Test the boot callback registers the preview, run and release routes.
 	 */
 	public function test_rest_callback_registers_preview_and_run_routes(): void {
 		$routes = [];
@@ -144,6 +144,7 @@ final class ImporterModuleTest extends TestCase {
 			[
 				'rankkernel/v1/import/(?P<source>[a-z-]+)/preview',
 				'rankkernel/v1/import/(?P<source>[a-z-]+)/run',
+				'rankkernel/v1/import/(?P<source>[a-z-]+)/release',
 			],
 			$routes
 		);

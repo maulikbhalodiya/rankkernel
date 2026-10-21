@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Importer\ImportLock;
 use RankKernel\Rest\ImportController;
 use WP_Error;
 use WP_REST_Request;
@@ -27,11 +28,19 @@ final class ImportControllerTest extends TestCase {
 	use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
 	/**
+	 * Fake options table behind the run lock.
+	 *
+	 * @var ImportLockFakeDb
+	 */
+	private ImportLockFakeDb $lockDb;
+
+	/**
 	 * Set up Brain Monkey and WordPress stubs.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		$this->lockDb = new ImportLockFakeDb();
 		Functions\when( 'sanitize_text_field' )->alias(
 			static function ( $value ): string {
 				return is_scalar( $value ) ? trim( (string) $value ) : '';
@@ -87,7 +96,8 @@ final class ImportControllerTest extends TestCase {
 			[ 'yoast' => new ImportControllerStubReader( $posts ) ],
 			static function () use ( $runner ): ImportControllerStubRunner {
 				return $runner;
-			}
+			},
+			new ImportLock( $this->lockDb )
 		);
 		return [ $ctrl, $runner ];
 	}
@@ -112,12 +122,16 @@ final class ImportControllerTest extends TestCase {
 		[ $ctrl ] = $this->makeController();
 		$ctrl->registerRoutes();
 
-		$this->assertCount( 2, $registered );
+		$this->assertCount( 3, $registered );
 		$this->assertSame( 'rankkernel/v1', $registered[0]['namespace'] );
 		$this->assertSame( 'POST', $registered[0]['args']['methods'] );
 		$this->assertStringContainsString( 'preview', $registered[0]['route'] );
 		$this->assertStringContainsString( 'run', $registered[1]['route'] );
+		$this->assertStringContainsString( 'release', $registered[2]['route'] );
 		$this->assertSame( [ $ctrl, 'checkPermission' ], $registered[0]['args']['permission_callback'] );
+		$this->assertSame( [ $ctrl, 'checkPermission' ], $registered[2]['args']['permission_callback'] );
+		$this->assertTrue( $registered[1]['args']['args']['run_id']['required'] );
+		$this->assertTrue( $registered[2]['args']['args']['run_id']['required'] );
 	}
 
 	/**
@@ -531,7 +545,8 @@ final class ImportControllerTest extends TestCase {
 						throw new \InvalidArgumentException( 'Unknown bulk rule.' );
 					}
 				};
-			}
+			},
+			new ImportLock( $this->lockDb )
 		);
 		$res  = $ctrl->runChunk(
 			$this->makeRequest(
@@ -541,6 +556,7 @@ final class ImportControllerTest extends TestCase {
 					'mode'   => 'skip',
 					'offset' => 0,
 					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
 				]
 			)
 		);
@@ -605,6 +621,7 @@ final class ImportControllerTest extends TestCase {
 					'offset'   => 0,
 					'limit'    => 9999,
 					'excludes' => [ 'post:9' ],
+					'run_id'   => 'run-aaaa-1111',
 				]
 			)
 		);
@@ -618,5 +635,194 @@ final class ImportControllerTest extends TestCase {
 		$this->assertSame( 'overwrite', $runner->lastArgs['mode'] );
 		$this->assertSame( [ 'post:9' ], $runner->lastArgs['excludes'] );
 		$this->assertLessThanOrEqual( 200, $runner->lastArgs['limit'] );
+	}
+
+	/**
+	 * Test run without a run id is refused.
+	 */
+	public function test_run_without_run_id_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test run with a malformed run id is refused.
+	 */
+	public function test_run_with_malformed_run_id_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'short',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test a second run on the same source is refused with a conflict.
+	 */
+	public function test_competing_run_returns_409(): void {
+		[ $first ]  = $this->makeController();
+		[ $second ] = $this->makeController();
+
+		$ok = $first->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $ok );
+
+		$busy = $second->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-bbbb-2222',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $busy );
+		$this->assertSame( 'rankkernel_import_busy', $busy->get_error_code() );
+		$this->assertSame( 409, $busy->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test the same run can send the next chunk.
+	 */
+	public function test_same_run_can_continue(): void {
+		[ $ctrl ] = $this->makeController();
+
+		foreach ( [ 0, 100 ] as $offset ) {
+			$res = $ctrl->runChunk(
+				$this->makeRequest(
+					[
+						'source' => 'yoast',
+						'kind'   => 'posts',
+						'mode'   => 'skip',
+						'offset' => $offset,
+						'limit'  => 50,
+						'run_id' => 'run-aaaa-1111',
+					]
+				)
+			);
+
+			$this->assertInstanceOf( WP_REST_Response::class, $res );
+		}
+	}
+
+	/**
+	 * Test the release endpoint frees the lock for the owning run only.
+	 */
+	public function test_release_frees_the_lock_for_the_owner(): void {
+		[ $ctrl ] = $this->makeController();
+
+		$ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$wrong = $ctrl->release(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'run_id' => 'run-bbbb-2222',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $wrong );
+		$this->assertFalse( $wrong->get_data()['released'] );
+
+		$released = $ctrl->release(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $released );
+		$this->assertTrue( $released->get_data()['released'] );
+
+		[ $next ] = $this->makeController();
+		$res      = $next->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-cccc-3333',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $res );
+	}
+
+	/**
+	 * Test the release endpoint refuses a malformed run id.
+	 */
+	public function test_release_with_malformed_run_id_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+
+		$res = $ctrl->release(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'run_id' => 'no',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
 	}
 }

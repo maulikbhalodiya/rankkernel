@@ -13,6 +13,7 @@ namespace RankKernel\Rest;
 defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Importer\BulkScope;
+use RankKernel\Modules\Importer\ImportLock;
 use RankKernel\Modules\Importer\ImportRunner;
 use RankKernel\Modules\Importer\PayloadImporter;
 use RankKernel\Modules\Importer\PreviewBuilder;
@@ -68,6 +69,14 @@ final class ImportController {
 	private const MODES = [ 'skip', 'overwrite' ];
 
 	/**
+	 * Shape of a run id.
+	 *
+	 * A run id names the run that owns the source lock, so it has to
+	 * survive a round trip through a request body unchanged.
+	 */
+	public const RUN_ID_PATTERN = '/^[A-Za-z0-9_-]{8,64}$/';
+
+	/**
 	 * Source readers by id.
 	 *
 	 * @var array<string, SourceReader>
@@ -82,16 +91,25 @@ final class ImportController {
 	private $runnerFactory;
 
 	/**
+	 * Run lock, one run per source.
+	 *
+	 * @var ImportLock
+	 */
+	private ImportLock $lock;
+
+	/**
 	 * Build the controller.
 	 *
 	 * @param array<string, SourceReader> $readers       Source readers by id.
 	 * @param callable|null               $runnerFactory Builds the runner.
+	 * @param ImportLock|null             $lock          Run lock.
 	 */
-	public function __construct( array $readers, ?callable $runnerFactory = null ) {
+	public function __construct( array $readers, ?callable $runnerFactory = null, ?ImportLock $lock = null ) {
 		$this->readers       = $readers;
 		$this->runnerFactory = $runnerFactory ?? static function (): ImportRunner {
 			return new ImportRunner( [], new RedirectRepository(), new SettingsStore() );
 		};
+		$this->lock          = $lock ?? new ImportLock();
 	}
 
 	/**
@@ -208,6 +226,37 @@ final class ImportController {
 					'rule'     => [
 						'required'          => false,
 						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'run_id'   => [
+						'required'          => true,
+						'type'              => 'string',
+						'pattern'           => self::RUN_ID_PATTERN,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			]
+		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/import/(?P<source>[a-z-]+)/release',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'release' ],
+				'permission_callback' => [ $this, 'checkPermission' ],
+				'args'                => [
+					'source' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'run_id' => [
+						'required'          => true,
+						'type'              => 'string',
+						'pattern'           => self::RUN_ID_PATTERN,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -603,6 +652,24 @@ final class ImportController {
 			$options['rule'] = sanitize_text_field( $params['rule'] );
 		}
 
+		$runId = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+
+		if ( 1 !== preg_match( self::RUN_ID_PATTERN, $runId ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_run_id',
+				__( 'A valid run id is required.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		if ( ! $this->lock->claim( $source, $runId ) ) {
+			return new WP_Error(
+				'rankkernel_import_busy',
+				__( 'Another import run is already active for this source. Wait for it to finish, then try again.', 'rankkernel' ),
+				[ 'status' => 409 ]
+			);
+		}
+
 		$factory = $this->runnerFactory;
 
 		try {
@@ -616,5 +683,35 @@ final class ImportController {
 		}
 
 		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Release the source lock a finished run still holds.
+	 *
+	 * Only the run that owns the lock can release it, so a late release
+	 * from a finished run never frees a lock a later run has taken.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error The result.
+	 */
+	public function release( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$source = sanitize_text_field( (string) $request->get_param( 'source' ) );
+		$reader = $this->readerFor( $source );
+		if ( $reader instanceof WP_Error ) {
+			return $reader;
+		}
+
+		$params = $this->bodyParams( $request );
+		$runId  = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+
+		if ( 1 !== preg_match( self::RUN_ID_PATTERN, $runId ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_run_id',
+				__( 'A valid run id is required.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return new WP_REST_Response( [ 'released' => $this->lock->release( $source, $runId ) ], 200 );
 	}
 }

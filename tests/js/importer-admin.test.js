@@ -172,7 +172,9 @@ function sandboxFor( dom, fetchImpl, spoken, reloaded ) {
 	const sandbox = {
 		document: dom.document,
 		wp: { a11y: { speak( text ) { spoken.push( text ); } }, i18n: { __: ( t ) => t } },
-		fetch: fetchImpl
+		fetch: fetchImpl,
+		setTimeout,
+		clearTimeout
 	};
 	sandbox.window = Object.assign( sandbox, {
 		rankkernelImporter: { restBase: '/wp-json/rankkernel/v1/import', restNonce: 'abc' },
@@ -720,4 +722,217 @@ test( 'confirm lists per-kind decisions after walking all kinds', async () => {
 	assert.match( dom.confirm.innerHTML, /Confirm import/ );
 	assert.match( dom.confirm.innerHTML, /posts/ );
 	assert.match( dom.confirm.innerHTML, /Bulk rules chosen/ );
+} );
+
+test( 're-preview of same source keeps exclusions', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude': '' }, 'post:7', true ) } );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /checked/ );
+	assert.match( dom.sections.posts.innerHTML, /1 of 3 excluded/ );
+} );
+
+test( 're-preview dropping a row clears its exclusion and announces', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	let previewCount = 0;
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		const body = JSON.parse( opts.body );
+		calls.push( { url, body } );
+		if ( /\/preview$/.test( url ) ) {
+			previewCount += 1;
+			if ( 'posts' === body.kind ) {
+				const rows = 1 === previewCount
+					? [ postRow( 7, 'Seven' ), postRow( 8, 'Eight' ) ]
+					: [ postRow( 8, 'Eight' ), postRow( 9, 'Nine' ) ];
+				return okJson( previewBody( 'posts', rows, { hasMore: false, kindTotal: rows.length } ) );
+			}
+			return okJson( previewBody( body.kind, [] ) );
+		}
+		return okJson( { applied: 1, skipped: 0, failed: 0, done: true, total: 1 } );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude': '' }, 'post:7', true ) } );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.ok( spoken.some( ( t ) => /cleared/.test( t ) ) );
+	assert.match( dom.sections.posts.innerHTML, /0 of 2 excluded/ );
+} );
+
+test( 'switching source clears exclusions', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const btn2 = el( 'button', { 'data-rk-importer-preview': 'other' }, 'Preview2' );
+	dom.rootEl.appendChild( btn2 );
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude': '' }, 'post:7', true ) } );
+	btn2.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /0 of 3 excluded/ );
+} );
+
+test( 'truncated kind keeps exclusions after re-preview', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	let previewCount = 0;
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		const body = JSON.parse( opts.body );
+		calls.push( { url, body } );
+		if ( /\/preview$/.test( url ) && 'posts' === body.kind ) {
+			previewCount += 1;
+			const rows = 1 === previewCount ? [ postRow( 7, 'Seven' ) ] : [ postRow( 8, 'Eight' ) ];
+			return okJson( previewBody( 'posts', rows, { hasMore: true, kindTotal: 3 } ) );
+		}
+		if ( /\/preview$/.test( url ) ) {
+			return okJson( previewBody( body.kind, [] ) );
+		}
+		return okJson( { applied: 1, skipped: 0, failed: 0, done: true, total: 1 } );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.rootEl.dispatch( 'change', { target: fakeTarget( { 'data-rk-importer-exclude': '' }, 'post:7', true ) } );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /1 of 3 excluded/ );
+} );
+
+test( 'search change invalidates confirmation', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /Confirm import/ );
+	const input = el( 'input', { 'data-rk-importer-search': 'posts' }, '' );
+	input.value = 'seven';
+	dom.rootEl.dispatch( 'input', { target: input } );
+	await new Promise( ( resolve ) => setTimeout( resolve, 350 ) );
+	assert.equal( dom.confirm.innerHTML, '' );
+	assert.equal( dom.runBtn.textContent, 'Run import' );
+} );
+
+test( 'skip kind after confirmation invalidates confirmation', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const sandbox = sandboxFor( dom, previewFetch( calls ), spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	assert.match( dom.confirm.innerHTML, /Confirm import/ );
+	dom.rootEl.dispatch( 'click', { target: fakeTarget( { 'data-rk-importer-skip': '1' } ) } );
+	await ticks( 2 );
+	assert.equal( dom.confirm.innerHTML, '' );
+	assert.equal( dom.runBtn.textContent, 'Run import' );
+} );
+
+test( 'run requests carry a shared run_id and release is called', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		calls.push( { url, body: JSON.parse( opts.body ) } );
+		if ( /\/release$/.test( url ) ) {
+			return okJson( { released: true } );
+		}
+		if ( /\/preview$/.test( url ) ) {
+			return previewFetch( [] )( url, opts );
+		}
+		return okJson( { applied: 1, skipped: 0, failed: 0, done: true, total: 1 } );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	const runs = calls.filter( ( c ) => /\/run$/.test( c.url ) );
+	assert.ok( runs.length > 0 );
+	const ids = new Set( runs.map( ( c ) => c.body.run_id ) );
+	assert.equal( ids.size, 1 );
+	const rid = [ ...ids ][ 0 ];
+	assert.match( rid, /^[A-Za-z0-9_-]{8,64}$/ );
+	const releases = calls.filter( ( c ) => /\/release$/.test( c.url ) );
+	assert.equal( releases.length, 1 );
+	assert.equal( releases[ 0 ].body.run_id, rid );
+} );
+
+test( '409 response stops the chain and shows busy message', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		calls.push( { url, body: JSON.parse( opts.body ) } );
+		if ( /\/run$/.test( url ) ) {
+			return Promise.resolve( { ok: false, status: 409, json() { return Promise.resolve( { code: 'rankkernel_import_busy' } ); } } );
+		}
+		if ( /\/preview$/.test( url ) ) {
+			return previewFetch( [] )( url, opts );
+		}
+		return okJson( {} );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.errorBox.innerHTML, /already active/i );
+	assert.ok( spoken.some( ( t ) => /already active/i.test( t ) ) );
+	assert.equal( calls.filter( ( c ) => /\/run$/.test( c.url ) && 'terms' === c.body.kind ).length, 0 );
+} );
+
+test( 'truncation note names the cap for the kind and for a search', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		const body = JSON.parse( opts.body );
+		calls.push( { url, body } );
+		if ( /\/preview$/.test( url ) && 'posts' === body.kind ) {
+			return okJson( previewBody( 'posts', [ postRow( 7, 'Seven' ) ], { hasMore: true, kindTotal: 9 } ) );
+		}
+		if ( /\/preview$/.test( url ) ) {
+			return okJson( previewBody( body.kind, [] ) );
+		}
+		return okJson( { applied: 1, skipped: 0, failed: 0, done: true, total: 1 } );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.sections.posts.innerHTML, /Only the first 5000 rows are shown/ );
+	const input = el( 'input', { 'data-rk-importer-search': 'posts' }, '' );
+	input.value = 'seven';
+	dom.rootEl.dispatch( 'input', { target: input } );
+	await new Promise( ( resolve ) => setTimeout( resolve, 350 ) );
+	assert.match( dom.sections.posts.innerHTML, /This search shows at most 5000 rows/ );
 } );

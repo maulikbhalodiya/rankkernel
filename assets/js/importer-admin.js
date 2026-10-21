@@ -43,7 +43,8 @@
 		reviewed: {},
 		visitedMax: -1,
 		completed: false,
-		queries: {}
+		queries: {},
+		runId: null
 	};
 
 	function esc( text ) {
@@ -93,7 +94,9 @@
 			body: JSON.stringify( body )
 		} ).then( function ( response ) {
 			if ( ! response.ok ) {
-				throw new Error( 'Request failed with status ' + response.status );
+				var err = new Error( 'Request failed with status ' + response.status );
+				err.status = response.status;
+				throw err;
 			}
 			return response.json();
 		} );
@@ -184,7 +187,10 @@
 		html += '</tbody></table></div>';
 		html += '<p class="rk-importer-row-count">' + ( page.rows || [] ).length + ' ' + esc( __( 'rows, scroll to review', 'rankkernel' ) ) + '</p>';
 		if ( page.hasMore ) {
-			html += '<p class="rk-importer-truncation-note">' + esc( __( 'Only the first ', 'rankkernel' ) + PREVIEW_LIMIT + __( ' rows are shown (server cap). Use search to find specific rows.', 'rankkernel' ) ) + '</p>';
+			var capNote = query
+				? __( 'This search shows at most ', 'rankkernel' ) + PREVIEW_LIMIT + __( ' rows (server cap). Clear the search to see the whole kind.', 'rankkernel' )
+				: __( 'Only the first ', 'rankkernel' ) + PREVIEW_LIMIT + __( ' rows are shown (server cap). Use search to find specific rows.', 'rankkernel' );
+			html += '<p class="rk-importer-truncation-note">' + esc( capNote ) + '</p>';
 		}
 		mount.innerHTML = html;
 	}
@@ -389,7 +395,11 @@
 			var current = KINDS[ state.currentKindIndex ];
 			if ( current ) {
 				state.reviewed[ current ] = true;
+				var wasSkipped = !! state.skippedKinds[ current ];
 				delete state.skippedKinds[ current ];
+				if ( wasSkipped ) {
+					resetConfirm( root );
+				}
 				announce( root, current + ' ' + __( 'reviewed', 'rankkernel' ) );
 			}
 		}
@@ -421,6 +431,7 @@
 		if ( current ) {
 			state.reviewed[ current ] = true;
 			state.skippedKinds[ current ] = true;
+			resetConfirm( root );
 			announce( root, current + ' ' + __( 'skipped, will not import', 'rankkernel' ) );
 		}
 		var nextIndex = state.currentKindIndex + 1;
@@ -469,7 +480,9 @@
 	}
 
 	function preview( root, source ) {
-		resetState( source );
+		var sameSource = ( state.source === source && '' !== state.source );
+		var preserved = sameSource ? Object.assign( {}, state.excludes ) : null;
+		resetState( source, sameSource );
 		return previewKind( root, source, 'posts', 0 ).then( function () {
 			return previewKind( root, source, 'terms', 0 );
 		} ).then( function () {
@@ -495,7 +508,31 @@
 				}
 			} );
 			renderSkipped( root, skipped );
+			var dropped = 0;
+			if ( preserved ) {
+				[ 'posts', 'terms', 'redirects' ].forEach( function ( kind ) {
+					var page = state.pages[ kind ];
+					if ( ! page || page.hasMore ) {
+						return;
+					}
+					var ids = {};
+					( page.rows || [] ).forEach( function ( row ) { ids[ row.identity ] = true; } );
+					var prefix = kindPrefix( kind );
+					Object.keys( preserved ).forEach( function ( identity ) {
+						if ( identity.indexOf( prefix ) !== 0 ) {
+							return;
+						}
+						if ( ! ids[ identity ] && state.excludes[ identity ] ) {
+							delete state.excludes[ identity ];
+							dropped += 1;
+						}
+					} );
+				} );
+			}
 			resetConfirm( root );
+			if ( dropped > 0 ) {
+				announce( root, dropped + ' ' + __( 'exclusions no longer match the refreshed preview and were cleared.', 'rankkernel' ) );
+			}
 			state.currentKindIndex = 0;
 			state.wizardView = 'kind';
 			state.reviewed = {};
@@ -517,12 +554,13 @@
 		} );
 	}
 
-	function resetState( source ) {
+	function resetState( source, preserveExcludes ) {
+		var oldExcludes = preserveExcludes ? Object.assign( {}, state.excludes ) : {};
 		state.source = source;
 		state.previewLoaded = false;
 		state.running = false;
 		state.confirmed = false;
-		state.excludes = {};
+		state.excludes = preserveExcludes ? oldExcludes : {};
 		state.skippedKinds = {};
 		state.pages = {};
 		state.sitewide = { rows: [], selected: {} };
@@ -686,7 +724,8 @@
 			offset: offset,
 			limit: CHUNK,
 			mode: mode( root ),
-			excludes: excludeList()
+			excludes: excludeList(),
+			run_id: state.runId
 		};
 		if ( options.choices ) {
 			body.choices = options.choices;
@@ -759,6 +798,7 @@
 			return Promise.resolve();
 		}
 		state.running = true;
+		state.runId = 'rk' + Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 10 );
 		runBtn.disabled = true;
 		state.kinds = {};
 		setProgress( root, 0 );
@@ -773,13 +813,22 @@
 				panel.innerHTML = '<h3>' + esc( __( 'Import complete', 'rankkernel' ) ) + '</h3>' + finalReport( root );
 			}
 			announce( root, __( 'Import complete.', 'rankkernel' ) );
-		} ).catch( function () {
+		} ).catch( function ( err ) {
 			var panel = root.querySelector( '[data-rk-importer-confirm]' );
 			if ( panel ) {
 				panel.innerHTML = '<h3>' + esc( __( 'Import stopped', 'rankkernel' ) ) + '</h3>' + finalReport( root );
 			}
-			fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
+			if ( err && 409 === err.status ) {
+				fail( root, __( 'Another import run is already active for this source. Wait for it to finish and try again.', 'rankkernel' ) );
+			} else {
+				fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
+			}
 		} ).then( function () {
+			var rid = state.runId;
+			if ( rid ) {
+				post( cfg.restBase + '/' + source + '/release', { run_id: rid } ).catch( function () {} );
+			}
+			state.runId = null;
 			setStep( root, 'rk-importer-step-run', 'is-current' );
 			state.running = false;
 			runBtn.disabled = false;
@@ -868,6 +917,7 @@
 				state.queries[ searchClear ] = '';
 				previewKind( root, state.source, searchClear, 0, '' ).then( function () {
 					renderKindSection( root, searchClear, TITLES[ searchClear ] || searchClear );
+					resetConfirm( root );
 				} ).catch( function () {
 					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
 				} );
@@ -896,6 +946,7 @@
 				state.queries[ kind ] = target.value || '';
 				previewKind( root, state.source, kind, 0, state.queries[ kind ] ).then( function () {
 					renderKindSection( root, kind, TITLES[ kind ] || kind );
+					resetConfirm( root );
 				} ).catch( function () {
 					fail( root, __( 'Preview request failed.', 'rankkernel' ) );
 				} );
