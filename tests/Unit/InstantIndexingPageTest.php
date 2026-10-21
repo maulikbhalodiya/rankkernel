@@ -135,6 +135,7 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias( static fn( bool $c, bool $e = true ): string => ( $c === $e ) ? ' checked' : '' );
 		Functions\when( 'selected' )->alias( static fn( bool $c, bool $e = true ): string => ( $c === $e ) ? ' selected' : '' );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
 		Functions\when( 'wp_die' )->alias(
 			static function (): void {
@@ -1112,11 +1113,19 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertSame( [], $registeredStyles, 'the stylesheet must not register on another screen' );
 		$this->assertSame( [], $enqueuedStyles, 'the stylesheet must not enqueue on another screen' );
 
+		$translatedJS = [];
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
+
 		$page->enqueueAssets( InstantIndexingPage::HOOK_SUFFIX );
 
 		$handle = 'rankkernel-instant-indexing-admin';
 
 		$this->assertArrayHasKey( $handle, $registeredScripts );
+		$this->assertSame( 'rankkernel', $translatedJS[ $handle ] ?? null, 'script translations must be registered with rankkernel text domain' );
 		$this->assertContains( $handle, $enqueuedScripts );
 		$this->assertTrue( $registeredScripts[ $handle ]['in_footer'], 'the script must load in the footer' );
 		$this->assertStringContainsString( 'instant-indexing-admin.js', $registeredScripts[ $handle ]['src'] );
@@ -2411,5 +2420,48 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'rk-ui-notice-error', $html );
 		$this->assertStringContainsString( 'Could not retry. The stored URL host does not match this site.', $html );
+	}
+
+	/**
+	 * Test disabled pagination links render as focusable anchors inside a nav landmark.
+	 *
+	 * Unnavigable Previous or Next pagination links must render as focusable
+	 * anchor tags with role="link", aria-disabled="true", and tabindex="0" rather
+	 * than non-focusable span tags to maintain focus order and communicate
+	 * disabled state to assistive technologies.
+	 */
+	public function test_render_pagination_disabled_controls_are_focusable_anchors_inside_nav_landmark(): void {
+		// Seed enough entries to trigger pagination.
+		for ( $i = 0; $i < 25; $i++ ) {
+			$this->settings->logEntry( 'https://example.com/post-' . $i, 200, 'manual', 'Accepted.' );
+		}
+
+		// First page (page 1): Previous is disabled, Next is enabled.
+		$_GET = [
+			'page'     => InstantIndexingPage::SLUG,
+			'rk_paged' => '1',
+		];
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<nav class="rk-ui-page-nums" aria-label="Submission log pages">', $html );
+		$this->assertStringContainsString( '<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0">Previous</a>', $html );
+		$this->assertStringNotContainsString( '<span class="rk-ui-page-link is-disabled"', $html );
+
+		// Second page (page 2): Previous is enabled, Next is disabled.
+		$_GET = [
+			'page'     => InstantIndexingPage::SLUG,
+			'rk_paged' => '2',
+		];
+
+		ob_start();
+		$page->render();
+		$htmlPage2 = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0">Next</a>', $htmlPage2 );
+		$this->assertStringNotContainsString( '<span class="rk-ui-page-link is-disabled"', $htmlPage2 );
 	}
 }

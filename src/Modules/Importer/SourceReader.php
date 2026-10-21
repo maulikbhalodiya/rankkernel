@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Importer;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * A source plugin the importer can read from.
  *

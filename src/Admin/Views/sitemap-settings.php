@@ -145,7 +145,7 @@ $rkGeneralRowNotes = [
 		 * The browser's normal [hidden] rule would otherwise hide the rest.
 		 */
 		?>
-		<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>
+		<noscript><?php // phpcs:ignore WordPress.WP.EnqueuedResources ?><link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/css/admin-nojs.css', (string) RANKKERNEL_FILE ) ); ?>"></noscript>
 
 		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-general" data-rk-tab-panel="general"<?php echo $showGeneral ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">
@@ -185,10 +185,10 @@ $rkGeneralRowNotes = [
 							</div>
 							<div class="rk-sitemap-row-control">
 								<div class="rk-sitemap-input-row">
-									<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="rk-sitemap-input rk-sitemap-input-small" min="1" max="2000" />
+									<input type="number" id="rk-items-per-page" name="items_per_page" value="<?php echo esc_attr( $itemsPerPage ); ?>" class="rk-sitemap-input rk-sitemap-input-small" min="1" max="2000" aria-describedby="rk-items-per-page-hint" />
 									<span class="rk-sitemap-input-suffix"><?php echo esc_html__( 'entries per file', 'rankkernel' ); ?></span>
 								</div>
-								<p class="rk-sitemap-row-hint"><?php echo esc_html__( 'Maximum number of links on each sitemap page. Default is 1,000. Maximum allowed by search protocol is 50,000.', 'rankkernel' ); ?></p>
+								<p class="rk-sitemap-row-hint" id="rk-items-per-page-hint"><?php echo esc_html__( 'Maximum number of links on each sitemap page. Default is 1,000. Maximum allowed by search protocol is 50,000.', 'rankkernel' ); ?></p>
 							</div>
 						</div>
 						<?php foreach ( $generalRows as $generalRow ) : ?>
@@ -223,6 +223,7 @@ $rkGeneralRowNotes = [
 									</div>
 								</div>
 							<?php else : ?>
+								<?php $rkGeneralInputHintId = 'rk-' . $generalRow['name'] . '-hint'; ?>
 								<div class="rk-sitemap-row">
 									<div class="rk-sitemap-row-info">
 										<label class="rk-sitemap-row-title" for="rk-<?php echo esc_attr( $generalRow['name'] ); ?>"><?php echo esc_html( $generalRow['title'] ); ?></label>
@@ -231,8 +232,8 @@ $rkGeneralRowNotes = [
 										<?php endif; ?>
 									</div>
 									<div class="rk-sitemap-row-control">
-										<input type="text" id="rk-<?php echo esc_attr( $generalRow['name'] ); ?>" name="<?php echo esc_attr( $generalRow['name'] ); ?>" value="<?php echo esc_attr( $generalRow['value'] ); ?>" class="rk-sitemap-input" />
-										<p class="rk-sitemap-row-hint"><?php echo esc_html( $generalRow['hint'] ); ?></p>
+										<input type="text" id="rk-<?php echo esc_attr( $generalRow['name'] ); ?>" name="<?php echo esc_attr( $generalRow['name'] ); ?>" value="<?php echo esc_attr( $generalRow['value'] ); ?>" class="rk-sitemap-input" aria-describedby="<?php echo esc_attr( $rkGeneralInputHintId ); ?>" />
+										<p class="rk-sitemap-row-hint" id="<?php echo esc_attr( $rkGeneralInputHintId ); ?>"><?php echo esc_html( $generalRow['hint'] ); ?></p>
 									</div>
 								</div>
 							<?php endif; ?>
@@ -436,14 +437,15 @@ $rkGeneralRowNotes = [
 								<?php endif; ?>
 							</div>
 						</div>
+						<?php $rkAuthorsExcludeHintId = 'rk-' . $authorsExcludeUsers['name'] . '-hint'; ?>
 						<div class="rk-sitemap-row">
 							<div class="rk-sitemap-row-info">
 								<label class="rk-sitemap-row-title" for="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>"><?php echo esc_html( $authorsExcludeUsers['title'] ); ?></label>
 								<p class="rk-sitemap-row-note"><?php echo esc_html__( 'Custom ID blacklist', 'rankkernel' ); ?></p>
 							</div>
 							<div class="rk-sitemap-row-control">
-								<input type="text" id="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" name="<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" value="<?php echo esc_attr( $authorsExcludeUsers['value'] ); ?>" class="rk-sitemap-input" />
-								<p class="rk-sitemap-row-hint"><?php echo esc_html( $authorsExcludeUsers['hint'] ); ?></p>
+								<input type="text" id="rk-<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" name="<?php echo esc_attr( $authorsExcludeUsers['name'] ); ?>" value="<?php echo esc_attr( $authorsExcludeUsers['value'] ); ?>" class="rk-sitemap-input" aria-describedby="<?php echo esc_attr( $rkAuthorsExcludeHintId ); ?>" />
+								<p class="rk-sitemap-row-hint" id="<?php echo esc_attr( $rkAuthorsExcludeHintId ); ?>"><?php echo esc_html( $authorsExcludeUsers['hint'] ); ?></p>
 							</div>
 						</div>
 					</div>

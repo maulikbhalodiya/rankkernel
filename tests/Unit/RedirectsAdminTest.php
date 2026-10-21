@@ -1506,6 +1506,7 @@ final class RedirectsAdminTest extends TestCase {
 		$registeredScripts = [];
 		$enqueuedStyles    = [];
 		$enqueuedScripts   = [];
+		$translatedJS      = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registeredStyles, &$styleDeps ): void {
@@ -1528,6 +1529,11 @@ final class RedirectsAdminTest extends TestCase {
 				];
 			}
 		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( string $handle ) use ( &$enqueuedScripts ): void {
 				$enqueuedScripts[] = $handle;
@@ -1541,8 +1547,10 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertSame( [], $enqueuedStyles );
 		$this->assertSame( [], $registeredScripts );
 		$this->assertSame( [], $enqueuedScripts );
+		$this->assertSame( [], $translatedJS );
 
 		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-redirects-admin'] ?? null );
 
 		$this->assertArrayHasKey( 'rankkernel-redirects-admin', $registeredStyles );
 		$this->assertContains( 'rankkernel-redirects-admin', $enqueuedStyles );
@@ -1568,6 +1576,7 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'wp_register_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->alias(
 			static function ( string $handle, string $name, array $data ) use ( &$localized ): bool {
@@ -1584,15 +1593,12 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
 
-		$this->assertCount( 2, $localized );
-		$this->assertSame( 'rkRedirects', $localized[0]['name'] );
-		$this->assertSame( 'rankkernelRedirects', $localized[1]['name'] );
+		$this->assertCount( 1, $localized );
+		$this->assertSame( 'rankkernelRedirects', $localized[0]['name'] );
 		$this->assertSame( 'rankkernel-redirects-admin', $localized[0]['handle'] );
-		$this->assertSame( 'rankkernel-redirects-admin', $localized[1]['handle'] );
-		$this->assertSame( $localized[0]['data'], $localized[1]['data'], 'both names must resolve to the same payload' );
-		$this->assertArrayHasKey( 'ajaxUrl', $localized[1]['data'] );
-		$this->assertArrayHasKey( 'nonce', $localized[1]['data'] );
-		$this->assertArrayHasKey( 'screenSlug', $localized[1]['data'] );
+		$this->assertArrayHasKey( 'ajaxUrl', $localized[0]['data'] );
+		$this->assertArrayHasKey( 'nonce', $localized[0]['data'] );
+		$this->assertArrayHasKey( 'screenSlug', $localized[0]['data'] );
 	}
 
 	/**
@@ -2504,5 +2510,32 @@ final class RedirectsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-describedby="rk-per-page-desc rk-per-page-hint"', $html );
 		$this->assertStringContainsString( 'id="rk-per-page-desc"', $html );
 		$this->assertStringContainsString( 'id="rk-per-page-hint"', $html );
+	}
+
+	/**
+	 * Pagination renders disabled spans on boundaries (e.g. Page 1 Previous).
+	 */
+	public function test_pagination_renders_disabled_spans_on_boundaries(): void {
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$this->seedRule( '/p-' . (string) $i, '/target-' . (string) $i );
+		}
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		// Render Page 1.
+		$html = $this->renderPage( $page );
+
+		// Page 1 top and bottom "Previous" controls must render as disabled spans with aria-disabled.
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Previous</span>', $html );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Previous</span>', $html );
+
+		// Render Page 2.
+		$_GET      = [ 'rk_paged' => '2' ];
+		$htmlPage2 = $this->renderPage( $page );
+
+		// Page 2 top and bottom "Next" controls must render as disabled spans with aria-disabled.
+		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Next</span>', $htmlPage2 );
 	}
 }

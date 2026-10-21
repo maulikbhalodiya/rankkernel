@@ -66,6 +66,16 @@ final class HeadRenderer {
 	private array $resolvedTitleMemo = [];
 
 	/**
+	 * Memoized resolved descriptions keyed by context hash.
+	 *
+	 * Performance optimization: avoids re-evaluating description template replacement and fallback
+	 * evaluation chains across render() and renderTwitterTags() in a single request.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $resolvedDescriptionMemo = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore     $settings Settings store.
@@ -381,11 +391,38 @@ final class HeadRenderer {
 	/**
 	 * Resolve description with fallback chain.
 	 *
+	 * Performance optimization: memoizes resolved description by Context hash to avoid
+	 * redundant description template evaluation and fallback checks across render passes.
+	 *
 	 * @param Context              $ctx  Context.
 	 * @param array<string, mixed> $meta Meta payload.
 	 * @return string The result.
 	 */
 	private function resolveDescription( Context $ctx, array $meta ): string {
+		$hash      = $ctx->hash();
+		$isStdMeta = ( $meta === $ctx->meta() );
+
+		if ( $isStdMeta && array_key_exists( $hash, $this->resolvedDescriptionMemo ) ) {
+			return $this->resolvedDescriptionMemo[ $hash ];
+		}
+
+		$result = $this->doResolveDescription( $ctx, $meta );
+
+		if ( $isStdMeta ) {
+			$this->resolvedDescriptionMemo[ $hash ] = $result;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Compute description resolution fallback chain.
+	 *
+	 * @param Context              $ctx  Context.
+	 * @param array<string, mixed> $meta Meta payload.
+	 * @return string The result.
+	 */
+	private function doResolveDescription( Context $ctx, array $meta ): string {
 		$desc = isset( $meta['description'] ) ? trim( (string) $meta['description'] ) : '';
 
 		if ( '' !== $desc ) {

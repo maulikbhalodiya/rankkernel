@@ -241,7 +241,7 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 	</header>
 
 	<?php /* Monitor settings panel, collapsed. Every control posts the real settings form. Sits above the log status card. */ ?>
-	<noscript><style>.rk-monitor .rk-monitor-settings[hidden]{display:block}</style></noscript>
+	<noscript><?php // phpcs:ignore WordPress.WP.EnqueuedResources ?><link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/css/admin-nojs.css', (string) RANKKERNEL_FILE ) ); ?>"></noscript>
 	<div class="rk-ui-card rk-monitor-settings" id="rk-monitor-settings" hidden>
 		<?php
 		/*

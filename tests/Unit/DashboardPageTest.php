@@ -471,4 +471,19 @@ final class DashboardPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'rk-dashboard-stat-link', $output );
 		$this->assertStringNotContainsString( 'View Modules', $output );
 	}
+
+	/**
+	 * Test new tab quick action links include a screen reader text indicator.
+	 */
+	public function test_render_outputs_screen_reader_text_for_new_tab_links(): void {
+		$this->options['rankkernel_modules'] = [ 'sitemaps', 'robots' ];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<a class="rk-dashboard-tool" href="https://example.com/?rankkernel_sitemap=index" target="_blank" rel="noopener">', $output );
+		$this->assertStringContainsString( '<a class="rk-dashboard-tool" href="https://example.com/robots.txt" target="_blank" rel="noopener">', $output );
+		$this->assertStringContainsString( '<span class="screen-reader-text">(opens in a new tab)</span>', $output );
+	}
 }

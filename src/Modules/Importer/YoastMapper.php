@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace RankKernel\Modules\Importer;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Yoast Mapper.
  */

@@ -74,8 +74,11 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
 					<?php
-					/* translators: %s: template token name, for example %%title%% */
-					$titleTokenLabel = sprintf( __( 'Insert %s token into title template', 'rankkernel' ), $templateToken );
+					$titleTokenLabel = sprintf(
+						/* translators: %s: template token name, for example %%title%% */
+						__( 'Insert %s token into title template', 'rankkernel' ),
+						$templateToken
+					);
 					?>
 					<button
 						type="button"
@@ -94,8 +97,11 @@ $templateTokens = [ '%%title%%', '%%sitename%%', '%%sep%%', '%%excerpt%%', '%%da
 			<div class="rk-token-chips">
 				<?php foreach ( $templateTokens as $templateToken ) : ?>
 					<?php
-					/* translators: %s: template token name, for example %%title%% */
-					$descTokenLabel = sprintf( __( 'Insert %s token into description template', 'rankkernel' ), $templateToken );
+					$descTokenLabel = sprintf(
+						/* translators: %s: template token name, for example %%title%% */
+						__( 'Insert %s token into description template', 'rankkernel' ),
+						$templateToken
+					);
 					?>
 					<button
 						type="button"

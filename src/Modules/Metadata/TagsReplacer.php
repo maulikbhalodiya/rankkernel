@@ -105,13 +105,8 @@ final class TagsReplacer {
 	 * @return string Resolved string.
 	 */
 	private function doReplace( Context $ctx, string $template ): string {
-		// Performance optimization: parse the template for token placeholders and
-		// selectively resolve only tokens present in it, avoiding expensive unneeded
-		// operations (e.g., category DB queries, author meta, excerpt formatting).
-		preg_match_all( self::TOKEN_PATTERN, $template, $matches );
-		$templateTokens = ! empty( $matches[1] ) ? array_unique( $matches[1] ) : [];
-
-		$map = [];
+		// Performance optimization: fast-path check for token delimiters ('%%') before running regex scans.
+		$hasTokenDelimiter = str_contains( $template, '%%' );
 
 		// A direct callback on this hook or a callback on the `all` hook, which
 		// apply_filters() runs for every filter, can observe the map, so every
@@ -119,6 +114,23 @@ final class TagsReplacer {
 		// in the template are resolved.
 		$hasFilter = function_exists( 'has_filter' )
 			&& ( has_filter( 'rankkernel/tokens' ) || has_filter( 'all' ) );
+
+		// Fast-path: if the template contains no token delimiters and no token filter is hooked,
+		// avoid preg_match_all, token resolution, filter calls, and preg_replace_callback.
+		if ( ! $hasTokenDelimiter && ! $hasFilter ) {
+			return $template;
+		}
+
+		$templateTokens = [];
+
+		if ( $hasTokenDelimiter ) {
+			// Parse the template for token placeholders and selectively resolve only tokens present in it,
+			// avoiding expensive unneeded operations (e.g., category DB queries, author meta, excerpt formatting).
+			preg_match_all( self::TOKEN_PATTERN, $template, $matches );
+			$templateTokens = ! empty( $matches[1] ) ? array_unique( $matches[1] ) : [];
+		}
+
+		$map = [];
 
 		if ( $hasFilter ) {
 			foreach ( self::SUPPORTED_TOKENS as $token ) {
@@ -139,6 +151,10 @@ final class TagsReplacer {
 		 * @param Context              $context Current request context.
 		 */
 		$map = apply_filters( 'rankkernel/tokens', $map, $ctx ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+		if ( ! $hasTokenDelimiter ) {
+			return $template;
+		}
 
 		if ( ! is_array( $map ) ) {
 			$map = [];
@@ -334,17 +350,31 @@ final class TagsReplacer {
 
 		if ( $paged > 1 ) {
 			if ( $max > 1 ) {
-				return sprintf( 'Page %d of %d', $paged, $max );
+				return sprintf(
+					/* translators: 1: current page number, 2: total page count */
+					__( 'Page %1$d of %2$d', 'rankkernel' ),
+					$paged,
+					$max
+				);
 			}
 
 			// Try to get max from global WP_Query.
 			global $wp_query;
 
 			if ( isset( $wp_query ) && isset( $wp_query->max_num_pages ) && (int) $wp_query->max_num_pages > 1 ) {
-				return sprintf( 'Page %d of %d', $paged, (int) $wp_query->max_num_pages );
+				return sprintf(
+					/* translators: 1: current page number, 2: total page count */
+					__( 'Page %1$d of %2$d', 'rankkernel' ),
+					$paged,
+					(int) $wp_query->max_num_pages
+				);
 			}
 
-			return sprintf( 'Page %d', $paged );
+			return sprintf(
+				/* translators: %d: current page number */
+				__( 'Page %d', 'rankkernel' ),
+				$paged
+			);
 		}
 
 		return '';

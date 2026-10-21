@@ -208,6 +208,9 @@ final class InstantIndexingPage {
 		$source = plugins_url( 'assets/js/instant-indexing-admin.js', (string) RANKKERNEL_FILE );
 
 		wp_register_script( 'rankkernel-instant-indexing-admin', $source, [ 'wp-a11y', 'wp-i18n' ], $version, true );
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-instant-indexing-admin', 'rankkernel' );
+		}
 		wp_enqueue_script( 'rankkernel-instant-indexing-admin' );
 
 		if ( ! function_exists( 'wp_localize_script' ) ) {

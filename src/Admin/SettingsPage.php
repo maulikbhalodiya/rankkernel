@@ -371,7 +371,8 @@ final class SettingsPage {
 		$htaccessFile      = new HtaccessFile();
 		$htaccessSupported = $htaccessFile->isSupported();
 		$htaccessWritable  = $htaccessFile->isWritable();
-		$htaccessContent   = $htaccessSupported ? $htaccessFile->read() : '';
+		$htaccessManaged   = $htaccessSupported ? $htaccessFile->hasBlock() : false;
+		$htaccessSelected  = $htaccessSupported ? $htaccessFile->blockSelection() : [];
 		$htaccessPath      = $htaccessFile->path();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
@@ -483,15 +484,29 @@ final class SettingsPage {
 	}
 
 	/**
-	 * Back up and save the site .htaccess, then redirect with a notice.
+	 * Replace the managed .htaccess block, then redirect with a notice.
+	 *
+	 * The payload is an array of directive ids. saveBlock() ignores every
+	 * id outside the whitelist, so the written content is always
+	 * generated server side and no admin text reaches the file.
 	 */
 	private function saveHtaccess(): void {
 		$file = new HtaccessFile();
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and written as plain text.
-		$raw = isset( $_POST['rk_htaccess_content'] ) ? wp_unslash( $_POST['rk_htaccess_content'] ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, request shape enforced below.
+		$requested = isset( $_POST['rk_htaccess_directives'] ) && is_array( $_POST['rk_htaccess_directives'] ) ? wp_unslash( $_POST['rk_htaccess_directives'] ) : [];
 
-		$result = $file->save( is_string( $raw ) ? $raw : '' );
+		$selected = [];
+
+		if ( is_array( $requested ) ) {
+			foreach ( array_keys( $requested ) as $id ) {
+				if ( is_string( $id ) && array_key_exists( $id, HtaccessFile::DIRECTIVES ) ) {
+					$selected[] = $id;
+				}
+			}
+		}
+
+		$result = $file->saveBlock( $selected );
 
 		if ( $result['saved'] ) {
 			$notice = 'saved';

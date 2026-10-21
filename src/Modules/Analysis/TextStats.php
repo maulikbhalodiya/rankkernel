@@ -27,6 +27,25 @@ final class TextStats {
 	private const SENTENCE_ENDINGS = '.!?';
 
 	/**
+	 * Shared static request-level memoized word list results.
+	 *
+	 * Performance optimization: memoizes words() results in memory per request
+	 * to eliminate duplicate preg_split regex operations across readability checks.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private static array $wordsMemo = [];
+
+	/**
+	 * Reset in-memory static caches (primarily for unit tests and long-lived processes).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$wordsMemo = [];
+	}
+
+	/**
 	 * Strip tags and normalise whitespace, for word and sentence counting.
 	 *
 	 * @param string $html Raw HTML or plain text.
@@ -55,9 +74,15 @@ final class TextStats {
 	 * @return string[] Words, punctuation removed, empties dropped.
 	 */
 	public static function words( string $text ): array {
+		if ( array_key_exists( $text, self::$wordsMemo ) ) {
+			return self::$wordsMemo[ $text ];
+		}
+
 		$parts = preg_split( '/[^\p{L}\p{N}\'’-]+/u', $text );
 
 		if ( ! is_array( $parts ) ) {
+			self::$wordsMemo[ $text ] = [];
+
 			return [];
 		}
 
@@ -70,6 +95,8 @@ final class TextStats {
 				$words[] = $part;
 			}
 		}
+
+		self::$wordsMemo[ $text ] = $words;
 
 		return $words;
 	}

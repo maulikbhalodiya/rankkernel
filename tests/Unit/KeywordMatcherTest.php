@@ -34,6 +34,7 @@ final class KeywordMatcherTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		KeywordMatcher::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -155,5 +156,28 @@ final class KeywordMatcherTest extends TestCase {
 
 		$this->assertSame( 0.0, KeywordMatcher::density( '', 'red apples' ) );
 		$this->assertEqualsWithDelta( 25.0, KeywordMatcher::density( $text, 'red apples' ), 0.01 );
+	}
+
+	/**
+	 * Test memoized results and resetCache().
+	 */
+	public function test_memoization_and_reset_cache(): void {
+		$text   = 'Fresh, RED apples!';
+		$first  = KeywordMatcher::normalize( $text );
+		$second = KeywordMatcher::normalize( $text );
+		$this->assertSame( $first, $second );
+
+		$words1 = KeywordMatcher::words( $text );
+		$words2 = KeywordMatcher::words( $text );
+		$this->assertSame( $words1, $words2 );
+
+		$content1 = KeywordMatcher::contentWords( $text );
+		$content2 = KeywordMatcher::contentWords( $text );
+		$this->assertSame( $content1, $content2 );
+
+		KeywordMatcher::resetCache();
+
+		$third = KeywordMatcher::normalize( $text );
+		$this->assertSame( $first, $third );
 	}
 }
