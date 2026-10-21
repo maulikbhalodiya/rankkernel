@@ -54,7 +54,7 @@ When the Instant Indexing module is enabled, submitting a URL sends that URL plu
 RankKernel contacts two external services, and only with your explicit action:
 
 1. Support inbox. The Support screen sends your message (subject, message, reply address, and optional screenshots you attach) plus site diagnostics (RankKernel version, WordPress version, PHP version, theme name, site URL, multisite yes/no) to rankkernelsupport@gmail.com, with Reply-To set to your address. Sending happens only when you press Send.
-2. IndexNow. Submitting a URL sends that URL plus your IndexNow API key to https://api.indexnow.org/indexnow, only when you submit manually or publish content with the Instant Indexing module enabled. IndexNow is the official shared submission endpoint documented at https://www.indexnow.org/documentation.
+2. IndexNow. Submitting a URL sends that URL plus your IndexNow API key to https://api.indexnow.org/indexnow, only when you submit manually or publish content with the Instant Indexing module enabled. IndexNow is the official shared submission endpoint documented at https://www.indexnow.org/documentation, and its terms of use and privacy statement are at https://www.indexnow.org/terms and https://www.indexnow.org/privacy.
 
 Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled.
 

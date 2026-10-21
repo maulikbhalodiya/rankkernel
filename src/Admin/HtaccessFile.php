@@ -242,10 +242,11 @@ final class HtaccessFile {
 			}
 		}
 
-		if ( '' === $base && defined( 'ABSPATH' ) && function_exists( 'wp_normalize_path' ) ) {
-			// Last resort for unit-test and no-core contexts: the
-			// default uploads location relative to the site root.
-			$base = rtrim( (string) ABSPATH, '/' ) . '/wp-content/uploads';
+		if ( '' === $base && defined( 'WP_CONTENT_DIR' ) && function_exists( 'wp_normalize_path' ) ) {
+			// No core uploads helper: follow the content directory, so a
+			// site with a custom content directory is never pointed at
+			// the default uploads location.
+			$base = rtrim( (string) WP_CONTENT_DIR, '/' ) . '/uploads';
 		}
 
 		if ( '' === $base ) {

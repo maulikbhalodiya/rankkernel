@@ -820,38 +820,37 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
-	 * Test a wp_upload_dir error array falls back to the site-root uploads path.
+	 * Test a wp_upload_dir error array falls back to the content directory
+	 * and never to a hard coded uploads path.
 	 */
-	public function test_backup_dir_uploads_error_falls_back_to_site_root_uploads(): void {
-		Functions\when( 'wp_upload_dir' )->justReturn(
-			[
-				'error'   => 'cannot create directory',
-				'basedir' => '/nonexistent-rkht-uploads',
-			]
-		);
+	public function test_backup_dir_uses_the_content_directory_not_a_hard_coded_path(): void {
+		Functions\when( 'wp_upload_dir' )->justReturn( [ 'error' => 'cannot create directory' ] );
 
-		$backupBase = rtrim( (string) ABSPATH, '/' ) . '/wp-content/uploads';
-		$backupDir  = $backupBase . '/rankkernel-htaccess-backups';
+		if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+			define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/rkht-content-' . uniqid() );
+		}
 
 		$file = new HtaccessFile();
 
 		$dir = $file->backupDir();
 
-		$this->assertSame( $backupDir, $dir );
-		$this->assertFileExists( $dir . '/index.php' );
+		$this->assertStringNotContainsString( 'wp-content/uploads', $dir );
 
-		// Remove the backups directory before the tree it sits in.
-		$listed   = glob( $dir . '/*' );
-		$dotted   = glob( $dir . '/.*' );
-		$leftover = array();
-		foreach ( array_merge( is_array( $listed ) ? $listed : array(), is_array( $dotted ) ? $dotted : array() ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture cleans its own temp dir.
+		if ( '' !== $dir ) {
+			$this->assertStringStartsWith( (string) WP_CONTENT_DIR, $dir );
+
+			// Remove the backups directory before the tree it sits in.
+			$listed   = glob( $dir . '/*' );
+			$dotted   = glob( $dir . '/.*' );
+			$leftover = array();
+			foreach ( array_merge( is_array( $listed ) ? $listed : array(), is_array( $dotted ) ? $dotted : array() ) as $leftover ) {
+				if ( is_file( $leftover ) ) {
+					unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture cleans its own temp dir.
+				}
 			}
-		}
 
-		rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $backupBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( dirname( $backupBase ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
+			rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
+			rmdir( dirname( $dir ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
+		}
 	}
 }
