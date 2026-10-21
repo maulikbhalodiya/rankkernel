@@ -532,6 +532,12 @@ class IndexBuilder {
 
 		$scheme = parse_url( $url, PHP_URL_SCHEME ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- spec requires parse_url for deterministic unit tests.
 
+		if ( ! is_string( $scheme ) ) {
+			return false;
+		}
+
+		$scheme = strtolower( $scheme );
+
 		return 'http' === $scheme || 'https' === $scheme;
 	}
 

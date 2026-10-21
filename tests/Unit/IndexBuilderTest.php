@@ -1192,4 +1192,186 @@ final class IndexBuilderTest extends TestCase {
 		$this->expectExceptionMessage( 'boom-filter' );
 		$builder->buildEntriesXml( 'post', 1 );
 	}
+
+
+	/**
+	 * Uppercase/mixed-case schemes are accepted case-insensitively.
+	 */
+	public function test_entries_xml_loc_filter_case_insensitive_scheme(): void {
+		foreach ( [ 'HTTPS://EXAMPLE.COM/path', 'hTTps://cdn.Example.com/x' ] as $good ) {
+			$posts = Mockery::mock( PostsProvider::class );
+			$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+			$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+			$posts->shouldReceive( 'getEntries' )->andReturn(
+				[
+					[
+						'loc'     => 'https://example.com/hello/',
+						'lastmod' => '',
+						'images'  => [],
+					],
+				]
+			)->byDefault();
+
+			$tax = Mockery::mock( TaxonomiesProvider::class );
+			$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$auth = Mockery::mock( AuthorsProvider::class );
+			$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$registered = [];
+			Functions\when( 'add_filter' )->alias(
+				static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					$registered[ $hook ][] = $callback;
+					return true;
+				}
+			);
+			Functions\when( 'apply_filters' )->alias(
+				static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+						return 1000;
+					}
+					if ( isset( $registered[ $hook ] ) ) {
+						foreach ( $registered[ $hook ] as $callback ) {
+							$value = $callback( $value, ...$args );
+						}
+					}
+					return $value;
+				}
+			);
+
+			add_filter(
+				'rankkernel/sitemap/loc',
+				static function ( mixed $loc ) use ( $good ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+					return $good;
+				},
+				10,
+				3
+			);
+
+			$builder = new IndexBuilder( $posts, $tax, $auth );
+			$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+			$this->assertStringContainsString( '<loc>' . $good . '</loc>', $xml, 'uppercase scheme must replace' );
+		}
+
+		// Lower-case controls.
+		foreach ( [ 'http://example.com/x', 'https://example.com/y' ] as $good ) {
+			$posts = Mockery::mock( PostsProvider::class );
+			$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+			$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+			$posts->shouldReceive( 'getEntries' )->andReturn(
+				[
+					[
+						'loc'     => 'https://example.com/hello/',
+						'lastmod' => '',
+						'images'  => [],
+					],
+				]
+			)->byDefault();
+
+			$tax = Mockery::mock( TaxonomiesProvider::class );
+			$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$auth = Mockery::mock( AuthorsProvider::class );
+			$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$registered = [];
+			Functions\when( 'add_filter' )->alias(
+				static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					$registered[ $hook ][] = $callback;
+					return true;
+				}
+			);
+			Functions\when( 'apply_filters' )->alias(
+				static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+						return 1000;
+					}
+					if ( isset( $registered[ $hook ] ) ) {
+						foreach ( $registered[ $hook ] as $callback ) {
+							$value = $callback( $value, ...$args );
+						}
+					}
+					return $value;
+				}
+			);
+
+			add_filter(
+				'rankkernel/sitemap/loc',
+				static function ( mixed $loc ) use ( $good ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+					return $good;
+				},
+				10,
+				3
+			);
+
+			$builder = new IndexBuilder( $posts, $tax, $auth );
+			$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+			$this->assertStringContainsString( '<loc>' . $good . '</loc>', $xml );
+		}
+
+		// Still fall back.
+		foreach ( [ 'ftp://example.com/x', 'not-a-url' ] as $bad ) {
+			$posts = Mockery::mock( PostsProvider::class );
+			$posts->shouldReceive( 'getSets' )->andReturn( [ 'post' ] )->byDefault();
+			$posts->shouldReceive( 'getCount' )->andReturn( 1 )->byDefault();
+			$posts->shouldReceive( 'getEntries' )->andReturn(
+				[
+					[
+						'loc'     => 'https://example.com/hello/',
+						'lastmod' => '',
+						'images'  => [],
+					],
+				]
+			)->byDefault();
+
+			$tax = Mockery::mock( TaxonomiesProvider::class );
+			$tax->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$auth = Mockery::mock( AuthorsProvider::class );
+			$auth->shouldReceive( 'getSets' )->andReturn( [] )->byDefault();
+			$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+			$registered = [];
+			Functions\when( 'add_filter' )->alias(
+				static function ( string $hook, mixed $callback, mixed ...$rest ) use ( &$registered ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					$registered[ $hook ][] = $callback;
+					return true;
+				}
+			);
+			Functions\when( 'apply_filters' )->alias(
+				static function ( string $hook, mixed $value, mixed ...$args ) use ( &$registered ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+					if ( 'rankkernel/sitemap/entries_per_page' === $hook ) {
+						return 1000;
+					}
+					if ( isset( $registered[ $hook ] ) ) {
+						foreach ( $registered[ $hook ] as $callback ) {
+							$value = $callback( $value, ...$args );
+						}
+					}
+					return $value;
+				}
+			);
+
+			add_filter(
+				'rankkernel/sitemap/loc',
+				static function ( mixed $loc ) use ( $bad ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+					return $bad;
+				},
+				10,
+				3
+			);
+
+			$builder = new IndexBuilder( $posts, $tax, $auth );
+			$xml     = $builder->buildEntriesXml( 'post', 1 );
+
+			$this->assertStringContainsString( '<loc>https://example.com/hello/</loc>', $xml );
+		}
+	}
 }
