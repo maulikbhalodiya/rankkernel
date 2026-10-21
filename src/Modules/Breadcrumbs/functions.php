@@ -63,7 +63,14 @@ function rankkernel_get_breadcrumbs( array $args = [] ): string {
 	$html = ( new Renderer() )->render( $items, $renderArgs );
 
 	if ( function_exists( 'apply_filters' ) ) {
-		$html = (string) apply_filters( 'rankkernel/breadcrumbs', $html, $resolved ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+		$filtered = apply_filters( 'rankkernel/breadcrumbs', $html, $resolved ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+		// A callback that returns something that is not a string cannot
+		// be rendered, so the generated markup is kept. The other
+		// breadcrumb filters guard their return type the same way.
+		if ( is_string( $filtered ) ) {
+			$html = $filtered;
+		}
 	}
 
 	return $html;
