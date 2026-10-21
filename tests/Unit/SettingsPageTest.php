@@ -1177,7 +1177,9 @@ final class SettingsPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
-		$this->assertStringContainsString( 'rk-banner-danger', $output );
+		$this->assertStringContainsString( 'Managed directives only', $output );
+		$this->assertStringContainsString( 'rk-banner-warning', $output );
+		$this->assertStringNotContainsString( 'rk_htaccess_content', $output );
 		$this->assertStringNotContainsString( 'notice notice-warning', $output );
 	}
 
@@ -1268,9 +1270,9 @@ final class SettingsPageTest extends TestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_GET['section']           = 'htaccess';
 		$_POST                     = [
-			'_wpnonce'            => 'valid',
-			'rk_htaccess_save'    => '1',
-			'rk_htaccess_content' => '# RankKernel test',
+			'_wpnonce'               => 'valid',
+			'rk_htaccess_save'       => '1',
+			'rk_htaccess_directives' => [ 'block_directory_browsing' => '1' ],
 		];
 
 		ob_start();
@@ -1280,7 +1282,7 @@ final class SettingsPageTest extends TestCase {
 		unset( $GLOBALS['is_apache'] );
 
 		$this->assertFileExists( $path );
-		$this->assertStringContainsString( '# RankKernel test', (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
+		$this->assertStringContainsString( 'Options -Indexes', (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
 
 		unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
 	}
@@ -1324,9 +1326,9 @@ final class SettingsPageTest extends TestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_GET['section']           = 'htaccess';
 		$_POST                     = [
-			'_wpnonce'            => 'valid',
-			'rk_htaccess_save'    => '1',
-			'rk_htaccess_content' => '# RankKernel test',
+			'_wpnonce'               => 'valid',
+			'rk_htaccess_save'       => '1',
+			'rk_htaccess_directives' => [ 'block_directory_browsing' => '1' ],
 		];
 
 		ob_start();

@@ -51,7 +51,8 @@
  * @var array<int, string> $consistencyWarnings Robots and llms conflict warnings.
  * @var bool   $htaccessSupported    Whether .htaccess editing is available.
  * @var bool   $htaccessWritable     Whether the file is writable.
- * @var string $htaccessContent      Current .htaccess content.
+ * @var bool   $htaccessManaged      Whether the RankKernel managed block is present.
+ * @var array<int, string> $htaccessSelected Currently active managed directive ids.
  * @var string $htaccessPath         Absolute .htaccess path.
  * @var string $htaccessNotice       .htaccess save notice key.
  */

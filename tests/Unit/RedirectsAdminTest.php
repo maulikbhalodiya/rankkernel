@@ -1593,15 +1593,12 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 		$page->enqueueAssets( RedirectsPage::HOOK_SUFFIX );
 
-		$this->assertCount( 2, $localized );
-		$this->assertSame( 'rkRedirects', $localized[0]['name'] );
-		$this->assertSame( 'rankkernelRedirects', $localized[1]['name'] );
+		$this->assertCount( 1, $localized );
+		$this->assertSame( 'rankkernelRedirects', $localized[0]['name'] );
 		$this->assertSame( 'rankkernel-redirects-admin', $localized[0]['handle'] );
-		$this->assertSame( 'rankkernel-redirects-admin', $localized[1]['handle'] );
-		$this->assertSame( $localized[0]['data'], $localized[1]['data'], 'both names must resolve to the same payload' );
-		$this->assertArrayHasKey( 'ajaxUrl', $localized[1]['data'] );
-		$this->assertArrayHasKey( 'nonce', $localized[1]['data'] );
-		$this->assertArrayHasKey( 'screenSlug', $localized[1]['data'] );
+		$this->assertArrayHasKey( 'ajaxUrl', $localized[0]['data'] );
+		$this->assertArrayHasKey( 'nonce', $localized[0]['data'] );
+		$this->assertArrayHasKey( 'screenSlug', $localized[0]['data'] );
 	}
 
 	/**

@@ -145,7 +145,7 @@ $rkGeneralRowNotes = [
 		 * The browser's normal [hidden] rule would otherwise hide the rest.
 		 */
 		?>
-		<noscript><style>.rk-sitemap-panel[hidden]{display:block}</style></noscript>
+		<noscript><?php // phpcs:ignore WordPress.WP.EnqueuedResources ?><link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/css/admin-nojs.css', (string) RANKKERNEL_FILE ) ); ?>"></noscript>
 
 		<div class="rk-ui-card rk-sitemap-panel" id="rk-sitemap-panel-general" data-rk-tab-panel="general"<?php echo $showGeneral ? '' : ' hidden'; ?>>
 				<div class="rk-sitemap-panel-head">

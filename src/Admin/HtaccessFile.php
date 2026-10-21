@@ -180,6 +180,43 @@ final class HtaccessFile {
 	public const BACKUP_KEEP = 5;
 
 	/**
+	 * Start marker of the RankKernel managed block.
+	 */
+	public const MARKER_BEGIN = '# BEGIN RankKernel';
+
+	/**
+	 * End marker of the RankKernel managed block.
+	 */
+	public const MARKER_END = '# END RankKernel';
+
+	/**
+	 * The only directives RankKernel can manage in .htaccess.
+	 *
+	 * The wp.org plugin review asks plugins not to accept arbitrary
+	 * server directives: RankKernel therefore never writes admin-typed
+	 * text. Every directive string is generated from this fixed map and
+	 * a save request may only reference the ids here. Ids double as
+	 * request keys, so they must stay lowercase word characters.
+	 *
+	 * @var array<string, array{signature: string, lines: string[]}>
+	 */
+	public const DIRECTIVES = [
+		'block_directory_browsing' => [
+			// Matched at line start when reading the managed block back.
+			'signature' => 'Options -Indexes',
+			'lines'     => [ 'Options -Indexes' ],
+		],
+		'block_ai_crawlers'        => [
+			'signature' => 'RewriteCond %{HTTP_USER_AGENT} (GPTBot|ClaudeBot',
+			'lines'     => [
+				'RewriteEngine On',
+				'RewriteCond %{HTTP_USER_AGENT} (GPTBot|ClaudeBot|Claude-Web|CCBot|Google-Extended|PerplexityBot|Bytespider|FacebookBot) [NC]',
+				'RewriteRule ^ - [F,L]',
+			],
+		],
+	];
+
+	/**
 	 * Directory holding backups, outside the site root's servable files.
 	 *
 	 * Backups used to sit next to the live .htaccess, where the timestamped
@@ -195,15 +232,19 @@ final class HtaccessFile {
 		if ( function_exists( 'wp_upload_dir' ) ) {
 			$uploads = wp_upload_dir();
 
-			// Core documents basedir as always present; a filter reshaping
-			// that would break core itself, so read it directly once the
-			// array shape is confirmed.
-			if ( is_array( $uploads ) ) {
+			// An error string means the uploads directory could not be
+			// created or located; base on such an array would place
+			// backups somewhere that does not exist, so keep looking.
+			// An error of false (uploads never initialized) is treated the
+			// same as a missing key.
+			if ( is_array( $uploads ) && empty( $uploads['error'] ) && ! empty( $uploads['basedir'] ) ) {
 				$base = (string) $uploads['basedir'];
 			}
 		}
 
-		if ( '' === $base && defined( 'ABSPATH' ) ) {
+		if ( '' === $base && defined( 'ABSPATH' ) && function_exists( 'wp_normalize_path' ) ) {
+			// Last resort for unit-test and no-core contexts: the
+			// default uploads location relative to the site root.
 			$base = rtrim( (string) ABSPATH, '/' ) . '/wp-content/uploads';
 		}
 
@@ -291,6 +332,150 @@ final class HtaccessFile {
 		}
 
 		return $removed;
+	}
+
+	/**
+	 * Title of the managed block written inside the markers.
+	 */
+	private const BLOCK_NOTE = '# RankKernel managed directives. Edit from wp-admin settings; content outside this block is never changed by RankKernel.';
+
+	/**
+	 * Build the managed directives block from whitelisted ids.
+	 *
+	 * Unknown ids are ignored, so a forged request can never smuggle
+	 * text into the file: only strings generated from the fixed
+	 * DIRECTIVES map leave this method.
+	 *
+	 * @param array<int|string, mixed> $selected Requested directive ids.
+	 * @return string The block, empty when no directive is selected, which removes the block.
+	 */
+	public function generateBlock( array $selected ): string {
+		// Accept ids as either array keys, plain values, or checkbox
+		// arrays of one, so a save request earns a hit in any of the
+		// shapes the admin payload can arrive.
+		$ids = [];
+
+		foreach ( $selected as $key => $value ) {
+			$ids[] = (string) $key;
+
+			if ( is_string( $value ) || is_int( $value ) ) {
+				$ids[] = (string) $value;
+			}
+
+			if ( is_array( $value ) ) {
+				foreach ( array_keys( $value ) as $nested ) {
+					$ids[] = (string) $nested;
+				}
+			}
+		}
+
+		$lines = [];
+
+		foreach ( self::DIRECTIVES as $id => $directive ) {
+			if ( in_array( $id, $ids, true ) ) {
+				foreach ( $directive['lines'] as $line ) {
+					$lines[] = $line;
+				}
+			}
+		}
+
+		if ( [] === $lines ) {
+			return '';
+		}
+
+		return self::MARKER_BEGIN . "\n"
+			. self::BLOCK_NOTE . "\n"
+			. implode( "\n", $lines ) . "\n"
+			. self::MARKER_END . "\n";
+	}
+
+	/**
+	 * Whether the file currently carries the managed block.
+	 *
+	 * @return bool The result.
+	 */
+	public function hasBlock(): bool {
+		return str_contains( $this->read(), self::MARKER_BEGIN );
+	}
+
+	/**
+	 * Which whitelisted directives are currently active in the file.
+	 *
+	 * Matches each directive's signature line inside the managed block,
+	 * so a manually deleted directive is reported as off.
+	 *
+	 * @return array<int, string> Active directive ids.
+	 */
+	public function blockSelection(): array {
+		$content = $this->read();
+
+		if ( '' === $content || ! str_contains( $content, self::MARKER_BEGIN ) ) {
+			return [];
+		}
+
+		$lines    = preg_split( '/\R/', $content );
+		$selected = [];
+
+		if ( ! is_array( $lines ) ) {
+			return [];
+		}
+
+		foreach ( self::DIRECTIVES as $id => $directive ) {
+			foreach ( $lines as $line ) {
+				if ( str_starts_with( ltrim( (string) $line ), $directive['signature'] ) ) {
+					$selected[] = $id;
+
+					break;
+				}
+			}
+		}
+
+		return $selected;
+	}
+
+	/**
+	 * Replace the managed block, then write via the guarded save path.
+	 *
+	 * Everything outside the marker block is preserved byte for byte.
+	 * An empty selection clears the managed block. When the resulting
+	 * document would not change, nothing is written and no backup is
+	 * taken.
+	 *
+	 * @param array<int|string, mixed> $selected Requested directive ids.
+	 * @return array{saved: bool, reason: string, backup: string} Save result.
+	 */
+	public function saveBlock( array $selected ): array {
+		$content = $this->read();
+		$block   = $this->generateBlock( $selected );
+
+		$updated = ( '' === $block ) ? $this->stripBlock( $content ) : $block . "\n" . $this->stripBlock( $content );
+
+		if ( $updated === $content ) {
+			return [
+				'saved'  => true,
+				'reason' => '',
+				'backup' => '',
+			];
+		}
+
+		return $this->save( $updated );
+	}
+
+	/**
+	 * Drop the managed block from a document.
+	 *
+	 * @param string $content Current content.
+	 * @return string Content without the managed block.
+	 */
+	private function stripBlock( string $content ): string {
+		if ( '' === $content ) {
+			return $content;
+		}
+
+		$pattern  = '/' . preg_quote( self::MARKER_BEGIN, '/' ) . '.*?' . preg_quote( self::MARKER_END, '/' ) . '\s*\n?/s';
+		$stripped = preg_replace( $pattern, '', $content );
+
+		return ( is_string( $stripped ) ) ? $stripped : $content;
 	}
 
 	/**
