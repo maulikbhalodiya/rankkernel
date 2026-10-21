@@ -58,6 +58,13 @@ final class Context {
 	private ?bool $isSingularCache = null;
 
 	/**
+	 * Cached permalink string (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $permalinkCache = null;
+
+	/**
 	 * Memoized resolved templates by (hash|field).
 	 *
 	 * @var array<string, string>
@@ -745,13 +752,32 @@ final class Context {
 	/**
 	 * Permalink / term link / home URL for the current context.
 	 *
+	 * Performance optimization: memoizes the resolved permalink URL within the Context instance
+	 * to eliminate repeated get_permalink(), get_term_link(), or rewrite rule evaluations
+	 * across canonical tag resolution, OG/Twitter tags, breadcrumb trail building, and Schema graph generation.
+	 *
+	 * @return string The result.
+	 */
+	public function permalink(): string {
+		if ( null !== $this->permalinkCache ) {
+			return $this->permalinkCache;
+		}
+
+		$this->permalinkCache = $this->doResolvePermalink();
+
+		return $this->permalinkCache;
+	}
+
+	/**
+	 * Compute permalink / term link / home URL resolution logic.
+	 *
 	 * For archive contexts (author/date/post-type) returns the correct
 	 * archive URL or '' when derivation is unreliable, never falls back to
 	 * home_url for archives (prevents homepage canonical on archives).
 	 *
 	 * @return string The result.
 	 */
-	public function permalink(): string {
+	private function doResolvePermalink(): string {
 		$type = $this->queriedType();
 		$id   = $this->queriedId();
 
