@@ -438,37 +438,20 @@ final class ImportController {
 		}
 
 		if ( 'redirects' === $kind ) {
-			$raw    = $reader->fetchRedirectsRaw();
-			$search = trim( $search );
-
-			if ( '' !== $search ) {
-				$needle = mb_strtolower( $search );
-				$raw    = array_values(
-					array_filter(
-						$raw,
-						static function ( $row ) use ( $needle ): bool {
-							foreach ( $row as $value ) {
-								if ( is_string( $value ) && str_contains( mb_strtolower( $value ), $needle ) ) {
-									return true;
-								}
-							}
-
-							return false;
-						}
-					)
-				);
-			}
-
+			$raw     = $reader->fetchRedirectsRaw();
 			$preview = PreviewBuilder::buildPreview( $source, [], [], [], $raw, $mode );
 			$rows    = self::rowArrays( $preview['rows'] );
+			$visible = self::filterRows( $rows, $search );
 
 			return [
-				'rows'      => array_slice( $rows, $offset, $limit ),
+				'rows'      => array_slice( $visible, $offset, $limit ),
 				'skipped'   => $preview['skipped'],
-				'hasMore'   => $offset + $limit < count( $rows ),
-				// The eligible count comes from the detect totals, so a
-				// search never changes it and it matches the run total.
-				'kindTotal' => (int) ( $totals['redirects'] ?? count( $rows ) ),
+				'hasMore'   => $offset + $limit < count( $visible ),
+				// The eligible count is the number of source rows the
+				// mapper produced, the mapped rows plus the mapped skips,
+				// so a search never changes it and the run total is the
+				// same number.
+				'kindTotal' => count( $rows ) + count( $preview['skipped'] ),
 			];
 		}
 
@@ -492,6 +475,49 @@ final class ImportController {
 			'hasMore'   => false,
 			'kindTotal' => count( $rows ) + count( $preview['skipped'] ),
 		];
+	}
+
+	/**
+	 * Filter preview rows by a search term.
+	 *
+	 * The search looks at every readable value of a row, including the
+	 * mapped fields, so a redirect is found by its source or its target.
+	 *
+	 * @param array<int, array<string, mixed>> $rows   Preview rows.
+	 * @param string                           $search Search term.
+	 * @return array<int, array<string, mixed>> The rows that match.
+	 */
+	private static function filterRows( array $rows, string $search ): array {
+		$search = trim( $search );
+
+		if ( '' === $search ) {
+			return $rows;
+		}
+
+		$needle = mb_strtolower( $search );
+
+		return array_values(
+			array_filter(
+				$rows,
+				static function ( array $row ) use ( $needle ): bool {
+					foreach ( $row as $value ) {
+						if ( is_string( $value ) && str_contains( mb_strtolower( $value ), $needle ) ) {
+							return true;
+						}
+
+						if ( is_array( $value ) ) {
+							foreach ( $value as $item ) {
+								if ( is_string( $item ) && str_contains( mb_strtolower( $item ), $needle ) ) {
+									return true;
+								}
+							}
+						}
+					}
+
+					return false;
+				}
+			)
+		);
 	}
 
 	/**

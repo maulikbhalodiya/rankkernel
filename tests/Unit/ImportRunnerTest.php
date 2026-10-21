@@ -512,14 +512,49 @@ final class ImportRunnerTest extends TestCase {
 		);
 
 		try {
-			$runner->run( 'yoast', 'posts', 0, 50, 'skip', [], [], 'run-aaaa-1111' );
+			$runner->run( 'yoast', 'posts', 0, 50, 'skip', [ 'post:12' ], [], 'run-aaaa-1111' );
 			$this->fail( 'the run must stop when the lock belongs to another run' );
 		} catch ( ImportRunException $exception ) {
 			$this->assertSame( 0, $exception->counts()['applied'] );
 			$this->assertSame( 0, $exception->counts()['failed'] );
+			// The excluded row was skipped before any write, so the
+			// report has to say so.
+			$this->assertSame( 1, $exception->counts()['skipped'] );
 		}
 
 		$this->assertSame( 0, $writes, 'a run that lost the lock must not write' );
+	}
+
+	/**
+	 * A runner that has a lock but no run id fails closed.
+	 */
+	public function test_run_without_a_run_id_does_not_write(): void {
+		$writes = 0;
+
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$writes ): bool {
+				++$writes;
+				return true;
+			}
+		);
+
+		$runner = new ImportRunner(
+			[ 'yoast' => $this->reader() ],
+			new RedirectRepository( new RedirectsFakeDb() ),
+			new SettingsStore(),
+			null,
+			new ImportLock( new ImportLockFakeDb() )
+		);
+
+		try {
+			$runner->run( 'yoast', 'posts', 0, 50, 'skip' );
+			$this->fail( 'a run without a run id must not write' );
+		} catch ( ImportRunException $exception ) {
+			$this->assertSame( 0, $exception->counts()['applied'] );
+		}
+
+		$this->assertSame( 0, $writes, 'a run without a run id must not write' );
 	}
 
 	/**

@@ -825,18 +825,22 @@
 			}
 			if ( err && 409 === err.status ) {
 				fail( root, __( 'Another import run is already active. Wait for it to finish and try again.', 'rankkernel' ) );
-			} else if ( err && err.data && err.data.data && err.data.data.partial ) {
-				var partial = err.data.data.partial;
-				fail(
-					root,
-					__( 'The import stopped on an unexpected error.', 'rankkernel' ) + ' '
-					+ __( 'Progress before the failure:', 'rankkernel' ) + ' '
-					+ ( partial.applied || 0 ) + ' ' + __( 'applied', 'rankkernel' ) + ', '
-					+ ( partial.skipped || 0 ) + ' ' + __( 'skipped', 'rankkernel' ) + ', '
-					+ ( partial.failed || 0 ) + ' ' + __( 'failed', 'rankkernel' ) + '.'
-				);
 			} else {
-				fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
+				var reason = ( err && err.data && err.data.message ) ? err.data.message : '';
+				var partial = ( err && err.data && err.data.data && err.data.data.partial ) ? err.data.data.partial : null;
+
+				if ( partial ) {
+					fail(
+						root,
+						( reason ? reason + ' ' : '' )
+						+ __( 'Progress before the failure:', 'rankkernel' ) + ' '
+						+ ( partial.applied || 0 ) + ' ' + __( 'applied', 'rankkernel' ) + ', '
+						+ ( partial.skipped || 0 ) + ' ' + __( 'skipped', 'rankkernel' ) + ', '
+						+ ( partial.failed || 0 ) + ' ' + __( 'failed', 'rankkernel' ) + '.'
+					);
+				} else {
+					fail( root, reason || __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
+				}
 			}
 		} ).then( function () {
 			var rid = state.runId;

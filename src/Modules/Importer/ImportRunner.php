@@ -70,9 +70,15 @@ final class ImportRunner {
 	/**
 	 * Rows written per lease check.
 	 *
+	 * The slice bounds how many records a run can write after it lost
+	 * the lease. A request blocked on the database for longer than the
+	 * lease can outlive it, because the execution limit counts CPU time
+	 * and not wall clock time, so the fence is a mitigation and not a
+	 * hard guarantee. The smaller the slice, the smaller the window.
+	 *
 	 * @var int
 	 */
-	private const WRITE_SLICE = 100;
+	private const WRITE_SLICE = 25;
 
 	/**
 	 * Constructor.
@@ -150,12 +156,20 @@ final class ImportRunner {
 	 * its lease fresh and a competing run keeps being refused. A run that
 	 * cannot renew has lost the lock and must not write anything else.
 	 *
+	 * A runner that has a lock but no run id fails closed, so no caller
+	 * can write without owning the lock. Only a runner that has no lock
+	 * at all is unfenced, which is how the unit tests build one.
+	 *
 	 * @param string $owner Run id that owns the import lock.
 	 * @return bool True when the run may keep writing.
 	 */
 	private function leaseHeld( string $owner ): bool {
-		if ( null === $this->lock || '' === $owner ) {
+		if ( null === $this->lock ) {
 			return true;
+		}
+
+		if ( '' === $owner ) {
+			return false;
 		}
 
 		return $this->lock->renew( $owner );
@@ -293,19 +307,20 @@ final class ImportRunner {
 			];
 		}
 
-		$counts             = $this->applySlices(
+		$counts          = $this->applySlices(
 			$apply,
 			static fn ( array $slice ): array => PayloadImporter::applyRows( $slice, $mode ),
 			$owner,
 			[
 				'applied' => 0,
-				'skipped' => 0,
+				// The rows that are skipped before any write are counted
+				// up front, so a run that stops reports them as well.
+				'skipped' => count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] ),
 				'failed'  => 0,
 			]
 		);
-		$counts['skipped'] += count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] );
-		$counts['done']     = count( $items ) < $limit;
-		$counts['total']    = $reader->detect()['posts'];
+		$counts['done']  = count( $items ) < $limit;
+		$counts['total'] = $reader->detect()['posts'];
 
 		return $counts;
 	}
@@ -346,19 +361,20 @@ final class ImportRunner {
 			];
 		}
 
-		$counts             = $this->applySlices(
+		$counts          = $this->applySlices(
 			$apply,
 			static fn ( array $slice ): array => PayloadImporter::applyTermRows( $slice, $mode ),
 			$owner,
 			[
 				'applied' => 0,
-				'skipped' => 0,
+				// The rows that are skipped before any write are counted
+				// up front, so a run that stops reports them as well.
+				'skipped' => count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] ),
 				'failed'  => 0,
 			]
 		);
-		$counts['skipped'] += count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] );
-		$counts['done']     = count( $items ) < $limit;
-		$counts['total']    = $reader->detect()['terms'];
+		$counts['done']  = count( $items ) < $limit;
+		$counts['total'] = $reader->detect()['terms'];
 
 		return $counts;
 	}
@@ -459,7 +475,10 @@ final class ImportRunner {
 			'skipped' => count( $preview['skipped'] ),
 			'failed'  => 0,
 			'done'    => true,
-			'total'   => $reader->detect()['redirects'],
+			// The total is the number of rows the source really holds,
+			// the mapped rows plus the mapped skips, so the preview total
+			// and the run total are the same number.
+			'total'   => count( $preview['rows'] ) + count( $preview['skipped'] ),
 		];
 		$skip    = [];
 

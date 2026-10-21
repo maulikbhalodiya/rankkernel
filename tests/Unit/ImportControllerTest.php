@@ -903,6 +903,67 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test the redirect eligible total counts the mapped rows and the skips.
+	 */
+	public function test_redirect_total_counts_rows_and_skips(): void {
+		$ctrl = new ImportController(
+			[
+				'yoast' => new ImportControllerStubReader(
+					[],
+					[],
+					[],
+					[
+						[
+							'origin' => '/old',
+							'url'    => '/new',
+							'type'   => '301',
+							'format' => 'plain',
+						],
+						[
+							'origin' => '/broken',
+							'url'    => '',
+							'type'   => '301',
+							'format' => 'plain',
+						],
+					]
+				),
+			],
+			static function (): ImportControllerStubRunner {
+				return new ImportControllerStubRunner();
+			},
+			new ImportLock( $this->lockDb )
+		);
+
+		$all = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'redirects',
+				]
+			)
+		);
+		$this->assertInstanceOf( WP_REST_Response::class, $all );
+
+		$filtered = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'redirects',
+					'q'      => 'old',
+				]
+			)
+		);
+		$this->assertInstanceOf( WP_REST_Response::class, $filtered );
+
+		$data = $filtered->get_data();
+
+		// One mappable row and one skip, and a search does not change the total.
+		$this->assertSame( 2, $data['kindTotal'] );
+		$this->assertSame( $all->get_data()['kindTotal'], $data['kindTotal'] );
+		$this->assertCount( 1, $data['rows'] );
+	}
+
+	/**
 	 * Test a run that stopped with partial progress reports the counts.
 	 */
 	public function test_partial_failure_reports_progress(): void {

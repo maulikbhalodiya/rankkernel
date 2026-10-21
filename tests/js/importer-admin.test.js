@@ -950,7 +950,7 @@ test( 'a failed run reports the progress made before the failure', async () => {
 				json() {
 					return Promise.resolve( {
 						code: 'rankkernel_run_failed',
-						message: 'The import stopped on an unexpected error.',
+						message: 'The import lock was lost, so the run stopped before it wrote more records.',
 						data: { status: 500, partial: { applied: 7, skipped: 2, failed: 1 } }
 					} );
 				}
@@ -969,6 +969,7 @@ test( 'a failed run reports the progress made before the failure', async () => {
 	await ticks( 2 );
 	dom.runBtn.dispatch( 'click' );
 	await ticks( 12 );
+	assert.match( dom.errorBox.innerHTML, /lock was lost/ );
 	assert.match( dom.errorBox.innerHTML, /7 applied/ );
 	assert.match( dom.errorBox.innerHTML, /2 skipped/ );
 	assert.match( dom.errorBox.innerHTML, /1 failed/ );
