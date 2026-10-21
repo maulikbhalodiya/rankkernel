@@ -626,6 +626,31 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the robots section edit tab renders override textarea with aria-describedby.
+	 */
+	public function test_robots_section_edit_tab_renders_override_with_aria_describedby(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section']    = 'robots';
+		$_GET['robots_tab'] = 'edit';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-robots-override"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-robots-override-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-robots-override-hint"', $output );
+	}
+
+	/**
 	 * Test the robots preview Sitemap line uses the router URL, never a
 	 * hardcoded example.com placeholder that could leak into saved rows.
 	 */
@@ -817,6 +842,10 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
 		$this->assertStringContainsString( 'rk_llms_content', $output );
 		$this->assertStringContainsString( 'name="rk_llms_write"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-llms-summary-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-llms-summary-hint"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-llms-content-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-llms-content-hint"', $output );
 	}
 
 	/**
