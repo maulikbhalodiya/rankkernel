@@ -45,6 +45,13 @@ final class BreadcrumbsOutputTest extends TestCase {
 	private array $shortcodes = [];
 
 	/**
+	 * Value the breadcrumbs html filter returns, null keeps the default.
+	 *
+	 * @var mixed
+	 */
+	private mixed $htmlFilterReturn = null;
+
+	/**
 	 * Registered block types.
 	 *
 	 * @var array<int, array{path: string, args: mixed}>
@@ -328,6 +335,10 @@ final class BreadcrumbsOutputTest extends TestCase {
 				}
 
 				if ( 'rankkernel/breadcrumbs' === $hook && is_string( $value ) ) {
+					if ( null !== $this->htmlFilterReturn ) {
+						return $this->htmlFilterReturn;
+					}
+
 					$value .= $this->htmlFilterSuffix;
 				}
 
@@ -1201,5 +1212,31 @@ final class BreadcrumbsOutputTest extends TestCase {
 		$this->assertTrue( $stored['show_home'] );
 		$this->assertTrue( $stored['hide_on_front_page'] );
 		$this->assertFalse( $stored['show_blog_page'] );
+	}
+
+	/**
+	 * A breadcrumbs filter that returns something that is not a string keeps
+	 * the generated markup.
+	 */
+	public function test_html_filter_returning_a_non_string_keeps_the_markup(): void {
+		$this->useSingularPost();
+		$this->htmlFilterReturn = [ 'not', 'html' ];
+
+		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
+
+		$this->assertStringContainsString( '<nav class="rk-breadcrumbs"', $html );
+		$this->assertStringNotContainsString( 'Array', $html );
+	}
+
+	/**
+	 * A breadcrumbs filter that returns an object keeps the generated markup.
+	 */
+	public function test_html_filter_returning_an_object_keeps_the_markup(): void {
+		$this->useSingularPost();
+		$this->htmlFilterReturn = new \stdClass();
+
+		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
+
+		$this->assertStringContainsString( '<nav class="rk-breadcrumbs"', $html );
 	}
 }
