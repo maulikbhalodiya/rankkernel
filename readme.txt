@@ -49,12 +49,12 @@ Plugin settings are stored in the site's options as configuration. This includes
 
 When the Instant Indexing module is enabled, submitting a URL sends that URL plus your IndexNow API key, which is stored in the site's own options, to https://api.indexnow.org/indexnow. Submission happens only when you submit manually or publish content with the module enabled; nothing is sent otherwise.
 
-== External Service ==
+== External Services ==
 
 RankKernel contacts two external services, and only with your explicit action:
 
 1. Support inbox. The Support screen sends your message (subject, message, reply address, and optional screenshots you attach) plus site diagnostics (RankKernel version, WordPress version, PHP version, theme name, site URL, multisite yes/no) to rankkernelsupport@gmail.com, with Reply-To set to your address. Sending happens only when you press Send.
-2. IndexNow. Submitting a URL sends that URL plus your IndexNow API key to https://api.indexnow.org/indexnow, only when you submit manually or publish content with the Instant Indexing module enabled.
+2. IndexNow. Submitting a URL sends that URL plus your IndexNow API key to https://api.indexnow.org/indexnow, only when you submit manually or publish content with the Instant Indexing module enabled. IndexNow is the official shared submission endpoint documented at https://www.indexnow.org/documentation, and its terms of use and privacy statement are at https://www.indexnow.org/terms and https://www.indexnow.org/privacy.
 
 Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled.
 
@@ -67,3 +67,12 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 
 = 0.1.0 =
 Initial release.
+
+== Developer filters ==
+
+RankKernel exposes a small public hook family for sitemaps.
+
+* `rankkernel/sitemap/loc`, filter the `<loc>` of one sitemap entry.
+  Args: `$loc` (string, generated URL), `$set` (string set name: public post type names such as 'post' or 'page', raw taxonomy names such as 'category' or 'post_tag', or 'authors'), `$page` (int, 1-based). Return rules: a valid absolute http(s) URL replaces the loc; a non-empty invalid string falls back to the original; '' skips the entry (page/index counts come from provider counts, not filtered results, so an all-skipped page can still be advertised); a non-string return is ignored. Images and lastmod are unaffected. Excluded content cannot be restored. When callbacks are registered, per-page entries XML bypasses the cache and rebuilds per request. Callbacks must not throw (a throw renders "Sitemap unavailable.").
+* `rankkernel/sitemap/entries_per_page`, filter entries per page (int, clamped 1..2000).
+* Cache family: `rankkernel/sitemap/enable_cache` (bool).

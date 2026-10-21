@@ -288,12 +288,23 @@ class Router {
 			return;
 		}
 
+		// When a loc filter is registered, filtered output must not be cached:
+		// callbacks may depend on request/visitor/time, so bypass both cache
+		// read and write and build per request. Default (no callbacks) keeps
+		// the cached path byte-identical for unchanged performance.
+		$locFilterRegistered = function_exists( 'has_filter' )
+			&& has_filter( 'rankkernel/sitemap/loc' ) !== false;
+
 		try {
-			$xml = $this->cache->get(
-				$set,
-				$page,
-				fn (): string => $this->builder->buildEntriesXml( $set, $page )
-			);
+			if ( $locFilterRegistered ) {
+				$xml = $this->builder->buildEntriesXml( $set, $page );
+			} else {
+				$xml = $this->cache->get(
+					$set,
+					$page,
+					fn (): string => $this->builder->buildEntriesXml( $set, $page )
+				);
+			}
 		} catch ( \Throwable $throwable ) {
 			$this->reportBuildFailure( $set, $throwable );
 

@@ -25,6 +25,8 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		DestinationValidator::resetCache();
+
 		Functions\when( 'wp_parse_url' )->alias(
 			static function ( string $url, int $component = -1 ): mixed {
 				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
@@ -38,6 +40,7 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		DestinationValidator::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -213,5 +216,25 @@ final class RedirectsDestinationValidatorTest extends TestCase {
 
 		$this->assertTrue( $result['valid'] );
 		$this->assertSame( 'https://external.example/Path?Q=1', $result['destination'] );
+	}
+
+	/**
+	 * Test homeHost memoization and resetCache.
+	 */
+	public function test_home_host_memoization_and_reset_cache(): void {
+		$validator = new DestinationValidator();
+
+		// First call populates cache with example.com.
+		$result1 = $validator->validate( 'https://example.com/page1' );
+		$this->assertTrue( $result1['valid'] );
+		$this->assertSame( '/page1', $result1['destination'] );
+
+		// Reset cache and override home_url stub.
+		DestinationValidator::resetCache();
+		Functions\when( 'home_url' )->alias( static fn ( string $path = '/' ): string => 'https://newdomain.org' . $path );
+
+		$result2 = $validator->validate( 'https://newdomain.org/page2' );
+		$this->assertTrue( $result2['valid'] );
+		$this->assertSame( '/page2', $result2['destination'] );
 	}
 }

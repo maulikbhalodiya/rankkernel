@@ -37,6 +37,11 @@ final class AdminStyles {
 	public const UI_HANDLE = 'rankkernel-ui';
 
 	/**
+	 * Handle for the no-JavaScript fallback stylesheet.
+	 */
+	public const NOJS_HANDLE = 'rankkernel-admin-nojs';
+
+	/**
 	 * Register and enqueue the shared design token layer.
 	 *
 	 * @param string $pluginFile Main plugin file used to build the URL.
@@ -64,6 +69,26 @@ final class AdminStyles {
 	 *
 	 * Every WordPress call is guarded so a missing function fails safe
 	 * instead of fataling, which also keeps stubbed unit tests working.
+	 *
+	 * @param string        $handle     Stylesheet handle.
+	 * @param string        $path       Path relative to the plugin root.
+	 * @param string        $pluginFile Main plugin file used to build the URL.
+	 * @param array<string> $deps       Registered dependency handles.
+	 * @return void
+	 */
+
+	/**
+	 * Register and enqueue the no-JavaScript fallback stylesheet.
+	 *
+	 * @param string $pluginFile Main plugin file used to build the URL.
+	 * @return void
+	 */
+	public static function enqueueNojsLayer( string $pluginFile ): void {
+		self::enqueueStyle( self::NOJS_HANDLE, 'assets/css/admin-nojs.css', $pluginFile, [] );
+	}
+
+	/**
+	 * Register and enqueue one stylesheet handle.
 	 *
 	 * @param string        $handle     Stylesheet handle.
 	 * @param string        $path       Path relative to the plugin root.

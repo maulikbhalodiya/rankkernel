@@ -269,7 +269,7 @@ final class RestControllersTest extends TestCase {
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
 
 		$req2 = Mockery::mock( \WP_REST_Request::class );
-		$req2->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'importer' );
+		$req2->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'gutenberg' );
 		$req2->shouldReceive( 'get_json_params' )->andReturn( [ 'enabled' => true ] );
 		$req2->shouldReceive( 'get_params' )->andReturn( [ 'enabled' => true ] );
 

@@ -135,7 +135,7 @@ final class AnalysisController {
 
 		return new WP_Error(
 			'rest_forbidden',
-			esc_html__( 'Sorry, you are not allowed to analyse this content.', 'rankkernel' ),
+			__( 'Sorry, you are not allowed to analyse this content.', 'rankkernel' ),
 			[ 'status' => 403 ]
 		);
 	}
@@ -153,7 +153,7 @@ final class AnalysisController {
 		if ( ! $post instanceof WP_Post ) {
 			return new WP_Error(
 				'rankkernel_unknown_post',
-				esc_html__( 'That post could not be found.', 'rankkernel' ),
+				__( 'That post could not be found.', 'rankkernel' ),
 				[ 'status' => 404 ]
 			);
 		}

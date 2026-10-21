@@ -3,10 +3,9 @@
 /**
  * Localized global naming in the redirects admin script.
  *
- * The payload is localized under window.rankkernelRedirects, matching the
- * rankkernel prefixed sibling globals. The pre rename window.rkRedirects name
- * must keep working: the script reads it as a fallback and keeps it defined as
- * an alias for any consumer that still reads it.
+ * The payload is localized only under window.rankkernelRedirects, matching the
+ * rankkernel prefixed sibling globals. The legacy window.rkRedirects name is
+ * not emitted or supported.
  */
 
 const { test } = require( 'node:test' );
@@ -166,8 +165,6 @@ test( 'the canonical rankkernelRedirects global drives the AJAX path and fills t
 
 	const sandbox = run( fixture.document, { rankkernelRedirects: config }, fetchCalls );
 
-	assert.equal( sandbox.rkRedirects, config, 'the legacy name must alias the canonical payload' );
-
 	fixture.select.fire( 'change' );
 
 	await flushPromises();
@@ -180,30 +177,6 @@ test( 'the canonical rankkernelRedirects global drives the AJAX path and fills t
 
 	assert.equal( body.get( '_ajax_nonce' ), 'nonce-canonical', 'the canonical payload must configure the request' );
 	assert.equal( fixture.submits.length, 0, 'the GET form must not submit while the AJAX config is present' );
-} );
-
-test( 'the legacy rkRedirects global still configures the AJAX path when the canonical name is absent', async () => {
-	const fixture = perPageFixture();
-	const fetchCalls = [];
-	const config = {
-		ajaxUrl: 'https://example.org/wp-admin/admin-ajax.php',
-		nonce: 'nonce-legacy',
-		screenSlug: 'rankkernel-redirects'
-	};
-
-	run( fixture.document, { rkRedirects: config }, fetchCalls );
-
-	fixture.select.fire( 'change' );
-
-	await flushPromises();
-
-	assert.equal( fetchCalls.length, 1 );
-	assert.equal( fetchCalls[ 0 ].url, config.ajaxUrl );
-
-	const body = new URLSearchParams( fetchCalls[ 0 ].options.body );
-
-	assert.equal( body.get( '_ajax_nonce' ), 'nonce-legacy', 'the legacy payload must remain a working fallback' );
-	assert.equal( fixture.submits.length, 0, 'the GET form must not submit while the fallback config is present' );
 } );
 
 test( 'no localized config keeps the plain GET fallback and invents no alias', () => {

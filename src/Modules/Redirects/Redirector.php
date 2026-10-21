@@ -33,6 +33,14 @@ final class Redirector {
 	private static bool $sent = false;
 
 	/**
+	 * Longest preserved query string, in characters.
+	 *
+	 * The query travels into the Location header, so it is capped the
+	 * same way the 404 monitor caps the query it stores.
+	 */
+	private const QUERY_LENGTH = 500;
+
+	/**
 	 * Rule repository.
 	 *
 	 * @var RedirectRepository
@@ -363,7 +371,17 @@ final class Redirector {
 			$query = substr( $query, 0, (int) $hash );
 		}
 
-		return $query;
+		// The query ends up in the Location header of the redirect, so
+		// control characters are removed and the length is capped. A
+		// normal query string is kept exactly as it arrived.
+		$clean = preg_replace( '/[\x00-\x1F\x7F]/', '', $query );
+		$clean = is_string( $clean ) ? $clean : '';
+
+		if ( strlen( $clean ) > self::QUERY_LENGTH ) {
+			$clean = substr( $clean, 0, self::QUERY_LENGTH );
+		}
+
+		return $clean;
 	}
 
 	/**

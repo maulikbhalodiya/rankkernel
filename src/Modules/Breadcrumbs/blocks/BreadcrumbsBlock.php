@@ -205,7 +205,13 @@ final class BreadcrumbsBlock {
 		}
 
 		if ( function_exists( 'apply_filters' ) ) {
-			$html = (string) apply_filters( 'rankkernel/breadcrumbs', $html, $args ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			$filtered = apply_filters( 'rankkernel/breadcrumbs', $html, $args ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+
+			// A callback that returns something that is not a string
+			// cannot be rendered, so the generated markup is kept.
+			if ( is_string( $filtered ) ) {
+				$html = $filtered;
+			}
 		}
 
 		$wrapper = function_exists( 'get_block_wrapper_attributes' ) ? (string) get_block_wrapper_attributes() : '';

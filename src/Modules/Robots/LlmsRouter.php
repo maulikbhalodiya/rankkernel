@@ -134,10 +134,20 @@ final class LlmsRouter {
 	 */
 	public function content(): string {
 		$validator = (string) get_option( self::VALIDATOR_OPTION, '' );
-		$cached    = get_transient( self::TRANSIENT );
 
-		if ( is_array( $cached ) && isset( $cached['validator'], $cached['md'] ) && (string) $cached['validator'] === $validator ) {
-			return (string) $cached['md'];
+		// The generated sections depend on the post types filter, and a
+		// callback may depend on the request, the visitor or the time. The
+		// document is shared by every visitor, so while a callback is
+		// registered it is rebuilt per request instead of being cached.
+		$filterRegistered = function_exists( 'has_filter' )
+			&& has_filter( 'rankkernel_llms_post_types' ) !== false;
+
+		if ( ! $filterRegistered ) {
+			$cached = get_transient( self::TRANSIENT );
+
+			if ( is_array( $cached ) && isset( $cached['validator'], $cached['md'] ) && (string) $cached['validator'] === $validator ) {
+				return (string) $cached['md'];
+			}
 		}
 
 		$curated = (string) $this->settings->get( 'content', '' );
@@ -156,14 +166,16 @@ final class LlmsRouter {
 			$curated
 		);
 
-		set_transient(
-			self::TRANSIENT,
-			[
-				'validator' => $validator,
-				'md'        => $markdown,
-			],
-			0
-		);
+		if ( ! $filterRegistered ) {
+			set_transient(
+				self::TRANSIENT,
+				[
+					'validator' => $validator,
+					'md'        => $markdown,
+				],
+				0
+			);
+		}
 
 		return $markdown;
 	}

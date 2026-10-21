@@ -516,4 +516,164 @@ final class RouterTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/hello/', $result );
 	}
+
+
+	/**
+	 * With loc filter registered, cache get is bypassed for set page.
+	 */
+	public function test_intercept_set_bypasses_cache_when_loc_filter_registered(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildEntriesXml' )->once()->with( 'blog', 1 )->andReturn( '<urlset>filtered</urlset>' );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'getMap' )->once()->with( 'sets', Mockery::type( 'callable' ) )->andReturn( [ 'blog' => 1 ] );
+		$cache->shouldReceive( 'get' )->never();
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'has_filter' )->justReturn( 1 );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'blog';
+				}
+				return $fallback;
+			}
+		);
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( '<urlset>filtered</urlset>', $out );
+	}
+
+	/**
+	 * Without loc filter, cache get is used and output matches builder.
+	 */
+	public function test_intercept_set_uses_cache_without_loc_filter(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildEntriesXml' )->once()->with( 'blog', 1 )->andReturn( '<urlset>cached</urlset>' );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'getMap' )->once()->with( 'sets', Mockery::type( 'callable' ) )->andReturn( [ 'blog' => 1 ] );
+		$cache->shouldReceive( 'get' )->once()->andReturnUsing(
+			static function ( string $set, int $page, callable $cb ): string {
+				return (string) $cb();
+			}
+		);
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'has_filter' )->justReturn( false );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'blog';
+				}
+				return $fallback;
+			}
+		);
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( '<urlset>cached</urlset>', $out );
+	}
+
+	/**
+	 * With loc filter registered, index render still uses cache.
+	 */
+	public function test_intercept_index_uses_cache_even_with_loc_filter(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildIndexXml' )->once()->andReturn( '<sitemapindex>index</sitemapindex>' );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'get' )->once()->andReturnUsing(
+			static function ( string $set, int $page, callable $cb ): string {
+				return (string) $cb();
+			}
+		);
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'has_filter' )->justReturn( 1 );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'index';
+				}
+				if ( 'rankkernel_sitemap_n' === $key ) {
+					return '';
+				}
+				if ( 'rankkernel_sitemap_xsl' === $key ) {
+					return '';
+				}
+				return $fallback;
+			}
+		);
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( '<sitemapindex>index</sitemapindex>', $out );
+	}
+
+	/**
+	 * Throwing build in router path renders failure.
+	 */
+	public function test_intercept_set_throwing_build_renders_failure(): void {
+		$builder = Mockery::mock( IndexBuilder::class );
+		$builder->shouldReceive( 'buildEntriesXml' )->once()->with( 'blog', 1 )->andThrow( new \RuntimeException( 'boom' ) );
+
+		$cache = Mockery::mock( SitemapCache::class );
+		$cache->shouldReceive( 'getMap' )->once()->with( 'sets', Mockery::type( 'callable' ) )->andReturn( [ 'blog' => 1 ] );
+		$cache->shouldReceive( 'get' )->never();
+
+		$xsl = Mockery::mock( XslStylesheet::class );
+		$xsl->shouldReceive( 'output' )->never();
+
+		$router = new Router( $builder, $cache, $xsl );
+
+		Functions\when( 'has_filter' )->justReturn( 1 );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = '' ): mixed {
+				if ( 'rankkernel_sitemap' === $key ) {
+					return 'blog';
+				}
+				return $fallback;
+			}
+		);
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\expect( 'status_header' )->once()->with( 500 );
+
+		$query = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+
+		ob_start();
+		$router->intercept( $query );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( 'Sitemap unavailable.', $out );
+	}
 }

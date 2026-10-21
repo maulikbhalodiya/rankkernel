@@ -93,8 +93,8 @@ final class ModuleRegistryTest extends TestCase {
 		$this->assertSame( 'A read only REST payload for headless builds. Planned.', ModuleRegistry::label( 'headless' ) );
 		$this->assertSame( 'Importer', ModuleRegistry::label( 'importer' ) );
 		$this->assertContains( 'image-seo', ModuleRegistry::PLANNED );
-		$this->assertContains( 'importer', ModuleRegistry::PLANNED );
-		$this->assertTrue( ModuleRegistry::isPlanned( 'importer' ) );
+		$this->assertContains( 'gutenberg', ModuleRegistry::PLANNED );
+		$this->assertTrue( ModuleRegistry::isPlanned( 'gutenberg' ) );
 		$this->assertTrue( ModuleRegistry::isPlanned( 'ai' ) );
 		$this->assertFalse( ModuleRegistry::isPlanned( 'metadata' ) );
 	}

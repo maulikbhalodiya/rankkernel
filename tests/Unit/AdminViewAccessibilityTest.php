@@ -187,8 +187,9 @@ final class AdminViewAccessibilityTest extends TestCase {
 		$root = dirname( __DIR__, 2 ) . '/src/Admin/Views';
 
 		return array(
-			'htaccess textarea' => array( $root . '/sections/htaccess.php', 'rk-htaccess-content' ),
-			'robots textarea'   => array( $root . '/sections/robots.php', 'rk-robots-override' ),
+			'htaccess directory browsing checkbox' => array( $root . '/sections/htaccess.php', 'rk-htaccess-block_directory_browsing' ),
+			'htaccess AI crawler checkbox'         => array( $root . '/sections/htaccess.php', 'rk-htaccess-block_ai_crawlers' ),
+			'robots textarea'                      => array( $root . '/sections/robots.php', 'rk-robots-override' ),
 		);
 	}
 

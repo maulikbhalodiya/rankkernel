@@ -122,6 +122,9 @@ final class SitemapSettingsPage {
 
 		$src = plugins_url( 'assets/js/sitemap-settings-admin.js', (string) RANKKERNEL_FILE );
 		wp_register_script( 'rankkernel-sitemap-settings', $src, [ 'wp-i18n', 'wp-a11y' ], $version, true );
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-sitemap-settings', 'rankkernel' );
+		}
 		wp_enqueue_script( 'rankkernel-sitemap-settings' );
 
 		if ( function_exists( 'wp_localize_script' ) ) {

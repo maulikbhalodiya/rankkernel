@@ -175,7 +175,7 @@ function run( document, rkRedirects, fetchImpl ) {
 	sandbox.window = sandbox;
 
 	if ( rkRedirects ) {
-		sandbox.rkRedirects = rkRedirects;
+		sandbox.rankkernelRedirects = rkRedirects;
 	}
 
 	vm.runInNewContext( source( 'redirects-admin.js' ), sandbox );

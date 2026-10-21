@@ -99,7 +99,15 @@ final class UserProfileField {
 			return;
 		}
 
-		$saved = update_user_meta( $userId, self::META_KEY, MetaPayload::sanitizeTwitterHandle( wp_unslash( $rawHandle ) ) );
+		$storedHandle  = get_user_meta( $userId, self::META_KEY, true );
+		$currentHandle = MetaPayload::sanitizeTwitterHandle( is_string( $storedHandle ) ? $storedHandle : '' );
+		$newHandle     = MetaPayload::sanitizeTwitterHandle( wp_unslash( $rawHandle ) );
+
+		if ( $currentHandle === $newHandle ) {
+			return;
+		}
+
+		$saved = update_user_meta( $userId, self::META_KEY, $newHandle );
 
 		// A strict false means the write failed, so the editor sees an error
 		// instead of core's success notice while the handle was lost.

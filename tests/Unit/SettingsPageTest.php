@@ -1177,7 +1177,9 @@ final class SettingsPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'id="rk-section-htaccess"', $output );
-		$this->assertStringContainsString( 'rk-banner-danger', $output );
+		$this->assertStringContainsString( 'Managed directives only', $output );
+		$this->assertStringContainsString( 'rk-banner-warning', $output );
+		$this->assertStringNotContainsString( 'rk_htaccess_content', $output );
 		$this->assertStringNotContainsString( 'notice notice-warning', $output );
 	}
 
@@ -1268,9 +1270,9 @@ final class SettingsPageTest extends TestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_GET['section']           = 'htaccess';
 		$_POST                     = [
-			'_wpnonce'            => 'valid',
-			'rk_htaccess_save'    => '1',
-			'rk_htaccess_content' => '# RankKernel test',
+			'_wpnonce'               => 'valid',
+			'rk_htaccess_save'       => '1',
+			'rk_htaccess_directives' => [ 'block_directory_browsing' => '1' ],
 		];
 
 		ob_start();
@@ -1280,7 +1282,7 @@ final class SettingsPageTest extends TestCase {
 		unset( $GLOBALS['is_apache'] );
 
 		$this->assertFileExists( $path );
-		$this->assertStringContainsString( '# RankKernel test', (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
+		$this->assertStringContainsString( 'Options -Indexes', (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
 
 		unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
 	}
@@ -1324,9 +1326,9 @@ final class SettingsPageTest extends TestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_GET['section']           = 'htaccess';
 		$_POST                     = [
-			'_wpnonce'            => 'valid',
-			'rk_htaccess_save'    => '1',
-			'rk_htaccess_content' => '# RankKernel test',
+			'_wpnonce'               => 'valid',
+			'rk_htaccess_save'       => '1',
+			'rk_htaccess_directives' => [ 'block_directory_browsing' => '1' ],
 		];
 
 		ob_start();
@@ -1424,6 +1426,10 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'value="42"', $output );
 		$this->assertStringContainsString( 'value="rankkernel"', $output );
 		$this->assertStringContainsString( 'id="rk-social-default-image-select"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-twitter-site-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-twitter-site-hint"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-social-profiles-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-social-profiles-hint"', $output );
 	}
 
 	/**
@@ -1607,6 +1613,7 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 		$captured = [];
 		Functions\when( 'update_user_meta' )->alias(
 			static function ( int $userId, string $key, mixed $value ) use ( &$captured ): bool {
@@ -1726,6 +1733,7 @@ final class SettingsPageTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'update_user_meta' )->justReturn( false );
 		Functions\expect( 'wp_die' )->once()->andReturnUsing(
 			static function (): void {
@@ -1772,6 +1780,30 @@ final class SettingsPageTest extends TestCase {
 		call_user_func( $hooks['personal_options_update'][0], 42 );
 
 		$this->assertFalse( $called, 'an array shaped handle must be ignored, not passed to the sanitiser' );
+	}
+
+	/**
+	 * Test the profile field succeeds without error when the handle is unchanged.
+	 */
+	public function test_user_profile_field_succeeds_when_handle_is_unchanged(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		( new UserProfileField() )->register();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( 'authorhandle' );
+		Functions\expect( 'update_user_meta' )->never();
+		Functions\expect( 'wp_die' )->never();
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => '@authorhandle',
+		];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+		$this->assertTrue( true );
 	}
 
 	/**

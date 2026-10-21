@@ -477,11 +477,11 @@ defined( 'ABSPATH' ) || exit;
 					<div class="rk-log-footer">
 						<span class="rk-showing"><?php echo esc_html( sprintf( /* translators: 1: first visible entry, 2: last visible entry, 3: total entries */ __( 'Showing %1$d to %2$d of %3$d entries', 'rankkernel' ), $showing['from'], $showing['to'], $showing['total'] ) ); ?></span>
 						<?php if ( $pagination['show'] ) : ?>
-							<div class="rk-ui-page-nums" role="navigation" aria-label="<?php echo esc_attr( __( 'Submission log pages', 'rankkernel' ) ); ?>">
+							<nav class="rk-ui-page-nums" aria-label="<?php echo esc_attr( __( 'Submission log pages', 'rankkernel' ) ); ?>">
 								<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 									<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 								<?php else : ?>
-									<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
+									<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
 								<?php endif; ?>
 								<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
 									<?php if ( $pageEntry['gap'] ) : ?>
@@ -495,9 +495,9 @@ defined( 'ABSPATH' ) || exit;
 								<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 									<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 								<?php else : ?>
-									<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
+									<a class="rk-ui-page-link is-disabled" role="link" aria-disabled="true" tabindex="0"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
 								<?php endif; ?>
-							</div>
+							</nav>
 						<?php endif; ?>
 						<?php if ( $hasFilter ) : ?>
 							<a href="<?php echo esc_url( $logView->clearUrl() ); ?>" class="rk-filter-clear"><?php echo esc_html__( 'Clear filters', 'rankkernel' ); ?></a>

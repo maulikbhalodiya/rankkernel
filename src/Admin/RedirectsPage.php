@@ -263,6 +263,9 @@ final class RedirectsPage {
 
 		$js = plugins_url( 'assets/js/redirects-admin.js', (string) RANKKERNEL_FILE );
 		wp_register_script( 'rankkernel-redirects-admin', $js, [ 'wp-a11y', 'wp-i18n' ], $version, true );
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-redirects-admin', 'rankkernel' );
+		}
 		wp_enqueue_script( 'rankkernel-redirects-admin' );
 
 		/*
@@ -276,14 +279,6 @@ final class RedirectsPage {
 			'screenSlug' => self::SLUG,
 		];
 
-		/*
-		 * The canonical global carries the full rankkernel prefix. The legacy
-		 * rkRedirects name is emitted too so anything that still reads it keeps
-		 * resolving the same payload; the canonical name is localized last so it
-		 * survives a WordPress version that replaces the payload of a second
-		 * call instead of appending to it.
-		 */
-		wp_localize_script( 'rankkernel-redirects-admin', 'rkRedirects', $config );
 		wp_localize_script( 'rankkernel-redirects-admin', 'rankkernelRedirects', $config );
 	}
 

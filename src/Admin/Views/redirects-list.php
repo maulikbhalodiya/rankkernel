@@ -185,9 +185,13 @@ $rkListMatchBadgeMap = [
 						<span class="paging-text"><?php echo esc_html( $paginationText ); ?></span>
 						<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+						<?php else : ?>
+							<span class="button disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
 						<?php endif; ?>
 						<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 							<a class="button" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+						<?php else : ?>
+							<span class="button disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
 						<?php endif; ?>
 					<?php endif; ?>
 					<span class="rk-items-count"><?php echo esc_html( $totalLabel ); ?></span>
@@ -330,6 +334,8 @@ $rkListMatchBadgeMap = [
 						<div class="rk-ui-page-nums" role="navigation" aria-label="<?php echo esc_attr__( 'Redirect list pages', 'rankkernel' ); ?>">
 							<?php if ( '' !== $pagination['prevUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['prevUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['prevUrl'] ); ?>"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></a>
+							<?php else : ?>
+								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Previous', 'rankkernel' ); ?></span>
 							<?php endif; ?>
 							<?php foreach ( $pagination['pages'] as $pageEntry ) : ?>
 								<?php if ( '' === $pageEntry['url'] ) : ?>
@@ -342,6 +348,8 @@ $rkListMatchBadgeMap = [
 							<?php endforeach; ?>
 							<?php if ( '' !== $pagination['nextUrl'] ) : ?>
 								<a class="rk-ui-page-link" href="<?php echo esc_url( $pagination['nextUrl'] ); ?>" data-rk-filter-url="<?php echo esc_url( $pagination['nextUrl'] ); ?>"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></a>
+							<?php else : ?>
+								<span class="rk-ui-page-link is-disabled" aria-disabled="true"><?php echo esc_html__( 'Next', 'rankkernel' ); ?></span>
 							<?php endif; ?>
 						</div>
 					<?php endif; ?>

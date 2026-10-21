@@ -163,6 +163,7 @@ final class MonitorAdminTest extends TestCase {
 		Functions\when( 'wp_register_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_register_script' )->justReturn( null );
+		Functions\when( 'wp_set_script_translations' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 	}
 
@@ -678,8 +679,9 @@ final class MonitorAdminTest extends TestCase {
 	public function test_enqueue_gates_assets_to_screen_hook(): void {
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/p/' . $path );
 
-		$registered = [];
-		$enqueued   = [];
+		$registered   = [];
+		$enqueued     = [];
+		$translatedJS = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $handle, string $src, array $deps = [], string $ver = '' ) use ( &$registered ): void {
@@ -695,6 +697,11 @@ final class MonitorAdminTest extends TestCase {
 			static function (): void {
 			}
 		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $handle, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $handle ] = $domain;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function (): void {
 			}
@@ -705,11 +712,13 @@ final class MonitorAdminTest extends TestCase {
 
 		$this->assertSame( [], $registered );
 		$this->assertSame( [], $enqueued );
+		$this->assertSame( [], $translatedJS );
 
 		$page->enqueueAssets( NotFoundPage::HOOK_SUFFIX );
 
 		$this->assertArrayHasKey( 'rankkernel-monitor-admin', $registered );
 		$this->assertContains( 'rankkernel-monitor-admin', $enqueued );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-monitor-admin'] ?? null );
 		$this->assertStringContainsString( 'monitor-admin.css', (string) $registered['rankkernel-monitor-admin'] );
 	}
 

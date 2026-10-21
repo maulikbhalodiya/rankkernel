@@ -37,7 +37,7 @@
  * Every feature degrades gracefully. The page is fully functional without JS.
  *
  * Configuration injected by wp_localize_script under window.rankkernelRedirects
- * (window.rkRedirects is kept as a backward compatible alias):
+ *
  *   ajaxUrl    {string}  admin-ajax.php URL
  *   nonce      {string}  Nonce for rankkernel_redirects_list
  *   screenSlug {string}  Admin page slug
@@ -45,7 +45,7 @@
  * @package RankKernel
  */
 
-/* global rkRedirects, rankkernelRedirects */
+/* global rankkernelRedirects */
 
 /**
  * Speak an accessible announcement when wp.a11y is available.
@@ -253,17 +253,11 @@ function rankkernelAnnounce( text ) {
 	 * ------------------------------------------------------------------ */
 
 	/*
-	 * The localized payload uses the canonical rankkernel prefix. The legacy
-	 * rkRedirects name is still read as a fallback and stays defined as an
-	 * alias for any consumer that still reads it.
+	 * The localized payload uses the canonical rankkernel prefix.
 	 */
-	if ( typeof window.rkRedirects === 'undefined' && typeof window.rankkernelRedirects !== 'undefined' ) {
-		window.rkRedirects = window.rankkernelRedirects;
-	}
-
 	var cfg        = ( typeof window.rankkernelRedirects !== 'undefined' )
 		? window.rankkernelRedirects
-		: ( ( typeof window.rkRedirects !== 'undefined' ) ? window.rkRedirects : null );
+		: null;
 	var listWrap   = document.getElementById( 'rk-list-section' );
 	var ajaxActive = false;
 

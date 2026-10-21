@@ -12,6 +12,9 @@ namespace RankKernel\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Importer\AioseoReader;
+use RankKernel\Modules\Importer\RankMathReader;
+use RankKernel\Modules\Importer\YoastReader;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\Redirects\RedirectRepository;
 use RankKernel\Modules\Redirects\RedirectsSettings;
@@ -77,6 +80,13 @@ final class AdminMenu {
 	 * @var InstantIndexingPage|null
 	 */
 	private ?InstantIndexingPage $instantIndexingPage = null;
+
+	/**
+	 * Importer page instance.
+	 *
+	 * @var ImporterPage|null
+	 */
+	private ?ImporterPage $importerPage = null;
 
 	/**
 	 * Menu icon SVG body, rising trend line over an axis.
@@ -171,6 +181,7 @@ final class AdminMenu {
 
 		AdminStyles::enqueueTokenLayer( $pluginFile );
 		AdminStyles::enqueueUiLayer( $pluginFile );
+		AdminStyles::enqueueNojsLayer( $pluginFile );
 	}
 
 	/**
@@ -243,6 +254,18 @@ final class AdminMenu {
 	 */
 	public function getInstantIndexingPage(): InstantIndexingPage {
 		return $this->instantIndexingPage ??= new InstantIndexingPage( null, $this->enableMap );
+	}
+
+	/**
+	 * Get the importer page (lazy instantiated).
+	 *
+	 * Performance optimization: defers page controller construction until
+	 * the page is explicitly accessed or rendered.
+	 *
+	 * @return ImporterPage The result.
+	 */
+	public function getImporterPage(): ImporterPage {
+		return $this->importerPage ??= new ImporterPage( [ new YoastReader(), new RankMathReader(), new AioseoReader() ] );
 	}
 
 	/**
@@ -752,5 +775,53 @@ final class AdminMenu {
 		}
 
 		$this->getInstantIndexingPage()->enqueueAssets( $hookSuffix );
+	}
+
+	/**
+	 * Register the RankKernel Importer submenu page.
+	 *
+	 * Hooked separately from the top level menu so callers control
+	 * ordering. Phase 1 wires render and assets only; the run endpoint
+	 * and any save handling arrive with later phases.
+	 */
+	public function addImporterPage(): void {
+		if ( ! $this->enableMap->isEnabled( 'importer' ) ) {
+			return;
+		}
+
+		$hook = add_submenu_page(
+			'rankkernel',
+			esc_html__( 'Importer', 'rankkernel' ),
+			esc_html__( 'Importer', 'rankkernel' ),
+			'manage_options',
+			ImporterPage::SLUG,
+			[ $this, 'renderImporter' ]
+		);
+
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueImporterAssets' ] );
+	}
+
+	/**
+	 * Render importer page callback.
+	 */
+	public function renderImporter(): void {
+		if ( $this->blockWhenDisabled( 'importer' ) ) {
+			return;
+		}
+
+		$this->getImporterPage()->render();
+	}
+
+	/**
+	 * Enqueue importer assets callback.
+	 *
+	 * @param string $hookSuffix Current admin page hook suffix.
+	 */
+	public function enqueueImporterAssets( string $hookSuffix = '' ): void {
+		if ( ImporterPage::HOOK_SUFFIX !== $hookSuffix ) {
+			return;
+		}
+
+		$this->getImporterPage()->enqueueAssets( $hookSuffix );
 	}
 }

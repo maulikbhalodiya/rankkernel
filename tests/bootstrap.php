@@ -76,6 +76,15 @@ if (! function_exists('esc_xml')) {
     }
 }
 
+// The import lock stores its payload as JSON through the core helper.
+// WordPress is not loaded in unit tests, so this mirrors the core
+// behaviour of falling back to the plain encoder.
+if (! function_exists('wp_json_encode')) {
+    function wp_json_encode( $data, $options = 0, $depth = 512 ) {
+        return json_encode($data, $options, $depth);
+    }
+}
+
 if (! function_exists('plugin_dir_path')) {
     function plugin_dir_path( string $file ): string {
         return rtrim(dirname($file), '/\\') . '/';
@@ -176,6 +185,25 @@ if (! class_exists('WP_Post')) {
         public string $post_name = '';
         public string $post_content = '';
         public string $post_type = 'post';
+    }
+}
+
+if (! class_exists('WP_Term')) {
+    class WP_Term {
+        public int $term_id = 0;
+        public string $name = '';
+        public string $slug = '';
+        public string $taxonomy = '';
+    }
+}
+
+if (! class_exists('WP_Taxonomy')) {
+    class WP_Taxonomy {
+        /** @var object */
+        public $cap;
+        public function __construct() {
+            $this->cap = (object) [ 'manage_terms' => 'manage_categories' ];
+        }
     }
 }
 

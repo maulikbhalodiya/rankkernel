@@ -48,12 +48,29 @@
  * @var string $llmsNotice           llms physical write notice key.
  * @var bool   $htaccessSupported    Whether .htaccess editing is available.
  * @var bool   $htaccessWritable     Whether the file is writable.
- * @var string $htaccessContent      Current .htaccess content.
+ * @var bool   $htaccessManaged      Whether the RankKernel managed block is present.
+ * @var array<int, string> $htaccessSelected Currently active managed directive ids.
  * @var string $htaccessPath         Absolute .htaccess path.
  * @var string $htaccessNotice       .htaccess save notice key.
  */
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * The two managed directives. Keys and copy are locked with the backend
+ * whitelist in HtaccessFile::DIRECTIVES; adding one here also needs the
+ * map entry, a test, and a SaveSettings setting key.
+ */
+$htaccess_directives_visual = [
+	'block_directory_browsing' => [
+		'label' => __( 'Hide file and directory listings', 'rankkernel' ),
+		'hint'  => __( 'Stops Apache from listing folder contents when no index file exists.', 'rankkernel' ),
+	],
+	'block_ai_crawlers'        => [
+		'label' => __( 'Block AI crawlers at the server level', 'rankkernel' ),
+		'hint'  => __( 'Returns 403 to known AI training bots, additionally to their robots.txt rules.', 'rankkernel' ),
+	],
+];
 ?>
 <section id="rk-section-htaccess" class="rk-ui-card rk-settings-section" aria-labelledby="rk-section-htaccess-title">
 	<div class="rk-settings-section-head rk-settings-section-head--snug">
@@ -61,22 +78,22 @@ defined( 'ABSPATH' ) || exit;
 	</div>
 	<div class="rk-settings-section-body">
 		<?php if ( 'saved' === $htaccessNotice ) : ?>
-			<div class="rk-banner rk-banner-success"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'A backup was written next to the file.', 'rankkernel' ); ?></p></div>
+			<div class="rk-banner rk-banner-success"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'A backup was written before the change.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
 			<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'failed' === $htaccessNotice ) : ?>
 			<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'The file could not be written.', 'rankkernel' ); ?></p></div>
 		<?php endif; ?>
 
-		<div class="rk-banner rk-banner-danger">
-			<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Danger', 'rankkernel' ); ?></p>
-			<p><?php echo esc_html__( 'A mistake here can take the whole site down, including wp-admin, with no way back into the dashboard. Have file or server access ready before you save. RankKernel writes a timestamped backup next to the file first.', 'rankkernel' ); ?></p>
+		<div class="rk-banner rk-banner-warning">
+			<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">info</span><?php echo esc_html__( 'Managed directives only', 'rankkernel' ); ?></p>
+			<p><?php echo esc_html__( 'RankKernel writes only its own marked block and never accepts free-form server configuration. Everything else in the file stays untouched.', 'rankkernel' ); ?></p>
 		</div>
 
 		<?php if ( ! $htaccessSupported ) : ?>
 			<div class="rk-banner rk-banner-warning">
 				<p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not available on this server', 'rankkernel' ); ?></p>
-				<p><?php echo esc_html__( 'Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the editor is disabled here.', 'rankkernel' ); ?></p>
+				<p><?php echo esc_html__( 'Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the directives are disabled here.', 'rankkernel' ); ?></p>
 			</div>
 		<?php elseif ( ! $htaccessWritable ) : ?>
 			<div class="rk-banner rk-banner-warning">
@@ -96,11 +113,29 @@ defined( 'ABSPATH' ) || exit;
 				<span class="rk-settings-path-label"><?php echo esc_html__( 'File path:', 'rankkernel' ); ?></span>
 				<code class="rk-path-chip"><?php echo esc_html( $htaccessPath ); ?></code>
 			</p>
-			<label class="rk-form-label" for="rk-htaccess-content"><?php echo esc_html__( '.htaccess file contents', 'rankkernel' ); ?></label>
-			<textarea id="rk-htaccess-content" name="rk_htaccess_content" rows="18" cols="80" class="rk-code-editor rk-code-editor--roomy"><?php echo esc_textarea( $htaccessContent ); ?></textarea>
+			<p class="rk-settings-label">
+				<?php echo esc_html__( 'Server directives:', 'rankkernel' ); ?>
+				<span class="rk-ui-hint">
+					<?php echo ( $htaccessManaged ) ? esc_html__( 'The RankKernel block is present in the file.', 'rankkernel' ) : esc_html__( 'No RankKernel directives in the file yet.', 'rankkernel' ); ?>
+				</span>
+			</p>
+			<p>
+				<label for="rk-htaccess-block_directory_browsing">
+					<input type="checkbox" id="rk-htaccess-block_directory_browsing" name="rk_htaccess_directives[block_directory_browsing]" value="1"<?php checked( in_array( 'block_directory_browsing', $htaccessSelected, true ) ); ?> />
+					<?php echo esc_html( $htaccess_directives_visual['block_directory_browsing']['label'] ); ?>
+				</label>
+				<span class="rk-ui-hint"><?php echo esc_html( $htaccess_directives_visual['block_directory_browsing']['hint'] ); ?></span>
+			</p>
+			<p>
+				<label for="rk-htaccess-block_ai_crawlers">
+					<input type="checkbox" id="rk-htaccess-block_ai_crawlers" name="rk_htaccess_directives[block_ai_crawlers]" value="1"<?php checked( in_array( 'block_ai_crawlers', $htaccessSelected, true ) ); ?> />
+					<?php echo esc_html( $htaccess_directives_visual['block_ai_crawlers']['label'] ); ?>
+				</label>
+				<span class="rk-ui-hint"><?php echo esc_html( $htaccess_directives_visual['block_ai_crawlers']['hint'] ); ?></span>
+			</p>
 			<p class="rk-form-actions">
-				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Save .htaccess', 'rankkernel' ); ?></button>
-				<span class="rk-ui-hint"><?php echo esc_html__( 'Asks for confirmation: Save .htaccess? A mistake can take the whole site down. A backup is written first.', 'rankkernel' ); ?></span>
+				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Update the .htaccess? A timestamped backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Update .htaccess', 'rankkernel' ); ?></button>
+				<span class="rk-ui-hint"><?php echo esc_html__( 'Asks for confirmation: Update the .htaccess? A timestamped backup is written first.', 'rankkernel' ); ?></span>
 			</p>
 		<?php endif; ?>
 	</div>

@@ -83,7 +83,7 @@ final class SettingsController {
 
 		return new WP_Error(
 			'rest_forbidden',
-			esc_html__( 'Sorry, you are not allowed to manage RankKernel settings.', 'rankkernel' ),
+			__( 'Sorry, you are not allowed to manage RankKernel settings.', 'rankkernel' ),
 			[ 'status' => 403 ]
 		);
 	}
@@ -114,7 +114,7 @@ final class SettingsController {
 		if ( ! is_array( $params ) || [] === $params ) {
 			return new WP_Error(
 				'rankkernel_invalid_params',
-				esc_html__( 'No settings provided.', 'rankkernel' ),
+				__( 'No settings provided.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -130,7 +130,7 @@ final class SettingsController {
 				if ( null === $normalized ) {
 					return new WP_Error(
 						'rest_invalid_param',
-						esc_html__( 'Invalid value for purge_on_uninstall: must be boolean.', 'rankkernel' ),
+						__( 'Invalid value for purge_on_uninstall: must be boolean.', 'rankkernel' ),
 						[ 'status' => 400 ]
 					);
 				}
@@ -144,7 +144,7 @@ final class SettingsController {
 		if ( ! $result ) {
 			return new WP_Error(
 				'rankkernel_no_update',
-				esc_html__( 'No valid settings to update.', 'rankkernel' ),
+				__( 'No valid settings to update.', 'rankkernel' ),
 				[ 'status' => 400 ]
 			);
 		}

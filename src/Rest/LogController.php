@@ -70,7 +70,7 @@ final class LogController {
 
 		return new WP_Error(
 			'rest_forbidden',
-			esc_html__( 'Sorry, you are not allowed to read the Instant Indexing log.', 'rankkernel' ),
+			__( 'Sorry, you are not allowed to read the Instant Indexing log.', 'rankkernel' ),
 			[ 'status' => 403 ]
 		);
 	}

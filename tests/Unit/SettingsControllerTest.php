@@ -41,6 +41,7 @@ final class SettingsControllerTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg( 1 );
 		Functions\when( 'esc_url_raw' )->returnArg( 1 );
 		Functions\when( 'esc_html__' )->returnArg( 1 );
+		Functions\when( '__' )->returnArg( 1 );
 	}
 
 	/**

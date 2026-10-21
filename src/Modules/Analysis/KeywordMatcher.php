@@ -174,6 +174,47 @@ final class KeywordMatcher {
 	private static ?array $functionWordsMap = null;
 
 	/**
+	 * Shared static request-level memoized normalization results.
+	 *
+	 * Performance optimization: memoizes normalize() results in memory per request
+	 * to eliminate duplicate string lowercasing and regex operations across repeated analysis checks.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $normalizeMemo = [];
+
+	/**
+	 * Shared static request-level memoized word split results.
+	 *
+	 * Performance optimization: memoizes words() results in memory per request
+	 * to eliminate redundant array splitting across analysis checks.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private static array $wordsMemo = [];
+
+	/**
+	 * Shared static request-level memoized content word list results.
+	 *
+	 * Performance optimization: memoizes contentWords() results in memory per request
+	 * to eliminate duplicate function word filtering passes across sliding window keyword checks.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private static array $contentWordsMemo = [];
+
+	/**
+	 * Reset in-memory static caches (primarily for unit tests and long-lived processes).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$normalizeMemo    = [];
+		self::$wordsMemo        = [];
+		self::$contentWordsMemo = [];
+	}
+
+	/**
 	 * Reduce text to comparable words.
 	 *
 	 * Lowercases, strips accents when WordPress is loaded, and collapses every
@@ -185,14 +226,23 @@ final class KeywordMatcher {
 	 * @return string Normalised text.
 	 */
 	public static function normalize( string $text ): string {
-		if ( function_exists( 'remove_accents' ) ) {
-			$text = (string) remove_accents( $text );
+		if ( array_key_exists( $text, self::$normalizeMemo ) ) {
+			return self::$normalizeMemo[ $text ];
 		}
 
-		$text = mb_strtolower( $text, 'UTF-8' );
-		$text = (string) preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $text );
+		$normalized = $text;
 
-		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+		if ( function_exists( 'remove_accents' ) ) {
+			$normalized = (string) remove_accents( $normalized );
+		}
+
+		$normalized = mb_strtolower( $normalized, 'UTF-8' );
+		$normalized = (string) preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $normalized );
+		$result     = trim( (string) preg_replace( '/\s+/u', ' ', $normalized ) );
+
+		self::$normalizeMemo[ $text ] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -202,13 +252,22 @@ final class KeywordMatcher {
 	 * @return string[] Words.
 	 */
 	public static function words( string $text ): array {
+		if ( array_key_exists( $text, self::$wordsMemo ) ) {
+			return self::$wordsMemo[ $text ];
+		}
+
 		$normalized = self::normalize( $text );
 
 		if ( '' === $normalized ) {
+			self::$wordsMemo[ $text ] = [];
+
 			return [];
 		}
 
-		return explode( ' ', $normalized );
+		$result                   = explode( ' ', $normalized );
+		self::$wordsMemo[ $text ] = $result;
+
+		return $result;
 	}
 
 	/**
@@ -218,6 +277,10 @@ final class KeywordMatcher {
 	 * @return string[] Content words, or every word when none remain.
 	 */
 	public static function contentWords( string $text ): array {
+		if ( array_key_exists( $text, self::$contentWordsMemo ) ) {
+			return self::$contentWordsMemo[ $text ];
+		}
+
 		$words   = self::words( $text );
 		$content = [];
 
@@ -233,7 +296,10 @@ final class KeywordMatcher {
 			}
 		}
 
-		return ( [] === $content ) ? $words : $content;
+		$result                          = ( [] === $content ) ? $words : $content;
+		self::$contentWordsMemo[ $text ] = $result;
+
+		return $result;
 	}
 
 	/**
