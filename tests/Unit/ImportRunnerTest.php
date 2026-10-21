@@ -12,6 +12,8 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Importer\ImportLock;
+use RankKernel\Modules\Importer\ImportRunException;
 use RankKernel\Modules\Importer\ImportRunner;
 use RankKernel\Modules\Importer\SourceReader;
 use RankKernel\Modules\Redirects\RedirectRepository;
@@ -167,6 +169,12 @@ final class ImportRunnerTest extends TestCase {
 			}
 		);
 		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( '__' )->alias(
+			static function ( string $text, string $domain = '' ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress __ signature.
+				return $text;
+			}
+		);
 	}
 
 	/**
@@ -453,5 +461,78 @@ final class ImportRunnerTest extends TestCase {
 		$this->expectException( \InvalidArgumentException::class );
 
 		$runner->run( 'yoast', 'nope', 0, 50, 'skip' );
+	}
+
+	/**
+	 * A run that owns the lock writes its rows.
+	 */
+	public function test_run_writes_when_the_lock_is_owned(): void {
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+
+		$lock = new ImportLock( new ImportLockFakeDb() );
+		$lock->claim( 'run-aaaa-1111' );
+
+		$runner = new ImportRunner(
+			[ 'yoast' => $this->reader() ],
+			new RedirectRepository( new RedirectsFakeDb() ),
+			new SettingsStore(),
+			null,
+			$lock
+		);
+
+		$result = $runner->run( 'yoast', 'posts', 0, 50, 'skip', [], [], 'run-aaaa-1111' );
+
+		$this->assertSame( 2, $result['applied'] );
+	}
+
+	/**
+	 * A run that lost the lock stops before it writes anything.
+	 */
+	public function test_run_stops_when_the_lock_is_not_owned(): void {
+		$writes = 0;
+
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$writes ): bool {
+				++$writes;
+				return true;
+			}
+		);
+
+		$lock = new ImportLock( new ImportLockFakeDb() );
+		$lock->claim( 'run-other-9999' );
+
+		$runner = new ImportRunner(
+			[ 'yoast' => $this->reader() ],
+			new RedirectRepository( new RedirectsFakeDb() ),
+			new SettingsStore(),
+			null,
+			$lock
+		);
+
+		try {
+			$runner->run( 'yoast', 'posts', 0, 50, 'skip', [], [], 'run-aaaa-1111' );
+			$this->fail( 'the run must stop when the lock belongs to another run' );
+		} catch ( ImportRunException $exception ) {
+			$this->assertSame( 0, $exception->counts()['applied'] );
+			$this->assertSame( 0, $exception->counts()['failed'] );
+		}
+
+		$this->assertSame( 0, $writes, 'a run that lost the lock must not write' );
+	}
+
+	/**
+	 * A run without a lock is not fenced, so the unit paths still work.
+	 */
+	public function test_run_without_a_lock_is_not_fenced(): void {
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+
+		[ $runner ] = $this->runner();
+
+		$result = $runner->run( 'yoast', 'posts', 0, 50, 'skip', [], [], 'run-aaaa-1111' );
+
+		$this->assertSame( 2, $result['applied'] );
 	}
 }

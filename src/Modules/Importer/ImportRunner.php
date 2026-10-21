@@ -61,18 +61,34 @@ final class ImportRunner {
 	private $bulkEnumerator;
 
 	/**
+	 * Run lock, used to fence the writes.
+	 *
+	 * @var ImportLock|null
+	 */
+	private ?ImportLock $lock;
+
+	/**
+	 * Rows written per lease check.
+	 *
+	 * @var int
+	 */
+	private const WRITE_SLICE = 100;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param array<string, SourceReader> $readers        Source readers by id.
 	 * @param RedirectRepository|null     $redirects      Redirect writer.
 	 * @param SettingsStore|null          $settings       Sitewide writer.
 	 * @param callable|null               $bulkEnumerator Bulk id lister, fn( string $kind, string $type ): int[].
+	 * @param ImportLock|null             $lock           Run lock.
 	 */
-	public function __construct( array $readers = [], ?RedirectRepository $redirects = null, ?SettingsStore $settings = null, ?callable $bulkEnumerator = null ) {
+	public function __construct( array $readers = [], ?RedirectRepository $redirects = null, ?SettingsStore $settings = null, ?callable $bulkEnumerator = null, ?ImportLock $lock = null ) {
 		$this->readers        = $readers;
 		$this->redirects      = $redirects ?? new RedirectRepository();
 		$this->settings       = $settings ?? new SettingsStore();
 		$this->bulkEnumerator = $bulkEnumerator;
+		$this->lock           = $lock;
 	}
 
 	/**
@@ -85,10 +101,11 @@ final class ImportRunner {
 	 * @param string               $mode     Conflict mode, skip or overwrite.
 	 * @param string[]             $excludes Excluded row identities, post:{id}, term:{taxonomy}:{id}, redirect:{match}:{source}.
 	 * @param array<string, mixed> $options  Nested choices map for sitewide, rule identity string for bulk.
+	 * @param string               $owner    Run id that owns the import lock.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 * @throws InvalidArgumentException When source, kind, mode, limit, exclusion, choice or rule is invalid.
 	 */
-	public function run( string $source, string $kind, int $offset, int $limit, string $mode, array $excludes = [], array $options = [] ): array {
+	public function run( string $source, string $kind, int $offset, int $limit, string $mode, array $excludes = [], array $options = [], string $owner = '' ): array {
 		if ( ! isset( $this->readers[ $source ] ) ) {
 			throw new InvalidArgumentException( 'Unknown import source.' );
 		}
@@ -108,11 +125,11 @@ final class ImportRunner {
 		$reader = $this->readers[ $source ];
 
 		if ( 'posts' === $kind ) {
-			return $this->runPosts( $reader, $source, $offset, $limit, $mode, $excludes );
+			return $this->runPosts( $reader, $source, $offset, $limit, $mode, $excludes, $owner );
 		}
 
 		if ( 'terms' === $kind ) {
-			return $this->runTerms( $reader, $source, $offset, $limit, $mode, $excludes );
+			return $this->runTerms( $reader, $source, $offset, $limit, $mode, $excludes, $owner );
 		}
 
 		if ( 'sitewide' === $kind ) {
@@ -120,10 +137,93 @@ final class ImportRunner {
 		}
 
 		if ( 'redirects' === $kind ) {
-			return $this->runRedirects( $reader, $source, $mode, $excludes );
+			return $this->runRedirects( $reader, $source, $mode, $excludes, $owner );
 		}
 
-		return $this->runBulk( $reader, $source, $offset, $limit, $mode, $options );
+		return $this->runBulk( $reader, $source, $offset, $limit, $mode, $options, $owner );
+	}
+
+	/**
+	 * Whether the run still owns the import lock.
+	 *
+	 * The check renews the lease as well, so a run that is working keeps
+	 * its lease fresh and a competing run keeps being refused. A run that
+	 * cannot renew has lost the lock and must not write anything else.
+	 *
+	 * @param string $owner Run id that owns the import lock.
+	 * @return bool True when the run may keep writing.
+	 */
+	private function leaseHeld( string $owner ): bool {
+		if ( null === $this->lock || '' === $owner ) {
+			return true;
+		}
+
+		return $this->lock->renew( $owner );
+	}
+
+	/**
+	 * Build the exception for a run that stopped.
+	 *
+	 * The message is escaped here because it reaches the response, the
+	 * counts are integers and the previous throwable is never echoed.
+	 *
+	 * @param string             $message  Failure message.
+	 * @param array<string, int> $counts   Progress before the failure.
+	 * @param \Throwable|null    $previous Previous failure.
+	 * @return ImportRunException The exception.
+	 */
+	private static function failure( string $message, array $counts = [], ?\Throwable $previous = null ): ImportRunException {
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the message is escaped for the response, the counts are integers and the previous throwable is never echoed.
+		return new ImportRunException(
+			esc_html( $message ),
+			$counts,
+			$previous
+		);
+	}
+
+	/**
+	 * Apply rows in bounded slices, one lease check per slice.
+	 *
+	 * The slices keep the work of one request bounded and give the run a
+	 * place to notice that it lost the lock before it writes the next
+	 * slice. An unexpected failure is reported with the counts of the
+	 * work that did happen.
+	 *
+	 * @param array<int, array<string, mixed>> $apply     Rows to write.
+	 * @param callable                         $write     Writer, fn( array $rows ): array{applied: int, skipped: int, failed: int}.
+	 * @param string                           $owner     Run id that owns the import lock.
+	 * @param array<string, int>               $counts    Counts so far.
+	 * @return array{applied: int, skipped: int, failed: int} The counts.
+	 * @throws ImportRunException When the run lost the lock or a write failed.
+	 */
+	private function applySlices( array $apply, callable $write, string $owner, array $counts ): array {
+		foreach ( array_chunk( $apply, self::WRITE_SLICE ) as $slice ) {
+			if ( ! $this->leaseHeld( $owner ) ) {
+				$message   = __( 'The import lock was lost, so the run stopped before it wrote more records.', 'rankkernel' );
+				$exception = self::failure( $message, $counts );
+
+				throw $exception;
+			}
+
+			try {
+				$part = $write( $slice );
+			} catch ( \Throwable $throwable ) {
+				$message = sprintf(
+					/* translators: %s: failure message. */
+					__( 'The import stopped on an unexpected error: %s', 'rankkernel' ),
+					$throwable->getMessage()
+				);
+				$exception = self::failure( $message, $counts, $throwable );
+
+				throw $exception;
+			}
+
+			$counts['applied'] += (int) ( $part['applied'] ?? 0 );
+			$counts['skipped'] += (int) ( $part['skipped'] ?? 0 );
+			$counts['failed']  += (int) ( $part['failed'] ?? 0 );
+		}
+
+		return $counts;
 	}
 
 	/**
@@ -166,9 +266,10 @@ final class ImportRunner {
 	 * @param int               $limit    Chunk size.
 	 * @param string            $mode     Conflict mode.
 	 * @param array<int|string> $excludes Excluded post identities, post:{id}.
+	 * @param string            $owner    Run id that owns the import lock.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 */
-	private function runPosts( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes ): array {
+	private function runPosts( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes, string $owner = '' ): array {
 		$excluded     = self::exclusionSet( $excludes, 'post' );
 		$items        = $reader->fetchPosts( $offset, $limit );
 		$withExisting = [];
@@ -192,7 +293,16 @@ final class ImportRunner {
 			];
 		}
 
-		$counts             = PayloadImporter::applyRows( $apply, $mode );
+		$counts             = $this->applySlices(
+			$apply,
+			static fn ( array $slice ): array => PayloadImporter::applyRows( $slice, $mode ),
+			$owner,
+			[
+				'applied' => 0,
+				'skipped' => 0,
+				'failed'  => 0,
+			]
+		);
 		$counts['skipped'] += count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] );
 		$counts['done']     = count( $items ) < $limit;
 		$counts['total']    = $reader->detect()['posts'];
@@ -209,9 +319,10 @@ final class ImportRunner {
 	 * @param int               $limit    Chunk size.
 	 * @param string            $mode     Conflict mode.
 	 * @param array<int|string> $excludes Excluded term identities, term:{taxonomy}:{id}.
+	 * @param string            $owner    Run id that owns the import lock.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 */
-	private function runTerms( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes ): array {
+	private function runTerms( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $excludes, string $owner = '' ): array {
 		$excluded     = self::exclusionSet( $excludes, 'term' );
 		$items        = $reader->fetchTerms( $offset, $limit );
 		$withExisting = [];
@@ -235,7 +346,16 @@ final class ImportRunner {
 			];
 		}
 
-		$counts             = PayloadImporter::applyTermRows( $apply, $mode );
+		$counts             = $this->applySlices(
+			$apply,
+			static fn ( array $slice ): array => PayloadImporter::applyTermRows( $slice, $mode ),
+			$owner,
+			[
+				'applied' => 0,
+				'skipped' => 0,
+				'failed'  => 0,
+			]
+		);
 		$counts['skipped'] += count( $preview['rows'] ) - count( $apply ) + count( $preview['skipped'] );
 		$counts['done']     = count( $items ) < $limit;
 		$counts['total']    = $reader->detect()['terms'];
@@ -267,7 +387,7 @@ final class ImportRunner {
 			'skipped' => 0,
 			'failed'  => 0,
 			'done'    => true,
-			'total'   => 1,
+			'total'   => count( $preview['rows'] ) + count( $preview['skipped'] ),
 		];
 
 		$bySlot = [];
@@ -328,10 +448,11 @@ final class ImportRunner {
 	 * @param string            $source   Source id.
 	 * @param string            $mode     Conflict mode.
 	 * @param array<int|string> $excludes Excluded redirect identities, redirect:{match}:{source}.
+	 * @param string            $owner    Run id that owns the import lock.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 * @throws InvalidArgumentException When an exclusion is unknown.
 	 */
-	private function runRedirects( SourceReader $reader, string $source, string $mode, array $excludes ): array {
+	private function runRedirects( SourceReader $reader, string $source, string $mode, array $excludes, string $owner = '' ): array {
 		$preview = PreviewBuilder::buildPreview( $source, [], [], [], $reader->fetchRedirectsRaw(), $mode );
 		$counts  = [
 			'applied' => 0,
@@ -358,43 +479,63 @@ final class ImportRunner {
 			$skip[ (string) $exclude ] = true;
 		}
 
-		foreach ( $valid as $identity => $row ) {
-			if ( isset( $skip[ $identity ] ) ) {
-				++$counts['skipped'];
+		foreach ( array_chunk( $valid, self::WRITE_SLICE, true ) as $slice ) {
+			if ( ! $this->leaseHeld( $owner ) ) {
+				$message   = __( 'The import lock was lost, so the run stopped before it wrote more redirects.', 'rankkernel' );
+				$exception = self::failure( $message, $counts );
 
-				continue;
+				throw $exception;
 			}
 
-			$matchType  = (string) ( $row->fields['match_type'] ?? 'exact' );
-			$from       = (string) ( $row->fields['source'] ?? '' );
-			$normalized = Normalizer::normalizeSource( $from, $matchType );
+			foreach ( $slice as $identity => $row ) {
+				if ( isset( $skip[ $identity ] ) ) {
+					++$counts['skipped'];
 
-			if ( '' === $normalized || Normalizer::isBlockedSource( $normalized ) ) {
-				++$counts['skipped'];
+					continue;
+				}
 
-				continue;
-			}
+				$matchType  = (string) ( $row->fields['match_type'] ?? 'exact' );
+				$from       = (string) ( $row->fields['source'] ?? '' );
+				$normalized = Normalizer::normalizeSource( $from, $matchType );
 
-			if ( null !== $this->redirects->find( $matchType, Normalizer::hash( $matchType, $normalized ) ) ) {
-				++$counts['skipped'];
+				if ( '' === $normalized || Normalizer::isBlockedSource( $normalized ) ) {
+					++$counts['skipped'];
 
-				continue;
-			}
+					continue;
+				}
 
-			$id = $this->redirects->insert(
-				[
-					'source'     => $from,
-					'target'     => (string) ( $row->fields['target'] ?? '' ),
-					'code'       => (int) ( $row->fields['code'] ?? 301 ),
-					'match_type' => $matchType,
-					'is_active'  => 1,
-				]
-			);
+				if ( null !== $this->redirects->find( $matchType, Normalizer::hash( $matchType, $normalized ) ) ) {
+					++$counts['skipped'];
 
-			if ( $id > 0 ) {
-				++$counts['applied'];
-			} else {
-				++$counts['skipped'];
+					continue;
+				}
+
+				try {
+					$id = $this->redirects->insert(
+						[
+							'source'     => $from,
+							'target'     => (string) ( $row->fields['target'] ?? '' ),
+							'code'       => (int) ( $row->fields['code'] ?? 301 ),
+							'match_type' => $matchType,
+							'is_active'  => 1,
+						]
+					);
+				} catch ( \Throwable $throwable ) {
+					$message = sprintf(
+						/* translators: %s: failure message. */
+						__( 'The import stopped on an unexpected error: %s', 'rankkernel' ),
+						$throwable->getMessage()
+					);
+					$exception = self::failure( $message, $counts, $throwable );
+
+					throw $exception;
+				}
+
+				if ( $id > 0 ) {
+					++$counts['applied'];
+				} else {
+					++$counts['skipped'];
+				}
 			}
 		}
 
@@ -415,10 +556,11 @@ final class ImportRunner {
 	 * @param int                  $limit   Chunk size.
 	 * @param string               $mode    Conflict mode.
 	 * @param array<string, mixed> $options Bulk rule wrapper with the rule identity.
+	 * @param string               $owner   Run id that owns the import lock.
 	 * @return array{applied: int, skipped: int, failed: int, done: bool, total: int} The result.
 	 * @throws InvalidArgumentException When the bulk rule is unknown.
 	 */
-	private function runBulk( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $options ): array {
+	private function runBulk( SourceReader $reader, string $source, int $offset, int $limit, string $mode, array $options, string $owner = '' ): array {
 		$identity = is_string( $options['rule'] ?? null ) ? $options['rule'] : '';
 		$preview  = PreviewBuilder::buildPreview( $source, [], [], $reader->fetchSitewideRaw(), [], $mode );
 		$valid    = [];
@@ -461,9 +603,18 @@ final class ImportRunner {
 				];
 		}
 
-		$counts = 'post' === $kind
-			? PayloadImporter::applyRows( $apply, $mode )
-			: PayloadImporter::applyTermRows( $apply, $mode );
+		$counts = $this->applySlices(
+			$apply,
+			static fn ( array $slice ): array => 'post' === $kind
+				? PayloadImporter::applyRows( $slice, $mode )
+				: PayloadImporter::applyTermRows( $slice, $mode ),
+			$owner,
+			[
+				'applied' => 0,
+				'skipped' => 0,
+				'failed'  => 0,
+			]
+		);
 
 		$counts['done']  = $offset + $limit >= $total;
 		$counts['total'] = $total;

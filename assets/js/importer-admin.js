@@ -96,7 +96,12 @@
 			if ( ! response.ok ) {
 				var err = new Error( 'Request failed with status ' + response.status );
 				err.status = response.status;
-				throw err;
+				return response.json().catch( function () {
+					return {};
+				} ).then( function ( body ) {
+					err.data = body;
+					throw err;
+				} );
 			}
 			return response.json();
 		} );
@@ -819,7 +824,17 @@
 				panel.innerHTML = '<h3>' + esc( __( 'Import stopped', 'rankkernel' ) ) + '</h3>' + finalReport( root );
 			}
 			if ( err && 409 === err.status ) {
-				fail( root, __( 'Another import run is already active for this source. Wait for it to finish and try again.', 'rankkernel' ) );
+				fail( root, __( 'Another import run is already active. Wait for it to finish and try again.', 'rankkernel' ) );
+			} else if ( err && err.data && err.data.data && err.data.data.partial ) {
+				var partial = err.data.data.partial;
+				fail(
+					root,
+					__( 'The import stopped on an unexpected error.', 'rankkernel' ) + ' '
+					+ __( 'Progress before the failure:', 'rankkernel' ) + ' '
+					+ ( partial.applied || 0 ) + ' ' + __( 'applied', 'rankkernel' ) + ', '
+					+ ( partial.skipped || 0 ) + ' ' + __( 'skipped', 'rankkernel' ) + ', '
+					+ ( partial.failed || 0 ) + ' ' + __( 'failed', 'rankkernel' ) + '.'
+				);
 			} else {
 				fail( root, __( 'Import run failed partway. Re-run to resume the remaining chunks.', 'rankkernel' ) );
 			}

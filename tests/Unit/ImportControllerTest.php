@@ -825,4 +825,132 @@ final class ImportControllerTest extends TestCase {
 		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
 	}
+
+	/**
+	 * Test a run on another source is refused while a run is active.
+	 *
+	 * The lock is global, because a redirect or a meta row belongs to
+	 * the site and not to the plugin it came from, so two runs on two
+	 * sources would fight over the same destinations.
+	 */
+	public function test_run_on_another_source_is_refused_while_a_run_is_active(): void {
+		[ $first ] = $this->makeController();
+
+		$ok = $first->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Response::class, $ok );
+
+		$ctrl = new ImportController(
+			[
+				'yoast'     => new ImportControllerStubReader(),
+				'rank-math' => new ImportControllerStubReader(),
+			],
+			static function (): ImportControllerStubRunner {
+				return new ImportControllerStubRunner();
+			},
+			new ImportLock( $this->lockDb )
+		);
+
+		$busy = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'rank-math',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-bbbb-2222',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $busy );
+		$this->assertSame( 'rankkernel_import_busy', $busy->get_error_code() );
+		$this->assertSame( 409, $busy->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test the run id reaches the runner so it can fence its writes.
+	 */
+	public function test_run_id_reaches_the_runner(): void {
+		[ $ctrl, $runner ] = $this->makeController();
+
+		$ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertSame( 'run-aaaa-1111', $runner->lastArgs['owner'] );
+	}
+
+	/**
+	 * Test a run that stopped with partial progress reports the counts.
+	 */
+	public function test_partial_failure_reports_progress(): void {
+		$ctrl = new ImportController(
+			[ 'yoast' => new ImportControllerStubReader() ],
+			static function (): object {
+				return new class() {
+					/**
+					 * Fail the way a lost lease fails.
+					 *
+					 * @throws \RankKernel\Modules\Importer\ImportRunException Always.
+					 */
+					public function run(): void {
+						throw new \RankKernel\Modules\Importer\ImportRunException(
+							'The import lock was lost.',
+							[
+								'applied' => 7,
+								'skipped' => 2,
+								'failed'  => 1,
+							]
+						);
+					}
+				};
+			},
+			new ImportLock( $this->lockDb )
+		);
+
+		$res = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_run_failed', $res->get_error_code() );
+
+		$data = $res->get_error_data();
+
+		$this->assertSame( 500, $data['status'] ?? null );
+		$this->assertSame( 7, $data['partial']['applied'] ?? null );
+		$this->assertSame( 2, $data['partial']['skipped'] ?? null );
+		$this->assertSame( 1, $data['partial']['failed'] ?? null );
+	}
 }

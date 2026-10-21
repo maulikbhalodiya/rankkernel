@@ -159,11 +159,17 @@ class ImporterModule implements ModuleInterface {
 			'aioseo'    => new AioseoReader(),
 		];
 
+		// One lock for every source: two runs would fight over the same
+		// destinations, because a redirect or a meta row belongs to the
+		// site and not to the plugin it came from.
+		$lock = new ImportLock();
+
 		$controller = new ImportController(
 			$readers,
-			static function () use ( $readers ): ImportRunner {
-				return new ImportRunner( $readers, new RedirectRepository(), new SettingsStore() );
-			}
+			static function () use ( $readers, $lock ): ImportRunner {
+				return new ImportRunner( $readers, new RedirectRepository(), new SettingsStore(), null, $lock );
+			},
+			$lock
 		);
 		$controller->registerRoutes();
 	}

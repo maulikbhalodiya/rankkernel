@@ -157,6 +157,13 @@ final class RankMathMapper {
 	 * default need no row: writing our own default back would flood
 	 * the preview with no-op changes.
 	 *
+	 * Index and follow are neutral on purpose. Rank Math stores the
+	 * resolved directive set on the post, so a post that merely mirrors
+	 * the sitewide default already carries an index directive, and the
+	 * stored value cannot tell an inherited index from one the author
+	 * picked on a noindex default site. The sitewide default therefore
+	 * decides, and the importer follows it.
+	 *
 	 * @param array<string, mixed> $meta      Bare meta values keyed by meta key.
 	 * @param array<string, mixed> $sitewide  The rank-math-options-titles option array.
 	 * @param string               $robotsKey Sitewide robots key for the fallback.
@@ -209,6 +216,11 @@ final class RankMathMapper {
 	 * single directive word and an unreadable value are all accepted,
 	 * and anything unreadable yields no directives, which leaves the
 	 * post on the sitewide default.
+	 *
+	 * The keyed shape is read as directive => on. Rank Math only ever
+	 * writes the plain list, or its own normaliser shape of directive
+	 * => true, so a keyed value of false is read as the directive being
+	 * off. That is a tolerant reading, not a format Rank Math produces.
 	 *
 	 * @param mixed $raw Stored robots value.
 	 * @return string[] Directive names.

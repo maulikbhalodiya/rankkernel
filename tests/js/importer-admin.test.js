@@ -936,3 +936,40 @@ test( 'truncation note names the cap for the kind and for a search', async () =>
 	await new Promise( ( resolve ) => setTimeout( resolve, 350 ) );
 	assert.match( dom.sections.posts.innerHTML, /This search shows at most 5000 rows/ );
 } );
+
+test( 'a failed run reports the progress made before the failure', async () => {
+	const dom = importerDom();
+	const spoken = [];
+	const calls = [];
+	const fetchImpl = ( url, opts ) => {
+		calls.push( { url, body: JSON.parse( opts.body ) } );
+		if ( /\/run$/.test( url ) ) {
+			return Promise.resolve( {
+				ok: false,
+				status: 500,
+				json() {
+					return Promise.resolve( {
+						code: 'rankkernel_run_failed',
+						message: 'The import stopped on an unexpected error.',
+						data: { status: 500, partial: { applied: 7, skipped: 2, failed: 1 } }
+					} );
+				}
+			} );
+		}
+		if ( /\/preview$/.test( url ) ) {
+			return previewFetch( [] )( url, opts );
+		}
+		return okJson( { applied: 1, skipped: 0, failed: 0, done: true, total: 1 } );
+	};
+	const sandbox = sandboxFor( dom, fetchImpl, spoken );
+	runImporter( sandbox );
+	dom.previewBtn.dispatch( 'click' );
+	await ticks( 12 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 2 );
+	dom.runBtn.dispatch( 'click' );
+	await ticks( 12 );
+	assert.match( dom.errorBox.innerHTML, /7 applied/ );
+	assert.match( dom.errorBox.innerHTML, /2 skipped/ );
+	assert.match( dom.errorBox.innerHTML, /1 failed/ );
+} );

@@ -1,6 +1,6 @@
 <?php
 /**
- * One import run at a time, per source.
+ * One import run at a time.
  *
  * @package RankKernel
  * @license GPL-2.0-or-later
@@ -15,9 +15,11 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Import Lock.
  *
- * Two runs on the same source would write the same records at the same
- * time, so a run holds the lock for the whole run and a second run on
- * that source is refused with a conflict.
+ * Two import runs at the same time would write the same records at the
+ * same time, and two runs on two different sources would still fight
+ * over the same destinations, because a redirect or a meta row belongs
+ * to the site and not to the source plugin it came from. The lock is
+ * therefore global: one import run at a time, whatever the source.
  *
  * The lock row lives in the options table and is written with plain
  * SQL on purpose. The options API is not atomic across requests, and
@@ -26,19 +28,37 @@ defined( 'ABSPATH' ) || exit;
  * change is a compare and swap on the stored value, so only one owner
  * can hold the lock and only the owner can release it.
  *
+ * The lease is derived from the PHP execution limit rather than from a
+ * fixed number of seconds, so it cannot expire while a chunk is still
+ * running normally. A run that is working renews the lease before every
+ * write slice, so a competing run keeps being refused. A run that lost
+ * the lease, for example because it was paused long enough for the lease
+ * to expire and another run took over, fails its next renewal and stops
+ * writing before it can touch a destination another run now owns.
+ *
  * A lock that is never released expires on its own, so an abandoned
  * run cannot block the next one for ever.
  */
 final class ImportLock {
 	/**
-	 * Option name prefix.
+	 * Option name that holds the lock.
 	 */
-	public const OPTION_PREFIX = 'rankkernel_import_lock_';
+	public const OPTION_NAME = 'rankkernel_import_lock';
 
 	/**
-	 * Seconds a lock stays valid without a refresh.
+	 * Shortest lease, in seconds.
 	 */
-	public const TTL = 120;
+	public const MIN_LEASE = 120;
+
+	/**
+	 * Extra seconds on top of the execution limit.
+	 */
+	public const GRACE = 30;
+
+	/**
+	 * Lease used when the execution limit is unlimited.
+	 */
+	public const UNLIMITED_LEASE = 900;
 
 	/**
 	 * Database handle, global $wpdb unless a double is injected.
@@ -72,52 +92,76 @@ final class ImportLock {
 	}
 
 	/**
+	 * The lease length for one claim, in seconds.
+	 *
+	 * The execution limit is the time a request may run, so a lease that
+	 * outlives it can never expire under a request that is still alive.
+	 * On Linux the limit counts CPU time rather than wall clock time,
+	 * so a request blocked on the database can still outlive its lease.
+	 * The renewal before every write slice is what closes that window.
+	 *
+	 * @return int The lease length in seconds.
+	 */
+	public static function leaseSeconds(): int {
+		$limit = 0;
+
+		if ( function_exists( 'ini_get' ) ) {
+			$limit = (int) ini_get( 'max_execution_time' );
+		}
+
+		if ( $limit <= 0 ) {
+			return self::UNLIMITED_LEASE;
+		}
+
+		return max( self::MIN_LEASE, $limit + self::GRACE );
+	}
+
+	/**
 	 * Claim the lock for a run, or refresh a lock the run already owns.
 	 *
-	 * @param string $source Source id.
-	 * @param string $owner  Run id that owns the lock.
+	 * @param string $owner Run id that owns the lock.
 	 * @return bool True when the run owns the lock.
 	 */
-	public function claim( string $source, string $owner ): bool {
-		$key = $this->key( $source );
-
-		if ( $this->insert( $key, $this->payload( $owner ) ) ) {
+	public function claim( string $owner ): bool {
+		if ( $this->insert( self::OPTION_NAME, $this->payload( $owner ) ) ) {
 			return true;
 		}
 
-		$current = $this->read( $key );
+		$current = $this->read( self::OPTION_NAME );
 
 		if ( null === $current ) {
-			return $this->insert( $key, $this->payload( $owner ) );
+			return $this->insert( self::OPTION_NAME, $this->payload( $owner ) );
 		}
 
 		$data = self::decode( $current );
 
 		if ( null !== $data && $data['owner'] === $owner ) {
-			return $this->swap( $key, $current, $this->payload( $owner ) );
+			return $this->swap( self::OPTION_NAME, $current, $this->payload( $owner ) );
 		}
 
 		if ( null !== $data && $data['expires'] > time() ) {
 			return false;
 		}
 
-		if ( ! $this->remove( $key, $current ) ) {
+		if ( ! $this->remove( self::OPTION_NAME, $current ) ) {
 			return false;
 		}
 
-		return $this->insert( $key, $this->payload( $owner ) );
+		return $this->insert( self::OPTION_NAME, $this->payload( $owner ) );
 	}
 
 	/**
-	 * Release the lock, but only when the given run owns it.
+	 * Renew the lease, but only when the given run still owns the lock.
 	 *
-	 * @param string $source Source id.
-	 * @param string $owner  Run id that owns the lock.
-	 * @return bool True when this run released the lock.
+	 * The renewal is a compare and swap, so it also fails when another
+	 * run took the lock over in the meantime. A run that cannot renew
+	 * has lost the lock and must not write anything else.
+	 *
+	 * @param string $owner Run id that owns the lock.
+	 * @return bool True when the run still owns the lock.
 	 */
-	public function release( string $source, string $owner ): bool {
-		$key     = $this->key( $source );
-		$current = $this->read( $key );
+	public function renew( string $owner ): bool {
+		$current = $this->read( self::OPTION_NAME );
 
 		if ( null === $current ) {
 			return false;
@@ -129,19 +173,29 @@ final class ImportLock {
 			return false;
 		}
 
-		return $this->remove( $key, $current );
+		return $this->swap( self::OPTION_NAME, $current, $this->payload( $owner ) );
 	}
 
 	/**
-	 * The option name that holds the lock for a source.
+	 * Release the lock, but only when the given run owns it.
 	 *
-	 * @param string $source Source id.
-	 * @return string The option name.
+	 * @param string $owner Run id that owns the lock.
+	 * @return bool True when this run released the lock.
 	 */
-	private function key( string $source ): string {
-		$safe = (string) preg_replace( '/[^a-z0-9_-]/', '', strtolower( $source ) );
+	public function release( string $owner ): bool {
+		$current = $this->read( self::OPTION_NAME );
 
-		return self::OPTION_PREFIX . $safe;
+		if ( null === $current ) {
+			return false;
+		}
+
+		$data = self::decode( $current );
+
+		if ( null === $data || $data['owner'] !== $owner ) {
+			return false;
+		}
+
+		return $this->remove( self::OPTION_NAME, $current );
 	}
 
 	/**
@@ -157,7 +211,7 @@ final class ImportLock {
 		return (string) wp_json_encode(
 			[
 				'owner'   => $owner,
-				'expires' => time() + self::TTL,
+				'expires' => time() + self::leaseSeconds(),
 				'nonce'   => self::nonce(),
 			]
 		);

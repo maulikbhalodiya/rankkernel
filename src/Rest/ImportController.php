@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Importer\BulkScope;
 use RankKernel\Modules\Importer\ImportLock;
+use RankKernel\Modules\Importer\ImportRunException;
 use RankKernel\Modules\Importer\ImportRunner;
 use RankKernel\Modules\Importer\PayloadImporter;
 use RankKernel\Modules\Importer\PreviewBuilder;
@@ -465,7 +466,9 @@ final class ImportController {
 				'rows'      => array_slice( $rows, $offset, $limit ),
 				'skipped'   => $preview['skipped'],
 				'hasMore'   => $offset + $limit < count( $rows ),
-				'kindTotal' => count( $rows ),
+				// The eligible count comes from the detect totals, so a
+				// search never changes it and it matches the run total.
+				'kindTotal' => (int) ( $totals['redirects'] ?? count( $rows ) ),
 			];
 		}
 
@@ -662,10 +665,10 @@ final class ImportController {
 			);
 		}
 
-		if ( ! $this->lock->claim( $source, $runId ) ) {
+		if ( ! $this->lock->claim( $runId ) ) {
 			return new WP_Error(
 				'rankkernel_import_busy',
-				__( 'Another import run is already active for this source. Wait for it to finish, then try again.', 'rankkernel' ),
+				__( 'Another import run is already active. Wait for it to finish, then try again.', 'rankkernel' ),
 				[ 'status' => 409 ]
 			);
 		}
@@ -673,12 +676,21 @@ final class ImportController {
 		$factory = $this->runnerFactory;
 
 		try {
-			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options );
+			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options, $runId );
 		} catch ( \InvalidArgumentException $e ) {
 			return new WP_Error(
 				'rankkernel_invalid_run',
 				$e->getMessage(),
 				[ 'status' => 400 ]
+			);
+		} catch ( ImportRunException $e ) {
+			return new WP_Error(
+				'rankkernel_run_failed',
+				$e->getMessage(),
+				[
+					'status'  => 500,
+					'partial' => $e->counts(),
+				]
 			);
 		}
 
@@ -688,8 +700,9 @@ final class ImportController {
 	/**
 	 * Release the source lock a finished run still holds.
 	 *
-	 * Only the run that owns the lock can release it, so a late release
-	 * from a finished run never frees a lock a later run has taken.
+	 * The lock is global, so one run at a time covers every source. Only
+	 * the run that owns the lock can release it, so a late release from a
+	 * finished run never frees a lock a later run has taken.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error The result.
@@ -712,6 +725,6 @@ final class ImportController {
 			);
 		}
 
-		return new WP_REST_Response( [ 'released' => $this->lock->release( $source, $runId ) ], 200 );
+		return new WP_REST_Response( [ 'released' => $this->lock->release( $runId ) ], 200 );
 	}
 }
