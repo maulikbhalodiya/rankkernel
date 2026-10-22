@@ -207,7 +207,10 @@ final class NotFoundPage {
 		wp_enqueue_script( 'rankkernel-monitor-admin' );
 
 		$settingsJs = plugins_url( 'assets/js/monitor-settings.js', (string) RANKKERNEL_FILE );
-		wp_register_script( 'rankkernel-monitor-settings', $settingsJs, [], $version, true );
+		wp_register_script( 'rankkernel-monitor-settings', $settingsJs, [ 'wp-a11y', 'wp-i18n' ], $version, true );
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'rankkernel-monitor-settings', 'rankkernel' );
+		}
 		wp_enqueue_script( 'rankkernel-monitor-settings' );
 	}
 
