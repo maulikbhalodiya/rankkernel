@@ -38,6 +38,34 @@ class ProductPiece implements PieceInterface {
 	private readonly SettingsStore $settings;
 
 	/**
+	 * Last evaluated Context instance for single-slot isComplete memoization.
+	 *
+	 * @var Context|null
+	 */
+	private ?Context $memoContext = null;
+
+	/**
+	 * Single-slot key for isComplete memoization.
+	 *
+	 * @var string|null
+	 */
+	private ?string $isCompleteMemoKey = null;
+
+	/**
+	 * Cached value for isComplete.
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $isCompleteMemoValue = null;
+
+	/**
+	 * Memoized WooCommerce product fields per post ID.
+	 *
+	 * @var array{id: int, fields: array<string, string>}|null
+	 */
+	private ?array $wooFieldsMemo = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore|null $settings Optional settings store.
@@ -87,21 +115,43 @@ class ProductPiece implements PieceInterface {
 	 * @return bool True when the node can be emitted.
 	 */
 	private function isComplete( Context $ctx ): bool {
+		// Single-slot fast path: reuses cached completeness decision for the same Context instance.
+		if ( null !== $this->memoContext && $this->memoContext === $ctx && null !== $this->isCompleteMemoValue ) {
+			return $this->isCompleteMemoValue;
+		}
+
+		$meta        = $ctx->meta();
+		$metaEncoded = function_exists( 'wp_json_encode' ) ? (string) wp_json_encode( $meta ) : (string) json_encode( $meta ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Fallback when WP is not loaded.
+		$key         = $ctx->hash() . '|' . md5( $metaEncoded ) . '|' . ( $this->isWooCommerceAvailable() ? '1' : '0' );
+
+		// Keyed single-slot cache prevents re-validating required Product schema fields on identical contexts.
+		if ( null !== $this->isCompleteMemoKey && $this->isCompleteMemoKey === $key && null !== $this->isCompleteMemoValue ) {
+			$this->memoContext = $ctx;
+
+			return $this->isCompleteMemoValue;
+		}
+
 		$fields = SchemaHelpers::resolvedFields( $ctx );
 
 		if ( $this->isWooCommerceAvailable() ) {
 			$woo = $this->readWooFields( $ctx->queriedId() );
 
-			foreach ( [ 'price', 'ratingValue', 'datePublished' ] as $key ) {
-				$value = isset( $woo[ $key ] ) ? trim( (string) $woo[ $key ] ) : '';
+			foreach ( [ 'price', 'ratingValue', 'datePublished' ] as $keyName ) {
+				$value = isset( $woo[ $keyName ] ) ? trim( (string) $woo[ $keyName ] ) : '';
 
-				if ( '' !== $value && '' === trim( (string) ( $fields[ $key ] ?? '' ) ) ) {
-					$fields[ $key ] = $value;
+				if ( '' !== $value && '' === trim( (string) ( $fields[ $keyName ] ?? '' ) ) ) {
+					$fields[ $keyName ] = $value;
 				}
 			}
 		}
 
-		return SchemaTypes::isComplete( 'Product', $fields );
+		$result = SchemaTypes::isComplete( 'Product', $fields );
+
+		$this->memoContext         = $ctx;
+		$this->isCompleteMemoKey   = $key;
+		$this->isCompleteMemoValue = $result;
+
+		return $result;
 	}
 
 	/**
@@ -203,7 +253,20 @@ class ProductPiece implements PieceInterface {
 			return [];
 		}
 
-		return $this->wooFields( $postId, 'wc_get_product', 'get_woocommerce_currency' );
+		// Performance optimization: memoizes WooCommerce product field extraction per post ID
+		// to eliminate redundant wc_get_product lookups and getter executions across isNeeded() and build().
+		if ( null !== $this->wooFieldsMemo && $this->wooFieldsMemo['id'] === $postId ) {
+			return $this->wooFieldsMemo['fields'];
+		}
+
+		$fields = $this->wooFields( $postId, 'wc_get_product', 'get_woocommerce_currency' );
+
+		$this->wooFieldsMemo = [
+			'id'     => $postId,
+			'fields' => $fields,
+		];
+
+		return $fields;
 	}
 
 	/**
