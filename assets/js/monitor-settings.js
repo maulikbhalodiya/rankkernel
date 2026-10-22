@@ -9,6 +9,20 @@
 ( function () {
 	'use strict';
 
+	// Dynamic announcement helper using wp.a11y.speak when available.
+	function rankkernelAnnounce( text ) {
+		if ( ! window.wp || ! window.wp.a11y || typeof window.wp.a11y.speak !== 'function' ) {
+			return;
+		}
+
+		window.wp.a11y.speak( text );
+	}
+
+	// Translation helper falling back to untranslated string if wp.i18n is absent.
+	var __ = ( window.wp && window.wp.i18n && typeof window.wp.i18n.__ === 'function' )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
+
 	/**
 	 * Set the open state of the panel plus its toggle button.
 	 *
@@ -19,6 +33,8 @@
 		if ( ! panel ) {
 			return;
 		}
+
+		var stateChanged = ( 'undefined' !== typeof panel.hidden ) ? ( !! panel.hidden === !! open ) : true;
 
 		if ( 'undefined' !== typeof panel.hidden ) {
 			panel.hidden = ! open;
@@ -38,6 +54,12 @@
 
 		if ( summary && summary.setAttribute ) {
 			summary.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		}
+
+		if ( stateChanged ) {
+			rankkernelAnnounce( open
+				? __( '404 Monitor settings panel opened.', 'rankkernel' )
+				: __( '404 Monitor settings panel closed.', 'rankkernel' ) );
 		}
 	}
 
