@@ -72,6 +72,7 @@ final class RedirectsSlugWatcherTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		RedirectsSettings::resetCache();
 
 		if ( ! defined( 'ARRAY_A' ) ) {
 			define( 'ARRAY_A', 'ARRAY_A' );
@@ -142,6 +143,7 @@ final class RedirectsSlugWatcherTest extends TestCase {
 	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
+		RedirectsSettings::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}

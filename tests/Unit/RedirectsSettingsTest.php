@@ -38,6 +38,7 @@ final class RedirectsSettingsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		RedirectsSettings::resetCache();
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -62,8 +63,40 @@ final class RedirectsSettingsTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectsSettings::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Test static memoization across instances and resetCache.
+	 */
+	public function test_static_memoization_and_reset_cache(): void {
+		$getOptionCount = 0;
+
+		Functions\when( 'get_option' )->alias(
+			function ( string $key, mixed $fallback = false ) use ( &$getOptionCount ): mixed {
+				if ( RedirectsSettings::OPTION === $key ) {
+					++$getOptionCount;
+				}
+
+				return $this->options[ $key ] ?? $fallback;
+			}
+		);
+
+		$instance1 = new RedirectsSettings();
+		$this->assertTrue( $instance1->get( 'preserve_query' ) );
+		$this->assertSame( 1, $getOptionCount );
+
+		$instance2 = new RedirectsSettings();
+		$this->assertTrue( $instance2->get( 'preserve_query' ) );
+		$this->assertSame( 1, $getOptionCount, 'Second instance must use static request-level cache without re-querying get_option' );
+
+		RedirectsSettings::resetCache();
+
+		$instance3 = new RedirectsSettings();
+		$this->assertTrue( $instance3->get( 'preserve_query' ) );
+		$this->assertSame( 2, $getOptionCount, 'After resetCache, get_option must be called again' );
 	}
 
 	/**
