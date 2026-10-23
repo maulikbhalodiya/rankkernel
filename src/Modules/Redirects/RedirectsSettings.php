@@ -38,25 +38,11 @@ final class RedirectsSettings {
 	];
 
 	/**
-	 * Static in-memory cache for merged settings across instances within a request.
-	 *
-	 * @var array<string, mixed>|null
-	 */
-	private static ?array $cachedSettings = null;
-
-	/**
 	 * Cached merged settings, defaults plus stored values.
 	 *
 	 * @var array<string, mixed>|null
 	 */
 	private ?array $cache = null;
-
-	/**
-	 * Reset static request-level memoization (primarily for unit tests and long-lived processes).
-	 */
-	public static function resetCache(): void {
-		self::$cachedSettings = null;
-	}
 
 	/**
 	 * Default settings.
@@ -103,20 +89,13 @@ final class RedirectsSettings {
 			return $this->cache;
 		}
 
-		if ( null !== self::$cachedSettings ) {
-			$this->cache = self::$cachedSettings;
-
-			return $this->cache;
-		}
-
 		$stored = get_option( self::OPTION, [] );
 
 		if ( ! is_array( $stored ) ) {
 			$stored = [];
 		}
 
-		$this->cache          = array_merge( self::defaults(), $stored );
-		self::$cachedSettings = $this->cache;
+		$this->cache = array_merge( self::defaults(), $stored );
 
 		return $this->cache;
 	}
@@ -129,14 +108,12 @@ final class RedirectsSettings {
 
 		if ( ! is_array( $stored ) ) {
 			update_option( self::OPTION, self::defaults(), false );
-			$this->cache          = self::defaults();
-			self::$cachedSettings = $this->cache;
+			$this->cache = self::defaults();
 
 			return;
 		}
 
-		$this->cache          = array_merge( self::defaults(), $stored );
-		self::$cachedSettings = $this->cache;
+		$this->cache = array_merge( self::defaults(), $stored );
 	}
 
 	/**
@@ -164,8 +141,7 @@ final class RedirectsSettings {
 
 		update_option( self::OPTION, $merged, false );
 
-		$this->cache          = $merged;
-		self::$cachedSettings = $merged;
+		$this->cache = $merged;
 
 		return true;
 	}

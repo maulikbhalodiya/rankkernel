@@ -153,7 +153,6 @@ final class RedirectCache {
 	 */
 	public static function resetCache(): void {
 		self::$cachedValidator = null;
-		RedirectsSettings::resetCache();
 	}
 
 	/**
