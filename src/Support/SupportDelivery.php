@@ -178,11 +178,10 @@ final class SupportDelivery {
 	/**
 	 * Validates an uploaded screenshot.
 	 *
-	 * @param array<string, mixed>|null   $file           One entry from $_FILES, or null when nothing was sent.
-	 * @param callable(string): bool|null $isUploadedFile Upload probe override for testing.
+	 * @param array<string, mixed>|null $file One entry from $_FILES, or null when nothing was sent.
 	 * @return true|WP_Error True when usable, otherwise the reason.
 	 */
-	public static function validateScreenshot( $file, ?callable $isUploadedFile = null ) {
+	public static function validateScreenshot( $file ) {
 		if ( null === $file || ! is_array( $file ) || ! isset( $file['error'] ) ) {
 			return true;
 		}
@@ -220,9 +219,7 @@ final class SupportDelivery {
 		$type = isset( $file['type'] ) ? (string) $file['type'] : '';
 		$tmp  = isset( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
 
-		$probe = $isUploadedFile ?? 'is_uploaded_file';
-
-		if ( '' === $tmp || ! $probe( $tmp ) ) {
+		if ( '' === $tmp || ! is_uploaded_file( $tmp ) ) {
 			return new WP_Error(
 				'support_screenshot_failed',
 				__( 'The screenshot could not be read. Please try again.', 'rankkernel' )

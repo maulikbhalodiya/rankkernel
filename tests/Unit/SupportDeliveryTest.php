@@ -384,33 +384,6 @@ final class SupportDeliveryTest extends TestCase {
 	}
 
 	/**
-	 * A custom upload probe callable parameter seam can be passed to validateScreenshot.
-	 */
-	public function test_custom_upload_probe_seam_in_validate_screenshot(): void {
-		$probeCalledWith = null;
-		$probe           = static function ( string $path ) use ( &$probeCalledWith ): bool {
-			$probeCalledWith = $path;
-
-			return false;
-		};
-
-		$result = SupportDelivery::validateScreenshot(
-			[
-				'error'    => UPLOAD_ERR_OK,
-				'size'     => 1024,
-				'name'     => 'shot.png',
-				'type'     => 'image/png',
-				'tmp_name' => '/tmp/custom_probe_test.png',
-			],
-			$probe
-		);
-
-		$this->assertSame( '/tmp/custom_probe_test.png', $probeCalledWith );
-		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'support_screenshot_failed', $result->get_error_code() );
-	}
-
-	/**
 	 * Only the four image types are accepted.
 	 */
 	public function test_the_accepted_image_types_are_narrow(): void {
