@@ -76,14 +76,14 @@ final class SitemapSettingsPage {
 	 * @return string The result.
 	 */
 	public function currentTab(): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only display flag, unslashed here, sanitized or validated on the following statements.
-		$raw = $_GET['tab'] ?? '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, unslashed before sanitization.
+		$raw = isset( $_GET['tab'] ) ? wp_unslash( $_GET['tab'] ) : '';
 
 		if ( ! is_string( $raw ) ) {
 			return 'general';
 		}
 
-		$tab = sanitize_key( wp_unslash( $raw ) );
+		$tab = sanitize_key( $raw );
 
 		if ( ! in_array( $tab, self::TABS, true ) ) {
 			return 'general';
@@ -143,8 +143,9 @@ final class SitemapSettingsPage {
 		$all = $this->settings->all();
 
 		// Read only display flag, compared strictly against a literal, never stored or output.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawUpdated      = isset( $_GET['settings-updated'] ) ? sanitize_key( wp_unslash( (string) $_GET['settings-updated'] ) ) : '';
+		$settingsUpdated = '1' === $rawUpdated;
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.

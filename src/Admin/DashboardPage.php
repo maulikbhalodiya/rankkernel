@@ -182,8 +182,9 @@ final class DashboardPage {
 	 * Prepare the view state and load the dashboard view.
 	 */
 	public function render(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$rawUpdated      = isset( $_GET['settings-updated'] ) ? sanitize_key( wp_unslash( (string) $_GET['settings-updated'] ) ) : '';
+		$settingsUpdated = '1' === $rawUpdated;
 
 		$cards = $this->cards();
 
