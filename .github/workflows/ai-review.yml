@@ -75,7 +75,7 @@ jobs:
           # determinism, which is the property the checksum protected. This
           # is a known, accepted supply chain gap, not an oversight.
           require_opencode_checksum: 'false'
-          github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
@@ -191,7 +191,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.resolve-ref.outputs.ref }}
-          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
 
       - name: Setup PHP
@@ -209,7 +209,7 @@ jobs:
           mode: fix
           opencode_version: 'v1.18.31'
           require_opencode_checksum: 'false'
-          github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           opencode_api_key: ${{ secrets.OPENCODE_API_KEY }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
