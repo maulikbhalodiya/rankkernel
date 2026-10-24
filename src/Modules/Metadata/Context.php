@@ -58,6 +58,27 @@ final class Context {
 	private ?bool $isSingularCache = null;
 
 	/**
+	 * Cached permalink (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $permalinkCache = null;
+
+	/**
+	 * Cached title (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $titleCache = null;
+
+	/**
+	 * Cached excerpt (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $excerptCache = null;
+
+	/**
 	 * Memoized resolved templates by (hash|field).
 	 *
 	 * @var array<string, string>
@@ -360,9 +381,27 @@ final class Context {
 	 * resolves an unrelated post that happens to share the number, so the
 	 * excerpt stays empty there and the archive description is used instead.
 	 *
+	 * Performance optimization: memoizes excerpt within the Context instance to eliminate
+	 * repeated calls to get_the_excerpt(), get_post_field(), and regex/string operations.
+	 *
 	 * @return string The result.
 	 */
 	public function excerpt(): string {
+		if ( null !== $this->excerptCache ) {
+			return $this->excerptCache;
+		}
+
+		$this->excerptCache = $this->doResolveExcerpt();
+
+		return $this->excerptCache;
+	}
+
+	/**
+	 * Compute trimmed excerpt.
+	 *
+	 * @return string Resolved excerpt.
+	 */
+	private function doResolveExcerpt(): string {
 		if ( 'post' !== $this->queriedType() ) {
 			return '';
 		}
@@ -613,9 +652,27 @@ final class Context {
 	 * author display name before the post fallback, so %%title%% never
 	 * resolves a colliding post against a term or user id.
 	 *
+	 * Performance optimization: memoizes resolved title within the Context instance to eliminate
+	 * repeated evaluation of archive titles, term names, author names, and get_the_title() lookups.
+	 *
 	 * @return string The result.
 	 */
 	public function title(): string {
+		if ( null !== $this->titleCache ) {
+			return $this->titleCache;
+		}
+
+		$this->titleCache = $this->doResolveTitle();
+
+		return $this->titleCache;
+	}
+
+	/**
+	 * Compute title for the queried object.
+	 *
+	 * @return string Resolved title.
+	 */
+	private function doResolveTitle(): string {
 		// The front page and posts index carry no page title of their own:
 		// the CMS page title ("Home") was never written as a headline, so it
 		// resolves to nothing and the template falls back to the site name
@@ -749,9 +806,28 @@ final class Context {
 	 * archive URL or '' when derivation is unreliable, never falls back to
 	 * home_url for archives (prevents homepage canonical on archives).
 	 *
+	 * Performance optimization: memoizes permalink within the Context instance to eliminate
+	 * redundant calls to get_permalink(), get_term_link(), get_author_posts_url(), and rewrite
+	 * rule evaluations across head tags and Schema graph generation.
+	 *
 	 * @return string The result.
 	 */
 	public function permalink(): string {
+		if ( null !== $this->permalinkCache ) {
+			return $this->permalinkCache;
+		}
+
+		$this->permalinkCache = $this->doResolvePermalink();
+
+		return $this->permalinkCache;
+	}
+
+	/**
+	 * Compute permalink for the current context.
+	 *
+	 * @return string Resolved permalink URL.
+	 */
+	private function doResolvePermalink(): string {
 		$type = $this->queriedType();
 		$id   = $this->queriedId();
 
