@@ -12,6 +12,7 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Redirects\DestinationValidator;
 use RankKernel\Modules\Redirects\HitCounter;
 use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\Redirector;
@@ -623,5 +624,62 @@ final class RedirectsRedirectorTest extends TestCase {
 
 		$this->assertContains( 'external.example', $hosts );
 		$this->assertContains( 'example.com', $hosts );
+	}
+
+	/**
+	 * Test custom DestinationValidator dependency injection in Redirector.
+	 */
+	public function test_custom_destination_validator_injection(): void {
+		$this->seedExact( '/custom-src', '/custom-dst', '301' );
+
+		$_SERVER['REQUEST_URI'] = '/custom-src';
+
+		$validatorCalled = false;
+
+		$customValidator = new class( $validatorCalled ) {
+			/**
+			 * Called flag.
+			 *
+			 * @var bool
+			 */
+			public bool $called = false;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param bool $called Reference flag.
+			 */
+			public function __construct( bool $called ) {
+				$this->called = $called;
+			}
+
+			/**
+			 * Custom validate method.
+			 *
+			 * @param string   $target       Target.
+			 * @param string   $code         Code.
+			 * @param string[] $allowedHosts Hosts.
+			 * @return array{valid: bool, destination: string, reason: string}
+			 */
+			public function validate( string $target, string $code = '301', array $allowedHosts = [] ): array {
+				unset( $code, $allowedHosts );
+				$this->called = true;
+
+				return [
+					'valid'       => true,
+					'destination' => $target,
+					'reason'      => 'ok',
+				];
+			}
+		};
+
+		$repo       = new RedirectRepository( $this->db );
+		$redirector = new Redirector( $repo, new RedirectCache(), new HitCounter(), new RedirectsSettings(), null, $customValidator );
+
+		$redirector->maybeRedirect();
+
+		$this->assertTrue( $customValidator->called, 'Custom injected DestinationValidator must be called during dispatch' );
+		$this->assertCount( 1, $this->redirects );
+		$this->assertSame( '/custom-dst', $this->redirects[0]['location'] );
 	}
 }

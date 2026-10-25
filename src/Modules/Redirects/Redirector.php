@@ -76,20 +76,29 @@ final class Redirector {
 	private $matcher;
 
 	/**
+	 * Destination validator.
+	 *
+	 * @var DestinationValidator|null
+	 */
+	private $destinationValidator;
+
+	/**
 	 * Constructor, dependencies are injectable for tests.
 	 *
-	 * @param RedirectRepository|null $repository Rule repository.
-	 * @param RedirectCache|null      $cache      Match cache.
-	 * @param HitCounter|null         $hits       Hit counter.
-	 * @param RedirectsSettings|null  $settings   Module settings.
-	 * @param Matcher|null            $matcher    Matcher, built on the repository when null.
+	 * @param RedirectRepository|null   $repository           Rule repository.
+	 * @param RedirectCache|null        $cache                Match cache.
+	 * @param HitCounter|null           $hits                 Hit counter.
+	 * @param RedirectsSettings|null    $settings             Module settings.
+	 * @param Matcher|null              $matcher              Matcher, built on the repository when null.
+	 * @param DestinationValidator|null $destinationValidator Destination validator, lazily initialized when null.
 	 */
-	public function __construct( $repository = null, $cache = null, $hits = null, $settings = null, $matcher = null ) {
-		$this->repository = $repository ?? new RedirectRepository();
-		$this->cache      = $cache ?? new RedirectCache();
-		$this->hits       = $hits ?? new HitCounter();
-		$this->settings   = $settings ?? new RedirectsSettings();
-		$this->matcher    = $matcher ?? new Matcher( $this->repository );
+	public function __construct( $repository = null, $cache = null, $hits = null, $settings = null, $matcher = null, $destinationValidator = null ) {
+		$this->repository           = $repository ?? new RedirectRepository();
+		$this->cache                = $cache ?? new RedirectCache();
+		$this->hits                 = $hits ?? new HitCounter();
+		$this->settings             = $settings ?? new RedirectsSettings();
+		$this->matcher              = $matcher ?? new Matcher( $this->repository );
+		$this->destinationValidator = $destinationValidator;
 
 		$this->repository->setCache( $this->cache );
 	}
@@ -299,7 +308,8 @@ final class Redirector {
 		$code   = (string) ( $rule['code'] ?? '301' );
 		$target = (string) ( $rule['target'] ?? '' );
 
-		$validator = new DestinationValidator();
+		// Performance optimization: lazy instance-level memoization avoids eager instantiation on non-matching requests while reusing the instance if multiple destinations are evaluated.
+		$validator = $this->destinationValidator ??= new DestinationValidator();
 		$checked   = $validator->validate( $target, $code, $this->allowedHosts() );
 
 		if ( ! $checked['valid'] ) {
