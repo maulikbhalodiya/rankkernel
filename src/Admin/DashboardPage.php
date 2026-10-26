@@ -42,7 +42,7 @@ final class DashboardPage {
 		'sitemaps'         => 'XML sitemaps for posts, taxonomies and authors, with the core sitemap taken over.',
 		'schema'           => 'One JSON-LD graph per page, assembled from the Schema pieces.',
 		'breadcrumbs'      => 'An accessible breadcrumb trail with a shortcode, a template tag and a block.',
-		'importer'         => 'One click import from Yoast, Rank Math and SEOPress. Planned.',
+		'importer'         => 'One click import from Yoast, Rank Math and SEOPress.',
 		'redirects'        => 'Manage 301, 302, 307, 410 and 451 redirects, with CSV import and export.',
 		'404'              => 'Log 404 errors with sane pruning and one click redirect creation.',
 		'instant-indexing' => 'Notify participating search engines when a URL changes, using the IndexNow protocol.',
