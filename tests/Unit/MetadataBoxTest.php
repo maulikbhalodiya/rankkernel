@@ -368,7 +368,11 @@ final class MetadataBoxTest extends TestCase {
 	 * Save is blocked on a bad nonce.
 	 */
 	public function test_save_blocked_on_bad_nonce(): void {
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		Functions\expect( 'update_post_meta' )->never();
 
 		$_POST = $this->classicPost();

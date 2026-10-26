@@ -85,6 +85,11 @@ final class SitemapSettingsAdminTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias( static fn ( mixed $k = '', mixed $v = '', string $u = '' ): string => $u . ( str_contains( $u, '?' ) ? '&' : '?' ) . (string) $k . '=' . (string) $v );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'wp_die' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
 		Functions\when( 'checked' )->alias(
 			static fn ( mixed $a, mixed $b, bool $display = true ): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : '' // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress checked signature.
 		);
@@ -367,10 +372,9 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
+				wp_die( 'Bad nonce' );
 			}
 		);
 		Functions\expect( 'update_option' )->never();
@@ -401,11 +405,6 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 		Functions\expect( 'update_option' )->never();
 		Functions\expect( 'check_admin_referer' )->never();
 

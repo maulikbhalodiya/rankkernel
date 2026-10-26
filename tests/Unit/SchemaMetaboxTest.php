@@ -684,7 +684,11 @@ final class SchemaMetaboxTest extends TestCase {
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		Functions\expect( 'update_post_meta' )->never();
 
 		$_POST = $this->validPost();
@@ -1256,7 +1260,11 @@ final class SchemaMetaboxTest extends TestCase {
 	 */
 	public function test_export_bad_nonce_rejected(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 
 		$_GET = [ 'post' => '5' ];
 

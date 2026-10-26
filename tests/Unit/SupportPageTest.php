@@ -274,7 +274,11 @@ final class SupportPageTest extends TestCase {
 	 * A failed nonce check is refused.
 	 */
 	public function test_a_failed_nonce_check_is_refused(): void {
-		$this->nonceOk = false;
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		$this->postValid();
 
 		$this->expectException( \RuntimeException::class );

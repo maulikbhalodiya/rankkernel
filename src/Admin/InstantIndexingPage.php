@@ -655,13 +655,7 @@ final class InstantIndexingPage {
 			);
 		}
 
-		if ( false === check_admin_referer( $nonceAction ) ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( $nonceAction );
 	}
 
 	/**

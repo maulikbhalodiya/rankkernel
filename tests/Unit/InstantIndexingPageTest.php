@@ -358,10 +358,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 
@@ -428,7 +427,11 @@ final class InstantIndexingPageTest extends TestCase {
 	 */
 	public function test_manual_submit_is_rejected_without_a_valid_nonce(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
+			}
+		);
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
 			'rankkernel_indexnow_urls'   => 'https://example.com/a',
@@ -1552,10 +1555,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 
@@ -2162,10 +2164,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 

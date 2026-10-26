@@ -64,6 +64,11 @@ final class SettingsPageTest extends TestCase {
 		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_die' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias(
 			static fn ( mixed $a, mixed $b, bool $display = true ): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : '' // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress checked signature.
@@ -339,10 +344,9 @@ final class SettingsPageTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
+				wp_die( 'Bad nonce' );
 			}
 		);
 		Functions\expect( 'update_option' )->never();
@@ -372,11 +376,6 @@ final class SettingsPageTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 		Functions\expect( 'update_option' )->never();
 		Functions\expect( 'check_admin_referer' )->never();
 
@@ -1645,11 +1644,6 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\expect( 'update_user_meta' )->never();
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 
 		$_POST = [
 			'_wpnonce'                  => 'valid',
@@ -1698,14 +1692,13 @@ final class SettingsPageTest extends TestCase {
 		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\expect( 'update_user_meta' )->never();
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
+				wp_die( 'Bad nonce' );
 			}
 		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\expect( 'update_user_meta' )->never();
 
 		$_POST = [
 			'_wpnonce'                  => 'invalid',
@@ -1735,11 +1728,6 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'update_user_meta' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 
 		$_POST = [
 			'_wpnonce'                  => 'valid',

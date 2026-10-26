@@ -224,15 +224,7 @@ final class DashboardPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_module_toggle' );
-
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'rankkernel_module_toggle' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
 		$rawId = isset( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_module_toggle'] ) ) : '';

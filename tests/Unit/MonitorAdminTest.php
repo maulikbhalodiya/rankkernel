@@ -345,8 +345,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -509,8 +508,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -898,8 +896,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -961,8 +958,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
