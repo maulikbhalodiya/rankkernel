@@ -454,9 +454,9 @@ final class Matcher {
 		// pathological pattern exhausts its small budget instead of the process.
 		$old_backtrack = ini_get( 'pcre.backtrack_limit' );
 		$old_recursion = ini_get( 'pcre.recursion_limit' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky -- intentional ReDoS window, always restored in finally below.
+		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
 		ini_set( 'pcre.backtrack_limit', '10000' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky -- intentional ReDoS window, always restored in finally below.
+		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
 		ini_set( 'pcre.recursion_limit', '1000' );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded regex compile probe for admin entered patterns, the handler swallows only the compile warning and is always restored in finally.
@@ -466,9 +466,9 @@ final class Matcher {
 			$result = preg_match( $wrapped, $path );
 		} finally {
 			restore_error_handler();
-			// phpcs:ignore WordPress.PHP.IniSet.Risky -- restoring the original values from the ReDoS window.
+			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
 			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
-			// phpcs:ignore WordPress.PHP.IniSet.Risky -- restoring the original values from the ReDoS window.
+			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
 			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
 		}
 

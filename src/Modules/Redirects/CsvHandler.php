@@ -1061,10 +1061,15 @@ final class CsvHandler {
 	 * Yield control briefly between batches on long imports.
 	 *
 	 * Keeps a bounded import friendly to shared hosting by resetting the
-	 * script time budget when the host allows it.
+	 * script time budget when the host allows it. set_time_limit() is
+	 * discouraged by Plugin Check, but the import is an explicit, opt-in,
+	 * bounded admin action with a MAX_ROWS cap, and the call is guarded by
+	 * function_exists() for hosts that disable it. No safe alternative exists
+	 * for extending the time budget on long-running CSV imports.
 	 */
 	private function breathe(): void {
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- bounded import time budget, guarded by function_exists(), host-safe.
 			set_time_limit( 60 );
 		}
 	}

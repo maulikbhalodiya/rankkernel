@@ -183,6 +183,9 @@ final class Redirector {
 		// Normalize request URI early to return immediately for blocked sources without probing table existence.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- frontend dispatch runs outside any form context, the raw URI is parsed and normalized before use and never echoed.
 		$rawUri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$rawUri = str_replace( "\0", '', $rawUri );
+		$rawUri = preg_replace( '/[\x00-\x1F\x7F]/u', '', $rawUri );
+		$rawUri = is_string( $rawUri ) ? $rawUri : '/';
 		$path   = Normalizer::normalize( $rawUri );
 
 		if ( Normalizer::isBlockedSource( $path ) ) {
@@ -358,6 +361,10 @@ final class Redirector {
 	 * @return string Query part or empty string.
 	 */
 	private function incomingQuery( string $rawUri ): string {
+		$rawUri = str_replace( "\0", '', $rawUri );
+		$rawUri = preg_replace( '/[\x00-\x1F\x7F]/u', '', $rawUri );
+		$rawUri = is_string( $rawUri ) ? $rawUri : '';
+
 		$qpos = strpos( $rawUri, '?' );
 
 		if ( false === $qpos ) {
