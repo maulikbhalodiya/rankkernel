@@ -1,6 +1,6 @@
 {
     "name": "rankkernel/rankkernel",
-    "description": "The Free, Zero-Bloat Open-Source SEO Engine for WordPress",
+    "description": "The Zero-Bloat Open-Source SEO Engine for WordPress",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "authors": [

@@ -65,6 +65,48 @@ final class Context {
 	private array $resolvedMemo = [];
 
 	/**
+	 * Memoized title result (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $titleCache = null;
+
+	/**
+	 * Whether title() has been computed.
+	 *
+	 * @var bool
+	 */
+	private bool $titleComputed = false;
+
+	/**
+	 * Memoized excerpt result (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $excerptCache = null;
+
+	/**
+	 * Whether excerpt() has been computed.
+	 *
+	 * @var bool
+	 */
+	private bool $excerptComputed = false;
+
+	/**
+	 * Memoized permalink result (null = not yet computed).
+	 *
+	 * @var string|null
+	 */
+	private ?string $permalinkCache = null;
+
+	/**
+	 * Whether permalink() has been computed.
+	 *
+	 * @var bool
+	 */
+	private bool $permalinkComputed = false;
+
+	/**
 	 * Tags replacer for resolved() delegation.
 	 *
 	 * @var TagsReplacer
@@ -355,14 +397,29 @@ final class Context {
 	/**
 	 * Trimmed excerpt (max ~160 chars, word-boundary, wp_strip_all_tags).
 	 *
-	 * Only a singular post has a post excerpt. On a term or author archive
-	 * queriedId() returns a term id or a user id, and reading it as a post id
-	 * resolves an unrelated post that happens to share the number, so the
-	 * excerpt stays empty there and the archive description is used instead.
+	 * Memoized within the Context instance.
 	 *
 	 * @return string The result.
 	 */
 	public function excerpt(): string {
+		if ( $this->excerptComputed ) {
+			return $this->excerptCache ?? '';
+		}
+
+		$result = $this->computeExcerpt();
+
+		$this->excerptCache    = $result;
+		$this->excerptComputed = true;
+
+		return $result;
+	}
+
+	/**
+	 * Compute trimmed excerpt.
+	 *
+	 * @return string The result.
+	 */
+	private function computeExcerpt(): string {
 		if ( 'post' !== $this->queriedType() ) {
 			return '';
 		}
@@ -609,13 +666,29 @@ final class Context {
 	/**
 	 * Title for the queried object.
 	 *
-	 * Term archives resolve to the term name and author archives to the
-	 * author display name before the post fallback, so %%title%% never
-	 * resolves a colliding post against a term or user id.
+	 * Memoized within the Context instance.
 	 *
 	 * @return string The result.
 	 */
 	public function title(): string {
+		if ( $this->titleComputed ) {
+			return $this->titleCache ?? '';
+		}
+
+		$result = $this->computeTitle();
+
+		$this->titleCache    = $result;
+		$this->titleComputed = true;
+
+		return $result;
+	}
+
+	/**
+	 * Compute title for the queried object.
+	 *
+	 * @return string The result.
+	 */
+	private function computeTitle(): string {
 		// The front page and posts index carry no page title of their own:
 		// the CMS page title ("Home") was never written as a headline, so it
 		// resolves to nothing and the template falls back to the site name
@@ -745,13 +818,29 @@ final class Context {
 	/**
 	 * Permalink / term link / home URL for the current context.
 	 *
-	 * For archive contexts (author/date/post-type) returns the correct
-	 * archive URL or '' when derivation is unreliable, never falls back to
-	 * home_url for archives (prevents homepage canonical on archives).
+	 * Memoized within the Context instance.
 	 *
 	 * @return string The result.
 	 */
 	public function permalink(): string {
+		if ( $this->permalinkComputed ) {
+			return $this->permalinkCache ?? '';
+		}
+
+		$result = $this->computePermalink();
+
+		$this->permalinkCache    = $result;
+		$this->permalinkComputed = true;
+
+		return $result;
+	}
+
+	/**
+	 * Compute permalink.
+	 *
+	 * @return string The result.
+	 */
+	private function computePermalink(): string {
 		$type = $this->queriedType();
 		$id   = $this->queriedId();
 

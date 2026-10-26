@@ -183,7 +183,7 @@ final class DashboardPage {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		$cards = $this->cards();
 

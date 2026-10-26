@@ -76,22 +76,44 @@ final class Redirector {
 	private $matcher;
 
 	/**
+	 * Destination validator.
+	 *
+	 * @var DestinationValidator|null
+	 */
+	private $validator;
+
+	/**
 	 * Constructor, dependencies are injectable for tests.
 	 *
-	 * @param RedirectRepository|null $repository Rule repository.
-	 * @param RedirectCache|null      $cache      Match cache.
-	 * @param HitCounter|null         $hits       Hit counter.
-	 * @param RedirectsSettings|null  $settings   Module settings.
-	 * @param Matcher|null            $matcher    Matcher, built on the repository when null.
+	 * @param RedirectRepository|null   $repository Rule repository.
+	 * @param RedirectCache|null        $cache      Match cache.
+	 * @param HitCounter|null           $hits       Hit counter.
+	 * @param RedirectsSettings|null    $settings   Module settings.
+	 * @param Matcher|null              $matcher    Matcher, built on the repository when null.
+	 * @param DestinationValidator|null $validator Destination validator, built when null.
 	 */
-	public function __construct( $repository = null, $cache = null, $hits = null, $settings = null, $matcher = null ) {
+	public function __construct( $repository = null, $cache = null, $hits = null, $settings = null, $matcher = null, $validator = null ) {
 		$this->repository = $repository ?? new RedirectRepository();
 		$this->cache      = $cache ?? new RedirectCache();
 		$this->hits       = $hits ?? new HitCounter();
 		$this->settings   = $settings ?? new RedirectsSettings();
 		$this->matcher    = $matcher ?? new Matcher( $this->repository );
+		$this->validator  = $validator;
 
 		$this->repository->setCache( $this->cache );
+	}
+
+	/**
+	 * Destination validator, lazily built.
+	 *
+	 * @return DestinationValidator The result.
+	 */
+	private function destinationValidator(): DestinationValidator {
+		if ( null === $this->validator ) {
+			$this->validator = new DestinationValidator();
+		}
+
+		return $this->validator;
 	}
 
 	/**
@@ -302,7 +324,7 @@ final class Redirector {
 		$code   = (string) ( $rule['code'] ?? '301' );
 		$target = (string) ( $rule['target'] ?? '' );
 
-		$validator = new DestinationValidator();
+		$validator = $this->destinationValidator();
 		$checked   = $validator->validate( $target, $code, $this->allowedHosts() );
 
 		if ( ! $checked['valid'] ) {

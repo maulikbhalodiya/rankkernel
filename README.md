@@ -1,4 +1,4 @@
-# RankKernel, Free SEO & Schema Engine
+# RankKernel SEO & Schema Engine
 
 > 100% free, lightweight SEO for WordPress, no paywalls, no upsell banners, no telemetry.
 

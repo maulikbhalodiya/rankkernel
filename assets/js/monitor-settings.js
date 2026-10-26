@@ -41,6 +41,20 @@
 		}
 	}
 
+	try {
+		if ( 'undefined' !== typeof window && window.wp && window.wp.a11y && 'function' === typeof window.wp.a11y.speak ) {
+			let message = open ? 'Monitor settings opened' : 'Monitor settings closed';
+
+			if ( window.wp.i18n && 'function' === typeof window.wp.i18n.__ ) {
+				message = window.wp.i18n.__( open ? 'Monitor settings opened' : 'Monitor settings closed', 'rankkernel' );
+			}
+
+			window.wp.a11y.speak( message );
+		}
+	} catch ( ignored ) {
+		// Announcements are progressive enhancement only.
+	}
+
 	/**
 	 * Bring the opened panel into view without surprising motion users.
 	 *

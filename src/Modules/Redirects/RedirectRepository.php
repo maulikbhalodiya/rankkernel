@@ -995,17 +995,19 @@ final class RedirectRepository {
 
 		$clean = array_values( array_unique( $clean ) );
 
+		$limit = max( 1, (int) $limit );
+
 		if ( [] === $clean ) {
-			$sql = "SELECT * FROM `{$table}` ORDER BY id ASC LIMIT " . max( 1, $limit );
+			$sql = "SELECT * FROM `{$table}` ORDER BY id ASC LIMIT %d";
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, unbounded admin export with no user input.
-			$rows = $db->get_results( $sql, ARRAY_A );
+			$rows = $db->get_results( $db->prepare( $sql, $limit ), ARRAY_A );
 		} else {
 			$list = implode( ',', $clean );
-			$sql  = "SELECT * FROM `{$table}` WHERE id IN ({$list}) ORDER BY id ASC LIMIT " . max( 1, $limit );
+			$sql  = "SELECT * FROM `{$table}` WHERE id IN ({$list}) ORDER BY id ASC LIMIT %d";
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- custom redirect tables have no core API, id list is cast to integers before interpolation.
-			$rows = $db->get_results( $sql, ARRAY_A );
+			$rows = $db->get_results( $db->prepare( $sql, $limit ), ARRAY_A );
 		}
 
 		if ( ! is_array( $rows ) ) {
