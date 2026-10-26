@@ -24,6 +24,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Diagnose GitHub token (non-secret)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          HTTP_STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/user)
+          echo "GitHub API /user HTTP status: ${HTTP_STATUS}"
+          if [ "${HTTP_STATUS}" != "200" ]; then
+            echo "::error::GitHub token cannot authenticate to /user (HTTP ${HTTP_STATUS}). Check GH_PAT validity and scopes."
+            exit 1
+          fi
+          ACTOR=$(gh api /user --jq .login)
+          echo "Authenticated actor: ${ACTOR}"
+          REMAINING=$(gh api /rate_limit --jq '.resources.core.remaining')
+          echo "X-RateLimit-Remaining (core): ${REMAINING}"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -39,6 +58,11 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs
 
       - name: AI Codebase Audit
+        # Action pin decision (recorded): KEEP v1.23.1 @ 7007f43. PR #342 (v1.24.5 @ 213ea39)
+        # is intentionally NOT adopted: unvalidated in this repo and upstream publishes
+        # no checksum assets, so a bump requires manual review + a fresh full-SHA pin.
+        # Owner action: validate PR #342 in a fork before bumping. Native better-sqlite3
+        # is not installed; reviewer uses its JSON storage fallback (degraded).
         uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
         with:
           mode: audit

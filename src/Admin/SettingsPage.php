@@ -117,7 +117,7 @@ final class SettingsPage {
 	 */
 	public function render(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		// Read only failure flag, sanitized below. It rides the rk_notice
 		// query argument shared with the section notices.
@@ -340,7 +340,7 @@ final class SettingsPage {
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only tab flag, compared strictly against a literal, never stored or output.
-			$robotTab        = 'edit' === ( $_GET['robots_tab'] ?? '' ) ? 'edit' : 'preview';
+			$robotTab        = 'edit' === ( isset( $_GET['robots_tab'] ) ? (string) wp_unslash( $_GET['robots_tab'] ) : '' ) ? 'edit' : 'preview';
 			$robotValidation = RobotsDirectives::validate( $robotOverride );
 
 			$settingsSections[] = [
@@ -357,7 +357,7 @@ final class SettingsPage {
 			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
 
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
-			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+			$llmsNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );
 
 			// Derived from the settings already loaded above: no extra query and no write.
 			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
@@ -376,7 +376,7 @@ final class SettingsPage {
 		$htaccessPath      = $htaccessFile->path();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
-		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+		$htaccessNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );
 
 		$settingsSections[] = [
 			'id'    => 'advanced',

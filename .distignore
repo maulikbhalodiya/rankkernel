@@ -17,3 +17,6 @@ README.md
 CONTRIBUTING.md
 composer.json
 tools/
+.jules
+.local-env
+.superpowers

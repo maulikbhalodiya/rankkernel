@@ -33,17 +33,59 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Diagnose GitHub token (non-secret)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          HTTP_STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/user)
+          echo "GitHub API /user HTTP status: ${HTTP_STATUS}"
+          if [ "${HTTP_STATUS}" != "200" ]; then
+            echo "::error::GitHub token cannot authenticate to /user (HTTP ${HTTP_STATUS}). Check GH_PAT validity and scopes."
+            exit 1
+          fi
+          ACTOR=$(gh api /user --jq .login)
+          echo "Authenticated actor: ${ACTOR}"
+          REMAINING=$(gh api /rate_limit --jq '.resources.core.remaining')
+          echo "X-RateLimit-Remaining (core): ${REMAINING}"
+
       - name: Resolve PR ref
         id: resolve-ref
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             REF=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefOid --jq .headRefOid)
           else
             REF="${{ github.event.pull_request.head.sha }}"
           fi
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          if [ -z "${REF}" ]; then
+            echo "::error::Unable to resolve pull request ref."
+            exit 1
+          fi
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify pull request and diff are fetchable
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            PR="${{ github.event.issue.number }}"
+          else
+            PR="${{ github.event.pull_request.number }}"
+          fi
+          if [ -z "${PR}" ]; then
+            echo "::error::Unable to determine pull request number."
+            exit 1
+          fi
+          gh pr view "${PR}" --repo "${{ github.repository }}" --json number >/dev/null
+          gh pr diff "${PR}" --repo "${{ github.repository }}" >/dev/null
+          echo "Pull request #${PR} metadata and diff fetched successfully."
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,6 +103,11 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
 
       - name: AI Code Review
+        # Action pin decision (recorded): KEEP v1.23.1 @ 7007f43. PR #342 (v1.24.5 @ 213ea39)
+        # is intentionally NOT adopted: unvalidated in this repo and upstream publishes
+        # no checksum assets, so a bump requires manual review + a fresh full-SHA pin.
+        # Owner action: validate PR #342 in a fork before bumping. Native better-sqlite3
+        # is not installed; reviewer uses its JSON storage fallback (degraded).
         uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
         with:
           mode: review
@@ -160,17 +207,59 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      - name: Diagnose GitHub token (non-secret)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          HTTP_STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/user)
+          echo "GitHub API /user HTTP status: ${HTTP_STATUS}"
+          if [ "${HTTP_STATUS}" != "200" ]; then
+            echo "::error::GitHub token cannot authenticate to /user (HTTP ${HTTP_STATUS}). Check GH_PAT validity and scopes."
+            exit 1
+          fi
+          ACTOR=$(gh api /user --jq .login)
+          echo "Authenticated actor: ${ACTOR}"
+          REMAINING=$(gh api /rate_limit --jq '.resources.core.remaining')
+          echo "X-RateLimit-Remaining (core): ${REMAINING}"
+
       - name: Resolve PR ref
         id: resolve-ref
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             REF=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefName --jq .headRefName)
           else
             REF="${{ github.event.pull_request.head.ref }}"
           fi
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          if [ -z "${REF}" ]; then
+            echo "::error::Unable to resolve pull request ref."
+            exit 1
+          fi
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify pull request and diff are fetchable
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            PR="${{ github.event.issue.number }}"
+          else
+            PR="${{ github.event.pull_request.number }}"
+          fi
+          if [ -z "${PR}" ]; then
+            echo "::error::Unable to determine pull request number."
+            exit 1
+          fi
+          gh pr view "${PR}" --repo "${{ github.repository }}" --json number,headRefName >/dev/null
+          gh pr diff "${PR}" --repo "${{ github.repository }}" >/dev/null
+          echo "Pull request #${PR} metadata and diff fetched successfully."
 
       - name: Refuse fork pull requests
         env:
@@ -204,6 +293,11 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
 
       - name: AI Fix
+        # Action pin decision (recorded): KEEP v1.23.1 @ 7007f43. PR #342 (v1.24.5 @ 213ea39)
+        # is intentionally NOT adopted: unvalidated in this repo and upstream publishes
+        # no checksum assets, so a bump requires manual review + a fresh full-SHA pin.
+        # Owner action: validate PR #342 in a fork before bumping. Native better-sqlite3
+        # is not installed; reviewer uses its JSON storage fallback (degraded).
         uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
         with:
           mode: fix
