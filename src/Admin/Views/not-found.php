@@ -273,10 +273,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-advanced-fields"><?php echo esc_html__( 'Advanced fields', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Store referer and user agent with each entry.', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-advanced-fields-desc"><?php echo esc_html__( 'Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-ui-switch rk-setting-switch">
-							<input type="checkbox" id="rk-advanced-fields" name="rk_advanced_fields" value="1" <?php echo checked( $settingsAdvanced, true, false ); ?> />
+							<input type="checkbox" id="rk-advanced-fields" name="rk_advanced_fields" value="1" <?php echo checked( $settingsAdvanced, true, false ); ?> aria-describedby="rk-advanced-fields-desc" />
 							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
 						</span>
 					</div>
@@ -286,10 +286,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-retention"><?php echo esc_html__( 'Retention days', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Log rotation threshold in days', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-retention-desc"><?php echo esc_html__( 'Entries older than this many days are removed automatically, from 1 to 365.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-setting-control">
-							<input type="number" id="rk-retention" name="rk_retention_days" value="<?php echo esc_attr( (string) $settingsRetention ); ?>" class="rk-setting-input" min="1" max="365" />
+							<input type="number" id="rk-retention" name="rk_retention_days" value="<?php echo esc_attr( (string) $settingsRetention ); ?>" class="rk-setting-input" min="1" max="365" aria-describedby="rk-retention-desc" />
 							<span class="rk-setting-unit"><?php echo esc_html__( 'days', 'rankkernel' ); ?></span>
 						</span>
 					</div>
@@ -299,10 +299,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-max-rows"><?php echo esc_html__( 'Maximum entries', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Table limit guard', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-max-rows-desc"><?php echo esc_html__( 'Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-setting-control">
-							<input type="number" id="rk-max-rows" name="rk_max_rows" value="<?php echo esc_attr( (string) $settingsMaxRows ); ?>" class="rk-setting-input" min="100" max="10000" />
+							<input type="number" id="rk-max-rows" name="rk_max_rows" value="<?php echo esc_attr( (string) $settingsMaxRows ); ?>" class="rk-setting-input" min="100" max="10000" aria-describedby="rk-max-rows-desc" />
 							<span class="rk-setting-unit"><?php echo esc_html__( 'entries', 'rankkernel' ); ?></span>
 						</span>
 					</div>
@@ -314,10 +314,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-flood-budget"><?php echo esc_html__( 'Flood budget', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Rate limiting protection against bot scans', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-flood-budget-desc"><?php echo esc_html__( 'New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-setting-control">
-							<input type="number" id="rk-flood-budget" name="rk_flood_budget" value="<?php echo esc_attr( (string) $settingsFloodBudget ); ?>" class="rk-setting-input" min="1" max="1000" />
+							<input type="number" id="rk-flood-budget" name="rk_flood_budget" value="<?php echo esc_attr( (string) $settingsFloodBudget ); ?>" class="rk-setting-input" min="1" max="1000" aria-describedby="rk-flood-budget-desc" />
 							<span class="rk-setting-unit"><?php echo esc_html__( 'addrs', 'rankkernel' ); ?></span>
 						</span>
 					</div>
@@ -327,10 +327,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-flood-window"><?php echo esc_html__( 'Flood window', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Rolling window duration', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-flood-window-desc"><?php echo esc_html__( 'Length of the flood window in seconds, from 60 to 3600.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-setting-control">
-							<input type="number" id="rk-flood-window" name="rk_flood_window" value="<?php echo esc_attr( (string) $settingsFloodWindow ); ?>" class="rk-setting-input" min="60" max="3600" />
+							<input type="number" id="rk-flood-window" name="rk_flood_window" value="<?php echo esc_attr( (string) $settingsFloodWindow ); ?>" class="rk-setting-input" min="60" max="3600" aria-describedby="rk-flood-window-desc" />
 							<span class="rk-setting-unit"><?php echo esc_html__( 'sec', 'rankkernel' ); ?></span>
 						</span>
 					</div>
@@ -340,10 +340,10 @@ $rkChainLinks = '' !== $carriedChain ? explode( ' → ', $carriedChain ) : [];
 						<div class="rk-setting-text">
 							<label class="rk-setting-label" for="rk-ignore-query"><?php echo esc_html__( 'Query strings', 'rankkernel' ); ?></label>
 							<span class="rk-setting-desc"><?php echo esc_html__( 'Ignore query strings when logging.', 'rankkernel' ); ?></span>
-							<p class="rk-ui-hint"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p>
+							<p class="rk-ui-hint" id="rk-ignore-query-desc"><?php echo esc_html__( 'On by default. Turn off to track each query string as a separate entry.', 'rankkernel' ); ?></p>
 						</div>
 						<span class="rk-ui-switch rk-setting-switch">
-							<input type="checkbox" id="rk-ignore-query" name="rk_ignore_query" value="1" <?php echo checked( $settingsIgnoreQuery, true, false ); ?> />
+							<input type="checkbox" id="rk-ignore-query" name="rk_ignore_query" value="1" <?php echo checked( $settingsIgnoreQuery, true, false ); ?> aria-describedby="rk-ignore-query-desc" />
 							<span class="rk-ui-switch-track" aria-hidden="true"><span class="rk-ui-switch-knob"></span></span>
 						</span>
 					</div>

@@ -121,17 +121,17 @@ $htaccess_directives_visual = [
 			</p>
 			<p>
 				<label for="rk-htaccess-block_directory_browsing">
-					<input type="checkbox" id="rk-htaccess-block_directory_browsing" name="rk_htaccess_directives[block_directory_browsing]" value="1"<?php checked( in_array( 'block_directory_browsing', $htaccessSelected, true ) ); ?> />
+					<input type="checkbox" id="rk-htaccess-block_directory_browsing" name="rk_htaccess_directives[block_directory_browsing]" value="1"<?php checked( in_array( 'block_directory_browsing', $htaccessSelected, true ) ); ?> aria-describedby="rk-htaccess-block_directory_browsing-desc" />
 					<?php echo esc_html( $htaccess_directives_visual['block_directory_browsing']['label'] ); ?>
 				</label>
-				<span class="rk-ui-hint"><?php echo esc_html( $htaccess_directives_visual['block_directory_browsing']['hint'] ); ?></span>
+				<span class="rk-ui-hint" id="rk-htaccess-block_directory_browsing-desc"><?php echo esc_html( $htaccess_directives_visual['block_directory_browsing']['hint'] ); ?></span>
 			</p>
 			<p>
 				<label for="rk-htaccess-block_ai_crawlers">
-					<input type="checkbox" id="rk-htaccess-block_ai_crawlers" name="rk_htaccess_directives[block_ai_crawlers]" value="1"<?php checked( in_array( 'block_ai_crawlers', $htaccessSelected, true ) ); ?> />
+					<input type="checkbox" id="rk-htaccess-block_ai_crawlers" name="rk_htaccess_directives[block_ai_crawlers]" value="1"<?php checked( in_array( 'block_ai_crawlers', $htaccessSelected, true ) ); ?> aria-describedby="rk-htaccess-block_ai_crawlers-desc" />
 					<?php echo esc_html( $htaccess_directives_visual['block_ai_crawlers']['label'] ); ?>
 				</label>
-				<span class="rk-ui-hint"><?php echo esc_html( $htaccess_directives_visual['block_ai_crawlers']['hint'] ); ?></span>
+				<span class="rk-ui-hint" id="rk-htaccess-block_ai_crawlers-desc"><?php echo esc_html( $htaccess_directives_visual['block_ai_crawlers']['hint'] ); ?></span>
 			</p>
 			<p class="rk-form-actions">
 				<button type="submit" class="button button-primary" name="rk_htaccess_save" value="1" data-rk-confirm="<?php echo esc_attr( __( 'Update the .htaccess? A timestamped backup is written first.', 'rankkernel' ) ); ?>"><?php echo esc_html__( 'Update .htaccess', 'rankkernel' ); ?></button>
