@@ -242,11 +242,18 @@ final class HtaccessFile {
 			}
 		}
 
-		if ( '' === $base && defined( 'WP_CONTENT_DIR' ) && function_exists( 'wp_normalize_path' ) ) {
-			// No core uploads helper: follow the content directory, so a
-			// site with a custom content directory is never pointed at
-			// the default uploads location.
-			$base = rtrim( (string) WP_CONTENT_DIR, '/' ) . '/uploads';
+		if ( '' === $base && defined( 'ABSPATH' ) ) {
+			// Respect the UPLOADS constant first, which WordPress resolves
+			// relative to ABSPATH, then fall back to the content directory.
+			if ( defined( 'UPLOADS' ) && is_string( UPLOADS ) && '' !== trim( (string) UPLOADS, '/' ) ) {
+				$uploadConstant = trim( (string) UPLOADS, '/' );
+				$base           = rtrim( (string) ABSPATH, '/' ) . '/' . $uploadConstant;
+			} else {
+				$contentDir = defined( 'WP_CONTENT_DIR' ) && is_string( WP_CONTENT_DIR ) && '' !== (string) WP_CONTENT_DIR
+					? (string) WP_CONTENT_DIR
+					: rtrim( (string) ABSPATH, '/' ) . '/wp-content';
+				$base       = rtrim( $contentDir, '/' ) . '/uploads';
+			}
 		}
 
 		if ( '' === $base ) {

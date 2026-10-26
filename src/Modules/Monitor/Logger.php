@@ -333,6 +333,13 @@ final class Logger {
 	 * @return string Normalized URI used for hashing and display.
 	 */
 	public function normalizeUri( string $rawUri ): string {
+		// Strip control characters and null bytes without collapsing the
+		// URI into something else: they can never be part of a valid
+		// request target and are a common smuggling/obfuscation vector.
+		$rawUri = str_replace( "\0", '', $rawUri );
+		$rawUri = preg_replace( '/[\x00-\x1F\x7F]/u', '', $rawUri );
+		$rawUri = is_string( $rawUri ) ? $rawUri : '';
+
 		$path  = $rawUri;
 		$query = '';
 		$qpos  = strpos( $rawUri, '?' );
@@ -609,6 +616,10 @@ final class Logger {
 	 * @return string The value with a redacted query component.
 	 */
 	private function redactUrlQuery( string $url ): string {
+		$url = str_replace( "\0", '', $url );
+		$url = preg_replace( '/[\x00-\x1F\x7F]/u', '', $url );
+		$url = is_string( $url ) ? $url : '';
+
 		if ( '' === $url ) {
 			return $url;
 		}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: RankKernel – Free SEO & Schema Engine
+ * Plugin Name: RankKernel SEO & Schema Engine
  * Description: 100% free, lightweight SEO with no paywalls or upsell banners: metadata engine, content analysis, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, robots.txt and llms.txt editors, IndexNow instant indexing and a support screen. Modules that are off cost zero: no hooks, no queries, no bloat.
  * Version: 0.1.0
  * Requires at least: 6.5

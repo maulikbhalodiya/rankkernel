@@ -617,4 +617,31 @@ final class RedirectsMatcherTest extends TestCase {
 
 		$this->assertTrue( Matcher::rule_matches( $rule, '/old/page' ) );
 	}
+
+	/**
+	 * Test overly long and malformed regexes are refused at match time.
+	 */
+	public function test_long_and_malformed_regex_is_refused(): void {
+		$longPattern = str_repeat( 'a', Matcher::MAX_REGEX_LENGTH + 1 );
+
+		$rule = [
+			'match_type' => 'regex',
+			'source'     => $longPattern,
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertFalse( Matcher::rule_matches( $rule, '/anything' ) );
+
+		$badRule = [
+			'match_type' => 'regex',
+			'source'     => '[',
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertFalse( Matcher::rule_matches( $badRule, '/anything' ) );
+	}
 }
