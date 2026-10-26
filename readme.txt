@@ -1,4 +1,4 @@
-=== RankKernel – Free SEO & Schema Engine ===
+=== RankKernel SEO & Schema Engine ===
 Contributors: maulikbhalodiya
 Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
@@ -53,8 +53,13 @@ When the Instant Indexing module is enabled, submitting a URL sends that URL plu
 
 RankKernel contacts two external services, and only with your explicit action:
 
-1. Support inbox. The Support screen sends your message (subject, message, reply address, and optional screenshots you attach) plus site diagnostics (RankKernel version, WordPress version, PHP version, theme name, site URL, multisite yes/no) to rankkernelsupport@gmail.com, with Reply-To set to your address. Sending happens only when you press Send.
-2. IndexNow. Submitting a URL sends that URL plus your IndexNow API key to https://api.indexnow.org/indexnow, only when you submit manually or publish content with the Instant Indexing module enabled. IndexNow is the official shared submission endpoint documented at https://www.indexnow.org/documentation, and its terms of use and privacy statement are at https://www.indexnow.org/terms and https://www.indexnow.org/privacy.
+1. Support inbox (email). The Support screen sends an email through wp_mail to rankkernelsupport@gmail.com. Sending happens only when you press Send. The message carries the subject, the message body, the reply address, optional screenshots you attach, and site diagnostics: RankKernel version, WordPress version, PHP version, theme name, site URL, and multisite yes/no. The Reply-To header is set to your address.
+
+2. IndexNow. Submitting a URL sends an HTTP POST to https://api.indexnow.org/indexnow with a JSON body containing host, key, keyLocation, and urlList, sent with Content-Type application/json. This happens when you submit manually from the Instant Indexing screen, and automatically through a deferred submit when a post is published, updated, or trashed, or when a term is created, edited, or deleted. Automatic submission runs only when the Instant Indexing module is enabled and auto-submit is enabled. The request uses wp_safe_remote_post, is blocking, has a timeout of 10 seconds, and does not follow redirects (redirection set to 0).
+
+A separate key check performs an HTTP GET through wp_safe_remote_get to your own site's key file URL (the keyLocation). It runs only when you trigger the Verify key action, and it fetches only your own site's key file.
+
+IndexNow is the official shared submission endpoint. Official documentation: https://www.indexnow.org/documentation. Official terms: https://www.indexnow.org/terms. The terms page includes a Privacy section. IndexNow does not publish a separate privacy policy URL; no standalone privacy URL is available, so the privacy terms are found within the terms page. This is a factual description of the service and its published pages, not a legal clearance.
 
 Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled.
 
@@ -67,12 +72,3 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 
 = 0.1.0 =
 Initial release.
-
-== Developer filters ==
-
-RankKernel exposes a small public hook family for sitemaps.
-
-* `rankkernel/sitemap/loc`, filter the `<loc>` of one sitemap entry.
-  Args: `$loc` (string, generated URL), `$set` (string set name: public post type names such as 'post' or 'page', raw taxonomy names such as 'category' or 'post_tag', or 'authors'), `$page` (int, 1-based). Return rules: a valid absolute http(s) URL replaces the loc; a non-empty invalid string falls back to the original; '' skips the entry (page/index counts come from provider counts, not filtered results, so an all-skipped page can still be advertised); a non-string return is ignored. Images and lastmod are unaffected. Excluded content cannot be restored. When callbacks are registered, per-page entries XML bypasses the cache and rebuilds per request. Callbacks must not throw (a throw renders "Sitemap unavailable.").
-* `rankkernel/sitemap/entries_per_page`, filter entries per page (int, clamped 1..2000).
-* Cache family: `rankkernel/sitemap/enable_cache` (bool).

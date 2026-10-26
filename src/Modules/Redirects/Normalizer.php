@@ -64,6 +64,11 @@ final class Normalizer {
 			return '/';
 		}
 
+		// Reject control characters and null bytes outright.
+		if ( preg_match( '/[\x00-\x1F\x7F]/u', $path ) || str_contains( $path, "\0" ) ) {
+			return '/';
+		}
+
 		// Reject backslash input: browsers treat `https://example\\@evil.com`-style
 		// backslashes as forward slashes, which is an open-redirect smuggling vector.
 		// Failing closed to root means no backslash ever flows toward Redirector.
