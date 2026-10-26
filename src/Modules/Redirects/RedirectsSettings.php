@@ -45,6 +45,26 @@ final class RedirectsSettings {
 	private ?array $cache = null;
 
 	/**
+	 * Request-level static cache for merged settings across instances.
+	 *
+	 * Performance optimization: prevents repeated get_option() lookups for
+	 * non-autoloaded redirect settings across multiple class instantiations
+	 * during a single HTTP request execution thread.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private static ?array $cachedSettings = null;
+
+	/**
+	 * Reset static request-level memoization (primarily for unit tests and long-lived processes).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$cachedSettings = null;
+	}
+
+	/**
 	 * Default settings.
 	 *
 	 * Query preservation defaults to on, the slug watcher defaults to on, the
@@ -89,13 +109,22 @@ final class RedirectsSettings {
 			return $this->cache;
 		}
 
+		if ( null !== self::$cachedSettings ) {
+			$this->cache = self::$cachedSettings;
+
+			return $this->cache;
+		}
+
 		$stored = get_option( self::OPTION, [] );
 
 		if ( ! is_array( $stored ) ) {
 			$stored = [];
 		}
 
-		$this->cache = array_merge( self::defaults(), $stored );
+		$merged = array_merge( self::defaults(), $stored );
+
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 
 		return $this->cache;
 	}
@@ -108,12 +137,15 @@ final class RedirectsSettings {
 
 		if ( ! is_array( $stored ) ) {
 			update_option( self::OPTION, self::defaults(), false );
-			$this->cache = self::defaults();
+			$this->cache          = self::defaults();
+			self::$cachedSettings = self::defaults();
 
 			return;
 		}
 
-		$this->cache = array_merge( self::defaults(), $stored );
+		$merged               = array_merge( self::defaults(), $stored );
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 	}
 
 	/**
@@ -141,7 +173,8 @@ final class RedirectsSettings {
 
 		update_option( self::OPTION, $merged, false );
 
-		$this->cache = $merged;
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 
 		return true;
 	}

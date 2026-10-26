@@ -38,6 +38,7 @@ final class RedirectsSettingsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		RedirectsSettings::resetCache();
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -62,6 +63,7 @@ final class RedirectsSettingsTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectsSettings::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -174,5 +176,31 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->get( 'preserve_query' ) );
 		$this->assertTrue( $settings->get( 'auto_slug_redirect' ) );
 		$this->assertSame( [], $this->updates );
+	}
+
+	/**
+	 * Test static request-level memoization across instances.
+	 */
+	public function test_static_memoization_across_instances(): void {
+		$this->options[ RedirectsSettings::OPTION ] = [ 'preserve_query' => false ];
+
+		$instance1 = new RedirectsSettings();
+
+		$this->assertFalse( $instance1->get( 'preserve_query' ) );
+
+		// Modify underlying DB store without calling set().
+		$this->options[ RedirectsSettings::OPTION ] = [ 'preserve_query' => true ];
+
+		$instance2 = new RedirectsSettings();
+
+		// Static memoization serves cached value from instance1.
+		$this->assertFalse( $instance2->get( 'preserve_query' ) );
+
+		// Reset cache forces re-reading from DB.
+		RedirectsSettings::resetCache();
+
+		$instance3 = new RedirectsSettings();
+
+		$this->assertTrue( $instance3->get( 'preserve_query' ) );
 	}
 }
