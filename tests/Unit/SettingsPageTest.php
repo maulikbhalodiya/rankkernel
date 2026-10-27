@@ -2037,14 +2037,19 @@ final class SettingsPageTest extends TestCase {
 	 * Test array input in query parameters handles gracefully and fails closed without PHP errors.
 	 */
 	public function test_array_shaped_query_params_handled_gracefully(): void {
-		$this->stubSettingsPageRender();
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
 
 		$_GET['settings-updated'] = [ 'nested' => '1' ];
 		$_GET['robots_tab']       = [ 'nested' => 'edit' ];
 		$_GET['rk_notice']        = [ 'nested' => 'save_failed' ];
 
 		ob_start();
-		$this->makePage()->render();
+		$this->makeRobotsPage()->render();
 		$output = (string) ob_get_clean();
 
 		$this->assertIsString( $output );

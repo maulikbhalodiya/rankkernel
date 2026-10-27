@@ -498,6 +498,6 @@ final class DashboardPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertIsString( $output );
-		$this->assertStringNotContainsString( 'Settings updated', $output );
+		$this->assertStringNotContainsString( 'Module updated.', $output );
 	}
 }

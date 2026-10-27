@@ -308,7 +308,7 @@ final class KeyFileServerTest extends TestCase {
 		$this->settings->setPermalinkStructure( '' );
 		$server = new KeyFileServer( $this->settings );
 
-		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = addslashes( $this->key );
+		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = addcslashes( $this->key, 'A..Za..z0..9' );
 
 		ob_start();
 		$server->maybeServe( (object) [ 'request' => '' ] );

@@ -72,7 +72,7 @@ final class KeyFileServer {
 		$query = [];
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
-		if ( $this->servesQueryLocation() && isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) ) {
+		if ( isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && $this->servesQueryLocation() ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
 			$candidate = wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
 
