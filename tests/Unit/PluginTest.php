@@ -574,7 +574,7 @@ final class PluginTest extends TestCase {
 
 		$readme_source = (string) file_get_contents( $root . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
 		$this->assertSame( 1, preg_match( '/^Tested up to:\s*(\S+)/m', $readme_source, $readme_header ) );
-		$this->assertSame( '7.1', $readme_header[1], 'readme.txt must stay at the verified release, see issue #198 finding 1' );
+		$this->assertSame( '6.7', $readme_header[1], 'readme.txt must stay at the verified release, see issue #198 finding 1' );
 	}
 
 	/**
