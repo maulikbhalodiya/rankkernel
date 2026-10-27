@@ -76,13 +76,6 @@ final class Redirector {
 	private $matcher;
 
 	/**
-	 * Destination validator, lazily instantiated on demand.
-	 *
-	 * @var DestinationValidator|null
-	 */
-	private ?DestinationValidator $destinationValidator = null;
-
-	/**
 	 * Constructor, dependencies are injectable for tests.
 	 *
 	 * @param RedirectRepository|null $repository Rule repository.
@@ -309,9 +302,8 @@ final class Redirector {
 		$code   = (string) ( $rule['code'] ?? '301' );
 		$target = (string) ( $rule['target'] ?? '' );
 
-		// Performance optimization: lazily instantiate and reuse DestinationValidator to avoid object allocation churn on matched requests.
-		$this->destinationValidator ??= new DestinationValidator();
-		$checked                      = $this->destinationValidator->validate( $target, $code, $this->allowedHosts() );
+		$validator = new DestinationValidator();
+		$checked   = $validator->validate( $target, $code, $this->allowedHosts() );
 
 		if ( ! $checked['valid'] ) {
 			return '';
