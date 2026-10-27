@@ -2034,6 +2034,26 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test valid scalar string query params render notice.
+	 */
+	public function test_string_query_params_render_notices(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['settings-updated'] = '1';
+
+		ob_start();
+		$this->makeRobotsPage()->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings saved.', $output );
+	}
+
+	/**
 	 * Test array input in query parameters handles gracefully and fails closed without PHP errors.
 	 */
 	public function test_array_shaped_query_params_handled_gracefully(): void {

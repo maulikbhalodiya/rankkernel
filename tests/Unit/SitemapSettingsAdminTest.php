@@ -538,6 +538,21 @@ final class SitemapSettingsAdminTest extends TestCase {
 	}
 
 	/**
+	 * Test valid scalar string query param renders notice.
+	 */
+	public function test_string_query_param_renders_notice(): void {
+		$page = $this->makePage();
+
+		$_GET['settings-updated'] = '1';
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Settings saved.', $html );
+	}
+
+	/**
 	 * Test array shaped query params handle gracefully.
 	 */
 	public function test_array_shaped_query_params_handled_gracefully(): void {

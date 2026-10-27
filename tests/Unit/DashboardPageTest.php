@@ -488,6 +488,19 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test valid scalar string query param renders notice.
+	 */
+	public function test_string_query_param_renders_notice(): void {
+		$_GET['settings-updated'] = '1';
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Module updated.', $output );
+	}
+
+	/**
 	 * Test array shaped query params handle gracefully.
 	 */
 	public function test_array_shaped_query_params_handled_gracefully(): void {

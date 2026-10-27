@@ -69,10 +69,11 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
-		$query = [];
+		$servesQuery = $this->servesQueryLocation();
+		$query       = [];
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
-		if ( isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && $this->servesQueryLocation() ) {
+		if ( isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && $servesQuery ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
 			$candidate = wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
 
@@ -81,7 +82,7 @@ final class KeyFileServer {
 			}
 		}
 
-		if ( ! $this->matches( $requestPath, $query ) ) {
+		if ( ! $this->matches( $requestPath, $query, $servesQuery ) ) {
 			return;
 		}
 
@@ -96,18 +97,21 @@ final class KeyFileServer {
 	 * through KEY_QUERY_ARG, so only the query form matches. An empty key
 	 * never matches anything, keeping the class inert before a key exists.
 	 *
-	 * @param string               $requestPath Request path relative to the home URL, no leading slash.
-	 * @param array<string, mixed> $query       Request query arguments.
+	 * @param string               $requestPath          Request path relative to the home URL, no leading slash.
+	 * @param array<string, mixed> $query                Request query arguments.
+	 * @param bool|null            $servesQueryLocation Optional precomputed servesQueryLocation verdict.
 	 * @return bool The result.
 	 */
-	public function matches( string $requestPath, array $query ): bool {
+	public function matches( string $requestPath, array $query, ?bool $servesQueryLocation = null ): bool {
 		$key = $this->settings->getKey();
 
 		if ( '' === $key ) {
 			return false;
 		}
 
-		if ( $this->servesQueryLocation() ) {
+		$servesQueryLocation ??= $this->servesQueryLocation();
+
+		if ( $servesQueryLocation ) {
 			$candidate = $query[ IndexNowSettings::KEY_QUERY_ARG ] ?? null;
 
 			if ( ! is_string( $candidate ) ) {
