@@ -2,7 +2,7 @@
 Contributors: maulikbhalodiya
 Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
-Tested up to: 6.7
+Tested up to: 7.1
 Requires PHP: 8.2
 Stable tag: 0.1.0
 License: GPLv2 or later
