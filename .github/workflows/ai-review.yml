@@ -61,7 +61,7 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
 
       - name: AI Code Review
-        uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
+        uses: nilesh32236/opencode-ai-reviewer@213ea399a9262bfb6d5e3fc6755f4196da792b79 # v1.24.5
         with:
           mode: review
           # Pin the OpenCode CLI rather than tracking latest, so every run
@@ -204,7 +204,7 @@ jobs:
         run: composer install --no-interaction --ignore-platform-reqs --no-scripts --no-plugins
 
       - name: AI Fix
-        uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
+        uses: nilesh32236/opencode-ai-reviewer@213ea399a9262bfb6d5e3fc6755f4196da792b79 # v1.24.5
         with:
           mode: fix
           opencode_version: 'v1.18.31'
