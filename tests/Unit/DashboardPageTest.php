@@ -98,7 +98,15 @@ final class DashboardPageTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-admin/' . $path );
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com' . $path );
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $value ): string => trim( $value ) );
-		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $value ): mixed => $value );
+		Functions\when( 'wp_unslash' )->alias(
+			static function ( mixed $value ): mixed {
+				if ( is_array( $value ) ) {
+					return array_map( static fn( mixed $item ): mixed => is_string( $item ) ? stripslashes( $item ) : $item, $value );
+				}
+
+				return is_string( $value ) ? stripslashes( $value ) : $value;
+			}
+		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
@@ -491,7 +499,7 @@ final class DashboardPageTest extends TestCase {
 	 * Test valid scalar string query param renders notice.
 	 */
 	public function test_string_query_param_renders_notice(): void {
-		$_GET['settings-updated'] = '1';
+		$_GET['settings-updated'] = '\\1';
 
 		ob_start();
 		( new DashboardPage() )->render();

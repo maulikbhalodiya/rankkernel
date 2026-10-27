@@ -116,13 +116,13 @@ final class SettingsPage {
 	 * Prepare the view state and load the settings view.
 	 */
 	public function render(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, compared strictly against a literal, never stored or output.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, compared strictly against a literal, never stored or output.
 		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
 		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		// Read only failure flag, sanitized below. It rides the rk_notice
 		// query argument shared with the section notices.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
 		$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
 		$rkNotice           = sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
 		$settingsSaveFailed = 'save_failed' === $rkNotice;
@@ -341,7 +341,7 @@ final class SettingsPage {
 			$robotEffective = ( '' !== trim( $robotOverride ) ) ? ( rtrim( trim( $robotOverride ) ) . "\n" ) : $robotGenerated;
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only tab flag, compared strictly against a literal, never stored or output.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only tab flag, compared strictly against a literal, never stored or output.
 			$rawRobotTab     = isset( $_GET['robots_tab'] ) ? wp_unslash( $_GET['robots_tab'] ) : '';
 			$robotTab        = 'edit' === ( is_scalar( $rawRobotTab ) ? (string) $rawRobotTab : '' ) ? 'edit' : 'preview';
 			$robotValidation = RobotsDirectives::validate( $robotOverride );

@@ -543,7 +543,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 	public function test_string_query_param_renders_notice(): void {
 		$page = $this->makePage();
 
-		$_GET['settings-updated'] = '1';
+		$_GET['settings-updated'] = '\\1';
 
 		ob_start();
 		$page->render();

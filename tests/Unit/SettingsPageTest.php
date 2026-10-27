@@ -2044,13 +2044,16 @@ final class SettingsPageTest extends TestCase {
 
 		$this->stubCrawlPage( [ 'robots' ] );
 
-		$_GET['settings-updated'] = '1';
+		$_GET['section']          = 'robots';
+		$_GET['settings-updated'] = '\\1';
+		$_GET['robots_tab']       = '\\edit';
 
 		ob_start();
 		$this->makeRobotsPage()->render();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Settings saved.', $output );
+		$this->assertStringContainsString( 'id="rk-robots-override"', $output );
 	}
 
 	/**

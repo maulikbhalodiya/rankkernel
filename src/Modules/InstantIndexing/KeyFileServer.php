@@ -69,14 +69,20 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
+		$hasQueryCandidate = isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && is_string( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+		$isPathCandidate   = hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) );
+
+		if ( ! $hasQueryCandidate && ! $isPathCandidate ) {
+			return;
+		}
+
 		$servesQuery = $this->servesQueryLocation();
 		$query       = [];
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
-		$rawCandidate = ( isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && $servesQuery ) ? wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) : null;
-
-		if ( is_string( $rawCandidate ) ) {
-			$query[ IndexNowSettings::KEY_QUERY_ARG ] = $rawCandidate;
+		if ( $hasQueryCandidate && $servesQuery ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
+			$query[ IndexNowSettings::KEY_QUERY_ARG ] = wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
 		}
 
 		if ( ! $this->matches( $requestPath, $query, $servesQuery ) ) {
