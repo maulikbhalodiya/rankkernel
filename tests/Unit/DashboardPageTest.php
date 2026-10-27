@@ -166,6 +166,39 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the shipped importer card is toggleable, never parked as planned.
+	 *
+	 * The importer is implemented and merged, so its card must render with
+	 * a working toggle. The Coming Soon bucket is keyed off the "Planned."
+	 * description marker, so the description must not carry it: otherwise
+	 * the screen offers no toggle, the page never registers, and the
+	 * importer is unreachable on a fresh install.
+	 */
+	public function test_importer_card_is_toggleable_not_planned(): void {
+		$cards = ( new DashboardPage() )->cards();
+
+		$byId = [];
+		foreach ( $cards as $card ) {
+			$byId[ $card['id'] ] = $card;
+		}
+
+		$this->assertFalse( $byId['importer']['planned'] );
+		$this->assertStringNotContainsString( 'Planned.', $byId['importer']['description'] );
+	}
+
+	/**
+	 * Test toggling on enables the importer module.
+	 */
+	public function test_toggle_enables_importer(): void {
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = 'importer';
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertContains( 'importer', $this->options['rankkernel_modules'] );
+	}
+
+	/**
 	 * Test toggling on enables a module.
 	 */
 	public function test_toggle_enables_module(): void {

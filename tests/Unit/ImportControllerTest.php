@@ -683,6 +683,30 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test the run id pattern survives WordPress schema validation.
+	 *
+	 * WordPress wraps a route schema pattern in its own delimiters
+	 * (see rest_validate_json_schema_pattern), so the constant must
+	 * not carry delimiters of its own or every real run id fails the
+	 * REST check with rest_invalid_param before reaching the controller.
+	 */
+	public function test_run_id_pattern_matches_real_ids_through_wordpress_wrapping(): void {
+		$pattern = ImportController::RUN_ID_PATTERN;
+
+		// Mirror WordPress core wrapping exactly.
+		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
+
+		foreach ( [ 'run-aaaa-1111', 'rkTest12345678', 'rkl7x2m9pq4bn8s' ] as $runId ) {
+			$this->assertSame( 1, preg_match( $wrapped, $runId ), 'valid run id must match the schema pattern: ' . $runId );
+			$this->assertSame( 1, preg_match( '/' . $pattern . '/', $runId ), 'controller check must agree: ' . $runId );
+		}
+
+		foreach ( [ '', 'short', 'has space', 'with/slash', str_repeat( 'a', 65 ) ] as $runId ) {
+			$this->assertSame( 0, preg_match( $wrapped, $runId ), 'invalid run id must not match: ' . $runId );
+		}
+	}
+
+	/**
 	 * Test a second run on the same source is refused with a conflict.
 	 */
 	public function test_competing_run_returns_409(): void {

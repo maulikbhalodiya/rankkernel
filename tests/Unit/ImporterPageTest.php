@@ -142,6 +142,50 @@ final class ImporterPageTest extends TestCase {
 	}
 
 	/**
+	 * Test missing source plugin files are never read for the version badge.
+	 *
+	 * Source plugins are usually absent, and reading a missing main file
+	 * raises PHP warnings on the Detect screen, so the page must skip
+	 * unreadable files quietly and render no version badge for them.
+	 */
+	public function test_render_skips_version_badge_when_source_plugin_file_is_missing(): void {
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', sys_get_temp_dir() . '/rk-no-source-plugins' );
+		}
+
+		$read = false;
+
+		Functions\when( 'get_plugin_data' )->alias(
+			static function () use ( &$read ): array {
+				$read = true;
+
+				return [];
+			}
+		);
+
+		$page = new ImporterPage(
+			[
+				new ImportControllerStubReader(
+					[
+						[
+							'id'   => 1,
+							'type' => 'post',
+							'data' => [],
+						],
+					]
+				),
+			]
+		);
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertFalse( $read, 'missing source plugin files must not be read' );
+		$this->assertStringNotContainsString( 'rk-importer-version-badge', $html );
+	}
+
+	/**
 	 * Test the run path markup matches the page script contract.
 	 *
 	 * Per-kind section mounts, the confirmation panel, conflict mode
