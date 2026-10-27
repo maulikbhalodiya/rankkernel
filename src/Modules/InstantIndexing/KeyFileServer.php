@@ -70,7 +70,7 @@ final class KeyFileServer {
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only matching, the value is compared with hash_equals() and never stored, logged or echoed raw.
-		$query = isset( $_GET ) && is_array( $_GET ) ? wp_unslash( $_GET ) : [];
+		$query = wp_unslash( $_GET );
 
 		if ( ! $this->matches( $requestPath, $query ) ) {
 			return;
