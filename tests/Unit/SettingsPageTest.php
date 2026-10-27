@@ -2078,5 +2078,6 @@ final class SettingsPageTest extends TestCase {
 		$this->assertNotEmpty( $output );
 		$this->assertStringNotContainsString( 'Settings saved.', $output );
 		$this->assertStringNotContainsString( 'Settings could not be saved', $output );
+		$this->assertStringNotContainsString( 'id="rk-robots-override"', $output );
 	}
 }
