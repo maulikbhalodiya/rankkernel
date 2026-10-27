@@ -536,4 +536,23 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( rawurlencode( 'https://example.com/' ), $html );
 		$this->assertStringNotContainsString( 'Not available in RankKernel', $html );
 	}
+
+	/**
+	 * Test array shaped query params handle gracefully.
+	 */
+	public function test_array_shaped_query_params_handled_gracefully(): void {
+		$page = $this->makePage();
+
+		$_GET['tab']              = [ 'nested' => 'authors' ];
+		$_GET['settings-updated'] = [ 'nested' => '1' ];
+
+		$this->assertSame( 'general', $page->currentTab() );
+
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertIsString( $html );
+		$this->assertStringNotContainsString( 'Settings updated', $html );
+	}
 }

@@ -2032,4 +2032,22 @@ final class SettingsPageTest extends TestCase {
 
 		$this->assertContains( 'rankkernel_settings_robots', $actions, 'a robots save must verify the robots nonce' );
 	}
+
+	/**
+	 * Test array input in query parameters handles gracefully and fails closed without PHP errors.
+	 */
+	public function test_array_shaped_query_params_handled_gracefully(): void {
+		$this->stubSettingsPageRender();
+
+		$_GET['settings-updated'] = [ 'nested' => '1' ];
+		$_GET['robots_tab']       = [ 'nested' => 'edit' ];
+		$_GET['rk_notice']        = [ 'nested' => 'save_failed' ];
+
+		ob_start();
+		$this->makePage()->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertIsString( $output );
+		$this->assertStringNotContainsString( 'Settings could not be saved', $output );
+	}
 }

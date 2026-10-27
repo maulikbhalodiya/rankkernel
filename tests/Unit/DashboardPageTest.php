@@ -486,4 +486,18 @@ final class DashboardPageTest extends TestCase {
 		$this->assertStringContainsString( '<a class="rk-dashboard-tool" href="https://example.com/robots.txt" target="_blank" rel="noopener">', $output );
 		$this->assertStringContainsString( '<span class="screen-reader-text">(opens in a new tab)</span>', $output );
 	}
+
+	/**
+	 * Test array shaped query params handle gracefully.
+	 */
+	public function test_array_shaped_query_params_handled_gracefully(): void {
+		$_GET['settings-updated'] = [ 'nested' => '1' ];
+
+		ob_start();
+		( new DashboardPage() )->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertIsString( $output );
+		$this->assertStringNotContainsString( 'Settings updated', $output );
+	}
 }

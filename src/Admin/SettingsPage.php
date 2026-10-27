@@ -124,7 +124,8 @@ final class SettingsPage {
 		// query argument shared with the section notices.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
 		$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
+		$rkNotice           = sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
+		$settingsSaveFailed = 'save_failed' === $rkNotice;
 
 		$allSettings = $this->store->all();
 
@@ -358,9 +359,7 @@ final class SettingsPage {
 			$llmsValidation = ( new LlmsGenerator() )->validate( $llmsContent );
 			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
-			$rawLlmsNotice = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-			$llmsNotice    = sanitize_key( is_scalar( $rawLlmsNotice ) ? (string) $rawLlmsNotice : '' );
+			$llmsNotice = $rkNotice;
 
 			// Derived from the settings already loaded above: no extra query and no write.
 			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
@@ -378,9 +377,7 @@ final class SettingsPage {
 		$htaccessSelected  = $htaccessSupported ? $htaccessFile->blockSelection() : [];
 		$htaccessPath      = $htaccessFile->path();
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only notice flag, sanitized below.
-		$rawHtaccessNotice = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-		$htaccessNotice    = sanitize_key( is_scalar( $rawHtaccessNotice ) ? (string) $rawHtaccessNotice : '' );
+		$htaccessNotice = $rkNotice;
 
 		$settingsSections[] = [
 			'id'    => 'advanced',

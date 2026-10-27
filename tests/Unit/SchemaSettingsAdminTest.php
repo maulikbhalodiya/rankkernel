@@ -1001,4 +1001,18 @@ final class SchemaSettingsAdminTest extends TestCase {
 		$this->assertInstanceOf( AdminMenu::class, Plugin::getInstance()->get( 'admin_menu' ) );
 		$this->assertContains( 'admin_menu', $hooked );
 	}
+
+	/**
+	 * Test array shaped query params handle gracefully.
+	 */
+	public function test_array_shaped_query_params_handled_gracefully(): void {
+		$_GET['settings-updated'] = [ 'nested' => '1' ];
+
+		ob_start();
+		$this->makePage()->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertIsString( $html );
+		$this->assertStringNotContainsString( 'Settings updated', $html );
+	}
 }

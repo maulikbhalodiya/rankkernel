@@ -109,7 +109,15 @@ final class KeyFileServerTest extends TestCase {
 		);
 
 		Functions\when( 'esc_html' )->alias( static fn( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
-		Functions\when( 'wp_unslash' )->alias( static fn( mixed $value ): mixed => $value );
+		Functions\when( 'wp_unslash' )->alias(
+			static function ( mixed $value ): mixed {
+				if ( is_array( $value ) ) {
+					return array_map( static fn( mixed $item ): mixed => is_string( $item ) ? stripslashes( $item ) : $item, $value );
+				}
+
+				return is_string( $value ) ? stripslashes( $value ) : $value;
+			}
+		);
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'status_header' )->alias(
 			function ( int $status ): void {
@@ -291,5 +299,23 @@ final class KeyFileServerTest extends TestCase {
 
 		$this->assertSame( $this->key, $body );
 		$this->assertSame( [ 200 ], $this->statusHeaders );
+	}
+
+	/**
+	 * Test maybe serve answers query location when plain permalinks are active and unslashes the candidate.
+	 */
+	public function test_maybe_serve_answers_query_location_with_slashed_key(): void {
+		$this->settings->setPermalinkStructure( '' );
+		$server = new KeyFileServer( $this->settings );
+
+		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = addslashes( $this->key );
+
+		ob_start();
+		$server->maybeServe( (object) [ 'request' => '' ] );
+		$body = ob_get_clean();
+
+		unset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+
+		$this->assertSame( $this->key, $body );
 	}
 }

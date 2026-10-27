@@ -69,8 +69,17 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only matching, the value is compared with hash_equals() and never stored, logged or echoed raw.
-		$query = wp_unslash( $_GET );
+		$query = [];
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
+		if ( $this->servesQueryLocation() && isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
+			$candidate = wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+
+			if ( is_string( $candidate ) ) {
+				$query[ IndexNowSettings::KEY_QUERY_ARG ] = $candidate;
+			}
+		}
 
 		if ( ! $this->matches( $requestPath, $query ) ) {
 			return;
