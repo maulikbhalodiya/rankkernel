@@ -510,7 +510,7 @@ final class DashboardPageTest extends TestCase {
 		( new DashboardPage() )->render();
 		$output = (string) ob_get_clean();
 
-		$this->assertIsString( $output );
+		$this->assertNotEmpty( $output );
 		$this->assertStringNotContainsString( 'Module updated.', $output );
 	}
 }

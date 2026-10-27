@@ -2072,7 +2072,8 @@ final class SettingsPageTest extends TestCase {
 		$this->makeRobotsPage()->render();
 		$output = (string) ob_get_clean();
 
-		$this->assertIsString( $output );
+		$this->assertNotEmpty( $output );
+		$this->assertStringNotContainsString( 'Settings saved.', $output );
 		$this->assertStringNotContainsString( 'Settings could not be saved', $output );
 	}
 }

@@ -138,6 +138,7 @@ final class KeyFileServerTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		$_GET = [];
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -310,11 +311,13 @@ final class KeyFileServerTest extends TestCase {
 
 		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = addcslashes( $this->key, 'A..Za..z0..9' );
 
-		ob_start();
-		$server->maybeServe( (object) [ 'request' => '' ] );
-		$body = ob_get_clean();
-
-		unset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+		try {
+			ob_start();
+			$server->maybeServe( (object) [ 'request' => '' ] );
+			$body = ob_get_clean();
+		} finally {
+			unset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+		}
 
 		$this->assertSame( $this->key, $body );
 	}

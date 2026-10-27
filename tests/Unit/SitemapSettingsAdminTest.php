@@ -567,7 +567,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$page->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertIsString( $html );
+		$this->assertNotEmpty( $html );
 		$this->assertStringNotContainsString( 'Settings saved.', $html );
 	}
 }
