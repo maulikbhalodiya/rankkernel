@@ -109,6 +109,7 @@ final class KeyFileServerTest extends TestCase {
 		);
 
 		Functions\when( 'esc_html' )->alias( static fn( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) );
+		Functions\when( 'wp_unslash' )->alias( static fn( mixed $value ): mixed => $value );
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'status_header' )->alias(
 			function ( int $status ): void {

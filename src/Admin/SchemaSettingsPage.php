@@ -149,8 +149,9 @@ final class SchemaSettingsPage {
 		$all = $this->store->all();
 
 		// Read only display flag, compared strictly against a literal, never stored or output.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, compared strictly against a literal, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only flag, compared strictly against a literal, never stored or output.
+		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.

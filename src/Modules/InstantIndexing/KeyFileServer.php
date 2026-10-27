@@ -69,8 +69,8 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only matching, the value is compared with hash_equals() and never stored, logged or echoed raw. A valid key alphabet cannot contain slashes.
-		$query = $_GET;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only matching, the value is compared with hash_equals() and never stored, logged or echoed raw.
+		$query = isset( $_GET ) && is_array( $_GET ) ? wp_unslash( $_GET ) : [];
 
 		if ( ! $this->matches( $requestPath, $query ) ) {
 			return;

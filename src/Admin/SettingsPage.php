@@ -116,12 +116,13 @@ final class SettingsPage {
 	 * Prepare the view state and load the settings view.
 	 */
 	public function render(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, compared strictly against a literal, never stored or output.
+		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		// Read only failure flag, sanitized below. It rides the rk_notice
 		// query argument shared with the section notices.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
 		$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
 		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
 
@@ -339,8 +340,9 @@ final class SettingsPage {
 			$robotEffective = ( '' !== trim( $robotOverride ) ) ? ( rtrim( trim( $robotOverride ) ) . "\n" ) : $robotGenerated;
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only tab flag, compared strictly against a literal, never stored or output.
-			$robotTab        = 'edit' === ( $_GET['robots_tab'] ?? '' ) ? 'edit' : 'preview';
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only tab flag, compared strictly against a literal, never stored or output.
+			$rawRobotTab     = isset( $_GET['robots_tab'] ) ? wp_unslash( $_GET['robots_tab'] ) : '';
+			$robotTab        = 'edit' === ( is_scalar( $rawRobotTab ) ? (string) $rawRobotTab : '' ) ? 'edit' : 'preview';
 			$robotValidation = RobotsDirectives::validate( $robotOverride );
 
 			$settingsSections[] = [
@@ -356,8 +358,9 @@ final class SettingsPage {
 			$llmsValidation = ( new LlmsGenerator() )->validate( $llmsContent );
 			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
-			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
+			$rawLlmsNotice = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+			$llmsNotice    = sanitize_key( is_scalar( $rawLlmsNotice ) ? (string) $rawLlmsNotice : '' );
 
 			// Derived from the settings already loaded above: no extra query and no write.
 			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
@@ -375,8 +378,9 @@ final class SettingsPage {
 		$htaccessSelected  = $htaccessSupported ? $htaccessFile->blockSelection() : [];
 		$htaccessPath      = $htaccessFile->path();
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
-		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only notice flag, sanitized below.
+		$rawHtaccessNotice = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+		$htaccessNotice    = sanitize_key( is_scalar( $rawHtaccessNotice ) ? (string) $rawHtaccessNotice : '' );
 
 		$settingsSections[] = [
 			'id'    => 'advanced',
