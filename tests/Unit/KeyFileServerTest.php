@@ -321,4 +321,36 @@ final class KeyFileServerTest extends TestCase {
 
 		$this->assertSame( $this->key, $body );
 	}
+
+	/**
+	 * Test maybe serve query location edge cases when plain permalinks are active.
+	 */
+	public function test_maybe_serve_query_location_edge_cases(): void {
+		$this->settings->setPermalinkStructure( '' );
+		$server = new KeyFileServer( $this->settings );
+
+		// Absent key argument.
+		unset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+		ob_start();
+		$server->maybeServe( (object) [ 'request' => '' ] );
+		$this->assertSame( '', ob_get_clean() );
+
+		// Array shaped key argument.
+		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = [ 'nested' => $this->key ];
+		ob_start();
+		$server->maybeServe( (object) [ 'request' => '' ] );
+		$this->assertSame( '', ob_get_clean() );
+
+		// Wrong string key argument.
+		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = 'wrongkey123';
+		ob_start();
+		$server->maybeServe( (object) [ 'request' => '' ] );
+		$this->assertSame( '', ob_get_clean() );
+
+		// Correct string key argument.
+		$_GET[ IndexNowSettings::KEY_QUERY_ARG ] = $this->key;
+		ob_start();
+		$server->maybeServe( (object) [ 'request' => '' ] );
+		$this->assertSame( $this->key, ob_get_clean() );
+	}
 }

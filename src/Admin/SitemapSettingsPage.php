@@ -76,7 +76,7 @@ final class SitemapSettingsPage {
 	 * @return string The result.
 	 */
 	public function currentTab(): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, unslashed here, sanitized or validated on the following statements.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- selects tab for display and save, unslashed here and validated below.
 		$raw = isset( $_GET['tab'] ) ? wp_unslash( $_GET['tab'] ) : '';
 
 		if ( ! is_string( $raw ) ) {
