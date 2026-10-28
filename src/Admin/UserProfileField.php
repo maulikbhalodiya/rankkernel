@@ -82,8 +82,8 @@ final class UserProfileField {
 			);
 		}
 
-		// Core calls wp_die() inside check_admin_referer() for a bad nonce,
-		// so execution never returns here.
+		// check_admin_referer() terminates the request on a bad nonce, so
+		// the return value is not branched on. See RedirectsPage::requireAccess().
 		check_admin_referer( 'update-user_' . $userId );
 
 		// The value is only read when it is a string, so an array shaped field
