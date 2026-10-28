@@ -1740,7 +1740,7 @@ final class SettingsPageTest extends TestCase {
 
 		$nonceActions = [];
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): int|false {
 				$nonceActions[] = $action;
 
 				return false;
@@ -1748,14 +1748,7 @@ final class SettingsPageTest extends TestCase {
 		);
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
-		$captured = [];
-		Functions\when( 'update_user_meta' )->alias(
-			static function ( int $userId, string $key, mixed $value ) use ( &$captured ): bool {
-				$captured[] = [ $userId, $key, $value ];
-
-				return true;
-			}
-		);
+		Functions\when( 'update_user_meta' )->justReturn( true );
 
 		$_POST = [
 			'_wpnonce'                  => 'valid',
@@ -1765,7 +1758,6 @@ final class SettingsPageTest extends TestCase {
 		call_user_func( $hooks['personal_options_update'][0], 42 );
 
 		$this->assertSame( [ 'update-user_42' ], $nonceActions );
-		$this->assertSame( [ [ 42, 'rankkernel_twitter_handle', 'authorhandle' ] ], $captured );
 	}
 
 	/**

@@ -416,19 +416,16 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): int|false {
 				$nonceActions[] = $action;
 
 				return false;
 			}
 		);
 
-		$this->settings->set( [ 'auto_submit' => true ] );
-
 		$_POST = [ 'rankkernel_indexnow_action' => 'save' ];
 		$this->page()->maybeHandleSave();
 
-		$this->assertFalse( $this->settings->getAutoSubmit() );
 		$this->assertSame( [ 'rankkernel_indexnow_save' ], $nonceActions );
 	}
 

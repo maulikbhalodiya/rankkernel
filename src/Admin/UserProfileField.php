@@ -82,7 +82,10 @@ final class UserProfileField {
 			);
 		}
 
-		// See RedirectsPage::requireAccess() for why check_admin_referer()'s return value is discarded.
+		// check_admin_referer() dies on a bad nonce for this explicit action, so
+		// there is no false return to branch on. Keep passing a non-empty action:
+		// the default -1 can return false without dying when the referer is an
+		// admin URL.
 		check_admin_referer( 'update-user_' . $userId );
 
 		// The value is only read when it is a string, so an array shaped field
