@@ -52,7 +52,7 @@ final class RedirectsSettings {
 	private static array $cachedSettings = [];
 
 	/**
-	 * Reset the static request-level settings cache (primarily for unit tests or blog switches).
+	 * Reset the static request-level settings cache (primarily for unit tests).
 	 *
 	 * @return void
 	 */
@@ -63,13 +63,13 @@ final class RedirectsSettings {
 	/**
 	 * Get the current blog ID for multisite-safe static caching.
 	 *
-	 * @return int Blog ID or 0 when unavailable.
+	 * @return int Blog ID, or 1 when the helper is unavailable.
 	 */
 	private static function currentBlogId(): int {
 		if ( function_exists( 'get_current_blog_id' ) ) {
 			try {
 				return (int) get_current_blog_id();
-			} catch ( \Throwable $throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatcher -- Fail open to site 1 in unmocked environments.
+			} catch ( \Throwable ) {
 				return 1;
 			}
 		}
@@ -122,10 +122,6 @@ final class RedirectsSettings {
 	 * @return array<string, mixed>
 	 */
 	public function all(): array {
-		if ( null !== $this->cache ) {
-			return $this->cache;
-		}
-
 		$blogId = self::currentBlogId();
 
 		if ( isset( self::$cachedSettings[ $blogId ] ) ) {
@@ -156,9 +152,13 @@ final class RedirectsSettings {
 		$defaults = self::defaults();
 
 		if ( ! is_array( $stored ) ) {
-			update_option( self::OPTION, $defaults, false );
-			$this->cache                     = $defaults;
-			self::$cachedSettings[ $blogId ] = $defaults;
+			$saved   = update_option( self::OPTION, $defaults, false );
+			$current = get_option( self::OPTION, null );
+
+			if ( $saved || $current === $defaults ) {
+				$this->cache                     = $defaults;
+				self::$cachedSettings[ $blogId ] = $defaults;
+			}
 
 			return;
 		}
@@ -193,12 +193,17 @@ final class RedirectsSettings {
 		$this->cache = self::$cachedSettings[ $blogId ] ?? null;
 		$merged      = array_merge( $this->all(), $sanitized );
 
-		update_option( self::OPTION, $merged, false );
+		$saved   = update_option( self::OPTION, $merged, false );
+		$current = get_option( self::OPTION, [] );
 
-		$this->cache                     = $merged;
-		self::$cachedSettings[ $blogId ] = $merged;
+		if ( $saved || $current === $merged ) {
+			$this->cache                     = $merged;
+			self::$cachedSettings[ $blogId ] = $merged;
 
-		return true;
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

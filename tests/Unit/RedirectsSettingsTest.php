@@ -263,6 +263,10 @@ final class RedirectsSettingsTest extends TestCase {
 		);
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ) use ( &$blogId ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+				if ( RedirectsSettings::OPTION !== $key ) {
+					return $fallback;
+				}
+
 				if ( 1 === $blogId ) {
 					return [ 'preserve_query' => true ];
 				}
@@ -271,11 +275,10 @@ final class RedirectsSettingsTest extends TestCase {
 			}
 		);
 
-		$instanceBlog1 = new RedirectsSettings();
-		$this->assertTrue( $instanceBlog1->get( 'preserve_query' ) );
+		$instance = new RedirectsSettings();
+		$this->assertTrue( $instance->get( 'preserve_query' ) );
 
-		$blogId        = 2;
-		$instanceBlog2 = new RedirectsSettings();
-		$this->assertFalse( $instanceBlog2->get( 'preserve_query' ) );
+		$blogId = 2;
+		$this->assertFalse( $instance->get( 'preserve_query' ) );
 	}
 }
