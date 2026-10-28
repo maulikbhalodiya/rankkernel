@@ -63,15 +63,11 @@ final class RedirectsSettings {
 	/**
 	 * Get the current blog ID for multisite-safe static caching.
 	 *
-	 * @return int Blog ID or 1 when unavailable.
+	 * @return int Blog ID or 0 when unavailable.
 	 */
 	private static function currentBlogId(): int {
 		if ( function_exists( 'get_current_blog_id' ) ) {
-			try {
-				return (int) get_current_blog_id();
-			} catch ( \Throwable $throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatcher -- Fail open to site 1 in unmocked environments.
-				return 1;
-			}
+			return (int) get_current_blog_id();
 		}
 
 		return 1;
@@ -151,18 +147,19 @@ final class RedirectsSettings {
 	 * Seed the option with defaults when it is missing.
 	 */
 	public function ensureSchema(): void {
-		$blogId = self::currentBlogId();
-		$stored = get_option( self::OPTION, null );
+		$blogId   = self::currentBlogId();
+		$stored   = get_option( self::OPTION, null );
+		$defaults = self::defaults();
 
 		if ( ! is_array( $stored ) ) {
-			update_option( self::OPTION, self::defaults(), false );
-			$this->cache                     = self::defaults();
-			self::$cachedSettings[ $blogId ] = self::defaults();
+			update_option( self::OPTION, $defaults, false );
+			$this->cache                     = $defaults;
+			self::$cachedSettings[ $blogId ] = $defaults;
 
 			return;
 		}
 
-		$merged                          = array_merge( self::defaults(), $stored );
+		$merged                          = array_merge( $defaults, $stored );
 		$this->cache                     = $merged;
 		self::$cachedSettings[ $blogId ] = $merged;
 	}
@@ -188,11 +185,12 @@ final class RedirectsSettings {
 			return false;
 		}
 
-		$merged = array_merge( $this->all(), $sanitized );
+		$blogId      = self::currentBlogId();
+		$this->cache = self::$cachedSettings[ $blogId ] ?? null;
+		$merged      = array_merge( $this->all(), $sanitized );
 
 		update_option( self::OPTION, $merged, false );
 
-		$blogId                          = self::currentBlogId();
 		$this->cache                     = $merged;
 		self::$cachedSettings[ $blogId ] = $merged;
 

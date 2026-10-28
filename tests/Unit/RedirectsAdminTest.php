@@ -65,7 +65,6 @@ final class RedirectsAdminTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
-		RedirectsSettings::resetCache();
 
 		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
 			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );

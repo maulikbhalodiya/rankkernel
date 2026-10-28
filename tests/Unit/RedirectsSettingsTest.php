@@ -184,6 +184,7 @@ final class RedirectsSettingsTest extends TestCase {
 	public function test_static_request_level_memoization_and_reset(): void {
 		$calls = 0;
 		$value = [ 'preserve_query' => false ];
+		Functions\when( 'get_current_blog_id' )->justReturn( 10 );
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ) use ( &$calls, &$value ): mixed {
 				if ( RedirectsSettings::OPTION === $key ) {
@@ -198,7 +199,7 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $instance1->get( 'preserve_query' ) );
 		$this->assertSame( 1, $calls );
 
-		// Multiple instances share static request-level memoization.
+		// Multiple instances share static request-level memoization for blog 10.
 		$instance2 = new RedirectsSettings();
 		$this->assertFalse( $instance2->get( 'preserve_query' ) );
 		$this->assertSame( 1, $calls );
@@ -217,6 +218,7 @@ final class RedirectsSettingsTest extends TestCase {
 	 */
 	public function test_set_updates_static_and_instance_cache(): void {
 		$store = [];
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
 				return $store[ $key ] ?? $fallback;
@@ -231,9 +233,49 @@ final class RedirectsSettingsTest extends TestCase {
 
 		$instance1 = new RedirectsSettings();
 		$instance1->set( [ 'preserve_query' => false ] );
+		$this->assertFalse( $instance1->get( 'preserve_query' ) );
+
+		$calls = 0;
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$calls, &$store ): mixed {
+				if ( RedirectsSettings::OPTION === $key ) {
+					++$calls;
+				}
+				return $store[ $key ] ?? $fallback;
+			}
+		);
 
 		// Second instance created afterwards reads updated static cache without get_option.
 		$instance2 = new RedirectsSettings();
 		$this->assertFalse( $instance2->get( 'preserve_query' ) );
+		$this->assertSame( 0, $calls );
+	}
+
+	/**
+	 * Test multisite isolation across switch_to_blog().
+	 */
+	public function test_multisite_blog_isolation(): void {
+		$blogId = 1;
+		Functions\when( 'get_current_blog_id' )->alias(
+			static function () use ( &$blogId ): int {
+				return $blogId;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$blogId ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+				if ( 1 === $blogId ) {
+					return [ 'preserve_query' => true ];
+				}
+
+				return [ 'preserve_query' => false ];
+			}
+		);
+
+		$instanceBlog1 = new RedirectsSettings();
+		$this->assertTrue( $instanceBlog1->get( 'preserve_query' ) );
+
+		$blogId        = 2;
+		$instanceBlog2 = new RedirectsSettings();
+		$this->assertFalse( $instanceBlog2->get( 'preserve_query' ) );
 	}
 }

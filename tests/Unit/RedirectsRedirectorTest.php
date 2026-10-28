@@ -113,7 +113,6 @@ final class RedirectsRedirectorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
-		RedirectsSettings::resetCache();
 
 		if ( ! defined( 'ARRAY_A' ) ) {
 			define( 'ARRAY_A', 'ARRAY_A' );
