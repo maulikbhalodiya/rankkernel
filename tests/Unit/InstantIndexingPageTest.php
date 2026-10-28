@@ -444,6 +444,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		try {
 			$this->page()->maybeHandleSave();
+			$this->fail( 'a failed nonce must stop the request' );
 		} catch ( \RuntimeException $exception ) {
 			$this->assertSame( 'wp_die', $exception->getMessage() );
 		}
@@ -2142,6 +2143,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		try {
 			$page->maybeHandleSave();
+			$this->fail( 'a failed nonce must stop the request' );
 		} catch ( \RuntimeException $exception ) {
 			$this->assertSame( 'wp_die', $exception->getMessage() );
 		}

@@ -64,6 +64,13 @@ final class SupportPageTest extends TestCase {
 	private bool $nonceOk = true;
 
 	/**
+	 * Captured nonce actions.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $nonceActions = [];
+
+	/**
 	 * How many times wp_handle_upload was reached.
 	 *
 	 * @var int
@@ -108,6 +115,7 @@ final class SupportPageTest extends TestCase {
 		$this->mail         = [];
 		$this->allowed      = true;
 		$this->nonceOk      = true;
+		$this->nonceActions = [];
 		$this->uploadCalls  = 0;
 		$this->uploadMimes  = [];
 
@@ -139,7 +147,9 @@ final class SupportPageTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn ( string $e ): bool => (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'current_user_can' )->alias( fn (): bool => $this->allowed );
 		Functions\when( 'check_admin_referer' )->alias(
-			function ( string $action = '' ): int { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors WordPress check_admin_referer signature.
+			function ( string $action = '' ): int {
+				$this->nonceActions[] = $action;
+
 				if ( ! $this->nonceOk ) {
 					wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 				}
@@ -285,10 +295,14 @@ final class SupportPageTest extends TestCase {
 		$this->nonceOk = false;
 		$this->postValid();
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
+		try {
+			( new SupportPage() )->maybeHandleSave();
+			$this->fail( 'wp_die was not reached' );
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
 
-		( new SupportPage() )->maybeHandleSave();
+		$this->assertSame( [ SupportRequest::NONCE_ACTION ], $this->nonceActions, 'the handler must verify its own nonce action' );
 	}
 
 	/**
