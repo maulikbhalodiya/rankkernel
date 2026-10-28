@@ -63,6 +63,13 @@ final class SettingsPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
+		Functions\when( 'wp_enqueue_media' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_set_script_translations' )->justReturn( true );
+		Functions\when( 'plugins_url' )->alias( static fn ( string $path = '', string $file = '' ): string => 'https://example.com/' . $path ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias(
@@ -2070,9 +2077,16 @@ final class SettingsPageTest extends TestCase {
 		$_GET['settings-updated'] = [ 'nested' => '1' ];
 		$_GET['robots_tab']       = [ 'nested' => 'edit' ];
 		$_GET['rk_notice']        = [ 'nested' => 'save_failed' ];
+		$_GET['section']          = [ 'nested' => 'robots' ];
+		$_GET['rk_partial']       = [ 'nested' => 'robots' ];
+		$_GET['page']             = [ 'nested' => 'rankkernel-general' ];
+
+		$page = $this->makeRobotsPage();
 
 		ob_start();
-		$this->makeRobotsPage()->render();
+		$page->maybeHandleSave();
+		$page->render();
+		$page->enqueueAssets( SettingsPage::HOOK_SUFFIX );
 		$output = (string) ob_get_clean();
 
 		$this->assertNotEmpty( $output );

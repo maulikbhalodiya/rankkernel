@@ -69,18 +69,19 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
-		$servesQuery = $this->servesQueryLocation();
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
-		$hasQueryCandidate = isset( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ) && is_string( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
-		$isPathCandidate   = false;
-		$query             = [];
+		$servesQuery     = $this->servesQueryLocation();
+		$isPathCandidate = false;
+		$query           = [];
 
 		if ( $servesQuery ) {
-			if ( ! $hasQueryCandidate ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only public endpoint matching, value compared with hash_equals() and never stored.
+			$rawCandidate = $_GET[ IndexNowSettings::KEY_QUERY_ARG ] ?? null;
+
+			if ( ! is_string( $rawCandidate ) ) {
 				return;
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only public endpoint matching, value compared with hash_equals() and never stored.
-			$query[ IndexNowSettings::KEY_QUERY_ARG ] = wp_unslash( $_GET[ IndexNowSettings::KEY_QUERY_ARG ] );
+
+			$query[ IndexNowSettings::KEY_QUERY_ARG ] = wp_unslash( $rawCandidate );
 		} else {
 			$isPathCandidate = hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) );
 			if ( ! $isPathCandidate ) {

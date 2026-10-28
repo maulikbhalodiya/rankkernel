@@ -392,7 +392,8 @@ final class SettingsPage {
 		);
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
-		$rawSection = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		$rawSectionInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$rawSection      = is_scalar( $rawSectionInput ) ? sanitize_key( (string) $rawSectionInput ) : '';
 
 		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
 
@@ -438,18 +439,19 @@ final class SettingsPage {
 	 * @return string|null The result.
 	 */
 	private function partialRequest(): ?string {
-		$raw = '';
+		$rawInput = null;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
 		if ( isset( $_POST['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_POST['rk_partial'] );
+			$rawInput = wp_unslash( $_POST['rk_partial'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
 		} elseif ( isset( $_GET['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_GET['rk_partial'] );
+			$rawInput = wp_unslash( $_GET['rk_partial'] );
 		}
 
+		$raw = is_scalar( $rawInput ) ? (string) $rawInput : '';
 		$key = sanitize_key( $raw );
 
 		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
@@ -625,8 +627,9 @@ final class SettingsPage {
 	 * @return string Section id.
 	 */
 	private function postedSection(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- the nonce action itself depends on this value; verified immediately after.
-		$raw = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the nonce action itself depends on this value; verified immediately after.
+		$rawInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$raw      = is_scalar( $rawInput ) ? sanitize_key( (string) $rawInput ) : '';
 
 		$ids = [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ];
 
@@ -781,7 +784,8 @@ final class SettingsPage {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
-		$section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		$sectionInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$section      = is_scalar( $sectionInput ) ? sanitize_key( (string) $sectionInput ) : '';
 
 		// A failed write is reported on the same rk_notice channel the section
 		// notices use, so the redirect never claims a write that did not happen.
@@ -809,7 +813,8 @@ final class SettingsPage {
 		// The admin hook suffix for this submenu differs from the documented
 		// form, so the page slug is matched as well.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
-		$page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+		$pageInput = isset( $_GET['page'] ) ? wp_unslash( $_GET['page'] ) : '';
+		$page      = is_scalar( $pageInput ) ? sanitize_key( (string) $pageInput ) : '';
 
 		if ( 'rankkernel-general' !== $page && 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
