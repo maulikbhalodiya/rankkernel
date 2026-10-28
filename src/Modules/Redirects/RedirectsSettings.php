@@ -45,19 +45,36 @@ final class RedirectsSettings {
 	private ?array $cache = null;
 
 	/**
-	 * Request-level static cache for merged redirect settings across instances.
+	 * Request-level static cache for merged redirect settings across instances, keyed by blog ID.
 	 *
-	 * @var array<string, mixed>|null
+	 * @var array<int, array<string, mixed>>
 	 */
-	private static ?array $cachedSettings = null;
+	private static array $cachedSettings = [];
 
 	/**
-	 * Reset the static request-level settings cache (primarily for unit tests).
+	 * Reset the static request-level settings cache (primarily for unit tests or blog switches).
 	 *
 	 * @return void
 	 */
 	public static function resetCache(): void {
-		self::$cachedSettings = null;
+		self::$cachedSettings = [];
+	}
+
+	/**
+	 * Get the current blog ID for multisite-safe static caching.
+	 *
+	 * @return int Blog ID or 1 when unavailable.
+	 */
+	private static function currentBlogId(): int {
+		if ( function_exists( 'get_current_blog_id' ) ) {
+			try {
+				return (int) get_current_blog_id();
+			} catch ( \Throwable $throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatcher -- Fail open to site 1 in unmocked environments.
+				return 1;
+			}
+		}
+
+		return 1;
 	}
 
 	/**
@@ -109,8 +126,10 @@ final class RedirectsSettings {
 			return $this->cache;
 		}
 
-		if ( null !== self::$cachedSettings ) {
-			$this->cache = self::$cachedSettings;
+		$blogId = self::currentBlogId();
+
+		if ( isset( self::$cachedSettings[ $blogId ] ) ) {
+			$this->cache = self::$cachedSettings[ $blogId ];
 
 			return $this->cache;
 		}
@@ -121,9 +140,9 @@ final class RedirectsSettings {
 			$stored = [];
 		}
 
-		$merged               = array_merge( self::defaults(), $stored );
-		$this->cache          = $merged;
-		self::$cachedSettings = $merged;
+		$merged                          = array_merge( self::defaults(), $stored );
+		$this->cache                     = $merged;
+		self::$cachedSettings[ $blogId ] = $merged;
 
 		return $this->cache;
 	}
@@ -132,19 +151,20 @@ final class RedirectsSettings {
 	 * Seed the option with defaults when it is missing.
 	 */
 	public function ensureSchema(): void {
+		$blogId = self::currentBlogId();
 		$stored = get_option( self::OPTION, null );
 
 		if ( ! is_array( $stored ) ) {
 			update_option( self::OPTION, self::defaults(), false );
-			$this->cache          = self::defaults();
-			self::$cachedSettings = self::defaults();
+			$this->cache                     = self::defaults();
+			self::$cachedSettings[ $blogId ] = self::defaults();
 
 			return;
 		}
 
-		$merged               = array_merge( self::defaults(), $stored );
-		$this->cache          = $merged;
-		self::$cachedSettings = $merged;
+		$merged                          = array_merge( self::defaults(), $stored );
+		$this->cache                     = $merged;
+		self::$cachedSettings[ $blogId ] = $merged;
 	}
 
 	/**
@@ -172,8 +192,9 @@ final class RedirectsSettings {
 
 		update_option( self::OPTION, $merged, false );
 
-		$this->cache          = $merged;
-		self::$cachedSettings = $merged;
+		$blogId                          = self::currentBlogId();
+		$this->cache                     = $merged;
+		self::$cachedSettings[ $blogId ] = $merged;
 
 		return true;
 	}

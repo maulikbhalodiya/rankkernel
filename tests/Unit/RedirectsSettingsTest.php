@@ -183,11 +183,12 @@ final class RedirectsSettingsTest extends TestCase {
 	 */
 	public function test_static_request_level_memoization_and_reset(): void {
 		$calls = 0;
+		$value = [ 'preserve_query' => false ];
 		Functions\when( 'get_option' )->alias(
-			function ( string $key, mixed $fallback = false ) use ( &$calls ): mixed {
+			function ( string $key, mixed $fallback = false ) use ( &$calls, &$value ): mixed {
 				if ( RedirectsSettings::OPTION === $key ) {
 					++$calls;
-					return [ 'preserve_query' => false ];
+					return $value;
 				}
 				return $fallback;
 			}
@@ -197,14 +198,42 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $instance1->get( 'preserve_query' ) );
 		$this->assertSame( 1, $calls );
 
+		// Multiple instances share static request-level memoization.
 		$instance2 = new RedirectsSettings();
 		$this->assertFalse( $instance2->get( 'preserve_query' ) );
 		$this->assertSame( 1, $calls );
 
+		// Mutate underlying stored option to test resetCache() re-fetching fresh value.
+		$value = [ 'preserve_query' => true ];
 		RedirectsSettings::resetCache();
 
 		$instance3 = new RedirectsSettings();
-		$this->assertFalse( $instance3->get( 'preserve_query' ) );
+		$this->assertTrue( $instance3->get( 'preserve_query' ) );
 		$this->assertSame( 2, $calls );
+	}
+
+	/**
+	 * Test set() updates both instance and static request-level cache.
+	 */
+	public function test_set_updates_static_and_instance_cache(): void {
+		$store = [];
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				return $store[ $key ] ?? $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $val ) use ( &$store ): bool {
+				$store[ $key ] = $val;
+				return true;
+			}
+		);
+
+		$instance1 = new RedirectsSettings();
+		$instance1->set( [ 'preserve_query' => false ] );
+
+		// Second instance created afterwards reads updated static cache without get_option.
+		$instance2 = new RedirectsSettings();
+		$this->assertFalse( $instance2->get( 'preserve_query' ) );
 	}
 }
