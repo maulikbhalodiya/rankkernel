@@ -374,8 +374,6 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies, 'regenerate without a valid nonce must stop at wp_die' );
-		// Note: The 403 response code is core behavior supplied by the stub above.
-		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
 		$this->assertSame( [ 'rankkernel_indexnow_regenerate' ], $nonceActions, 'the regenerate branch must verify its own nonce action' );
 		$this->assertNotContains( 'rankkernel_indexnow_save', $nonceActions );
 		$this->assertNotContains( 'rankkernel_indexnow_submit', $nonceActions );
@@ -429,9 +427,13 @@ final class InstantIndexingPageTest extends TestCase {
 	 * Test a manual submit is rejected without a valid nonce.
 	 */
 	public function test_manual_submit_is_rejected_without_a_valid_nonce(): void {
+		$nonceActions = [];
+
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function (): void {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
+				$nonceActions[] = $action;
+
 				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 			}
 		);
@@ -440,9 +442,13 @@ final class InstantIndexingPageTest extends TestCase {
 			'rankkernel_indexnow_urls'   => 'https://example.com/a',
 		];
 
-		$this->expectException( \RuntimeException::class );
+		try {
+			$this->page()->maybeHandleSave();
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
 
-		$this->page()->maybeHandleSave();
+		$this->assertSame( [ 'rankkernel_indexnow_submit' ], $nonceActions );
 	}
 
 	/**
@@ -1573,8 +1579,6 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies );
-		// Note: The 403 response code is core behavior supplied by the stub above.
-		$this->assertSame( 403, $responseCode );
 		$this->assertSame( [ 'rankkernel_indexnow_verify' ], $nonceActions );
 	}
 
@@ -2199,8 +2203,6 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies, 'a retry without a valid nonce must stop at wp_die' );
-		// Note: The 403 response code is core behavior supplied by the stub above.
-		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
 		$this->assertSame( [ 'rankkernel_indexnow_retry' ], $nonceActions, 'the retry branch must verify its own nonce action' );
 		$this->assertNotContains( 'rankkernel_indexnow_submit', $nonceActions );
 		$this->assertSame( 0, $called, 'a rejected retry must never submit' );

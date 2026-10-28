@@ -139,12 +139,12 @@ final class SupportPageTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn ( string $e ): bool => (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'current_user_can' )->alias( fn (): bool => $this->allowed );
 		Functions\when( 'check_admin_referer' )->alias(
-			function (): bool {
+			function ( string $action = '' ): int { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors WordPress check_admin_referer signature.
 				if ( ! $this->nonceOk ) {
 					wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 				}
 
-				return true;
+				return 1;
 			}
 		);
 		Functions\when( 'wp_die' )->alias(

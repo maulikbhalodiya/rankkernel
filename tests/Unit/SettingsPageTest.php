@@ -1698,8 +1698,11 @@ final class SettingsPageTest extends TestCase {
 		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
+		$nonceActions = [];
 		Functions\when( 'check_admin_referer' )->alias(
-			static function (): void {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
+				$nonceActions[] = $action;
+
 				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 			}
 		);
@@ -1716,10 +1719,13 @@ final class SettingsPageTest extends TestCase {
 			'rankkernel_twitter_handle' => 'authorhandle',
 		];
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
+		try {
+			call_user_func( $hooks['personal_options_update'][0], 42 );
+		} catch ( \RuntimeException $exception ) {
+			$this->assertSame( 'wp_die', $exception->getMessage() );
+		}
 
-		call_user_func( $hooks['personal_options_update'][0], 42 );
+		$this->assertSame( [ 'update-user_42' ], $nonceActions );
 	}
 
 	/**
