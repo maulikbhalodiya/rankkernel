@@ -361,6 +361,7 @@ final class InstantIndexingPageTest extends TestCase {
 			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
 
+				// The 403 response code simulates WordPress core's check_admin_referer failure behavior.
 				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 			}
 		);
@@ -373,6 +374,7 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies, 'regenerate without a valid nonce must stop at wp_die' );
+		// Note: The 403 response code is core behavior supplied by the stub above.
 		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
 		$this->assertSame( [ 'rankkernel_indexnow_regenerate' ], $nonceActions, 'the regenerate branch must verify its own nonce action' );
 		$this->assertNotContains( 'rankkernel_indexnow_save', $nonceActions );
@@ -1559,6 +1561,7 @@ final class InstantIndexingPageTest extends TestCase {
 			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
 
+				// The 403 response code simulates WordPress core's check_admin_referer failure behavior.
 				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 			}
 		);
@@ -1570,6 +1573,7 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies );
+		// Note: The 403 response code is core behavior supplied by the stub above.
 		$this->assertSame( 403, $responseCode );
 		$this->assertSame( [ 'rankkernel_indexnow_verify' ], $nonceActions );
 	}
@@ -2169,6 +2173,7 @@ final class InstantIndexingPageTest extends TestCase {
 			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
 
+				// The 403 response code simulates WordPress core's check_admin_referer failure behavior.
 				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 			}
 		);
@@ -2194,6 +2199,7 @@ final class InstantIndexingPageTest extends TestCase {
 		}
 
 		$this->assertSame( 1, $dies, 'a retry without a valid nonce must stop at wp_die' );
+		// Note: The 403 response code is core behavior supplied by the stub above.
 		$this->assertSame( 403, $responseCode, 'the nonce rejection must send a 403' );
 		$this->assertSame( [ 'rankkernel_indexnow_retry' ], $nonceActions, 'the retry branch must verify its own nonce action' );
 		$this->assertNotContains( 'rankkernel_indexnow_submit', $nonceActions );
