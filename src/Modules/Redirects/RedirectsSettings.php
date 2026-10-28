@@ -67,7 +67,11 @@ final class RedirectsSettings {
 	 */
 	private static function currentBlogId(): int {
 		if ( function_exists( 'get_current_blog_id' ) ) {
-			return (int) get_current_blog_id();
+			try {
+				return (int) get_current_blog_id();
+			} catch ( \Throwable $throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatcher -- Fail open to site 1 in unmocked environments.
+				return 1;
+			}
 		}
 
 		return 1;
