@@ -807,6 +807,12 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Query strings', $html );
 		$this->assertStringContainsString( 'Exclusions', $html );
 		$this->assertStringContainsString( 'never stored', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-advanced-fields-desc rk-advanced-fields-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-retention-desc rk-retention-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-max-rows-desc rk-max-rows-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-budget-desc rk-flood-budget-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-window-desc rk-flood-window-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-ignore-query-desc rk-ignore-query-hint"', $html );
 	}
 
 	/**
