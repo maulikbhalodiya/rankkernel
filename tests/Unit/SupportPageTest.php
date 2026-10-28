@@ -318,6 +318,7 @@ final class SupportPageTest extends TestCase {
 		}
 
 		$this->assertSame( [ SupportRequest::NONCE_ACTION ], $this->nonceActions, 'the handler must verify its own nonce action' );
+		$this->assertSame( [], $this->mail, 'a rejected nonce must never send mail' );
 	}
 
 	/**

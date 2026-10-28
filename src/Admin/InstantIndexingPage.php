@@ -655,7 +655,7 @@ final class InstantIndexingPage {
 			);
 		}
 
-		// check_admin_referer() with an explicit action terminates execution via wp_die() on invalid nonces.
+		// See RedirectsPage::requireAccess() for why check_admin_referer()'s return value is discarded.
 		check_admin_referer( $nonceAction );
 	}
 

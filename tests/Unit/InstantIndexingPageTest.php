@@ -409,6 +409,30 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test form save does not branch on check_admin_referer return value.
+	 */
+	public function test_form_save_does_not_branch_on_the_referer_return_value(): void {
+		$nonceActions = [];
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return false;
+			}
+		);
+
+		$this->settings->set( [ 'auto_submit' => true ] );
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'save' ];
+		$this->page()->maybeHandleSave();
+
+		$this->assertFalse( $this->settings->getAutoSubmit() );
+		$this->assertSame( [ 'rankkernel_indexnow_save' ], $nonceActions );
+	}
+
+	/**
 	 * Test a manual submit is rejected without capability.
 	 */
 	public function test_manual_submit_is_rejected_without_capability(): void {
