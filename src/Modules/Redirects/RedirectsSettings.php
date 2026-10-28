@@ -45,6 +45,22 @@ final class RedirectsSettings {
 	private ?array $cache = null;
 
 	/**
+	 * Request-level static cache for merged redirect settings across instances.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private static ?array $cachedSettings = null;
+
+	/**
+	 * Reset the static request-level settings cache (primarily for unit tests).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$cachedSettings = null;
+	}
+
+	/**
 	 * Default settings.
 	 *
 	 * Query preservation defaults to on, the slug watcher defaults to on, the
@@ -82,10 +98,20 @@ final class RedirectsSettings {
 	/**
 	 * Get all merged settings.
 	 *
+	 * Performance optimization: memoizes merged settings in static request-level memory
+	 * across all RedirectsSettings instances to eliminate redundant get_option() calls for
+	 * non-autoloaded redirect settings during a request.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public function all(): array {
 		if ( null !== $this->cache ) {
+			return $this->cache;
+		}
+
+		if ( null !== self::$cachedSettings ) {
+			$this->cache = self::$cachedSettings;
+
 			return $this->cache;
 		}
 
@@ -95,7 +121,9 @@ final class RedirectsSettings {
 			$stored = [];
 		}
 
-		$this->cache = array_merge( self::defaults(), $stored );
+		$merged               = array_merge( self::defaults(), $stored );
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 
 		return $this->cache;
 	}
@@ -108,12 +136,15 @@ final class RedirectsSettings {
 
 		if ( ! is_array( $stored ) ) {
 			update_option( self::OPTION, self::defaults(), false );
-			$this->cache = self::defaults();
+			$this->cache          = self::defaults();
+			self::$cachedSettings = self::defaults();
 
 			return;
 		}
 
-		$this->cache = array_merge( self::defaults(), $stored );
+		$merged               = array_merge( self::defaults(), $stored );
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 	}
 
 	/**
@@ -141,7 +172,8 @@ final class RedirectsSettings {
 
 		update_option( self::OPTION, $merged, false );
 
-		$this->cache = $merged;
+		$this->cache          = $merged;
+		self::$cachedSettings = $merged;
 
 		return true;
 	}

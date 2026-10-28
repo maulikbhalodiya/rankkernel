@@ -38,6 +38,7 @@ final class RedirectsSettingsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		RedirectsSettings::resetCache();
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -62,6 +63,7 @@ final class RedirectsSettingsTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectsSettings::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -174,5 +176,35 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->get( 'preserve_query' ) );
 		$this->assertTrue( $settings->get( 'auto_slug_redirect' ) );
 		$this->assertSame( [], $this->updates );
+	}
+
+	/**
+	 * Test request-level static memoization across instances and resetCache().
+	 */
+	public function test_static_request_level_memoization_and_reset(): void {
+		$calls = 0;
+		Functions\when( 'get_option' )->alias(
+			function ( string $key, mixed $fallback = false ) use ( &$calls ): mixed {
+				if ( RedirectsSettings::OPTION === $key ) {
+					++$calls;
+					return [ 'preserve_query' => false ];
+				}
+				return $fallback;
+			}
+		);
+
+		$instance1 = new RedirectsSettings();
+		$this->assertFalse( $instance1->get( 'preserve_query' ) );
+		$this->assertSame( 1, $calls );
+
+		$instance2 = new RedirectsSettings();
+		$this->assertFalse( $instance2->get( 'preserve_query' ) );
+		$this->assertSame( 1, $calls );
+
+		RedirectsSettings::resetCache();
+
+		$instance3 = new RedirectsSettings();
+		$this->assertFalse( $instance3->get( 'preserve_query' ) );
+		$this->assertSame( 2, $calls );
 	}
 }
