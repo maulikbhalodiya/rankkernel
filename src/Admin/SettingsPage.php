@@ -627,7 +627,7 @@ final class SettingsPage {
 	 * @return string Section id.
 	 */
 	private function postedSection(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the nonce action itself depends on this value; verified immediately after.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the nonce action itself depends on this value; verified immediately after.
 		$rawInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
 		$raw      = is_string( $rawInput ) ? sanitize_key( $rawInput ) : '';
 
