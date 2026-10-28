@@ -82,7 +82,8 @@ final class UserProfileField {
 			);
 		}
 
-		// check_admin_referer() with an explicit action terminates execution via wp_die() on invalid or missing nonces.
+		// Core calls wp_die() inside check_admin_referer() for a bad nonce,
+		// so execution never returns here.
 		check_admin_referer( 'update-user_' . $userId );
 
 		// The value is only read when it is a string, so an array shaped field

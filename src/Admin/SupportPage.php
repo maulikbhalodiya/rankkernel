@@ -89,7 +89,8 @@ final class SupportPage {
 			);
 		}
 
-		// check_admin_referer() with an explicit action terminates execution via wp_die() on invalid or missing nonces.
+		// Core calls wp_die() inside check_admin_referer() for a bad nonce,
+		// so execution never returns here.
 		check_admin_referer( SupportRequest::NONCE_ACTION );
 
 		$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] )
