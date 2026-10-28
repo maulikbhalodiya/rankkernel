@@ -89,8 +89,7 @@ final class SupportPage {
 			);
 		}
 
-		// check_admin_referer() terminates the request on a bad nonce, so
-		// the return value is not branched on. See RedirectsPage::requireAccess().
+		// check_admin_referer() terminates execution via wp_die() on invalid nonces.
 		check_admin_referer( SupportRequest::NONCE_ACTION );
 
 		$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] )
