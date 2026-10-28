@@ -183,7 +183,7 @@ final class DashboardPage {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, compared strictly against a literal.
-		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$rawUpdated      = isset( $_GET['settings-updated'] ) && is_scalar( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
 		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		$cards = $this->cards();

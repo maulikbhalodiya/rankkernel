@@ -442,16 +442,16 @@ final class SettingsPage {
 		$rawInput = null;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
-		if ( isset( $_POST['rk_partial'] ) && is_scalar( $_POST['rk_partial'] ) ) {
+		if ( isset( $_POST['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$rawInput = wp_unslash( $_POST['rk_partial'] );
+			$rawInput = is_scalar( $_POST['rk_partial'] ) ? wp_unslash( $_POST['rk_partial'] ) : null;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
-		} elseif ( isset( $_GET['rk_partial'] ) && is_scalar( $_GET['rk_partial'] ) ) {
+		} elseif ( isset( $_GET['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$rawInput = wp_unslash( $_GET['rk_partial'] );
+			$rawInput = is_scalar( $_GET['rk_partial'] ) ? wp_unslash( $_GET['rk_partial'] ) : null;
 		}
 
-		$raw = is_string( $rawInput ) ? $rawInput : '';
+		$raw = is_string( $rawInput ) || is_int( $rawInput ) ? (string) $rawInput : '';
 		$key = sanitize_key( $raw );
 
 		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
