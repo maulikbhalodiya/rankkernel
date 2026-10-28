@@ -150,14 +150,14 @@ final class SchemaSettingsPage {
 
 		// Read only display flag, compared strictly against a literal, never stored or output.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only flag, compared strictly against a literal, never stored or output.
-		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
-		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
+		$rawUpdated      = isset( $_GET['settings-updated'] ) && is_scalar( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$settingsUpdated = '1' === ( is_string( $rawUpdated ) || is_int( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, sanitized below.
-		$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawNotice ) ? (string) $rawNotice : '' );
+		$rawNotice          = isset( $_GET['rk_notice'] ) && is_scalar( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+		$settingsSaveFailed = 'save_failed' === sanitize_key( is_string( $rawNotice ) || is_int( $rawNotice ) ? (string) $rawNotice : '' );
 
 		$represents = 'organization';
 
