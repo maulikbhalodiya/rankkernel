@@ -149,7 +149,7 @@ final class SitemapSettingsPage {
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
 		$rawNotice          = isset( $_GET['rk_notice'] ) && is_scalar( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
 		$settingsSaveFailed = 'save_failed' === sanitize_key( is_string( $rawNotice ) || is_int( $rawNotice ) ? (string) $rawNotice : '' );
 

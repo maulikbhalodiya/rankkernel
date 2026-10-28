@@ -391,7 +391,7 @@ final class SettingsPage {
 			$settingsSections
 		);
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only panel flag, sanitized below.
 		$rawSectionInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
 		$rawSection      = is_string( $rawSectionInput ) ? sanitize_key( $rawSectionInput ) : '';
 
@@ -783,7 +783,7 @@ final class SettingsPage {
 			$saved = $this->saveLlms() && $saved;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only section flag, sanitized below.
 		$sectionInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
 		$section      = is_string( $sectionInput ) ? sanitize_key( $sectionInput ) : '';
 
@@ -812,7 +812,7 @@ final class SettingsPage {
 	public function enqueueAssets( string $hookSuffix ): void {
 		// The admin hook suffix for this submenu differs from the documented
 		// form, so the page slug is matched as well.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only screen check, sanitized below.
 		$pageInput = isset( $_GET['page'] ) && is_scalar( $_GET['page'] ) ? wp_unslash( $_GET['page'] ) : '';
 		$page      = is_string( $pageInput ) ? sanitize_key( $pageInput ) : '';
 
