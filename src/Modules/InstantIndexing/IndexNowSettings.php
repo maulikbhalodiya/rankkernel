@@ -258,6 +258,15 @@ final class IndexNowSettings {
 	}
 
 	/**
+	 * Whether the key file is served via query argument (plain permalinks).
+	 *
+	 * @return bool The result.
+	 */
+	public function servesQueryLocation(): bool {
+		return '' === $this->permalinkStructure();
+	}
+
+	/**
 	 * Public location of the key.
 	 *
 	 * A root level txt file when a permalink structure exists, the
@@ -267,7 +276,7 @@ final class IndexNowSettings {
 	 * @return string The result.
 	 */
 	public function keyLocation(): string {
-		if ( '' !== $this->permalinkStructure() ) {
+		if ( ! $this->servesQueryLocation() ) {
 			$home = function_exists( 'home_url' ) ? (string) home_url() : '';
 
 			if ( function_exists( 'trailingslashit' ) ) {

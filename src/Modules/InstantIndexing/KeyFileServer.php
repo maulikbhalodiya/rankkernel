@@ -69,9 +69,8 @@ final class KeyFileServer {
 		$vars        = is_object( $wp ) ? get_object_vars( $wp ) : [];
 		$requestPath = isset( $vars['request'] ) && is_string( $vars['request'] ) ? $vars['request'] : '';
 
-		$servesQuery     = $this->servesQueryLocation();
-		$isPathCandidate = false;
-		$query           = [];
+		$servesQuery = $this->servesQueryLocation();
+		$query       = [];
 
 		if ( $servesQuery ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only public endpoint matching, value compared with hash_equals() and never stored.
@@ -82,14 +81,11 @@ final class KeyFileServer {
 			}
 
 			$query[ IndexNowSettings::KEY_QUERY_ARG ] = wp_unslash( $rawCandidate );
-		} else {
-			$isPathCandidate = hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) );
-			if ( ! $isPathCandidate ) {
-				return;
-			}
+		} elseif ( ! hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) ) ) {
+			return;
 		}
 
-		if ( ! $this->matches( $requestPath, $query, $servesQuery, $isPathCandidate ) ) {
+		if ( ! $this->matches( $requestPath, $query, $servesQuery ) ) {
 			return;
 		}
 
@@ -107,10 +103,9 @@ final class KeyFileServer {
 	 * @param string               $requestPath          Request path relative to the home URL, no leading slash.
 	 * @param array<string, mixed> $query                Request query arguments.
 	 * @param bool|null            $servesQueryLocation Optional precomputed servesQueryLocation verdict.
-	 * @param bool|null            $isPathCandidate      Optional precomputed path matching verdict.
 	 * @return bool The result.
 	 */
-	public function matches( string $requestPath, array $query, ?bool $servesQueryLocation = null, ?bool $isPathCandidate = null ): bool {
+	public function matches( string $requestPath, array $query, ?bool $servesQueryLocation = null ): bool {
 		$key = $this->settings->getKey();
 
 		if ( '' === $key ) {
@@ -129,7 +124,7 @@ final class KeyFileServer {
 			return hash_equals( $key, $candidate );
 		}
 
-		return $isPathCandidate ?? hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) );
+		return hash_equals( $this->settings->keyFileName(), trim( $requestPath, '/' ) );
 	}
 
 	/**
@@ -212,6 +207,6 @@ final class KeyFileServer {
 	 * @return bool The result.
 	 */
 	private function servesQueryLocation(): bool {
-		return str_contains( $this->settings->keyLocation(), IndexNowSettings::KEY_QUERY_ARG );
+		return $this->settings->servesQueryLocation();
 	}
 }

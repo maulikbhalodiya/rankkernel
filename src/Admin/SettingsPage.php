@@ -117,14 +117,14 @@ final class SettingsPage {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, compared strictly against a literal, never stored or output.
-		$rawUpdated      = isset( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
-		$settingsUpdated = '1' === ( is_scalar( $rawUpdated ) ? (string) $rawUpdated : '' );
+		$rawUpdated      = isset( $_GET['settings-updated'] ) && is_scalar( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';
+		$settingsUpdated = '1' === ( is_string( $rawUpdated ) || is_int( $rawUpdated ) ? (string) $rawUpdated : '' );
 
 		// Read only failure flag, sanitized below. It rides the rk_notice
 		// query argument shared with the section notices.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only flag, sanitized below.
-		$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-		$rkNotice           = sanitize_key( is_scalar( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
+		$rawSaveNotice      = isset( $_GET['rk_notice'] ) && is_scalar( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
+		$rkNotice           = sanitize_key( is_string( $rawSaveNotice ) || is_int( $rawSaveNotice ) ? (string) $rawSaveNotice : '' );
 		$settingsSaveFailed = 'save_failed' === $rkNotice;
 
 		$allSettings = $this->store->all();
@@ -342,8 +342,8 @@ final class SettingsPage {
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only tab flag, compared strictly against a literal, never stored or output.
-			$rawRobotTab     = isset( $_GET['robots_tab'] ) ? wp_unslash( $_GET['robots_tab'] ) : '';
-			$robotTab        = 'edit' === ( is_scalar( $rawRobotTab ) ? (string) $rawRobotTab : '' ) ? 'edit' : 'preview';
+			$rawRobotTab     = isset( $_GET['robots_tab'] ) && is_scalar( $_GET['robots_tab'] ) ? wp_unslash( $_GET['robots_tab'] ) : '';
+			$robotTab        = 'edit' === ( is_string( $rawRobotTab ) ? $rawRobotTab : '' ) ? 'edit' : 'preview';
 			$robotValidation = RobotsDirectives::validate( $robotOverride );
 
 			$settingsSections[] = [
@@ -392,8 +392,8 @@ final class SettingsPage {
 		);
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
-		$rawSectionInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
-		$rawSection      = is_scalar( $rawSectionInput ) ? sanitize_key( (string) $rawSectionInput ) : '';
+		$rawSectionInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$rawSection      = is_string( $rawSectionInput ) ? sanitize_key( $rawSectionInput ) : '';
 
 		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
 
@@ -442,16 +442,16 @@ final class SettingsPage {
 		$rawInput = null;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
-		if ( isset( $_POST['rk_partial'] ) ) {
+		if ( isset( $_POST['rk_partial'] ) && is_scalar( $_POST['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
 			$rawInput = wp_unslash( $_POST['rk_partial'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
-		} elseif ( isset( $_GET['rk_partial'] ) ) {
+		} elseif ( isset( $_GET['rk_partial'] ) && is_scalar( $_GET['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
 			$rawInput = wp_unslash( $_GET['rk_partial'] );
 		}
 
-		$raw = is_scalar( $rawInput ) ? (string) $rawInput : '';
+		$raw = is_string( $rawInput ) ? $rawInput : '';
 		$key = sanitize_key( $raw );
 
 		return in_array( $key, [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ], true ) ? $key : null;
@@ -628,8 +628,8 @@ final class SettingsPage {
 	 */
 	private function postedSection(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the nonce action itself depends on this value; verified immediately after.
-		$rawInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
-		$raw      = is_scalar( $rawInput ) ? sanitize_key( (string) $rawInput ) : '';
+		$rawInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$raw      = is_string( $rawInput ) ? sanitize_key( $rawInput ) : '';
 
 		$ids = [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ];
 
@@ -784,8 +784,8 @@ final class SettingsPage {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
-		$sectionInput = isset( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
-		$section      = is_scalar( $sectionInput ) ? sanitize_key( (string) $sectionInput ) : '';
+		$sectionInput = isset( $_GET['section'] ) && is_scalar( $_GET['section'] ) ? wp_unslash( $_GET['section'] ) : '';
+		$section      = is_string( $sectionInput ) ? sanitize_key( $sectionInput ) : '';
 
 		// A failed write is reported on the same rk_notice channel the section
 		// notices use, so the redirect never claims a write that did not happen.
@@ -813,8 +813,8 @@ final class SettingsPage {
 		// The admin hook suffix for this submenu differs from the documented
 		// form, so the page slug is matched as well.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
-		$pageInput = isset( $_GET['page'] ) ? wp_unslash( $_GET['page'] ) : '';
-		$page      = is_scalar( $pageInput ) ? sanitize_key( (string) $pageInput ) : '';
+		$pageInput = isset( $_GET['page'] ) && is_scalar( $_GET['page'] ) ? wp_unslash( $_GET['page'] ) : '';
+		$page      = is_string( $pageInput ) ? sanitize_key( $pageInput ) : '';
 
 		if ( 'rankkernel-general' !== $page && 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
