@@ -1698,7 +1698,11 @@ final class SettingsPageTest extends TestCase {
 		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
+			}
+		);
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\expect( 'update_user_meta' )->never();
 		Functions\expect( 'wp_die' )->once()->andReturnUsing(

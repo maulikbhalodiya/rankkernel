@@ -138,7 +138,15 @@ final class SupportPageTest extends TestCase {
 		Functions\when( 'wp_unslash' )->alias( static fn ( $v ) => $v );
 		Functions\when( 'is_email' )->alias( static fn ( string $e ): bool => (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'current_user_can' )->alias( fn (): bool => $this->allowed );
-		Functions\when( 'check_admin_referer' )->alias( fn (): bool => $this->nonceOk );
+		Functions\when( 'check_admin_referer' )->alias(
+			function (): bool {
+				if ( ! $this->nonceOk ) {
+					wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
+				}
+
+				return true;
+			}
+		);
 		Functions\when( 'wp_die' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
