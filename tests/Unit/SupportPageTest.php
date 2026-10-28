@@ -147,14 +147,12 @@ final class SupportPageTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn ( string $e ): bool => (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'current_user_can' )->alias( fn (): bool => $this->allowed );
 		Functions\when( 'check_admin_referer' )->alias(
-			function ( string $action = '' ): int {
+			function ( string $action = '' ): void {
 				$this->nonceActions[] = $action;
 
 				if ( ! $this->nonceOk ) {
 					wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
 				}
-
-				return 1;
 			}
 		);
 		Functions\when( 'wp_die' )->alias(
@@ -273,6 +271,23 @@ final class SupportPageTest extends TestCase {
 			],
 			$overrides
 		);
+	}
+
+	/**
+	 * Test form save does not branch on check_admin_referer return value.
+	 */
+	public function test_form_save_does_not_branch_on_the_referer_return_value(): void {
+		Functions\when( 'check_admin_referer' )->alias(
+			function ( string $action = '' ): bool {
+				$this->nonceActions[] = $action;
+
+				return false;
+			}
+		);
+		$this->postValid();
+		( new SupportPage() )->maybeHandleSave();
+		$this->assertSame( [ SupportRequest::NONCE_ACTION ], $this->nonceActions );
+		$this->assertCount( 1, $this->mail );
 	}
 
 	/**

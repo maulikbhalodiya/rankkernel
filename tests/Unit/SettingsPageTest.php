@@ -1721,11 +1721,51 @@ final class SettingsPageTest extends TestCase {
 
 		try {
 			call_user_func( $hooks['personal_options_update'][0], 42 );
+			$this->fail( 'a failed nonce must stop the request' );
 		} catch ( \RuntimeException $exception ) {
 			$this->assertSame( 'wp_die', $exception->getMessage() );
 		}
 
 		$this->assertSame( [ 'update-user_42' ], $nonceActions );
+	}
+
+	/**
+	 * Test user profile field save does not branch on check_admin_referer return value.
+	 */
+	public function test_user_profile_field_does_not_branch_on_referer_return_value(): void {
+		$hooks = [];
+		$this->captureProfileHooks( $hooks );
+		( new UserProfileField() )->register();
+		$this->assertProfileHook( $hooks, 'personal_options_update' );
+
+		$nonceActions = [];
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+				$nonceActions[] = $action;
+
+				return false;
+			}
+		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+		$captured = [];
+		Functions\when( 'update_user_meta' )->alias(
+			static function ( int $userId, string $key, mixed $value ) use ( &$captured ): bool {
+				$captured[] = [ $userId, $key, $value ];
+
+				return true;
+			}
+		);
+
+		$_POST = [
+			'_wpnonce'                  => 'valid',
+			'rankkernel_twitter_handle' => '@author-handle',
+		];
+
+		call_user_func( $hooks['personal_options_update'][0], 42 );
+
+		$this->assertSame( [ 'update-user_42' ], $nonceActions );
+		$this->assertSame( [ [ 42, 'rankkernel_twitter_handle', 'authorhandle' ] ], $captured );
 	}
 
 	/**

@@ -655,7 +655,7 @@ final class InstantIndexingPage {
 			);
 		}
 
-		// check_admin_referer() terminates execution via wp_die() on invalid nonces.
+		// check_admin_referer() with an explicit action terminates execution via wp_die() on invalid nonces.
 		check_admin_referer( $nonceAction );
 	}
 

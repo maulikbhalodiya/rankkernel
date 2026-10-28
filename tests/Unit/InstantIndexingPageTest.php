@@ -2143,7 +2143,7 @@ final class InstantIndexingPageTest extends TestCase {
 
 		try {
 			$page->maybeHandleSave();
-			$this->fail( 'a failed nonce must stop the request' );
+			$this->fail( 'a retry without the capability must stop the request' );
 		} catch ( \RuntimeException $exception ) {
 			$this->assertSame( 'wp_die', $exception->getMessage() );
 		}
