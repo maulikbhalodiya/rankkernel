@@ -31,6 +31,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		$this->homeUrl = 'https://example.com/';
 		Normalizer::resetCache();
 
 		Functions\when( 'wp_parse_url' )->alias(
@@ -49,6 +50,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		$this->homeUrl = 'https://example.com/';
 		Normalizer::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -228,5 +230,28 @@ final class RedirectsNormalizerTest extends TestCase {
 		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
 		$this->assertSame( '/blog', Normalizer::homePath() );
 		$this->assertSame( 2, $callCount );
+	}
+
+	/**
+	 * Test normalize memoization across repeated calls and resetCache behavior.
+	 */
+	public function test_normalize_memoized_and_resettable(): void {
+		Normalizer::resetCache();
+
+		$raw1  = '/old/page///';
+		$norm1 = Normalizer::normalize( $raw1 );
+		$this->assertSame( '/old/page', $norm1 );
+
+		// Subsequent call with same argument returns identical result from static memo.
+		$this->assertSame( '/old/page', Normalizer::normalize( $raw1 ) );
+
+		// Case-insensitive variant keying.
+		$rawCase = '/Old/Page';
+		$this->assertSame( '/Old/Page', Normalizer::normalize( $rawCase, false ) );
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawCase, true ) );
+
+		// Reset cache clears static memo.
+		Normalizer::resetCache();
+		$this->assertSame( '/old/page', Normalizer::normalize( $raw1 ) );
 	}
 }

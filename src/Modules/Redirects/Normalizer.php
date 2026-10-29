@@ -47,6 +47,10 @@ final class Normalizer {
 	/**
 	 * Normalize a raw source or request path to its canonical form.
 	 *
+	 * Performance optimization: static request-level memoization avoids repeated
+	 * URL parsing, regex operations, percent-encoding canonicalization, and
+	 * Unicode NFC folding across multiple normalize() calls per request.
+	 *
 	 * Steps in order: trim, extract the path from full URLs, drop query and
 	 * fragment, collapse duplicate slashes, canonicalize percent encoding,
 	 * fold Unicode to NFC, strip the subdirectory home path, enforce one
@@ -58,9 +62,17 @@ final class Normalizer {
 	 * @return string Canonical path, always starting with a slash.
 	 */
 	public static function normalize( string $raw, bool $caseInsensitive = false ): string {
+		$cacheKey = ( $caseInsensitive ? '1:' : '0:' ) . $raw;
+
+		if ( array_key_exists( $cacheKey, self::$normalizeCache ) ) {
+			return self::$normalizeCache[ $cacheKey ];
+		}
+
 		$path = trim( $raw );
 
 		if ( '' === $path ) {
+			self::$normalizeCache[ $cacheKey ] = '/';
+
 			return '/';
 		}
 
@@ -113,6 +125,8 @@ final class Normalizer {
 		if ( $caseInsensitive ) {
 			$path = function_exists( 'mb_strtolower' ) ? mb_strtolower( $path, 'UTF-8' ) : strtolower( $path );
 		}
+
+		self::$normalizeCache[ $cacheKey ] = $path;
 
 		return $path;
 	}
@@ -189,6 +203,13 @@ final class Normalizer {
 	}
 
 	/**
+	 * Request-level static cache for normalized paths within request execution.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $normalizeCache = [];
+
+	/**
 	 * Request-level static cache for the subdirectory home path, keyed by blog ID.
 	 *
 	 * @var array<int, string>
@@ -196,12 +217,13 @@ final class Normalizer {
 	private static array $homePathCache = [];
 
 	/**
-	 * Reset the static home path cache (primarily for unit tests or blog switches).
+	 * Reset static request-level memoization caches (primarily for unit tests or blog switches).
 	 *
 	 * @return void
 	 */
 	public static function resetCache(): void {
-		self::$homePathCache = [];
+		self::$normalizeCache = [];
+		self::$homePathCache  = [];
 	}
 
 	/**
