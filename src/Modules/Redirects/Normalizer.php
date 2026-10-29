@@ -45,6 +45,11 @@ final class Normalizer {
 	public const TERMINAL_CODES = [ '410', '451' ];
 
 	/**
+	 * Maximum number of normalized paths stored in static request-level memory.
+	 */
+	public const MAX_CACHE_SIZE = 500;
+
+	/**
 	 * Normalize a raw source or request path to its canonical form.
 	 *
 	 * Performance optimization: static request-level memoization avoids repeated
@@ -62,7 +67,7 @@ final class Normalizer {
 	 * @return string Canonical path, always starting with a slash.
 	 */
 	public static function normalize( string $raw, bool $caseInsensitive = false ): string {
-		$cacheKey = ( $caseInsensitive ? '1:' : '0:' ) . $raw;
+		$cacheKey = ( $caseInsensitive ? '1:' : '0:' ) . self::homePath() . "\0" . $raw;
 
 		if ( array_key_exists( $cacheKey, self::$normalizeCache ) ) {
 			return self::$normalizeCache[ $cacheKey ];
@@ -71,7 +76,9 @@ final class Normalizer {
 		$path = trim( $raw );
 
 		if ( '' === $path ) {
-			self::$normalizeCache[ $cacheKey ] = '/';
+			if ( count( self::$normalizeCache ) < self::MAX_CACHE_SIZE ) {
+				self::$normalizeCache[ $cacheKey ] = '/';
+			}
 
 			return '/';
 		}
@@ -126,7 +133,9 @@ final class Normalizer {
 			$path = function_exists( 'mb_strtolower' ) ? mb_strtolower( $path, 'UTF-8' ) : strtolower( $path );
 		}
 
-		self::$normalizeCache[ $cacheKey ] = $path;
+		if ( count( self::$normalizeCache ) < self::MAX_CACHE_SIZE ) {
+			self::$normalizeCache[ $cacheKey ] = $path;
+		}
 
 		return $path;
 	}

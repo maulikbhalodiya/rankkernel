@@ -236,22 +236,74 @@ final class RedirectsNormalizerTest extends TestCase {
 	 * Test normalize memoization across repeated calls and resetCache behavior.
 	 */
 	public function test_normalize_memoized_and_resettable(): void {
+		$parseUrlCalls = 0;
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ) use ( &$parseUrlCalls ): mixed {
+				++$parseUrlCalls;
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
+
 		Normalizer::resetCache();
 
-		$raw1  = '/old/page///';
-		$norm1 = Normalizer::normalize( $raw1 );
-		$this->assertSame( '/old/page', $norm1 );
+		$rawUrl = 'https://example.com/old/page?x=1';
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		// First call invokes wp_parse_url once inside homePath() and once inside normalize() = 2 calls.
+		$this->assertSame( 2, $parseUrlCalls );
 
-		// Subsequent call with same argument returns identical result from static memo.
-		$this->assertSame( '/old/page', Normalizer::normalize( $raw1 ) );
+		// Subsequent call uses cache and does not re-invoke wp_parse_url.
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		$this->assertSame( 2, $parseUrlCalls );
 
 		// Case-insensitive variant keying.
-		$rawCase = '/Old/Page';
+		$rawCase = 'https://example.com/Old/Page';
 		$this->assertSame( '/Old/Page', Normalizer::normalize( $rawCase, false ) );
-		$this->assertSame( '/old/page', Normalizer::normalize( $rawCase, true ) );
+		$this->assertSame( 3, $parseUrlCalls );
 
-		// Reset cache clears static memo.
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawCase, true ) );
+		$this->assertSame( 4, $parseUrlCalls );
+
+		// Reset cache clears static memo and forces re-evaluation.
 		Normalizer::resetCache();
-		$this->assertSame( '/old/page', Normalizer::normalize( $raw1 ) );
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		$this->assertSame( 6, $parseUrlCalls );
+	}
+
+	/**
+	 * Test normalize memoization across multisite blog switches.
+	 */
+	public function test_normalize_multisite_home_path_aware(): void {
+		Normalizer::resetCache();
+
+		$this->homeUrl = 'https://example.com/blog';
+		$raw           = '/blog/old';
+
+		$this->assertSame( '/old', Normalizer::normalize( $raw ) );
+
+		// Simulate multisite switch_to_blog to blog 2 with homeUrl shop.
+		Functions\when( 'get_current_blog_id' )->justReturn( 2 );
+		$this->homeUrl = 'https://example.com/shop';
+
+		// Under shop, /blog/old is NOT under homeUrl /shop, so it normalizes to /blog/old.
+		$this->assertSame( '/blog/old', Normalizer::normalize( $raw ) );
+
+		// Switch back to blog 1.
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
+		$this->homeUrl = 'https://example.com/blog';
+		$this->assertSame( '/old', Normalizer::normalize( $raw ) );
+	}
+
+	/**
+	 * Test normalize cache size capping under heavy load.
+	 */
+	public function test_normalize_cache_size_capped(): void {
+		Normalizer::resetCache();
+
+		for ( $i = 0; $i < Normalizer::MAX_CACHE_SIZE + 10; ++$i ) {
+			Normalizer::normalize( '/path-' . $i );
+		}
+
+		// Items past cap still compute correctly without fatal or unbounded array growth.
+		$this->assertSame( '/path-cap-test', Normalizer::normalize( '/path-cap-test' ) );
 	}
 }
