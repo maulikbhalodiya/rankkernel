@@ -76,9 +76,7 @@ final class Normalizer {
 		$path = trim( $raw );
 
 		if ( '' === $path ) {
-			if ( count( self::$normalizeCache ) < self::MAX_CACHE_SIZE ) {
-				self::$normalizeCache[ $cacheKey ] = '/';
-			}
+			self::storeInCache( $cacheKey, '/' );
 
 			return '/';
 		}
@@ -133,11 +131,28 @@ final class Normalizer {
 			$path = function_exists( 'mb_strtolower' ) ? mb_strtolower( $path, 'UTF-8' ) : strtolower( $path );
 		}
 
-		if ( count( self::$normalizeCache ) < self::MAX_CACHE_SIZE ) {
-			self::$normalizeCache[ $cacheKey ] = $path;
-		}
+		self::storeInCache( $cacheKey, $path );
 
 		return $path;
+	}
+
+	/**
+	 * Store a normalized path in static request-level cache with capacity eviction.
+	 *
+	 * When the cache reaches MAX_CACHE_SIZE, it is reset so recent repeated paths
+	 * stay hot during high-cardinality workloads (such as CSV imports or CLI runs)
+	 * while memory usage remains strictly bounded.
+	 *
+	 * @param string $cacheKey Composite cache key.
+	 * @param string $path     Normalized path.
+	 * @return void
+	 */
+	private static function storeInCache( string $cacheKey, string $path ): void {
+		if ( count( self::$normalizeCache ) >= self::MAX_CACHE_SIZE ) {
+			self::$normalizeCache = [];
+		}
+
+		self::$normalizeCache[ $cacheKey ] = $path;
 	}
 
 	/**

@@ -294,7 +294,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	}
 
 	/**
-	 * Test normalize cache size capping under heavy load.
+	 * Test normalize cache size capping under heavy load with eviction.
 	 */
 	public function test_normalize_cache_size_capped(): void {
 		Normalizer::resetCache();
@@ -303,7 +303,17 @@ final class RedirectsNormalizerTest extends TestCase {
 			Normalizer::normalize( '/path-' . $i );
 		}
 
-		// Items past cap still compute correctly without fatal or unbounded array growth.
+		$reflection = new \ReflectionClass( Normalizer::class );
+		$property   = $reflection->getProperty( 'normalizeCache' );
+		$property->setAccessible( true );
+
+		$cache = $property->getValue();
+
+		// Cache size must strictly stay bounded at or below MAX_CACHE_SIZE.
+		$this->assertLessThanOrEqual( Normalizer::MAX_CACHE_SIZE, count( $cache ) );
+		$this->assertSame( 10, count( $cache ) );
+
+		// Items past cap still compute correctly.
 		$this->assertSame( '/path-cap-test', Normalizer::normalize( '/path-cap-test' ) );
 	}
 }
