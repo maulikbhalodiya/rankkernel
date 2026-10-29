@@ -311,9 +311,10 @@ final class RedirectsNormalizerTest extends TestCase {
 
 		// Cache size must strictly stay bounded at or below MAX_CACHE_SIZE.
 		$this->assertLessThanOrEqual( Normalizer::MAX_CACHE_SIZE, count( $cache ) );
-		$this->assertSame( 10, count( $cache ) );
+		$this->assertSame( Normalizer::MAX_CACHE_SIZE, count( $cache ) );
 
-		// Items past cap still compute correctly.
+		// Both an evicted path and a newly requested path normalize correctly.
+		$this->assertSame( '/path-0', Normalizer::normalize( '/path-0' ) );
 		$this->assertSame( '/path-cap-test', Normalizer::normalize( '/path-cap-test' ) );
 	}
 }

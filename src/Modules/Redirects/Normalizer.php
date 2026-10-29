@@ -46,6 +46,8 @@ final class Normalizer {
 
 	/**
 	 * Maximum number of normalized paths stored in static request-level memory.
+	 *
+	 * @var int
 	 */
 	public const MAX_CACHE_SIZE = 500;
 
@@ -137,10 +139,10 @@ final class Normalizer {
 	}
 
 	/**
-	 * Store a normalized path in static request-level cache with capacity eviction.
+	 * Store a normalized path in static request-level cache with FIFO capacity eviction.
 	 *
-	 * When the cache reaches MAX_CACHE_SIZE, it is reset so recent repeated paths
-	 * stay hot during high-cardinality workloads (such as CSV imports or CLI runs)
+	 * When the cache reaches MAX_CACHE_SIZE, the oldest entry is evicted via array_shift
+	 * so recently used paths survive and remain hot during high-cardinality workloads
 	 * while memory usage remains strictly bounded.
 	 *
 	 * @param string $cacheKey Composite cache key.
@@ -149,7 +151,7 @@ final class Normalizer {
 	 */
 	private static function storeInCache( string $cacheKey, string $path ): void {
 		if ( count( self::$normalizeCache ) >= self::MAX_CACHE_SIZE ) {
-			self::$normalizeCache = [];
+			array_shift( self::$normalizeCache );
 		}
 
 		self::$normalizeCache[ $cacheKey ] = $path;
