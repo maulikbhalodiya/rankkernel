@@ -358,10 +358,12 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions, &$dies, &$responseCode ): void {
 				$nonceActions[] = $action;
+				$dies++;
+				$responseCode = 403;
 
-				return false;
+				throw new \RuntimeException( 'wp_die' );
 			}
 		);
 
@@ -428,7 +430,11 @@ final class InstantIndexingPageTest extends TestCase {
 	 */
 	public function test_manual_submit_is_rejected_without_a_valid_nonce(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
 			'rankkernel_indexnow_urls'   => 'https://example.com/a',
@@ -1552,10 +1558,12 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions, &$dies, &$responseCode ): void {
 				$nonceActions[] = $action;
+				$dies++;
+				$responseCode = 403;
 
-				return false;
+				throw new \RuntimeException( 'wp_die' );
 			}
 		);
 
@@ -2162,10 +2170,12 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions, &$dies, &$responseCode ): void {
 				$nonceActions[] = $action;
+				$dies++;
+				$responseCode = 403;
 
-				return false;
+				throw new \RuntimeException( 'wp_die' );
 			}
 		);
 
