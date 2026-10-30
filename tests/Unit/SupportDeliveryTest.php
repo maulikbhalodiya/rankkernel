@@ -504,6 +504,42 @@ final class SupportDeliveryTest extends TestCase {
 	}
 
 	/**
+	 * The standard wp_handle_upload() file key is used for the attachment path.
+	 */
+	public function test_store_screenshot_accepts_wordpress_file_key(): void {
+		$base = sys_get_temp_dir() . '/rk-support-file-' . uniqid();
+		mkdir( $base, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+
+		Functions\when( 'get_temp_dir' )->justReturn( $base );
+		Functions\when( 'wp_mkdir_p' )->alias(
+			static function ( string $dir ): bool {
+				return is_dir( $dir ) || mkdir( $dir, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates the private upload dir.
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'wp_handle_upload' )->justReturn(
+			[
+				'file' => '/tmp/private-shot.png',
+				'url'  => '',
+				'type' => 'image/png',
+			]
+		);
+
+		$result = SupportDelivery::storeScreenshot(
+			[
+				'name'     => 'private-shot.png',
+				'type'     => 'image/png',
+				'tmp_name' => '/tmp/private-shot.png',
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+			]
+		);
+
+		$this->assertSame( '/tmp/private-shot.png', $result );
+	}
+
+	/**
 	 * A successful send returns true.
 	 */
 	public function test_a_successful_send_returns_true(): void {

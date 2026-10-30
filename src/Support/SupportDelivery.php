@@ -357,7 +357,9 @@ final class SupportDelivery {
 			return new WP_Error( 'support_screenshot_failed', $stored->get_error_message() );
 		}
 
-		return (string) ( $stored['path'] ?? '' );
+		// wp_handle_upload() returns the stored path under 'file'; older test
+		// doubles used 'path'. Accept both so the attachment is never lost.
+		return (string) ( $stored['file'] ?? $stored['path'] ?? '' );
 	}
 
 	/**
