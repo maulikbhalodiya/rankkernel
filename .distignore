@@ -13,10 +13,12 @@ phpstan*
 phpunit.xml
 phpcs.xml
 .gitignore
-README.md
+/README.md
 CONTRIBUTING.md
 composer.json
 tools/
 .jules
 .local-env
 .superpowers
+.distignore
+RANKKERNEL_WPORG_AUDIT_FINDINGS.md
