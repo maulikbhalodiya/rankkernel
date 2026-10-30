@@ -181,6 +181,8 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		TrailBuilder::resetCache();
+
 		$this->wpOptions = [
 			'show_on_front'  => 'posts',
 			'page_on_front'  => 0,

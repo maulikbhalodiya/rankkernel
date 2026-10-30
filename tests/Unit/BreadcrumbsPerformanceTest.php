@@ -15,6 +15,8 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
+use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
@@ -62,6 +64,8 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		TrailBuilder::resetCache();
 
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/functions.php';
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/template-tags.php';
@@ -339,5 +343,24 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 
 		$this->assertNotEmpty( $trail );
 		$this->assertSame( 0, $this->wpdb->count );
+	}
+
+	/**
+	 * Test repeated TrailBuilder build calls return memoized items for the same Context.
+	 */
+	public function test_repeated_trail_builder_calls_use_memoized_cache(): void {
+		$query    = $this->useSingularPost();
+		$settings = new BreadcrumbsSettings();
+		$ctx      = new Context( $query, new SettingsStore() );
+
+		TrailBuilder::resetCache();
+
+		$builder1 = new TrailBuilder( $ctx, $settings );
+		$trail1   = $builder1->build();
+
+		$builder2 = new TrailBuilder( $ctx, $settings );
+		$trail2   = $builder2->build();
+
+		$this->assertSame( $trail1, $trail2 );
 	}
 }

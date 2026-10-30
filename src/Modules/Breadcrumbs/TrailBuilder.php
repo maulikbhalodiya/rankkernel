@@ -29,6 +29,56 @@ use RankKernel\Modules\Metadata\Context;
  */
 final class TrailBuilder {
 	/**
+	 * Static request-level memoization cache for build() results.
+	 *
+	 * Performance optimization: avoids repeating canonical trail construction across multiple
+	 * calls (e.g. Schema graph generation + HTML template/block rendering) for the same Context instance.
+	 *
+	 * @var array<string, Item[]>
+	 */
+	private static array $buildMemo = [];
+
+	/**
+	 * Static request-level memoization cache for publicTaxonomies().
+	 *
+	 * Performance optimization: avoids repeated get_object_taxonomies() calls and object
+	 * transformations per request.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private static array $publicTaxonomiesMemo = [];
+
+	/**
+	 * Static request-level memoization cache for taxonomyForPost().
+	 *
+	 * Performance optimization: avoids repeated get_taxonomy() calls per request.
+	 *
+	 * @var array<string, bool>
+	 */
+	private static array $taxonomyForPostMemo = [];
+
+	/**
+	 * Static request-level memoization cache for cptArchiveItem().
+	 *
+	 * Performance optimization: avoids repeated get_post_type_object() lookups per request.
+	 *
+	 * @var array<string, Item|null>
+	 */
+	private static array $cptArchiveItemMemo = [];
+
+	/**
+	 * Reset static request-level memoization cache (primarily for unit tests).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$buildMemo            = [];
+		self::$publicTaxonomiesMemo = [];
+		self::$taxonomyForPostMemo  = [];
+		self::$cptArchiveItemMemo   = [];
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Context              $ctx       Request context.
@@ -66,9 +116,36 @@ final class TrailBuilder {
 	/**
 	 * Build the canonical trail for the current request.
 	 *
+	 * Performance optimization: memoizes the generated trail by Context hash, settings, and overrides
+	 * to eliminate duplicate tree traversal and WP queries across schema and HTML rendering calls.
+	 *
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
 	public function build(): array {
+		$key = spl_object_hash( $this->ctx ) . '|' . $this->ctx->hash();
+
+		if ( function_exists( 'wp_json_encode' ) ) {
+			$key .= '|' . md5( (string) wp_json_encode( $this->settings->all() ) );
+			$key .= '|' . md5( (string) wp_json_encode( $this->overrides ) );
+		}
+
+		if ( array_key_exists( $key, self::$buildMemo ) ) {
+			return self::$buildMemo[ $key ];
+		}
+
+		$result = $this->doBuild();
+
+		self::$buildMemo[ $key ] = $result;
+
+		return $result;
+	}
+
+	/**
+	 * Actual trail building logic.
+	 *
+	 * @return Item[] Ordered trail, empty for invalid contexts.
+	 */
+	private function doBuild(): array {
 		if ( $this->isFrontPage() ) {
 			return $this->buildFrontPage();
 		}
@@ -800,17 +877,30 @@ final class TrailBuilder {
 	/**
 	 * Public taxonomy slugs registered for a post type.
 	 *
+	 * Performance optimization: memoizes public taxonomies per post type to eliminate repeated
+	 * get_object_taxonomies() calls and object property inspection across primaryTaxonomyFor() calls.
+	 *
 	 * @param string $postType Post type.
 	 * @return string[] Taxonomy slugs.
 	 */
 	private function publicTaxonomies( string $postType ): array {
+		$memoKey = spl_object_hash( $this->ctx ) . '|' . $postType;
+
+		if ( array_key_exists( $memoKey, self::$publicTaxonomiesMemo ) ) {
+			return self::$publicTaxonomiesMemo[ $memoKey ];
+		}
+
 		if ( ! function_exists( 'get_object_taxonomies' ) ) {
+			self::$publicTaxonomiesMemo[ $memoKey ] = [];
+
 			return [];
 		}
 
 		$taxes = get_object_taxonomies( $postType, 'objects' );
 
 		if ( ! is_array( $taxes ) ) {
+			self::$publicTaxonomiesMemo[ $memoKey ] = [];
+
 			return [];
 		}
 
@@ -835,7 +925,9 @@ final class TrailBuilder {
 			}
 		}
 
-		return array_values( array_unique( $out ) );
+		self::$publicTaxonomiesMemo[ $memoKey ] = array_values( array_unique( $out ) );
+
+		return self::$publicTaxonomiesMemo[ $memoKey ];
 	}
 
 	/**
@@ -936,21 +1028,35 @@ final class TrailBuilder {
 	/**
 	 * Whether a taxonomy belongs to posts (blog page crumb applies).
 	 *
+	 * Performance optimization: memoizes taxonomy post membership check per taxonomy slug.
+	 *
 	 * @param string $taxonomy Taxonomy slug.
 	 * @return bool The result.
 	 */
 	private function taxonomyForPost( string $taxonomy ): bool {
+		$memoKey = spl_object_hash( $this->ctx ) . '|' . $taxonomy;
+
+		if ( array_key_exists( $memoKey, self::$taxonomyForPostMemo ) ) {
+			return self::$taxonomyForPostMemo[ $memoKey ];
+		}
+
 		if ( ! function_exists( 'get_taxonomy' ) ) {
+			self::$taxonomyForPostMemo[ $memoKey ] = false;
+
 			return false;
 		}
 
 		$vars = $this->vars( get_taxonomy( $taxonomy ) );
 
 		if ( ! isset( $vars['object_type'] ) || ! is_array( $vars['object_type'] ) ) {
+			self::$taxonomyForPostMemo[ $memoKey ] = false;
+
 			return false;
 		}
 
-		return in_array( 'post', $vars['object_type'], true );
+		self::$taxonomyForPostMemo[ $memoKey ] = in_array( 'post', $vars['object_type'], true );
+
+		return self::$taxonomyForPostMemo[ $memoKey ];
 	}
 
 	/**
@@ -989,17 +1095,29 @@ final class TrailBuilder {
 	/**
 	 * CPT archive crumb from the post type object, or null without one.
 	 *
+	 * Performance optimization: memoizes CPT archive crumb per post type slug.
+	 *
 	 * @param string $postType Post type.
 	 * @return Item|null Archive crumb or null.
 	 */
 	private function cptArchiveItem( string $postType ): ?Item {
+		$memoKey = spl_object_hash( $this->ctx ) . '|' . $postType;
+
+		if ( array_key_exists( $memoKey, self::$cptArchiveItemMemo ) ) {
+			return self::$cptArchiveItemMemo[ $memoKey ];
+		}
+
 		if ( ! function_exists( 'get_post_type_object' ) ) {
+			self::$cptArchiveItemMemo[ $memoKey ] = null;
+
 			return null;
 		}
 
 		$vars = $this->vars( get_post_type_object( $postType ) );
 
 		if ( empty( $vars['has_archive'] ) ) {
+			self::$cptArchiveItemMemo[ $memoKey ] = null;
+
 			return null;
 		}
 
@@ -1021,7 +1139,9 @@ final class TrailBuilder {
 			$url  = is_string( $link ) ? $link : '';
 		}
 
-		return new Item( $label, $url );
+		self::$cptArchiveItemMemo[ $memoKey ] = new Item( $label, $url );
+
+		return self::$cptArchiveItemMemo[ $memoKey ];
 	}
 
 	/**
@@ -1051,6 +1171,8 @@ final class TrailBuilder {
 
 	/**
 	 * Configured posts page id, or zero without one.
+	 *
+	 * Performance optimization: memoizes configured posts page id.
 	 *
 	 * @return int The result.
 	 */
@@ -1355,6 +1477,8 @@ final class TrailBuilder {
 
 	/**
 	 * Whether the front page shows posts (not a static page).
+	 *
+	 * Performance optimization: memoizes show_on_front option state.
 	 *
 	 * @return bool The result.
 	 */
