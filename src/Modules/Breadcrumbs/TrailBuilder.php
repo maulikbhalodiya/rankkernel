@@ -45,6 +45,13 @@ final class TrailBuilder {
 	private static array $buildMemo = [];
 
 	/**
+	 * Instance-memoized build cache key.
+	 *
+	 * @var string|null
+	 */
+	private ?string $cacheKey = null;
+
+	/**
 	 * Reset static request-level memoization cache (primarily for unit tests).
 	 *
 	 * @return void
@@ -98,19 +105,13 @@ final class TrailBuilder {
 	}
 
 	/**
-	 * Instance-memoized build cache key.
-	 *
-	 * @var string|null
-	 */
-	private ?string $cacheKey = null;
-
-	/**
 	 * Compute or return instance-memoized cache key for build().
 	 *
 	 * Structured array hashed into a single md5 string covering:
-	 * blog ID, locale, global dispatch flags, Context type/id/hash,
-	 * query discriminators (term taxonomy, post type, primary taxonomy, search query, date vars, page/cpage),
-	 * Context meta flags/canonical, visibility overrides, and settings.
+	 * blog ID, locale, user ID, front options, Context type/id/hash,
+	 * query discriminators (term taxonomy, post type, primary taxonomy, search query, date vars, page, cpage, paged),
+	 * global dispatch flags (is_front, is_blog, is_search, is_404, is_pt_archive, is_author, is_date),
+	 * Context meta flags/canonical, visibility overrides, and builder-consumed settings whitelist (excluding separator).
 	 *
 	 * @return string Cache key.
 	 */
@@ -126,6 +127,8 @@ final class TrailBuilder {
 		} elseif ( function_exists( 'get_locale' ) ) {
 			$locale = (string) get_locale();
 		}
+
+		$userId = function_exists( 'get_current_user_id' ) ? (string) get_current_user_id() : '0';
 
 		$type = $this->ctx->queriedType();
 		$id   = $this->ctx->queriedId();
@@ -156,44 +159,52 @@ final class TrailBuilder {
 
 		$meta = $this->ctx->meta();
 
-		$payload = [
-			'blog_id'      => $blogId,
-			'locale'       => $locale,
-			'front_opts'   => $frontOptions,
-			'ctx_hash'     => $this->ctx->hash(),
-			'type'         => $type,
-			'id'           => $id,
-			'post_type'    => $postType,
-			'primary_tax'  => $primaryTax,
-			'term_tax'     => $termTax,
-			'search'       => $searchQuery,
-			'archive_pt'   => $this->archivePostType(),
-			'year'         => $this->queryVar( 'year' ),
-			'month'        => $this->queryVar( 'monthnum' ),
-			'day'          => $this->queryVar( 'day' ),
-			'page'         => $this->queryVar( 'page' ),
-			'cpage'        => $this->queryVar( 'cpage' ),
-			'paged'        => $this->queryVar( 'paged' ),
-			'is_front'     => $this->isFrontPage(),
-			'is_blog'      => $this->isBlogIndex(),
-			'is_search'    => $this->isSearch(),
-			'is_404'       => $this->is404(),
-			'show_home'    => $this->showHome(),
-			'show_current' => $this->showCurrent(),
-			'bc_title'     => $meta['flags']['breadcrumb_title'] ?? '',
-			'canonical'    => $meta['canonical'] ?? '',
-			'settings'     => $this->settings->all(),
-		];
+		$settingsWhitelist = array_intersect_key(
+			$this->settings->all(),
+			array_flip( [ 'home_label', 'show_home', 'show_current', 'hide_on_front_page', 'show_blog_page', 'show_ancestors' ] )
+		);
+		ksort( $settingsWhitelist );
 
-		unset( $payload['settings']['separator'] );
+		$payload = [
+			'blog_id'       => $blogId,
+			'locale'        => $locale,
+			'user_id'       => $userId,
+			'front_opts'    => $frontOptions,
+			'ctx_hash'      => $this->ctx->hash(),
+			'type'          => $type,
+			'id'            => $id,
+			'post_type'     => $postType,
+			'primary_tax'   => $primaryTax,
+			'term_tax'      => $termTax,
+			'search'        => $searchQuery,
+			'archive_pt'    => $this->archivePostType(),
+			'year'          => $this->queryVar( 'year' ),
+			'month'         => $this->queryVar( 'monthnum' ),
+			'day'           => $this->queryVar( 'day' ),
+			'page'          => $this->queryVar( 'page' ),
+			'cpage'         => $this->queryVar( 'cpage' ),
+			'paged'         => $this->queryVar( 'paged' ),
+			'is_front'      => $this->isFrontPage(),
+			'is_blog'       => $this->isBlogIndex(),
+			'is_search'     => $this->isSearch(),
+			'is_404'        => $this->is404(),
+			'is_pt_archive' => $this->isPostTypeArchive(),
+			'is_author'     => $this->isAuthor(),
+			'is_date'       => $this->isDate(),
+			'show_home'     => $this->showHome(),
+			'show_current'  => $this->showCurrent(),
+			'bc_title'      => $meta['flags']['breadcrumb_title'] ?? '',
+			'canonical'     => $meta['canonical'] ?? '',
+			'settings'      => $settingsWhitelist,
+		];
 
 		$json = function_exists( 'wp_json_encode' )
 			? wp_json_encode( $payload )
-			: json_encode( $payload ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+			: json_encode( $payload ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback in unit test environments without WordPress loaded; wp_json_encode is preferred in production.
 
 		$this->cacheKey = is_string( $json ) && '' !== $json
 			? md5( $json )
-			: md5( var_export( $payload, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for settings array.
+			: md5( var_export( $payload, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for payload array.
 
 		return $this->cacheKey;
 	}
@@ -208,6 +219,10 @@ final class TrailBuilder {
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
 	public function build(): array {
+		if ( $this->isFrontPage() && $this->isPostsFrontPage() && max( $this->queryVar( 'paged' ), $this->queryVar( 'page' ) ) < 2 ) {
+			return [];
+		}
+
 		$key = $this->buildCacheKey();
 
 		if ( array_key_exists( $key, self::$buildMemo ) ) {

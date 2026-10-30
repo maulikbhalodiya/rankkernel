@@ -375,5 +375,6 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		$trail3   = $builder3->build();
 
 		$this->assertEquals( $trail1, $trail3 );
+		$this->assertNotSame( $trail1[0], $trail3[0], 'resetCache must force a fresh build' );
 	}
 }
