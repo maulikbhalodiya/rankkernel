@@ -579,7 +579,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( '-', $state['tokens']['sep'] );
 		$this->assertSame( '', $state['featuredAlt'] );
 		$this->assertSame( 'Inserted token %s.', $state['strings']['insertedToken'] );
-		$this->assertSame( 'Field reset to template.', $state['strings']['fieldReset'] );
+		$this->assertSame( '%s: Field reset to template.', $state['strings']['fieldReset'] );
 	}
 
 	/**

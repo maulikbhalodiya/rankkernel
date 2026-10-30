@@ -1147,7 +1147,8 @@ final class MetadataBox {
 			'tokenInsert'    => __( 'Insert token', 'rankkernel' ),
 			/* translators: %s: Token label, for example Title. */
 			'insertedToken'  => __( 'Inserted token %s.', 'rankkernel' ),
-			'fieldReset'     => __( 'Field reset to template.', 'rankkernel' ),
+			/* translators: %s: Field label, for example SEO title. */
+			'fieldReset'     => __( '%s: Field reset to template.', 'rankkernel' ),
 			'selectImage'    => __( 'Select image', 'rankkernel' ),
 			'removeImage'    => __( 'Remove image', 'rankkernel' ),
 			'previewDesktop' => __( 'Desktop', 'rankkernel' ),

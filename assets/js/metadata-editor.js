@@ -745,8 +745,9 @@
 				schedule();
 				if ( hadValue ) {
 					var label = input.id ? $( root, 'label[for="' + input.id + '"]' ) : null;
-					var name = label ? label.textContent.trim() : key;
-					rankkernelAnnounce( name + ': ' + str( 'fieldReset', __( 'Field reset to template.', 'rankkernel' ) ) );
+					var name = label ? label.textContent.trim() : ( button.getAttribute( 'aria-label' ) || key );
+					/* translators: %s: Field label, for example SEO title. */
+					rankkernelAnnounce( sprintf( str( 'fieldReset', __( '%s: Field reset to template.', 'rankkernel' ) ), name ) );
 				}
 				if ( input.focus ) {
 					input.focus();

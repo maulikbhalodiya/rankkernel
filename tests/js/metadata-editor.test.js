@@ -318,7 +318,7 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		'No tokens available for this post type.',
 		'Insert token',
 		'Inserted token %s.',
-		'Field reset to template.',
+		'%s: Field reset to template.',
 		'chars only',
 		'chars',
 		'Inherited from the template',
@@ -409,7 +409,25 @@ test( 'metadata-editor announces field reset when value is present and clears fi
 	titleResetButton.listeners.click();
 
 	assert.equal( titleInput.value, '' );
-	assert.deepEqual( spoken, [ 'SEO title: rankkernel:Field reset to template.' ] );
+	assert.deepEqual( spoken, [ 'rankkernel:SEO title: Field reset to template.' ] );
+} );
+
+test( 'metadata-editor stays silent on field reset when input is whitespace only', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '   ' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: { '[data-rk-reset]': [ titleResetButton ] }
+	} );
+	const fixture = boot( { wp: translatingWp( spoken ), byId: { 'rankkernel-meta-title': titleInput }, roots: [ editorRoot ] } );
+	fixture.init();
+	titleResetButton.listeners.click();
+	assert.equal( titleInput.value, '' );
+	assert.deepEqual( spoken, [] );
 } );
 
 test( 'metadata-editor stays silent on field reset when input is already empty', () => {
@@ -458,9 +476,9 @@ test( 'metadata-editor does not announce a blocked token insertion on readOnly o
 	} );
 	fixture1.init();
 
-	if ( list1.children[ 0 ] ) {
-		list1.children[ 0 ].listeners.click();
-	}
+	const readOnlyBtn = list1.children[ 0 ];
+	assert.ok( readOnlyBtn, 'token picker must build a button for the readOnly case' );
+	readOnlyBtn.listeners.click();
 
 	assert.equal( readOnlyInput.value, 'ReadOnly Text' );
 
@@ -480,9 +498,9 @@ test( 'metadata-editor does not announce a blocked token insertion on readOnly o
 	} );
 	fixture2.init();
 
-	if ( list2.children[ 0 ] ) {
-		list2.children[ 0 ].listeners.click();
-	}
+	const disabledBtn = list2.children[ 0 ];
+	assert.ok( disabledBtn, 'token picker must build a button for the disabled case' );
+	disabledBtn.listeners.click();
 
 	assert.equal( disabledInput.value, 'Disabled Text' );
 	assert.deepEqual( spoken, [] );
