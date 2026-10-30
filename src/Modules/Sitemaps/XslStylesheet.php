@@ -26,6 +26,21 @@ class XslStylesheet {
 	}
 
 	/**
+	 * Response headers for the XSL stylesheet.
+	 *
+	 * @return array<string, string> Key value map of header names to values.
+	 */
+	public static function responseHeaders(): array {
+		return [
+			'Content-Type'           => 'text/xsl; charset=UTF-8',
+			'Cache-Control'          => 'public, max-age=31536000',
+			// HTTP Expires must be GMT regardless of the site timezone (RFC 7231), so the raw gmdate() call is correct here; current_time()/wp_date() would emit site-local time and be wrong for this header.
+			'Expires'                => gmdate( 'D, d M Y H:i:s', time() + 31536000 ) . ' GMT',
+			'X-Content-Type-Options' => 'nosniff',
+		];
+	}
+
+	/**
 	 * Output the stylesheet with headers and exit.
 	 */
 	public function output(): void {
@@ -35,8 +50,12 @@ class XslStylesheet {
 		// opened must never get the year-long stylesheet cache headers
 		// before readfile fails, or the visitor caches a truncated sheet.
 		if ( ! is_readable( $path ) ) {
-			status_header( 404 );
-			nocache_headers();
+			if ( ! headers_sent() ) {
+				status_header( 404 );
+				header( 'Content-Type: text/plain; charset=UTF-8' );
+				header( 'X-Content-Type-Options: nosniff' );
+				nocache_headers();
+			}
 			echo esc_html__( 'Stylesheet not found.', 'rankkernel' );
 
 			if ( ! defined( 'RANKKERNEL_TESTING' ) ) {
@@ -46,11 +65,9 @@ class XslStylesheet {
 			return;
 		}
 
-		header( 'Content-Type: text/xsl; charset=UTF-8' );
-		header( 'Cache-Control: public, max-age=31536000' );
-		// HTTP Expires must be GMT regardless of the site timezone (RFC 7231), so the raw gmdate() call is correct here; current_time()/wp_date() would emit site-local time and be wrong for this header.
-		header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 31536000 ) . ' GMT' );
-		header( 'X-Content-Type-Options: nosniff' );
+		foreach ( self::responseHeaders() as $name => $value ) {
+			header( $name . ': ' . $value );
+		}
 
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- readfile streams the generated XSL stylesheet to output, WP_Filesystem is for file management, not output.
 		readfile( $path );

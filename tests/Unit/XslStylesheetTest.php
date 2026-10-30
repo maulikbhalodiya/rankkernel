@@ -104,4 +104,15 @@ final class XslStylesheetTest extends TestCase {
 
 		$this->assertStringContainsString( 'xsl:stylesheet', $out );
 	}
+
+	/**
+	 * Test response headers include nosniff to prevent MIME-sniffing.
+	 */
+	public function test_response_headers_include_nosniff(): void {
+		$headers = XslStylesheet::responseHeaders();
+
+		$this->assertArrayHasKey( 'X-Content-Type-Options', $headers );
+		$this->assertSame( 'nosniff', $headers['X-Content-Type-Options'] );
+		$this->assertSame( 'text/xsl; charset=UTF-8', $headers['Content-Type'] );
+	}
 }
