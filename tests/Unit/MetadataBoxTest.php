@@ -1220,6 +1220,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
 		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-metadata-editor'] ?? null );
 		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-analysis-editor'] ?? null );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-analysis-format'] ?? null );
 	}
 
 	/**
@@ -1280,6 +1281,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n', 'rankkernel-analysis-text-stats', 'rankkernel-analysis-accents', 'rankkernel-analysis-format', 'rankkernel-analysis-keyword-matcher', 'rankkernel-analysis-analyzer', 'rankkernel-analysis-editor-bridge' ], $deps['rankkernel-metadata-sidebar']['tax'] );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
 		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-metadata-sidebar'] ?? null );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-analysis-format'] ?? null );
 	}
 
 	/**

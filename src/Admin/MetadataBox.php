@@ -832,6 +832,9 @@ final class MetadataBox {
 		foreach ( self::ENGINE_SCRIPTS as $handle => $parts ) {
 			$source = function_exists( 'plugins_url' ) ? plugins_url( $parts[0], $pluginFile ) : '';
 			wp_register_script( $handle, $source, $parts[1], $version, true );
+			if ( 'rankkernel-analysis-format' === $handle && function_exists( 'wp_set_script_translations' ) ) {
+				wp_set_script_translations( $handle, 'rankkernel' );
+			}
 			wp_enqueue_script( $handle );
 			$handles[] = $handle;
 		}
