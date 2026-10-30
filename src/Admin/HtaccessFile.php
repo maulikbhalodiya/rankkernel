@@ -325,10 +325,16 @@ final class HtaccessFile {
 			return '';
 		}
 
-		// uniqid() suffix: two saves inside the same second must not share
-		// a name, or the later copy would silently overwrite the earlier
-		// backup the restore-on-failure path may need.
-		return $dir . '/htaccess-backup-' . gmdate( 'YmdHis' ) . '-' . uniqid();
+		// A 128-bit random suffix makes the backup name unguessable even on a
+		// server that ignores the directory's .htaccess deny file. The
+		// timestamp keeps them sortable for pruning.
+		try {
+			$suffix = bin2hex( random_bytes( 16 ) );
+		} catch ( \Throwable $e ) {
+			$suffix = str_replace( '.', '', uniqid( '', true ) );
+		}
+
+		return $dir . '/htaccess-backup-' . gmdate( 'YmdHis' ) . '-' . $suffix;
 	}
 
 	/**

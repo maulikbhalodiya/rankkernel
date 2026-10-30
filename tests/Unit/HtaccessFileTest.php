@@ -178,6 +178,15 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test the backup name is unguessable and unique per save.
+	 */
+	public function test_backup_name_is_unguessable(): void {
+		$path = ( new HtaccessFile() )->backupPath();
+
+		$this->assertMatchesRegularExpression( '/htaccess-backup-\d{14}-[a-f0-9]{32}$/', $path );
+	}
+
+	/**
 	 * Test save refuses to write when no guarded backup location exists.
 	 *
 	 * The old fallback wrote a timestamped backup beside the live file, which
