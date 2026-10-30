@@ -426,6 +426,10 @@ final class MetadataBox {
 
 		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [ 'wp-i18n', 'wp-a11y' ], $version, true );
 
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( self::EDITOR_SCRIPT, 'rankkernel' );
+		}
+
 		if ( function_exists( 'wp_localize_script' ) ) {
 			wp_localize_script( self::EDITOR_SCRIPT, self::LOCALIZE_NAME, $this->localizedState( $this->currentPostId() ) );
 		}

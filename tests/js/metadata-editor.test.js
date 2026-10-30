@@ -175,18 +175,22 @@ function speakingWp( spoken, extra ) {
 	);
 }
 
-function translatingWp( spoken ) {
+function translatingWp( spoken, seen ) {
 	const spokenList = Array.isArray( spoken ) ? spoken : [];
 	return speakingWp( spokenList, {
 		i18n: {
 			__( text, domain ) {
-				if ( spokenList.seen ) {
-					spokenList.seen.push( [ text, domain ] );
+				if ( Array.isArray( seen ) ) {
+					seen.push( [ text, domain ] );
 				}
 				return domain + ':' + text;
 			},
 			sprintf( format, arg ) {
-				return String( format || '' ).replace( '%s', String( arg || '' ) );
+				var a = String( arg == null ? '' : arg );
+				return String( format == null ? '' : format )
+					.replace( /%%/g, '\u0000' )
+					.replace( /%s/g, function () { return a; } )
+					.replace( /\u0000/g, '%' );
 			}
 		}
 	} );
@@ -211,13 +215,12 @@ test( 'the classic metadata editor renders the raw English status words when wp.
 
 test( 'the classic metadata editor uses wp.i18n when the handle is present', () => {
 	const seen = [];
-	seen.seen = [];
-	const fixture = boot( { wp: translatingWp( seen ) } );
+	const fixture = boot( { wp: translatingWp( [], seen ) } );
 
 	assert.equal( statusWord( fixture, 'warn' ), 'rankkernel:Long' );
 	assert.equal( statusWord( fixture, 'over' ), 'rankkernel:Too long' );
 	assert.equal( statusWord( fixture, 'ok' ), 'rankkernel:OK' );
-	assert.deepEqual( seen.seen, [
+	assert.deepEqual( seen, [
 		[ 'Long', 'rankkernel' ],
 		[ 'Too long', 'rankkernel' ],
 		[ 'OK', 'rankkernel' ]
@@ -352,7 +355,7 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 test( 'metadata-editor announces when a token is inserted or a field is reset', () => {
 	const spoken = [];
 	const list = fakeNode();
-	const titleInput = fakeNode( { tagName: 'INPUT' } );
+	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Old Value' } );
 	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
 
 	const editorRoot = fakeRoot( {
@@ -379,13 +382,48 @@ test( 'metadata-editor announces when a token is inserted or a field is reset', 
 	assert.ok( tokenBtn );
 	tokenBtn.listeners.click();
 
-	// Click reset button
+	// Reset field with value
+	titleResetButton.listeners.click();
+
+	// Reset already empty field (should stay silent)
 	titleResetButton.listeners.click();
 
 	assert.deepEqual( spoken, [
-		'rankkernel:Inserted token %%title%%.',
+		'rankkernel:Inserted token Title.',
 		'rankkernel:Field reset to template.'
 	] );
+} );
+
+test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', () => {
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Some Text' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: {
+			'[data-rankkernel-tokens]': [ list ],
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: {},
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	assert.doesNotThrow( () => {
+		if ( list.children[ 0 ] ) {
+			list.children[ 0 ].listeners.click();
+		}
+		titleResetButton.listeners.click();
+	} );
 } );
 
 test( 'the media select chain is guarded and falls back to the URL field', () => {

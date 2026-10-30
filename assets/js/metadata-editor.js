@@ -19,9 +19,18 @@
 	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
 		? window.wp.i18n.sprintf
 		: function ( text, param ) {
-			return String( text || '' ).replace( '%s', String( param || '' ) );
+			var arg = String( param == null ? '' : param );
+			return String( text == null ? '' : text )
+				.replace( /%%/g, '\u0000' )
+				.replace( /%s/g, function () { return arg; } )
+				.replace( /\u0000/g, '%' );
 		};
 
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
 	function rankkernelAnnounce( text ) {
 		if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
 			window.wp.a11y.speak( text );
@@ -337,9 +346,10 @@
 				button.setAttribute( 'aria-label', str( 'tokenInsert', __( 'Insert token', 'rankkernel' ) ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
 				button.addEventListener( 'click', function () {
 					var target = getTarget();
-					if ( target ) {
+					if ( target && ! target.disabled && ! target.readOnly ) {
 						insertAtCaret( target, token );
-						rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), token ) );
+						/* translators: %s: Token label, for example Title. */
+						rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), tokenLabels[ token ] || token ) );
 					}
 				} );
 				list.appendChild( button );
@@ -721,6 +731,7 @@
 				if ( ! input ) {
 					return;
 				}
+				var hadValue = 'checkbox' === input.type ? input.checked : '' !== String( input.value == null ? '' : input.value ).trim();
 				if ( 'checkbox' === input.type ) {
 					input.checked = false;
 				} else {
@@ -736,7 +747,9 @@
 					idField.value = '';
 				}
 				schedule();
-				rankkernelAnnounce( __( 'Field reset to template.', 'rankkernel' ) );
+				if ( hadValue ) {
+					rankkernelAnnounce( __( 'Field reset to template.', 'rankkernel' ) );
+				}
 				if ( input.focus ) {
 					input.focus();
 				}
