@@ -74,6 +74,7 @@ final class BreadcrumbsSecurityTest extends TestCase {
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/functions.php';
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias(

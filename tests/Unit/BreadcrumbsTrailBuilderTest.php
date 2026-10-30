@@ -190,6 +190,8 @@ final class BreadcrumbsTrailBuilderTest extends TestCase {
 		];
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		Functions\when( 'determine_locale' )->justReturn( 'en_US' );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );
 		Functions\when( 'is_front_page' )->alias( fn (): bool => ! empty( $this->conds['front'] ) );

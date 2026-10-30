@@ -29,42 +29,20 @@ use RankKernel\Modules\Metadata\Context;
  */
 final class TrailBuilder {
 	/**
+	 * Maximum size for bounded request-level static build cache.
+	 */
+	public const MAX_CACHE_SIZE = 50;
+
+	/**
 	 * Static request-level memoization cache for build() results.
 	 *
 	 * Performance optimization: avoids repeating canonical trail construction across multiple
 	 * calls (e.g. Schema graph generation + HTML template/block rendering) in a single request.
+	 * Assumes immutable request data within a single request execution thread.
 	 *
 	 * @var array<string, Item[]>
 	 */
 	private static array $buildMemo = [];
-
-	/**
-	 * Static request-level memoization cache for publicTaxonomies().
-	 *
-	 * Performance optimization: avoids repeated get_object_taxonomies() calls and object
-	 * transformations per request.
-	 *
-	 * @var array<string, string[]>
-	 */
-	private static array $publicTaxonomiesMemo = [];
-
-	/**
-	 * Static request-level memoization cache for taxonomyForPost().
-	 *
-	 * Performance optimization: avoids repeated get_taxonomy() calls per request.
-	 *
-	 * @var array<string, bool>
-	 */
-	private static array $taxonomyForPostMemo = [];
-
-	/**
-	 * Static request-level memoization cache for cptArchiveItem().
-	 *
-	 * Performance optimization: avoids repeated get_post_type_object() lookups per request.
-	 *
-	 * @var array<string, Item|null>
-	 */
-	private static array $cptArchiveItemMemo = [];
 
 	/**
 	 * Reset static request-level memoization cache (primarily for unit tests).
@@ -72,10 +50,7 @@ final class TrailBuilder {
 	 * @return void
 	 */
 	public static function resetCache(): void {
-		self::$buildMemo            = [];
-		self::$publicTaxonomiesMemo = [];
-		self::$taxonomyForPostMemo  = [];
-		self::$cptArchiveItemMemo   = [];
+		self::$buildMemo = [];
 	}
 
 	/**
@@ -123,14 +98,31 @@ final class TrailBuilder {
 	}
 
 	/**
-	 * Build cache key including blog ID, Context hash, query discriminators, visibility, and settings.
+	 * Build cache key including blog ID, locale, options, Context hash, discriminators, visibility, and settings.
 	 *
 	 * @return string Cache key.
 	 */
 	private function buildCacheKey(): string {
 		$blogId = self::blogId();
+		$locale = '';
+		if ( function_exists( 'determine_locale' ) ) {
+			$locale = (string) determine_locale();
+		} elseif ( function_exists( 'get_locale' ) ) {
+			$locale = (string) get_locale();
+		}
 		$type   = $this->ctx->queriedType();
 		$id     = $this->ctx->queriedId();
+
+		$frontOptions = ( function_exists( 'get_option' ) ? (string) get_option( 'show_on_front', 'posts' ) : '' )
+			. '|' . ( function_exists( 'get_option' ) ? (string) get_option( 'page_for_posts', 0 ) : '' );
+
+		$primaryTax = '';
+		if ( 'post' === $type && $id > 0 ) {
+			$qPost = $this->queriedPost();
+			if ( null !== $qPost ) {
+				$primaryTax = (string) ( $this->settings->postTypeSettings( $qPost['type'] )['primary_taxonomy'] ?? '' );
+			}
+		}
 
 		$discriminator = match ( $type ) {
 			'search'  => 's:' . ( function_exists( 'get_search_query' ) ? (string) get_search_query() : '' ),
@@ -138,7 +130,7 @@ final class TrailBuilder {
 				. '|y:' . (string) $this->queryVar( 'year' )
 				. '|m:' . (string) $this->queryVar( 'monthnum' )
 				. '|d:' . (string) $this->queryVar( 'day' ),
-			'post'    => 'p:' . (string) $this->queryVar( 'page' ) . '|cp:' . (string) $this->queryVar( 'cpage' ),
+			'post'    => 'p:' . (string) $this->queryVar( 'page' ) . '|cp:' . (string) $this->queryVar( 'cpage' ) . '|ptx:' . $primaryTax,
 			'home'    => 'pg:' . (string) max( $this->queryVar( 'paged' ), $this->queryVar( 'page' ) ),
 			'term'    => 'pg:' . (string) $this->queryVar( 'paged' ),
 			default   => '',
@@ -147,7 +139,9 @@ final class TrailBuilder {
 		$showHome    = $this->showHome() ? '1' : '0';
 		$showCurrent = $this->showCurrent() ? '1' : '0';
 
-		$settingsAll  = $this->settings->all();
+		$settingsAll = $this->settings->all();
+		unset( $settingsAll['separator'] ); // Separator is a renderer concern.
+
 		$settingsJson = function_exists( 'wp_json_encode' )
 			? wp_json_encode( $settingsAll )
 			: json_encode( $settingsAll ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
@@ -156,7 +150,7 @@ final class TrailBuilder {
 			? md5( $settingsJson )
 			: md5( var_export( $settingsAll, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for settings array.
 
-		return $blogId . '|' . $this->ctx->hash() . '|' . $type . '|' . (string) $id . '|' . $discriminator . '|h:' . $showHome . '|c:' . $showCurrent . '|' . $settingsHash;
+		return $blogId . '|' . $locale . '|' . $frontOptions . '|' . $this->ctx->hash() . '|' . $type . '|' . (string) $id . '|' . $discriminator . '|h:' . $showHome . '|c:' . $showCurrent . '|' . $settingsHash;
 	}
 
 	/**
@@ -164,7 +158,7 @@ final class TrailBuilder {
 	 *
 	 * Performance optimization: memoizes the generated trail by blog ID, Context hash, query parameters,
 	 * settings, and effective visibility overrides to eliminate duplicate tree traversal and WP queries
-	 * across schema and HTML rendering calls.
+	 * across schema and HTML rendering calls. Bounded by MAX_CACHE_SIZE with FIFO eviction.
 	 *
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
@@ -176,6 +170,10 @@ final class TrailBuilder {
 		}
 
 		$result = $this->doBuild();
+
+		if ( count( self::$buildMemo ) >= self::MAX_CACHE_SIZE ) {
+			array_shift( self::$buildMemo );
+		}
 
 		self::$buildMemo[ $key ] = $result;
 
@@ -919,30 +917,17 @@ final class TrailBuilder {
 	/**
 	 * Public taxonomy slugs registered for a post type.
 	 *
-	 * Performance optimization: memoizes public taxonomies per post type to eliminate repeated
-	 * get_object_taxonomies() calls and object property inspection across primaryTaxonomyFor() calls.
-	 *
 	 * @param string $postType Post type.
 	 * @return string[] Taxonomy slugs.
 	 */
 	private function publicTaxonomies( string $postType ): array {
-		$memoKey = self::blogId() . '|' . $postType;
-
-		if ( array_key_exists( $memoKey, self::$publicTaxonomiesMemo ) ) {
-			return self::$publicTaxonomiesMemo[ $memoKey ];
-		}
-
 		if ( ! function_exists( 'get_object_taxonomies' ) ) {
-			self::$publicTaxonomiesMemo[ $memoKey ] = [];
-
 			return [];
 		}
 
 		$taxes = get_object_taxonomies( $postType, 'objects' );
 
 		if ( ! is_array( $taxes ) ) {
-			self::$publicTaxonomiesMemo[ $memoKey ] = [];
-
 			return [];
 		}
 
@@ -967,9 +952,7 @@ final class TrailBuilder {
 			}
 		}
 
-		self::$publicTaxonomiesMemo[ $memoKey ] = array_values( array_unique( $out ) );
-
-		return self::$publicTaxonomiesMemo[ $memoKey ];
+		return array_values( array_unique( $out ) );
 	}
 
 	/**
@@ -1070,35 +1053,21 @@ final class TrailBuilder {
 	/**
 	 * Whether a taxonomy belongs to posts (blog page crumb applies).
 	 *
-	 * Performance optimization: memoizes taxonomy post membership check per taxonomy slug.
-	 *
 	 * @param string $taxonomy Taxonomy slug.
 	 * @return bool The result.
 	 */
 	private function taxonomyForPost( string $taxonomy ): bool {
-		$memoKey = self::blogId() . '|' . $taxonomy;
-
-		if ( array_key_exists( $memoKey, self::$taxonomyForPostMemo ) ) {
-			return self::$taxonomyForPostMemo[ $memoKey ];
-		}
-
 		if ( ! function_exists( 'get_taxonomy' ) ) {
-			self::$taxonomyForPostMemo[ $memoKey ] = false;
-
 			return false;
 		}
 
 		$vars = $this->vars( get_taxonomy( $taxonomy ) );
 
 		if ( ! isset( $vars['object_type'] ) || ! is_array( $vars['object_type'] ) ) {
-			self::$taxonomyForPostMemo[ $memoKey ] = false;
-
 			return false;
 		}
 
-		self::$taxonomyForPostMemo[ $memoKey ] = in_array( 'post', $vars['object_type'], true );
-
-		return self::$taxonomyForPostMemo[ $memoKey ];
+		return in_array( 'post', $vars['object_type'], true );
 	}
 
 	/**
@@ -1137,29 +1106,17 @@ final class TrailBuilder {
 	/**
 	 * CPT archive crumb from the post type object, or null without one.
 	 *
-	 * Performance optimization: memoizes CPT archive crumb per post type slug.
-	 *
 	 * @param string $postType Post type.
 	 * @return Item|null Archive crumb or null.
 	 */
 	private function cptArchiveItem( string $postType ): ?Item {
-		$memoKey = self::blogId() . '|' . $postType;
-
-		if ( array_key_exists( $memoKey, self::$cptArchiveItemMemo ) ) {
-			return self::$cptArchiveItemMemo[ $memoKey ];
-		}
-
 		if ( ! function_exists( 'get_post_type_object' ) ) {
-			self::$cptArchiveItemMemo[ $memoKey ] = null;
-
 			return null;
 		}
 
 		$vars = $this->vars( get_post_type_object( $postType ) );
 
 		if ( empty( $vars['has_archive'] ) ) {
-			self::$cptArchiveItemMemo[ $memoKey ] = null;
-
 			return null;
 		}
 
@@ -1181,9 +1138,7 @@ final class TrailBuilder {
 			$url  = is_string( $link ) ? $link : '';
 		}
 
-		self::$cptArchiveItemMemo[ $memoKey ] = new Item( $label, $url );
-
-		return self::$cptArchiveItemMemo[ $memoKey ];
+		return new Item( $label, $url );
 	}
 
 	/**
@@ -1213,8 +1168,6 @@ final class TrailBuilder {
 
 	/**
 	 * Configured posts page id, or zero without one.
-	 *
-	 * Performance optimization: memoizes configured posts page id.
 	 *
 	 * @return int The result.
 	 */
@@ -1519,8 +1472,6 @@ final class TrailBuilder {
 
 	/**
 	 * Whether the front page shows posts (not a static page).
-	 *
-	 * Performance optimization: memoizes show_on_front option state.
 	 *
 	 * @return bool The result.
 	 */

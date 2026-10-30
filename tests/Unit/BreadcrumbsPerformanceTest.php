@@ -76,6 +76,7 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		$this->queriedObject = null;
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $url ): string => $url );
@@ -353,8 +354,6 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		$settings = new BreadcrumbsSettings();
 		$ctx1     = new Context( $query, new SettingsStore() );
 		$ctx2     = new Context( $query, new SettingsStore() );
-
-		TrailBuilder::resetCache();
 
 		$builder1 = new TrailBuilder( $ctx1, $settings );
 		$trail1   = $builder1->build();
