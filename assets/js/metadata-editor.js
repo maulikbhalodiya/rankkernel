@@ -349,7 +349,7 @@
 					var target = getTarget();
 					if ( insertAtCaret( target, token ) ) {
 						/* translators: %s: Token label, for example Title. */
-						rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), tokenLabels[ token ] || token ) );
+						rankkernelAnnounce( sprintf( str( 'insertedToken', __( 'Inserted token %s.', 'rankkernel' ) ), tokenLabels[ token ] || token ) );
 					}
 				} );
 				list.appendChild( button );
@@ -744,7 +744,7 @@
 				}
 				schedule();
 				if ( hadValue ) {
-					rankkernelAnnounce( __( 'Field reset to template.', 'rankkernel' ) );
+					rankkernelAnnounce( str( 'fieldReset', __( 'Field reset to template.', 'rankkernel' ) ) );
 				}
 				if ( input.focus ) {
 					input.focus();
