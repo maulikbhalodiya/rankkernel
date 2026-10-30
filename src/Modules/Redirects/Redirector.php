@@ -204,7 +204,7 @@ final class Redirector {
 
 		// Normalize request URI early to return immediately for blocked sources without probing table existence.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- frontend dispatch runs outside any form context, the raw URI is parsed and normalized before use and never echoed.
-		$rawUri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
 		$rawUri = str_replace( "\0", '', $rawUri );
 		$rawUri = preg_replace( '/[\x00-\x1F\x7F]/u', '', $rawUri );
 		$rawUri = is_string( $rawUri ) ? $rawUri : '/';

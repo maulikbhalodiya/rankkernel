@@ -655,6 +655,7 @@ final class SchemaMetabox {
 		}
 
 		$customRaw = isset( $_POST['rankkernel_schema_custom'] )
+			&& is_string( $_POST['rankkernel_schema_custom'] )
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed here, sanitized or validated on the following statements.
 			? (string) wp_unslash( $_POST['rankkernel_schema_custom'] )
 			: '';
@@ -740,6 +741,8 @@ final class SchemaMetabox {
 	private function postedType(): string {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 		$raw = isset( $_POST['rankkernel_schema_type'] )
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+			&& is_string( $_POST['rankkernel_schema_type'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave, unslashed here, validated against an allow list below.
 			? trim( (string) wp_unslash( $_POST['rankkernel_schema_type'] ) )
 			: '';
@@ -806,12 +809,12 @@ final class SchemaMetabox {
 			}
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$question = isset( $row['question'] )
+			$question = isset( $row['question'] ) && is_string( $row['question'] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 				? sanitize_text_field( (string) wp_unslash( $row['question'] ) )
 				: '';
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$answer = isset( $row['answer'] )
+			$answer = isset( $row['answer'] ) && is_string( $row['answer'] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 				? sanitize_text_field( (string) wp_unslash( $row['answer'] ) )
 				: '';
@@ -832,17 +835,17 @@ final class SchemaMetabox {
 	 */
 	private function postedHowto(): array {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawName = isset( $_POST['rankkernel_schema_howto_name'] )
+		$rawName = isset( $_POST['rankkernel_schema_howto_name'] ) && is_string( $_POST['rankkernel_schema_howto_name'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_name'] ) )
 			: '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] )
+		$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] ) && is_string( $_POST['rankkernel_schema_howto_totaltime'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_totaltime'] ) )
 			: '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] )
+		$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] ) && is_string( $_POST['rankkernel_schema_howto_cost'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_cost'] ) )
 			: '';
@@ -859,17 +862,17 @@ final class SchemaMetabox {
 
 				$steps[] = [
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'title' => isset( $row['title'] )
+					'title' => isset( $row['title'] ) && is_string( $row['title'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? sanitize_text_field( (string) wp_unslash( $row['title'] ) )
 						: '',
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'text'  => isset( $row['text'] )
+					'text'  => isset( $row['text'] ) && is_string( $row['text'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? sanitize_text_field( (string) wp_unslash( $row['text'] ) )
 						: '',
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'image' => isset( $row['image'] )
+					'image' => isset( $row['image'] ) && is_string( $row['image'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? esc_url_raw( (string) wp_unslash( $row['image'] ) )
 						: '',

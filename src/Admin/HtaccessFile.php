@@ -139,7 +139,7 @@ final class HtaccessFile {
 	public function isSupported(): bool {
 		$supported = (bool) ( $GLOBALS['is_apache'] ?? false );
 
-		if ( ! $supported && isset( $_SERVER['SERVER_SOFTWARE'] ) ) {
+		if ( ! $supported && isset( $_SERVER['SERVER_SOFTWARE'] ) && is_string( $_SERVER['SERVER_SOFTWARE'] ) ) {
 			$software  = strtolower( sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) );
 			$supported = str_contains( $software, 'apache' ) || str_contains( $software, 'litespeed' );
 		}

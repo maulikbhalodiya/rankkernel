@@ -55,47 +55,48 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 ### RK-003 — Instant Indexing action marker read before nonce verification
 - Severity: Low (reviewer-cited; no write before gate)
 - Category: WP.org C / nonce
-- File: `src/Admin/InstantIndexingPage.php` `postedAction()` 595-600, `maybeHandleSave()` 143-164, `requireAccess()` 649-665
-- Status: OPEN (restructure for clarity)
-- Problem: `$_POST['rankkernel_indexnow_action']` is read to choose the nonce action before the nonce is verified; code carries a `phpcs:ignore ... nonce verified by caller`.
-- Verified: every target handler calls `requireAccess(<nonce>)` before any write; `current_user_can('manage_options')` is checked.
-- Required: verify action selection and nonce in one obvious gate before dispatch; remove ignore; keep all six action nonces distinct.
-- Tests: each action with missing/invalid nonce → 403 and no write; valid nonce + capability → action.
+- File: `src/Admin/InstantIndexingPage.php` `postedAction()` 595-600, `maybeHandleSave()` 143-190, `requireAccess()` 675-685
+- Status: FIXED_PENDING_REVIEW
+- Problem: `$_POST['rankkernel_indexnow_action']` was read to choose the nonce action, then each handler verified its own nonce; the reviewer saw an input processed without a visible nonce check. Every target handler did gate before writing, and `manage_options` was checked.
+- Fix: `maybeHandleSave()` now maps the strict action marker to one of six nonces (`nonceActionFor()`), returns early on an unknown marker, and calls `requireAccess()` once **before** dispatch. Per-handler `requireAccess()` calls removed; comments/ignores now say "nonce verified before dispatch".
+- Tests: `test_unknown_action_is_ignored_before_any_nonce_check`, `test_dispatch_verifies_the_nonce_for_the_selected_action`, existing capability/nonce failure tests for regenerate/verify/clear/retry.
+- Verification: InstantIndexingPageTest 68 tests/330 assertions; phpcs clean; PHPStan clean. Pending independent re-read.
 
 ### RK-004 — `twitter_site` passed to sanitizer without scalar guard
 - Severity: Medium
 - Category: WP.org D / input
 - File: `src/Admin/SettingsPage.php:745`
-- Status: OPEN
+- Status: FIXED_PENDING_REVIEW
 - Problem: `MetaPayload::sanitizeTwitterHandle( wp_unslash( $_POST['twitter_site'] ) )` with no `is_string`/`is_scalar` check; array input can reach custom sanitizer (type error/array-to-string).
-- Required: reject non-scalar; unslash then sanitize string; test array/malformed input.
+- Fix: unslash into `$rawTwitter`, then `is_string( $rawTwitter ) ? MetaPayload::sanitizeTwitterHandle( $rawTwitter ) : ''`.
+- Tests: `SettingsPageTest::test_array_settings_input_is_ignored_without_warnings` (array title/separator/twitter ignored, stored values survive, valid field still saves); full suite 2343 tests/9043 assertions.
 
 ### RK-005 — `focus_keywords` cast to string turns arrays into "Array"
 - Severity: Medium
 - Category: WP.org D / arrays
 - File: `src/Admin/MetadataBox.php:1180-1224` (esp. 1196)
-- Status: OPEN
+- Status: FIXED_PENDING_REVIEW
 - Problem: `(string) wp_unslash( $_POST['rankkernel_meta_focus_keywords'] )` on an array raises array-to-string warning and imports literal "Array".
-- Required: require `is_string`; otherwise reject/ignore; same pattern at 1190/1213.
-- Tests: string accepted/split/deduped; array and object rejected without warning.
+- Fix: title/description, focus keywords, and canonical now require `is_string()`; non-string input is skipped so existing stored values survive. Robots/OG/Twitter arrays remain `is_array` validated.
+- Tests: `MetadataBoxTest::test_array_focus_keywords_are_rejected_without_warning`; existing focus-keyword split/dedupe tests; full suite green.
 
 ### RK-006 — `(string) wp_unslash()` on custom separator / settings scalars
 - Severity: Low
 - Category: WP.org D / input
 - File: `src/Admin/SettingsPage.php:700-752`
-- Status: OPEN
+- Status: FIXED_PENDING_REVIEW
 - Problem: unconditional string casts before/without type checks; array input can produce warnings/invalid settings.
-- Required: validate scalar/string per field; preserve existing sanitizers.
-- Tests: array, nested array, empty, valid string.
+- Fix: text fields, separator choice/custom, breadcrumbs fields, llms summary/content, and notices now require `is_string` before unslash/cast; `settings-updated`/`robots_tab`/`section`/`page` use scalar+string checks. Same `settings-updated` guard applied in `SitemapSettingsPage`, `DashboardPage`, `SchemaSettingsPage`; module toggle and support notice guarded too.
+- Tests: `SettingsPageTest::test_array_settings_input_is_ignored_without_warnings`; `DashboardPageTest::test_array_module_toggle_is_ignored`; existing sitemap/schema settings suites; full suite green.
 
 ### RK-007 — RedirectsPage GET casts need explicit type guards
 - Severity: Low
 - Category: WP.org D / input
 - File: `src/Admin/RedirectsPage.php:818, 2045, 2096` (plus other GET reads)
-- Status: OPEN
+- Status: FIXED_PENDING_REVIEW
 - Problem: `(string) wp_unslash($_GET[...])` patterns before allowlists; PHP arrays could reach string functions.
-- Verified: values are unslashed, sanitized, allowlisted; no direct SQL/output. Harden type checks and remove unnecessary ignores.
-- Tests: array/object inputs for `rk_path`, `rk_bulk`, `rk_open`, `rk_action`, filters.
+- Fix: all 41 HTTP reads across `RedirectsPage` and `NotFoundPage` now require `is_string()` (scalar flags) or `is_array()` (bulk ID/exclusion arrays) before unslash; array fields reverted to `is_array` after an over-broad regex pass. Redundant `is_scalar()` fallbacks removed where PHPStan proved the branch unreachable.
+- Tests: existing RedirectsPage/NotFoundPage suites cover filters and row actions; full suite green; PHPStan L6 clean. Dedicated array-input tests to be added in the second audit pass.
 
 ### RK-008 — Schema import `$_FILES` workflow needs full validation proof
 - Severity: High (pending audit)
@@ -110,8 +111,8 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Severity: Low (pending)
 - Category: WP.org D / server vars
 - Files: `src/Modules/Monitor/Logger.php:262, 579-602`; `src/Modules/Redirects/Redirector.php:207`
-- Status: OPEN
-- Verified: string checks, unslash, control-char stripping, referer query redaction, 255-char truncation, allowlisted keys; host comparison for IndexNow uses site host.
+- Status: IN_PROGRESS
+- Verified: string checks, unslash, control-char stripping, referer query redaction, 255-char truncation, allowlisted keys; host comparison for IndexNow uses site host. `REQUEST_URI` in Logger and Redirector now requires `is_string` before unslash; `SERVER_SOFTWARE`/`REMOTE_ADDR` guarded.
 - Remaining: audit all `HTTP_*` reads for host-header/open-redirect/log injection; ensure logs escape on output.
 - Tests: header injection, array `$_SERVER` values, missing keys, null bytes.
 

@@ -180,6 +180,51 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test malformed array settings are ignored without warnings.
+	 */
+	public function test_array_settings_input_is_ignored_without_warnings(): void {
+		$page = $this->makePage(
+			[
+				'title_template' => 'Stored title',
+				'twitter_site'   => '@stored',
+			]
+		);
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$captured = $value;
+				}
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'             => '1',
+			'_wpnonce'                    => 'valid',
+			'title_template'              => [ 'bad' ],
+			'description_template'        => 'New description',
+			'rk_general_separator_choice' => [ 'custom' ],
+			'twitter_site'                => [ 'bad' ],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( 'Stored title', $captured['title_template'] );
+		$this->assertSame( 'New description', $captured['description_template'] );
+		$this->assertSame( '@stored', $captured['twitter_site'] );
+	}
+
+	/**
 	 * Test checkbox absent means false.
 	 */
 	public function test_checkbox_absent_means_false(): void {

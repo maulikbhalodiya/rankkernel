@@ -207,7 +207,7 @@ final class SupportPage {
 	 * @return string Address string.
 	 */
 	private function requestIp(): string {
-		$raw = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$raw = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
 		return '' === $raw ? 'unknown' : $raw;
 	}
@@ -314,7 +314,7 @@ final class SupportPage {
 	 */
 	public function notice(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag.
-		$key = isset( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( (string) $_GET[ self::NOTICE_ARG ] ) ) : '';
+		$key = isset( $_GET[ self::NOTICE_ARG ] ) && is_string( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( $_GET[ self::NOTICE_ARG ] ) ) : '';
 
 		return in_array( $key, [ 'sent', 'invalid' ], true ) ? $key : '';
 	}

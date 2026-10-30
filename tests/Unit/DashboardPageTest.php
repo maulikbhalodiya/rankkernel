@@ -199,6 +199,20 @@ final class DashboardPageTest extends TestCase {
 	}
 
 	/**
+	 * Test a malformed array toggle is ignored rather than flipping a module.
+	 */
+	public function test_array_module_toggle_is_ignored(): void {
+		$before = $this->options['rankkernel_modules'];
+
+		$_SERVER['REQUEST_METHOD']         = 'POST';
+		$_POST['rankkernel_module_toggle'] = [ 'importer' ];
+
+		( new DashboardPage() )->maybeHandleSave();
+
+		$this->assertSame( $before, $this->options['rankkernel_modules'] );
+	}
+
+	/**
 	 * Test toggling on enables a module.
 	 */
 	public function test_toggle_enables_module(): void {

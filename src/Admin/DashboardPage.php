@@ -183,7 +183,7 @@ final class DashboardPage {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		$cards = $this->cards();
 
@@ -227,7 +227,7 @@ final class DashboardPage {
 		check_admin_referer( 'rankkernel_module_toggle' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
-		$rawId = isset( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_module_toggle'] ) ) : '';
+		$rawId = isset( $_POST['rankkernel_module_toggle'] ) && is_string( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( $_POST['rankkernel_module_toggle'] ) ) : '';
 
 		if ( '' !== $rawId && ModuleRegistry::has( $rawId ) && ! ModuleRegistry::isPlanned( $rawId ) ) {
 			$enabled = $this->enabledIds();
