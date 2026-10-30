@@ -12,6 +12,7 @@
  * stored zero is never read as a nofollow.
  *
  * @package RankKernel
+ * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);

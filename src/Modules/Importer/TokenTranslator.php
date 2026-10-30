@@ -9,6 +9,7 @@
  * a token that would render verbatim on the page.
  *
  * @package RankKernel
+ * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);
