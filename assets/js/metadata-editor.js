@@ -224,10 +224,10 @@
 
 	function insertAtCaret( input, text ) {
 		if ( ! input || 'string' !== typeof text || '' === text ) {
-			return;
+			return false;
 		}
 		if ( input.disabled || input.readOnly ) {
-			return;
+			return false;
 		}
 		var start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
 		var end = typeof input.selectionEnd === 'number' ? input.selectionEnd : input.value.length;
@@ -249,6 +249,7 @@
 			event.initEvent( 'input', true, true );
 		}
 		input.dispatchEvent( event );
+		return true;
 	}
 
 	function initTabs( root ) {
@@ -346,8 +347,7 @@
 				button.setAttribute( 'aria-label', str( 'tokenInsert', __( 'Insert token', 'rankkernel' ) ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
 				button.addEventListener( 'click', function () {
 					var target = getTarget();
-					if ( target && ! target.disabled && ! target.readOnly ) {
-						insertAtCaret( target, token );
+					if ( insertAtCaret( target, token ) ) {
 						/* translators: %s: Token label, for example Title. */
 						rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), tokenLabels[ token ] || token ) );
 					}
@@ -731,12 +731,8 @@
 				if ( ! input ) {
 					return;
 				}
-				var hadValue = 'checkbox' === input.type ? input.checked : '' !== String( input.value == null ? '' : input.value ).trim();
-				if ( 'checkbox' === input.type ) {
-					input.checked = false;
-				} else {
-					input.value = '';
-				}
+				var hadValue = '' !== String( input.value == null ? '' : input.value ).trim();
+				input.value = '';
 				var idField = null;
 				if ( 'ogImage' === key ) {
 					idField = field( root, FIELD_NAMES.ogImageId, 'rankkernel-meta-og-image-id' );

@@ -352,7 +352,7 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 	);
 } );
 
-test( 'metadata-editor announces when a token is inserted or a field is reset', () => {
+test( 'metadata-editor announces when a token is inserted or a field is reset and modifies values', () => {
 	const spoken = [];
 	const list = fakeNode();
 	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Old Value' } );
@@ -382,16 +382,52 @@ test( 'metadata-editor announces when a token is inserted or a field is reset', 
 	assert.ok( tokenBtn );
 	tokenBtn.listeners.click();
 
+	assert.equal( titleInput.value, 'Old Value%%title%%' );
+
 	// Reset field with value
 	titleResetButton.listeners.click();
 
-	// Reset already empty field (should stay silent)
+	assert.equal( titleInput.value, '' );
+
+	// Reset already empty field (should stay silent and leave value empty)
 	titleResetButton.listeners.click();
+
+	assert.equal( titleInput.value, '' );
 
 	assert.deepEqual( spoken, [
 		'rankkernel:Inserted token Title.',
 		'rankkernel:Field reset to template.'
 	] );
+} );
+
+test( 'metadata-editor does not announce a blocked token insertion on readOnly or disabled input', () => {
+	const spoken = [];
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Immutable', readOnly: true } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput
+		},
+		queryAll: {
+			'[data-rankkernel-tokens]': [ list ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	const tokenBtn = list.children[ 0 ];
+	assert.ok( tokenBtn );
+	tokenBtn.listeners.click();
+
+	assert.equal( titleInput.value, 'Immutable' );
+	assert.deepEqual( spoken, [] );
 } );
 
 test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', () => {
@@ -411,7 +447,16 @@ test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', 
 	} );
 
 	const fixture = boot( {
-		wp: {},
+		wp: {
+			i18n: {
+				__( text ) {
+					return text;
+				},
+				sprintf( format, arg ) {
+					return String( format || '' ).replace( '%s', String( arg || '' ) );
+				}
+			}
+		},
 		byId: { 'rankkernel-meta-title': titleInput },
 		cfg: { tokenLabels: { '%%title%%': 'Title' } },
 		roots: [ editorRoot ]
@@ -419,11 +464,13 @@ test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', 
 	fixture.init();
 
 	assert.doesNotThrow( () => {
-		if ( list.children[ 0 ] ) {
-			list.children[ 0 ].listeners.click();
-		}
+		const tokenBtn = list.children[ 0 ];
+		assert.ok( tokenBtn );
+		tokenBtn.listeners.click();
 		titleResetButton.listeners.click();
 	} );
+
+	assert.equal( titleInput.value, '' );
 } );
 
 test( 'the media select chain is guarded and falls back to the URL field', () => {
