@@ -218,6 +218,15 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Status: VERIFIED
 - Result: each suppression covers a non-HTML context or an already-escaped fragment: JSON/XML/CSV/Markdown response bodies, a JSON download, hardcoded attribute fragments, pre-escaped list renderers, a never-echoed exception message, and an escaped key-file body. No unescaped user data reaches an HTML context.
 
+### RK-024 — Support form cast arrays to strings
+- Severity: Medium
+- Category: WP.org D / input
+- File: `src/Admin/SupportPage.php:95, 124-127`; `src/Admin/SettingsPage.php:445/449`
+- Status: FIXED_PENDING_REVIEW
+- Problem: `(string) ( $_POST['category'] ?? '' )` and the honeypot/partial flags could turn an array into "Array", producing a warning and a misleading value.
+- Fix: each field now requires `is_string()` before unslash/sanitize; non-strings are treated as empty, so required-field validation rejects them without a warning.
+- Tests: `SupportPageTest::test_array_text_fields_are_ignored_without_warnings`; Settings tests; 74 tests/265 assertions for the focused pair.
+
 ## C. Remaining verification
 - Plugin Check against the final packaged ZIP.
 - Clean WordPress install: all admin pages with `WP_DEBUG`, settings, redirects/404/IndexNow, schema import/export, importer end-to-end, sitemap/frontend output, ZIP install.

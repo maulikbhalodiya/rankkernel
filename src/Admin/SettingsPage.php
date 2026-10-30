@@ -440,13 +440,13 @@ final class SettingsPage {
 		$raw = '';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
-		if ( isset( $_POST['rk_partial'] ) ) {
+		if ( isset( $_POST['rk_partial'] ) && is_string( $_POST['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_POST['rk_partial'] );
+			$raw = wp_unslash( $_POST['rk_partial'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
-		} elseif ( isset( $_GET['rk_partial'] ) ) {
+		} elseif ( isset( $_GET['rk_partial'] ) && is_string( $_GET['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_GET['rk_partial'] );
+			$raw = wp_unslash( $_GET['rk_partial'] );
 		}
 
 		$key = sanitize_key( $raw );

@@ -441,6 +441,25 @@ final class SupportPageTest extends TestCase {
 	}
 
 	/**
+	 * Array input is ignored instead of being cast to the string "Array".
+	 */
+	public function test_array_text_fields_are_ignored_without_warnings(): void {
+		$this->postValid(
+			[
+				'category' => [ 'bug' ],
+				'subject'  => [ 'Array subject' ],
+				'message'  => [ 'Array message' ],
+				'email'    => [ 'array@example.com' ],
+			]
+		);
+
+		( new SupportPage() )->maybeHandleSave();
+
+		$this->assertSame( [], $this->mail );
+		$this->assertStringContainsString( 'rk_support=invalid', $this->lastRedirect );
+	}
+
+	/**
 	 * A stored screenshot rides along with the mail and is then removed.
 	 */
 	public function test_a_stored_screenshot_is_attached_then_removed(): void {
