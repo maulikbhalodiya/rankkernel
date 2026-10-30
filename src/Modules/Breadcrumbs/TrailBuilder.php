@@ -120,7 +120,7 @@ final class TrailBuilder {
 		if ( 'post' === $type && $id > 0 ) {
 			$qPost = $this->queriedPost();
 			if ( null !== $qPost ) {
-				$primaryTax = (string) ( $this->settings->postTypeSettings( $qPost['type'] )['primary_taxonomy'] ?? '' );
+				$primaryTax = $this->settings->postTypeSettings( $qPost['type'] )['primary_taxonomy'];
 			}
 		}
 
