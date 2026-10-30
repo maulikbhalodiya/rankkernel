@@ -128,6 +128,80 @@ final class AdminStylesTest extends TestCase {
 	}
 
 	/**
+	 * The no-JS fallback is a registered handle, not a direct link tag.
+	 */
+	#[RunInSeparateProcess]
+	public function test_nojs_layer_registers_and_enqueues_its_own_handle(): void {
+		$registered = [];
+		$enqueued   = [];
+
+		$this->captureStyles( $registered, $enqueued );
+
+		AdminStyles::enqueueNojsLayer( (string) RANKKERNEL_FILE );
+
+		$this->assertArrayHasKey( AdminStyles::NOJS_HANDLE, $registered );
+		$this->assertStringContainsString( 'admin-nojs.css', $registered[ AdminStyles::NOJS_HANDLE ]['src'] );
+		$this->assertSame( [ AdminStyles::NOJS_HANDLE ], $enqueued );
+	}
+
+	/**
+	 * Fallback rules must stay inert whenever JavaScript runs.
+	 */
+	public function test_nojs_stylesheet_is_scoped_to_html_without_js(): void {
+		$path = dirname( __DIR__, 2 ) . '/assets/css/admin-nojs.css';
+
+		$this->assertFileExists( $path );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local plugin asset, not a remote URL.
+		$css = (string) file_get_contents( $path );
+
+		$this->assertStringContainsString( 'html:not(.rk-js)', $css );
+		$this->assertStringNotContainsString( "\n.rk-sitemap-panel[hidden]", $css );
+		$this->assertStringNotContainsString( "\n.rk-monitor .rk-monitor-settings[hidden]", $css );
+		$this->assertStringNotContainsString( "\n.rk-schema-section[hidden]", $css );
+	}
+
+	/**
+	 * The head flag script is printed through the inline-script API.
+	 */
+	#[RunInSeparateProcess]
+	public function test_js_flag_adds_the_class_before_the_body(): void {
+		$registered = [];
+		$enqueued   = [];
+		$inline     = [];
+
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( string $handle, $src = false, array $deps = [], string $ver = '', bool $inFooter = false ) use ( &$registered ): void {
+				$registered[ $handle ] = [
+					'src'       => $src,
+					'deps'      => $deps,
+					'ver'       => $ver,
+					'in_footer' => $inFooter,
+				];
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
+			}
+		);
+		Functions\when( 'wp_add_inline_script' )->alias(
+			static function ( string $handle, string $data, string $position = 'after' ) use ( &$inline ): void {
+				$inline[] = [ $handle, $data, $position ];
+			}
+		);
+
+		AdminStyles::enqueueJsFlag();
+
+		$this->assertArrayHasKey( 'rankkernel-js-flag', $registered );
+		$this->assertFalse( $registered['rankkernel-js-flag']['in_footer'], 'Flag must print in the head' );
+		$this->assertSame( [ 'rankkernel-js-flag' ], $enqueued );
+		$this->assertCount( 1, $inline );
+		$this->assertSame( 'rankkernel-js-flag', $inline[0][0] );
+		$this->assertStringContainsString( 'classList.add("rk-js")', $inline[0][1] );
+	}
+
+	/**
 	 * No feature stylesheet pulls the token layer with a render blocking import.
 	 */
 	public function test_feature_sheets_carry_no_css_import(): void {

@@ -1,10 +1,16 @@
 /**
  * RankKernel admin no-JavaScript fallback styles.
  *
+ * Scoped to `html:not(.rk-js)`. The head flag script adds `rk-js` whenever
+ * JavaScript runs, so these rules only apply when JavaScript is unavailable
+ * and hidden panels would otherwise have no script-driven way to open.
+ *
  * @package RankKernel
  * @license GPL-2.0-or-later
  */
 
-.rk-sitemap-panel[hidden]{display:block}
-.rk-monitor .rk-monitor-settings[hidden]{display:block}
-.rk-schema-section[hidden]{display:block}
+html:not(.rk-js) .rk-sitemap-panel[hidden],
+html:not(.rk-js) .rk-monitor .rk-monitor-settings[hidden],
+html:not(.rk-js) .rk-schema-section[hidden] {
+	display: block;
+}

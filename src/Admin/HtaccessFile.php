@@ -263,24 +263,44 @@ final class HtaccessFile {
 		$dir = rtrim( $base, '/' ) . '/rankkernel-htaccess-backups';
 
 		if ( ! file_exists( $dir ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- creating the guarded backup directory for .htaccess backups.
-			if ( ! mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) {
+			$parent = dirname( $dir );
+
+			// Refuse before attempting mkdir() when the parent cannot be
+			// written: mkdir() would emit a warning on read-only paths such
+			// as /proc, and the caller only needs a clean failure.
+			if ( ! is_dir( $parent ) || ! is_writable( $parent ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- direct writability probe before choosing a guarded backup location.
 				return '';
 			}
+
+			if ( function_exists( 'wp_mkdir_p' ) ) {
+				if ( ! wp_mkdir_p( $dir ) && ! is_dir( $dir ) ) {
+					return '';
+				}
+			} elseif ( ! mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- fallback when WordPress filesystem helpers are unavailable.
+				return '';
+			}
+		}
+
+		if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- probe the guarded backup directory before writing into it.
+			return '';
 		}
 
 		$index = $dir . '/index.php';
 
 		if ( ! file_exists( $index ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- silence file guarding the backup directory.
-			file_put_contents( $index, '<?php // Silence is golden.' );
+			if ( false === file_put_contents( $index, '<?php // Silence is golden.' ) ) {
+				return '';
+			}
 		}
 
 		$deny = $dir . '/.htaccess';
 
 		if ( ! file_exists( $deny ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- deny file guarding the backup directory on Apache stacks.
-			file_put_contents( $deny, "Require all denied\n" );
+			if ( false === file_put_contents( $deny, "Require all denied\n" ) ) {
+				return '';
+			}
 		}
 
 		return $dir;
@@ -298,7 +318,11 @@ final class HtaccessFile {
 		$dir = $this->backupDir();
 
 		if ( '' === $dir ) {
-			return $this->path() . '.rankkernel-backup-' . gmdate( 'YmdHis' );
+			// Never fall back beside the live .htaccess: that location is
+			// web-servable on some stacks and sits outside the guarded
+			// uploads directory. Callers must treat an empty path as
+			// "no safe backup available" and refuse the write.
+			return '';
 		}
 
 		// uniqid() suffix: two saves inside the same second must not share
@@ -523,6 +547,14 @@ final class HtaccessFile {
 
 		if ( file_exists( $path ) ) {
 			$backup = $this->backupPath();
+
+			if ( '' === $backup ) {
+				return [
+					'saved'  => false,
+					'reason' => 'backup_unavailable',
+					'backup' => '',
+				];
+			}
 
 			if ( ! copy( $path, $backup ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- writing a guarded backup of the site .htaccess.
 				return [

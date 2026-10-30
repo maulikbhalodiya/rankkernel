@@ -132,6 +132,39 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test save refuses to write when no guarded backup location exists.
+	 *
+	 * The old fallback wrote a timestamped backup beside the live file, which
+	 * some servers expose over HTTP. A missing safe location must fail closed.
+	 */
+	public function test_save_refuses_when_no_safe_backup_location_exists(): void {
+		Functions\when( 'wp_upload_dir' )->justReturn(
+			[ 'basedir' => '/proc/rankkernel-no-such-dir-' . uniqid() ]
+		);
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$file = new HtaccessFile();
+
+		$this->assertSame( '', $file->backupPath() );
+
+		$result = $file->save( "# changed\n" );
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'backup_unavailable', $result['reason'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
+		$this->assertSame( array(), (array) glob( $temp . '.rankkernel-backup-*' ), 'No backup may be written beside the live file.' );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
 	 * Test a short write is a failure and the backup is restored.
 	 *
 	 * The file_put_contents() function can report fewer bytes than the

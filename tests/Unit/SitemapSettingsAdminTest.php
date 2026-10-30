@@ -494,8 +494,7 @@ final class SitemapSettingsAdminTest extends TestCase {
 		$this->assertStringContainsString( 'data-rk-tab-panel="taxonomies"', $html );
 		$this->assertStringContainsString( 'data-rk-tab-panel="authors"', $html );
 		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
-		$this->assertSame( 3, substr_count( $html, '" hidden' ), 'Exactly the three inactive panels keep their hidden attribute' );
-		$this->assertStringContainsString( '<noscript><link rel="stylesheet" href=', $html ); // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- test asserts the declared noscript fallback link, not an enqueued asset.
+		$this->assertStringNotContainsString( '<noscript><link', $html, 'No-JS fallback must be enqueued, never printed as a direct link tag' );
 	}
 
 	/**

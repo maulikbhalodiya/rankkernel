@@ -81,6 +81,8 @@ $htaccess_directives_visual = [
 			<div class="rk-banner rk-banner-success"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">check_circle</span><?php echo esc_html__( 'Saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'A backup was written before the change.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'unsupported' === $htaccessNotice ) : ?>
 			<div class="rk-banner rk-banner-warning"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">warning</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'This server does not read .htaccess.', 'rankkernel' ); ?></p></div>
+		<?php elseif ( 'backup_unavailable' === $htaccessNotice ) : ?>
+			<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'No safe backup location is available, so the file was left unchanged. Make the uploads directory writable and try again.', 'rankkernel' ); ?></p></div>
 		<?php elseif ( 'failed' === $htaccessNotice ) : ?>
 			<div class="rk-banner rk-banner-danger"><p class="rk-banner-title"><span class="rk-icon" aria-hidden="true">error</span><?php echo esc_html__( 'Not saved.', 'rankkernel' ); ?></p><p><?php echo esc_html__( 'The file could not be written.', 'rankkernel' ); ?></p></div>
 		<?php endif; ?>

@@ -182,6 +182,7 @@ final class AdminMenu {
 		AdminStyles::enqueueTokenLayer( $pluginFile );
 		AdminStyles::enqueueUiLayer( $pluginFile );
 		AdminStyles::enqueueNojsLayer( $pluginFile );
+		AdminStyles::enqueueJsFlag();
 	}
 
 	/**
