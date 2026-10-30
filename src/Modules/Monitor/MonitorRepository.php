@@ -573,7 +573,7 @@ final class MonitorRepository {
 	 * Build the shared WHERE clause plus params for filtered queries.
 	 *
 	 * @param array<string, mixed> $filters Search, min_hits.
-	 * @return array{0: string, 1: list<string>} Clause and params.
+	 * @return array{0: string, 1: list<int|string>} Clause and params.
 	 */
 	private function filteredWhere( array $filters ): array {
 		$where  = 'WHERE 1 = %d';
@@ -599,7 +599,7 @@ final class MonitorRepository {
 	/**
 	 * Count rows for a prebuilt WHERE clause plus params.
 	 *
-	 * @param array{0: string, 1: list<string>} $filtered Clause and params.
+	 * @param array{0: string, 1: list<int|string>} $filtered Clause and params.
 	 * @return int Row count.
 	 */
 	private function countFiltered( array $filtered ): int {
