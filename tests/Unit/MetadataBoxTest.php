@@ -1161,12 +1161,13 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'get_the_ID' )->justReturn( 0 );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/plugins/rankkernel/' . $p ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 
-		$scripts    = [];
-		$scriptDeps = [];
-		$styles     = [];
-		$styleDeps  = [];
-		$enqueued   = [];
-		$localized  = [];
+		$scripts      = [];
+		$scriptDeps   = [];
+		$styles       = [];
+		$styleDeps    = [];
+		$enqueued     = [];
+		$localized    = [];
+		$translatedJS = [];
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $h, string $src, array $deps = [], string $ver = '' ) use ( &$styles, &$styleDeps ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
@@ -1195,6 +1196,11 @@ final class MetadataBoxTest extends TestCase {
 				$localized[ $name ] = $data;
 			}
 		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $h, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $h ] = $domain;
+			}
+		);
 
 		$this->newBox()->enqueueAssets( 'post.php' );
 
@@ -1212,6 +1218,8 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );
 		$this->assertContains( 'script:rankkernel-analysis-editor', $enqueued );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-metadata-editor'] ?? null );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-analysis-editor'] ?? null );
 	}
 
 	/**
@@ -1241,8 +1249,9 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'get_the_ID' )->justReturn( 0 );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/plugins/rankkernel/' . $p ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 
-		$deps      = [];
-		$localized = [];
+		$deps         = [];
+		$localized    = [];
+		$translatedJS = [];
 
 		Functions\when( 'wp_register_script' )->alias(
 			static function ( string $h, string $src, array $registered = [] ) use ( &$deps ): void {
@@ -1258,6 +1267,11 @@ final class MetadataBoxTest extends TestCase {
 				$localized[ $name ] = $data;
 			}
 		);
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $h, string $domain = 'default' ) use ( &$translatedJS ): void {
+				$translatedJS[ $h ] = $domain;
+			}
+		);
 
 		$this->newBox()->enqueueEditorAssets();
 
@@ -1265,6 +1279,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertStringContainsString( 'metadata-sidebar.js', $deps['rankkernel-metadata-sidebar']['src'] );
 		$this->assertSame( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n', 'rankkernel-analysis-text-stats', 'rankkernel-analysis-accents', 'rankkernel-analysis-format', 'rankkernel-analysis-keyword-matcher', 'rankkernel-analysis-analyzer', 'rankkernel-analysis-editor-bridge' ], $deps['rankkernel-metadata-sidebar']['tax'] );
 		$this->assertArrayHasKey( 'rankkernelMetaEditor', $localized );
+		$this->assertSame( 'rankkernel', $translatedJS['rankkernel-metadata-sidebar'] ?? null );
 	}
 
 	/**
