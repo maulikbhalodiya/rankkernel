@@ -157,9 +157,23 @@ function rankkernel_deactivate(): void {
 	// Rewrite rules are not data: the sitemap and robots modules flush them
 	// on boot, so deactivation flushes them back out. Without this the
 	// submitted sitemap URLs hard-404 instead of cleanly disappearing.
-	// All plugin data (options, tables, files) is intentionally left intact.
+	// Options, tables and files are otherwise left intact.
 	if ( function_exists( 'flush_rewrite_rules' ) ) {
 		flush_rewrite_rules( false );
+	}
+
+	// Remove only the marked RankKernel block. Everything outside the
+	// markers stays byte for byte. saveBlock() takes the same guarded backup
+	// path as the admin save, so a missing table or read-only uploads
+	// directory leaves the block in place rather than corrupting the file.
+	if ( class_exists( \RankKernel\Admin\HtaccessFile::class ) ) {
+		try {
+			( new \RankKernel\Admin\HtaccessFile() )->removeBlock();
+		} catch ( \Throwable $throwable ) {
+			if ( function_exists( 'do_action' ) ) {
+				do_action( 'rankkernel/htaccess/deactivation_cleanup_failed', $throwable ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			}
+		}
 	}
 
 	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {

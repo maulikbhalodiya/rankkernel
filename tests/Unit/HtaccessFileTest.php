@@ -818,6 +818,74 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
+	 * Test an empty selection on an unmarked file changes nothing.
+	 */
+	public function test_save_block_without_markers_is_a_noop(): void {
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# plain content\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$file   = new HtaccessFile();
+		$result = $file->saveBlock( [] );
+
+		$this->assertTrue( $result['saved'] );
+		$this->assertSame( '', $result['backup'] );
+		$this->assertSame( "# plain content\n", $file->read() );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test an empty selection on a missing file does not create one.
+	 */
+	public function test_save_block_missing_file_is_a_noop(): void {
+		$path       = sys_get_temp_dir() . '/rkht-missing-' . uniqid() . '/.htaccess';
+		$this->path = $path;
+
+		$result = ( new HtaccessFile() )->saveBlock( [] );
+
+		$this->assertTrue( $result['saved'] );
+		$this->assertFalse( file_exists( $path ) );
+	}
+
+	/**
+	 * Test removeBlock on an unmarked file changes nothing.
+	 */
+	public function test_remove_block_without_markers_is_a_noop(): void {
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# plain content\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$result = ( new HtaccessFile() )->removeBlock();
+
+		$this->assertTrue( $result['saved'] );
+		$this->assertSame( "# plain content\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+	}
+
+	/**
+	 * Test removeBlock on a missing file does not create one.
+	 */
+	public function test_remove_block_missing_file_is_a_noop(): void {
+		$path       = sys_get_temp_dir() . '/rkht-missing-' . uniqid() . '/.htaccess';
+		$this->path = $path;
+
+		$result = ( new HtaccessFile() )->removeBlock();
+
+		$this->assertTrue( $result['saved'] );
+		$this->assertFalse( file_exists( $path ) );
+	}
+
+	/**
 	 * Test saveBlock writes nothing when the document would not change.
 	 */
 	public function test_save_block_is_a_noop_when_unchanged(): void {

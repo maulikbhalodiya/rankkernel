@@ -252,6 +252,42 @@ final class RedirectsSettingsTest extends TestCase {
 	}
 
 	/**
+	 * Test an unavailable blog id never shares a static cache bucket.
+	 */
+	public function test_unknown_blog_id_does_not_share_static_cache(): void {
+		RedirectsSettings::resetCache();
+
+		Functions\when( 'get_current_blog_id' )->alias(
+			static function (): int {
+				throw new \RuntimeException( 'No blog context.' );
+			}
+		);
+
+		$calls  = 0;
+		$values = [
+			[ 'preserve_query' => true ],
+			[ 'preserve_query' => false ],
+		];
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$calls, $values ): mixed {
+				if ( RedirectsSettings::OPTION !== $key ) {
+					return $fallback;
+				}
+
+				return $values[ $calls++ ] ?? [];
+			}
+		);
+
+		$first = new RedirectsSettings();
+		$this->assertTrue( $first->get( 'preserve_query' ) );
+
+		$second = new RedirectsSettings();
+		$this->assertFalse( $second->get( 'preserve_query' ), 'Unknown contexts must not share the static cache.' );
+		$this->assertSame( 2, $calls );
+	}
+
+	/**
 	 * Test multisite isolation across switch_to_blog().
 	 */
 	public function test_multisite_blog_isolation(): void {

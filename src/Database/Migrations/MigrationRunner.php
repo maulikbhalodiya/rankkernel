@@ -204,6 +204,18 @@ final class MigrationRunner {
 		}
 
 		if ( [] === $pending ) {
+			// No registered migration covers the running code version, but the
+			// ledger is behind it. The module tables have already diffed their
+			// own schema on boot, so advance the ledger once instead of
+			// re-running dbDelta on every later request.
+			if ( version_compare( self::baseVersion( $current ), $code, '<' ) ) {
+				$version = \RankKernel\Plugin::version();
+
+				if ( true === update_option( self::LEDGER, $version, false ) ) {
+					$this->cachedVersion = $version;
+				}
+			}
+
 			return;
 		}
 

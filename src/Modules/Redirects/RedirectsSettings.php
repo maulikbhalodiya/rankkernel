@@ -63,18 +63,18 @@ final class RedirectsSettings {
 	/**
 	 * Get the current blog ID for multisite-safe static caching.
 	 *
-	 * @return int Blog ID, or 1 when the helper is unavailable.
+	 * @return int Blog ID, or 0 when the helper is unavailable.
 	 */
 	private static function currentBlogId(): int {
 		if ( function_exists( 'get_current_blog_id' ) ) {
 			try {
 				return (int) get_current_blog_id();
 			} catch ( \Throwable ) {
-				return 1;
+				return 0;
 			}
 		}
 
-		return 1;
+		return 0;
 	}
 
 	/**
@@ -124,7 +124,7 @@ final class RedirectsSettings {
 	public function all(): array {
 		$blogId = self::currentBlogId();
 
-		if ( isset( self::$cachedSettings[ $blogId ] ) ) {
+		if ( $blogId > 0 && isset( self::$cachedSettings[ $blogId ] ) ) {
 			$this->cache = self::$cachedSettings[ $blogId ];
 
 			return $this->cache;
@@ -136,9 +136,12 @@ final class RedirectsSettings {
 			$stored = [];
 		}
 
-		$merged                          = array_merge( self::defaults(), $stored );
-		$this->cache                     = $merged;
-		self::$cachedSettings[ $blogId ] = $merged;
+		$merged      = array_merge( self::defaults(), $stored );
+		$this->cache = $merged;
+
+		if ( $blogId > 0 ) {
+			self::$cachedSettings[ $blogId ] = $merged;
+		}
 
 		return $this->cache;
 	}
@@ -156,16 +159,22 @@ final class RedirectsSettings {
 			$current = get_option( self::OPTION, null );
 
 			if ( $saved || $current === $defaults ) {
-				$this->cache                     = $defaults;
-				self::$cachedSettings[ $blogId ] = $defaults;
+				$this->cache = $defaults;
+
+				if ( $blogId > 0 ) {
+					self::$cachedSettings[ $blogId ] = $defaults;
+				}
 			}
 
 			return;
 		}
 
-		$merged                          = array_merge( $defaults, $stored );
-		$this->cache                     = $merged;
-		self::$cachedSettings[ $blogId ] = $merged;
+		$merged      = array_merge( $defaults, $stored );
+		$this->cache = $merged;
+
+		if ( $blogId > 0 ) {
+			self::$cachedSettings[ $blogId ] = $merged;
+		}
 	}
 
 	/**
@@ -190,15 +199,18 @@ final class RedirectsSettings {
 		}
 
 		$blogId      = self::currentBlogId();
-		$this->cache = self::$cachedSettings[ $blogId ] ?? null;
+		$this->cache = $blogId > 0 ? ( self::$cachedSettings[ $blogId ] ?? null ) : null;
 		$merged      = array_merge( $this->all(), $sanitized );
 
 		$saved   = update_option( self::OPTION, $merged, false );
 		$current = get_option( self::OPTION, [] );
 
 		if ( $saved || $current === $merged ) {
-			$this->cache                     = $merged;
-			self::$cachedSettings[ $blogId ] = $merged;
+			$this->cache = $merged;
+
+			if ( $blogId > 0 ) {
+				self::$cachedSettings[ $blogId ] = $merged;
+			}
 
 			return true;
 		}

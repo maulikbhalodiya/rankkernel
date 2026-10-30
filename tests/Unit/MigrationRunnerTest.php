@@ -714,6 +714,8 @@ final class MigrationRunnerTest extends TestCase {
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test installs the in memory wpdb double, restored below.
 		$GLOBALS['wpdb'] = new MonitorFakeDb();
 
+		Functions\when( 'get_option' )->justReturn( '0.0.0' );
+
 		\RankKernel\Modules\Monitor\LogTable::resetCache();
 		\RankKernel\Modules\Redirects\RedirectTable::resetCache();
 		\RankKernel\Modules\InstantIndexing\LogTable::resetCache();

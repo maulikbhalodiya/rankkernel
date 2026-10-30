@@ -500,6 +500,40 @@ final class HtaccessFile {
 	}
 
 	/**
+	 * Remove the managed block without requiring server detection.
+	 *
+	 * Deactivation can run from WP-CLI, where SERVER_SOFTWARE is absent even
+	 * on Apache. Removing our own marked block is safe: only bytes between
+	 * the markers are touched, and everything else is preserved. Writes still
+	 * require a writable file and a safe backup.
+	 *
+	 * @return array{saved: bool, reason: string, backup: string} Result.
+	 */
+	public function removeBlock(): array {
+		$content = $this->read();
+
+		if ( '' === $content || ! str_contains( $content, self::MARKER_BEGIN ) ) {
+			return [
+				'saved'  => true,
+				'reason' => '',
+				'backup' => '',
+			];
+		}
+
+		$updated = $this->stripBlock( $content );
+
+		if ( $updated === $content ) {
+			return [
+				'saved'  => true,
+				'reason' => '',
+				'backup' => '',
+			];
+		}
+
+		return $this->save( $updated, false );
+	}
+
+	/**
 	 * Drop the managed block from a document.
 	 *
 	 * @param string $content Current content.
@@ -519,10 +553,11 @@ final class HtaccessFile {
 	/**
 	 * Back up the current file, then write the new content.
 	 *
-	 * @param string $content New .htaccess content.
+	 * @param string $content          New .htaccess content.
+	 * @param bool   $require_supported Whether server detection must pass.
 	 * @return array{saved: bool, reason: string, backup: string} Result, reason code and backup path.
 	 */
-	public function save( string $content ): array {
+	public function save( string $content, bool $require_supported = true ): array {
 		$path = $this->path();
 
 		if ( '' === $path ) {
@@ -533,7 +568,7 @@ final class HtaccessFile {
 			];
 		}
 
-		if ( ! $this->isSupported() ) {
+		if ( $require_supported && ! $this->isSupported() ) {
 			return [
 				'saved'  => false,
 				'reason' => 'unsupported',
@@ -573,16 +608,50 @@ final class HtaccessFile {
 			$this->pruneBackups();
 		}
 
-		$bytes = file_put_contents( $path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the site .htaccess, the only portable option.
+		$dir = dirname( $path );
 
-		// A failed write returns false, but a partial write can return a byte
-		// count smaller than the content without returning false. A truncated
-		// .htaccess can take the whole site down, so both are a failure and
-		// the pre-write backup is restored when one was taken.
+		// The temporary file must live on the same filesystem so rename() can
+		// replace the live file atomically.
+		if ( ! is_writable( $dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- temp file needs a writable parent before the atomic replace.
+			return [
+				'saved'  => false,
+				'reason' => 'not_writable',
+				'backup' => $backup,
+			];
+		}
+
+		try {
+			$suffix = bin2hex( random_bytes( 8 ) );
+		} catch ( \Throwable $throwable ) {
+			$suffix = str_replace( '.', '', uniqid( '', true ) );
+		}
+
+		$tmp   = $path . '.rankkernel-tmp-' . $suffix;
+		$bytes = file_put_contents( $tmp, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing a same-directory temp file before the atomic rename.
+
+		// A failed or partial temp write never touches the live file.
 		if ( false === $bytes || $bytes < strlen( $content ) ) {
-			if ( '' !== $backup && file_exists( $backup ) ) {
-				copy( $backup, $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- restoring the sibling backup of the site .htaccess after a failed write.
+			@unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- removing our own failed temp file.
+
+			return [
+				'saved'  => false,
+				'reason' => 'write_failed',
+				'backup' => $backup,
+			];
+		}
+
+		// Keep the existing file mode; rename() would otherwise install the
+		// temp file's umask-derived permissions.
+		if ( file_exists( $path ) ) {
+			$mode = fileperms( $path );
+
+			if ( false !== $mode ) {
+				@chmod( $tmp, $mode & 0777 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod, WordPress.PHP.NoSilencedErrors.Discouraged -- preserve the live .htaccess mode on the temp file.
 			}
+		}
+
+		if ( ! rename( $tmp, $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace of the live .htaccess on the same filesystem.
+			@unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- removing our own temp file after a failed rename.
 
 			return [
 				'saved'  => false,
