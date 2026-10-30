@@ -135,13 +135,23 @@ final class InstantIndexingPage {
 	 *
 	 * Runs on load rankkernel page rankkernel instant indexing, so wp safe
 	 * redirect can still send headers. The marker field selects one of
-	 * six branches and each branch verifies capability plus its own
-	 * nonce before writing.
+	 * six branches; the capability and the nonce mapped to that branch
+	 * are verified once, before dispatch, so no handler runs before the
+	 * gate and no handler repeats the check.
 	 *
 	 * @return void
 	 */
 	public function maybeHandleSave(): void {
-		switch ( $this->postedAction() ) {
+		$action = $this->postedAction();
+		$nonce  = $this->nonceActionFor( $action );
+
+		if ( '' === $nonce ) {
+			return;
+		}
+
+		$this->requireAccess( $nonce );
+
+		switch ( $action ) {
 			case 'save':
 				$this->handleSave();
 				break;
@@ -161,6 +171,34 @@ final class InstantIndexingPage {
 				$this->handleRetry();
 				break;
 		}
+	}
+
+	/**
+	 * Nonce action mapped to a posted action marker.
+	 *
+	 * Returning an empty string means the marker is not one of the known
+	 * actions, so nothing may be dispatched or verified.
+	 *
+	 * @param string $action Posted action marker.
+	 * @return string Nonce action, empty when unknown.
+	 */
+	private function nonceActionFor( string $action ): string {
+		switch ( $action ) {
+			case 'save':
+				return self::NONCE_SAVE;
+			case 'regenerate':
+				return self::NONCE_REGENERATE;
+			case 'submit':
+				return self::NONCE_SUBMIT;
+			case 'clear':
+				return self::NONCE_CLEAR;
+			case 'verify':
+				return self::NONCE_VERIFY;
+			case 'retry':
+				return self::NONCE_RETRY;
+		}
+
+		return '';
 	}
 
 	/**
@@ -323,10 +361,8 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleSave(): void {
-		$this->requireAccess( self::NONCE_SAVE );
-
-		// Verified in requireAccess, checkbox presence is the value.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in requireAccess, checkbox presence is the value.
+		// Verified before dispatch, checkbox presence is the value.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified before dispatch, checkbox presence is the value.
 		$this->settings->set( [ 'auto_submit' => isset( $_POST['rankkernel_indexnow_auto_submit'] ) ] );
 
 		$this->redirectTo();
@@ -338,8 +374,6 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleRegenerate(): void {
-		$this->requireAccess( self::NONCE_REGENERATE );
-
 		$this->settings->resetKey();
 
 		$this->redirectTo();
@@ -354,8 +388,6 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleClear(): void {
-		$this->requireAccess( self::NONCE_CLEAR );
-
 		$cleared = $this->settings->clearLog();
 
 		$this->redirectTo( false, $cleared ? 'cleared' : 'storage_failed' );
@@ -373,8 +405,6 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleVerify(): void {
-		$this->requireAccess( self::NONCE_VERIFY );
-
 		$result = ( new InstantIndexingKeyCheck() )->check( $this->settings );
 
 		$this->redirectTo( false, $result['ok'] ? 'verified' : 'verify_failed', (int) $result['code'] );
@@ -398,8 +428,6 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleSubmit(): void {
-		$this->requireAccess( self::NONCE_SUBMIT );
-
 		if ( ! $this->isModuleEnabled() ) {
 			$recorded = $this->reject( '', __( 'Rejected: the Instant Indexing module is disabled.', 'rankkernel' ) );
 			$this->redirectTo( false, $recorded ? 'disabled' : 'storage_failed' );
@@ -497,8 +525,6 @@ final class InstantIndexingPage {
 	 * @return void
 	 */
 	private function handleRetry(): void {
-		$this->requireAccess( self::NONCE_RETRY );
-
 		if ( ! $this->isModuleEnabled() ) {
 			$this->redirectTo( false, 'disabled' );
 
@@ -550,7 +576,7 @@ final class InstantIndexingPage {
 	 * @return int The result.
 	 */
 	private function postedRowId(): int {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, cast to int below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified before dispatch, cast to int below.
 		$raw = isset( $_POST['rankkernel_indexnow_id'] ) && is_numeric( $_POST['rankkernel_indexnow_id'] ) ? wp_unslash( $_POST['rankkernel_indexnow_id'] ) : 0;
 
 		return is_numeric( $raw ) ? (int) $raw : 0;
@@ -593,7 +619,7 @@ final class InstantIndexingPage {
 	 * @return string The result.
 	 */
 	private function postedAction(): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, compared strictly against literals.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified before dispatch, compared strictly against literals.
 		$raw = isset( $_POST['rankkernel_indexnow_action'] ) && is_string( $_POST['rankkernel_indexnow_action'] ) ? wp_unslash( $_POST['rankkernel_indexnow_action'] ) : '';
 
 		return $raw;
@@ -610,7 +636,7 @@ final class InstantIndexingPage {
 	 * @return string[] The result.
 	 */
 	private function postedUrls(): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by caller, unslashed and validated line by line.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified before dispatch, unslashed and validated line by line.
 		$raw = isset( $_POST['rankkernel_indexnow_urls'] ) && is_string( $_POST['rankkernel_indexnow_urls'] ) ? wp_unslash( $_POST['rankkernel_indexnow_urls'] ) : '';
 
 		if ( '' === $raw ) {

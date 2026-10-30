@@ -385,6 +385,59 @@ final class InstantIndexingPageTest extends TestCase {
 	}
 
 	/**
+	 * Test an unknown action marker dies before any nonce check or write.
+	 */
+	public function test_unknown_action_is_ignored_before_any_nonce_check(): void {
+		$nonceActions = [];
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): int {
+				$nonceActions[] = $action;
+
+				return 1;
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'drop_everything' ];
+
+		$this->page()->maybeHandleSave();
+
+		$this->assertSame( [], $nonceActions, 'an unknown action must not reach a nonce check' );
+	}
+
+	/**
+	 * Test dispatch verifies the nonce mapped to the selected action.
+	 */
+	public function test_dispatch_verifies_the_nonce_for_the_selected_action(): void {
+		$nonceActions = [];
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): int {
+				$nonceActions[] = $action;
+
+				return 1;
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'save' ];
+		$this->page()->maybeHandleSave();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://example.com/audit-post',
+		];
+		$this->page( static fn(): array => [ 'storage_failed' => false ] )->maybeHandleSave();
+
+		$this->assertSame(
+			[ 'rankkernel_indexnow_save', 'rankkernel_indexnow_submit' ],
+			$nonceActions,
+			'each action must verify its own nonce before the handler runs'
+		);
+	}
+
+	/**
 	 * Test the auto submit checkbox treats a missing field as false.
 	 */
 	public function test_save_treats_an_absent_checkbox_as_false(): void {
