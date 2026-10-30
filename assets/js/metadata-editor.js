@@ -744,7 +744,9 @@
 				}
 				schedule();
 				if ( hadValue ) {
-					rankkernelAnnounce( str( 'fieldReset', __( 'Field reset to template.', 'rankkernel' ) ) );
+					var label = input.id ? $( root, 'label[for="' + input.id + '"]' ) : null;
+					var name = label ? label.textContent.trim() : key;
+					rankkernelAnnounce( name + ': ' + str( 'fieldReset', __( 'Field reset to template.', 'rankkernel' ) ) );
 				}
 				if ( input.focus ) {
 					input.focus();

@@ -352,58 +352,10 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 	);
 } );
 
-test( 'metadata-editor announces when a token is inserted or a field is reset and modifies values', () => {
+test( 'metadata-editor announces token insertion and modifies input value', () => {
 	const spoken = [];
 	const list = fakeNode();
 	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Old Value' } );
-	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
-
-	const editorRoot = fakeRoot( {
-		query: {
-			'[name="rankkernel_meta_title"]': titleInput,
-			'[data-rk-reset="title"]': titleResetButton
-		},
-		queryAll: {
-			'[data-rankkernel-tokens]': [ list ],
-			'[data-rk-reset]': [ titleResetButton ]
-		}
-	} );
-
-	const fixture = boot( {
-		wp: translatingWp( spoken ),
-		byId: { 'rankkernel-meta-title': titleInput },
-		cfg: { tokenLabels: { '%%title%%': 'Title' } },
-		roots: [ editorRoot ]
-	} );
-	fixture.init();
-
-	// Click token button
-	const tokenBtn = list.children[ 0 ];
-	assert.ok( tokenBtn );
-	tokenBtn.listeners.click();
-
-	assert.equal( titleInput.value, 'Old Value%%title%%' );
-
-	// Reset field with value
-	titleResetButton.listeners.click();
-
-	assert.equal( titleInput.value, '' );
-
-	// Reset already empty field (should stay silent and leave value empty)
-	titleResetButton.listeners.click();
-
-	assert.equal( titleInput.value, '' );
-
-	assert.deepEqual( spoken, [
-		'rankkernel:Inserted token Title.',
-		'rankkernel:Field reset to template.'
-	] );
-} );
-
-test( 'metadata-editor does not announce a blocked token insertion on readOnly or disabled input', () => {
-	const spoken = [];
-	const list = fakeNode();
-	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Immutable', readOnly: true } );
 
 	const editorRoot = fakeRoot( {
 		query: {
@@ -426,8 +378,147 @@ test( 'metadata-editor does not announce a blocked token insertion on readOnly o
 	assert.ok( tokenBtn );
 	tokenBtn.listeners.click();
 
-	assert.equal( titleInput.value, 'Immutable' );
+	assert.equal( titleInput.value, 'Old Value%%title%%' );
+	assert.deepEqual( spoken, [ 'rankkernel:Inserted token Title.' ] );
+} );
+
+test( 'metadata-editor announces field reset when value is present and clears field', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { id: 'rankkernel-meta-title', tagName: 'INPUT', value: 'Custom Title' } );
+	const labelNode = fakeNode( { textContent: 'SEO title' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton,
+			'label[for="rankkernel-meta-title"]': labelNode
+		},
+		queryAll: {
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	titleResetButton.listeners.click();
+
+	assert.equal( titleInput.value, '' );
+	assert.deepEqual( spoken, [ 'SEO title: rankkernel:Field reset to template.' ] );
+} );
+
+test( 'metadata-editor stays silent on field reset when input is already empty', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: {
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	titleResetButton.listeners.click();
+
+	assert.equal( titleInput.value, '' );
 	assert.deepEqual( spoken, [] );
+} );
+
+test( 'metadata-editor does not announce a blocked token insertion on readOnly or disabled input', () => {
+	const spoken = [];
+	const list1 = fakeNode();
+	const readOnlyInput = fakeNode( { tagName: 'INPUT', value: 'ReadOnly Text', readOnly: true } );
+
+	const editorRoot1 = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': readOnlyInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list1 ] }
+	} );
+
+	const fixture1 = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': readOnlyInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot1 ]
+	} );
+	fixture1.init();
+
+	if ( list1.children[ 0 ] ) {
+		list1.children[ 0 ].listeners.click();
+	}
+
+	assert.equal( readOnlyInput.value, 'ReadOnly Text' );
+
+	const list2 = fakeNode();
+	const disabledInput = fakeNode( { tagName: 'INPUT', value: 'Disabled Text', disabled: true } );
+
+	const editorRoot2 = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': disabledInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list2 ] }
+	} );
+
+	const fixture2 = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': disabledInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot2 ]
+	} );
+	fixture2.init();
+
+	if ( list2.children[ 0 ] ) {
+		list2.children[ 0 ].listeners.click();
+	}
+
+	assert.equal( disabledInput.value, 'Disabled Text' );
+	assert.deepEqual( spoken, [] );
+} );
+
+test( 'metadata-editor uses sprintf fallback correctly when wp.i18n.sprintf is missing', () => {
+	const spoken = [];
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '' } );
+
+	const editorRoot = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': titleInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list ] }
+	} );
+
+	const fixture = boot( {
+		wp: {
+			a11y: { speak: ( text ) => spoken.push( text ) },
+			i18n: {
+				__( text ) {
+					return text;
+				}
+			}
+		},
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	if ( list.children[ 0 ] ) {
+		list.children[ 0 ].listeners.click();
+	}
+
+	assert.equal( titleInput.value, '%%title%%' );
+	assert.deepEqual( spoken, [ 'Inserted token Title.' ] );
 } );
 
 test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', () => {
