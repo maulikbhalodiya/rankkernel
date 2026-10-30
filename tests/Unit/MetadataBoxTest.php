@@ -15,6 +15,7 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\MetadataBox;
 use RankKernel\Modules\Metadata\Context;
+use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\TagsReplacer;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
@@ -416,6 +417,25 @@ final class MetadataBoxTest extends TestCase {
 		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php?post=11&action=edit' );
 
 		$this->assertStringContainsString( 'rankkernel_meta_msg=save-failed', $redirect );
+	}
+
+	/**
+	 * An unchanged payload is a successful no-op, not a failed write.
+	 */
+	public function test_unchanged_payload_is_not_reported_as_failure(): void {
+		$this->storedMeta          = MetaPayload::defaults();
+		$this->storedMeta['title'] = 'My title';
+
+		Functions\expect( 'update_post_meta' )->never();
+
+		$_POST = $this->classicPost();
+
+		$box = $this->newBox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php?post=11&action=edit' );
+
+		$this->assertStringNotContainsString( 'rankkernel_meta_msg=save-failed', $redirect );
 	}
 
 	/**

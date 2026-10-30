@@ -254,6 +254,18 @@ final class SchemaMetabox {
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueueAssets' ] );
 		add_action( 'admin_post_' . self::EXPORT_ACTION, [ $this, 'handleExport' ] );
 		add_filter( 'redirect_post_location', [ $this, 'filterRedirect' ] );
+		add_action( 'post_edit_form_tag', [ $this, 'editFormTag' ] );
+	}
+
+	/**
+	 * Add the multipart encoding the schema import file input needs.
+	 *
+	 * The classic post form is urlencoded by default, so a selected import
+	 * file would never reach $_FILES. Core fires this action inside the form
+	 * tag specifically for metaboxes that add file inputs.
+	 */
+	public function editFormTag(): void {
+		echo ' enctype="multipart/form-data"';
 	}
 
 	/**
@@ -650,7 +662,14 @@ final class SchemaMetabox {
 				return;
 			}
 
-			$existing           = $this->readPayload( $postId );
+			$existing = $this->readPayload( $postId );
+
+			if ( isset( $existing['schema'] ) && $existing['schema'] === $import['schema'] ) {
+				$this->saveStatus = 'saved';
+
+				return;
+			}
+
 			$existing['schema'] = $import['schema'];
 
 			$saved = update_post_meta( $postId, self::META_KEY, $existing );
@@ -731,6 +750,14 @@ final class SchemaMetabox {
 		// previously stored custom schema untouched instead of wiping it.
 		if ( 'invalid-json' === $status && isset( $existingSchema['custom'] ) && is_array( $existingSchema['custom'] ) ) {
 			$newSchema['custom'] = $existingSchema['custom'];
+		}
+
+		// update_post_meta() returns false for an unchanged value as well as
+		// a failed write. Skip the no-op so a normal save is not reported as
+		// a failure.
+		if ( isset( $existing['schema'] ) && $existing['schema'] === $newSchema ) {
+			$this->saveStatus = $status;
+			return;
 		}
 
 		$existing['schema'] = $newSchema;

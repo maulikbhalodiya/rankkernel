@@ -1346,6 +1346,17 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * The classic post form must be multipart for the import file input.
+	 */
+	public function test_edit_form_tag_adds_multipart_encoding(): void {
+		ob_start();
+		( new SchemaMetabox() )->editFormTag();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( ' enctype="multipart/form-data"', $output );
+	}
+
+	/**
 	 * Test add boxes registers public types.
 	 */
 	public function test_add_boxes_registers_public_types(): void {
