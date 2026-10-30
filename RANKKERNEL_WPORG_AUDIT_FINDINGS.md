@@ -111,18 +111,19 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Severity: Low (pending)
 - Category: WP.org D / server vars
 - Files: `src/Modules/Monitor/Logger.php:262, 579-602`; `src/Modules/Redirects/Redirector.php:207`
-- Status: IN_PROGRESS
-- Verified: string checks, unslash, control-char stripping, referer query redaction, 255-char truncation, allowlisted keys; host comparison for IndexNow uses site host. `REQUEST_URI` in Logger and Redirector now requires `is_string` before unslash; `SERVER_SOFTWARE`/`REMOTE_ADDR` guarded.
-- Remaining: audit all `HTTP_*` reads for host-header/open-redirect/log injection; ensure logs escape on output.
-- Tests: header injection, array `$_SERVER` values, missing keys, null bytes.
+- Status: FIXED_PENDING_REVIEW
+- Verified: string checks, unslash, control-char stripping, referer query redaction, 255-char truncation, allowlisted keys; host comparison for IndexNow uses site host. `REQUEST_URI` in Logger and Redirector now requires `is_string` before unslash; `SERVER_SOFTWARE`/`REMOTE_ADDR` guarded. `REQUEST_METHOD` comparisons use `?? ''` and never cast. All other `$_SERVER` reads in `src/` are the request-method checks or the guarded fields above.
+- Remaining: none identified in this pass; re-check during second audit.
+- Tests: existing Logger/Redirector suites cover missing keys, control characters, redaction; full suite green.
 
 ### RK-010 — Importer historical risks
 - Severity: High (pending audit)
 - Category: Importer correctness
-- Files: `src/Modules/Importer/*`, `src/Rest/ImportController.php`, `assets/js/importer*`
-- Status: OPEN
-- Risks to verify: (1) exclusions `post:12` vs raw IDs; (2) preview cap 5000 vs execution scope; (3) empty `choices`/`rule` payloads; (4) progress totals overwritten vs accumulated; (5) execution of unpreviewed rows; (6) idempotency; (7) source metadata preservation.
-- Required: prove behavior with unit/integration tests + browser flow; fix any mismatch.
+- Files: `src/Modules/Importer/*`, `src/Rest/ImportController.php`, `assets/js/importer-admin.js`
+- Status: FIXED_PENDING_REVIEW
+- Verified: exclusions use the same identity strings the preview emits; runner re-derives rows server side and validates exclusion/choice/rule identities against that set (unknown values throw 400). Posts/terms count excluded rows in `skipped` and set `done` when the fetched slice is smaller than the limit. Redirects re-derive the full preview, skip existing matches, and are idempotent. Sitewide choices are validated against re-derived candidates. Bulk rules must match a re-derived `bulk:{kind}:{type}` identity and enumerate ids in bounded slices. Source metadata is never written. Run lock is claimed once and now released on 400/500/Throwable.
+- Fix (UI): confirmation now states, for any kind whose preview is capped, `preview shows X of N; import will process all eligible rows`; progress uses applied+skipped+failed rather than chunks, so multiple bulk rules reach 100%.
+- Tests: `tests/js/importer-admin.test.js` 33 tests pass (including progress monotonicity/100% and partial failure); `ImportControllerTest` 29 tests/121 assertions; earlier live browser run applied 1 post, retry skipped 1, preserved Yoast meta, wrote RankKernel meta.
 
 ### RK-011 — 203 security PHPCS ignores need case-by-case review
 - Severity: Medium
@@ -155,16 +156,70 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Severity: Low
 - Category: WP.org disclosure
 - Files: `docs/ai-disclosure.md`, `readme.txt`
-- Status: OPEN (verify accuracy and presence in shipped tree; docs/ is not shipped but readme disclosure must be)
-- Required: confirm readme discloses external services (IndexNow) and AI assistance accurately; no unsupported claims.
+- Status: FIXED_PENDING_REVIEW
+- Fix: `readme.txt` now ships an `AI Assistance Disclosure` section naming Claude, GitHub Copilot and Jules, the areas assisted, and the developer verification/responsibility statement. `docs/ai-disclosure.md` remains the fuller repository record. External-service disclosure already names the support inbox and IndexNow, their triggers, payloads, timeout and redirect policy.
+- Remaining: confirm the shipped readme renders correctly on WordPress.org after upload.
 
-## C. Pending audit areas (to be expanded into findings)
-- Nonce + capability on every admin/AJAX/REST handler; missing/invalid/insufficient-capability tests.
-- SQL: all `$wpdb` usage, dynamic identifiers, uninstall/multisite.
-- REST: permission callbacks, schema validation, output exposure.
-- Redirects: normalization, open redirect, loops/chains, regex DoS, status codes, CSV import.
-- Secrets: IndexNow key, logs, exports, error messages.
-- External HTTP: timeouts, SSL, response validation, SSRF.
-- Cron/locking/performance: importer locks, monitor pruning, sitemap cache.
-- Lifecycle: activation/deactivation/uninstall/multisite data handling.
-- i18n/a11y: text domain, escaping of translations, aria targets, keyboard, contrast.
+### RK-016 — Import lock stranded after a rejected or unexpected run
+- Severity: Medium
+- Category: Reliability / concurrency
+- File: `src/Rest/ImportController.php::runChunk()`
+- Status: FIXED_PENDING_REVIEW
+- Problem: `InvalidArgumentException` and `ImportRunException` returned 400/500 without releasing the global lock, so a rejected rule blocked every retry for the 120 s lease. Unexpected throwables escaped the REST boundary.
+- Fix: every catch releases the owner-scoped lock before returning, and a `\Throwable` catch returns a generic 500 without exposing the exception message.
+- Tests: `ImportControllerTest::test_run_maps_runner_exceptions_to_400` now proves a rejected run frees the lock; `test_run_maps_unexpected_throwable_to_generic_500` proves no internal message leaks and the lock is freed. 29 tests/121 assertions.
+
+### RK-017 — Support screenshot trusted the client-reported size
+- Severity: Medium
+- Category: WP.org D / uploads
+- File: `src/Support/SupportDelivery.php::validateScreenshot()`
+- Status: FIXED_PENDING_REVIEW
+- Problem: the 2 MB cap used `$_FILES['size']`, which the client controls; a request could claim a small size for a larger file. The MIME checker also fell back to the browser-supplied type when it identified nothing.
+- Fix: name/type/tmp are string-checked; the MIME checker must return both an extension and a type; the temporary file is measured with `clearstatcache()` + `filesize()` and must be non-empty and within the cap before acceptance. `wp_handle_upload()` still re-checks type and size when storing.
+- Tests: `SupportDeliveryTest::test_a_lying_reported_size_is_refused_by_the_actual_filesize`, existing oversized/non-image/non-uploaded/valid tests. 29 tests/52 assertions.
+
+### RK-018 — IndexNow single events survive deactivation
+- Severity: Low
+- Category: Lifecycle / cron
+- File: `rankkernel.php::rankkernel_deactivate()`
+- Status: FIXED_PENDING_REVIEW
+- Fix: deactivation now clears `rankkernel_daily_prune` and `rankkernel_indexnow_submit`; data is still left intact.
+- Tests: `PluginTest::test_deactivation_clears_daily_prune_event` asserts both hook names.
+
+### RK-019 — SQL and database safety review
+- Severity: High (audit area)
+- Category: Security / SQL
+- Files: `src/Modules/Monitor/*`, `src/Modules/Redirects/*`, `src/Modules/InstantIndexing/*`, `src/Modules/Importer/ImportLock.php`, `src/Modules/Sitemaps/Provider/*`, `uninstall.php`
+- Status: VERIFIED
+- Result: values travel through `$wpdb->prepare()` with placeholders; `IN (...)` lists are built only from `(int)`-cast, positive, de-duplicated ids; `ORDER BY` columns come from strict allowlists; table identifiers come from `$wpdb->prefix`/constants, and uninstall validates every prefix-matched table name against `^[A-Za-z0-9_]+$` before `DROP`. No user-controlled identifier or unescaped value reached SQL text.
+
+### RK-020 — Redirect security and correctness review
+- Severity: High (audit area)
+- Category: Security / redirects
+- Files: `src/Modules/Redirects/DestinationValidator.php`, `Normalizer.php`, `Matcher.php`, `Redirector.php`, `CsvHandler.php`, `src/Admin/RedirectsPage.php`
+- Status: VERIFIED
+- Result: destinations reject control characters, backslashes and unsafe schemes; same-host URLs fold to relative paths; external hosts require the `rankkernel/redirect/allowed_hosts` allowlist; `wp_safe_redirect()` sends the validated value. Regex rules are length/pattern-capped, compile with a reduced backtrack limit, and known catastrophic shapes are rejected before save/import. CSV import is capped at 2 MB and 5,000 rows, validates the header, and neutralises spreadsheet formula prefixes. Every create/edit/delete/bulk/import/export handler checks `manage_options` + its own nonce.
+
+### RK-021 — Nonce and capability sweep
+- Severity: High (audit area)
+- Category: Security / CSRF
+- Status: VERIFIED
+- Result: every state-changing admin path routes through a handler that calls `requireAccess()` (capability + `check_admin_referer`) before reading or writing: Dashboard toggle, General/Schema/Sitemap/Support saves, Redirects form/bulk/settings/import/export/row actions, 404 clear/bulk/settings/row delete, Schema and Metadata metabox saves/exports, profile field, and Instant Indexing dispatch (nonce chosen from the action before any handler runs). REST import endpoints require `manage_options`; cookie nonces are enforced by core. The remaining `WordPress.Security.*` ignores are marker reads or values read only after the nonce gate, each with an inline reason; no missing check was found. `WordPress.WP.EnqueuedResources` suppressions are now zero.
+
+### RK-022 — Secrets and external HTTP
+- Severity: High (audit area)
+- Category: Security / privacy
+- Status: VERIFIED
+- Result: the IndexNow key is stored in site options, shown only on a `manage_options` screen, and sent only to the fixed `https://api.indexnow.org/indexnow` endpoint with `redirection => 0`, a 10 s timeout, and a URL list filtered to the site host. The key check fetches only the site's own key location. Support screenshots go through `wp_handle_upload()` into uploads and are deleted after the mail attempt. No telemetry, tracking, or third-party script was found.
+
+### RK-023 — EscapeOutput suppressions review
+- Severity: Low
+- Category: Output escaping
+- Status: VERIFIED
+- Result: each suppression covers a non-HTML context or an already-escaped fragment: JSON/XML/CSV/Markdown response bodies, a JSON download, hardcoded attribute fragments, pre-escaped list renderers, a never-echoed exception message, and an escaped key-file body. No unescaped user data reaches an HTML context.
+
+## C. Remaining verification
+- Plugin Check against the final packaged ZIP.
+- Clean WordPress install: all admin pages with `WP_DEBUG`, settings, redirects/404/IndexNow, schema import/export, importer end-to-end, sitemap/frontend output, ZIP install.
+- Second full-tree pattern re-audit after the fixes.
+- i18n/a11y final pass (text domain, aria targets, keyboard, contrast).

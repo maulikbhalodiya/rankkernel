@@ -61,6 +61,12 @@ A separate key check performs an HTTP GET through wp_safe_remote_get to your own
 
 IndexNow is the official shared submission endpoint. Official documentation: https://www.indexnow.org/documentation. Official terms: https://www.indexnow.org/terms. The terms page includes a Privacy section. IndexNow does not publish a separate privacy policy URL; no standalone privacy URL is available, so the privacy terms are found within the terms page. This is a factual description of the service and its published pages, not a legal clearance.
 
+== AI Assistance Disclosure ==
+
+Portions of RankKernel were developed with AI assistance. Tools used include Claude, GitHub Copilot, and Jules (an AI software engineering agent). AI assistance was used for code refactoring, test coverage, documentation, internationalization string formatting, and WordPress.org compliance checks.
+
+The developer reviewed, tested, and verified all AI-assisted code and documentation, and remains responsible for the plugin. All code is licensed under GPL-2.0-or-later.
+
 Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled.
 
 == Changelog ==

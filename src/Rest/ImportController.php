@@ -709,12 +709,16 @@ final class ImportController {
 		try {
 			$result = $factory()->run( $source, $kind, $offset, $limit, $mode, $excludes, $options, $runId );
 		} catch ( \InvalidArgumentException $e ) {
+			$this->lock->release( $runId );
+
 			return new WP_Error(
 				'rankkernel_invalid_run',
 				$e->getMessage(),
 				[ 'status' => 400 ]
 			);
 		} catch ( ImportRunException $e ) {
+			$this->lock->release( $runId );
+
 			return new WP_Error(
 				'rankkernel_run_failed',
 				$e->getMessage(),
@@ -722,6 +726,17 @@ final class ImportController {
 					'status'  => 500,
 					'partial' => $e->counts(),
 				]
+			);
+		} catch ( \Throwable $e ) {
+			// Never expose an unexpected exception message to the client.
+			// The lock is owner-scoped, so releasing here cannot free a run
+			// that has already taken over after a lease expiry.
+			$this->lock->release( $runId );
+
+			return new WP_Error(
+				'rankkernel_run_failed',
+				__( 'The import stopped unexpectedly. Reload the preview and try again.', 'rankkernel' ),
+				[ 'status' => 500 ]
 			);
 		}
 

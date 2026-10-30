@@ -455,7 +455,7 @@ final class PluginTest extends TestCase {
 
 		\rankkernel_deactivate();
 
-		$this->assertSame( [ 'rankkernel_daily_prune' ], $cleared );
+		$this->assertSame( [ 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ], $cleared );
 	}
 
 	/**

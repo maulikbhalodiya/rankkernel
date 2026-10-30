@@ -563,6 +563,9 @@ final class ImportControllerTest extends TestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $res );
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+
+		// A rejected run must not strand the global lock for the lease window.
+		$this->assertTrue( ( new ImportLock( $this->lockDb ) )->claim( 'run-bbbb-2222' ) );
 	}
 
 	/**
@@ -1037,5 +1040,46 @@ final class ImportControllerTest extends TestCase {
 		$this->assertSame( 7, $data['partial']['applied'] ?? null );
 		$this->assertSame( 2, $data['partial']['skipped'] ?? null );
 		$this->assertSame( 1, $data['partial']['failed'] ?? null );
+	}
+
+	/**
+	 * Test an unexpected failure is generic and frees the lock.
+	 */
+	public function test_run_maps_unexpected_throwable_to_generic_500(): void {
+		$ctrl = new ImportController(
+			[ 'yoast' => new ImportControllerStubReader() ],
+			static function (): object {
+				return new class() {
+					/**
+					 * Fail with an internal detail that must not reach the client.
+					 *
+					 * @throws \RuntimeException Always.
+					 */
+					public function run(): void {
+						throw new \RuntimeException( 'SECRET internal detail' );
+					}
+				};
+			},
+			new ImportLock( $this->lockDb )
+		);
+
+		$res = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-cccc-3333',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_run_failed', $res->get_error_code() );
+		$this->assertSame( 500, $res->get_error_data()['status'] ?? null );
+		$this->assertStringNotContainsString( 'SECRET', $res->get_error_message() );
+		$this->assertTrue( ( new ImportLock( $this->lockDb ) )->claim( 'run-dddd-4444' ) );
 	}
 }
