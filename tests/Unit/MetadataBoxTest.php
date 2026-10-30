@@ -119,6 +119,7 @@ final class MetadataBoxTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_set_script_translations' )->justReturn( null );
 		Functions\when( 'wp_create_nonce' )->alias( static fn ( mixed $action = -1 ): string => 'nonce-' . (string) $action );
 		Functions\when( 'admin_url' )->alias( static fn ( string $path = '' ): string => 'https://example.com/wp-admin/' . $path );
 		Functions\when( 'wp_nonce_url' )->alias( static fn ( string $url, string $action = '' ): string => $url . '&_wpnonce=test' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_nonce_url signature.
@@ -577,6 +578,8 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( 'Example Site', $state['tokens']['sitename'] );
 		$this->assertSame( '-', $state['tokens']['sep'] );
 		$this->assertSame( '', $state['featuredAlt'] );
+		$this->assertSame( 'Inserted token %s.', $state['strings']['insertedToken'] );
+		$this->assertSame( '%s: Field reset to template.', $state['strings']['fieldReset'] );
 	}
 
 	/**
@@ -1161,12 +1164,19 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'get_the_ID' )->justReturn( 0 );
 		Functions\when( 'plugins_url' )->alias( static fn ( string $p, string $f = '' ): string => 'https://example.com/plugins/rankkernel/' . $p ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress plugins_url signature.
 
-		$scripts    = [];
-		$scriptDeps = [];
-		$styles     = [];
-		$styleDeps  = [];
-		$enqueued   = [];
-		$localized  = [];
+		$scripts            = [];
+		$scriptDeps         = [];
+		$scriptTranslations = [];
+		$styles             = [];
+		$styleDeps          = [];
+		$enqueued           = [];
+		$localized          = [];
+
+		Functions\when( 'wp_set_script_translations' )->alias(
+			static function ( string $h, string $d = 'default' ) use ( &$scriptTranslations ): void {
+				$scriptTranslations[ $h ] = $d;
+			}
+		);
 
 		Functions\when( 'wp_register_style' )->alias(
 			static function ( string $h, string $src, array $deps = [], string $ver = '' ) use ( &$styles, &$styleDeps ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_register_style signature.
@@ -1207,7 +1217,8 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-metadata-classic'] );
 		$this->assertContains( 'style:rankkernel-admin', $enqueued );
 		$this->assertContains( 'script:rankkernel-metadata-editor', $enqueued );
-		$this->assertSame( [ 'wp-i18n' ], $scriptDeps['rankkernel-metadata-editor'] );
+		$this->assertSame( [ 'wp-i18n', 'wp-a11y' ], $scriptDeps['rankkernel-metadata-editor'] );
+		$this->assertSame( 'rankkernel', $scriptTranslations['rankkernel-metadata-editor'] ?? null );
 		$this->assertArrayHasKey( 'rankkernel-analysis-text-stats', $scripts );
 		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );
 		$this->assertContains( 'script:rankkernel-analysis-editor', $enqueued );

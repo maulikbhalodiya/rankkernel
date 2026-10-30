@@ -89,7 +89,8 @@ function fakeNode( props ) {
 				return null;
 			},
 			focus() {},
-			setSelectionRange() {}
+			setSelectionRange() {},
+			dispatchEvent() {}
 		},
 		props || {},
 		{ __attrs: attrs }
@@ -116,10 +117,18 @@ function boot( options ) {
 
 	const sandbox = {
 		URL,
+		Event: typeof Event !== 'undefined' ? Event : class Event { constructor( type ) { this.type = type; } },
 		setTimeout,
 		clearTimeout,
 		document: {
 			readyState: 'complete',
+			createEvent() {
+				return {
+					initEvent( type ) {
+						this.type = type;
+					}
+				};
+			},
 			getElementById( id ) {
 				return byId[ id ] || null;
 			},
@@ -159,18 +168,32 @@ function boot( options ) {
 	};
 }
 
-function translatingWp( seen ) {
-	return {
+function speakingWp( spoken, extra ) {
+	return Object.assign(
+		{ a11y: { speak: ( text ) => spoken.push( text ) } },
+		extra || {}
+	);
+}
+
+function translatingWp( spoken, seen ) {
+	const spokenList = Array.isArray( spoken ) ? spoken : [];
+	return speakingWp( spokenList, {
 		i18n: {
 			__( text, domain ) {
-				if ( seen ) {
+				if ( Array.isArray( seen ) ) {
 					seen.push( [ text, domain ] );
 				}
-
-				return 'rankkernel:' + text;
+				return domain + ':' + text;
+			},
+			sprintf( format, arg ) {
+				var a = String( arg == null ? '' : arg );
+				return String( format == null ? '' : format )
+					.replace( /%%/g, '\u0000' )
+					.replace( /%s/g, function () { return a; } )
+					.replace( /\u0000/g, '%' );
 			}
 		}
-	};
+	} );
 }
 
 function statusWord( fixture, status ) {
@@ -192,7 +215,7 @@ test( 'the classic metadata editor renders the raw English status words when wp.
 
 test( 'the classic metadata editor uses wp.i18n when the handle is present', () => {
 	const seen = [];
-	const fixture = boot( { wp: translatingWp( seen ) } );
+	const fixture = boot( { wp: translatingWp( [], seen ) } );
 
 	assert.equal( statusWord( fixture, 'warn' ), 'rankkernel:Long' );
 	assert.equal( statusWord( fixture, 'over' ), 'rankkernel:Too long' );
@@ -294,6 +317,8 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		'OK',
 		'No tokens available for this post type.',
 		'Insert token',
+		'Inserted token %s.',
+		'%s: Field reset to template.',
 		'chars only',
 		'chars',
 		'Inherited from the template',
@@ -325,6 +350,237 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		code,
 		/var __ = window\.wp && window\.wp\.i18n && window\.wp\.i18n\.__ \? window\.wp\.i18n\.__ : function \( text \) \{ return text; \};/
 	);
+} );
+
+test( 'metadata-editor announces token insertion and modifies input value', () => {
+	const spoken = [];
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Old Value' } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput
+		},
+		queryAll: {
+			'[data-rankkernel-tokens]': [ list ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	const tokenBtn = list.children[ 0 ];
+	assert.ok( tokenBtn );
+	tokenBtn.listeners.click();
+
+	assert.equal( titleInput.value, 'Old Value%%title%%' );
+	assert.deepEqual( spoken, [ 'rankkernel:Inserted token Title.' ] );
+} );
+
+test( 'metadata-editor announces field reset when value is present and clears field', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { id: 'rankkernel-meta-title', tagName: 'INPUT', value: 'Custom Title' } );
+	const labelNode = fakeNode( { textContent: 'SEO title' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton,
+			'label[for="rankkernel-meta-title"]': labelNode
+		},
+		queryAll: {
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	titleResetButton.listeners.click();
+
+	assert.equal( titleInput.value, '' );
+	assert.deepEqual( spoken, [ 'rankkernel:SEO title: Field reset to template.' ] );
+} );
+
+test( 'metadata-editor stays silent on field reset when input is whitespace only', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '   ' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: { '[data-rk-reset]': [ titleResetButton ] }
+	} );
+	const fixture = boot( { wp: translatingWp( spoken ), byId: { 'rankkernel-meta-title': titleInput }, roots: [ editorRoot ] } );
+	fixture.init();
+	titleResetButton.listeners.click();
+	assert.equal( titleInput.value, '' );
+	assert.deepEqual( spoken, [] );
+} );
+
+test( 'metadata-editor stays silent on field reset when input is already empty', () => {
+	const spoken = [];
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: {
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	titleResetButton.listeners.click();
+
+	assert.equal( titleInput.value, '' );
+	assert.deepEqual( spoken, [] );
+} );
+
+test( 'metadata-editor does not announce a blocked token insertion on readOnly or disabled input', () => {
+	const spoken = [];
+	const list1 = fakeNode();
+	const readOnlyInput = fakeNode( { tagName: 'INPUT', value: 'ReadOnly Text', readOnly: true } );
+
+	const editorRoot1 = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': readOnlyInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list1 ] }
+	} );
+
+	const fixture1 = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': readOnlyInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot1 ]
+	} );
+	fixture1.init();
+
+	const readOnlyBtn = list1.children[ 0 ];
+	assert.ok( readOnlyBtn, 'token picker must build a button for the readOnly case' );
+	readOnlyBtn.listeners.click();
+
+	assert.equal( readOnlyInput.value, 'ReadOnly Text' );
+
+	const list2 = fakeNode();
+	const disabledInput = fakeNode( { tagName: 'INPUT', value: 'Disabled Text', disabled: true } );
+
+	const editorRoot2 = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': disabledInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list2 ] }
+	} );
+
+	const fixture2 = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': disabledInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot2 ]
+	} );
+	fixture2.init();
+
+	const disabledBtn = list2.children[ 0 ];
+	assert.ok( disabledBtn, 'token picker must build a button for the disabled case' );
+	disabledBtn.listeners.click();
+
+	assert.equal( disabledInput.value, 'Disabled Text' );
+	assert.deepEqual( spoken, [] );
+} );
+
+test( 'metadata-editor uses sprintf fallback correctly when wp.i18n.sprintf is missing', () => {
+	const spoken = [];
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: '' } );
+
+	const editorRoot = fakeRoot( {
+		query: { '[name="rankkernel_meta_title"]': titleInput },
+		queryAll: { '[data-rankkernel-tokens]': [ list ] }
+	} );
+
+	const fixture = boot( {
+		wp: {
+			a11y: { speak: ( text ) => spoken.push( text ) },
+			i18n: {
+				__( text ) {
+					return text;
+				}
+			}
+		},
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	const tokenBtn = list.children[ 0 ];
+	assert.ok( tokenBtn, 'token picker must build a button' );
+	tokenBtn.listeners.click();
+
+	assert.equal( titleInput.value, '%%title%%' );
+	assert.deepEqual( spoken, [ 'Inserted token Title.' ] );
+} );
+
+test( 'metadata-editor stays silent and does not throw when wp.a11y is absent or speak is not a function', () => {
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Some Text' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: {
+			'[data-rankkernel-tokens]': [ list ],
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: {
+			a11y: {},
+			i18n: {
+				__( text ) {
+					return text;
+				},
+				sprintf( format, arg ) {
+					return String( format || '' ).replace( '%s', String( arg || '' ) );
+				}
+			}
+		},
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	assert.doesNotThrow( () => {
+		const tokenBtn = list.children[ 0 ];
+		assert.ok( tokenBtn );
+		tokenBtn.listeners.click();
+		assert.equal( titleInput.value, 'Some Text%%title%%' );
+		titleResetButton.listeners.click();
+		assert.equal( titleInput.value, '' );
+	} );
 } );
 
 test( 'the media select chain is guarded and falls back to the URL field', () => {

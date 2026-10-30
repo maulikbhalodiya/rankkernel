@@ -424,7 +424,11 @@ final class MetadataBox {
 			wp_enqueue_style( self::CLASSIC_STYLE );
 		}
 
-		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [ 'wp-i18n' ], $version, true );
+		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [ 'wp-i18n', 'wp-a11y' ], $version, true );
+
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( self::EDITOR_SCRIPT, 'rankkernel' );
+		}
 
 		if ( function_exists( 'wp_localize_script' ) ) {
 			wp_localize_script( self::EDITOR_SCRIPT, self::LOCALIZE_NAME, $this->localizedState( $this->currentPostId() ) );
@@ -1141,6 +1145,10 @@ final class MetadataBox {
 			'templateLabel'  => __( 'Template', 'rankkernel' ),
 			'effectiveLabel' => __( 'Effective value', 'rankkernel' ),
 			'tokenInsert'    => __( 'Insert token', 'rankkernel' ),
+			/* translators: %s: Token label, for example Title. */
+			'insertedToken'  => __( 'Inserted token %s.', 'rankkernel' ),
+			/* translators: %s: Field label, for example SEO title. */
+			'fieldReset'     => __( '%s: Field reset to template.', 'rankkernel' ),
 			'selectImage'    => __( 'Select image', 'rankkernel' ),
 			'removeImage'    => __( 'Remove image', 'rankkernel' ),
 			'previewDesktop' => __( 'Desktop', 'rankkernel' ),

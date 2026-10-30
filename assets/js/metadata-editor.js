@@ -16,6 +16,27 @@
 	// visible when translations are unavailable.
 	var __ = window.wp && window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
 
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			var arg = String( param == null ? '' : param );
+			return String( text == null ? '' : text )
+				.replace( /%%/g, '\u0000' )
+				.replace( /%s/g, function () { return arg; } )
+				.replace( /\u0000/g, '%' );
+		};
+
+	/**
+	 * Speak an accessible announcement when wp.a11y is available.
+	 *
+	 * @param {string} text Translated message to announce.
+	 */
+	function rankkernelAnnounce( text ) {
+		if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+			window.wp.a11y.speak( text );
+		}
+	}
+
 	var cfg = window.rankkernelMetaEditor || {};
 	var templates = cfg.templates || {};
 	var tokenLabels = cfg.tokenLabels || {};
@@ -203,10 +224,10 @@
 
 	function insertAtCaret( input, text ) {
 		if ( ! input || 'string' !== typeof text || '' === text ) {
-			return;
+			return false;
 		}
 		if ( input.disabled || input.readOnly ) {
-			return;
+			return false;
 		}
 		var start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
 		var end = typeof input.selectionEnd === 'number' ? input.selectionEnd : input.value.length;
@@ -228,6 +249,7 @@
 			event.initEvent( 'input', true, true );
 		}
 		input.dispatchEvent( event );
+		return true;
 	}
 
 	function initTabs( root ) {
@@ -325,8 +347,9 @@
 				button.setAttribute( 'aria-label', str( 'tokenInsert', __( 'Insert token', 'rankkernel' ) ) + ' ' + token + ' (' + ( tokenLabels[ token ] || token ) + ')' );
 				button.addEventListener( 'click', function () {
 					var target = getTarget();
-					if ( target ) {
-						insertAtCaret( target, token );
+					if ( insertAtCaret( target, token ) ) {
+						/* translators: %s: Token label, for example Title. */
+						rankkernelAnnounce( sprintf( str( 'insertedToken', __( 'Inserted token %s.', 'rankkernel' ) ), tokenLabels[ token ] || token ) );
 					}
 				} );
 				list.appendChild( button );
@@ -708,6 +731,7 @@
 				if ( ! input ) {
 					return;
 				}
+				var hadValue = '' !== String( fieldValue( root, target[ 0 ], target[ 1 ] ) ).trim();
 				if ( 'checkbox' === input.type ) {
 					input.checked = false;
 				} else {
@@ -725,6 +749,13 @@
 				schedule();
 				if ( input.focus ) {
 					input.focus();
+				}
+				if ( hadValue ) {
+					var label = input.id ? $( root, 'label[for="' + input.id + '"]' ) : null;
+					var text = label ? label.textContent.trim() : '';
+					var name = text || button.getAttribute( 'aria-label' ) || str( 'resetLabel', __( 'Reset to template', 'rankkernel' ) );
+					/* translators: %s: Field label, for example SEO title. */
+					rankkernelAnnounce( sprintf( str( 'fieldReset', __( '%s: Field reset to template.', 'rankkernel' ) ), name ) );
 				}
 			} );
 		} );
