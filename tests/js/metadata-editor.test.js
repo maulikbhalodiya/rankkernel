@@ -531,15 +531,15 @@ test( 'metadata-editor uses sprintf fallback correctly when wp.i18n.sprintf is m
 	} );
 	fixture.init();
 
-	if ( list.children[ 0 ] ) {
-		list.children[ 0 ].listeners.click();
-	}
+	const tokenBtn = list.children[ 0 ];
+	assert.ok( tokenBtn, 'token picker must build a button' );
+	tokenBtn.listeners.click();
 
 	assert.equal( titleInput.value, '%%title%%' );
 	assert.deepEqual( spoken, [ 'Inserted token Title.' ] );
 } );
 
-test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', () => {
+test( 'metadata-editor stays silent and does not throw when wp.a11y is absent or speak is not a function', () => {
 	const list = fakeNode();
 	const titleInput = fakeNode( { tagName: 'INPUT', value: 'Some Text' } );
 	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
@@ -557,6 +557,7 @@ test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', 
 
 	const fixture = boot( {
 		wp: {
+			a11y: {},
 			i18n: {
 				__( text ) {
 					return text;
@@ -576,10 +577,10 @@ test( 'metadata-editor stays silent and does not throw when wp.a11y is absent', 
 		const tokenBtn = list.children[ 0 ];
 		assert.ok( tokenBtn );
 		tokenBtn.listeners.click();
+		assert.equal( titleInput.value, 'Some Text%%title%%' );
 		titleResetButton.listeners.click();
+		assert.equal( titleInput.value, '' );
 	} );
-
-	assert.equal( titleInput.value, '' );
 } );
 
 test( 'the media select chain is guarded and falls back to the URL field', () => {

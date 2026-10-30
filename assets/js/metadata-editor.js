@@ -731,8 +731,12 @@
 				if ( ! input ) {
 					return;
 				}
-				var hadValue = '' !== String( input.value == null ? '' : input.value ).trim();
-				input.value = '';
+				var hadValue = '' !== String( fieldValue( root, target[ 0 ], target[ 1 ] ) ).trim();
+				if ( 'checkbox' === input.type ) {
+					input.checked = false;
+				} else {
+					input.value = '';
+				}
 				var idField = null;
 				if ( 'ogImage' === key ) {
 					idField = field( root, FIELD_NAMES.ogImageId, 'rankkernel-meta-og-image-id' );
@@ -743,14 +747,15 @@
 					idField.value = '';
 				}
 				schedule();
-				if ( hadValue ) {
-					var label = input.id ? $( root, 'label[for="' + input.id + '"]' ) : null;
-					var name = label ? label.textContent.trim() : ( button.getAttribute( 'aria-label' ) || key );
-					/* translators: %s: Field label, for example SEO title. */
-					rankkernelAnnounce( sprintf( str( 'fieldReset', __( '%s: Field reset to template.', 'rankkernel' ) ), name ) );
-				}
 				if ( input.focus ) {
 					input.focus();
+				}
+				if ( hadValue ) {
+					var label = input.id ? $( root, 'label[for="' + input.id + '"]' ) : null;
+					var text = label ? label.textContent.trim() : '';
+					var name = text || button.getAttribute( 'aria-label' ) || str( 'resetLabel', __( 'Reset to template', 'rankkernel' ) );
+					/* translators: %s: Field label, for example SEO title. */
+					rankkernelAnnounce( sprintf( str( 'fieldReset', __( '%s: Field reset to template.', 'rankkernel' ) ), name ) );
 				}
 			} );
 		} );
