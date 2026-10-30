@@ -29,6 +29,47 @@ use RankKernel\Modules\Metadata\Context;
  */
 final class TrailBuilder {
 	/**
+	 * Maximum size for bounded request-level static build cache.
+	 */
+	public const MAX_CACHE_SIZE = 50;
+
+	/**
+	 * Static request-level memoization cache for build() results.
+	 *
+	 * Performance optimization: avoids repeating canonical trail construction across multiple
+	 * calls (e.g. Schema graph generation + HTML template/block rendering) in a single request.
+	 * Assumes immutable request data within a single request execution thread.
+	 *
+	 * @var array<string, Item[]>
+	 */
+	private static array $buildMemo = [];
+
+	/**
+	 * Instance-memoized build cache key.
+	 *
+	 * @var string|null
+	 */
+	private ?string $cacheKey = null;
+
+	/**
+	 * Reset static request-level memoization cache (primarily for unit tests).
+	 *
+	 * @return void
+	 */
+	public static function resetCache(): void {
+		self::$buildMemo = [];
+	}
+
+	/**
+	 * Current blog ID string for multisite isolation.
+	 *
+	 * @return string Blog ID.
+	 */
+	private static function blogId(): string {
+		return function_exists( 'get_current_blog_id' ) ? (string) get_current_blog_id() : '1';
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Context              $ctx       Request context.
@@ -64,11 +105,147 @@ final class TrailBuilder {
 	}
 
 	/**
+	 * Compute or return instance-memoized cache key for build().
+	 *
+	 * Structured array hashed into a single md5 string covering:
+	 * blog ID, locale, user ID, front options, Context type/id/hash,
+	 * query discriminators (term taxonomy, post type, primary taxonomy, search query, date vars, page, cpage, paged),
+	 * global dispatch flags (is_front, is_blog, is_search, is_404, is_pt_archive, is_author, is_date),
+	 * Context meta flags/canonical, visibility overrides, and builder-consumed settings whitelist (excluding separator).
+	 *
+	 * @return string Cache key.
+	 */
+	private function buildCacheKey(): string {
+		if ( null !== $this->cacheKey ) {
+			return $this->cacheKey;
+		}
+
+		$blogId = self::blogId();
+		$locale = '';
+		if ( function_exists( 'determine_locale' ) ) {
+			$locale = (string) determine_locale();
+		} elseif ( function_exists( 'get_locale' ) ) {
+			$locale = (string) get_locale();
+		}
+
+		$userId = function_exists( 'get_current_user_id' ) ? (string) get_current_user_id() : '0';
+
+		$type = $this->ctx->queriedType();
+		$id   = $this->ctx->queriedId();
+
+		$showFront = function_exists( 'get_option' ) ? get_option( 'show_on_front', 'posts' ) : '';
+		$pagePosts = function_exists( 'get_option' ) ? get_option( 'page_for_posts', 0 ) : '';
+
+		$frontOptions = ( is_scalar( $showFront ) ? (string) $showFront : '' )
+			. '|' . ( is_scalar( $pagePosts ) ? (string) $pagePosts : '' );
+
+		$qObject = function_exists( 'get_queried_object' ) ? $this->vars( get_queried_object() ) : [];
+
+		$termTax    = 'term' === $type && isset( $qObject['taxonomy'] ) ? (string) $qObject['taxonomy'] : '';
+		$primaryTax = '';
+		$postType   = '';
+
+		if ( 'post' === $type && $id > 0 ) {
+			$qPost = $this->queriedPost();
+			if ( null !== $qPost ) {
+				$postType   = $qPost['type'];
+				$primaryTax = $this->settings->postTypeSettings( $qPost['type'] )['primary_taxonomy'];
+			}
+		}
+
+		$searchQuery = function_exists( 'get_search_query' ) && is_scalar( get_search_query() )
+			? (string) get_search_query()
+			: '';
+
+		$meta = $this->ctx->meta();
+
+		$settingsWhitelist = array_intersect_key(
+			$this->settings->all(),
+			array_flip( [ 'home_label', 'show_home', 'show_current', 'hide_on_front_page', 'show_blog_page', 'show_ancestors' ] )
+		);
+		ksort( $settingsWhitelist );
+
+		$payload = [
+			'blog_id'       => $blogId,
+			'locale'        => $locale,
+			'user_id'       => $userId,
+			'front_opts'    => $frontOptions,
+			'ctx_hash'      => $this->ctx->hash(),
+			'type'          => $type,
+			'id'            => $id,
+			'post_type'     => $postType,
+			'primary_tax'   => $primaryTax,
+			'term_tax'      => $termTax,
+			'search'        => $searchQuery,
+			'archive_pt'    => $this->archivePostType(),
+			'year'          => $this->queryVar( 'year' ),
+			'month'         => $this->queryVar( 'monthnum' ),
+			'day'           => $this->queryVar( 'day' ),
+			'page'          => $this->queryVar( 'page' ),
+			'cpage'         => $this->queryVar( 'cpage' ),
+			'paged'         => $this->queryVar( 'paged' ),
+			'is_front'      => $this->isFrontPage(),
+			'is_blog'       => $this->isBlogIndex(),
+			'is_search'     => $this->isSearch(),
+			'is_404'        => $this->is404(),
+			'is_pt_archive' => $this->isPostTypeArchive(),
+			'is_author'     => $this->isAuthor(),
+			'is_date'       => $this->isDate(),
+			'show_home'     => $this->showHome(),
+			'show_current'  => $this->showCurrent(),
+			'bc_title'      => $meta['flags']['breadcrumb_title'] ?? '',
+			'canonical'     => $meta['canonical'] ?? '',
+			'settings'      => $settingsWhitelist,
+		];
+
+		$json = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $payload )
+			: json_encode( $payload ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback in unit test environments without WordPress loaded; wp_json_encode is preferred in production.
+
+		$this->cacheKey = is_string( $json ) && '' !== $json
+			? md5( $json )
+			: md5( var_export( $payload, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for payload array.
+
+		return $this->cacheKey;
+	}
+
+	/**
 	 * Build the canonical trail for the current request.
+	 *
+	 * Performance optimization: memoizes the generated trail by blog ID, Context hash, query parameters,
+	 * settings, and effective visibility overrides to eliminate duplicate tree traversal and WP queries
+	 * across schema and HTML rendering calls. Bounded by MAX_CACHE_SIZE with FIFO eviction.
 	 *
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
 	public function build(): array {
+		if ( $this->isFrontPage() && $this->isPostsFrontPage() && max( $this->queryVar( 'paged' ), $this->queryVar( 'page' ) ) < 2 ) {
+			return [];
+		}
+
+		$key = $this->buildCacheKey();
+
+		if ( array_key_exists( $key, self::$buildMemo ) ) {
+			return self::$buildMemo[ $key ];
+		}
+
+		$result = $this->doBuild();
+
+		if ( count( self::$buildMemo ) >= self::MAX_CACHE_SIZE ) {
+			array_shift( self::$buildMemo );
+		}
+
+		self::$buildMemo[ $key ] = $result;
+
+		return $result;
+	}
+
+	/**
+	 * Actual trail building logic.
+	 *
+	 * @return Item[] Ordered trail, empty for invalid contexts.
+	 */
+	private function doBuild(): array {
 		if ( $this->isFrontPage() ) {
 			return $this->buildFrontPage();
 		}

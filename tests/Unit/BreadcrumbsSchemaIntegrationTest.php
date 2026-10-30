@@ -15,6 +15,7 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Breadcrumbs\Renderer;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Schema\Generator;
 use RankKernel\Modules\Schema\Pieces\BreadcrumbPiece;
@@ -110,6 +111,8 @@ final class BreadcrumbsSchemaIntegrationTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		TrailBuilder::resetCache();
 
 		$this->wpOptions = [
 			'show_on_front'  => 'posts',

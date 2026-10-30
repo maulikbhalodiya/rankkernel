@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Breadcrumbs\Item;
 use RankKernel\Modules\Breadcrumbs\Renderer;
 use WP_Query;
@@ -68,9 +69,12 @@ final class BreadcrumbsSecurityTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		TrailBuilder::resetCache();
+
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/functions.php';
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias(

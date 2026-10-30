@@ -15,6 +15,8 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
+use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
@@ -63,6 +65,8 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
+		TrailBuilder::resetCache();
+
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/functions.php';
 		require_once dirname( __DIR__, 2 ) . '/src/Modules/Breadcrumbs/template-tags.php';
 
@@ -72,6 +76,7 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		$this->queriedObject = null;
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $url ): string => $url );
@@ -339,5 +344,37 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 
 		$this->assertNotEmpty( $trail );
 		$this->assertSame( 0, $this->wpdb->count );
+	}
+
+	/**
+	 * Test repeated TrailBuilder build calls return memoized items across distinct Context instances for the same request context.
+	 */
+	public function test_repeated_trail_builder_calls_use_memoized_cache(): void {
+		$query    = $this->useSingularPost();
+		$settings = new BreadcrumbsSettings();
+		$ctx1     = new Context( $query, new SettingsStore() );
+		$ctx2     = new Context( $query, new SettingsStore() );
+
+		$builder1 = new TrailBuilder( $ctx1, $settings );
+		$trail1   = $builder1->build();
+
+		$builder2 = new TrailBuilder( $ctx2, $settings );
+		$trail2   = $builder2->build();
+
+		$this->assertSame( $trail1, $trail2 );
+
+		// Verifies overrides change the cache key and produce a new trail array.
+		$builderOverride = new TrailBuilder( $ctx1, $settings, [ 'show_home' => false ] );
+		$trailOverride   = $builderOverride->build();
+
+		$this->assertNotEquals( $trail1, $trailOverride );
+
+		// Verifies resetCache() flushes the buildMemo cache.
+		TrailBuilder::resetCache();
+		$builder3 = new TrailBuilder( $ctx1, $settings );
+		$trail3   = $builder3->build();
+
+		$this->assertEquals( $trail1, $trail3 );
+		$this->assertNotSame( $trail1[0], $trail3[0], 'resetCache must force a fresh build' );
 	}
 }
