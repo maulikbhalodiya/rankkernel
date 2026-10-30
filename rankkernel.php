@@ -164,6 +164,7 @@ function rankkernel_deactivate(): void {
 
 	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
 		wp_clear_scheduled_hook( 'rankkernel_daily_prune' );
+		wp_clear_scheduled_hook( 'rankkernel_indexnow_submit' );
 	}
 }
 register_deactivation_hook( __FILE__, 'rankkernel_deactivate' );

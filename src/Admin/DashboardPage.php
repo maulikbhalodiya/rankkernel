@@ -42,7 +42,7 @@ final class DashboardPage {
 		'sitemaps'         => 'XML sitemaps for posts, taxonomies and authors, with the core sitemap taken over.',
 		'schema'           => 'One JSON-LD graph per page, assembled from the Schema pieces.',
 		'breadcrumbs'      => 'An accessible breadcrumb trail with a shortcode, a template tag and a block.',
-		'importer'         => 'One click import from Yoast, Rank Math and SEOPress. Planned.',
+		'importer'         => 'One click import from Yoast, Rank Math and SEOPress.',
 		'redirects'        => 'Manage 301, 302, 307, 410 and 451 redirects, with CSV import and export.',
 		'404'              => 'Log 404 errors with sane pruning and one click redirect creation.',
 		'instant-indexing' => 'Notify participating search engines when a URL changes, using the IndexNow protocol.',
@@ -183,7 +183,7 @@ final class DashboardPage {
 	 */
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		$cards = $this->cards();
 
@@ -224,18 +224,10 @@ final class DashboardPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_module_toggle' );
-
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'rankkernel_module_toggle' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, sanitized below.
-		$rawId = isset( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['rankkernel_module_toggle'] ) ) : '';
+		$rawId = isset( $_POST['rankkernel_module_toggle'] ) && is_string( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( $_POST['rankkernel_module_toggle'] ) ) : '';
 
 		if ( '' !== $rawId && ModuleRegistry::has( $rawId ) && ! ModuleRegistry::isPlanned( $rawId ) ) {
 			$enabled = $this->enabledIds();

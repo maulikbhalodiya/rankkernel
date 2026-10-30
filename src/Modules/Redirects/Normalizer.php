@@ -45,7 +45,18 @@ final class Normalizer {
 	public const TERMINAL_CODES = [ '410', '451' ];
 
 	/**
+	 * Maximum number of normalized paths stored in static request-level memory.
+	 *
+	 * @var int
+	 */
+	public const MAX_CACHE_SIZE = 500;
+
+	/**
 	 * Normalize a raw source or request path to its canonical form.
+	 *
+	 * Performance optimization: static request-level memoization avoids repeated
+	 * URL parsing, regex operations, percent-encoding canonicalization, and
+	 * Unicode NFC folding across multiple normalize() calls per request.
 	 *
 	 * Steps in order: trim, extract the path from full URLs, drop query and
 	 * fragment, collapse duplicate slashes, canonicalize percent encoding,
@@ -58,9 +69,17 @@ final class Normalizer {
 	 * @return string Canonical path, always starting with a slash.
 	 */
 	public static function normalize( string $raw, bool $caseInsensitive = false ): string {
+		$cacheKey = ( $caseInsensitive ? '1:' : '0:' ) . self::homePath() . "\0" . $raw;
+
+		if ( array_key_exists( $cacheKey, self::$normalizeCache ) ) {
+			return self::$normalizeCache[ $cacheKey ];
+		}
+
 		$path = trim( $raw );
 
 		if ( '' === $path ) {
+			self::storeInCache( $cacheKey, '/' );
+
 			return '/';
 		}
 
@@ -114,7 +133,28 @@ final class Normalizer {
 			$path = function_exists( 'mb_strtolower' ) ? mb_strtolower( $path, 'UTF-8' ) : strtolower( $path );
 		}
 
+		self::storeInCache( $cacheKey, $path );
+
 		return $path;
+	}
+
+	/**
+	 * Store a normalized path in static request-level cache with FIFO capacity eviction.
+	 *
+	 * When the cache reaches MAX_CACHE_SIZE, the oldest entry is evicted via array_shift
+	 * so recently used paths survive and remain hot during high-cardinality workloads
+	 * while memory usage remains strictly bounded.
+	 *
+	 * @param string $cacheKey Composite cache key.
+	 * @param string $path     Normalized path.
+	 * @return void
+	 */
+	private static function storeInCache( string $cacheKey, string $path ): void {
+		if ( count( self::$normalizeCache ) >= self::MAX_CACHE_SIZE ) {
+			array_shift( self::$normalizeCache );
+		}
+
+		self::$normalizeCache[ $cacheKey ] = $path;
 	}
 
 	/**
@@ -189,6 +229,13 @@ final class Normalizer {
 	}
 
 	/**
+	 * Request-level static cache for normalized paths within request execution.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $normalizeCache = [];
+
+	/**
 	 * Request-level static cache for the subdirectory home path, keyed by blog ID.
 	 *
 	 * @var array<int, string>
@@ -196,12 +243,13 @@ final class Normalizer {
 	private static array $homePathCache = [];
 
 	/**
-	 * Reset the static home path cache (primarily for unit tests or blog switches).
+	 * Reset static request-level memoization caches (primarily for unit tests or blog switches).
 	 *
 	 * @return void
 	 */
 	public static function resetCache(): void {
-		self::$homePathCache = [];
+		self::$normalizeCache = [];
+		self::$homePathCache  = [];
 	}
 
 	/**

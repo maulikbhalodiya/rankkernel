@@ -31,6 +31,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		$this->homeUrl = 'https://example.com/';
 		Normalizer::resetCache();
 
 		Functions\when( 'wp_parse_url' )->alias(
@@ -49,6 +50,7 @@ final class RedirectsNormalizerTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		$this->homeUrl = 'https://example.com/';
 		Normalizer::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
@@ -228,5 +230,91 @@ final class RedirectsNormalizerTest extends TestCase {
 		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
 		$this->assertSame( '/blog', Normalizer::homePath() );
 		$this->assertSame( 2, $callCount );
+	}
+
+	/**
+	 * Test normalize memoization across repeated calls and resetCache behavior.
+	 */
+	public function test_normalize_memoized_and_resettable(): void {
+		$parseUrlCalls = 0;
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ) use ( &$parseUrlCalls ): mixed {
+				++$parseUrlCalls;
+				return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double backing the stubbed wp_parse_url with the native parser.
+			}
+		);
+
+		Normalizer::resetCache();
+
+		$rawUrl = 'https://example.com/old/page?x=1';
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		// First call invokes wp_parse_url once inside homePath() and once inside normalize() = 2 calls.
+		$this->assertSame( 2, $parseUrlCalls );
+
+		// Subsequent call uses cache and does not re-invoke wp_parse_url.
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		$this->assertSame( 2, $parseUrlCalls );
+
+		// Case-insensitive variant keying.
+		$rawCase = 'https://example.com/Old/Page';
+		$this->assertSame( '/Old/Page', Normalizer::normalize( $rawCase, false ) );
+		$this->assertSame( 3, $parseUrlCalls );
+
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawCase, true ) );
+		$this->assertSame( 4, $parseUrlCalls );
+
+		// Reset cache clears static memo and forces re-evaluation.
+		Normalizer::resetCache();
+		$this->assertSame( '/old/page', Normalizer::normalize( $rawUrl ) );
+		$this->assertSame( 6, $parseUrlCalls );
+	}
+
+	/**
+	 * Test normalize memoization across multisite blog switches.
+	 */
+	public function test_normalize_multisite_home_path_aware(): void {
+		Normalizer::resetCache();
+
+		$this->homeUrl = 'https://example.com/blog';
+		$raw           = '/blog/old';
+
+		$this->assertSame( '/old', Normalizer::normalize( $raw ) );
+
+		// Simulate multisite switch_to_blog to blog 2 with homeUrl shop.
+		Functions\when( 'get_current_blog_id' )->justReturn( 2 );
+		$this->homeUrl = 'https://example.com/shop';
+
+		// Under shop, /blog/old is NOT under homeUrl /shop, so it normalizes to /blog/old.
+		$this->assertSame( '/blog/old', Normalizer::normalize( $raw ) );
+
+		// Switch back to blog 1.
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
+		$this->homeUrl = 'https://example.com/blog';
+		$this->assertSame( '/old', Normalizer::normalize( $raw ) );
+	}
+
+	/**
+	 * Test normalize cache size capping under heavy load with eviction.
+	 */
+	public function test_normalize_cache_size_capped(): void {
+		Normalizer::resetCache();
+
+		for ( $i = 0; $i < Normalizer::MAX_CACHE_SIZE + 10; ++$i ) {
+			Normalizer::normalize( '/path-' . $i );
+		}
+
+		$reflection = new \ReflectionClass( Normalizer::class );
+		$property   = $reflection->getProperty( 'normalizeCache' );
+		$property->setAccessible( true );
+
+		$cache = $property->getValue();
+
+		// Cache size must strictly stay bounded at or below MAX_CACHE_SIZE.
+		$this->assertLessThanOrEqual( Normalizer::MAX_CACHE_SIZE, count( $cache ) );
+		$this->assertSame( Normalizer::MAX_CACHE_SIZE, count( $cache ) );
+
+		// Both an evicted path and a newly requested path normalize correctly.
+		$this->assertSame( '/path-0', Normalizer::normalize( '/path-0' ) );
+		$this->assertSame( '/path-cap-test', Normalizer::normalize( '/path-cap-test' ) );
 	}
 }

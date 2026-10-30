@@ -399,6 +399,11 @@ final class SupportDeliveryTest extends TestCase {
 	public function test_validate_screenshot_passes_explicit_mimes(): void {
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
 
+		$tmp = tempnam( sys_get_temp_dir(), 'rk-shot-' );
+		$this->assertIsString( $tmp );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture creates a real temp file for the size check.
+		file_put_contents( $tmp, 'x' );
+
 		$passedMimes = null;
 		Functions\when( 'wp_check_filetype_and_ext' )->alias(
 			static function ( string $path, string $name, ?array $mimes = null ) use ( &$passedMimes ): array {
@@ -417,13 +422,50 @@ final class SupportDeliveryTest extends TestCase {
 				'size'     => 1024,
 				'name'     => 'screenshot.jpg',
 				'type'     => 'image/jpeg',
-				'tmp_name' => '/tmp/screenshot.jpg',
+				'tmp_name' => $tmp,
 			]
 		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes the temp file it created.
+		unlink( $tmp );
 
 		$this->assertTrue( $result );
 		$this->assertIsArray( $passedMimes );
 		$this->assertSame( 'image/jpeg', $passedMimes['jpg|jpeg|jpe'] ?? null );
+	}
+
+	/**
+	 * The actual temporary file size, not the client-supplied size, is capped.
+	 */
+	public function test_a_lying_reported_size_is_refused_by_the_actual_filesize(): void {
+		Functions\when( 'is_uploaded_file' )->justReturn( true );
+		Functions\when( 'wp_check_filetype_and_ext' )->justReturn(
+			[
+				'ext'  => 'png',
+				'type' => 'image/png',
+			]
+		);
+
+		$tmp = tempnam( sys_get_temp_dir(), 'rk-shot-' );
+		$this->assertIsString( $tmp );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture creates an oversized temp file for the size check.
+		file_put_contents( $tmp, str_repeat( 'a', SupportRequest::SCREENSHOT_MAX_BYTES + 1 ) );
+
+		$result = SupportDelivery::validateScreenshot(
+			[
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+				'name'     => 'shot.png',
+				'type'     => 'image/png',
+				'tmp_name' => $tmp,
+			]
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes the temp file it created.
+		unlink( $tmp );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'support_screenshot_too_large', $result->get_error_code() );
 	}
 
 	/**

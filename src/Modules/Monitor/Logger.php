@@ -259,7 +259,7 @@ final class Logger {
 
 		// Frontend capture runs outside any form context, the raw URI is parsed and normalized before use and never echoed.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
-		$rawUri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
 		$uri    = $this->normalizeUri( $rawUri );
 
 		if ( '' === $uri || '/' === $uri ) {

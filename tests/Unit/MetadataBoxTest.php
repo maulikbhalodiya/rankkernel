@@ -368,7 +368,11 @@ final class MetadataBoxTest extends TestCase {
 	 * Save is blocked on a bad nonce.
 	 */
 	public function test_save_blocked_on_bad_nonce(): void {
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		Functions\expect( 'update_post_meta' )->never();
 
 		$_POST = $this->classicPost();
@@ -685,6 +689,23 @@ final class MetadataBoxTest extends TestCase {
 
 		$this->assertIsArray( $this->savedMeta );
 		$this->assertSame( [ 'alpha', 'beta' ], $this->savedMeta['focus_keywords'] );
+	}
+
+	/**
+	 * A malformed array of focus keywords is ignored and stored values survive.
+	 */
+	public function test_array_focus_keywords_are_rejected_without_warning(): void {
+		$this->storedMeta = [ 'focus_keywords' => [ 'stored' ] ];
+		$_POST            = [
+			'rankkernel_meta_nonce'          => 'valid',
+			'rankkernel_meta_fields'         => '1',
+			'rankkernel_meta_focus_keywords' => [ 'alpha', 'beta' ],
+		];
+
+		$this->newBox()->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertIsArray( $this->savedMeta );
+		$this->assertSame( [ 'stored' ], $this->savedMeta['focus_keywords'] );
 	}
 
 	/**

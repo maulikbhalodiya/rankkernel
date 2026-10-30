@@ -563,6 +563,9 @@ final class ImportControllerTest extends TestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $res );
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+
+		// A rejected run must not strand the global lock for the lease window.
+		$this->assertTrue( ( new ImportLock( $this->lockDb ) )->claim( 'run-bbbb-2222' ) );
 	}
 
 	/**
@@ -680,6 +683,30 @@ final class ImportControllerTest extends TestCase {
 		$this->assertInstanceOf( WP_Error::class, $res );
 		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
 		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test the run id pattern survives WordPress schema validation.
+	 *
+	 * WordPress wraps a route schema pattern in its own delimiters
+	 * (see rest_validate_json_schema_pattern), so the constant must
+	 * not carry delimiters of its own or every real run id fails the
+	 * REST check with rest_invalid_param before reaching the controller.
+	 */
+	public function test_run_id_pattern_matches_real_ids_through_wordpress_wrapping(): void {
+		$pattern = ImportController::RUN_ID_PATTERN;
+
+		// Mirror WordPress core wrapping exactly.
+		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
+
+		foreach ( [ 'run-aaaa-1111', 'rkTest12345678', 'rkl7x2m9pq4bn8s' ] as $runId ) {
+			$this->assertSame( 1, preg_match( $wrapped, $runId ), 'valid run id must match the schema pattern: ' . $runId );
+			$this->assertSame( 1, preg_match( '/' . $pattern . '/', $runId ), 'controller check must agree: ' . $runId );
+		}
+
+		foreach ( [ '', 'short', 'has space', 'with/slash', str_repeat( 'a', 65 ) ] as $runId ) {
+			$this->assertSame( 0, preg_match( $wrapped, $runId ), 'invalid run id must not match: ' . $runId );
+		}
 	}
 
 	/**
@@ -1013,5 +1040,46 @@ final class ImportControllerTest extends TestCase {
 		$this->assertSame( 7, $data['partial']['applied'] ?? null );
 		$this->assertSame( 2, $data['partial']['skipped'] ?? null );
 		$this->assertSame( 1, $data['partial']['failed'] ?? null );
+	}
+
+	/**
+	 * Test an unexpected failure is generic and frees the lock.
+	 */
+	public function test_run_maps_unexpected_throwable_to_generic_500(): void {
+		$ctrl = new ImportController(
+			[ 'yoast' => new ImportControllerStubReader() ],
+			static function (): object {
+				return new class() {
+					/**
+					 * Fail with an internal detail that must not reach the client.
+					 *
+					 * @throws \RuntimeException Always.
+					 */
+					public function run(): void {
+						throw new \RuntimeException( 'SECRET internal detail' );
+					}
+				};
+			},
+			new ImportLock( $this->lockDb )
+		);
+
+		$res = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => 0,
+					'limit'  => 50,
+					'run_id' => 'run-cccc-3333',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_run_failed', $res->get_error_code() );
+		$this->assertSame( 500, $res->get_error_data()['status'] ?? null );
+		$this->assertStringNotContainsString( 'SECRET', $res->get_error_message() );
+		$this->assertTrue( ( new ImportLock( $this->lockDb ) )->claim( 'run-dddd-4444' ) );
 	}
 }

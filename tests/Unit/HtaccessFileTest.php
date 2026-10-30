@@ -44,6 +44,13 @@ final class HtaccessFileTest extends TestCase {
 	public static int $shortWriteBytes = 0;
 
 	/**
+	 * Writable uploads directory used for backup tests.
+	 *
+	 * @var string
+	 */
+	private string $uploadsDir = '';
+
+	/**
 	 * Dispatch for the RankKernel\Admin file_put_contents() test harness.
 	 *
 	 * @param string $filename Target path.
@@ -78,6 +85,10 @@ final class HtaccessFileTest extends TestCase {
 		$this->path      = '';
 		$this->supported = true;
 
+		$this->uploadsDir = sys_get_temp_dir() . '/rkht-uploads-' . uniqid();
+		mkdir( $this->uploadsDir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates a real writable uploads directory.
+		Functions\when( 'wp_upload_dir' )->justReturn( [ 'basedir' => $this->uploadsDir ] );
+
 		Functions\when( 'apply_filters' )->alias(
 			function ( string $hook, mixed $value ): mixed {
 				if ( 'rankkernel/htaccess/path' === $hook && '' !== $this->path ) {
@@ -98,8 +109,43 @@ final class HtaccessFileTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		$this->removeUploadsDir();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Remove the temporary uploads tree created for backup tests.
+	 */
+	private function removeUploadsDir(): void {
+		if ( '' === $this->uploadsDir || ! is_dir( $this->uploadsDir ) ) {
+			return;
+		}
+
+		$backupDir = $this->uploadsDir . '/rankkernel-htaccess-backups';
+		$files     = glob( $backupDir . '/*' );
+
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				if ( is_file( $file ) ) {
+					unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temporary files.
+				}
+			}
+		}
+
+		foreach ( [ 'index.php', '.htaccess' ] as $guard ) {
+			$guardPath = $backupDir . '/' . $guard;
+
+			if ( is_file( $guardPath ) ) {
+				unlink( $guardPath ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temporary guard files.
+			}
+		}
+
+		if ( is_dir( $backupDir ) ) {
+			rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temporary directory.
+		}
+
+		rmdir( $this->uploadsDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temporary directory.
 	}
 
 	/**
@@ -129,6 +175,39 @@ final class HtaccessFileTest extends TestCase {
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 		unlink( $result['backup'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backup.
+	}
+
+	/**
+	 * Test save refuses to write when no guarded backup location exists.
+	 *
+	 * The old fallback wrote a timestamped backup beside the live file, which
+	 * some servers expose over HTTP. A missing safe location must fail closed.
+	 */
+	public function test_save_refuses_when_no_safe_backup_location_exists(): void {
+		Functions\when( 'wp_upload_dir' )->justReturn(
+			[ 'basedir' => '/proc/rankkernel-no-such-dir-' . uniqid() ]
+		);
+
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
+
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$file = new HtaccessFile();
+
+		$this->assertSame( '', $file->backupPath() );
+
+		$result = $file->save( "# changed\n" );
+
+		$this->assertFalse( $result['saved'] );
+		$this->assertSame( 'backup_unavailable', $result['reason'] );
+		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
+		$this->assertSame( array(), (array) glob( $temp . '.rankkernel-backup-*' ), 'No backup may be written beside the live file.' );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 
 	/**

@@ -358,10 +358,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 
@@ -383,6 +382,59 @@ final class InstantIndexingPageTest extends TestCase {
 
 		$this->assertSame( bin2hex( $old ), bin2hex( $this->settings->getKey() ), 'the key accessor must return the old key byte for byte' );
 		$this->assertSame( $old, $option['api_key'] ?? '', 'the stored option must still hold the old key' );
+	}
+
+	/**
+	 * Test an unknown action marker dies before any nonce check or write.
+	 */
+	public function test_unknown_action_is_ignored_before_any_nonce_check(): void {
+		$nonceActions = [];
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): int {
+				$nonceActions[] = $action;
+
+				return 1;
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'drop_everything' ];
+
+		$this->page()->maybeHandleSave();
+
+		$this->assertSame( [], $nonceActions, 'an unknown action must not reach a nonce check' );
+	}
+
+	/**
+	 * Test dispatch verifies the nonce mapped to the selected action.
+	 */
+	public function test_dispatch_verifies_the_nonce_for_the_selected_action(): void {
+		$nonceActions = [];
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( string $action = '' ) use ( &$nonceActions ): int {
+				$nonceActions[] = $action;
+
+				return 1;
+			}
+		);
+
+		$_POST = [ 'rankkernel_indexnow_action' => 'save' ];
+		$this->page()->maybeHandleSave();
+
+		$_POST = [
+			'rankkernel_indexnow_action' => 'submit',
+			'rankkernel_indexnow_urls'   => 'https://example.com/audit-post',
+		];
+		$this->page( static fn(): array => [ 'storage_failed' => false ] )->maybeHandleSave();
+
+		$this->assertSame(
+			[ 'rankkernel_indexnow_save', 'rankkernel_indexnow_submit' ],
+			$nonceActions,
+			'each action must verify its own nonce before the handler runs'
+		);
 	}
 
 	/**
@@ -428,7 +480,11 @@ final class InstantIndexingPageTest extends TestCase {
 	 */
 	public function test_manual_submit_is_rejected_without_a_valid_nonce(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
+			}
+		);
 		$_POST = [
 			'rankkernel_indexnow_action' => 'submit',
 			'rankkernel_indexnow_urls'   => 'https://example.com/a',
@@ -1552,10 +1608,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 
@@ -2162,10 +2217,9 @@ final class InstantIndexingPageTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function ( string $action = '' ) use ( &$nonceActions ): bool {
+			static function ( string $action = '' ) use ( &$nonceActions ): void {
 				$nonceActions[] = $action;
-
-				return false;
+				wp_die( 'Bad nonce', '', [ 'response' => 403 ] );
 			}
 		);
 

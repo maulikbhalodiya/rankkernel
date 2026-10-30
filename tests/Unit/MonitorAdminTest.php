@@ -345,8 +345,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -509,8 +508,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -807,6 +805,12 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Query strings', $html );
 		$this->assertStringContainsString( 'Exclusions', $html );
 		$this->assertStringContainsString( 'never stored', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-advanced-fields-desc rk-advanced-fields-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-retention-desc rk-retention-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-max-rows-desc rk-max-rows-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-budget-desc rk-flood-budget-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-window-desc rk-flood-window-hint"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-ignore-query-desc rk-ignore-query-hint"', $html );
 	}
 
 	/**
@@ -898,8 +902,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -961,8 +964,7 @@ final class MonitorAdminTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -1145,5 +1147,23 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-valuemax="100"', $html );
 		$this->assertStringContainsString( 'aria-label="404 Log Storage Usage"', $html );
 		$this->assertStringContainsString( 'aria-valuetext="2 of 1,000 entries used"', $html );
+
+		$this->assertStringContainsString( 'id="rk-advanced-fields" name="rk_advanced_fields" value="1"  aria-describedby="rk-advanced-fields-desc rk-advanced-fields-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-advanced-fields-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-retention" name="rk_retention_days"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-retention-desc rk-retention-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-retention-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-max-rows" name="rk_max_rows"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-max-rows-desc rk-max-rows-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-max-rows-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-flood-budget" name="rk_flood_budget"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-budget-desc rk-flood-budget-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-flood-budget-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-flood-window" name="rk_flood_window"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-flood-window-desc rk-flood-window-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-flood-window-desc"', $html );
+		$this->assertStringContainsString( 'id="rk-ignore-query" name="rk_ignore_query"', $html );
+		$this->assertStringContainsString( 'aria-describedby="rk-ignore-query-desc rk-ignore-query-hint"', $html );
+		$this->assertStringContainsString( 'id="rk-ignore-query-desc"', $html );
 	}
 }

@@ -455,7 +455,7 @@ final class PluginTest extends TestCase {
 
 		\rankkernel_deactivate();
 
-		$this->assertSame( [ 'rankkernel_daily_prune' ], $cleared );
+		$this->assertSame( [ 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ], $cleared );
 	}
 
 	/**
@@ -585,5 +585,17 @@ final class PluginTest extends TestCase {
 
 		$readme_source = (string) file_get_contents( $root . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local plugin file.
 		$this->assertStringContainsString( '== External Services ==', $readme_source, 'readme.txt must use plural == External Services == header' );
+	}
+
+	/**
+	 * Test the AI disclosure documentation exists and follows WordPress.org AI Guidelines.
+	 */
+	public function test_ai_disclosure_record_exists_and_matches_format(): void {
+		$root = dirname( __DIR__, 2 );
+
+		$this->assertFileExists( $root . '/docs/ai-disclosure.md', 'docs/ai-disclosure.md must exist for WordPress.org AI Guidelines compliance' );
+
+		$source = (string) file_get_contents( $root . '/docs/ai-disclosure.md' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads a local documentation file.
+		$this->assertStringContainsString( '- **AI assistance:**', $source, 'ai-disclosure.md must contain standard AI assistance disclosure header' );
 	}
 }

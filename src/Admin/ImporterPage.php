@@ -243,8 +243,13 @@ final class ImporterPage {
 							$versionBadge = '';
 							if ( function_exists( 'get_plugin_data' ) ) {
 								$file = self::PLUGIN_FILE_MAP[ $id ] ?? '';
-								if ( '' !== $file && defined( 'WP_PLUGIN_DIR' ) ) {
-									$data = \get_plugin_data( WP_PLUGIN_DIR . '/' . $file );
+								$path = ( '' !== $file && defined( 'WP_PLUGIN_DIR' ) ) ? WP_PLUGIN_DIR . '/' . $file : '';
+
+								// Source plugins are usually absent: reading a
+								// missing main file would raise PHP warnings
+								// on the Detect screen, so skip it quietly.
+								if ( '' !== $path && is_readable( $path ) ) {
+									$data = \get_plugin_data( $path );
 									if ( is_array( $data ) && ! empty( $data['Version'] ) ) {
 										$versionBadge = (string) $data['Version'];
 									}

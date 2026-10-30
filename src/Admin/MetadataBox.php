@@ -668,14 +668,7 @@ final class MetadataBox {
 			return;
 		}
 
-		$verified = check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
 
 		$existing = $this->readPayload( $postId );
 		$merged   = $this->mergePosted( $existing );
@@ -1182,7 +1175,7 @@ final class MetadataBox {
 			$key = 'rankkernel_meta_' . $name;
 
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
-			if ( ! isset( $_POST[ $key ] ) ) {
+			if ( ! isset( $_POST[ $key ] ) || ! is_string( $_POST[ $key ] ) ) {
 				continue;
 			}
 
@@ -1191,7 +1184,7 @@ final class MetadataBox {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
-		if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) ) {
+		if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) && is_string( $_POST['rankkernel_meta_focus_keywords'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, split and sanitized by MetaPayload::sanitize below.
 			$postedKeywords = (string) wp_unslash( $_POST['rankkernel_meta_focus_keywords'] );
 
@@ -1208,7 +1201,7 @@ final class MetadataBox {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
-		if ( isset( $_POST['rankkernel_meta_canonical'] ) ) {
+		if ( isset( $_POST['rankkernel_meta_canonical'] ) && is_string( $_POST['rankkernel_meta_canonical'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, sanitized by MetaPayload::sanitize below.
 			$merged['canonical'] = (string) wp_unslash( $_POST['rankkernel_meta_canonical'] );
 		}

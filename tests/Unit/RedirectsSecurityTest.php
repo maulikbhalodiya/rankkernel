@@ -69,6 +69,7 @@ final class RedirectsSecurityTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		\RankKernel\Modules\Redirects\RedirectsSettings::resetCache();
 
 		if ( ! defined( 'ARRAY_A' ) ) {
 			define( 'ARRAY_A', 'ARRAY_A' );

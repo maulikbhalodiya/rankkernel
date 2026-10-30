@@ -38,6 +38,20 @@ class ProductPiece implements PieceInterface {
 	private readonly SettingsStore $settings;
 
 	/**
+	 * Single-slot memo for Woo fields, keyed by queried id.
+	 *
+	 * @var int|null
+	 */
+	private ?int $wooMemoId = null;
+
+	/**
+	 * Memoized Woo fields for the slot above.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $wooMemo = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsStore|null $settings Optional settings store.
@@ -90,7 +104,7 @@ class ProductPiece implements PieceInterface {
 		$fields = SchemaHelpers::resolvedFields( $ctx );
 
 		if ( $this->isWooCommerceAvailable() ) {
-			$woo = $this->readWooFields( $ctx->queriedId() );
+			$woo = $this->memoizedWooFields( $ctx->queriedId() );
 
 			foreach ( [ 'price', 'ratingValue', 'datePublished' ] as $key ) {
 				$value = isset( $woo[ $key ] ) ? trim( (string) $woo[ $key ] ) : '';
@@ -132,7 +146,7 @@ class ProductPiece implements PieceInterface {
 			return [];
 		}
 
-		$woo = $this->isWooCommerceAvailable() ? $this->readWooFields( $ctx->queriedId() ) : [];
+		$woo = $this->isWooCommerceAvailable() ? $this->memoizedWooFields( $ctx->queriedId() ) : [];
 
 		$node = [
 			'@type' => 'Product',
@@ -204,6 +218,25 @@ class ProductPiece implements PieceInterface {
 		}
 
 		return $this->wooFields( $postId, 'wc_get_product', 'get_woocommerce_currency' );
+	}
+
+	/**
+	 * Single-slot memo wrapper around readWooFields.
+	 *
+	 * @param int $postId Current post id.
+	 * @return array<string, string>
+	 */
+	protected function memoizedWooFields( int $postId ): array {
+		if ( $this->wooMemoId === $postId ) {
+			return $this->wooMemo;
+		}
+
+		$result = $this->readWooFields( $postId );
+
+		$this->wooMemoId = $postId;
+		$this->wooMemo   = $result;
+
+		return $result;
 	}
 
 	/**

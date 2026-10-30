@@ -194,6 +194,52 @@ final class AdminViewAccessibilityTest extends TestCase {
 	}
 
 	/**
+	 * Form controls carry explicit aria-describedby associations pointing to present hint element IDs.
+	 *
+	 * @dataProvider provide_describedby_associations
+	 *
+	 * @param string $file         View file path.
+	 * @param string $controlId    Control ID.
+	 * @param string $expectedDesc Expected aria-describedby reference ID.
+	 */
+	public function test_describedby_associations( string $file, string $controlId, string $expectedDesc ): void {
+		$html = self::source( $file );
+		$ids  = self::ids( $html );
+
+		$attrs = self::attrsFor( $html, $controlId );
+		$this->assertNotEmpty( $attrs, sprintf( 'Control #%s must exist in %s', $controlId, basename( $file ) ) );
+
+		$describedBy = self::attr( $attrs, 'aria-describedby' );
+		$this->assertSame(
+			$expectedDesc,
+			$describedBy,
+			sprintf( 'Control #%s in %s must carry aria-describedby="%s"', $controlId, basename( $file ), $expectedDesc )
+		);
+
+		$this->assertArrayHasKey(
+			$expectedDesc,
+			$ids,
+			sprintf( '%s must contain description hint element with id="%s"', basename( $file ), $expectedDesc )
+		);
+	}
+
+	/**
+	 * The explicit aria-describedby associations to verify.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public static function provide_describedby_associations(): array {
+		$root = dirname( __DIR__, 2 ) . '/src/Admin/Views';
+
+		return array(
+			'htaccess directory browsing' => array( $root . '/sections/htaccess.php', 'rk-htaccess-block_directory_browsing', 'rk-htaccess-block_directory_browsing-hint' ),
+			'htaccess AI crawlers'        => array( $root . '/sections/htaccess.php', 'rk-htaccess-block_ai_crawlers', 'rk-htaccess-block_ai_crawlers-hint' ),
+			'llms summary textarea'       => array( $root . '/sections/llms.php', 'rk-llms-summary', 'rk-llms-summary-hint' ),
+			'llms content textarea'       => array( $root . '/sections/llms.php', 'rk-llms-content', 'rk-llms-content-hint' ),
+		);
+	}
+
+	/**
 	 * Read a view with PHP blocks collapsed to a stable placeholder.
 	 *
 	 * @param string $file View file path.

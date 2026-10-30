@@ -47,6 +47,14 @@ final class SchemaMetabox {
 	private const EXPORT_ACTION = 'rankkernel_schema_export';
 
 	/**
+	 * Maximum accepted schema import size in bytes.
+	 *
+	 * Schema documents are small; the cap keeps a hostile upload from
+	 * being read into memory before JSON validation.
+	 */
+	private const MAX_IMPORT_BYTES = 1048576;
+
+	/**
 	 * Manual field keys, short and generic.
 	 *
 	 * Every key a schema piece reads lives here, so the builder UI
@@ -631,14 +639,7 @@ final class SchemaMetabox {
 			return;
 		}
 
-		$verified = check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
 
 		$import = $this->readImportFile();
 
@@ -662,6 +663,7 @@ final class SchemaMetabox {
 		}
 
 		$customRaw = isset( $_POST['rankkernel_schema_custom'] )
+			&& is_string( $_POST['rankkernel_schema_custom'] )
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed here, sanitized or validated on the following statements.
 			? (string) wp_unslash( $_POST['rankkernel_schema_custom'] )
 			: '';
@@ -747,6 +749,8 @@ final class SchemaMetabox {
 	private function postedType(): string {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 		$raw = isset( $_POST['rankkernel_schema_type'] )
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+			&& is_string( $_POST['rankkernel_schema_type'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave, unslashed here, validated against an allow list below.
 			? trim( (string) wp_unslash( $_POST['rankkernel_schema_type'] ) )
 			: '';
@@ -813,12 +817,12 @@ final class SchemaMetabox {
 			}
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$question = isset( $row['question'] )
+			$question = isset( $row['question'] ) && is_string( $row['question'] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 				? sanitize_text_field( (string) wp_unslash( $row['question'] ) )
 				: '';
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$answer = isset( $row['answer'] )
+			$answer = isset( $row['answer'] ) && is_string( $row['answer'] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 				? sanitize_text_field( (string) wp_unslash( $row['answer'] ) )
 				: '';
@@ -839,17 +843,17 @@ final class SchemaMetabox {
 	 */
 	private function postedHowto(): array {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawName = isset( $_POST['rankkernel_schema_howto_name'] )
+		$rawName = isset( $_POST['rankkernel_schema_howto_name'] ) && is_string( $_POST['rankkernel_schema_howto_name'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_name'] ) )
 			: '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] )
+		$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] ) && is_string( $_POST['rankkernel_schema_howto_totaltime'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_totaltime'] ) )
 			: '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] )
+		$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] ) && is_string( $_POST['rankkernel_schema_howto_cost'] )
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_cost'] ) )
 			: '';
@@ -866,17 +870,17 @@ final class SchemaMetabox {
 
 				$steps[] = [
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'title' => isset( $row['title'] )
+					'title' => isset( $row['title'] ) && is_string( $row['title'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? sanitize_text_field( (string) wp_unslash( $row['title'] ) )
 						: '',
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'text'  => isset( $row['text'] )
+					'text'  => isset( $row['text'] ) && is_string( $row['text'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? sanitize_text_field( (string) wp_unslash( $row['text'] ) )
 						: '',
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'image' => isset( $row['image'] )
+					'image' => isset( $row['image'] ) && is_string( $row['image'] )
                         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
 						? esc_url_raw( (string) wp_unslash( $row['image'] ) )
 						: '',
@@ -947,6 +951,21 @@ final class SchemaMetabox {
 			];
 		}
 
+		// The reported size is client-controlled, so stat the verified local
+		// temp path instead. A file that cannot be statted or is empty is
+		// rejected before its contents are read.
+		clearstatcache( true, $tmp );
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- the temp path was just checked; a failed stat is handled as invalid.
+		$size = @filesize( $tmp );
+
+		if ( false === $size || 0 === $size || $size > self::MAX_IMPORT_BYTES ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
+		}
+
 		$mimes = [ 'json' => 'application/json' ];
 
 		// wp_check_filetype_and_ext() cross checks the extension against the
@@ -996,7 +1015,15 @@ final class SchemaMetabox {
 			];
 		}
 
-		$decoded = json_decode( $contents, true );
+		if ( strlen( $contents ) > self::MAX_IMPORT_BYTES ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
+		}
+
+		$decoded = json_decode( $contents, true, 64 );
 
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
 			return [
@@ -1062,14 +1089,7 @@ final class SchemaMetabox {
 			);
 		}
 
-		$verified = check_admin_referer( self::EXPORT_ACTION . '_' . $postId );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( self::EXPORT_ACTION . '_' . $postId );
 
 		$schema = $this->readSchema( $this->readPayload( $postId ) );
 

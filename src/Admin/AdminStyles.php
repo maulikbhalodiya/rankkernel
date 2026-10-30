@@ -88,6 +88,32 @@ final class AdminStyles {
 	}
 
 	/**
+	 * Mark the document as JavaScript-capable before the admin body renders.
+	 *
+	 * The no-JavaScript fallback stylesheet is scoped to `html:not(.rk-js)`.
+	 * This tiny head script adds the class as early as possible so the
+	 * fallback rules stay inert for every JavaScript-enabled request. When
+	 * JavaScript is disabled the class never appears and the fallback rules
+	 * reveal panels that would otherwise depend on script-driven toggles.
+	 *
+	 * Registered as a source-less handle so WordPress prints only the inline
+	 * script, in the head, through the supported inline-script API.
+	 *
+	 * @return void
+	 */
+	public static function enqueueJsFlag(): void {
+		if ( ! function_exists( 'wp_register_script' ) || ! function_exists( 'wp_enqueue_script' ) || ! function_exists( 'wp_add_inline_script' ) ) {
+			return;
+		}
+
+		$handle = 'rankkernel-js-flag';
+
+		wp_register_script( $handle, false, [], Plugin::version(), false );
+		wp_enqueue_script( $handle );
+		wp_add_inline_script( $handle, 'document.documentElement.classList.add("rk-js");' );
+	}
+
+	/**
 	 * Register and enqueue one stylesheet handle.
 	 *
 	 * @param string        $handle     Stylesheet handle.

@@ -78,6 +78,20 @@ final class SupportPageTest extends TestCase {
 	private array $uploadMimes = [];
 
 	/**
+	 * Real temporary file used as an uploaded screenshot.
+	 *
+	 * @var string
+	 */
+	private string $tmpShot = '';
+
+	/**
+	 * Second real temporary file for multi-upload tests.
+	 *
+	 * @var string
+	 */
+	private string $tmpShot2 = '';
+
+	/**
 	 * Set up doubles.
 	 */
 	protected function setUp(): void {
@@ -110,6 +124,13 @@ final class SupportPageTest extends TestCase {
 		$this->nonceOk      = true;
 		$this->uploadCalls  = 0;
 		$this->uploadMimes  = [];
+
+		$this->tmpShot  = (string) tempnam( sys_get_temp_dir(), 'rk-shot-' );
+		$this->tmpShot2 = (string) tempnam( sys_get_temp_dir(), 'rk-shot-' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixtures create real temp files for the size check.
+		file_put_contents( $this->tmpShot, 'x' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixtures create real temp files for the size check.
+		file_put_contents( $this->tmpShot2, 'x' );
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $text ): string => $text );
@@ -160,12 +181,28 @@ final class SupportPageTest extends TestCase {
 			]
 		);
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
-		// No opinion by default, so the browser supplied type still decides.
+		// Identify the file from the submitted name, as core does after sniffing.
 		Functions\when( 'wp_check_filetype_and_ext' )->alias(
-			static fn (): array => [
-				'ext'  => false,
-				'type' => false,
-			]
+			static function ( string $path, string $filename ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+				$ext = strtolower( (string) pathinfo( $filename, PATHINFO_EXTENSION ) );
+				$map = [
+					'png'  => 'image/png',
+					'jpg'  => 'image/jpeg',
+					'jpeg' => 'image/jpeg',
+					'gif'  => 'image/gif',
+					'webp' => 'image/webp',
+				];
+
+				return isset( $map[ $ext ] )
+					? [
+						'ext'  => $ext,
+						'type' => $map[ $ext ],
+					]
+					: [
+						'ext'  => false,
+						'type' => false,
+					];
+			}
 		);
 		Functions\when( 'wp_handle_upload' )->alias(
 			function ( $file, $overrides = [] ): array {
@@ -233,6 +270,13 @@ final class SupportPageTest extends TestCase {
 		$_GET   = [];
 		$_FILES = [];
 
+		foreach ( [ $this->tmpShot, $this->tmpShot2 ] as $tmp ) {
+			if ( '' !== $tmp && file_exists( $tmp ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes the temp files it created.
+				unlink( $tmp );
+			}
+		}
+
 		parent::tearDown();
 	}
 
@@ -274,7 +318,11 @@ final class SupportPageTest extends TestCase {
 	 * A failed nonce check is refused.
 	 */
 	public function test_a_failed_nonce_check_is_refused(): void {
-		$this->nonceOk = false;
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		$this->postValid();
 
 		$this->expectException( \RuntimeException::class );
@@ -393,6 +441,25 @@ final class SupportPageTest extends TestCase {
 	}
 
 	/**
+	 * Array input is ignored instead of being cast to the string "Array".
+	 */
+	public function test_array_text_fields_are_ignored_without_warnings(): void {
+		$this->postValid(
+			[
+				'category' => [ 'bug' ],
+				'subject'  => [ 'Array subject' ],
+				'message'  => [ 'Array message' ],
+				'email'    => [ 'array@example.com' ],
+			]
+		);
+
+		( new SupportPage() )->maybeHandleSave();
+
+		$this->assertSame( [], $this->mail );
+		$this->assertStringContainsString( 'rk_support=invalid', $this->lastRedirect );
+	}
+
+	/**
 	 * A stored screenshot rides along with the mail and is then removed.
 	 */
 	public function test_a_stored_screenshot_is_attached_then_removed(): void {
@@ -404,7 +471,7 @@ final class SupportPageTest extends TestCase {
 				'size'     => 1024,
 				'name'     => 'shot.png',
 				'type'     => 'image/png',
-				'tmp_name' => '/tmp/shot.png',
+				'tmp_name' => $this->tmpShot,
 			],
 		];
 
@@ -426,7 +493,7 @@ final class SupportPageTest extends TestCase {
 			SupportRequest::FIELD_SCREENSHOT => [
 				'name'     => [ 'a.png', 'b.png' ],
 				'type'     => [ 'image/png', 'image/png' ],
-				'tmp_name' => [ '/tmp/a.png', '/tmp/b.png' ],
+				'tmp_name' => [ $this->tmpShot, $this->tmpShot2 ],
 				'error'    => [ UPLOAD_ERR_OK, UPLOAD_ERR_OK ],
 				'size'     => [ 1024, 1024 ],
 			],
@@ -476,7 +543,7 @@ final class SupportPageTest extends TestCase {
 				'size'     => 1024,
 				'name'     => 'shot.png',
 				'type'     => 'image/png',
-				'tmp_name' => '/tmp/shot.png',
+				'tmp_name' => $this->tmpShot,
 			],
 		];
 

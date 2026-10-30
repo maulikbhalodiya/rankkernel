@@ -684,7 +684,11 @@ final class SchemaMetaboxTest extends TestCase {
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 		Functions\expect( 'update_post_meta' )->never();
 
 		$_POST = $this->validPost();
@@ -990,6 +994,56 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Test save import rejects a file larger than the accepted cap before parsing.
+	 */
+	public function test_save_import_oversized_file_fails_closed(): void {
+		$this->primeImportSave();
+
+		$tmp = $this->writeImportTmp( str_repeat( 'x', 1048577 ) );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => 'oversized.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 1048577,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
+	 * Test save import rejects JSON nested beyond the accepted depth.
+	 */
+	public function test_save_import_deeply_nested_json_fails_closed(): void {
+		$this->primeImportSave();
+
+		$tmp = $this->writeImportTmp( str_repeat( '[', 70 ) . str_repeat( ']', 70 ) );
+
+		try {
+			$redirect = $this->runImportSave(
+				[
+					'name'     => 'deep.json',
+					'type'     => 'application/json',
+					'tmp_name' => $tmp,
+					'error'    => UPLOAD_ERR_OK,
+					'size'     => 140,
+				]
+			);
+
+			$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-import', $redirect );
+		} finally {
+			unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test removes its own temp file.
+		}
+	}
+
+	/**
 	 * Stub the WordPress calls the schema import save path needs.
 	 *
 	 * @param bool $expectSave Whether the import is expected to write meta.
@@ -1256,7 +1310,11 @@ final class SchemaMetaboxTest extends TestCase {
 	 */
 	public function test_export_bad_nonce_rejected(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
 
 		$_GET = [ 'post' => '5' ];
 

@@ -206,7 +206,7 @@ final class SupportDelivery {
 			);
 		}
 
-		$size = isset( $file['size'] ) ? (int) $file['size'] : 0;
+		$size = isset( $file['size'] ) && is_scalar( $file['size'] ) ? (int) $file['size'] : 0;
 
 		if ( SupportRequest::SCREENSHOT_MAX_BYTES < $size ) {
 			return new WP_Error(
@@ -215,9 +215,9 @@ final class SupportDelivery {
 			);
 		}
 
-		$name = isset( $file['name'] ) ? (string) $file['name'] : '';
-		$type = isset( $file['type'] ) ? (string) $file['type'] : '';
-		$tmp  = isset( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+		$type = isset( $file['type'] ) && is_string( $file['type'] ) ? $file['type'] : '';
+		$tmp  = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
 
 		if ( '' === $tmp || ! is_uploaded_file( $tmp ) ) {
 			return new WP_Error(
@@ -227,17 +227,45 @@ final class SupportDelivery {
 		}
 
 		// The browser-supplied type is a hint, not evidence, so the file's own
-		// contents decide what it is.
+		// contents decide what it is. A checker that cannot identify the file
+		// fails closed rather than falling back to the client-supplied type.
 		$checked = wp_check_filetype_and_ext( $tmp, $name, SupportRequest::screenshotMimes() );
 
-		if ( ! empty( $checked['type'] ) ) {
-			$type = (string) $checked['type'];
+		if ( ! is_array( $checked ) || empty( $checked['ext'] ) || empty( $checked['type'] ) ) {
+			return new WP_Error(
+				'support_screenshot_type',
+				__( 'The screenshot must be a PNG, JPEG, GIF or WebP image.', 'rankkernel' )
+			);
 		}
+
+		$type = (string) $checked['type'];
 
 		if ( ! in_array( $type, SupportRequest::screenshotTypes(), true ) ) {
 			return new WP_Error(
 				'support_screenshot_type',
 				__( 'The screenshot must be a PNG, JPEG, GIF or WebP image.', 'rankkernel' )
+			);
+		}
+
+		// The reported size is client-supplied. Measure the temporary file
+		// itself before accepting it, otherwise a request can claim a small
+		// size for a larger upload.
+		clearstatcache( true, $tmp );
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a failed stat on the verified upload temp path is handled as a rejection.
+		$actual = @filesize( $tmp );
+
+		if ( false === $actual || 0 === $actual ) {
+			return new WP_Error(
+				'support_screenshot_failed',
+				__( 'The screenshot could not be read. Please try again.', 'rankkernel' )
+			);
+		}
+
+		if ( SupportRequest::SCREENSHOT_MAX_BYTES < $actual ) {
+			return new WP_Error(
+				'support_screenshot_too_large',
+				__( 'That screenshot is too large. Please keep it under 2 MB.', 'rankkernel' )
 			);
 		}
 

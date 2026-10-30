@@ -587,6 +587,10 @@
 			var page = state.pages[ kind ];
 			if ( page ) {
 				lines.push( kind + ': ' + page.kindTotal + __( ' eligible, ', 'rankkernel' ) + excludeCountFor( kind ) + __( ' excluded', 'rankkernel' ) );
+				var loaded = ( page.rows || [] ).length;
+				if ( page.kindTotal > loaded ) {
+					lines.push( kind + ': ' + __( 'preview shows ', 'rankkernel' ) + loaded + __( ' of ', 'rankkernel' ) + page.kindTotal + __( '; import will process all eligible rows.', 'rankkernel' ) );
+				}
 			}
 		} );
 		var conflictCount = 0;
@@ -740,7 +744,7 @@
 		}
 		return post( cfg.restBase + '/' + source + '/run', body ).then( function ( data ) {
 			var info = state.kinds[ kind ] || { processed: 0, applied: 0, skipped: 0, failed: 0 };
-			info.processed += Math.min( CHUNK, Math.max( 0, ( data.total || 0 ) - info.processed ) );
+			info.processed += ( data.applied || 0 ) + ( data.skipped || 0 ) + ( data.failed || 0 );
 			info.applied += data.applied || 0;
 			info.skipped += data.skipped || 0;
 			info.failed += data.failed || 0;

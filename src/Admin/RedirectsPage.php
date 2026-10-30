@@ -219,7 +219,7 @@ final class RedirectsPage {
 
 		// Read only routing flag, the row handler verifies capability plus nonce.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only routing flag, the row handler verifies capability plus nonce, unslashed here, sanitized on the following statement.
-		$rawAction = isset( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';
+		$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';
 		$action    = sanitize_key( $rawAction );
 
 		if ( 'export' === $action ) {
@@ -711,7 +711,7 @@ final class RedirectsPage {
 
 		// Read only display flags.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$notice = isset( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';
+		$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';
 
 		if ( '' !== $notice ) {
 			$success = $this->successNotice( $notice );
@@ -721,7 +721,7 @@ final class RedirectsPage {
 
 		// Read only display flags.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$errorFlag = isset( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';
+		$errorFlag = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';
 
 		if ( '' !== $errorFlag ) {
 			$error = $this->errorNotice( $errorFlag );
@@ -729,7 +729,7 @@ final class RedirectsPage {
 
 		// Read only display flags, sanitized and escaped below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, sanitized and escaped below, unslashed here, sanitized on the following statement.
-		$rawChain = isset( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
+		$rawChain = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';
 		$chain    = sanitize_text_field( $rawChain );
 
 		// Read only display flags.
@@ -749,7 +749,7 @@ final class RedirectsPage {
 
 			// Read only display flag, sanitized and escaped below.
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, sanitized and escaped below, unslashed here, sanitized on the following statement.
-			$rawFinal   = isset( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';
+			$rawFinal   = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';
 			$chainFinal = sanitize_text_field( $rawFinal );
 
 			if ( ! $chainUnknown && '' !== $chainFinal ) {
@@ -815,7 +815,7 @@ final class RedirectsPage {
 		if ( 'loop' === $error ) {
 			// Read only display flag, sanitized and escaped below.
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, sanitized and escaped below, unslashed here, sanitized on the following statement.
-			$rawPath = isset( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';
+			$rawPath = isset( $_GET['rk_path'] ) && is_string( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';
 			$path    = sanitize_text_field( $rawPath );
 
 			return sprintf(
@@ -1108,8 +1108,8 @@ final class RedirectsPage {
 	private function postedReturn(): string {
 		// Verified by the caller in requireAccess before this helper runs.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by the caller in requireAccess before this helper runs, unslashed here, sanitized on the following statement.
-		$raw   = isset( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';
-		$value = is_string( $raw ) ? sanitize_key( $raw ) : '';
+		$raw   = isset( $_POST['rk_return'] ) && is_string( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';
+		$value = sanitize_key( $raw );
 
 		return NotFoundPage::SLUG === $value ? $value : '';
 	}
@@ -1125,8 +1125,8 @@ final class RedirectsPage {
 	private function requestedReturn(): string {
 		// Read only display value, validated against the monitor slug below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display value, validated against the monitor slug below, unslashed here, sanitized on the following statement.
-		$raw   = isset( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';
-		$value = is_string( $raw ) ? sanitize_key( $raw ) : '';
+		$raw   = isset( $_GET['rk_return'] ) && is_string( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';
+		$value = sanitize_key( $raw );
 
 		return NotFoundPage::SLUG === $value ? $value : '';
 	}
@@ -1738,8 +1738,8 @@ final class RedirectsPage {
 
 		// Verified in requireAccess, value unslashed then cast to int below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawRule = isset( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : 0;
-		$id      = max( 0, (int) ( is_scalar( $rawRule ) ? $rawRule : 0 ) );
+		$rawRule = isset( $_GET['rule'] ) && is_string( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : '0';
+		$id      = max( 0, (int) $rawRule );
 
 		if ( $id <= 0 || null === $this->repository->get( $id ) ) {
 			$this->redirect( '&rk_error=not_found' );
@@ -1786,13 +1786,13 @@ final class RedirectsPage {
 
 		// Verified in requireAccess, value passed through sanitize_key below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, value passed through sanitize_key below, unslashed here, sanitized on the following statement.
-		$rawAction = isset( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';
+		$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';
 		$action    = sanitize_key( $rawAction );
 
 		// Verified in requireAccess, values unslashed then cast to int below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, values unslashed then cast to int below, unslashed here, sanitized or validated on the following statements.
-		$unslashedIds = isset( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];
-		$rawIds       = is_array( $unslashedIds ) ? $unslashedIds : [];
+		$unslashedIds = isset( $_POST['rule_ids'] ) && is_array( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];
+		$rawIds       = $unslashedIds;
 		$ids          = [];
 
 		foreach ( $rawIds as $rawId ) {
@@ -1862,8 +1862,8 @@ final class RedirectsPage {
 
 		// Verified in requireAccess, value unslashed then clamped to 1 to 100 below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in requireAccess, value unslashed then clamped to 1 to 100 below, unslashed here, cast to scalar on the following statement.
-		$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : 20;
-		$partial['rules_per_page'] = max( 1, min( 100, (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 20 ) ) );
+		$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) && is_string( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : '20';
+		$partial['rules_per_page'] = max( 1, min( 100, (int) $rawPerPage ) );
 
 		$this->redirectSettings->set( $partial );
 
@@ -2042,13 +2042,13 @@ final class RedirectsPage {
 	private function bulkMessage(): string {
 		// Read only display flags.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, unslashed here, sanitized on the following statement.
-		$rawBulk = isset( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';
+		$rawBulk = isset( $_GET['rk_bulk'] ) && is_string( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';
 		$bulk    = sanitize_key( $rawBulk );
 
 		// Read only display flags, value unslashed then cast to int below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawCount = isset( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : 0;
-		$count    = max( 0, (int) ( is_scalar( $rawCount ) ? $rawCount : 0 ) );
+		$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';
+		$count    = max( 0, (int) $rawCount );
 
 		if ( 'delete' === $bulk ) {
 			return sprintf(
@@ -2093,7 +2093,7 @@ final class RedirectsPage {
 
 		// Read only display flags, values validated below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, values validated below, unslashed here, validated against an allow list below.
-		$rawOpen = isset( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';
+		$rawOpen = isset( $_GET['rk_open'] ) && is_string( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';
 
 		if ( '1' === $rawOpen ) {
 			return true;
@@ -2101,8 +2101,8 @@ final class RedirectsPage {
 
 		// Read only display flags, value unslashed then cast to int below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flags, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawEdit = isset( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : 0;
-		$editId  = max( 0, (int) ( is_scalar( $rawEdit ) ? $rawEdit : 0 ) );
+		$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';
+		$editId  = max( 0, (int) $rawEdit );
 
 		if ( $editId > 0 ) {
 			return true;
@@ -2234,8 +2234,8 @@ final class RedirectsPage {
 
 		// Read only display flag, value unslashed then cast to int below.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display flag, value unslashed then cast to int below, unslashed here, cast to scalar on the following statement.
-		$rawEdit = isset( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : 0;
-		$id      = max( 0, (int) ( is_scalar( $rawEdit ) ? $rawEdit : 0 ) );
+		$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';
+		$id      = max( 0, (int) $rawEdit );
 
 		if ( $id <= 0 ) {
 			return [
@@ -2283,9 +2283,9 @@ final class RedirectsPage {
 	private function prefillSource(): string {
 		// Read only display value, sanitized and escaped by the caller.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display value, sanitized and escaped by the caller, unslashed here, sanitized on the following statement.
-		$raw = isset( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';
+		$raw = isset( $_GET['rk_source'] ) && is_string( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';
 
-		return is_string( $raw ) ? sanitize_text_field( $raw ) : '';
+		return sanitize_text_field( $raw );
 	}
 
 	/**
@@ -2300,10 +2300,10 @@ final class RedirectsPage {
 	 */
 	private function listFilters( array $input ): array {
 		// Read only display flag, value sanitized on the following statement.
-		$search = isset( $input['s'] ) ? sanitize_text_field( (string) wp_unslash( $input['s'] ) ) : '';
+		$search = isset( $input['s'] ) && is_string( $input['s'] ) ? sanitize_text_field( (string) wp_unslash( $input['s'] ) ) : '';
 
 		// Read only display flag, value validated below.
-		$rawStatus = isset( $input['rk_status'] ) ? (string) wp_unslash( $input['rk_status'] ) : 'all';
+		$rawStatus = isset( $input['rk_status'] ) && is_string( $input['rk_status'] ) ? (string) wp_unslash( $input['rk_status'] ) : 'all';
 		$status    = sanitize_key( $rawStatus );
 
 		if ( ! in_array( $status, [ 'all', 'active', 'inactive' ], true ) ) {
@@ -2311,7 +2311,7 @@ final class RedirectsPage {
 		}
 
 		// Read only display flag, value validated below.
-		$rawMatch = isset( $input['rk_match'] ) ? (string) wp_unslash( $input['rk_match'] ) : '';
+		$rawMatch = isset( $input['rk_match'] ) && is_string( $input['rk_match'] ) ? (string) wp_unslash( $input['rk_match'] ) : '';
 		$match    = sanitize_key( $rawMatch );
 
 		if ( '' !== $match && ! Normalizer::isMatchType( $match ) ) {
@@ -2319,7 +2319,7 @@ final class RedirectsPage {
 		}
 
 		// Read only display flag, value validated below.
-		$rawCode = isset( $input['rk_code'] ) ? (string) wp_unslash( $input['rk_code'] ) : '';
+		$rawCode = isset( $input['rk_code'] ) && is_string( $input['rk_code'] ) ? (string) wp_unslash( $input['rk_code'] ) : '';
 		$code    = sanitize_key( $rawCode );
 
 		if ( '' !== $code && ! Normalizer::isCode( $code ) ) {
@@ -2327,7 +2327,7 @@ final class RedirectsPage {
 		}
 
 		// Read only display flag, value validated below.
-		$rawOrderBy = isset( $input['rk_orderby'] ) ? (string) wp_unslash( $input['rk_orderby'] ) : 'id';
+		$rawOrderBy = isset( $input['rk_orderby'] ) && is_string( $input['rk_orderby'] ) ? (string) wp_unslash( $input['rk_orderby'] ) : 'id';
 		$orderby    = sanitize_key( $rawOrderBy );
 
 		if ( ! array_key_exists( $orderby, self::SORTABLE ) && 'id' !== $orderby ) {
@@ -2335,16 +2335,16 @@ final class RedirectsPage {
 		}
 
 		// Read only display flag, value validated below.
-		$rawOrder = isset( $input['rk_order'] ) ? (string) wp_unslash( $input['rk_order'] ) : 'DESC';
+		$rawOrder = isset( $input['rk_order'] ) && is_string( $input['rk_order'] ) ? (string) wp_unslash( $input['rk_order'] ) : 'DESC';
 		$order    = 'asc' === strtolower( $rawOrder ) ? 'ASC' : 'DESC';
 
 		// Read only display flag, value unslashed then cast to int below.
-		$rawPage = isset( $input['rk_paged'] ) ? wp_unslash( $input['rk_paged'] ) : 1;
-		$page    = max( 1, (int) ( is_scalar( $rawPage ) ? $rawPage : 1 ) );
+		$rawPage = isset( $input['rk_paged'] ) && is_string( $input['rk_paged'] ) ? wp_unslash( $input['rk_paged'] ) : '1';
+		$page    = max( 1, (int) $rawPage );
 
 		// Read only display flag, value unslashed then cast to int below.
-		$rawPerPage = isset( $input['rk_per_page'] ) ? wp_unslash( $input['rk_per_page'] ) : 0;
-		$perPage    = (int) ( is_scalar( $rawPerPage ) ? $rawPerPage : 0 );
+		$rawPerPage = isset( $input['rk_per_page'] ) && is_string( $input['rk_per_page'] ) ? wp_unslash( $input['rk_per_page'] ) : '0';
+		$perPage    = (int) $rawPerPage;
 
 		return [
 			'search'     => $search,

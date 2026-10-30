@@ -219,7 +219,6 @@ $rkPluginVersion = Plugin::version();
 			</aside>
 
 			<main class="rk-schema-main">
-				<noscript><?php // phpcs:ignore WordPress.WP.EnqueuedResources ?><link rel="stylesheet" href="<?php echo esc_url( plugins_url( 'assets/css/admin-nojs.css', (string) RANKKERNEL_FILE ) ); ?>"></noscript>
 
 				<?php /* Section 4: identity card. */ ?>
 				<section class="rk-ui-card rk-schema-section" id="section-identity">

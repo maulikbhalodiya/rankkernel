@@ -89,16 +89,10 @@ final class SupportPage {
 			);
 		}
 
-		if ( ! check_admin_referer( SupportRequest::NONCE_ACTION ) ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( SupportRequest::NONCE_ACTION );
 
-		$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] )
-			? sanitize_text_field( wp_unslash( (string) $_POST[ SupportRequest::FIELD_HONEYPOT ] ) )
+		$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) && is_string( $_POST[ SupportRequest::FIELD_HONEYPOT ] )
+			? sanitize_text_field( wp_unslash( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) )
 			: '';
 
 		// A filled honeypot is reported as sent, so a bot learns nothing.
@@ -127,10 +121,10 @@ final class SupportPage {
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above, each value sanitized below.
 		$input = [
-			'category'    => sanitize_text_field( wp_unslash( (string) ( $_POST['category'] ?? '' ) ) ),
-			'subject'     => sanitize_text_field( wp_unslash( (string) ( $_POST['subject'] ?? '' ) ) ),
-			'message'     => sanitize_textarea_field( wp_unslash( (string) ( $_POST['message'] ?? '' ) ) ),
-			'email'       => sanitize_email( wp_unslash( (string) ( $_POST['email'] ?? '' ) ) ),
+			'category'    => isset( $_POST['category'] ) && is_string( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '',
+			'subject'     => isset( $_POST['subject'] ) && is_string( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '',
+			'message'     => isset( $_POST['message'] ) && is_string( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '',
+			'email'       => isset( $_POST['email'] ) && is_string( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
 			'consent'     => isset( $_POST[ SupportRequest::FIELD_CONSENT ] ) ? '1' : '',
 			// Site details are always sent, so the value is fixed here rather
 			// than read from a control that no longer exists.
@@ -213,7 +207,7 @@ final class SupportPage {
 	 * @return string Address string.
 	 */
 	private function requestIp(): string {
-		$raw = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$raw = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
 		return '' === $raw ? 'unknown' : $raw;
 	}
@@ -320,7 +314,7 @@ final class SupportPage {
 	 */
 	public function notice(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag.
-		$key = isset( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( (string) $_GET[ self::NOTICE_ARG ] ) ) : '';
+		$key = isset( $_GET[ self::NOTICE_ARG ] ) && is_string( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( $_GET[ self::NOTICE_ARG ] ) ) : '';
 
 		return in_array( $key, [ 'sent', 'invalid' ], true ) ? $key : '';
 	}

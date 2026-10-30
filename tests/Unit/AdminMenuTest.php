@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Admin\AdminMenu;
+use RankKernel\Admin\AdminStyles;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
 
@@ -324,12 +325,16 @@ final class AdminMenuTest extends TestCase {
 				$enqueued[] = $handle;
 			}
 		);
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 
 		$menu = new AdminMenu( new SettingsStore(), new ModuleEnableMap() );
 		$menu->enqueueSharedStyles( 'rankkernel_page_rankkernel-sitemap' );
 
 		$this->assertContains( 'rankkernel-admin', $enqueued );
 		$this->assertContains( 'rankkernel-ui', $enqueued );
+		$this->assertContains( AdminStyles::NOJS_HANDLE, $enqueued );
 	}
 
 	/**

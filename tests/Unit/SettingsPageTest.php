@@ -64,6 +64,11 @@ final class SettingsPageTest extends TestCase {
 		);
 		Functions\when( 'flush_rewrite_rules' )->justReturn( null );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_die' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'checked' )->alias(
 			static fn ( mixed $a, mixed $b, bool $display = true ): string => ( (string) $a === (string) $b && '' !== (string) $a ) || ( true === $a && true === $b ) ? 'checked="checked"' : '' // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress checked signature.
@@ -172,6 +177,51 @@ final class SettingsPageTest extends TestCase {
 
 		// update_option called at least twice: settings + modules, already asserted via atLeast.
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test malformed array settings are ignored without warnings.
+	 */
+	public function test_array_settings_input_is_ignored_without_warnings(): void {
+		$page = $this->makePage(
+			[
+				'title_template' => 'Stored title',
+				'twitter_site'   => '@stored',
+			]
+		);
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key ) {
+					$captured = $value;
+				}
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = [
+			'rankkernel_save'             => '1',
+			'_wpnonce'                    => 'valid',
+			'title_template'              => [ 'bad' ],
+			'description_template'        => 'New description',
+			'rk_general_separator_choice' => [ 'custom' ],
+			'twitter_site'                => [ 'bad' ],
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( 'Stored title', $captured['title_template'] );
+		$this->assertSame( 'New description', $captured['description_template'] );
+		$this->assertSame( '@stored', $captured['twitter_site'] );
 	}
 
 	/**
@@ -339,10 +389,9 @@ final class SettingsPageTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
+				wp_die( 'Bad nonce' );
 			}
 		);
 		Functions\expect( 'update_option' )->never();
@@ -372,11 +421,6 @@ final class SettingsPageTest extends TestCase {
 		$page = $this->makePage();
 
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 		Functions\expect( 'update_option' )->never();
 		Functions\expect( 'check_admin_referer' )->never();
 
@@ -626,6 +670,31 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
+	 * Test the robots section edit tab renders override textarea with aria-describedby.
+	 */
+	public function test_robots_section_edit_tab_renders_override_with_aria_describedby(): void {
+		Functions\when( 'get_post_types' )->justReturn( [ 'post' => 'post' ] );
+		Functions\when( 'get_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_object_taxonomies' )->justReturn( [] );
+		Functions\when( 'get_taxonomy' )->justReturn( false );
+
+		$this->stubCrawlPage( [ 'robots' ] );
+
+		$_GET['section']    = 'robots';
+		$_GET['robots_tab'] = 'edit';
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		ob_start();
+		$page->render();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="rk-robots-override"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-robots-override-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-robots-override-hint"', $output );
+	}
+
+	/**
 	 * Test the robots preview Sitemap line uses the router URL, never a
 	 * hardcoded example.com placeholder that could leak into saved rows.
 	 */
@@ -817,6 +886,10 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="rk-section-llms"', $output );
 		$this->assertStringContainsString( 'rk_llms_content', $output );
 		$this->assertStringContainsString( 'name="rk_llms_write"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-llms-summary-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-llms-summary-hint"', $output );
+		$this->assertStringContainsString( 'aria-describedby="rk-llms-content-hint"', $output );
+		$this->assertStringContainsString( 'id="rk-llms-content-hint"', $output );
 	}
 
 	/**
@@ -1645,11 +1718,6 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\expect( 'update_user_meta' )->never();
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 
 		$_POST = [
 			'_wpnonce'                  => 'valid',
@@ -1698,14 +1766,13 @@ final class SettingsPageTest extends TestCase {
 		( new UserProfileField() )->register();
 		$this->assertProfileHook( $hooks, 'personal_options_update' );
 
-		Functions\when( 'check_admin_referer' )->justReturn( false );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\expect( 'update_user_meta' )->never();
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
+		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
+				wp_die( 'Bad nonce' );
 			}
 		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\expect( 'update_user_meta' )->never();
 
 		$_POST = [
 			'_wpnonce'                  => 'invalid',
@@ -1735,11 +1802,6 @@ final class SettingsPageTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'update_user_meta' )->justReturn( false );
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
 
 		$_POST = [
 			'_wpnonce'                  => 'valid',

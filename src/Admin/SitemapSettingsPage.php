@@ -77,7 +77,7 @@ final class SitemapSettingsPage {
 	 */
 	public function currentTab(): string {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only display flag, unslashed here, sanitized or validated on the following statements.
-		$raw = $_GET['tab'] ?? '';
+		$raw = isset( $_GET['tab'] ) ? wp_unslash( $_GET['tab'] ) : '';
 
 		if ( ! is_string( $raw ) ) {
 			return 'general';
@@ -144,7 +144,7 @@ final class SitemapSettingsPage {
 
 		// Read only display flag, compared strictly against a literal, never stored or output.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.
@@ -323,14 +323,7 @@ final class SitemapSettingsPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_sitemap_settings' );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'rankkernel_sitemap_settings' );
 
 		$tab = $this->currentTab();
 

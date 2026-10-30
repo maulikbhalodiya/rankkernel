@@ -117,7 +117,7 @@ final class SettingsPage {
 	 */
 	public function render(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, compared strictly against a literal, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && '1' === (string) $_GET['settings-updated'];
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
 
 		// Read only failure flag, sanitized below. It rides the rk_notice
 		// query argument shared with the section notices.
@@ -340,7 +340,7 @@ final class SettingsPage {
 			$robotEditValue = ( '' !== trim( $robotOverride ) ) ? $robotOverride : $robotGenerated;
 
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only tab flag, compared strictly against a literal, never stored or output.
-			$robotTab        = 'edit' === ( $_GET['robots_tab'] ?? '' ) ? 'edit' : 'preview';
+			$robotTab        = 'edit' === ( isset( $_GET['robots_tab'] ) && is_string( $_GET['robots_tab'] ) ? (string) wp_unslash( $_GET['robots_tab'] ) : '' ) ? 'edit' : 'preview';
 			$robotValidation = RobotsDirectives::validate( $robotOverride );
 
 			$settingsSections[] = [
@@ -357,7 +357,7 @@ final class SettingsPage {
 			$llmsPreview    = ( new LlmsGenerator() )->render( (string) get_bloginfo( 'name' ), $llmsSummary, $llmsContent );
 
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only flag, sanitized below.
-			$llmsNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+			$llmsNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );
 
 			// Derived from the settings already loaded above: no extra query and no write.
 			$consistencyWarnings = CrawlConsistency::warnings( $robotPolicies, $llmsEnabled, $robotEffective );
@@ -376,7 +376,7 @@ final class SettingsPage {
 		$htaccessPath      = $htaccessFile->path();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only notice flag, sanitized below.
-		$htaccessNotice = sanitize_key( (string) ( $_GET['rk_notice'] ?? '' ) );
+		$htaccessNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );
 
 		$settingsSections[] = [
 			'id'    => 'advanced',
@@ -391,7 +391,7 @@ final class SettingsPage {
 		);
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only panel flag, sanitized below.
-		$rawSection = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		$rawSection = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
 		$currentSection = in_array( $rawSection, $sectionIds, true ) ? $rawSection : 'general';
 
@@ -440,13 +440,13 @@ final class SettingsPage {
 		$raw = '';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only partial flag, sanitized below.
-		if ( isset( $_POST['rk_partial'] ) ) {
+		if ( isset( $_POST['rk_partial'] ) && is_string( $_POST['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_POST['rk_partial'] );
+			$raw = wp_unslash( $_POST['rk_partial'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only partial flag, sanitized below.
-		} elseif ( isset( $_GET['rk_partial'] ) ) {
+		} elseif ( isset( $_GET['rk_partial'] ) && is_string( $_GET['rk_partial'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
-			$raw = wp_unslash( (string) $_GET['rk_partial'] );
+			$raw = wp_unslash( $_GET['rk_partial'] );
 		}
 
 		$key = sanitize_key( $raw );
@@ -512,6 +512,8 @@ final class SettingsPage {
 			$notice = 'saved';
 		} elseif ( 'unsupported' === $result['reason'] ) {
 			$notice = 'unsupported';
+		} elseif ( 'backup_unavailable' === $result['reason'] ) {
+			$notice = 'backup_unavailable';
 		} else {
 			$notice = 'failed';
 		}
@@ -541,16 +543,16 @@ final class SettingsPage {
 		$settings = $this->llms ?? new LlmsSettings();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
-		$rawSummary = isset( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';
+		$rawSummary = isset( $_POST['rk_llms_summary'] ) && is_string( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, unslashed and sanitised on save.
-		$rawContent = isset( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';
+		$rawContent = isset( $_POST['rk_llms_content'] ) && is_string( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';
 
 		$saved = $settings->set(
 			[
 				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
 				'enabled'  => isset( $_POST['rk_llms_enabled'] ),
-				'summary'  => is_string( $rawSummary ) ? $rawSummary : '',
-				'content'  => is_string( $rawContent ) ? $rawContent : '',
+				'summary'  => $rawSummary,
+				'content'  => $rawContent,
 				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave.
 				'physical' => isset( $_POST['rk_llms_physical'] ),
 			]
@@ -625,7 +627,7 @@ final class SettingsPage {
 	 */
 	private function postedSection(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- the nonce action itself depends on this value; verified immediately after.
-		$raw = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		$raw = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
 		$ids = [ 'general', 'breadcrumbs', 'webmaster', 'social', 'robots', 'llms', 'htaccess', 'advanced' ];
 
@@ -644,14 +646,7 @@ final class SettingsPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_settings_' . $this->postedSection() );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'rankkernel_settings_' . $this->postedSection() );
 
 		// The .htaccess save is a distinct action on the same form, gated
 		// like the robots and llms actions: a disabled module writes nothing.
@@ -699,7 +694,7 @@ final class SettingsPage {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
 		foreach ( $textKeys as $key ) {
-			if ( isset( $_POST[ $key ] ) ) {
+			if ( isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
 				$partial[ $key ] = sanitize_text_field( (string) wp_unslash( $_POST[ $key ] ) );
 			}
@@ -713,13 +708,13 @@ final class SettingsPage {
 		 * canonical value saves through the existing separator key.
 		 */
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above.
-		if ( isset( $_POST['rk_general_separator_choice'] ) ) {
+		if ( isset( $_POST['rk_general_separator_choice'] ) && is_string( $_POST['rk_general_separator_choice'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
 			$generalSeparatorChoice = (string) wp_unslash( $_POST['rk_general_separator_choice'] );
 
 			if ( 'custom' === $generalSeparatorChoice ) {
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
-				$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';
+				$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) && is_string( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';
 
 				$partial['separator'] = sanitize_text_field( $generalSeparatorCustom );
 			} else {
@@ -728,31 +723,33 @@ final class SettingsPage {
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['social_default_image'] ) ) {
+		if ( isset( $_POST['social_default_image'] ) && is_string( $_POST['social_default_image'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$rawImage                        = wp_unslash( $_POST['social_default_image'] );
-			$partial['social_default_image'] = esc_url_raw( is_string( $rawImage ) ? $rawImage : '' );
+			$partial['social_default_image'] = esc_url_raw( $rawImage );
 		}
 
-		if ( isset( $_POST['social_default_image_id'] ) ) {
+		if ( isset( $_POST['social_default_image_id'] ) && is_string( $_POST['social_default_image_id'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$rawImageId                         = wp_unslash( $_POST['social_default_image_id'] );
 			$partial['social_default_image_id'] = is_numeric( $rawImageId ) && (int) $rawImageId > 0 ? absint( $rawImageId ) : 0;
 		}
 
-		if ( isset( $_POST['twitter_site'] ) ) {
+		if ( isset( $_POST['twitter_site'] ) && is_string( $_POST['twitter_site'] ) ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$partial['twitter_site'] = MetaPayload::sanitizeTwitterHandle( wp_unslash( $_POST['twitter_site'] ) );
+			$rawTwitter = wp_unslash( $_POST['twitter_site'] );
+
+			$partial['twitter_site'] = MetaPayload::sanitizeTwitterHandle( $rawTwitter );
 		}
 
 		foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'pinterest' ) as $socialNetwork ) {
 			$socialKey = 'social_' . $socialNetwork;
 
-			if ( isset( $_POST[ $socialKey ] ) ) {
+			if ( isset( $_POST[ $socialKey ] ) && is_string( $_POST[ $socialKey ] ) ) {
 				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 				$rawSocial = wp_unslash( $_POST[ $socialKey ] );
 
-				$partial[ $socialKey ] = esc_url_raw( is_string( $rawSocial ) ? trim( $rawSocial ) : '' );
+				$partial[ $socialKey ] = esc_url_raw( trim( $rawSocial ) );
 			}
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -780,7 +777,7 @@ final class SettingsPage {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only section flag, sanitized below.
-		$section = isset( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
+		$section = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';
 
 		// A failed write is reported on the same rk_notice channel the section
 		// notices use, so the redirect never claims a write that did not happen.
@@ -808,7 +805,7 @@ final class SettingsPage {
 		// The admin hook suffix for this submenu differs from the documented
 		// form, so the page slug is matched as well.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read-only screen check, sanitized below.
-		$page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+		$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
 
 		if ( 'rankkernel-general' !== $page && 'rankkernel_page_rankkernel-general' !== $hookSuffix && 'dashboard_page_rankkernel-general' !== $hookSuffix ) {
 			return;
@@ -880,26 +877,26 @@ final class SettingsPage {
 		$partial = [];
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in handleSave.
-		if ( isset( $_POST['rk_breadcrumbs_separator_choice'] ) ) {
+		if ( isset( $_POST['rk_breadcrumbs_separator_choice'] ) && is_string( $_POST['rk_breadcrumbs_separator_choice'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
 			$choice = (string) wp_unslash( $_POST['rk_breadcrumbs_separator_choice'] );
 
 			if ( 'custom' === $choice ) {
 				// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
-				$custom = isset( $_POST['rk_breadcrumbs_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_breadcrumbs_separator_custom'] ) : '';
+				$custom = isset( $_POST['rk_breadcrumbs_separator_custom'] ) && is_string( $_POST['rk_breadcrumbs_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_breadcrumbs_separator_custom'] ) : '';
 
 				$partial['separator'] = sanitize_text_field( $custom );
 			} else {
 				$partial['separator'] = sanitize_text_field( $choice );
 			}
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in handleSave.
-		} elseif ( isset( $_POST['rk_breadcrumbs_separator'] ) ) {
+		} elseif ( isset( $_POST['rk_breadcrumbs_separator'] ) && is_string( $_POST['rk_breadcrumbs_separator'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
 			$partial['separator'] = sanitize_text_field( (string) wp_unslash( $_POST['rk_breadcrumbs_separator'] ) );
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in handleSave.
-		if ( isset( $_POST['rk_breadcrumbs_home_label'] ) ) {
+		if ( isset( $_POST['rk_breadcrumbs_home_label'] ) && is_string( $_POST['rk_breadcrumbs_home_label'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified, sanitized below.
 			$partial['home_label'] = sanitize_text_field( (string) wp_unslash( $_POST['rk_breadcrumbs_home_label'] ) );
 		}

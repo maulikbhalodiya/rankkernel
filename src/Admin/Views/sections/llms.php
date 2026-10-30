@@ -118,14 +118,14 @@ defined( 'ABSPATH' ) || exit;
 
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-llms-summary"><?php echo esc_html__( 'Summary', 'rankkernel' ); ?></label>
-			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="rk-code-editor"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
-			<p class="rk-ui-hint"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
+			<textarea id="rk-llms-summary" name="rk_llms_summary" rows="2" cols="60" class="rk-code-editor" aria-describedby="rk-llms-summary-hint"><?php echo esc_textarea( $llmsSummary ); ?></textarea>
+			<p class="rk-ui-hint" id="rk-llms-summary-hint"><?php echo esc_html__( 'Rendered as a blockquote under the site name.', 'rankkernel' ); ?></p>
 		</div>
 
 		<div class="rk-ui-form-row">
 			<label class="rk-ui-form-label" for="rk-llms-content"><?php echo esc_html__( 'Sections', 'rankkernel' ); ?></label>
-			<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="rk-code-editor"><?php echo esc_textarea( $llmsContent ); ?></textarea>
-			<p class="rk-ui-hint"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
+			<textarea id="rk-llms-content" name="rk_llms_content" rows="10" cols="60" class="rk-code-editor" aria-describedby="rk-llms-content-hint"><?php echo esc_textarea( $llmsContent ); ?></textarea>
+			<p class="rk-ui-hint" id="rk-llms-content-hint"><?php echo esc_html__( 'Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context.', 'rankkernel' ); ?></p>
 		</div>
 
 		<?php
