@@ -576,8 +576,8 @@ final class MonitorRepository {
 	 * @return array{0: string, 1: list<string>} Clause and params.
 	 */
 	private function filteredWhere( array $filters ): array {
-		$where  = 'WHERE 1=1';
-		$params = [];
+		$where  = 'WHERE 1 = %d';
+		$params = [ 1 ];
 
 		$search = trim( (string) ( $filters['search'] ?? '' ) );
 

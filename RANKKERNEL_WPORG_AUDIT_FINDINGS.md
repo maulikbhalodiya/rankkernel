@@ -227,6 +227,15 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Fix: each field now requires `is_string()` before unslash/sanitize; non-strings are treated as empty, so required-field validation rejects them without a warning.
 - Tests: `SupportPageTest::test_array_text_fields_are_ignored_without_warnings`; Settings tests; 74 tests/265 assertions for the focused pair.
 
+### RK-025 — `$wpdb->prepare()` called with no placeholder on the unfiltered 404 list
+- Severity: Low
+- Category: Debug notice / SQL hygiene
+- File: `src/Modules/Monitor/MonitorRepository.php::filteredWhere()`
+- Status: FIXED_PENDING_REVIEW
+- Problem: with no search or `min_hits`, the WHERE clause was `WHERE 1=1` with no parameters, but `paginate()` and `countFiltered()` still passed it to `$wpdb->prepare()`. WordPress raised `_doing_it_wrong` notices in `debug.log` on every unfiltered 404 list load.
+- Fix: the base clause is now `WHERE 1 = %d` with parameter `1`, so every prepared statement has a placeholder. No behavior change.
+- Tests: `MonitorRepositoryTest` 14 tests/68 assertions; browser reload of the 404 screen with `WP_DEBUG` produced no `debug.log` entries.
+
 ## C. Remaining verification
 - Plugin Check against the final packaged ZIP.
 - Clean WordPress install: all admin pages with `WP_DEBUG`, settings, redirects/404/IndexNow, schema import/export, importer end-to-end, sitemap/frontend output, ZIP install.
