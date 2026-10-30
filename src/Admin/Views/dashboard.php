@@ -6,27 +6,25 @@
  * capability checks, nonce verification, request handling and redirects.
  *
  * The layout follows the approved Dashboard design: a header card, a three card
- * stat row, an attention bar, the module manager with an available list and a
- * planned list, and two side cards. Shared components (card, page header,
- * pills, buttons, tabs) come from rankkernel-ui.css under the rk-ui scope, and
- * every page specific rule lives under .rk-dashboard in dashboard-admin.css.
- * No raw hex appears in either file, every colour resolves from the --rk-*
- * tokens in rankkernel-admin.css, which loads first as a registered
- * dependency.
+ * stat row, an attention bar, the module manager, and two side cards. Shared
+ * components (card, page header, pills, buttons, tabs) come from
+ * rankkernel-ui.css under the rk-ui scope, and every page specific rule lives
+ * under .rk-dashboard in dashboard-admin.css. No raw hex appears in either
+ * file, every colour resolves from the --rk-* tokens in
+ * rankkernel-admin.css, which loads first as a registered dependency.
  *
  * Every number and state on this screen derives from the cards the controller
  * prepared, so the screen can never disagree with the stored module option:
  * - The stat row counts the cards, and `enabled` is the stored option state.
- * - A card is planned when its description carries the "Planned." marker the
- *   controller writes for the modules without an implementation. Available
- *   cards render under Active, planned cards under Coming Soon.
+ * - Only implemented modules are prepared as cards. Planned registry ids are
+ *   never rendered as disabled controls in a shipped release.
  * - The attention bar and its stat card count the available modules that are
  *   switched off. With none switched off the bar is absent and the card reads
  *   zero.
  * - The SEO Health rows read the same enabled flags.
  *
  * The module toggles are real: every row posts the module id the form always
- * posted. Planned modules render a disabled switch and never post.
+ * posted.
  * The Quick Actions card links each shortcut to the screen that handles
  * it: the sitemap and robots links open the front end, the export link
  * carries the nonce the redirects screen verifies, and the clear control
@@ -52,25 +50,18 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /*
- * Derived state. The available and planned lists keep the registry order, so
- * the screen always reads the same order as the controller list.
+ * Derived state. The available list keeps the registry order, so the screen
+ * always reads the same order as the controller list.
  */
 $rk_total_modules   = count( $cards );
 $rk_active_modules  = 0;
 $rk_available_cards = [];
-$rk_planned_cards   = [];
 $rk_attention_cards = [];
 $rk_attention_names = [];
 
 foreach ( $cards as $rk_card ) {
 	if ( (bool) $rk_card['enabled'] ) {
 		++$rk_active_modules;
-	}
-
-	if ( ! empty( $rk_card['planned'] ) || str_contains( (string) $rk_card['description'], 'Planned.' ) ) {
-		$rk_planned_cards[] = $rk_card;
-
-		continue;
 	}
 
 	$rk_available_cards[] = $rk_card;
@@ -82,7 +73,6 @@ foreach ( $cards as $rk_card ) {
 }
 
 $rk_available_count = count( $rk_available_cards );
-$rk_planned_count   = count( $rk_planned_cards );
 $rk_attention_count = count( $rk_attention_cards );
 
 /* The four modules the side status card reports, in the design's order. */
@@ -234,7 +224,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 				<div class="rk-ui-card-header rk-dashboard-modules-header">
 					<div class="rk-ui-card-header-left">
 						<h2 class="rk-ui-card-title" id="rk-modules-title"><?php echo esc_html__( 'Modules', 'rankkernel' ); ?></h2>
-						<span class="rk-dashboard-count-pill"><?php echo esc_html( sprintf( /* translators: 1: number of available modules, 2: number of planned modules. */ __( '%1$d active / %2$d planned', 'rankkernel' ), $rk_available_count, $rk_planned_count ) ); ?></span>
+						<span class="rk-dashboard-count-pill"><?php echo esc_html( sprintf( /* translators: %d: number of available modules. */ __( '%d active', 'rankkernel' ), $rk_available_count ) ); ?></span>
 					</div>
 					<div class="rk-dashboard-search">
 						<label class="screen-reader-text" for="rk-modules-search"><?php echo esc_html__( 'Search modules', 'rankkernel' ); ?></label>
@@ -245,7 +235,6 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 
 				<nav class="rk-ui-tabs rk-dashboard-tabs" aria-label="<?php echo esc_attr( __( 'Module lists', 'rankkernel' ) ); ?>">
 					<a class="rk-ui-tab is-current" href="#rk-modules-active" aria-current="page"><?php echo esc_html__( 'Active', 'rankkernel' ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $rk_available_count ); ?></span></a>
-					<a class="rk-ui-tab" href="#rk-modules-planned"><?php echo esc_html__( 'Planned', 'rankkernel' ); ?> <span class="rk-ui-count"><?php echo esc_html( (string) $rk_planned_count ); ?></span></a>
 				</nav>
 
 				<div class="rk-dashboard-modules-body">
@@ -307,40 +296,7 @@ $rk_home_url = function_exists( 'home_url' ) ? (string) home_url( '/' ) : '';
 						</div>
 					</div>
 
-					<?php /* Planned modules. They are not implemented, so no toggle form is rendered and nothing posts to the REST toggle. */ ?>
-					<div class="rk-dashboard-module-group" id="rk-modules-planned">
-						<div class="rk-dashboard-group-head">
-							<span class="rk-dashboard-group-dot" aria-hidden="true"></span>
-							<h3 class="rk-dashboard-group-title"><?php echo esc_html__( 'Coming Soon', 'rankkernel' ); ?></h3>
-						</div>
-						<div class="rk-dashboard-module-list rk-dashboard-module-list-planned">
-							<?php foreach ( $rk_planned_cards as $card ) : ?>
-								<div class="rk-dashboard-module rk-dashboard-module-planned">
-									<div class="rk-dashboard-module-main">
-										<span class="rk-dashboard-module-tile" aria-hidden="true"><span class="rk-icon" aria-hidden="true"><?php echo esc_html( $rk_module_icons[ $card['id'] ] ?? 'tune' ); ?></span></span>
-										<div class="rk-dashboard-module-text">
-											<div class="rk-dashboard-module-title"><?php echo esc_html( $card['label'] ); ?></div>
-											<?php if ( '' !== $card['description'] ) : ?>
-												<div class="rk-dashboard-module-desc"><?php echo esc_html( $card['description'] ); ?></div>
-											<?php endif; ?>
-										</div>
-									</div>
-									<div class="rk-dashboard-module-actions">
-										<span class="rk-dashboard-module-planned-tag"><?php echo esc_html__( 'Planned', 'rankkernel' ); ?></span>
-										<?php
-										$plannedAriaLabel = sprintf(
-											/* translators: %s: module name */
-											__( '%s module is planned and cannot be enabled yet', 'rankkernel' ),
-											$card['label']
-										);
-										?>
-										<button type="button" class="rk-dashboard-switch" role="switch" aria-checked="false" aria-disabled="true" disabled aria-label="<?php echo esc_attr( $plannedAriaLabel ); ?>"><span class="rk-dashboard-switch-knob" aria-hidden="true"></span></button>
-									</div>
-								</div>
-							<?php endforeach; ?>
-						</div>
-					</div>
-
+					<?php /* Only implemented modules are rendered. Planned ids stay in the registry but are not advertised as disabled controls. */ ?>
 					<p class="rk-dashboard-modules-empty" id="rk-modules-empty" hidden><?php echo esc_html__( 'No modules match this search.', 'rankkernel' ); ?></p>
 
 				</div>
