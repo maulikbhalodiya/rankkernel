@@ -668,14 +668,7 @@ final class MetadataBox {
 			return;
 		}
 
-		$verified = check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( self::NONCE_ACTION, self::NONCE_FIELD );
 
 		$existing = $this->readPayload( $postId );
 		$merged   = $this->mergePosted( $existing );

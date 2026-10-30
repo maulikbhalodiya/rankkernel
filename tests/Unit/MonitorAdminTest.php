@@ -347,11 +347,6 @@ final class MonitorAdminTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				wp_die();
-			}
-		);
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
 		);
@@ -514,11 +509,6 @@ final class MonitorAdminTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function (): void {
-				wp_die();
-			}
-		);
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
@@ -908,11 +898,6 @@ final class MonitorAdminTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
 			static function (): void {
-				wp_die();
-			}
-		);
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
-			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}
 		);
@@ -974,11 +959,6 @@ final class MonitorAdminTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->alias(
-			static function (): void {
-				wp_die();
-			}
-		);
-		Functions\expect( 'wp_die' )->once()->andReturnUsing(
 			static function (): void {
 				throw new \RuntimeException( 'wp_die' );
 			}

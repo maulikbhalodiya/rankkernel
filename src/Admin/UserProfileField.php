@@ -82,13 +82,7 @@ final class UserProfileField {
 			);
 		}
 
-		if ( false === check_admin_referer( 'update-user_' . $userId ) ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'update-user_' . $userId );
 
 		// The value is only read when it is a string, so an array shaped field
 		// can never reach the sanitiser with the wrong type.

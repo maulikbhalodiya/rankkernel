@@ -644,14 +644,7 @@ final class SettingsPage {
 			);
 		}
 
-		$verified = check_admin_referer( 'rankkernel_settings_' . $this->postedSection() );
-		if ( false === $verified ) {
-			wp_die(
-				esc_html__( 'Security check failed. Please refresh and try again.', 'rankkernel' ),
-				'',
-				[ 'response' => 403 ]
-			);
-		}
+		check_admin_referer( 'rankkernel_settings_' . $this->postedSection() );
 
 		// The .htaccess save is a distinct action on the same form, gated
 		// like the robots and llms actions: a disabled module writes nothing.
