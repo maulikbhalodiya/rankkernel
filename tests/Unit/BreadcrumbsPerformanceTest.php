@@ -368,5 +368,12 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		$trailOverride   = $builderOverride->build();
 
 		$this->assertNotEquals( $trail1, $trailOverride );
+
+		// Verifies resetCache() flushes the buildMemo cache.
+		TrailBuilder::resetCache();
+		$builder3 = new TrailBuilder( $ctx1, $settings );
+		$trail3   = $builder3->build();
+
+		$this->assertEquals( $trail1, $trail3 );
 	}
 }

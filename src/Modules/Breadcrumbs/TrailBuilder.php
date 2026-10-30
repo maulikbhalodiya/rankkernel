@@ -98,11 +98,27 @@ final class TrailBuilder {
 	}
 
 	/**
-	 * Build cache key including blog ID, locale, options, Context hash, discriminators, visibility, and settings.
+	 * Instance-memoized build cache key.
+	 *
+	 * @var string|null
+	 */
+	private ?string $cacheKey = null;
+
+	/**
+	 * Compute or return instance-memoized cache key for build().
+	 *
+	 * Structured array hashed into a single md5 string covering:
+	 * blog ID, locale, global dispatch flags, Context type/id/hash,
+	 * query discriminators (term taxonomy, post type, primary taxonomy, search query, date vars, page/cpage),
+	 * Context meta flags/canonical, visibility overrides, and settings.
 	 *
 	 * @return string Cache key.
 	 */
 	private function buildCacheKey(): string {
+		if ( null !== $this->cacheKey ) {
+			return $this->cacheKey;
+		}
+
 		$blogId = self::blogId();
 		$locale = '';
 		if ( function_exists( 'determine_locale' ) ) {
@@ -110,6 +126,7 @@ final class TrailBuilder {
 		} elseif ( function_exists( 'get_locale' ) ) {
 			$locale = (string) get_locale();
 		}
+
 		$type = $this->ctx->queriedType();
 		$id   = $this->ctx->queriedId();
 
@@ -119,41 +136,66 @@ final class TrailBuilder {
 		$frontOptions = ( is_scalar( $showFront ) ? (string) $showFront : '' )
 			. '|' . ( is_scalar( $pagePosts ) ? (string) $pagePosts : '' );
 
+		$qObject = function_exists( 'get_queried_object' ) ? $this->vars( get_queried_object() ) : [];
+
+		$termTax    = 'term' === $type && isset( $qObject['taxonomy'] ) ? (string) $qObject['taxonomy'] : '';
 		$primaryTax = '';
+		$postType   = '';
+
 		if ( 'post' === $type && $id > 0 ) {
 			$qPost = $this->queriedPost();
 			if ( null !== $qPost ) {
+				$postType   = $qPost['type'];
 				$primaryTax = $this->settings->postTypeSettings( $qPost['type'] )['primary_taxonomy'];
 			}
 		}
 
-		$discriminator = match ( $type ) {
-			'search'  => 's:' . ( function_exists( 'get_search_query' ) && is_scalar( get_search_query() ) ? (string) get_search_query() : '' ),
-			'archive' => 'pt:' . $this->archivePostType()
-				. '|y:' . (string) $this->queryVar( 'year' )
-				. '|m:' . (string) $this->queryVar( 'monthnum' )
-				. '|d:' . (string) $this->queryVar( 'day' ),
-			'post'    => 'p:' . (string) $this->queryVar( 'page' ) . '|cp:' . (string) $this->queryVar( 'cpage' ) . '|ptx:' . $primaryTax,
-			'home'    => 'pg:' . (string) max( $this->queryVar( 'paged' ), $this->queryVar( 'page' ) ),
-			'term'    => 'pg:' . (string) $this->queryVar( 'paged' ),
-			default   => '',
-		};
+		$searchQuery = function_exists( 'get_search_query' ) && is_scalar( get_search_query() )
+			? (string) get_search_query()
+			: '';
 
-		$showHome    = $this->showHome() ? '1' : '0';
-		$showCurrent = $this->showCurrent() ? '1' : '0';
+		$meta = $this->ctx->meta();
 
-		$settingsAll = $this->settings->all();
-		unset( $settingsAll['separator'] ); // Separator is a renderer concern.
+		$payload = [
+			'blog_id'      => $blogId,
+			'locale'       => $locale,
+			'front_opts'   => $frontOptions,
+			'ctx_hash'     => $this->ctx->hash(),
+			'type'         => $type,
+			'id'           => $id,
+			'post_type'    => $postType,
+			'primary_tax'  => $primaryTax,
+			'term_tax'     => $termTax,
+			'search'       => $searchQuery,
+			'archive_pt'   => $this->archivePostType(),
+			'year'         => $this->queryVar( 'year' ),
+			'month'        => $this->queryVar( 'monthnum' ),
+			'day'          => $this->queryVar( 'day' ),
+			'page'         => $this->queryVar( 'page' ),
+			'cpage'        => $this->queryVar( 'cpage' ),
+			'paged'        => $this->queryVar( 'paged' ),
+			'is_front'     => $this->isFrontPage(),
+			'is_blog'      => $this->isBlogIndex(),
+			'is_search'    => $this->isSearch(),
+			'is_404'       => $this->is404(),
+			'show_home'    => $this->showHome(),
+			'show_current' => $this->showCurrent(),
+			'bc_title'     => $meta['flags']['breadcrumb_title'] ?? '',
+			'canonical'    => $meta['canonical'] ?? '',
+			'settings'     => $this->settings->all(),
+		];
 
-		$settingsJson = function_exists( 'wp_json_encode' )
-			? wp_json_encode( $settingsAll )
-			: json_encode( $settingsAll ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+		unset( $payload['settings']['separator'] );
 
-		$settingsHash = is_string( $settingsJson ) && '' !== $settingsJson
-			? md5( $settingsJson )
-			: md5( var_export( $settingsAll, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for settings array.
+		$json = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $payload )
+			: json_encode( $payload ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
 
-		return $blogId . '|' . $locale . '|' . $frontOptions . '|' . $this->ctx->hash() . '|' . $type . '|' . (string) $id . '|' . $discriminator . '|h:' . $showHome . '|c:' . $showCurrent . '|' . $settingsHash;
+		$this->cacheKey = is_string( $json ) && '' !== $json
+			? md5( $json )
+			: md5( var_export( $payload, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for settings array.
+
+		return $this->cacheKey;
 	}
 
 	/**
