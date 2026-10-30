@@ -47,6 +47,14 @@ final class SchemaMetabox {
 	private const EXPORT_ACTION = 'rankkernel_schema_export';
 
 	/**
+	 * Maximum accepted schema import size in bytes.
+	 *
+	 * Schema documents are small; the cap keeps a hostile upload from
+	 * being read into memory before JSON validation.
+	 */
+	private const MAX_IMPORT_BYTES = 1048576;
+
+	/**
 	 * Manual field keys, short and generic.
 	 *
 	 * Every key a schema piece reads lives here, so the builder UI
@@ -943,6 +951,21 @@ final class SchemaMetabox {
 			];
 		}
 
+		// The reported size is client-controlled, so stat the verified local
+		// temp path instead. A file that cannot be statted or is empty is
+		// rejected before its contents are read.
+		clearstatcache( true, $tmp );
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- the temp path was just checked; a failed stat is handled as invalid.
+		$size = @filesize( $tmp );
+
+		if ( false === $size || 0 === $size || $size > self::MAX_IMPORT_BYTES ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
+		}
+
 		$mimes = [ 'json' => 'application/json' ];
 
 		// wp_check_filetype_and_ext() cross checks the extension against the
@@ -992,7 +1015,15 @@ final class SchemaMetabox {
 			];
 		}
 
-		$decoded = json_decode( $contents, true );
+		if ( strlen( $contents ) > self::MAX_IMPORT_BYTES ) {
+			return [
+				'found'  => true,
+				'valid'  => false,
+				'schema' => [],
+			];
+		}
+
+		$decoded = json_decode( $contents, true, 64 );
 
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
 			return [

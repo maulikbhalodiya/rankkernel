@@ -102,10 +102,10 @@ Status: `OPEN` · `IN_PROGRESS` · `FIXED_PENDING_REVIEW` · `VERIFIED` · `REJE
 - Severity: High (pending audit)
 - Category: WP.org D / uploads
 - File: `src/Admin/SchemaMetabox.php:900-1100`
-- Status: OPEN
+- Status: FIXED_PENDING_REVIEW
 - Problem: reviewer flagged `$_FILES['rankkernel_schema_import']`; current code checks structure, error, tmp_name string, `is_uploaded_file`, readability, name string. Must verify size, extension/MIME, JSON structure, depth, and safe parse.
-- Required: bounded size, JSON-only, reject invalid/oversized/deep payloads, no path use, proper nonce+capability.
-- Tests: missing file, upload error, oversized, non-JSON, deep JSON, valid JSON, unauthorized/missing nonce.
+- Fix: size is read from the verified temp path after `clearstatcache()` and must be `> 0` and `<= 1 MiB` (`MAX_IMPORT_BYTES`); the read contents are re-checked against the same cap; `json_decode(..., true, 64)` bounds nesting depth. MIME/extension still cross-checked via `wp_check_filetype_and_ext()` with a temporary `application/json` allow filter; the temp file is never moved or executed; schema is sanitized by `MetaPayload::sanitize()`.
+- Tests: `SchemaMetaboxTest::test_save_import_oversized_file_fails_closed` (1,048,577 bytes), `test_save_import_deeply_nested_json_fails_closed` (70 levels), plus existing missing-file, upload-error, non-JSON, valid-JSON and nonce/capability coverage. Focused: 45 tests/143 assertions OK; phpcs clean.
 
 ### RK-009 — `$_SERVER` handling (Logger, Redirector)
 - Severity: Low (pending)
