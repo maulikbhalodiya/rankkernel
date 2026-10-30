@@ -32,7 +32,7 @@ final class TrailBuilder {
 	 * Static request-level memoization cache for build() results.
 	 *
 	 * Performance optimization: avoids repeating canonical trail construction across multiple
-	 * calls (e.g. Schema graph generation + HTML template/block rendering) for the same Context instance.
+	 * calls (e.g. Schema graph generation + HTML template/block rendering) in a single request.
 	 *
 	 * @var array<string, Item[]>
 	 */
@@ -79,6 +79,15 @@ final class TrailBuilder {
 	}
 
 	/**
+	 * Current blog ID string for multisite isolation.
+	 *
+	 * @return string Blog ID.
+	 */
+	private static function blogId(): string {
+		return function_exists( 'get_current_blog_id' ) ? (string) get_current_blog_id() : '1';
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Context              $ctx       Request context.
@@ -114,26 +123,53 @@ final class TrailBuilder {
 	}
 
 	/**
+	 * Build cache key including blog ID, Context hash, query discriminators, visibility, and settings.
+	 *
+	 * @return string Cache key.
+	 */
+	private function buildCacheKey(): string {
+		$blogId = self::blogId();
+		$type   = $this->ctx->queriedType();
+		$id     = $this->ctx->queriedId();
+
+		$discriminator = match ( $type ) {
+			'search'  => 's:' . ( function_exists( 'get_search_query' ) ? (string) get_search_query() : '' ),
+			'archive' => 'pt:' . $this->archivePostType()
+				. '|y:' . (string) $this->queryVar( 'year' )
+				. '|m:' . (string) $this->queryVar( 'monthnum' )
+				. '|d:' . (string) $this->queryVar( 'day' ),
+			'post'    => 'p:' . (string) $this->queryVar( 'page' ) . '|cp:' . (string) $this->queryVar( 'cpage' ),
+			'home'    => 'pg:' . (string) max( $this->queryVar( 'paged' ), $this->queryVar( 'page' ) ),
+			'term'    => 'pg:' . (string) $this->queryVar( 'paged' ),
+			default   => '',
+		};
+
+		$showHome    = $this->showHome() ? '1' : '0';
+		$showCurrent = $this->showCurrent() ? '1' : '0';
+
+		$settingsAll  = $this->settings->all();
+		$settingsJson = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $settingsAll )
+			: json_encode( $settingsAll ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		$settingsHash = is_string( $settingsJson ) && '' !== $settingsJson
+			? md5( $settingsJson )
+			: md5( var_export( $settingsAll, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- fallback deterministic string conversion for settings array.
+
+		return $blogId . '|' . $this->ctx->hash() . '|' . $type . '|' . (string) $id . '|' . $discriminator . '|h:' . $showHome . '|c:' . $showCurrent . '|' . $settingsHash;
+	}
+
+	/**
 	 * Build the canonical trail for the current request.
 	 *
-	 * Performance optimization: memoizes the generated trail by Context hash, settings, and overrides
-	 * to eliminate duplicate tree traversal and WP queries across schema and HTML rendering calls.
+	 * Performance optimization: memoizes the generated trail by blog ID, Context hash, query parameters,
+	 * settings, and effective visibility overrides to eliminate duplicate tree traversal and WP queries
+	 * across schema and HTML rendering calls.
 	 *
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
 	public function build(): array {
-		$key = $this->ctx->hash();
-
-		$settingsJson = function_exists( 'wp_json_encode' )
-			? wp_json_encode( $this->settings->all() )
-			: json_encode( $this->settings->all() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
-
-		$overridesJson = function_exists( 'wp_json_encode' )
-			? wp_json_encode( $this->overrides )
-			: json_encode( $this->overrides ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
-
-		$key .= '|' . md5( is_string( $settingsJson ) ? $settingsJson : '' );
-		$key .= '|' . md5( is_string( $overridesJson ) ? $overridesJson : '' );
+		$key = $this->buildCacheKey();
 
 		if ( array_key_exists( $key, self::$buildMemo ) ) {
 			return self::$buildMemo[ $key ];
@@ -890,12 +926,14 @@ final class TrailBuilder {
 	 * @return string[] Taxonomy slugs.
 	 */
 	private function publicTaxonomies( string $postType ): array {
-		if ( array_key_exists( $postType, self::$publicTaxonomiesMemo ) ) {
-			return self::$publicTaxonomiesMemo[ $postType ];
+		$memoKey = self::blogId() . '|' . $postType;
+
+		if ( array_key_exists( $memoKey, self::$publicTaxonomiesMemo ) ) {
+			return self::$publicTaxonomiesMemo[ $memoKey ];
 		}
 
 		if ( ! function_exists( 'get_object_taxonomies' ) ) {
-			self::$publicTaxonomiesMemo[ $postType ] = [];
+			self::$publicTaxonomiesMemo[ $memoKey ] = [];
 
 			return [];
 		}
@@ -903,7 +941,7 @@ final class TrailBuilder {
 		$taxes = get_object_taxonomies( $postType, 'objects' );
 
 		if ( ! is_array( $taxes ) ) {
-			self::$publicTaxonomiesMemo[ $postType ] = [];
+			self::$publicTaxonomiesMemo[ $memoKey ] = [];
 
 			return [];
 		}
@@ -929,9 +967,9 @@ final class TrailBuilder {
 			}
 		}
 
-		self::$publicTaxonomiesMemo[ $postType ] = array_values( array_unique( $out ) );
+		self::$publicTaxonomiesMemo[ $memoKey ] = array_values( array_unique( $out ) );
 
-		return self::$publicTaxonomiesMemo[ $postType ];
+		return self::$publicTaxonomiesMemo[ $memoKey ];
 	}
 
 	/**
@@ -1038,12 +1076,14 @@ final class TrailBuilder {
 	 * @return bool The result.
 	 */
 	private function taxonomyForPost( string $taxonomy ): bool {
-		if ( array_key_exists( $taxonomy, self::$taxonomyForPostMemo ) ) {
-			return self::$taxonomyForPostMemo[ $taxonomy ];
+		$memoKey = self::blogId() . '|' . $taxonomy;
+
+		if ( array_key_exists( $memoKey, self::$taxonomyForPostMemo ) ) {
+			return self::$taxonomyForPostMemo[ $memoKey ];
 		}
 
 		if ( ! function_exists( 'get_taxonomy' ) ) {
-			self::$taxonomyForPostMemo[ $taxonomy ] = false;
+			self::$taxonomyForPostMemo[ $memoKey ] = false;
 
 			return false;
 		}
@@ -1051,14 +1091,14 @@ final class TrailBuilder {
 		$vars = $this->vars( get_taxonomy( $taxonomy ) );
 
 		if ( ! isset( $vars['object_type'] ) || ! is_array( $vars['object_type'] ) ) {
-			self::$taxonomyForPostMemo[ $taxonomy ] = false;
+			self::$taxonomyForPostMemo[ $memoKey ] = false;
 
 			return false;
 		}
 
-		self::$taxonomyForPostMemo[ $taxonomy ] = in_array( 'post', $vars['object_type'], true );
+		self::$taxonomyForPostMemo[ $memoKey ] = in_array( 'post', $vars['object_type'], true );
 
-		return self::$taxonomyForPostMemo[ $taxonomy ];
+		return self::$taxonomyForPostMemo[ $memoKey ];
 	}
 
 	/**
@@ -1103,12 +1143,14 @@ final class TrailBuilder {
 	 * @return Item|null Archive crumb or null.
 	 */
 	private function cptArchiveItem( string $postType ): ?Item {
-		if ( array_key_exists( $postType, self::$cptArchiveItemMemo ) ) {
-			return self::$cptArchiveItemMemo[ $postType ];
+		$memoKey = self::blogId() . '|' . $postType;
+
+		if ( array_key_exists( $memoKey, self::$cptArchiveItemMemo ) ) {
+			return self::$cptArchiveItemMemo[ $memoKey ];
 		}
 
 		if ( ! function_exists( 'get_post_type_object' ) ) {
-			self::$cptArchiveItemMemo[ $postType ] = null;
+			self::$cptArchiveItemMemo[ $memoKey ] = null;
 
 			return null;
 		}
@@ -1116,7 +1158,7 @@ final class TrailBuilder {
 		$vars = $this->vars( get_post_type_object( $postType ) );
 
 		if ( empty( $vars['has_archive'] ) ) {
-			self::$cptArchiveItemMemo[ $postType ] = null;
+			self::$cptArchiveItemMemo[ $memoKey ] = null;
 
 			return null;
 		}
@@ -1139,9 +1181,9 @@ final class TrailBuilder {
 			$url  = is_string( $link ) ? $link : '';
 		}
 
-		self::$cptArchiveItemMemo[ $postType ] = new Item( $label, $url );
+		self::$cptArchiveItemMemo[ $memoKey ] = new Item( $label, $url );
 
-		return self::$cptArchiveItemMemo[ $postType ];
+		return self::$cptArchiveItemMemo[ $memoKey ];
 	}
 
 	/**
