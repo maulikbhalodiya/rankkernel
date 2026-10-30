@@ -388,9 +388,9 @@ final class RouterTest extends TestCase {
 
 		ob_start();
 		$router->intercept( $query );
-		ob_end_clean();
+		$out = ob_get_clean();
 
-		$this->assertTrue( true );
+		$this->assertStringContainsString( 'Sitemap not found.', $out );
 	}
 
 	/**
@@ -637,6 +637,18 @@ final class RouterTest extends TestCase {
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( '<sitemapindex>index</sitemapindex>', $out );
+	}
+
+	/**
+	 * Test XML response headers include nosniff to prevent MIME-sniffing.
+	 */
+	public function test_xml_response_headers_include_nosniff(): void {
+		$headers = Router::xmlResponseHeaders();
+
+		$this->assertArrayHasKey( 'X-Content-Type-Options', $headers );
+		$this->assertSame( 'nosniff', $headers['X-Content-Type-Options'] );
+		$this->assertSame( 'application/xml; charset=UTF-8', $headers['Content-Type'] );
+		$this->assertSame( 'noindex, follow', $headers['X-Robots-Tag'] );
 	}
 
 	/**

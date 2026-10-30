@@ -278,6 +278,7 @@ class Router {
 			if ( ! headers_sent() ) {
 				status_header( 404 );
 				header( 'Content-Type: text/plain; charset=UTF-8' );
+				header( 'X-Content-Type-Options: nosniff' );
 				nocache_headers();
 			}
 
@@ -329,12 +330,26 @@ class Router {
 	}
 
 	/**
+	 * Response headers for sitemap XML renders.
+	 *
+	 * @return array<string, string> Key value map of header names to values.
+	 */
+	public static function xmlResponseHeaders(): array {
+		return [
+			'Content-Type'           => 'application/xml; charset=UTF-8',
+			'X-Robots-Tag'           => 'noindex, follow',
+			'X-Content-Type-Options' => 'nosniff',
+		];
+	}
+
+	/**
 	 * Send sitemap XML headers (only on successful 200 renders).
 	 */
 	private function sendXmlHeaders(): void {
 		if ( ! headers_sent() ) {
-			header( 'Content-Type: application/xml; charset=UTF-8' );
-			header( 'X-Robots-Tag: noindex, follow' );
+			foreach ( self::xmlResponseHeaders() as $name => $value ) {
+				header( $name . ': ' . $value );
+			}
 		}
 	}
 
@@ -361,6 +376,7 @@ class Router {
 		if ( ! headers_sent() ) {
 			status_header( 500 );
 			header( 'Content-Type: text/plain; charset=UTF-8' );
+			header( 'X-Content-Type-Options: nosniff' );
 			nocache_headers();
 		}
 
