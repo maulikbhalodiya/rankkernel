@@ -110,8 +110,8 @@ final class TrailBuilder {
 		} elseif ( function_exists( 'get_locale' ) ) {
 			$locale = (string) get_locale();
 		}
-		$type   = $this->ctx->queriedType();
-		$id     = $this->ctx->queriedId();
+		$type = $this->ctx->queriedType();
+		$id   = $this->ctx->queriedId();
 
 		$frontOptions = ( function_exists( 'get_option' ) ? (string) get_option( 'show_on_front', 'posts' ) : '' )
 			. '|' . ( function_exists( 'get_option' ) ? (string) get_option( 'page_for_posts', 0 ) : '' );
