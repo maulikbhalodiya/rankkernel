@@ -673,6 +673,13 @@ final class MetadataBox {
 		$existing = $this->readPayload( $postId );
 		$merged   = $this->mergePosted( $existing );
 
+		// update_post_meta() returns false both when the write fails and when
+		// the value is unchanged. Skip the write when nothing changed so an
+		// ordinary save is not reported as a failure.
+		if ( $merged === $existing ) {
+			return;
+		}
+
 		$saved = update_post_meta( $postId, self::META_KEY, $merged );
 
 		// A strict false means the write failed. update_post_meta returns the

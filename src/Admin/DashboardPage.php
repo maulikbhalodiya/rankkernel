@@ -151,7 +151,15 @@ final class DashboardPage {
 		$cards   = [];
 
 		foreach ( ModuleRegistry::all() as $moduleId => $moduleLabel ) {
-			$id   = (string) $moduleId;
+			$id = (string) $moduleId;
+
+			// Only implemented modules are advertised. Planned ids stay in the
+			// registry for the future but are never rendered as disabled
+			// "coming soon" controls in a shipped release.
+			if ( ModuleRegistry::isPlanned( $id ) ) {
+				continue;
+			}
+
 			$slug = self::SETTINGS_PAGES[ $id ] ?? '';
 			$url  = '';
 
@@ -163,15 +171,13 @@ final class DashboardPage {
 				}
 			}
 
-			$planned = ModuleRegistry::isPlanned( $id );
-
 			$cards[] = [
 				'id'          => $id,
 				'label'       => (string) $moduleLabel,
 				'description' => self::DESCRIPTIONS[ $id ] ?? '',
-				'enabled'     => ! $planned && in_array( $id, $enabled, true ),
+				'enabled'     => in_array( $id, $enabled, true ),
 				'settingsUrl' => $url,
-				'planned'     => $planned,
+				'planned'     => false,
 			];
 		}
 

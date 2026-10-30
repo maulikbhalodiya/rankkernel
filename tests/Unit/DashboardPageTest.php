@@ -143,11 +143,18 @@ final class DashboardPageTest extends TestCase {
 	public function test_cards_list_registry_modules(): void {
 		$cards = ( new DashboardPage() )->cards();
 
-		$this->assertCount( count( ModuleRegistry::all() ), $cards );
+		$implemented = array_filter(
+			ModuleRegistry::ids(),
+			static fn ( string $id ): bool => ! ModuleRegistry::isPlanned( $id )
+		);
+
+		$this->assertCount( count( $implemented ), $cards );
 
 		$ids = array_column( $cards, 'id' );
 		$this->assertContains( 'robots', $ids );
 		$this->assertContains( 'metadata', $ids );
+		$this->assertNotContains( 'ai', $ids );
+		$this->assertNotContains( 'gutenberg', $ids );
 
 		$byId = [];
 		foreach ( $cards as $card ) {
@@ -158,10 +165,6 @@ final class DashboardPageTest extends TestCase {
 		$this->assertFalse( $byId['robots']['enabled'] );
 		$this->assertStringContainsString( 'rankkernel-general', $byId['robots']['settingsUrl'] );
 		$this->assertSame( '', $byId['analysis']['settingsUrl'] );
-		$this->assertTrue( $byId['ai']['planned'] );
-		$this->assertFalse( $byId['ai']['enabled'] );
-		$this->assertSame( '', $byId['ai']['settingsUrl'] );
-		$this->assertStringContainsString( 'Planned.', $byId['ai']['description'] );
 		$this->assertFalse( $byId['metadata']['planned'] );
 	}
 
@@ -433,7 +436,8 @@ final class DashboardPageTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<a class="rk-ui-tab is-current" href="#rk-modules-active" aria-current="page">', $output );
-		$this->assertStringNotContainsString( 'href="#rk-modules-planned" aria-current', $output );
+		$this->assertStringNotContainsString( 'rk-modules-planned', $output );
+		$this->assertStringNotContainsString( 'Coming Soon', $output );
 	}
 
 	/**

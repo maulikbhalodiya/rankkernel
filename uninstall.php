@@ -12,9 +12,9 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 $rankkernel_settings = get_option( 'rankkernel_settings', array() );
 
-$purge = false;
+$rankkernel_purge = false;
 if ( is_array( $rankkernel_settings ) && isset( $rankkernel_settings['purge_on_uninstall'] ) ) {
-	$purge = (bool) $rankkernel_settings['purge_on_uninstall'];
+	$rankkernel_purge = (bool) $rankkernel_settings['purge_on_uninstall'];
 }
 
 global $wpdb;
@@ -30,32 +30,32 @@ global $wpdb;
 // Purge all transients and transient timeouts owned by RankKernel modules.
 // Covers rankkernel_* (sitemap caches, llms.txt document, table existence flags),
 // rkredir_* (redirect match caches), and rk404_flood_* (404 rate limit windows).
-$transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
-foreach ( $transient_prefixes as $transient_prefix ) {
+$rankkernel_transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
+foreach ( $rankkernel_transient_prefixes as $rankkernel_transient_prefix ) {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
 	$wpdb->query(
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-			$wpdb->esc_like( '_transient_' . $transient_prefix ) . '%',
-			$wpdb->esc_like( '_transient_timeout_' . $transient_prefix ) . '%'
+			$wpdb->esc_like( '_transient_' . $rankkernel_transient_prefix ) . '%',
+			$wpdb->esc_like( '_transient_timeout_' . $rankkernel_transient_prefix ) . '%'
 		)
 	);
 }
 
 // Drop every wp_rankkernel_* table, the 404 log included, on every uninstall path.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-$tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );
-if ( is_array( $tables ) ) {
-	foreach ( $tables as $table ) {
+$rankkernel_tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );
+if ( is_array( $rankkernel_tables ) ) {
+	foreach ( $rankkernel_tables as $rankkernel_table ) {
 		// Names only ever arrive from the wp_rankkernel_ prefix sweep, still
 		// validate the identifier before it lands in a DROP statement, so an
 		// unexpected character can never smuggle SQL through the table name.
-		if ( ! is_string( $table ) || 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $table ) ) {
+		if ( ! is_string( $rankkernel_table ) || 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $rankkernel_table ) ) {
 			continue;
 		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
+		$wpdb->query( "DROP TABLE IF EXISTS `{$rankkernel_table}`" );
 
 		// Retire the cached existence flag after the drop, never before it. That flag
 		// is held for a day when a persistent object cache is present, and a stale
@@ -64,11 +64,11 @@ if ( is_array( $tables ) ) {
 		// also clears any value a concurrent request cached while the table was
 		// still present.
 		if ( function_exists( 'wp_cache_delete' ) ) {
-			wp_cache_delete( 'table_exists_' . $table, 'rankkernel_tables' );
+			wp_cache_delete( 'table_exists_' . $rankkernel_table, 'rankkernel_tables' );
 		}
 
 		if ( function_exists( 'delete_transient' ) ) {
-			delete_transient( 'rankkernel_tbl_exists_' . md5( $table ) );
+			delete_transient( 'rankkernel_tbl_exists_' . md5( $rankkernel_table ) );
 		}
 	}
 }
@@ -77,22 +77,22 @@ if ( is_array( $tables ) ) {
 // a path it recorded on a successful write, so a hand made file is safe.
 // The class files load standalone here: uninstall runs with WordPress
 // loaded but without the plugin, so require exactly what is needed.
-$llms_writer_file = __DIR__ . '/src/Modules/Robots/LlmsFileWriter.php';
-$llms_router_file = __DIR__ . '/src/Modules/Robots/LlmsRouter.php';
+$rankkernel_llms_writer_file = __DIR__ . '/src/Modules/Robots/LlmsFileWriter.php';
+$rankkernel_llms_router_file = __DIR__ . '/src/Modules/Robots/LlmsRouter.php';
 
-if ( is_readable( $llms_writer_file ) && is_readable( $llms_router_file ) ) {
-	require_once $llms_writer_file;
-	require_once $llms_router_file;
+if ( is_readable( $rankkernel_llms_writer_file ) && is_readable( $rankkernel_llms_router_file ) ) {
+	require_once $rankkernel_llms_writer_file;
+	require_once $rankkernel_llms_router_file;
 
 	if ( class_exists( 'RankKernel\Modules\Robots\LlmsFileWriter' ) ) {
-		$llms_writer  = new \RankKernel\Modules\Robots\LlmsFileWriter();
-		$llms_deleted = $llms_writer->delete();
+		$rankkernel_llms_writer  = new \RankKernel\Modules\Robots\LlmsFileWriter();
+		$rankkernel_llms_deleted = $rankkernel_llms_writer->delete();
 
-		unset( $llms_writer, $llms_deleted );
+		unset( $rankkernel_llms_writer, $rankkernel_llms_deleted );
 	}
 }
 
-if ( ! $purge ) {
+if ( ! $rankkernel_purge ) {
 	return;
 }
 
