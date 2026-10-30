@@ -18,6 +18,7 @@ use RankKernel\Modules\Breadcrumbs\blocks\BreadcrumbsBlock;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsSettings;
 use RankKernel\Modules\Breadcrumbs\Item;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Breadcrumbs\Renderer;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\ModuleEnableMap;

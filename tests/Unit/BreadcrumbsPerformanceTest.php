@@ -346,21 +346,28 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 	}
 
 	/**
-	 * Test repeated TrailBuilder build calls return memoized items for the same Context.
+	 * Test repeated TrailBuilder build calls return memoized items across distinct Context instances for the same request context.
 	 */
 	public function test_repeated_trail_builder_calls_use_memoized_cache(): void {
 		$query    = $this->useSingularPost();
 		$settings = new BreadcrumbsSettings();
-		$ctx      = new Context( $query, new SettingsStore() );
+		$ctx1     = new Context( $query, new SettingsStore() );
+		$ctx2     = new Context( $query, new SettingsStore() );
 
 		TrailBuilder::resetCache();
 
-		$builder1 = new TrailBuilder( $ctx, $settings );
+		$builder1 = new TrailBuilder( $ctx1, $settings );
 		$trail1   = $builder1->build();
 
-		$builder2 = new TrailBuilder( $ctx, $settings );
+		$builder2 = new TrailBuilder( $ctx2, $settings );
 		$trail2   = $builder2->build();
 
 		$this->assertSame( $trail1, $trail2 );
+
+		// Verifies overrides change the cache key and produce a new trail array.
+		$builderOverride = new TrailBuilder( $ctx1, $settings, [ 'show_home' => false ] );
+		$trailOverride   = $builderOverride->build();
+
+		$this->assertNotEquals( $trail1, $trailOverride );
 	}
 }

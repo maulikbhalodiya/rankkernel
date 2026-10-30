@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Breadcrumbs\BreadcrumbsModule;
+use RankKernel\Modules\Breadcrumbs\TrailBuilder;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\ModuleEnableMap;
@@ -83,6 +84,8 @@ final class BreadcrumbsModuleTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		TrailBuilder::resetCache();
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 		Functions\when( 'is_preview' )->justReturn( false );

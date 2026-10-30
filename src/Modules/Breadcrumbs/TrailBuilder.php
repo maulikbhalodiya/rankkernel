@@ -122,12 +122,18 @@ final class TrailBuilder {
 	 * @return Item[] Ordered trail, empty for invalid contexts.
 	 */
 	public function build(): array {
-		$key = spl_object_hash( $this->ctx ) . '|' . $this->ctx->hash();
+		$key = $this->ctx->hash();
 
-		if ( function_exists( 'wp_json_encode' ) ) {
-			$key .= '|' . md5( (string) wp_json_encode( $this->settings->all() ) );
-			$key .= '|' . md5( (string) wp_json_encode( $this->overrides ) );
-		}
+		$settingsJson = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $this->settings->all() )
+			: json_encode( $this->settings->all() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		$overridesJson = function_exists( 'wp_json_encode' )
+			? wp_json_encode( $this->overrides )
+			: json_encode( $this->overrides ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- fallback when WordPress is not loaded; wp_json_encode is preferred above.
+
+		$key .= '|' . md5( is_string( $settingsJson ) ? $settingsJson : '' );
+		$key .= '|' . md5( is_string( $overridesJson ) ? $overridesJson : '' );
 
 		if ( array_key_exists( $key, self::$buildMemo ) ) {
 			return self::$buildMemo[ $key ];
@@ -884,14 +890,12 @@ final class TrailBuilder {
 	 * @return string[] Taxonomy slugs.
 	 */
 	private function publicTaxonomies( string $postType ): array {
-		$memoKey = spl_object_hash( $this->ctx ) . '|' . $postType;
-
-		if ( array_key_exists( $memoKey, self::$publicTaxonomiesMemo ) ) {
-			return self::$publicTaxonomiesMemo[ $memoKey ];
+		if ( array_key_exists( $postType, self::$publicTaxonomiesMemo ) ) {
+			return self::$publicTaxonomiesMemo[ $postType ];
 		}
 
 		if ( ! function_exists( 'get_object_taxonomies' ) ) {
-			self::$publicTaxonomiesMemo[ $memoKey ] = [];
+			self::$publicTaxonomiesMemo[ $postType ] = [];
 
 			return [];
 		}
@@ -899,7 +903,7 @@ final class TrailBuilder {
 		$taxes = get_object_taxonomies( $postType, 'objects' );
 
 		if ( ! is_array( $taxes ) ) {
-			self::$publicTaxonomiesMemo[ $memoKey ] = [];
+			self::$publicTaxonomiesMemo[ $postType ] = [];
 
 			return [];
 		}
@@ -925,9 +929,9 @@ final class TrailBuilder {
 			}
 		}
 
-		self::$publicTaxonomiesMemo[ $memoKey ] = array_values( array_unique( $out ) );
+		self::$publicTaxonomiesMemo[ $postType ] = array_values( array_unique( $out ) );
 
-		return self::$publicTaxonomiesMemo[ $memoKey ];
+		return self::$publicTaxonomiesMemo[ $postType ];
 	}
 
 	/**
@@ -1034,14 +1038,12 @@ final class TrailBuilder {
 	 * @return bool The result.
 	 */
 	private function taxonomyForPost( string $taxonomy ): bool {
-		$memoKey = spl_object_hash( $this->ctx ) . '|' . $taxonomy;
-
-		if ( array_key_exists( $memoKey, self::$taxonomyForPostMemo ) ) {
-			return self::$taxonomyForPostMemo[ $memoKey ];
+		if ( array_key_exists( $taxonomy, self::$taxonomyForPostMemo ) ) {
+			return self::$taxonomyForPostMemo[ $taxonomy ];
 		}
 
 		if ( ! function_exists( 'get_taxonomy' ) ) {
-			self::$taxonomyForPostMemo[ $memoKey ] = false;
+			self::$taxonomyForPostMemo[ $taxonomy ] = false;
 
 			return false;
 		}
@@ -1049,14 +1051,14 @@ final class TrailBuilder {
 		$vars = $this->vars( get_taxonomy( $taxonomy ) );
 
 		if ( ! isset( $vars['object_type'] ) || ! is_array( $vars['object_type'] ) ) {
-			self::$taxonomyForPostMemo[ $memoKey ] = false;
+			self::$taxonomyForPostMemo[ $taxonomy ] = false;
 
 			return false;
 		}
 
-		self::$taxonomyForPostMemo[ $memoKey ] = in_array( 'post', $vars['object_type'], true );
+		self::$taxonomyForPostMemo[ $taxonomy ] = in_array( 'post', $vars['object_type'], true );
 
-		return self::$taxonomyForPostMemo[ $memoKey ];
+		return self::$taxonomyForPostMemo[ $taxonomy ];
 	}
 
 	/**
@@ -1101,14 +1103,12 @@ final class TrailBuilder {
 	 * @return Item|null Archive crumb or null.
 	 */
 	private function cptArchiveItem( string $postType ): ?Item {
-		$memoKey = spl_object_hash( $this->ctx ) . '|' . $postType;
-
-		if ( array_key_exists( $memoKey, self::$cptArchiveItemMemo ) ) {
-			return self::$cptArchiveItemMemo[ $memoKey ];
+		if ( array_key_exists( $postType, self::$cptArchiveItemMemo ) ) {
+			return self::$cptArchiveItemMemo[ $postType ];
 		}
 
 		if ( ! function_exists( 'get_post_type_object' ) ) {
-			self::$cptArchiveItemMemo[ $memoKey ] = null;
+			self::$cptArchiveItemMemo[ $postType ] = null;
 
 			return null;
 		}
@@ -1116,7 +1116,7 @@ final class TrailBuilder {
 		$vars = $this->vars( get_post_type_object( $postType ) );
 
 		if ( empty( $vars['has_archive'] ) ) {
-			self::$cptArchiveItemMemo[ $memoKey ] = null;
+			self::$cptArchiveItemMemo[ $postType ] = null;
 
 			return null;
 		}
@@ -1139,9 +1139,9 @@ final class TrailBuilder {
 			$url  = is_string( $link ) ? $link : '';
 		}
 
-		self::$cptArchiveItemMemo[ $memoKey ] = new Item( $label, $url );
+		self::$cptArchiveItemMemo[ $postType ] = new Item( $label, $url );
 
-		return self::$cptArchiveItemMemo[ $memoKey ];
+		return self::$cptArchiveItemMemo[ $postType ];
 	}
 
 	/**
