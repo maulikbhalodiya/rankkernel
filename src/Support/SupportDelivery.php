@@ -279,11 +279,55 @@ final class SupportDelivery {
 	 * @return string|WP_Error Stored path, or the failure.
 	 */
 	public static function storeScreenshot( array $file ) {
-		if ( ! function_exists( 'wp_upload_dir' ) || ! function_exists( 'wp_handle_upload' ) ) {
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
 			return new WP_Error(
 				'support_screenshot_failed',
 				__( 'Uploads are not available on this site.', 'rankkernel' )
 			);
+		}
+
+		$base = function_exists( 'get_temp_dir' ) ? (string) get_temp_dir() : sys_get_temp_dir();
+		$base = rtrim( $base, '/\\' );
+
+		try {
+			$suffix = bin2hex( random_bytes( 16 ) );
+		} catch ( \Throwable $throwable ) {
+			$suffix = str_replace( '.', '', uniqid( '', true ) );
+		}
+
+		$tempDir = $base . DIRECTORY_SEPARATOR . 'rankkernel-support-' . $suffix;
+
+		if ( function_exists( 'wp_mkdir_p' ) ) {
+			if ( ! wp_mkdir_p( $tempDir ) ) {
+				return new WP_Error(
+					'support_screenshot_failed',
+					__( 'Uploads are not available on this site.', 'rankkernel' )
+				);
+			}
+		} elseif ( ! mkdir( $tempDir, 0700, true ) && ! is_dir( $tempDir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- fallback when the WordPress helper is unavailable.
+			return new WP_Error(
+				'support_screenshot_failed',
+				__( 'Uploads are not available on this site.', 'rankkernel' )
+			);
+		}
+
+		if ( function_exists( 'chmod' ) ) {
+			@chmod( $tempDir, 0700 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod, WordPress.PHP.NoSilencedErrors.Discouraged -- private temp directory for one mail attachment.
+		}
+
+		$privateDir = static function ( array $uploads ) use ( $tempDir ): array {
+			$uploads['path']    = $tempDir;
+			$uploads['url']     = '';
+			$uploads['subdir']  = '';
+			$uploads['basedir'] = $tempDir;
+			$uploads['baseurl'] = '';
+			$uploads['error']   = false;
+
+			return $uploads;
+		};
+
+		if ( function_exists( 'add_filter' ) ) {
+			add_filter( 'upload_dir', $privateDir );
 		}
 
 		$overrides = [
@@ -303,11 +347,76 @@ final class SupportDelivery {
 			$overrides
 		);
 
+		if ( function_exists( 'remove_filter' ) ) {
+			remove_filter( 'upload_dir', $privateDir );
+		}
+
 		if ( is_wp_error( $stored ) ) {
+			self::removeTempDir( $tempDir );
+
 			return new WP_Error( 'support_screenshot_failed', $stored->get_error_message() );
 		}
 
-		return (string) ( $stored['path'] ?? '' );
+		// wp_handle_upload() returns the stored path under 'file'; older test
+		// doubles used 'path'. Accept both so the attachment is never lost.
+		return (string) ( $stored['file'] ?? $stored['path'] ?? '' );
+	}
+
+	/**
+	 * Remove a per-upload private directory when it is empty.
+	 *
+	 * @param string $dir Directory path.
+	 * @return void
+	 */
+	private static function removeTempDir( string $dir ): void {
+		if ( '' === $dir || ! is_dir( $dir ) ) {
+			return;
+		}
+
+		$files = glob( $dir . '/*' );
+
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				if ( is_file( $file ) ) {
+					@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- cleanup of the private support temp directory.
+				}
+			}
+		}
+
+		@rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.PHP.NoSilencedErrors.Discouraged -- cleanup of the private support temp directory.
+	}
+
+	/**
+	 * Remove stale private support directories left by an interrupted request.
+	 *
+	 * @param int $maxAge Maximum age in seconds.
+	 * @return void
+	 */
+	public static function cleanupStaleScreenshots( int $maxAge = 3600 ): void {
+		$base = function_exists( 'get_temp_dir' ) ? (string) get_temp_dir() : sys_get_temp_dir();
+		$base = rtrim( $base, '/\\' );
+
+		$dirs = glob( $base . DIRECTORY_SEPARATOR . 'rankkernel-support-*', GLOB_ONLYDIR );
+
+		if ( ! is_array( $dirs ) ) {
+			return;
+		}
+
+		$cutoff = time() - max( 60, $maxAge );
+
+		foreach ( $dirs as $dir ) {
+			if ( ! is_string( $dir ) || ! is_dir( $dir ) ) {
+				continue;
+			}
+
+			$mtime = filemtime( $dir );
+
+			if ( false !== $mtime && $mtime >= $cutoff ) {
+				continue;
+			}
+
+			self::removeTempDir( $dir );
+		}
 	}
 
 	/**
@@ -325,8 +434,20 @@ final class SupportDelivery {
 		}
 
 		foreach ( $paths as $path ) {
-			if ( is_string( $path ) && '' !== $path ) {
-				wp_delete_file( $path );
+			if ( ! is_string( $path ) || '' === $path ) {
+				continue;
+			}
+
+			wp_delete_file( $path );
+
+			if ( file_exists( $path ) ) {
+				@unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- fallback when wp_delete_file did not remove the private attachment.
+			}
+
+			$dir = dirname( $path );
+
+			if ( str_contains( basename( $dir ), 'rankkernel-support-' ) ) {
+				self::removeTempDir( $dir );
 			}
 		}
 	}

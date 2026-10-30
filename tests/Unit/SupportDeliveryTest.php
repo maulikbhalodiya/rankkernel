@@ -504,6 +504,42 @@ final class SupportDeliveryTest extends TestCase {
 	}
 
 	/**
+	 * The standard wp_handle_upload() file key is used for the attachment path.
+	 */
+	public function test_store_screenshot_accepts_wordpress_file_key(): void {
+		$base = sys_get_temp_dir() . '/rk-support-file-' . uniqid();
+		mkdir( $base, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+
+		Functions\when( 'get_temp_dir' )->justReturn( $base );
+		Functions\when( 'wp_mkdir_p' )->alias(
+			static function ( string $dir ): bool {
+				return is_dir( $dir ) || mkdir( $dir, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates the private upload dir.
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'wp_handle_upload' )->justReturn(
+			[
+				'file' => '/tmp/private-shot.png',
+				'url'  => '',
+				'type' => 'image/png',
+			]
+		);
+
+		$result = SupportDelivery::storeScreenshot(
+			[
+				'name'     => 'private-shot.png',
+				'type'     => 'image/png',
+				'tmp_name' => '/tmp/private-shot.png',
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+			]
+		);
+
+		$this->assertSame( '/tmp/private-shot.png', $result );
+	}
+
+	/**
 	 * A successful send returns true.
 	 */
 	public function test_a_successful_send_returns_true(): void {
@@ -591,6 +627,104 @@ final class SupportDeliveryTest extends TestCase {
 
 		$this->assertStringContainsString( '--- Site details ---', $message );
 		$this->assertStringContainsString( '6.9', $message );
+	}
+
+	/**
+	 * The upload handler must be pointed at a private system-temp directory.
+	 */
+	public function test_store_screenshot_uses_private_temp_directory(): void {
+		$base = sys_get_temp_dir() . '/rk-support-test-' . uniqid();
+		mkdir( $base, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+
+		Functions\when( 'get_temp_dir' )->justReturn( $base );
+		Functions\when( 'wp_mkdir_p' )->alias(
+			static function ( string $dir ): bool {
+				return is_dir( $dir ) || mkdir( $dir, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates the private upload dir.
+			}
+		);
+
+		$filter = null;
+		Functions\when( 'add_filter' )->alias(
+			static function ( string $hook, callable $callback ) use ( &$filter ): void {
+				if ( 'upload_dir' === $hook ) {
+					$filter = $callback;
+				}
+			}
+		);
+		Functions\when( 'remove_filter' )->justReturn( true );
+
+		Functions\when( 'wp_handle_upload' )->alias(
+			static function ( array $file, array $overrides ) use ( &$filter ): array {
+				unset( $file, $overrides );
+
+				$dirs = $filter( [] );
+
+				return [ 'path' => $dirs['path'] . '/shot.png' ];
+			}
+		);
+
+		$result = SupportDelivery::storeScreenshot(
+			[
+				'name'     => 'shot.png',
+				'type'     => 'image/png',
+				'tmp_name' => '/tmp/shot.png',
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => 1024,
+			]
+		);
+
+		$this->assertIsString( $result );
+		$this->assertStringStartsWith( $base . '/rankkernel-support-', $result );
+		$this->assertStringNotContainsString( '/uploads/', $result );
+
+		foreach ( (array) glob( $base . '/rankkernel-support-*' ) as $dir ) {
+			rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
+		}
+
+		rmdir( $base ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
+	}
+
+	/**
+	 * Deleting a private screenshot removes its per-upload directory too.
+	 */
+	public function test_delete_screenshots_removes_private_directory(): void {
+		$dir = sys_get_temp_dir() . '/rankkernel-support-' . uniqid(); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+		mkdir( $dir, 0700, true );
+		$file = $dir . '/shot.png';
+
+		file_put_contents( $file, 'x' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes its own temp file.
+
+		Functions\when( 'wp_delete_file' )->alias(
+			static function ( string $path ): void {
+				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+			}
+		);
+
+		SupportDelivery::deleteScreenshots( [ $file ] );
+
+		$this->assertFalse( file_exists( $file ) );
+		$this->assertFalse( is_dir( $dir ) );
+	}
+
+	/**
+	 * Stale private upload directories are removed.
+	 */
+	public function test_cleanup_stale_screenshots_removes_old_directories(): void {
+		$base = sys_get_temp_dir() . '/rk-support-test-' . uniqid();
+		$dir  = $base . '/rankkernel-support-stale';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own private temp dir.
+		mkdir( $dir, 0700, true );
+
+		file_put_contents( $dir . '/shot.png', 'x' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes its own temp file.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_touch -- test fixture ages its own temp dir.
+		touch( $dir, time() - 7200 );
+
+		Functions\when( 'get_temp_dir' )->justReturn( $base );
+
+		SupportDelivery::cleanupStaleScreenshots();
+
+		$this->assertFalse( is_dir( $dir ) );
 	}
 
 	/**

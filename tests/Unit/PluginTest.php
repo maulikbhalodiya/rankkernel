@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Admin\HtaccessFile;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleManager;
 use RankKernel\Modules\Metadata\MetadataModule;
@@ -456,6 +457,96 @@ final class PluginTest extends TestCase {
 		\rankkernel_deactivate();
 
 		$this->assertSame( [ 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ], $cleared );
+	}
+
+	/**
+	 * Deactivation removes only the RankKernel-managed .htaccess block.
+	 *
+	 * Runs in a separate process because it loads rankkernel.php and defines
+	 * the plugin constants.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_deactivation_removes_only_the_managed_htaccess_block(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_deactivate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		Functions\when( 'flush_rewrite_rules' )->justReturn( true );
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( null );
+
+		$uploadBase = sys_get_temp_dir() . '/rk-deactivate-' . uniqid();
+		$htaccess   = $uploadBase . '/.htaccess';
+
+		mkdir( $uploadBase, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates its own temp directory.
+		file_put_contents( $htaccess, "# BEGIN RankKernel\nOptions -Indexes\n# END RankKernel\n\n# user content\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes its own temp file.
+
+		Functions\when( 'wp_upload_dir' )->justReturn( [ 'basedir' => $uploadBase ] );
+
+		$backupStore = [];
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = [] ) use ( &$backupStore ): mixed {
+				return HtaccessFile::BACKUP_OPTION === $key ? $backupStore : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$backupStore ): bool {
+				if ( HtaccessFile::BACKUP_OPTION === $key && is_array( $value ) ) {
+					$backupStore = $value;
+				}
+
+				return true;
+			}
+		);
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $htaccess ): mixed {
+				if ( 'rankkernel/htaccess/path' === $hook ) {
+					return $htaccess;
+				}
+
+				if ( 'rankkernel/htaccess/supported' === $hook ) {
+					return true;
+				}
+
+				return $value;
+			}
+		);
+
+		$GLOBALS['is_apache'] = false; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- simulate WP-CLI, where server detection is absent.
+
+		\rankkernel_deactivate();
+
+		$remaining = (string) file_get_contents( $htaccess ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test reads its own temp file.
+
+		$this->assertStringNotContainsString( HtaccessFile::MARKER_BEGIN, $remaining );
+		$this->assertStringContainsString( '# user content', $remaining );
+
+		unset( $GLOBALS['is_apache'] );
+
+		$backupDir = $uploadBase . '/rankkernel-htaccess-backups';
+
+		foreach ( (array) glob( $backupDir . '/*' ) as $leftover ) {
+			if ( is_file( $leftover ) ) {
+				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture clears its own backup files.
+			}
+		}
+
+		foreach ( [ 'index.php', '.htaccess' ] as $guard ) {
+			if ( is_file( $backupDir . '/' . $guard ) ) {
+				unlink( $backupDir . '/' . $guard ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture clears its own guard files.
+			}
+		}
+
+		if ( is_dir( $backupDir ) ) {
+			rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp directory.
+		}
+
+		unlink( $htaccess ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
+		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp directory.
 	}
 
 	/**

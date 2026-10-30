@@ -181,6 +181,14 @@ final class SupportPageTest extends TestCase {
 			]
 		);
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
+		Functions\when( 'get_temp_dir' )->justReturn( sys_get_temp_dir() );
+		Functions\when( 'wp_mkdir_p' )->alias(
+			static function ( string $dir ): bool {
+				return is_dir( $dir ) || mkdir( $dir, 0700, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates the private upload dir.
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
 		// Identify the file from the submitted name, as core does after sniffing.
 		Functions\when( 'wp_check_filetype_and_ext' )->alias(
 			static function ( string $path, string $filename ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.

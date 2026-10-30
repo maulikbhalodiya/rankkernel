@@ -63,6 +63,8 @@ final class InstantIndexingLogTableTest extends TestCase {
 				$this->db->tableExists = true;
 			}
 		);
+
+		Functions\when( 'get_option' )->justReturn( '0.0.0' );
 	}
 
 	/**
@@ -131,6 +133,22 @@ final class InstantIndexingLogTableTest extends TestCase {
 
 		$this->assertFalse( LogTable::exists() );
 		$this->assertSame( 2, $this->db->schemaProbes, 'Each distinct table name performs its own probe' );
+	}
+
+	/**
+	 * Test a current ledger skips the schema diff on an ordinary request.
+	 */
+	public function test_ensure_tables_skips_dbdelta_when_ledger_is_current(): void {
+		if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
+			define( 'RANKKERNEL_VERSION', '0.1.0' );
+		}
+
+		Functions\when( 'get_option' )->justReturn( '0.1.0' );
+
+		$this->db->tableExists = true;
+
+		$this->assertTrue( LogTable::ensureTables() );
+		$this->assertSame( 0, $this->dbDeltaCalls, 'A current ledger must not run dbDelta.' );
 	}
 
 	/**

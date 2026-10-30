@@ -91,6 +91,8 @@ final class SupportPage {
 
 		check_admin_referer( SupportRequest::NONCE_ACTION );
 
+		SupportDelivery::cleanupStaleScreenshots();
+
 		$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) && is_string( $_POST[ SupportRequest::FIELD_HONEYPOT ] )
 			? sanitize_text_field( wp_unslash( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) )
 			: '';

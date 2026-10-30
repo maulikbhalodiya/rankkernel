@@ -172,6 +172,16 @@ final class RedirectTable {
 			return false;
 		}
 
+		// The migration ledger is the cross-request schema gate. Once it
+		// matches the running code, an existing table needs no dbDelta on
+		// ordinary requests; a missing table still falls through to repair.
+		$ledger = function_exists( 'get_option' ) ? get_option( 'rankkernel_db_version', '' ) : '';
+		$code   = defined( 'RANKKERNEL_VERSION' ) ? (string) RANKKERNEL_VERSION : '';
+
+		if ( '' !== $ledger && '' !== $code && version_compare( $ledger, $code, '>=' ) && self::exists() ) {
+			return true;
+		}
+
 		self::resetCache();
 
 		if ( ! function_exists( 'dbDelta' ) ) {
