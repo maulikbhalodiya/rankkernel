@@ -89,7 +89,8 @@ function fakeNode( props ) {
 				return null;
 			},
 			focus() {},
-			setSelectionRange() {}
+			setSelectionRange() {},
+			dispatchEvent() {}
 		},
 		props || {},
 		{ __attrs: attrs }
@@ -116,10 +117,18 @@ function boot( options ) {
 
 	const sandbox = {
 		URL,
+		Event: typeof Event !== 'undefined' ? Event : class Event { constructor( type ) { this.type = type; } },
 		setTimeout,
 		clearTimeout,
 		document: {
 			readyState: 'complete',
+			createEvent() {
+				return {
+					initEvent( type ) {
+						this.type = type;
+					}
+				};
+			},
 			getElementById( id ) {
 				return byId[ id ] || null;
 			},
@@ -159,18 +168,28 @@ function boot( options ) {
 	};
 }
 
-function translatingWp( seen ) {
-	return {
+function speakingWp( spoken, extra ) {
+	return Object.assign(
+		{ a11y: { speak: ( text ) => spoken.push( text ) } },
+		extra || {}
+	);
+}
+
+function translatingWp( spoken ) {
+	const spokenList = Array.isArray( spoken ) ? spoken : [];
+	return speakingWp( spokenList, {
 		i18n: {
 			__( text, domain ) {
-				if ( seen ) {
-					seen.push( [ text, domain ] );
+				if ( spokenList.seen ) {
+					spokenList.seen.push( [ text, domain ] );
 				}
-
-				return 'rankkernel:' + text;
+				return domain + ':' + text;
+			},
+			sprintf( format, arg ) {
+				return String( format || '' ).replace( '%s', String( arg || '' ) );
 			}
 		}
-	};
+	} );
 }
 
 function statusWord( fixture, status ) {
@@ -192,12 +211,13 @@ test( 'the classic metadata editor renders the raw English status words when wp.
 
 test( 'the classic metadata editor uses wp.i18n when the handle is present', () => {
 	const seen = [];
+	seen.seen = [];
 	const fixture = boot( { wp: translatingWp( seen ) } );
 
 	assert.equal( statusWord( fixture, 'warn' ), 'rankkernel:Long' );
 	assert.equal( statusWord( fixture, 'over' ), 'rankkernel:Too long' );
 	assert.equal( statusWord( fixture, 'ok' ), 'rankkernel:OK' );
-	assert.deepEqual( seen, [
+	assert.deepEqual( seen.seen, [
 		[ 'Long', 'rankkernel' ],
 		[ 'Too long', 'rankkernel' ],
 		[ 'OK', 'rankkernel' ]
@@ -294,6 +314,8 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		'OK',
 		'No tokens available for this post type.',
 		'Insert token',
+		'Inserted token %s.',
+		'Field reset to template.',
 		'chars only',
 		'chars',
 		'Inherited from the template',
@@ -325,6 +347,45 @@ test( 'every user visible classic metadata editor literal is a direct translatio
 		code,
 		/var __ = window\.wp && window\.wp\.i18n && window\.wp\.i18n\.__ \? window\.wp\.i18n\.__ : function \( text \) \{ return text; \};/
 	);
+} );
+
+test( 'metadata-editor announces when a token is inserted or a field is reset', () => {
+	const spoken = [];
+	const list = fakeNode();
+	const titleInput = fakeNode( { tagName: 'INPUT' } );
+	const titleResetButton = fakeNode( { attrs: { 'data-rk-reset': 'title' } } );
+
+	const editorRoot = fakeRoot( {
+		query: {
+			'[name="rankkernel_meta_title"]': titleInput,
+			'[data-rk-reset="title"]': titleResetButton
+		},
+		queryAll: {
+			'[data-rankkernel-tokens]': [ list ],
+			'[data-rk-reset]': [ titleResetButton ]
+		}
+	} );
+
+	const fixture = boot( {
+		wp: translatingWp( spoken ),
+		byId: { 'rankkernel-meta-title': titleInput },
+		cfg: { tokenLabels: { '%%title%%': 'Title' } },
+		roots: [ editorRoot ]
+	} );
+	fixture.init();
+
+	// Click token button
+	const tokenBtn = list.children[ 0 ];
+	assert.ok( tokenBtn );
+	tokenBtn.listeners.click();
+
+	// Click reset button
+	titleResetButton.listeners.click();
+
+	assert.deepEqual( spoken, [
+		'rankkernel:Inserted token %%title%%.',
+		'rankkernel:Field reset to template.'
+	] );
 } );
 
 test( 'the media select chain is guarded and falls back to the URL field', () => {

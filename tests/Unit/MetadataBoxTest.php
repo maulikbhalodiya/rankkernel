@@ -1207,7 +1207,7 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( [ 'rankkernel-admin' ], $styleDeps['rankkernel-metadata-classic'] );
 		$this->assertContains( 'style:rankkernel-admin', $enqueued );
 		$this->assertContains( 'script:rankkernel-metadata-editor', $enqueued );
-		$this->assertSame( [ 'wp-i18n' ], $scriptDeps['rankkernel-metadata-editor'] );
+		$this->assertSame( [ 'wp-i18n', 'wp-a11y' ], $scriptDeps['rankkernel-metadata-editor'] );
 		$this->assertArrayHasKey( 'rankkernel-analysis-text-stats', $scripts );
 		$this->assertArrayHasKey( 'rankkernel-analysis-analyzer', $scripts );
 		$this->assertContains( 'script:rankkernel-analysis-editor', $enqueued );

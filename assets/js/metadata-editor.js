@@ -16,6 +16,18 @@
 	// visible when translations are unavailable.
 	var __ = window.wp && window.wp.i18n && window.wp.i18n.__ ? window.wp.i18n.__ : function ( text ) { return text; };
 
+	var sprintf = ( window.wp && window.wp.i18n && typeof window.wp.i18n.sprintf === 'function' )
+		? window.wp.i18n.sprintf
+		: function ( text, param ) {
+			return String( text || '' ).replace( '%s', String( param || '' ) );
+		};
+
+	function rankkernelAnnounce( text ) {
+		if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+			window.wp.a11y.speak( text );
+		}
+	}
+
 	var cfg = window.rankkernelMetaEditor || {};
 	var templates = cfg.templates || {};
 	var tokenLabels = cfg.tokenLabels || {};
@@ -327,6 +339,7 @@
 					var target = getTarget();
 					if ( target ) {
 						insertAtCaret( target, token );
+						rankkernelAnnounce( sprintf( __( 'Inserted token %s.', 'rankkernel' ), token ) );
 					}
 				} );
 				list.appendChild( button );
@@ -723,6 +736,7 @@
 					idField.value = '';
 				}
 				schedule();
+				rankkernelAnnounce( __( 'Field reset to template.', 'rankkernel' ) );
 				if ( input.focus ) {
 					input.focus();
 				}
