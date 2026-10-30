@@ -38,6 +38,7 @@ final class RedirectsSettingsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		RedirectsSettings::resetCache();
 
 		Functions\when( 'get_option' )->alias(
 			function ( string $key, mixed $fallback = false ): mixed {
@@ -62,6 +63,7 @@ final class RedirectsSettingsTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		RedirectsSettings::resetCache();
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -174,5 +176,109 @@ final class RedirectsSettingsTest extends TestCase {
 		$this->assertFalse( $settings->get( 'preserve_query' ) );
 		$this->assertTrue( $settings->get( 'auto_slug_redirect' ) );
 		$this->assertSame( [], $this->updates );
+	}
+
+	/**
+	 * Test request-level static memoization across instances and resetCache().
+	 */
+	public function test_static_request_level_memoization_and_reset(): void {
+		$calls = 0;
+		$value = [ 'preserve_query' => false ];
+		Functions\when( 'get_current_blog_id' )->justReturn( 10 );
+		Functions\when( 'get_option' )->alias(
+			function ( string $key, mixed $fallback = false ) use ( &$calls, &$value ): mixed {
+				if ( RedirectsSettings::OPTION === $key ) {
+					++$calls;
+					return $value;
+				}
+				return $fallback;
+			}
+		);
+
+		$instance1 = new RedirectsSettings();
+		$this->assertFalse( $instance1->get( 'preserve_query' ) );
+		$this->assertSame( 1, $calls );
+
+		// Multiple instances share static request-level memoization for blog 10.
+		$instance2 = new RedirectsSettings();
+		$this->assertFalse( $instance2->get( 'preserve_query' ) );
+		$this->assertSame( 1, $calls );
+
+		// Mutate underlying stored option to test resetCache() re-fetching fresh value.
+		$value = [ 'preserve_query' => true ];
+		RedirectsSettings::resetCache();
+
+		$instance3 = new RedirectsSettings();
+		$this->assertTrue( $instance3->get( 'preserve_query' ) );
+		$this->assertSame( 2, $calls );
+	}
+
+	/**
+	 * Test set() updates both instance and static request-level cache.
+	 */
+	public function test_set_updates_static_and_instance_cache(): void {
+		$store = [];
+		Functions\when( 'get_current_blog_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$store ): mixed {
+				return $store[ $key ] ?? $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $val ) use ( &$store ): bool {
+				$store[ $key ] = $val;
+				return true;
+			}
+		);
+
+		$instance1 = new RedirectsSettings();
+		$instance1->set( [ 'preserve_query' => false ] );
+		$this->assertFalse( $instance1->get( 'preserve_query' ) );
+
+		$calls = 0;
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$calls, &$store ): mixed {
+				if ( RedirectsSettings::OPTION === $key ) {
+					++$calls;
+				}
+				return $store[ $key ] ?? $fallback;
+			}
+		);
+
+		// Second instance created afterwards reads updated static cache without get_option.
+		$instance2 = new RedirectsSettings();
+		$this->assertFalse( $instance2->get( 'preserve_query' ) );
+		$this->assertSame( 0, $calls );
+	}
+
+	/**
+	 * Test multisite isolation across switch_to_blog().
+	 */
+	public function test_multisite_blog_isolation(): void {
+		$blogId = 1;
+		Functions\when( 'get_current_blog_id' )->alias(
+			static function () use ( &$blogId ): int {
+				return $blogId;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( &$blogId ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors WordPress signature.
+				if ( RedirectsSettings::OPTION !== $key ) {
+					return $fallback;
+				}
+
+				if ( 1 === $blogId ) {
+					return [ 'preserve_query' => true ];
+				}
+
+				return [ 'preserve_query' => false ];
+			}
+		);
+
+		$instance = new RedirectsSettings();
+		$this->assertTrue( $instance->get( 'preserve_query' ) );
+
+		$blogId = 2;
+		$this->assertFalse( $instance->get( 'preserve_query' ) );
 	}
 }
