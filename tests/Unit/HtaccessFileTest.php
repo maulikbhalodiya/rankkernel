@@ -51,6 +51,13 @@ final class HtaccessFileTest extends TestCase {
 	private string $uploadsDir = '';
 
 	/**
+	 * In-memory private backup option.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $backupStore = [];
+
+	/**
 	 * Dispatch for the RankKernel\Admin file_put_contents() test harness.
 	 *
 	 * @param string $filename Target path.
@@ -84,6 +91,27 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->path      = '';
 		$this->supported = true;
+
+		$this->backupStore = [];
+
+		Functions\when( 'get_option' )->alias(
+			function ( string $key, mixed $fallback = [] ): mixed {
+				return HtaccessFile::BACKUP_OPTION === $key ? $this->backupStore : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( string $key, mixed $value, mixed $autoload = null ): bool {
+				unset( $autoload );
+
+				if ( HtaccessFile::BACKUP_OPTION === $key && is_array( $value ) ) {
+					$this->backupStore = $value;
+
+					return true;
+				}
+
+				return true;
+			}
+		);
 
 		$this->uploadsDir = sys_get_temp_dir() . '/rkht-uploads-' . uniqid();
 		mkdir( $this->uploadsDir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture creates a real writable uploads directory.
@@ -149,9 +177,9 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
-	 * Test read, then save writes a backup first.
+	 * Test read, then save stores a private backup before the write.
 	 */
-	public function test_read_and_save_writes_a_backup(): void {
+	public function test_read_and_save_writes_a_private_backup(): void {
 		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
 
 		$this->assertIsString( $temp );
@@ -168,34 +196,45 @@ final class HtaccessFileTest extends TestCase {
 		$result = $file->save( "# changed\n" );
 
 		$this->assertTrue( $result['saved'] );
-		$this->assertNotSame( '', $result['backup'] );
-		$this->assertFileExists( $result['backup'] );
-		$this->assertSame( "# original\n", (string) file_get_contents( $result['backup'] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own backup.
+		$this->assertStringStartsWith( 'db:', $result['backup'] );
+
+		$backups = $file->backups();
+
+		$this->assertCount( 1, $backups );
+		$this->assertSame( "# original\n", $backups[0]['content'] );
 		$this->assertSame( "# changed\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-		unlink( $result['backup'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backup.
 	}
 
 	/**
-	 * Test the backup name is unguessable and unique per save.
+	 * Test backup tokens are unique and opaque.
 	 */
-	public function test_backup_name_is_unguessable(): void {
-		$path = ( new HtaccessFile() )->backupPath();
+	public function test_backup_tokens_are_unique_and_opaque(): void {
+		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
 
-		$this->assertMatchesRegularExpression( '/htaccess-backup-\d{14}-[a-f0-9]{32}$/', $path );
+		$this->assertIsString( $temp );
+
+		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
+
+		$this->path = $temp;
+
+		$file   = new HtaccessFile();
+		$first  = $file->save( "# one\n" );
+		$second = $file->save( "# two\n" );
+
+		$this->assertNotSame( $first['backup'], $second['backup'] );
+		$this->assertMatchesRegularExpression( '/^db:\d+:[a-f0-9]{16}$/', $first['backup'] );
+		$this->assertCount( 2, $file->backups() );
+
+		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 
 	/**
-	 * Test save refuses to write when no guarded backup location exists.
-	 *
-	 * The old fallback wrote a timestamped backup beside the live file, which
-	 * some servers expose over HTTP. A missing safe location must fail closed.
+	 * Test save fails closed when the private backup option cannot be written.
 	 */
-	public function test_save_refuses_when_no_safe_backup_location_exists(): void {
-		Functions\when( 'wp_upload_dir' )->justReturn(
-			[ 'basedir' => '/proc/rankkernel-no-such-dir-' . uniqid() ]
-		);
+	public function test_save_fails_closed_when_private_backup_storage_fails(): void {
+		Functions\when( 'update_option' )->justReturn( false );
 
 		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
 
@@ -205,29 +244,21 @@ final class HtaccessFileTest extends TestCase {
 
 		$this->path = $temp;
 
-		$file = new HtaccessFile();
-
-		$this->assertSame( '', $file->backupPath() );
-
-		$result = $file->save( "# changed\n" );
+		$result = ( new HtaccessFile() )->save( "# changed\n" );
 
 		$this->assertFalse( $result['saved'] );
-		$this->assertSame( 'backup_unavailable', $result['reason'] );
+		$this->assertSame( 'backup_failed', $result['reason'] );
 		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
-		$this->assertSame( array(), (array) glob( $temp . '.rankkernel-backup-*' ), 'No backup may be written beside the live file.' );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
 	}
 
 	/**
-	 * Test a short write is a failure and the backup is restored.
+	 * Test a short write is a failure and leaves the live file untouched.
 	 *
 	 * The file_put_contents() function can report fewer bytes than the
-	 * content length without returning false. A truncated .htaccess can
-	 * break the whole site, so the save must report failure and the
-	 * pre-write backup must be put back. Runs in its own process so the
-	 * namespaced shim below is defined before the first call to the
-	 * built-in is resolved.
+	 * content length without returning false. The temp file is discarded,
+	 * so a truncated .htaccess can never reach the live path.
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
@@ -261,7 +292,6 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertSame( "# original\n", (string) file_get_contents( $temp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test fixture reads its own temp file.
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-		unlink( $result['backup'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backup.
 	}
 
 	/**
@@ -576,63 +606,9 @@ final class HtaccessFileTest extends TestCase {
 	}
 
 	/**
-	 * Test backups land in the guarded uploads dir, never next to the live file.
-	 */
-	public function test_backups_live_outside_the_site_root_file(): void {
-		$uploadBase = sys_get_temp_dir() . '/rkht-uploads-' . uniqid();
-
-		mkdir( $uploadBase, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture prepares its own temp dir.
-
-		Functions\when( 'wp_upload_dir' )->alias(
-			static function () use ( $uploadBase ): array {
-				return [ 'basedir' => $uploadBase ];
-			}
-		);
-
-		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
-
-		$this->assertIsString( $temp );
-
-		file_put_contents( $temp, "# original\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes a temp file outside the plugin.
-
-		$this->path = $temp;
-
-		$file = new HtaccessFile();
-		$dir  = $file->backupDir();
-
-		$this->assertStringStartsWith( $uploadBase, $dir );
-		$this->assertNotSame( dirname( (string) $temp ), $dir, 'Backups must not sit next to the live file.' );
-		$this->assertFileExists( $dir . '/index.php' );
-
-		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-
-		$listed   = glob( $dir . '/*' );
-		$dotted   = glob( $dir . '/.*' );
-		$leftover = array();
-		foreach ( array_merge( is_array( $listed ) ? $listed : array(), is_array( $dotted ) ? $dotted : array() ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture cleans its own temp dir.
-			}
-		}
-
-		rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-	}
-
-	/**
-	 * Test repeated saves keep at most BACKUP_KEEP backups.
+	 * Test repeated saves keep at most BACKUP_KEEP private snapshots.
 	 */
 	public function test_repeated_saves_prune_to_keep_limit(): void {
-		$uploadBase = sys_get_temp_dir() . '/rkht-uploads-' . uniqid();
-
-		mkdir( $uploadBase, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test fixture prepares its own temp dir.
-
-		Functions\when( 'wp_upload_dir' )->alias(
-			static function () use ( $uploadBase ): array {
-				return [ 'basedir' => $uploadBase ];
-			}
-		);
-
 		$temp = tempnam( sys_get_temp_dir(), 'rkht' );
 
 		$this->assertIsString( $temp );
@@ -649,32 +625,9 @@ final class HtaccessFileTest extends TestCase {
 			$this->assertTrue( $result['saved'] );
 		}
 
-		$backups = glob( $file->backupDir() . '/htaccess-backup-*' );
-
-		$this->assertIsArray( $backups );
-		$this->assertLessThanOrEqual( HtaccessFile::BACKUP_KEEP, count( $backups ) );
+		$this->assertCount( HtaccessFile::BACKUP_KEEP, $file->backups() );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-
-		foreach ( $backups as $backup ) {
-			unlink( $backup ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own backups.
-		}
-
-		// Capture the path once: backupDir() recreates its guard files as a
-		// side effect, so calling it again inside rmdir() would repopulate
-		// the directory being removed.
-		$backupDir = $file->backupDir();
-
-		$listedFiles = glob( $backupDir . '/*' );
-		$dottedFiles = glob( $backupDir . '/.*' );
-		foreach ( array_merge( is_array( $listedFiles ) ? $listedFiles : array(), is_array( $dottedFiles ) ? $dottedFiles : array() ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture cleans its own temp dir.
-			}
-		}
-
-		rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
 	}
 
 	/**
@@ -753,19 +706,6 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertSame( $surrounding, substr( (string) $updated, (int) strpos( (string) $updated, '# BEGIN WordPress' ) ), 'Content outside the managed block must survive byte for byte.' );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-
-		$backupDir = rtrim( $uploadBase, '/' ) . '/rankkernel-htaccess-backups';
-
-		$backupListed = glob( $backupDir . '/*' );
-		$backupDotted = glob( $backupDir . '/.*' );
-		foreach ( array_merge( is_array( $backupListed ) ? $backupListed : [], is_array( $backupDotted ) ? $backupDotted : [] ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture clears the backups this test took.
-			}
-		}
-
-		rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
 	}
 
 	/**
@@ -802,19 +742,6 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertSame( $surrounding, $file->read(), 'Only the managed block may disappear.' );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-
-		$backupDir = rtrim( $uploadBase, '/' ) . '/rankkernel-htaccess-backups';
-
-		$backupListed = glob( $backupDir . '/*' );
-		$backupDotted = glob( $backupDir . '/.*' );
-		foreach ( array_merge( is_array( $backupListed ) ? $backupListed : [], is_array( $backupDotted ) ? $backupDotted : [] ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture clears the backups this test took.
-			}
-		}
-
-		rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
 	}
 
 	/**
@@ -960,53 +887,5 @@ final class HtaccessFileTest extends TestCase {
 		$this->assertSame( [], $file->blockSelection() );
 
 		unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture removes its own temp file.
-
-		$backupDir = rtrim( $uploadBase, '/' ) . '/rankkernel-htaccess-backups';
-
-		$backupListed = glob( $backupDir . '/*' );
-		$backupDotted = glob( $backupDir . '/.*' );
-		foreach ( array_merge( is_array( $backupListed ) ? $backupListed : [], is_array( $backupDotted ) ? $backupDotted : [] ) as $leftover ) {
-			if ( is_file( $leftover ) ) {
-				unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture clears the backups this test took.
-			}
-		}
-
-		rmdir( $backupDir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		rmdir( $uploadBase ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-	}
-
-	/**
-	 * Test a wp_upload_dir error array falls back to the content directory
-	 * and never to a hard coded uploads path.
-	 */
-	public function test_backup_dir_uses_the_content_directory_not_a_hard_coded_path(): void {
-		Functions\when( 'wp_upload_dir' )->justReturn( [ 'error' => 'cannot create directory' ] );
-
-		if ( ! defined( 'WP_CONTENT_DIR' ) ) {
-			define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/rkht-content-' . uniqid() );
-		}
-
-		$file = new HtaccessFile();
-
-		$dir = $file->backupDir();
-
-		$this->assertStringNotContainsString( 'wp-content/uploads', $dir );
-
-		if ( '' !== $dir ) {
-			$this->assertStringStartsWith( (string) WP_CONTENT_DIR, $dir );
-
-			// Remove the backups directory before the tree it sits in.
-			$listed   = glob( $dir . '/*' );
-			$dotted   = glob( $dir . '/.*' );
-			$leftover = array();
-			foreach ( array_merge( is_array( $listed ) ? $listed : array(), is_array( $dotted ) ? $dotted : array() ) as $leftover ) {
-				if ( is_file( $leftover ) ) {
-					unlink( $leftover ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- test fixture cleans its own temp dir.
-				}
-			}
-
-			rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-			rmdir( dirname( $dir ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- test fixture removes its own temp dir.
-		}
 	}
 }

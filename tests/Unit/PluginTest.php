@@ -485,6 +485,23 @@ final class PluginTest extends TestCase {
 		file_put_contents( $htaccess, "# BEGIN RankKernel\nOptions -Indexes\n# END RankKernel\n\n# user content\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture writes its own temp file.
 
 		Functions\when( 'wp_upload_dir' )->justReturn( [ 'basedir' => $uploadBase ] );
+
+		$backupStore = [];
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = [] ) use ( &$backupStore ): mixed {
+				return HtaccessFile::BACKUP_OPTION === $key ? $backupStore : $fallback;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$backupStore ): bool {
+				if ( HtaccessFile::BACKUP_OPTION === $key && is_array( $value ) ) {
+					$backupStore = $value;
+				}
+
+				return true;
+			}
+		);
+
 		Functions\when( 'apply_filters' )->alias(
 			static function ( string $hook, mixed $value ) use ( $htaccess ): mixed {
 				if ( 'rankkernel/htaccess/path' === $hook ) {

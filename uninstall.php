@@ -73,6 +73,11 @@ if ( is_array( $rankkernel_tables ) ) {
 	}
 }
 
+// Private .htaccess snapshots contain server configuration. They are never
+// public files, but uninstall must still remove them regardless of the
+// optional configuration-purge choice.
+delete_option( 'rankkernel_htaccess_backups' );
+
 // Remove a plugin-managed physical llms.txt. The writer only ever removes
 // a path it recorded on a successful write, so a hand made file is safe.
 // The class files load standalone here: uninstall runs with WordPress

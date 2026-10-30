@@ -29,6 +29,8 @@ final class RedirectsMonitorUninstallTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		Functions\when( 'delete_option' )->justReturn( true );
 	}
 
 	/**

@@ -168,7 +168,11 @@ function rankkernel_deactivate(): void {
 	// directory leaves the block in place rather than corrupting the file.
 	if ( class_exists( \RankKernel\Admin\HtaccessFile::class ) ) {
 		try {
-			( new \RankKernel\Admin\HtaccessFile() )->removeBlock();
+			$rankkernel_htaccess_result = ( new \RankKernel\Admin\HtaccessFile() )->removeBlock();
+
+			if ( empty( $rankkernel_htaccess_result['saved'] ) && function_exists( 'do_action' ) ) {
+				do_action( 'rankkernel/htaccess/deactivation_cleanup_failed', $rankkernel_htaccess_result['reason'] ?? 'unknown' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
+			}
 		} catch ( \Throwable $throwable ) {
 			if ( function_exists( 'do_action' ) ) {
 				do_action( 'rankkernel/htaccess/deactivation_cleanup_failed', $throwable ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.

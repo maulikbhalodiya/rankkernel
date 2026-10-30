@@ -512,8 +512,8 @@ final class SettingsPage {
 			$notice = 'saved';
 		} elseif ( 'unsupported' === $result['reason'] ) {
 			$notice = 'unsupported';
-		} elseif ( 'backup_unavailable' === $result['reason'] ) {
-			$notice = 'backup_unavailable';
+		} elseif ( 'backup_unavailable' === $result['reason'] || 'backup_failed' === $result['reason'] ) {
+			$notice = 'backup_failed';
 		} else {
 			$notice = 'failed';
 		}
