@@ -113,8 +113,11 @@ final class TrailBuilder {
 		$type = $this->ctx->queriedType();
 		$id   = $this->ctx->queriedId();
 
-		$frontOptions = ( function_exists( 'get_option' ) ? (string) get_option( 'show_on_front', 'posts' ) : '' )
-			. '|' . ( function_exists( 'get_option' ) ? (string) get_option( 'page_for_posts', 0 ) : '' );
+		$showFront = function_exists( 'get_option' ) ? get_option( 'show_on_front', 'posts' ) : '';
+		$pagePosts = function_exists( 'get_option' ) ? get_option( 'page_for_posts', 0 ) : '';
+
+		$frontOptions = ( is_scalar( $showFront ) ? (string) $showFront : '' )
+			. '|' . ( is_scalar( $pagePosts ) ? (string) $pagePosts : '' );
 
 		$primaryTax = '';
 		if ( 'post' === $type && $id > 0 ) {
@@ -125,7 +128,7 @@ final class TrailBuilder {
 		}
 
 		$discriminator = match ( $type ) {
-			'search'  => 's:' . ( function_exists( 'get_search_query' ) ? (string) get_search_query() : '' ),
+			'search'  => 's:' . ( function_exists( 'get_search_query' ) && is_scalar( get_search_query() ) ? (string) get_search_query() : '' ),
 			'archive' => 'pt:' . $this->archivePostType()
 				. '|y:' . (string) $this->queryVar( 'year' )
 				. '|m:' . (string) $this->queryVar( 'monthnum' )
