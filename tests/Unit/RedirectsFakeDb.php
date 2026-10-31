@@ -50,6 +50,13 @@ final class RedirectsFakeDb {
 	public int $insertAttempts = 0;
 
 	/**
+	 * Fail the Nth typed insert, zero to disable.
+	 *
+	 * @var int
+	 */
+	public int $failInsertAt = 0;
+
+	/**
 	 * Rows keyed by id.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -237,7 +244,7 @@ final class RedirectsFakeDb {
 	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->insertAttempts;
 
-		if ( $this->failInserts ) {
+		if ( $this->failInserts || ( $this->failInsertAt > 0 && $this->insertAttempts === $this->failInsertAt ) ) {
 			return false;
 		}
 

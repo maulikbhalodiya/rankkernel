@@ -112,6 +112,100 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Test the redirect id is captured before cache invalidation can replace it.
+	 */
+	public function test_insert_returns_redirect_id_when_cache_option_is_created(): void {
+		$this->options = [];
+
+		Functions\when( 'update_option' )->alias(
+			function ( string $key, mixed $value ): bool {
+				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
+					// Simulate update_option() inserting a fresh options row and
+					// overwriting $wpdb->insert_id after the redirect insert.
+					$this->db->insert_id = 169;
+				}
+
+				$this->options[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		$id = $this->repo->insert(
+			[
+				'source'     => '/first',
+				'target'     => '/first-target',
+				'code'       => '301',
+				'match_type' => 'exact',
+			]
+		);
+
+		$this->assertSame( 1, $id );
+		$this->assertArrayHasKey( 1, $this->db->rows );
+		$this->assertArrayHasKey( RedirectCache::VALIDATOR_OPTION, $this->options );
+	}
+
+	/**
+	 * Test later inserts still return the redirect id, not the cache row id.
+	 */
+	public function test_subsequent_insert_ids_are_not_replaced_by_cache_invalidation(): void {
+		$this->options[ RedirectCache::VALIDATOR_OPTION ] = 'existing';
+
+		Functions\when( 'update_option' )->alias(
+			function ( string $key, mixed $value ): bool {
+				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
+					$this->db->insert_id = 169;
+				}
+
+				$this->options[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		$first = $this->repo->insert(
+			[
+				'source'     => '/first',
+				'target'     => '/first-target',
+				'code'       => '301',
+				'match_type' => 'exact',
+			]
+		);
+
+		$second = $this->repo->insert(
+			[
+				'source'     => '/second',
+				'target'     => '/second-target',
+				'code'       => '301',
+				'match_type' => 'exact',
+			]
+		);
+
+		$this->assertSame( 1, $first );
+		$this->assertSame( 2, $second );
+		$this->assertArrayHasKey( 2, $this->db->rows );
+	}
+
+	/**
+	 * Test a failed database insert returns the established failure result.
+	 */
+	public function test_failed_insert_returns_zero_without_a_misleading_id(): void {
+		$this->db->failInserts = true;
+
+		$this->assertSame(
+			0,
+			$this->repo->insert(
+				[
+					'source'     => '/failed',
+					'target'     => '/failed-target',
+					'code'       => '301',
+					'match_type' => 'exact',
+				]
+			)
+		);
+	}
+
+	/**
 	 * Test insert rejects homepage source.
 	 */
 	public function test_insert_rejects_homepage_source(): void {

@@ -13,6 +13,7 @@ namespace RankKernel\Tests\Unit;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\CsvHandler;
+use RankKernel\Modules\Redirects\RedirectCache;
 use RankKernel\Modules\Redirects\RedirectRepository;
 
 /**
@@ -427,6 +428,80 @@ final class RedirectsCsvTest extends TestCase {
 		$this->assertSame( 0, $result['errors'][1]['row'] );
 		$this->assertStringContainsString( 'rolled back', $result['errors'][1]['reason'] );
 		$this->assertSame( [], $this->db->rows );
+	}
+
+	/**
+	 * Test a successful import keeps the real row ids when the cache option is
+	 * created during the first insert.
+	 */
+	public function test_successful_import_uses_real_row_ids_when_cache_invalidates(): void {
+		$this->options = [];
+
+		Functions\when( 'update_option' )->alias(
+			function ( string $key, mixed $value ): bool {
+				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
+					$this->db->insert_id = 9999;
+				}
+
+				$this->options[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/first,/first-target,301,exact,yes,,\n" .
+			"/second,/second-target,301,exact,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 2, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+		$this->assertSame( [ 1, 2 ], array_keys( $this->db->rows ) );
+		$this->assertSame( '/first-target', $this->db->rows[1]['target'] );
+		$this->assertSame( '/second-target', $this->db->rows[2]['target'] );
+	}
+
+	/**
+	 * Test rollback uses the actual created redirect ids when cache invalidation
+	 * overwrites $wpdb->insert_id during the first insert.
+	 */
+	public function test_rollback_deletes_created_rows_when_cache_invalidation_changes_insert_id(): void {
+		$existingId = $this->seedRule( '/existing', '/keep' );
+
+		// Simulate the cache validator option being created by update_option()
+		// after the redirect insert; the old code would return 9999.
+		Functions\when( 'update_option' )->alias(
+			function ( string $key, mixed $value ): bool {
+				if ( RedirectCache::VALIDATOR_OPTION === $key ) {
+					$this->db->insert_id = 9999;
+				}
+
+				$this->options[ $key ] = $value;
+
+				return true;
+			}
+		);
+
+		// Seed insert is attempt 1, first CSV insert attempt 2 succeeds, the
+		// second CSV insert attempt 3 fails and triggers rollback.
+		$this->db->failInsertAt = 3;
+
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/new-one,/new-one-target,301,exact,yes,,\n" .
+			"/new-two,/new-two-target,301,exact,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 0, $result['created'] );
+		$this->assertSame( 1, $result['rolled_back'], 'the created row must be rolled back by its real id' );
+		$this->assertArrayHasKey( $existingId, $this->db->rows, 'the pre-existing redirect must survive rollback' );
+		$this->assertSame( '/keep', $this->db->rows[ $existingId ]['target'] );
+		$this->assertCount( 1, $this->db->rows, 'no created row may remain after rollback' );
 	}
 
 	/**
