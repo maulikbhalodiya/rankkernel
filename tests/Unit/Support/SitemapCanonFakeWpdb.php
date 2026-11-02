@@ -58,6 +58,12 @@ final class SitemapCanonFakeWpdb {
 	 */
 	public array $postRows = [];
 	/**
+	 * Author Rows.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	public array $authorRows = [];
+	/**
 	 * Postmeta Rows.
 	 *
 	 * @var array<int, string>
@@ -161,6 +167,10 @@ final class SitemapCanonFakeWpdb {
 
 		if ( str_contains( $sql, 't.term_id' ) ) {
 			return $this->termRows;
+		}
+
+		if ( str_contains( $sql, 'post_author' ) ) {
+			return $this->authorRows;
 		}
 
 		return $this->postRows;

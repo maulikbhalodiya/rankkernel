@@ -298,6 +298,21 @@ class AuthorsProvider {
 			return [];
 		}
 
+		// Performance optimization: prime user and user meta caches in a single
+		// batch query before the loop, because get_author_posts_url() resolves
+		// user author data (e.g. user_nicename) per row. Left unprimed, each
+		// get_author_posts_url() call triggers a separate query, causing an N+1.
+		$authorIds = [];
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['post_author'] ) && (int) $row['post_author'] > 0 ) {
+				$authorIds[] = (int) $row['post_author'];
+			}
+		}
+
+		if ( [] !== $authorIds && function_exists( 'cache_users' ) ) {
+			cache_users( array_values( array_unique( $authorIds ) ) );
+		}
+
 		$entries = [];
 
 		foreach ( $rows as $row ) {
