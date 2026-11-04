@@ -197,6 +197,16 @@ final class BreadcrumbsOutputTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $html, array $allowed ): string {
+				$tags  = '<' . implode( '><', array_keys( $allowed ) ) . '>';
+				$clean = strip_tags( $html, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double for the KSES allowlist.
+				$clean = (string) preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean );
+				$clean = (string) preg_replace( '/\s(?:href|src)\s*=\s*(?:"\s*javascript:[^"]*"|\'\s*javascript:[^\']*\'|javascript:[^\s>]+)/i', '', $clean );
+				return $clean;
+			}
+		);
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v );
@@ -674,11 +684,11 @@ final class BreadcrumbsOutputTest extends TestCase {
 	public function test_getter_applies_html_filter(): void {
 		$this->useSingularPost();
 
-		$this->htmlFilterSuffix = '<!-- rk -->';
+		$this->htmlFilterSuffix = '<span class="rk-extra">rk</span>';
 
 		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
 
-		$this->assertStringEndsWith( '<!-- rk -->', $html );
+		$this->assertStringEndsWith( '<span class="rk-extra">rk</span>', $html );
 	}
 
 	/**
@@ -890,6 +900,41 @@ final class BreadcrumbsOutputTest extends TestCase {
 			'<nav class="rk-breadcrumbs"',
 			( new BreadcrumbsBlock() )->render( [ 'showOnHomePage' => true ] )
 		);
+	}
+
+	/**
+	 * Test block sanitizes HTML returned by the public filter.
+	 */
+	public function test_block_sanitizes_filter_returned_html(): void {
+		$this->useSingularPost();
+
+		$this->htmlFilterReturn = '<nav class="rk-breadcrumbs"><ol class="rk-breadcrumbs-list"><li><a href="javascript:alert(1)" onclick="alert(2)">Click</a><script>alert(3)</script><img src="x" onerror="alert(4)"></li></ol></nav>';
+
+		$html = ( new BreadcrumbsBlock() )->render( [] );
+
+		$this->assertStringContainsString( '<nav class="rk-breadcrumbs">', $html );
+		$this->assertStringContainsString( 'Click', $html );
+		$this->assertStringNotContainsString( 'javascript:', $html );
+		$this->assertStringNotContainsString( '<script', $html );
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringNotContainsString( 'onclick', $html );
+		$this->assertStringNotContainsString( 'onerror', $html );
+	}
+
+	/**
+	 * Test getter strips executable markup from the final filter.
+	 */
+	public function test_getter_sanitizes_filter_returned_html(): void {
+		$this->useSingularPost();
+
+		$this->htmlFilterReturn = '<nav class="rk-breadcrumbs"><ol class="rk-breadcrumbs-list"><li><a href="/safe">Safe</a><script>alert(1)</script><span style="color:red">X</span></li></ol></nav>';
+
+		$html = \RankKernel\Modules\Breadcrumbs\rankkernel_get_breadcrumbs();
+
+		$this->assertStringContainsString( 'href="/safe"', $html );
+		$this->assertStringContainsString( 'Safe', $html );
+		$this->assertStringNotContainsString( '<script', $html );
+		$this->assertStringNotContainsString( 'color:red', $html );
 	}
 
 	/**

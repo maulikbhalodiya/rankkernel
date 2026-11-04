@@ -701,6 +701,84 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Test oversized custom schema JSON is rejected before decoding.
+	 */
+	public function test_save_oversized_custom_json_is_rejected(): void {
+		$stored                     = $this->storedPayload();
+		$stored['schema']['custom'] = [ 'kept' => true ];
+		$saved                      = null;
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$saved ): bool {
+				$saved = $value;
+
+				return true;
+			}
+		);
+
+		$_POST                             = $this->validPost();
+		$_POST['rankkernel_schema_custom'] = str_repeat( 'a', 1048577 );
+
+		$box = new SchemaMetabox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
+		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
+		$this->assertIsArray( $saved );
+		$this->assertSame( [ 'kept' => true ], $saved['schema']['custom'] );
+	}
+
+	/**
+	 * Test custom schema JSON deeper than the policy is rejected.
+	 */
+	public function test_save_deeply_nested_custom_json_is_rejected(): void {
+		$stored                     = $this->storedPayload();
+		$stored['schema']['custom'] = [ 'kept' => true ];
+		$saved                      = null;
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( $stored ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress get_post_meta signature.
+				return $stored;
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( int $id, string $key, mixed $value ) use ( &$saved ): bool {
+				$saved = $value;
+
+				return true;
+			}
+		);
+
+		$deep = 'leaf';
+		for ( $i = 0; $i < 70; $i++ ) {
+			$deep = [ 'level' => $deep ];
+		}
+
+		$_POST = $this->validPost();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- test fixture encodes nested JSON.
+		$_POST['rankkernel_schema_custom'] = (string) json_encode( $deep );
+
+		$box = new SchemaMetabox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$redirect = $box->filterRedirect( 'https://example.com/wp-admin/post.php' );
+		$this->assertStringContainsString( 'rankkernel_schema_msg=invalid-json', $redirect );
+		$this->assertIsArray( $saved );
+		$this->assertSame( [ 'kept' => true ], $saved['schema']['custom'] );
+	}
+
+	/**
 	 * Test save invalid custom json error path.
 	 */
 	public function test_save_invalid_custom_json_error_path(): void {

@@ -91,6 +91,16 @@ final class BreadcrumbsSecurityTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $html, array $allowed ): string {
+				$tags  = '<' . implode( '><', array_keys( $allowed ) ) . '>';
+				$clean = strip_tags( $html, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double for the KSES allowlist.
+				$clean = (string) preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean );
+				$clean = (string) preg_replace( '/\s(?:href|src)\s*=\s*(?:"\s*javascript:[^"]*"|\'\s*javascript:[^\']*\'|javascript:[^\s>]+)/i', '', $clean );
+				return $clean;
+			}
+		);
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );
 		Functions\when( 'is_preview' )->justReturn( false );
