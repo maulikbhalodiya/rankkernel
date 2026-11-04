@@ -12,8 +12,10 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Sitemaps\Provider\AuthorsProvider;
 use RankKernel\Modules\Sitemaps\Provider\PostsProvider;
 use RankKernel\Modules\Sitemaps\Provider\TaxonomiesProvider;
+use RankKernel\Tests\Unit\Support\SitemapAuthorFakeWpdb;
 use RankKernel\Tests\Unit\Support\SitemapCanonFakeWpdb;
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -126,6 +128,44 @@ final class SitemapProviderPrimingTest extends TestCase {
 		Functions\expect( '_prime_term_caches' )->once()->with( [ 10, 11 ], false );
 
 		$entries = ( new TaxonomiesProvider() )->getEntries( 'category', 1, 10 );
+
+		$this->assertCount( 2, $entries );
+	}
+
+	/**
+	 * Test that author rows prime user and user meta caches in one batch.
+	 *
+	 * The entry loop resolves author URLs via get_author_posts_url(), which
+	 * needs user data. Priming author IDs in bulk avoids N+1 queries.
+	 */
+	public function test_authors_provider_primes_user_caches(): void {
+		$authorDb        = new SitemapAuthorFakeWpdb();
+		$GLOBALS['wpdb'] = $authorDb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test swaps the WordPress global, restored in tearDown.
+
+		$authorDb->postsRows = [
+			[
+				'ID'                => 1,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_author'       => 42,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+			],
+			[
+				'ID'                => 2,
+				'post_type'         => 'post',
+				'post_status'       => 'publish',
+				'post_author'       => 99,
+				'post_modified_gmt' => '2026-01-02 00:00:00',
+			],
+		];
+
+		Functions\when( 'get_author_posts_url' )->alias(
+			static fn ( int $id ): string => 'https://example.com/author/user-' . $id . '/'
+		);
+
+		Functions\expect( 'cache_users' )->once()->with( [ 42, 99 ] );
+
+		$entries = ( new AuthorsProvider() )->getEntries( 'authors', 1, 10 );
 
 		$this->assertCount( 2, $entries );
 	}

@@ -120,6 +120,23 @@ if ( ! function_exists( '_prime_term_caches' ) ) {
 	}
 }
 
+if ( ! function_exists( 'cache_users' ) ) {
+	/**
+	 * Accept a user cache priming request.
+	 *
+	 * WordPress owns this function in a real install. The provider guards
+	 * the call with function_exists, so a real definition here keeps the
+	 * call reachable and gives a Brain Monkey stub something to restore at
+	 * tear down instead of leaving an inactive mock behind.
+	 *
+	 * @param int[] $user_ids User ids.
+	 * @return void
+	 */
+	function cache_users( $user_ids ) {
+		unset( $user_ids );
+	}
+}
+
 if ( ! function_exists( 'get_transient' ) ) {
 	/**
 	 * Read a transient from the in-memory test store.
