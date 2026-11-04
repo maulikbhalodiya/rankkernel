@@ -13,7 +13,7 @@
 - PR #421 is the WordPress.org remediation branch. It is 13 commits, 28 files, +711/−32.
 - It includes #416 (sitemap `nosniff`), #417 (MetadataBox translations), #419 (AuthorsProvider cache priming), REL-01, P1 breadcrumb sanitization, and P2 schema JSON limits.
 - No #414, #415, or #342 content is in #421.
-- No merge, close, push, tag, release publication, or WordPress.org upload was performed by the audit.
+- No merge, close, source-branch push, tag, release publication, or WordPress.org upload was performed by the audit. A reports-only delivery branch `audit/wporg-remediation-2026-11-delivery` contains only the audit files.
 
 ## Completed remediation
 
@@ -106,6 +106,14 @@ No Critical or High findings. No material security issue remains unresolved.
 - P1 WP 6.5 log: `/tmp/rk-audit-logs/real-wp65-breadcrumb.log`
 - P1 WP 7.1 log: `/tmp/rk-audit-logs/real-wp71-breadcrumb.log`
 - Prior release-candidate audit: `/home/ubuntu/rk-audit/wporg-final-review/INDEPENDENT_RELEASE_CANDIDATE_AUDIT.md`
+
+## Delivery links
+
+Reports-only branch: `audit/wporg-remediation-2026-11-delivery`
+
+- Audit report: https://github.com/maulikbhalodiya/rankkernel/blob/audit/wporg-remediation-2026-11-delivery/reports/RANKKERNEL_WPORG_INDEPENDENT_AUDIT.md
+- Handoff: https://github.com/maulikbhalodiya/rankkernel/blob/audit/wporg-remediation-2026-11-delivery/reports/RANKKERNEL_WPORG_HANDOFF.md
+- Input matrix: https://github.com/maulikbhalodiya/rankkernel/blob/audit/wporg-remediation-2026-11-delivery/reports/RANKKERNEL_INPUT_OCCURRENCE_MATRIX.csv
 
 ## Release restrictions
 

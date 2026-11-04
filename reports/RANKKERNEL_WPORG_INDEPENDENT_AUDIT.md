@@ -21,7 +21,7 @@ This audit independently verifies the changes and evidence for the WordPress.org
 - Independent test/gate execution where the environment permits.
 - WordPress.org compliance and release safety.
 
-**Read-only constraint:** no source, test, branch, commit, tag, release-ZIP, or WordPress.org changes were made. No PR was merged or closed. Reports are the only files created.
+**Read-only constraint:** no source, test, audited-branch, tag, release-ZIP, or WordPress.org changes were made. No PR was merged or closed. Because no connected desktop browser/artifact channel was available, the Section 7 fallback was used: a separate **reports-only** branch, `audit/wporg-remediation-2026-11-delivery`, was created solely to deliver the three audit files. The audited branch `wporg/remediation-2026-11` was not changed.
 
 > **Important limitation:** the WordPress.org reviewer's reported “48 incidences” was supplied only as ten examples. This audit verifies the complete 409-occurrence/16-file repository inventory and traces high-risk flows to sinks. It does **not** claim to reproduce the reviewer's 48-item scanner output.
 
@@ -404,4 +404,4 @@ The production P1 sanitizer and P2 JSON limits are correct and independently ver
 - `RANKKERNEL_WPORG_HANDOFF.md` — concise handoff for future sessions.
 - `RANKKERNEL_INPUT_OCCURRENCE_MATRIX.csv` — 409-row raw inventory.
 
-No source, test, branch, commit, tag, release, or WordPress.org state was modified by this audit.
+No source, test, audited-branch, tag, release, or WordPress.org state was modified by this audit. The only Git artifact created is the reports-only delivery branch `audit/wporg-remediation-2026-11-delivery`, which contains only these reports and the input CSV.
