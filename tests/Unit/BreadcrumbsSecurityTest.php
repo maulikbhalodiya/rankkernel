@@ -244,6 +244,21 @@ final class BreadcrumbsSecurityTest extends TestCase {
 	}
 
 	/**
+	 * Unsafe URL schemes are rejected, normal breadcrumb URLs are allowed.
+	 */
+	public function test_breadcrumb_url_policy(): void {
+		$check = static fn ( string $url ): bool => \RankKernel\Modules\Breadcrumbs\is_safe_breadcrumb_url( $url );
+
+		$this->assertFalse( $check( 'javascript:alert(1)' ) );
+		$this->assertFalse( $check( 'data:text/html,<script>alert(1)</script>' ) );
+		$this->assertFalse( $check( 'vbscript:msgbox(1)' ) );
+		$this->assertTrue( $check( '/safe/path' ) );
+		$this->assertTrue( $check( 'https://example.com/path' ) );
+		$this->assertTrue( $check( '#section' ) );
+		$this->assertTrue( $check( './relative' ) );
+	}
+
+	/**
 	 * Test a script label from a post title is escaped in output.
 	 */
 	public function test_post_title_script_escaped_in_visible_output(): void {
