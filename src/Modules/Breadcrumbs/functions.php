@@ -88,6 +88,22 @@ function sanitize_breadcrumb_html( string $html ): string {
 		}
 	}
 
+	if ( class_exists( '\WP_HTML_Tag_Processor' ) ) {
+		$processor = new \WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag() ) {
+			foreach ( [ 'href', 'src' ] as $attribute ) {
+				$url = $processor->get_attribute( $attribute );
+
+				if ( is_string( $url ) && ! is_safe_breadcrumb_url( $url ) ) {
+					$processor->remove_attribute( $attribute );
+				}
+			}
+		}
+
+		$html = $processor->get_updated_html();
+	}
+
 	if ( function_exists( 'wp_kses' ) ) {
 		$html = wp_kses( $html, $allowed );
 	}
@@ -138,6 +154,29 @@ function sanitize_breadcrumb_html( string $html ): string {
 	}
 
 	return $html;
+}
+
+/**
+ * Whether a breadcrumb link URL is safe enough for the allowlist.
+ *
+ * KSES strips a javascript: scheme but can leave the remainder as a
+ * relative path, so check the original attribute before KSES runs.
+ *
+ * @param string $url Raw href or src value.
+ * @return bool The result.
+ */
+function is_safe_breadcrumb_url( string $url ): bool {
+	$url = trim( $url );
+
+	if ( '' === $url ) {
+		return true;
+	}
+
+	if ( 1 === preg_match( '/^\s*(?:javascript|data|vbscript|file):/i', $url ) ) {
+		return false;
+	}
+
+	return 1 === preg_match( '#^(?:https?://|/|\#|\?|\.{1,2}/|[A-Za-z0-9._~-]+/)#i', $url );
 }
 
 /**
