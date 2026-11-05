@@ -1,19 +1,34 @@
 # RankKernel — Production Security Audit (0.1.0)
 
-Final source: `2afb1185d919f03ad4ed74444466db3b44db0786`  
-Release branch: `release/wporg-0.1.0-final`  
-Production package: `rankkernel-0.1.0.zip`, 902,022 bytes, 239 files  
-SHA-256: `87d94a568cf3a404f4b84648277e20fc81ed64de8fce5c6064343c9a3c0d8252`  
-Manifest SHA-256: `e6ad78e0c97f3f26f34bd2a7de56a8fe10f9778b0aa326f316e54169026b3f87`  
+Final source: `fb386a419d6b32394cc342cf740f8e41a75389bb`  
+Release branch: `release/wporg-0.1.0`  
+Production package: `rankkernel-0.1.0.zip`, 902,973 bytes, 239 files  
+SHA-256: `4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a`  
+Manifest SHA-256: `1298873705f453e1bcf8430b0f62bdcf5bf2ed0929f0f98dc993be2e1b7de000`  
 Plugin Check: **0 errors / 223 warnings**
 
 ## Scope
 
 The shipped file set was derived from the package itself: 239 files, exactly one `rankkernel/` top-level directory, matching the `.distignore` at the final commit. All shipped PHP, view, block, JS and CSS files were inspected. Tests, CI, docs, audit reports, vendor and development configuration are outside the package. The package was rebuilt after the remediation commit; the prior `fc5c641` ZIP is superseded.
 
+## Server audit follow-up (fb386a4)
+
+The independent Server audit of `2afb118` approved the exact package with non-blocking follow-ups. This source closes the code findings:
+
+| ID | Fix |
+|---|---|
+| RK-F-02 | `flags.pillar` / `flags.cornerstone` strict `nullableBool(...) ?? false` |
+| RK-F-03 | Breadcrumbs block `boolAttribute()` with setting/default fallback |
+| RK-F-04 | Raw exception message in `ModuleRegistry::label()` |
+| RK-F-05 | Network activation refused before any setup; single-site uninstall documented |
+| RK-F-06 | Strict `is_string()` `run_id` guard in `ImportController::release()` |
+| RK-F-07 | Legacy schema list retained and documented as safe |
+
+Full table: `RANKKERNEL_FINAL_REMEDIATION_REPORT.md`.
+
 ## Remediation performed
 
-Five confirmed input validation/sanitization defects were fixed in `5a5a426`; `2afb118` adds one preview regression test. No output escaping defect was confirmed.
+Five earlier input validation/sanitization defects were fixed in `5a5a426`; `2afb118` added preview regression coverage. The Server follow-up fixes are in `fb386a4`. No output escaping defect was confirmed.
 
 | ID | Defect | Fix |
 |---|---|---|
@@ -69,10 +84,10 @@ Reviewed and found no new confirmed P0/P1/P2 defect in: capability/nonce gates, 
 ## Limitations
 
 - Full 409-row line-by-line runtime execution was not performed; classifications combine source inventory with file/handler-level tracing. The reviewer's exact 48-line scanner output remains unavailable.
-- WordPress 6.5.14 was not available for the final-ZIP smoke test; the exact ZIP was installed and smoke-tested on WordPress 7.1.4.
+- WordPress 6.5.14 was tested with the exact final ZIP in this round: 9 admin screens 200 and public endpoints passed.
 - LiteSpeed and real Apache were not part of this production-code pass.
 - No independent Server OpenCode approval of the final ZIP is claimed.
 
 ## Verdict
 
-**READY FOR SERVER INDEPENDENT AUDIT** of source `2afb118` and ZIP `87d94a56…`. Not authorized for WordPress.org upload.
+**READY FOR SERVER INDEPENDENT AUDIT** of source `fb386a4` and ZIP `4edb5beb…`. Not authorized for WordPress.org upload.

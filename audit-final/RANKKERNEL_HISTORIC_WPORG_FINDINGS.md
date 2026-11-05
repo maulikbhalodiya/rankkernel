@@ -1,11 +1,11 @@
 # RankKernel — Historic WordPress.org Findings Status
 
-Source `2afb118`; package `87d94a56…`.
+Source `fb386a4`; package `4edb5beb…`.
 
 | Historical finding | Status | Evidence |
 |---|---|---|
 | Callback/filter output unescaped | FIXED | Breadcrumb sanitizer after final filter; KSES allowlist + URL/style validation; real KSES integration test; hostile filter tests. |
-| Input sanitization/validation, 48 incidences | FIXED / ACCEPTED | 409-row source inventory; five confirmed input defect groups fixed in `5a5a426` with ten regression tests; 15 PASS, 4 FIXED, 382 accepted, 8 comment rows, 0 blocked. Full 48-line scanner mapping unavailable. |
+| Input sanitization/validation, 48 incidences | FIXED / ACCEPTED | 409-row source inventory; six Server follow-up findings fixed/retained in `fb386a4`, plus the earlier five input fixes; 15 PASS, 4 FIXED, 382 accepted, 8 comment rows, 0 blocked, plus 28 addition rows. Full 48-line scanner mapping unavailable. |
 | Arbitrary `.htaccess` editor | VERIFIED FIXED | Only two fixed directives; server-generated block; nonce/capability; browser/real Apache tested. |
 | `.htaccess` backup in webroot | FIXED | Non-autoloaded `rankkernel_htaccess_backups` option; last 5; no public backup files; uninstall cleanup. |
 | `.htaccess` partial write corruption | FIXED | Same-directory temp, byte check, mode preservation, atomic rename; failure tests. |
