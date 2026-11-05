@@ -440,6 +440,25 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test preview rejects an array where a string kind is expected.
+	 */
+	public function test_preview_array_kind_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->preview(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => [ 'posts' ],
+					'mode'   => 'skip',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
 	 * Test preview rejects an unknown kind.
 	 */
 	public function test_preview_invalid_kind_returns_400(): void {
