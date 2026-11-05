@@ -30,6 +30,7 @@ The previous `2afb118` results are historical and were not reused for this candi
 | Composer audit | `composer audit --locked` | no advisories |
 | Plugin Check, exact ZIP, WP 7.1.4 | Plugin Check 2.1.0 | **0 errors / 223 warnings** |
 | Plugin Check, exact ZIP, WP 6.5.14 | Plugin Check 2.1.0 | **0 errors / 223 warnings** |
+| GitHub Actions CI, exact commit | Run [41988654857](https://github.com/maulikbhalodiya/rankkernel/actions/runs/41988654857) | PHP 8.3/8.4 WPCS+PHPStan+PHPUnit success; Psalm job success; Breadcrumb KSES success |
 
 ### Psalm note
 
