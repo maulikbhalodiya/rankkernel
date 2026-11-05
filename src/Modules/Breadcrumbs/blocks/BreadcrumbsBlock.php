@@ -22,6 +22,7 @@ use WP_Query;
 use function RankKernel\Modules\Breadcrumbs\filter_breadcrumb_items;
 use function RankKernel\Modules\Breadcrumbs\normalize_breadcrumb_items;
 use function RankKernel\Modules\Breadcrumbs\resolve_breadcrumb_args;
+use function RankKernel\Modules\Breadcrumbs\sanitize_breadcrumb_html;
 
 /**
  * Registers the rankkernel/breadcrumbs block and renders it on the server.
@@ -210,7 +211,7 @@ final class BreadcrumbsBlock {
 			// A callback that returns something that is not a string
 			// cannot be rendered, so the generated markup is kept.
 			if ( is_string( $filtered ) ) {
-				$html = $filtered;
+				$html = sanitize_breadcrumb_html( $filtered );
 			}
 		}
 

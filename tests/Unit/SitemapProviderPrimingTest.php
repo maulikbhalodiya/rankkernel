@@ -12,6 +12,7 @@ namespace RankKernel\Tests\Unit;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
+use RankKernel\Modules\Sitemaps\Provider\AuthorsProvider;
 use RankKernel\Modules\Sitemaps\Provider\PostsProvider;
 use RankKernel\Modules\Sitemaps\Provider\TaxonomiesProvider;
 use RankKernel\Tests\Unit\Support\SitemapCanonFakeWpdb;
@@ -126,6 +127,34 @@ final class SitemapProviderPrimingTest extends TestCase {
 		Functions\expect( '_prime_term_caches' )->once()->with( [ 10, 11 ], false );
 
 		$entries = ( new TaxonomiesProvider() )->getEntries( 'category', 1, 10 );
+
+		$this->assertCount( 2, $entries );
+	}
+
+	/**
+	 * Test that author rows prime user and user meta caches in one batch.
+	 *
+	 * Resolving author URLs fetches user info and permissions, which would
+	 * otherwise execute separate queries per author. Priming via cache_users()
+	 * loads user records in a single batch query.
+	 */
+	public function test_authors_provider_primes_user_caches(): void {
+		$this->db->postRows = [
+			[
+				'post_author' => 21,
+				'lastmod_gmt' => '2026-01-01 00:00:00',
+			],
+			[
+				'post_author' => 42,
+				'lastmod_gmt' => '2026-01-01 00:00:00',
+			],
+		];
+
+		Functions\when( 'get_author_posts_url' )->alias( static fn ( int $id ): string => 'https://example.com/author/' . $id . '/' );
+
+		Functions\expect( 'cache_users' )->once()->with( [ 21, 42 ] );
+
+		$entries = ( new AuthorsProvider() )->getEntries( 'authors', 1, 10 );
 
 		$this->assertCount( 2, $entries );
 	}

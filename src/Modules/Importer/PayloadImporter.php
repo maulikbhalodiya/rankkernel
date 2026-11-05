@@ -9,6 +9,7 @@
  * a re-run changes zero rows. Overwrite mode takes all incoming.
  *
  * @package RankKernel
+ * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);

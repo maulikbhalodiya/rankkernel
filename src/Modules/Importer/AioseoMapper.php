@@ -9,6 +9,7 @@
  * defaults to indexed, so such rows emit no robots fields at all.
  *
  * @package RankKernel
+ * @license GPL-2.0-or-later
  */
 
 declare(strict_types=1);

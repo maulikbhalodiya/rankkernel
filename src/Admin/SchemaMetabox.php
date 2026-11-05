@@ -55,6 +55,12 @@ final class SchemaMetabox {
 	private const MAX_IMPORT_BYTES = 1048576;
 
 	/**
+	 * Maximum JSON nesting depth accepted from the custom schema textarea
+	 * and the import file, matching the import policy.
+	 */
+	private const MAX_JSON_DEPTH = 64;
+
+	/**
 	 * Manual field keys, short and generic.
 	 *
 	 * Every key a schema piece reads lives here, so the builder UI
@@ -691,12 +697,22 @@ final class SchemaMetabox {
 		$status = 'saved';
 
 		if ( '' !== trim( $customRaw ) ) {
-			$decoded = json_decode( $customRaw, true );
-
-			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
+			if ( strlen( $customRaw ) > self::MAX_IMPORT_BYTES ) {
 				$status = 'invalid-json';
 			} else {
-				$custom = $decoded;
+				/**
+				 * Raw decoded JSON value.
+				 *
+				 * @var mixed $decodedRaw
+				 */
+				$decodedRaw = json_decode( $customRaw, true, self::MAX_JSON_DEPTH );
+				$decoded    = is_array( $decodedRaw ) ? $decodedRaw : null;
+
+				if ( JSON_ERROR_NONE !== json_last_error() || null === $decoded ) {
+					$status = 'invalid-json';
+				} else {
+					$custom = $decoded;
+				}
 			}
 		}
 
@@ -1050,7 +1066,7 @@ final class SchemaMetabox {
 			];
 		}
 
-		$decoded = json_decode( $contents, true, 64 );
+		$decoded = json_decode( $contents, true, self::MAX_JSON_DEPTH );
 
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
 			return [

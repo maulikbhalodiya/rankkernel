@@ -298,6 +298,21 @@ class AuthorsProvider {
 			return [];
 		}
 
+		// Performance optimization: prime user objects and user meta in batched
+		// queries via cache_users(), because get_author_posts_url() resolves author
+		// data and capabilities. Without priming, each author lookup executes
+		// separate queries, creating an N+1 query bottleneck over the page.
+		$authorIds = [];
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['post_author'] ) && (int) $row['post_author'] > 0 ) {
+				$authorIds[] = (int) $row['post_author'];
+			}
+		}
+
+		if ( [] !== $authorIds && function_exists( 'cache_users' ) ) {
+			cache_users( array_values( array_unique( $authorIds ) ) );
+		}
+
 		$entries = [];
 
 		foreach ( $rows as $row ) {

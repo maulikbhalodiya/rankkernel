@@ -91,6 +91,16 @@ final class BreadcrumbsSecurityTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => trim( strip_tags( $v, '<p><a><br><b><i><strong><em>' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Test double emulating the kses allowlist with a native tag filter.
+
+		Functions\when( 'wp_kses' )->alias(
+			static function ( string $html, array $allowed ): string {
+				$tags  = '<' . implode( '><', array_keys( $allowed ) ) . '>';
+				$clean = strip_tags( $html, $tags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double for the KSES allowlist.
+				$clean = (string) preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean );
+				$clean = (string) preg_replace( '/\s(?:href|src)\s*=\s*(?:"\s*javascript:[^"]*"|\'\s*javascript:[^\']*\'|javascript:[^\s>]+)/i', '', $clean );
+				return $clean;
+			}
+		);
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );
 		Functions\when( 'is_preview' )->justReturn( false );
@@ -231,6 +241,29 @@ final class BreadcrumbsSecurityTest extends TestCase {
 		$this->titles[ $id ] = $title;
 
 		$GLOBALS['wp_query'] = $this->makeSingularQuery( $id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test sets the global query double the production code reads.
+	}
+
+	/**
+	 * Unsafe URL schemes are rejected, normal breadcrumb URLs are allowed.
+	 */
+	public function test_breadcrumb_url_policy(): void {
+		$check = static fn ( string $url ): bool => \RankKernel\Modules\Breadcrumbs\is_safe_breadcrumb_url( $url );
+
+		$this->assertFalse( $check( '//evil.example/x' ) );
+		$this->assertFalse( $check( '\\\\evil.example/x' ) );
+		$this->assertFalse( $check( '/safe path' ) );
+		$this->assertFalse( $check( '/safe\\path' ) );
+		$this->assertFalse( $check( 'file:///etc/passwd' ) );
+		$this->assertTrue( $check( '/about/' ) );
+		$this->assertTrue( $check( '?q=1' ) );
+		$this->assertTrue( $check( '../up' ) );
+		$this->assertFalse( $check( 'javascript:alert(1)' ) );
+		$this->assertFalse( $check( 'data:text/html,<script>alert(1)</script>' ) );
+		$this->assertFalse( $check( 'vbscript:msgbox(1)' ) );
+		$this->assertTrue( $check( '/safe/path' ) );
+		$this->assertTrue( $check( 'https://example.com/path' ) );
+		$this->assertTrue( $check( '#section' ) );
+		$this->assertTrue( $check( './relative' ) );
 	}
 
 	/**

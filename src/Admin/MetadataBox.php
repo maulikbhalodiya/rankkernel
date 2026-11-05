@@ -426,6 +426,10 @@ final class MetadataBox {
 
 		wp_register_script( self::EDITOR_SCRIPT, $scriptSrc, [ 'wp-i18n' ], $version, true );
 
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( self::EDITOR_SCRIPT, 'rankkernel' );
+		}
+
 		if ( function_exists( 'wp_localize_script' ) ) {
 			wp_localize_script( self::EDITOR_SCRIPT, self::LOCALIZE_NAME, $this->localizedState( $this->currentPostId() ) );
 		}
@@ -437,6 +441,11 @@ final class MetadataBox {
 			$analysisSrc = function_exists( 'plugins_url' ) ? plugins_url( 'assets/js/analysis-editor.js', $pluginFile ) : '';
 
 			wp_register_script( self::ANALYSIS_SCRIPT, $analysisSrc, array_merge( [ self::EDITOR_SCRIPT, 'wp-i18n' ], $engine ), $version, true );
+
+			if ( function_exists( 'wp_set_script_translations' ) ) {
+				wp_set_script_translations( self::ANALYSIS_SCRIPT, 'rankkernel' );
+			}
+
 			wp_enqueue_script( self::ANALYSIS_SCRIPT );
 		}
 	}
@@ -459,6 +468,10 @@ final class MetadataBox {
 		$deps   = array_merge( [ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n' ], $engine );
 
 		wp_register_script( self::SIDEBAR_SCRIPT, $scriptSrc, $deps, $version, true );
+
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( self::SIDEBAR_SCRIPT, 'rankkernel' );
+		}
 
 		if ( function_exists( 'wp_localize_script' ) ) {
 			wp_localize_script( self::SIDEBAR_SCRIPT, self::LOCALIZE_NAME, $this->localizedState( $this->currentPostId() ) );
@@ -819,6 +832,9 @@ final class MetadataBox {
 		foreach ( self::ENGINE_SCRIPTS as $handle => $parts ) {
 			$source = function_exists( 'plugins_url' ) ? plugins_url( $parts[0], $pluginFile ) : '';
 			wp_register_script( $handle, $source, $parts[1], $version, true );
+			if ( 'rankkernel-analysis-format' === $handle && function_exists( 'wp_set_script_translations' ) ) {
+				wp_set_script_translations( $handle, 'rankkernel' );
+			}
 			wp_enqueue_script( $handle );
 			$handles[] = $handle;
 		}

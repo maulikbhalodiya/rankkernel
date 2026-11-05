@@ -549,9 +549,14 @@ final class RedirectRepository {
 			return 0;
 		}
 
+		// Capture the redirect row id before touch(): cache invalidation calls
+		// update_option(), and on a fresh install that insert can overwrite
+		// $wpdb->insert_id with the new options row id.
+		$id = (int) $db->insert_id;
+
 		$this->touch();
 
-		return (int) $db->insert_id;
+		return $id;
 	}
 
 	/**

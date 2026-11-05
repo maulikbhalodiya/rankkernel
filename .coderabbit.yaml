@@ -17,6 +17,11 @@ reviews:
     - path: "**/*.php"
       instructions: |
         Strictly enforce WordPress Coding Standards (WPCS) and WordPress.org Directory Guidelines:
+        0. Callback output and data flow:
+           - Trace every shortcode callback, dynamic block `render_callback`, output filter, template tag and public HTML-returning method to its final return.
+           - Treat `apply_filters()` output as untrusted. Require context-appropriate `wp_kses()`/`wp_kses_post()` after the final filter; never escape a whole HTML string with `esc_html()`.
+           - Trace every superglobal read to its sink. Require type checks and array-shape validation before casts; `wp_unslash()` is not sanitization.
+           - For uploads, verify actual temp-file size, MIME/extension, content structure, depth and cleanup; `is_readable()` alone is insufficient.
         1. Security & Sanitization:
            - All direct SQL queries MUST use `$wpdb->prepare()`. Never concatenate variables into SQL strings.
            - User input from `$_GET`, `$_POST`, `$_REQUEST`, or `$_SERVER` MUST be sanitized immediately using `sanitize_text_field()`, `absint()`, `wp_unslash()`, etc.

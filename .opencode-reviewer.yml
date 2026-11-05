@@ -34,7 +34,10 @@ review:
   includePreExisting: false
   failOnSeverity: off
   customRules:
-    - "Security: every write path verifies current_user_can() and a nonce, or a REST permission_callback."
+    - "Callback output: every add_shortcode callback, every register_block_type render_callback, every output-modifying filter, every template tag and every public HTML-returning method must be traced to its final return. Treat apply_filters() output as untrusted. Sanitize after the final filter with a context-appropriate wp_kses() allowlist (never esc_html() on a whole HTML string)."
+    - "Input trace: every superglobal read must be traced to its sink. Require is_string/is_array/is_numeric before casts, validate array keys and element types recursively, and do not treat wp_unslash() as sanitization. Choose sanitize_key/absint/sanitize_text_field/esc_url_raw/wp_kses by meaning and escape at the final context."
+    - "Uploads: validate $_FILES structure, UPLOAD_ERR_*, actual temp-file size, extension and MIME, temporary path, content structure, depth and cleanup. is_readable() alone is not proof of safety."
+    - "Evidence: every finding must state file and line, method, input source, transformations, final sink, missing protection, realistic impact, severity, confirmed/likely/false-positive classification, minimal fix and required regression test. Do not report a raw-superglobal pattern without tracing it."
     - "Security: never trust superglobals; sanitize on input and escape on output (esc_html, esc_attr, esc_url, wp_kses_post)."
     - "Security: never concatenate variables into SQL; use $wpdb->prepare()."
     - "Security: no eval, no unserialize on user input, no shell execution, no remote file inclusion."

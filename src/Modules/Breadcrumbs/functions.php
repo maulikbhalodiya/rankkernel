@@ -17,6 +17,191 @@ use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
 /**
+ * Sanitize the final breadcrumb HTML after the public filter.
+ *
+ * The renderer is safe before filtering, but a filter is a trust boundary:
+ * its return value is HTML that WordPress will print. Keep only the
+ * breadcrumb vocabulary, strip scripts/iframes/event handlers, and limit
+ * the one CSS custom property the renderer needs. The style attribute is
+ * checked again because KSES permits CSS declarations by default.
+ *
+ * @param string $html Filtered breadcrumb HTML.
+ * @return string Sanitized HTML.
+ */
+function sanitize_breadcrumb_html( string $html ): string {
+	$allowed = [
+		'nav'     => [
+			'class'      => true,
+			'aria-label' => true,
+			'style'      => true,
+		],
+		'ol'      => [
+			'class'      => true,
+			'aria-label' => true,
+		],
+		'li'      => [
+			'class'        => true,
+			'aria-current' => true,
+		],
+		'a'       => [
+			'class'        => true,
+			'href'         => true,
+			'rel'          => true,
+			'aria-label'   => true,
+			'aria-current' => true,
+		],
+		'span'    => [
+			'class'        => true,
+			'aria-hidden'  => true,
+			'aria-current' => true,
+			'style'        => true,
+		],
+		'div'     => [ 'class' => true ],
+		'p'       => [ 'class' => true ],
+		'section' => [ 'class' => true ],
+		'b'       => [],
+		'strong'  => [],
+		'em'      => [],
+		'i'       => [],
+		'br'      => [],
+	];
+
+	$safeStyle = '';
+
+	if ( class_exists( '\WP_HTML_Tag_Processor' ) ) {
+		$processor = new \WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag( [ 'tag_name' => 'nav' ] ) ) {
+			$class = $processor->get_attribute( 'class' );
+
+			if ( ! is_string( $class ) || 1 !== preg_match( '/(?:^|\s)rk-breadcrumbs(?:\s|$)/', $class ) ) {
+				continue;
+			}
+
+			$style = $processor->get_attribute( 'style' );
+
+			if ( is_string( $style ) && is_safe_breadcrumb_style( $style ) ) {
+				$safeStyle = $style;
+			}
+
+			break;
+		}
+	}
+
+	if ( class_exists( '\WP_HTML_Tag_Processor' ) ) {
+		$processor = new \WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag() ) {
+			foreach ( [ 'href', 'src' ] as $attribute ) {
+				$url = $processor->get_attribute( $attribute );
+
+				if ( is_string( $url ) && ! is_safe_breadcrumb_url( $url ) ) {
+					$processor->remove_attribute( $attribute );
+				}
+			}
+		}
+
+		$html = $processor->get_updated_html();
+	}
+
+	if ( function_exists( 'wp_kses' ) ) {
+		$html = wp_kses( $html, $allowed );
+	}
+
+	if ( class_exists( '\WP_HTML_Tag_Processor' ) ) {
+		$processor = new \WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag() ) {
+			$style = $processor->get_attribute( 'style' );
+
+			if ( is_string( $style ) && ! is_safe_breadcrumb_style( $style ) ) {
+				$processor->remove_attribute( 'style' );
+			}
+		}
+
+		$html = $processor->get_updated_html();
+
+		// KSES may remove custom properties because they are not in the
+		// core safe_style_css list. Restore only the already validated root
+		// breadcrumb style, never an arbitrary style from the filter.
+		if ( '' !== $safeStyle ) {
+			$processor = new \WP_HTML_Tag_Processor( $html );
+
+			while ( $processor->next_tag( [ 'tag_name' => 'nav' ] ) ) {
+				$class = $processor->get_attribute( 'class' );
+
+				if ( is_string( $class ) && 1 === preg_match( '/(?:^|\s)rk-breadcrumbs(?:\s|$)/', $class ) ) {
+					$processor->set_attribute( 'style', $safeStyle );
+					break;
+				}
+			}
+
+			$html = $processor->get_updated_html();
+		}
+	} else {
+		// Older WordPress (before the Tag Processor) cannot verify the one
+		// permitted property. Dropping style is safer than allowing
+		// arbitrary CSS; the breadcrumb list remains intact.
+		$html = (string) preg_replace_callback(
+			'/\sstyle="([^"]*)"/i',
+			static function ( array $matches ): string {
+				$style = html_entity_decode( $matches[1], ENT_QUOTES, 'UTF-8' );
+
+				return is_safe_breadcrumb_style( $style ) ? $matches[0] : '';
+			},
+			$html
+		);
+	}
+
+	return $html;
+}
+
+/**
+ * Whether a breadcrumb link URL is safe enough for the allowlist.
+ *
+ * KSES strips a javascript: scheme but can leave the remainder as a
+ * relative path, so check the original attribute before KSES runs.
+ *
+ * @param string $url Raw href or src value.
+ * @return bool The result.
+ */
+function is_safe_breadcrumb_url( string $url ): bool {
+	$url = trim( $url );
+
+	if ( '' === $url ) {
+		return true;
+	}
+
+	// Reject control characters, raw whitespace, and backslashes. Browsers
+	// normalize backslashes to slashes, so a leading \\ can become a
+	// protocol-relative URL even though it does not look like one.
+	if ( 1 === preg_match( '/[\x00-\x20\x7F\\\\]/', $url ) ) {
+		return false;
+	}
+
+	// Protocol-relative URLs are external even though they start with a slash.
+	if ( str_starts_with( $url, '//' ) ) {
+		return false;
+	}
+
+	if ( 1 === preg_match( '/^(?:javascript|data|vbscript|file):/i', $url ) ) {
+		return false;
+	}
+
+	return 1 === preg_match( '#^(?:https?://|/|\#|\?|\.{1,2}/|[A-Za-z0-9._~-]+/)#i', $url );
+}
+
+/**
+ * Whether a style declaration is exactly the breadcrumb separator property.
+ *
+ * @param string $style Style attribute value.
+ * @return bool The result.
+ */
+function is_safe_breadcrumb_style( string $style ): bool {
+	return 1 === preg_match( '/\A\s*--rk-breadcrumb-separator\s*:\s*"(?:[^"\\\\<;{}()]|\\\\.)*"\s*;?\s*\z/', $style );
+}
+
+/**
  * Get the visible breadcrumb trail HTML.
  *
  * Builds the request Context once, runs the canonical TrailBuilder,
@@ -69,7 +254,7 @@ function rankkernel_get_breadcrumbs( array $args = [] ): string {
 		// be rendered, so the generated markup is kept. The other
 		// breadcrumb filters guard their return type the same way.
 		if ( is_string( $filtered ) ) {
-			$html = $filtered;
+			$html = sanitize_breadcrumb_html( $filtered );
 		}
 	}
 

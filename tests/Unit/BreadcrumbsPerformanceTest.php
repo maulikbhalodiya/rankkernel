@@ -76,6 +76,7 @@ final class BreadcrumbsPerformanceTest extends TestCase {
 		Functions\when( 'esc_attr' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $url ): string => $url );
 		Functions\when( 'wp_kses_post' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'wp_kses' )->alias( static fn ( string $html ): string => $html );
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/', '', $v ) ) );
 		Functions\when( 'is_preview' )->justReturn( false );
