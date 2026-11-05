@@ -1,45 +1,73 @@
 # RankKernel — Final Test Report
 
-Source `fc5c6416e9499f3ed93106c1445c9016393d57a8`  
-Final ZIP `rankkernel-0.1.0.zip` — 901,122 bytes, 239 files, SHA-256 `0d891a9fc91007a92f4e867dfaaf00acb688ad48a7533e1c5a9db6ecf315bb39`  
-Manifest SHA-256 `3c20b8eb73ad1c49414725e0fbce67e9ffc658e9539fe2f3b90bfe89bbfa11d5`
+Source `2afb1185d919f03ad4ed74444466db3b44db0786`  
+Final ZIP `rankkernel-0.1.0.zip` — 902,022 bytes, 239 files, SHA-256 `87d94a568cf3a404f4b84648277e20fc81ed64de8fce5c6064343c9a3c0d8252`  
+Manifest SHA-256 `e6ad78e0c97f3f26f34bd2a7de56a8fe10f9778b0aa326f316e54169026b3f87`
 
-## Automated gates
+## Automated gates (final commit)
 
 | Gate | Command | Result |
 |---|---|---|
-| PHPUnit | `composer test` | **2375 tests / 9150 assertions, OK** |
+| PHPUnit | `composer test` | **2385 tests / 9182 assertions — OK** |
 | PHPCS/WPCS | `composer lint` | exit 0 |
-| PHPStan | `composer stan` / `vendor/bin/phpstan analyse --level=6 src/` | `[OK] No errors` |
+| PHPStan L6 | `composer stan` | `[OK] No errors` |
 | JavaScript tests | `composer test:js` | **352 pass / 0 fail** |
-| JS syntax | `node --check` all `assets/js/*.js` | clean |
+| JS syntax | `node --check assets/js/*.js` | clean |
 | Composer validation | `composer validate --strict` | valid |
 | Composer audit | `composer audit --locked` | no advisories |
-| Psalm | CI | pass |
-| Psalm Security | CI | pass |
-| PHP 8.3 CI | PR #421 | WPCS/PHPStan/PHPUnit pass |
-| PHP 8.4 CI | PR #421 | WPCS/PHPStan/PHPUnit pass |
-| Breadcrumb KSES integration | CI job | pass |
-| Plugin Check, exact final ZIP | WP 7.1.4 + Plugin Check 2.1.0 | **0 errors / 223 warnings** |
+| Plugin Check, exact ZIP | WP 7.1.4 + Plugin Check 2.1.0 | **0 errors / 223 warnings** |
 
-## Plugin Check warnings
+PHPUnit count rose from 2375/9150 at `fc5c641` to 2385/9182 at `2afb118`, reflecting ten new regression tests for the five input-remediation groups.
 
-- 203 `WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound`: template-local variables in included views, not globals.
-- 20 `PluginCheck.Security.DirectDB.UnescapedDBParameter`: custom-table SQL, values prepared, IDs int-cast, identifiers trusted/validated.
+## Plugin Check warning analysis
 
-No broad suppression was added.
+- **203** `WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound`: template-local variables inside included admin views, not globals. Reviewed at each file/line; no suppression added.
+- **20** `PluginCheck.Security.DirectDB.UnescapedDBParameter`: custom-table SQL. Values are prepared placeholders, IDs are int-cast, and table identifiers are plugin-controlled/validated. Reviewed at each source location; no suppression added.
 
-## Staging
+No new warning category appeared after the remediation.
 
-- WordPress 7.1.4, PHP 8.2.29: exact ZIP installed; admin pages load with zero console errors; `debug.log` empty.
-- WordPress 6.5.14: breadcrumb KSES integration and prior release flows passed.
-- Real Apache 2.4.58: `.htaccess` managed block, custom-rule preservation, 301 interception, backup/restore, deactivation and fail-closed behavior tested earlier.
-- LiteSpeed unavailable; not tested.
+## Exact-ZIP WordPress 7.1.4 smoke test
 
-## Not independently re-run in this pass
+Environment: `/tmp/opencode/wp-final-audit`, WordPress 7.1.4, PHP 8.4.27, `WP_DEBUG=true`, `WP_DEBUG_LOG=true`. The exact ZIP was unpacked over the plugin directory; 239/239 installed file hashes matched the ZIP manifest.
 
-- WP 6.5.14 exact final ZIP smoke (earlier release candidate and KSES integration passed).
-- Real Apache after the final breadcrumb/schema changes (PHP-only output changes; earlier Apache package tested).
-- Multisite and full uninstall purge.
+| Check | Result |
+|---|---|
+| RankKernel dashboard | HTTP 200 |
+| Instant Indexing | HTTP 200 |
+| Redirects | HTTP 200 |
+| 404 Monitor | HTTP 200 |
+| Schema Settings | HTTP 200 |
+| Sitemap Settings | HTTP 200 |
+| General Settings | HTTP 200 |
+| Support | HTTP 200 |
+| Importer | HTTP 200 |
+| Home page | HTTP 200 |
+| `/sitemap_index.xml` | HTTP 200, `application/xml; charset=UTF-8` |
+| `/robots.txt` | HTTP 200, `text/plain; charset=utf-8` |
+| Unknown path | HTTP 404 |
+| Admin search with `<b>hello</b> O\'Reilly` | HTTP 200; tags stripped, quote unslashed, escaped in field |
+| Admin search `s[]=hello` (array) | HTTP 200; no fatal/notice |
+| Redirect chain `rk_chain[]=evil` (array) | HTTP 200; no fatal/notice |
+| `wp-content/debug.log` | no plugin warnings, notices or fatals |
 
-No test result above was fabricated; tests marked CI were run by GitHub Actions on the same commit.
+## Regression coverage added
+
+- `InstantIndexingPageTest::test_search_filter_is_unslashed_and_sanitized`
+- `InstantIndexingLogQueryTest::test_search_term_is_sanitized_before_query`
+- `MetaPayloadTest::test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields`
+- `MetaPayloadTest::test_sanitize_accepts_scalar_boolean_and_id_fields`
+- `ImportControllerTest::test_preview_array_kind_returns_400`
+- `ImportControllerTest::test_run_array_kind_returns_400`
+- `ImportControllerTest::test_run_array_mode_returns_400`
+- `ImportControllerTest::test_run_array_offset_returns_400`
+- `SupportRequestTest::test_array_values_are_rejected_field_by_field`
+- `AnalysisControllerTest::test_nested_keyword_arrays_are_preserved_for_validation`
+
+## Not run in this environment
+
+- **Psalm / Psalm Security:** not installed in the local vendor tree. The CI Psalm jobs were green on the prior commit `fc5c641`; the new remediation changes have not yet been run through the Psalm CI job.
+- **WordPress 6.5.14 exact-ZIP smoke:** not available in this environment. The prior release candidate and breadcrumb KSES integration passed on 6.5.14.
+- **LiteSpeed:** unavailable; not tested.
+- **Real Apache after the remediation:** not re-run; the changes are PHP input-validation only.
+
+No test result above was fabricated. Plugin Check and the HTTP smoke test were run against the exact ZIP whose checksum is recorded above.

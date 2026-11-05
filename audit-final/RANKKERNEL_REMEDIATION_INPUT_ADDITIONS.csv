@@ -1,0 +1,21 @@
+area,file,line,source,type,classification,evidence,test
+REST import,src/Rest/ImportController.php,335,$params['mode'],string enum,FIXED,IN-03: non-string mode returns WP_Error 400,ImportControllerTest::test_run_array_mode_returns_400
+REST import,src/Rest/ImportController.php,382,$params['kind'] (preview),string enum,FIXED,IN-03: non-string preview kind returns WP_Error 400,ImportControllerTest::test_preview_array_kind_returns_400
+REST import,src/Rest/ImportController.php,403,$params['offset'] (preview),integer,FIXED,IN-03: non-numeric preview offset returns WP_Error 400,
+REST import,src/Rest/ImportController.php,417,$params['limit'] (preview),integer,FIXED,IN-03: non-numeric preview limit returns WP_Error 400,
+REST import,src/Rest/ImportController.php,432,$params['q'] (preview),string,FIXED,IN-03: non-string preview search returns WP_Error 400,
+REST import,src/Rest/ImportController.php,716,$params['kind'] (run),string enum,FIXED,IN-03: non-string run kind returns WP_Error 400,ImportControllerTest::test_run_array_kind_returns_400
+REST import,src/Rest/ImportController.php,737,$params['offset'] (run),integer,FIXED,IN-03: non-numeric run offset returns WP_Error 400,ImportControllerTest::test_run_array_offset_returns_400
+REST import,src/Rest/ImportController.php,751,$params['limit'] (run),integer,FIXED,IN-03: non-numeric run limit returns WP_Error 400,
+REST import,src/Rest/ImportController.php,768,$params['excludes'],array of scalar,FIXED,IN-03: non-scalar excludes dropped; scalar values sanitized,
+REST import,src/Rest/ImportController.php,798,$params['run_id'],string pattern,FIXED,IN-03: non-string run_id becomes empty and fails the pattern with 400,
+REST analysis,src/Rest/AnalysisController.php,120,$request->get_param('keywords'),array of string,FIXED,IN-05: non-scalar elements preserved for REST type validation; analyzer filters them,AnalysisControllerTest::test_nested_keyword_arrays_are_preserved_for_validation
+Support validator,src/Support/SupportRequest.php,156,$input['category'],string enum,FIXED,IN-04: is_scalar guard; array becomes empty and receives a field error,SupportRequestTest::test_array_values_are_rejected_field_by_field
+Support validator,src/Support/SupportRequest.php,164,$input['subject'],string,FIXED,IN-04: is_scalar guard,SupportRequestTest::test_array_values_are_rejected_field_by_field
+Support validator,src/Support/SupportRequest.php,184,$input['message'],string,FIXED,IN-04: is_scalar guard,SupportRequestTest::test_array_values_are_rejected_field_by_field
+Support validator,src/Support/SupportRequest.php,204,$input['email'],string email,FIXED,IN-04: is_scalar guard,SupportRequestTest::test_array_values_are_rejected_field_by_field
+Support validator,src/Support/SupportRequest.php,218,$input['consent'],boolean-like scalar,FIXED,IN-04: array no longer satisfies consent,SupportRequestTest::test_array_values_are_rejected_field_by_field
+Metadata downstream,src/Modules/Metadata/MetaPayload.php,189,$robots flags,bool,FIXED,IN-02: nested arrays rejected by nullableBool; defaults preserved,MetaPayloadTest::test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields
+Metadata downstream,src/Modules/Metadata/MetaPayload.php,232,$og['image_id'],attachment id,FIXED,IN-02: non-scalar becomes 0 via scalarAbsint,MetaPayloadTest::test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields
+Metadata downstream,src/Modules/Metadata/MetaPayload.php,260,$tw['image_id'],attachment id,FIXED,IN-02: non-scalar becomes 0 via scalarAbsint,MetaPayloadTest::test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields
+Metadata downstream,src/Modules/Metadata/MetaPayload.php,466,$raw['disabled'],bool,FIXED,IN-02: nested arrays rejected by nullableBool; false default,MetaPayloadTest::test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields
