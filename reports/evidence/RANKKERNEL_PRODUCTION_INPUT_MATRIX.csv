@@ -1,0 +1,410 @@
+file,line,column,superglobal,token,source_line,classification
+src/Admin/DashboardPage.php,84,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_module_toggle'] ) ) {,not reviewed
+src/Admin/DashboardPage.php,84,66,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_module_toggle'] ) ) {,not reviewed
+src/Admin/DashboardPage.php,192,29,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/DashboardPage.php,192,71,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/DashboardPage.php,192,131,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/DashboardPage.php,236,19,POST,$_POST,$rawId = isset( $_POST['rankkernel_module_toggle'] ) && is_string( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( $_POST['rankkernel_module_toggle'] ) ) : '';,not reviewed
+src/Admin/DashboardPage.php,236,70,POST,$_POST,$rawId = isset( $_POST['rankkernel_module_toggle'] ) && is_string( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( $_POST['rankkernel_module_toggle'] ) ) : '';,not reviewed
+src/Admin/DashboardPage.php,236,142,POST,$_POST,$rawId = isset( $_POST['rankkernel_module_toggle'] ) && is_string( $_POST['rankkernel_module_toggle'] ) ? sanitize_text_field( wp_unslash( $_POST['rankkernel_module_toggle'] ) ) : '';,not reviewed
+src/Admin/HtaccessFile.php,142,31,SERVER,$_SERVER,if ( ! $supported && isset( $_SERVER['SERVER_SOFTWARE'] ) && is_string( $_SERVER['SERVER_SOFTWARE'] ) ) {,not reviewed
+src/Admin/HtaccessFile.php,142,75,SERVER,$_SERVER,if ( ! $supported && isset( $_SERVER['SERVER_SOFTWARE'] ) && is_string( $_SERVER['SERVER_SOFTWARE'] ) ) {,not reviewed
+src/Admin/HtaccessFile.php,143,71,SERVER,$_SERVER,$software  = strtolower( sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) );,not reviewed
+src/Admin/InstantIndexingPage.php,287,29,GET,$_GET,$rawUpdated      = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,287,71,GET,$_GET,$rawUpdated      = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,287,113,GET,$_GET,$rawUpdated      = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) ? wp_unslash( $_GET['settings-updated'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,291,24,GET,$_GET,$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? wp_unslash( $_GET['rk_indexnow_notice'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,291,68,GET,$_GET,$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? wp_unslash( $_GET['rk_indexnow_notice'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,291,112,GET,$_GET,$noticeCode = isset( $_GET['rk_indexnow_notice'] ) && is_string( $_GET['rk_indexnow_notice'] ) ? wp_unslash( $_GET['rk_indexnow_notice'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,295,24,GET,$_GET,$verifyRaw  = isset( $_GET['rk_verify_code'] ) && is_numeric( $_GET['rk_verify_code'] ) ? wp_unslash( $_GET['rk_verify_code'] ) : null;,not reviewed
+src/Admin/InstantIndexingPage.php,295,65,GET,$_GET,$verifyRaw  = isset( $_GET['rk_verify_code'] ) && is_numeric( $_GET['rk_verify_code'] ) ? wp_unslash( $_GET['rk_verify_code'] ) : null;,not reviewed
+src/Admin/InstantIndexingPage.php,295,105,GET,$_GET,$verifyRaw  = isset( $_GET['rk_verify_code'] ) && is_numeric( $_GET['rk_verify_code'] ) ? wp_unslash( $_GET['rk_verify_code'] ) : null;,not reviewed
+src/Admin/InstantIndexingPage.php,330,48,GET,$_GET,"$logQuery = LogQuery::fromInput( wp_unslash( $_GET ), InstantIndexingLogView::PER_PAGE );",not reviewed
+src/Admin/InstantIndexingPage.php,366,51,POST,$_POST,$this->settings->set( [ 'auto_submit' => isset( $_POST['rankkernel_indexnow_auto_submit'] ) ] );,not reviewed
+src/Admin/InstantIndexingPage.php,580,17,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_id'] ) && is_numeric( $_POST['rankkernel_indexnow_id'] ) ? wp_unslash( $_POST['rankkernel_indexnow_id'] ) : 0;,not reviewed
+src/Admin/InstantIndexingPage.php,580,67,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_id'] ) && is_numeric( $_POST['rankkernel_indexnow_id'] ) ? wp_unslash( $_POST['rankkernel_indexnow_id'] ) : 0;,not reviewed
+src/Admin/InstantIndexingPage.php,580,116,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_id'] ) && is_numeric( $_POST['rankkernel_indexnow_id'] ) ? wp_unslash( $_POST['rankkernel_indexnow_id'] ) : 0;,not reviewed
+src/Admin/InstantIndexingPage.php,623,17,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_action'] ) && is_string( $_POST['rankkernel_indexnow_action'] ) ? wp_unslash( $_POST['rankkernel_indexnow_action'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,623,70,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_action'] ) && is_string( $_POST['rankkernel_indexnow_action'] ) ? wp_unslash( $_POST['rankkernel_indexnow_action'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,623,123,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_action'] ) && is_string( $_POST['rankkernel_indexnow_action'] ) ? wp_unslash( $_POST['rankkernel_indexnow_action'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,640,17,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_urls'] ) && is_string( $_POST['rankkernel_indexnow_urls'] ) ? wp_unslash( $_POST['rankkernel_indexnow_urls'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,640,68,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_urls'] ) && is_string( $_POST['rankkernel_indexnow_urls'] ) ? wp_unslash( $_POST['rankkernel_indexnow_urls'] ) : '';,not reviewed
+src/Admin/InstantIndexingPage.php,640,119,POST,$_POST,$raw = isset( $_POST['rankkernel_indexnow_urls'] ) && is_string( $_POST['rankkernel_indexnow_urls'] ) ? wp_unslash( $_POST['rankkernel_indexnow_urls'] ) : '';,not reviewed
+src/Admin/MetadataBox.php,637,31,GET,$_GET,$rawMetaMsg        = isset( $_GET['rankkernel_meta_msg'] ) ? wp_unslash( $_GET['rankkernel_meta_msg'] ) : '';,not reviewed
+src/Admin/MetadataBox.php,637,76,GET,$_GET,$rawMetaMsg        = isset( $_GET['rankkernel_meta_msg'] ) ? wp_unslash( $_GET['rankkernel_meta_msg'] ) : '';,not reviewed
+src/Admin/MetadataBox.php,680,17,POST,$_POST,if ( ! isset( $_POST[ self::NONCE_FIELD ] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1175,15,POST,$_POST,if ( isset( $_POST[ self::FIELDS_FIELD ] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1180,17,POST,$_POST,return isset( $_POST['rankkernel_meta_title'] ) || isset( $_POST['rankkernel_meta_description'] );,not reviewed
+src/Admin/MetadataBox.php,1180,61,POST,$_POST,return isset( $_POST['rankkernel_meta_title'] ) || isset( $_POST['rankkernel_meta_description'] );,not reviewed
+src/Admin/MetadataBox.php,1201,18,POST,$_POST,if ( ! isset( $_POST[ $key ] ) || ! is_string( $_POST[ $key ] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1201,51,POST,$_POST,if ( ! isset( $_POST[ $key ] ) || ! is_string( $_POST[ $key ] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1206,44,POST,$_POST,$merged[ $name ] = (string) wp_unslash( $_POST[ $key ] );,not reviewed
+src/Admin/MetadataBox.php,1210,15,POST,$_POST,if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) && is_string( $_POST['rankkernel_meta_focus_keywords'] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1210,72,POST,$_POST,if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) && is_string( $_POST['rankkernel_meta_focus_keywords'] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1212,43,POST,$_POST,$postedKeywords = (string) wp_unslash( $_POST['rankkernel_meta_focus_keywords'] );,not reviewed
+src/Admin/MetadataBox.php,1227,15,POST,$_POST,if ( isset( $_POST['rankkernel_meta_canonical'] ) && is_string( $_POST['rankkernel_meta_canonical'] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1227,67,POST,$_POST,if ( isset( $_POST['rankkernel_meta_canonical'] ) && is_string( $_POST['rankkernel_meta_canonical'] ) ) {,not reviewed
+src/Admin/MetadataBox.php,1229,48,POST,$_POST,$merged['canonical'] = (string) wp_unslash( $_POST['rankkernel_meta_canonical'] );,not reviewed
+src/Admin/MetadataBox.php,1233,19,POST,$_POST,$postedRobots = $_POST['rankkernel_meta_robots'] ?? null;,not reviewed
+src/Admin/MetadataBox.php,1239,15,POST,$_POST,$postedOg = $_POST['rankkernel_meta_og'] ?? null;,not reviewed
+src/Admin/MetadataBox.php,1246,20,POST,$_POST,$postedTwitter = $_POST['rankkernel_meta_twitter'] ?? null;,not reviewed
+src/Admin/MetadataBox.php,1254,12,POST,$_POST,$reset = $_POST['rankkernel_meta_reset'] ?? null;,not reviewed
+src/Admin/MetadataBox.php,1659,21,GET,$_GET,$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;,not reviewed
+src/Admin/MetadataBox.php,1659,51,GET,$_GET,$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;,not reviewed
+src/Admin/MetadataBox.php,1670,21,GET,$_GET,$rawType = isset( $_GET['post_type'] ) ? wp_unslash( $_GET['post_type'] ) : null;,not reviewed
+src/Admin/MetadataBox.php,1670,56,GET,$_GET,$rawType = isset( $_GET['post_type'] ) ? wp_unslash( $_GET['post_type'] ) : null;,not reviewed
+src/Admin/MetadataBox.php,1694,21,GET,$_GET,$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;,not reviewed
+src/Admin/MetadataBox.php,1694,51,GET,$_GET,$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;,not reviewed
+src/Admin/NotFoundPage.php,146,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {,not reviewed
+src/Admin/NotFoundPage.php,149,16,POST,$_POST,if ( isset( $_POST['rankkernel_404_clear'] ) ) {,not reviewed
+src/Admin/NotFoundPage.php,157,16,POST,$_POST,if ( isset( $_POST['rankkernel_404_bulk'] ) ) {,not reviewed
+src/Admin/NotFoundPage.php,165,16,POST,$_POST,if ( isset( $_POST['rankkernel_404_settings_save'] ) ) {,not reviewed
+src/Admin/NotFoundPage.php,174,23,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,174,58,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,174,102,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,223,20,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,223,55,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,223,113,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,251,19,GET,$_GET,$error = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,251,53,GET,$_GET,$error = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,251,110,GET,$_GET,$error = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,263,26,GET,$_GET,$rawChain     = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,263,60,GET,$_GET,$rawChain     = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,263,103,GET,$_GET,$rawChain     = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,268,33,GET,$_GET,$carriedChainUnknown = isset( $_GET['rk_chain_unknown'] );,not reviewed
+src/Admin/NotFoundPage.php,272,26,GET,$_GET,$rawFinal     = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,272,60,GET,$_GET,$rawFinal     = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,272,103,GET,$_GET,$rawFinal     = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,277,28,GET,$_GET,$carriedMayLoop = isset( $_GET['rk_mayloop'] );,not reviewed
+src/Admin/NotFoundPage.php,549,17,POST,$_POST,$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $fallback;,not reviewed
+src/Admin/NotFoundPage.php,549,48,POST,$_POST,$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : $fallback;,not reviewed
+src/Admin/NotFoundPage.php,595,22,GET,$_GET,$rawEntry = isset( $_GET['entry'] ) && is_string( $_GET['entry'] ) ? wp_unslash( $_GET['entry'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,595,53,GET,$_GET,$rawEntry = isset( $_GET['entry'] ) && is_string( $_GET['entry'] ) ? wp_unslash( $_GET['entry'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,595,84,GET,$_GET,$rawEntry = isset( $_GET['entry'] ) && is_string( $_GET['entry'] ) ? wp_unslash( $_GET['entry'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,616,23,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,616,64,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,616,114,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/NotFoundPage.php,621,26,POST,$_POST,$unslashedIds = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? wp_unslash( $_POST['entry_ids'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,621,61,POST,$_POST,$unslashedIds = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? wp_unslash( $_POST['entry_ids'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,621,97,POST,$_POST,$unslashedIds = isset( $_POST['entry_ids'] ) && is_array( $_POST['entry_ids'] ) ? wp_unslash( $_POST['entry_ids'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,653,32,POST,$_POST,"'advanced_fields' => isset( $_POST['rk_advanced_fields'] ),",not reviewed
+src/Admin/NotFoundPage.php,656,32,POST,$_POST,"'ignore_query'    => isset( $_POST['rk_ignore_query'] ),",not reviewed
+src/Admin/NotFoundPage.php,681,34,POST,$_POST,$unslashedComparators = isset( $_POST['rk_excl_comparator'] ) && is_array( $_POST['rk_excl_comparator'] ) ? wp_unslash( $_POST['rk_excl_comparator'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,681,78,POST,$_POST,$unslashedComparators = isset( $_POST['rk_excl_comparator'] ) && is_array( $_POST['rk_excl_comparator'] ) ? wp_unslash( $_POST['rk_excl_comparator'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,681,123,POST,$_POST,$unslashedComparators = isset( $_POST['rk_excl_comparator'] ) && is_array( $_POST['rk_excl_comparator'] ) ? wp_unslash( $_POST['rk_excl_comparator'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,685,29,POST,$_POST,$unslashedValues = isset( $_POST['rk_excl_value'] ) && is_array( $_POST['rk_excl_value'] ) ? wp_unslash( $_POST['rk_excl_value'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,685,68,POST,$_POST,$unslashedValues = isset( $_POST['rk_excl_value'] ) && is_array( $_POST['rk_excl_value'] ) ? wp_unslash( $_POST['rk_excl_value'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,685,108,POST,$_POST,$unslashedValues = isset( $_POST['rk_excl_value'] ) && is_array( $_POST['rk_excl_value'] ) ? wp_unslash( $_POST['rk_excl_value'] ) : [];,not reviewed
+src/Admin/NotFoundPage.php,721,22,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/NotFoundPage.php,721,56,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/NotFoundPage.php,721,90,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/NotFoundPage.php,773,20,GET,$_GET,$search = isset( $_GET['s'] ) && is_string( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,773,47,GET,$_GET,$search = isset( $_GET['s'] ) && is_string( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,773,104,GET,$_GET,$search = isset( $_GET['s'] ) && is_string( $_GET['s'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['s'] ) ) : '';,not reviewed
+src/Admin/NotFoundPage.php,777,24,GET,$_GET,$rawOrderBy = isset( $_GET['rk_orderby'] ) && is_string( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'last_accessed';,not reviewed
+src/Admin/NotFoundPage.php,777,60,GET,$_GET,$rawOrderBy = isset( $_GET['rk_orderby'] ) && is_string( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'last_accessed';,not reviewed
+src/Admin/NotFoundPage.php,777,105,GET,$_GET,$rawOrderBy = isset( $_GET['rk_orderby'] ) && is_string( $_GET['rk_orderby'] ) ? (string) wp_unslash( $_GET['rk_orderby'] ) : 'last_accessed';,not reviewed
+src/Admin/NotFoundPage.php,786,22,GET,$_GET,$rawOrder = isset( $_GET['rk_order'] ) && is_string( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';,not reviewed
+src/Admin/NotFoundPage.php,786,56,GET,$_GET,$rawOrder = isset( $_GET['rk_order'] ) && is_string( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';,not reviewed
+src/Admin/NotFoundPage.php,786,99,GET,$_GET,$rawOrder = isset( $_GET['rk_order'] ) && is_string( $_GET['rk_order'] ) ? (string) wp_unslash( $_GET['rk_order'] ) : 'DESC';,not reviewed
+src/Admin/NotFoundPage.php,791,21,GET,$_GET,$rawPage = isset( $_GET['rk_paged'] ) && is_string( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : '1';,not reviewed
+src/Admin/NotFoundPage.php,791,55,GET,$_GET,$rawPage = isset( $_GET['rk_paged'] ) && is_string( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : '1';,not reviewed
+src/Admin/NotFoundPage.php,791,89,GET,$_GET,$rawPage = isset( $_GET['rk_paged'] ) && is_string( $_GET['rk_paged'] ) ? wp_unslash( $_GET['rk_paged'] ) : '1';,not reviewed
+src/Admin/RedirectsPage.php,186,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {,not reviewed
+src/Admin/RedirectsPage.php,189,16,POST,$_POST,if ( isset( $_POST['rankkernel_redirect_save'] ) ) {,not reviewed
+src/Admin/RedirectsPage.php,197,16,POST,$_POST,if ( isset( $_POST['rankkernel_redirect_bulk'] ) ) {,not reviewed
+src/Admin/RedirectsPage.php,205,16,POST,$_POST,if ( isset( $_POST['rankkernel_redirect_settings_save'] ) ) {,not reviewed
+src/Admin/RedirectsPage.php,213,16,POST,$_POST,if ( isset( $_POST['rankkernel_redirect_import'] ) ) {,not reviewed
+src/Admin/RedirectsPage.php,222,23,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,222,58,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,222,102,GET,$_GET,$rawAction = isset( $_GET['rk_action'] ) && is_string( $_GET['rk_action'] ) ? (string) wp_unslash( $_GET['rk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,301,49,POST,$_POST,$this->renderListSection( $this->listFilters( $_POST ) );,not reviewed
+src/Admin/RedirectsPage.php,688,49,GET,$_GET,$this->renderListSection( $this->listFilters( $_GET ) );,not reviewed
+src/Admin/RedirectsPage.php,714,20,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,714,55,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,714,113,GET,$_GET,$notice = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_notice'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,724,23,GET,$_GET,$errorFlag = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,724,57,GET,$_GET,$errorFlag = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,724,114,GET,$_GET,$errorFlag = isset( $_GET['rk_error'] ) && is_string( $_GET['rk_error'] ) ? sanitize_key( (string) wp_unslash( $_GET['rk_error'] ) ) : '';,not reviewed
+src/Admin/RedirectsPage.php,732,22,GET,$_GET,$rawChain = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,732,56,GET,$_GET,$rawChain = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,732,99,GET,$_GET,$rawChain = isset( $_GET['rk_chain'] ) && is_string( $_GET['rk_chain'] ) ? (string) wp_unslash( $_GET['rk_chain'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,737,26,GET,$_GET,$chainUnknown = isset( $_GET['rk_chain_unknown'] );,not reviewed
+src/Admin/RedirectsPage.php,752,25,GET,$_GET,$rawFinal   = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,752,59,GET,$_GET,$rawFinal   = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,752,102,GET,$_GET,$rawFinal   = isset( $_GET['rk_final'] ) && is_string( $_GET['rk_final'] ) ? (string) wp_unslash( $_GET['rk_final'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,766,21,GET,$_GET,$mayLoop = isset( $_GET['rk_mayloop'] );,not reviewed
+src/Admin/RedirectsPage.php,818,22,GET,$_GET,$rawPath = isset( $_GET['rk_path'] ) && is_string( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,818,55,GET,$_GET,$rawPath = isset( $_GET['rk_path'] ) && is_string( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,818,97,GET,$_GET,$rawPath = isset( $_GET['rk_path'] ) && is_string( $_GET['rk_path'] ) ? (string) wp_unslash( $_GET['rk_path'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1111,19,POST,$_POST,$raw   = isset( $_POST['rk_return'] ) && is_string( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1111,55,POST,$_POST,$raw   = isset( $_POST['rk_return'] ) && is_string( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1111,91,POST,$_POST,$raw   = isset( $_POST['rk_return'] ) && is_string( $_POST['rk_return'] ) ? wp_unslash( $_POST['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1128,19,GET,$_GET,$raw   = isset( $_GET['rk_return'] ) && is_string( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1128,54,GET,$_GET,$raw   = isset( $_GET['rk_return'] ) && is_string( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1128,89,GET,$_GET,$raw   = isset( $_GET['rk_return'] ) && is_string( $_GET['rk_return'] ) ? wp_unslash( $_GET['rk_return'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1145,17,POST,$_POST,if ( ! isset( $_POST[ $key ] ) ) {,not reviewed
+src/Admin/RedirectsPage.php,1151,22,POST,$_POST,$raw = wp_unslash( $_POST[ $key ] );,not reviewed
+src/Admin/RedirectsPage.php,1167,17,POST,$_POST,$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : 0;,not reviewed
+src/Admin/RedirectsPage.php,1167,48,POST,$_POST,$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : 0;,not reviewed
+src/Admin/RedirectsPage.php,1191,27,POST,$_POST,"'is_active'  => isset( $_POST['rk_active'] ),",not reviewed
+src/Admin/RedirectsPage.php,1425,17,POST,$_POST,return isset( $_POST['rk_force_unverified'] );,not reviewed
+src/Admin/RedirectsPage.php,1741,21,GET,$_GET,$rawRule = isset( $_GET['rule'] ) && is_string( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,1741,51,GET,$_GET,$rawRule = isset( $_GET['rule'] ) && is_string( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,1741,81,GET,$_GET,$rawRule = isset( $_GET['rule'] ) && is_string( $_GET['rule'] ) ? wp_unslash( $_GET['rule'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,1789,23,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1789,64,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1789,114,POST,$_POST,$rawAction = isset( $_POST['rk_bulk_action'] ) && is_string( $_POST['rk_bulk_action'] ) ? (string) wp_unslash( $_POST['rk_bulk_action'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,1794,26,POST,$_POST,$unslashedIds = isset( $_POST['rule_ids'] ) && is_array( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];,not reviewed
+src/Admin/RedirectsPage.php,1794,60,POST,$_POST,$unslashedIds = isset( $_POST['rule_ids'] ) && is_array( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];,not reviewed
+src/Admin/RedirectsPage.php,1794,95,POST,$_POST,$unslashedIds = isset( $_POST['rule_ids'] ) && is_array( $_POST['rule_ids'] ) ? wp_unslash( $_POST['rule_ids'] ) : [];,not reviewed
+src/Admin/RedirectsPage.php,1857,35,POST,$_POST,"'preserve_query'     => isset( $_POST['rk_preserve_query'] ),",not reviewed
+src/Admin/RedirectsPage.php,1860,35,POST,$_POST,"'auto_slug_redirect' => isset( $_POST['rk_auto_slug_redirect'] ),",not reviewed
+src/Admin/RedirectsPage.php,1865,39,POST,$_POST,$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) && is_string( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : '20';,not reviewed
+src/Admin/RedirectsPage.php,1865,83,POST,$_POST,$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) && is_string( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : '20';,not reviewed
+src/Admin/RedirectsPage.php,1865,127,POST,$_POST,$rawPerPage                = isset( $_POST['rk_rules_per_page'] ) && is_string( $_POST['rk_rules_per_page'] ) ? wp_unslash( $_POST['rk_rules_per_page'] ) : '20';,not reviewed
+src/Admin/RedirectsPage.php,1910,28,POST,$_POST,$updateExisting = isset( $_POST['rk_csv_update'] );,not reviewed
+src/Admin/RedirectsPage.php,1914,20,POST,$_POST,$dryRun = isset( $_POST['rk_csv_dry_run'] );,not reviewed
+src/Admin/RedirectsPage.php,1918,29,POST,$_POST,$forceUnverified = isset( $_POST['rk_csv_force'] );,not reviewed
+src/Admin/RedirectsPage.php,1922,11,FILES,$_FILES,$file = $_FILES['rk_csv_file'] ?? null;,not reviewed
+src/Admin/RedirectsPage.php,2045,21,GET,$_GET,$rawBulk = isset( $_GET['rk_bulk'] ) && is_string( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2045,54,GET,$_GET,$rawBulk = isset( $_GET['rk_bulk'] ) && is_string( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2045,96,GET,$_GET,$rawBulk = isset( $_GET['rk_bulk'] ) && is_string( $_GET['rk_bulk'] ) ? (string) wp_unslash( $_GET['rk_bulk'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2050,22,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2050,56,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2050,90,GET,$_GET,$rawCount = isset( $_GET['rk_count'] ) && is_string( $_GET['rk_count'] ) ? wp_unslash( $_GET['rk_count'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2096,21,GET,$_GET,$rawOpen = isset( $_GET['rk_open'] ) && is_string( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2096,54,GET,$_GET,$rawOpen = isset( $_GET['rk_open'] ) && is_string( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2096,96,GET,$_GET,$rawOpen = isset( $_GET['rk_open'] ) && is_string( $_GET['rk_open'] ) ? (string) wp_unslash( $_GET['rk_open'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2104,21,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2104,54,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2104,87,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2237,21,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2237,54,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2237,87,GET,$_GET,$rawEdit = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? wp_unslash( $_GET['rk_edit'] ) : '0';,not reviewed
+src/Admin/RedirectsPage.php,2286,17,GET,$_GET,$raw = isset( $_GET['rk_source'] ) && is_string( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2286,52,GET,$_GET,$raw = isset( $_GET['rk_source'] ) && is_string( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2286,87,GET,$_GET,$raw = isset( $_GET['rk_source'] ) && is_string( $_GET['rk_source'] ) ? wp_unslash( $_GET['rk_source'] ) : '';,not reviewed
+src/Admin/RedirectsPage.php,2295,5,GET,$_GET,"* $_GET and the AJAX handler resolves them from $_POST, both through this",not reviewed
+src/Admin/RedirectsPage.php,2295,51,POST,$_POST,"* $_GET and the AJAX handler resolves them from $_POST, both through this",not reviewed
+src/Admin/RedirectsPage.php,2298,64,GET,$_GET,"* @param array<string, mixed> $input Request input, normally $_GET or $_POST.",not reviewed
+src/Admin/RedirectsPage.php,2298,73,POST,$_POST,"* @param array<string, mixed> $input Request input, normally $_GET or $_POST.",not reviewed
+src/Admin/SchemaMetabox.php,270,28,FILES,$_FILES,* file would never reach $_FILES. Core fires this action inside the form,not reviewed
+src/Admin/SchemaMetabox.php,353,27,GET,$_GET,$rawMsg        = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';,not reviewed
+src/Admin/SchemaMetabox.php,353,74,GET,$_GET,$rawMsg        = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';,not reviewed
+src/Admin/SchemaMetabox.php,656,17,POST,$_POST,if ( ! isset( $_POST[ self::NONCE_FIELD ] ) ) {,not reviewed
+src/Admin/SchemaMetabox.php,690,23,POST,$_POST,$customRaw = isset( $_POST['rankkernel_schema_custom'] ),not reviewed
+src/Admin/SchemaMetabox.php,691,18,POST,$_POST,&& is_string( $_POST['rankkernel_schema_custom'] ),not reviewed
+src/Admin/SchemaMetabox.php,693,27,POST,$_POST,? (string) wp_unslash( $_POST['rankkernel_schema_custom'] ),not reviewed
+src/Admin/SchemaMetabox.php,721,25,POST,$_POST,"'disabled' => isset( $_POST['rankkernel_schema_disabled'] ),",not reviewed
+src/Admin/SchemaMetabox.php,741,17,POST,$_POST,if ( ! isset( $_POST['rankkernel_schema_faq'] ) && isset( $existingSchema['faq'] ) ) {,not reviewed
+src/Admin/SchemaMetabox.php,755,16,POST,$_POST,if ( isset( $_POST[ $howtoKey ] ) ) {,not reviewed
+src/Admin/SchemaMetabox.php,794,17,POST,$_POST,$raw = isset( $_POST['rankkernel_schema_type'] ),not reviewed
+src/Admin/SchemaMetabox.php,796,18,POST,$_POST,&& is_string( $_POST['rankkernel_schema_type'] ),not reviewed
+src/Admin/SchemaMetabox.php,798,33,POST,$_POST,? trim( (string) wp_unslash( $_POST['rankkernel_schema_type'] ) ),not reviewed
+src/Admin/SchemaMetabox.php,811,10,POST,$_POST,$raw = $_POST['rankkernel_schema_fields'] ?? [];,not reviewed
+src/Admin/SchemaMetabox.php,849,10,POST,$_POST,$raw = $_POST['rankkernel_schema_faq'] ?? [];,not reviewed
+src/Admin/SchemaMetabox.php,889,21,POST,$_POST,$rawName = isset( $_POST['rankkernel_schema_howto_name'] ) && is_string( $_POST['rankkernel_schema_howto_name'] ),not reviewed
+src/Admin/SchemaMetabox.php,889,76,POST,$_POST,$rawName = isset( $_POST['rankkernel_schema_howto_name'] ) && is_string( $_POST['rankkernel_schema_howto_name'] ),not reviewed
+src/Admin/SchemaMetabox.php,891,48,POST,$_POST,? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_name'] ) ),not reviewed
+src/Admin/SchemaMetabox.php,894,22,POST,$_POST,$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] ) && is_string( $_POST['rankkernel_schema_howto_totaltime'] ),not reviewed
+src/Admin/SchemaMetabox.php,894,82,POST,$_POST,$rawTotal = isset( $_POST['rankkernel_schema_howto_totaltime'] ) && is_string( $_POST['rankkernel_schema_howto_totaltime'] ),not reviewed
+src/Admin/SchemaMetabox.php,896,48,POST,$_POST,? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_totaltime'] ) ),not reviewed
+src/Admin/SchemaMetabox.php,899,21,POST,$_POST,$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] ) && is_string( $_POST['rankkernel_schema_howto_cost'] ),not reviewed
+src/Admin/SchemaMetabox.php,899,76,POST,$_POST,$rawCost = isset( $_POST['rankkernel_schema_howto_cost'] ) && is_string( $_POST['rankkernel_schema_howto_cost'] ),not reviewed
+src/Admin/SchemaMetabox.php,901,48,POST,$_POST,? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_cost'] ) ),not reviewed
+src/Admin/SchemaMetabox.php,905,15,POST,$_POST,$rawSteps = $_POST['rankkernel_schema_howto_steps'] ?? [];,not reviewed
+src/Admin/SchemaMetabox.php,955,17,FILES,$_FILES,if ( ! isset( $_FILES['rankkernel_schema_import'] ) || ! is_array( $_FILES['rankkernel_schema_import'] ) ) {,not reviewed
+src/Admin/SchemaMetabox.php,955,70,FILES,$_FILES,if ( ! isset( $_FILES['rankkernel_schema_import'] ) || ! is_array( $_FILES['rankkernel_schema_import'] ) ) {,not reviewed
+src/Admin/SchemaMetabox.php,960,12,FILES,$_FILES,$file  = $_FILES['rankkernel_schema_import'];,not reviewed
+src/Admin/SchemaMetabox.php,1116,23,GET,$_GET,$rawPostId = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : 0;,not reviewed
+src/Admin/SchemaMetabox.php,1116,53,GET,$_GET,$rawPostId = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : 0;,not reviewed
+src/Admin/SchemaSettingsPage.php,54,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_schema_save'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,54,66,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_schema_save'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,153,29,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SchemaSettingsPage.php,153,71,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SchemaSettingsPage.php,153,131,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SchemaSettingsPage.php,158,32,GET,$_GET,$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,158,67,GET,$_GET,$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,262,15,POST,$_POST,if ( isset( $_POST['site_represents'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,264,32,POST,$_POST,$rawRepresents = is_string( $_POST['site_represents'] ) ? wp_unslash( $_POST['site_represents'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,264,74,POST,$_POST,$rawRepresents = is_string( $_POST['site_represents'] ) ? wp_unslash( $_POST['site_represents'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,270,15,POST,$_POST,if ( isset( $_POST['org_name'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,272,38,POST,$_POST,$partial['org_name'] = is_string( $_POST['org_name'] ) ? wp_unslash( $_POST['org_name'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,272,73,POST,$_POST,$partial['org_name'] = is_string( $_POST['org_name'] ) ? wp_unslash( $_POST['org_name'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,276,15,POST,$_POST,if ( isset( $_POST['org_logo'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,278,38,POST,$_POST,$partial['org_logo'] = is_string( $_POST['org_logo'] ) ? wp_unslash( $_POST['org_logo'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,278,73,POST,$_POST,$partial['org_logo'] = is_string( $_POST['org_logo'] ) ? wp_unslash( $_POST['org_logo'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,282,15,POST,$_POST,if ( isset( $_POST['org_sameas'] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,284,28,POST,$_POST,$rawSameAs = is_string( $_POST['org_sameas'] ) ? wp_unslash( $_POST['org_sameas'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,284,65,POST,$_POST,$rawSameAs = is_string( $_POST['org_sameas'] ) ? wp_unslash( $_POST['org_sameas'] ) : '';,not reviewed
+src/Admin/SchemaSettingsPage.php,291,46,POST,$_POST,$partial['website_search_action'] = isset( $_POST['website_search_action'] );,not reviewed
+src/Admin/SchemaSettingsPage.php,295,16,POST,$_POST,if ( isset( $_POST[ 'schema_default_' . $slug ] ) ) {,not reviewed
+src/Admin/SchemaSettingsPage.php,297,31,POST,$_POST,$rawDefault = wp_unslash( $_POST[ 'schema_default_' . $slug ] );,not reviewed
+src/Admin/SchemaSettingsPage.php,304,43,POST,$_POST,$partial['schema_breadcrumbs'] = isset( $_POST['schema_breadcrumbs'] );,not reviewed
+src/Admin/SchemaSettingsPage.php,306,38,POST,$_POST,$partial['schema_author'] = isset( $_POST['schema_author'] );,not reviewed
+src/Admin/SettingsPage.php,88,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,68,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,106,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,141,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,177,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,213,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,250,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,88,288,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ( isset( $_POST['rankkernel_save'] ) || isset( $_POST['rk_llms_save'] ) || isset( $_POST['rk_llms_write'] ) || isset( $_POST['rk_llms_reset'] ) || isset( $_POST['rk_robots_save'] ) || isset( $_POST['rk_robots_reset'] ) || isset( $_POST['rk_htaccess_save'] ) ) ) {,not reviewed
+src/Admin/SettingsPage.php,120,29,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SettingsPage.php,120,71,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SettingsPage.php,120,131,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SettingsPage.php,125,32,GET,$_GET,$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,125,67,GET,$_GET,$rawSaveNotice      = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,343,43,GET,$_GET,$robotTab        = 'edit' === ( isset( $_GET['robots_tab'] ) && is_string( $_GET['robots_tab'] ) ? (string) wp_unslash( $_GET['robots_tab'] ) : '' ) ? 'edit' : 'preview';,not reviewed
+src/Admin/SettingsPage.php,343,79,GET,$_GET,$robotTab        = 'edit' === ( isset( $_GET['robots_tab'] ) && is_string( $_GET['robots_tab'] ) ? (string) wp_unslash( $_GET['robots_tab'] ) : '' ) ? 'edit' : 'preview';,not reviewed
+src/Admin/SettingsPage.php,343,124,GET,$_GET,$robotTab        = 'edit' === ( isset( $_GET['robots_tab'] ) && is_string( $_GET['robots_tab'] ) ? (string) wp_unslash( $_GET['robots_tab'] ) : '' ) ? 'edit' : 'preview';,not reviewed
+src/Admin/SettingsPage.php,360,50,GET,$_GET,$llmsNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,360,85,GET,$_GET,$llmsNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,360,120,GET,$_GET,$llmsNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,379,53,GET,$_GET,$htaccessNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,379,88,GET,$_GET,$htaccessNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,379,123,GET,$_GET,$htaccessNotice = sanitize_key( (string) ( isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '' ) );,not reviewed
+src/Admin/SettingsPage.php,394,24,GET,$_GET,$rawSection = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,394,57,GET,$_GET,$rawSection = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,394,113,GET,$_GET,$rawSection = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,443,15,POST,$_POST,if ( isset( $_POST['rk_partial'] ) && is_string( $_POST['rk_partial'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,443,52,POST,$_POST,if ( isset( $_POST['rk_partial'] ) && is_string( $_POST['rk_partial'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,445,23,POST,$_POST,$raw = wp_unslash( $_POST['rk_partial'] );,not reviewed
+src/Admin/SettingsPage.php,447,21,GET,$_GET,} elseif ( isset( $_GET['rk_partial'] ) && is_string( $_GET['rk_partial'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,447,57,GET,$_GET,} elseif ( isset( $_GET['rk_partial'] ) && is_string( $_GET['rk_partial'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,449,23,GET,$_GET,$raw = wp_unslash( $_GET['rk_partial'] );,not reviewed
+src/Admin/SettingsPage.php,470,25,POST,$_POST,$rawPolicies = isset( $_POST['rk_robots_policy'] ) ? wp_unslash( $_POST['rk_robots_policy'] ) : [];,not reviewed
+src/Admin/SettingsPage.php,470,68,POST,$_POST,$rawPolicies = isset( $_POST['rk_robots_policy'] ) ? wp_unslash( $_POST['rk_robots_policy'] ) : [];,not reviewed
+src/Admin/SettingsPage.php,477,15,POST,$_POST,if ( isset( $_POST['rk_robots_override'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,479,39,POST,$_POST,$rawOverride         = wp_unslash( $_POST['rk_robots_override'] );,not reviewed
+src/Admin/SettingsPage.php,497,23,POST,$_POST,$requested = isset( $_POST['rk_htaccess_directives'] ) && is_array( $_POST['rk_htaccess_directives'] ) ? wp_unslash( $_POST['rk_htaccess_directives'] ) : [];,not reviewed
+src/Admin/SettingsPage.php,497,71,POST,$_POST,$requested = isset( $_POST['rk_htaccess_directives'] ) && is_array( $_POST['rk_htaccess_directives'] ) ? wp_unslash( $_POST['rk_htaccess_directives'] ) : [];,not reviewed
+src/Admin/SettingsPage.php,497,120,POST,$_POST,$requested = isset( $_POST['rk_htaccess_directives'] ) && is_array( $_POST['rk_htaccess_directives'] ) ? wp_unslash( $_POST['rk_htaccess_directives'] ) : [];,not reviewed
+src/Admin/SettingsPage.php,546,24,POST,$_POST,$rawSummary = isset( $_POST['rk_llms_summary'] ) && is_string( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,546,66,POST,$_POST,$rawSummary = isset( $_POST['rk_llms_summary'] ) && is_string( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,546,108,POST,$_POST,$rawSummary = isset( $_POST['rk_llms_summary'] ) && is_string( $_POST['rk_llms_summary'] ) ? wp_unslash( $_POST['rk_llms_summary'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,548,24,POST,$_POST,$rawContent = isset( $_POST['rk_llms_content'] ) && is_string( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,548,66,POST,$_POST,$rawContent = isset( $_POST['rk_llms_content'] ) && is_string( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,548,108,POST,$_POST,$rawContent = isset( $_POST['rk_llms_content'] ) && is_string( $_POST['rk_llms_content'] ) ? wp_unslash( $_POST['rk_llms_content'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,553,26,POST,$_POST,"'enabled'  => isset( $_POST['rk_llms_enabled'] ),",not reviewed
+src/Admin/SettingsPage.php,557,26,POST,$_POST,"'physical' => isset( $_POST['rk_llms_physical'] ),",not reviewed
+src/Admin/SettingsPage.php,630,17,GET,$_GET,$raw = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,630,50,GET,$_GET,$raw = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,630,106,GET,$_GET,$raw = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,654,58,POST,$_POST,if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_htaccess_save'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,661,58,POST,$_POST,if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_robots_reset'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,668,58,POST,$_POST,if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_reset'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,675,58,POST,$_POST,if ( $this->enableMap->isEnabled( 'robots' ) && isset( $_POST['rk_llms_write'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,697,16,POST,$_POST,if ( isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ) {,not reviewed
+src/Admin/SettingsPage.php,697,47,POST,$_POST,if ( isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ) {,not reviewed
+src/Admin/SettingsPage.php,699,66,POST,$_POST,$partial[ $key ] = sanitize_text_field( (string) wp_unslash( $_POST[ $key ] ) );,not reviewed
+src/Admin/SettingsPage.php,711,15,POST,$_POST,if ( isset( $_POST['rk_general_separator_choice'] ) && is_string( $_POST['rk_general_separator_choice'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,711,69,POST,$_POST,if ( isset( $_POST['rk_general_separator_choice'] ) && is_string( $_POST['rk_general_separator_choice'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,713,51,POST,$_POST,$generalSeparatorChoice = (string) wp_unslash( $_POST['rk_general_separator_choice'] );,not reviewed
+src/Admin/SettingsPage.php,717,38,POST,$_POST,$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) && is_string( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,717,92,POST,$_POST,$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) && is_string( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,717,155,POST,$_POST,$generalSeparatorCustom = isset( $_POST['rk_general_separator_custom'] ) && is_string( $_POST['rk_general_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_general_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,726,15,POST,$_POST,if ( isset( $_POST['social_default_image'] ) && is_string( $_POST['social_default_image'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,726,62,POST,$_POST,if ( isset( $_POST['social_default_image'] ) && is_string( $_POST['social_default_image'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,728,51,POST,$_POST,$rawImage                        = wp_unslash( $_POST['social_default_image'] );,not reviewed
+src/Admin/SettingsPage.php,732,15,POST,$_POST,if ( isset( $_POST['social_default_image_id'] ) && is_string( $_POST['social_default_image_id'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,732,65,POST,$_POST,if ( isset( $_POST['social_default_image_id'] ) && is_string( $_POST['social_default_image_id'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,734,54,POST,$_POST,$rawImageId                         = wp_unslash( $_POST['social_default_image_id'] );,not reviewed
+src/Admin/SettingsPage.php,738,15,POST,$_POST,if ( isset( $_POST['twitter_site'] ) && is_string( $_POST['twitter_site'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,738,54,POST,$_POST,if ( isset( $_POST['twitter_site'] ) && is_string( $_POST['twitter_site'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,740,30,POST,$_POST,$rawTwitter = wp_unslash( $_POST['twitter_site'] );,not reviewed
+src/Admin/SettingsPage.php,748,16,POST,$_POST,if ( isset( $_POST[ $socialKey ] ) && is_string( $_POST[ $socialKey ] ) ) {,not reviewed
+src/Admin/SettingsPage.php,748,53,POST,$_POST,if ( isset( $_POST[ $socialKey ] ) && is_string( $_POST[ $socialKey ] ) ) {,not reviewed
+src/Admin/SettingsPage.php,750,30,POST,$_POST,$rawSocial = wp_unslash( $_POST[ $socialKey ] );,not reviewed
+src/Admin/SettingsPage.php,762,44,POST,$_POST,$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );,not reviewed
+src/Admin/SettingsPage.php,780,21,GET,$_GET,$section = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,780,54,GET,$_GET,$section = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,780,110,GET,$_GET,$section = isset( $_GET['section'] ) && is_string( $_GET['section'] ) ? sanitize_key( (string) wp_unslash( $_GET['section'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,808,18,GET,$_GET,$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,808,48,GET,$_GET,$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,808,101,GET,$_GET,$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';,not reviewed
+src/Admin/SettingsPage.php,880,15,POST,$_POST,if ( isset( $_POST['rk_breadcrumbs_separator_choice'] ) && is_string( $_POST['rk_breadcrumbs_separator_choice'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,880,73,POST,$_POST,if ( isset( $_POST['rk_breadcrumbs_separator_choice'] ) && is_string( $_POST['rk_breadcrumbs_separator_choice'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,882,35,POST,$_POST,$choice = (string) wp_unslash( $_POST['rk_breadcrumbs_separator_choice'] );,not reviewed
+src/Admin/SettingsPage.php,886,22,POST,$_POST,$custom = isset( $_POST['rk_breadcrumbs_separator_custom'] ) && is_string( $_POST['rk_breadcrumbs_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_breadcrumbs_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,886,80,POST,$_POST,$custom = isset( $_POST['rk_breadcrumbs_separator_custom'] ) && is_string( $_POST['rk_breadcrumbs_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_breadcrumbs_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,886,147,POST,$_POST,$custom = isset( $_POST['rk_breadcrumbs_separator_custom'] ) && is_string( $_POST['rk_breadcrumbs_separator_custom'] ) ? (string) wp_unslash( $_POST['rk_breadcrumbs_separator_custom'] ) : '';,not reviewed
+src/Admin/SettingsPage.php,893,21,POST,$_POST,} elseif ( isset( $_POST['rk_breadcrumbs_separator'] ) && is_string( $_POST['rk_breadcrumbs_separator'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,893,72,POST,$_POST,} elseif ( isset( $_POST['rk_breadcrumbs_separator'] ) && is_string( $_POST['rk_breadcrumbs_separator'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,895,70,POST,$_POST,$partial['separator'] = sanitize_text_field( (string) wp_unslash( $_POST['rk_breadcrumbs_separator'] ) );,not reviewed
+src/Admin/SettingsPage.php,899,15,POST,$_POST,if ( isset( $_POST['rk_breadcrumbs_home_label'] ) && is_string( $_POST['rk_breadcrumbs_home_label'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,899,67,POST,$_POST,if ( isset( $_POST['rk_breadcrumbs_home_label'] ) && is_string( $_POST['rk_breadcrumbs_home_label'] ) ) {,not reviewed
+src/Admin/SettingsPage.php,901,71,POST,$_POST,$partial['home_label'] = sanitize_text_field( (string) wp_unslash( $_POST['rk_breadcrumbs_home_label'] ) );,not reviewed
+src/Admin/SettingsPage.php,905,34,POST,$_POST,$partial['show_home'] = isset( $_POST['rk_breadcrumbs_show_home'] );,not reviewed
+src/Admin/SettingsPage.php,907,37,POST,$_POST,$partial['show_current'] = isset( $_POST['rk_breadcrumbs_show_current'] );,not reviewed
+src/Admin/SettingsPage.php,909,43,POST,$_POST,$partial['hide_on_front_page'] = isset( $_POST['rk_breadcrumbs_hide_on_front_page'] );,not reviewed
+src/Admin/SettingsPage.php,911,39,POST,$_POST,$partial['show_blog_page'] = isset( $_POST['rk_breadcrumbs_show_blog_page'] );,not reviewed
+src/Admin/SettingsPage.php,913,39,POST,$_POST,$partial['show_ancestors'] = isset( $_POST['rk_breadcrumbs_show_ancestors'] );,not reviewed
+src/Admin/SettingsPage.php,924,18,POST,$_POST,if ( ! isset( $_POST[ $field ] ) ) {,not reviewed
+src/Admin/SettingsPage.php,929,23,POST,$_POST,$raw = wp_unslash( $_POST[ $field ] );,not reviewed
+src/Admin/SitemapSettingsPage.php,68,21,SERVER,$_SERVER,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_sitemap_save'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,68,66,POST,$_POST,if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_sitemap_save'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,80,17,GET,$_GET,$raw = isset( $_GET['tab'] ) ? wp_unslash( $_GET['tab'] ) : '';,not reviewed
+src/Admin/SitemapSettingsPage.php,80,46,GET,$_GET,$raw = isset( $_GET['tab'] ) ? wp_unslash( $_GET['tab'] ) : '';,not reviewed
+src/Admin/SitemapSettingsPage.php,147,29,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,147,71,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,147,131,GET,$_GET,$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,152,32,GET,$_GET,$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SitemapSettingsPage.php,152,67,GET,$_GET,$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';,not reviewed
+src/Admin/SitemapSettingsPage.php,359,16,POST,$_POST,if ( isset( $_POST['items_per_page'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,361,46,POST,$_POST,$rawItems                  = wp_unslash( $_POST['items_per_page'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,366,40,POST,$_POST,$partial['include_images'] = isset( $_POST['include_images'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,368,48,POST,$_POST,$partial['include_featured_image'] = isset( $_POST['include_featured_image'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,371,16,POST,$_POST,if ( isset( $_POST['exclude_posts'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,373,45,POST,$_POST,$rawPosts                 = wp_unslash( $_POST['exclude_posts'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,378,16,POST,$_POST,if ( isset( $_POST['exclude_terms'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,380,45,POST,$_POST,$rawTerms                 = wp_unslash( $_POST['exclude_terms'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,385,45,POST,$_POST,$partial['include_empty_terms'] = isset( $_POST['include_empty_terms'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,393,53,POST,$_POST,$partial[ 'pt_' . $slug . '_sitemap' ] = isset( $_POST[ 'pt_' . $slug . '_sitemap' ] );,not reviewed
+src/Admin/SitemapSettingsPage.php,402,54,POST,$_POST,$partial[ 'tax_' . $slug . '_sitemap' ] = isset( $_POST[ 'tax_' . $slug . '_sitemap' ] );,not reviewed
+src/Admin/SitemapSettingsPage.php,410,40,POST,$_POST,$partial['authors_sitemap'] = isset( $_POST['authors_sitemap'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,412,46,POST,$_POST,$partial['authors_include_empty'] = isset( $_POST['authors_include_empty'] );,not reviewed
+src/Admin/SitemapSettingsPage.php,415,22,POST,$_POST,$rawRoles = isset( $_POST['authors_exclude_roles'] ) ? wp_unslash( $_POST['authors_exclude_roles'] ) : [];,not reviewed
+src/Admin/SitemapSettingsPage.php,415,70,POST,$_POST,$rawRoles = isset( $_POST['authors_exclude_roles'] ) ? wp_unslash( $_POST['authors_exclude_roles'] ) : [];,not reviewed
+src/Admin/SitemapSettingsPage.php,431,15,POST,$_POST,if ( isset( $_POST['authors_exclude_users'] ) ) {,not reviewed
+src/Admin/SitemapSettingsPage.php,433,52,POST,$_POST,$rawUsers                         = wp_unslash( $_POST['authors_exclude_users'] );,not reviewed
+src/Admin/SupportPage.php,66,21,SERVER,$_SERVER,if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {,not reviewed
+src/Admin/SupportPage.php,71,17,POST,$_POST,if ( ! isset( $_POST[ SupportRequest::FIELD_SUBMIT ] ) ) {,not reviewed
+src/Admin/SupportPage.php,96,22,POST,$_POST,$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) && is_string( $_POST[ SupportRequest::FIELD_HONEYPOT ] ),not reviewed
+src/Admin/SupportPage.php,96,79,POST,$_POST,$honeypot = isset( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) && is_string( $_POST[ SupportRequest::FIELD_HONEYPOT ] ),not reviewed
+src/Admin/SupportPage.php,97,39,POST,$_POST,? sanitize_text_field( wp_unslash( $_POST[ SupportRequest::FIELD_HONEYPOT ] ) ),not reviewed
+src/Admin/SupportPage.php,126,28,POST,$_POST,"'category'    => isset( $_POST['category'] ) && is_string( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,126,63,POST,$_POST,"'category'    => isset( $_POST['category'] ) && is_string( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,126,119,POST,$_POST,"'category'    => isset( $_POST['category'] ) && is_string( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,127,28,POST,$_POST,"'subject'     => isset( $_POST['subject'] ) && is_string( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,127,62,POST,$_POST,"'subject'     => isset( $_POST['subject'] ) && is_string( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,127,117,POST,$_POST,"'subject'     => isset( $_POST['subject'] ) && is_string( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,128,28,POST,$_POST,"'message'     => isset( $_POST['message'] ) && is_string( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,128,62,POST,$_POST,"'message'     => isset( $_POST['message'] ) && is_string( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,128,121,POST,$_POST,"'message'     => isset( $_POST['message'] ) && is_string( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,129,28,POST,$_POST,"'email'       => isset( $_POST['email'] ) && is_string( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,129,60,POST,$_POST,"'email'       => isset( $_POST['email'] ) && is_string( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,129,108,POST,$_POST,"'email'       => isset( $_POST['email'] ) && is_string( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',",not reviewed
+src/Admin/SupportPage.php,130,28,POST,$_POST,"'consent'     => isset( $_POST[ SupportRequest::FIELD_CONSENT ] ) ? '1' : '',",not reviewed
+src/Admin/SupportPage.php,135,19,FILES,$_FILES,$file  = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;,not reviewed
+src/Admin/SupportPage.php,135,67,FILES,$_FILES,$file  = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;,not reviewed
+src/Admin/SupportPage.php,212,17,SERVER,$_SERVER,$raw = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';,not reviewed
+src/Admin/SupportPage.php,212,57,SERVER,$_SERVER,$raw = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';,not reviewed
+src/Admin/SupportPage.php,212,118,SERVER,$_SERVER,$raw = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';,not reviewed
+src/Admin/SupportPage.php,319,17,GET,$_GET,$key = isset( $_GET[ self::NOTICE_ARG ] ) && is_string( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( $_GET[ self::NOTICE_ARG ] ) ) : '';,not reviewed
+src/Admin/SupportPage.php,319,59,GET,$_GET,$key = isset( $_GET[ self::NOTICE_ARG ] ) && is_string( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( $_GET[ self::NOTICE_ARG ] ) ) : '';,not reviewed
+src/Admin/SupportPage.php,319,115,GET,$_GET,$key = isset( $_GET[ self::NOTICE_ARG ] ) && is_string( $_GET[ self::NOTICE_ARG ] ) ? sanitize_key( wp_unslash( $_GET[ self::NOTICE_ARG ] ) ) : '';,not reviewed
+src/Admin/UserProfileField.php,90,16,POST,$_POST,$rawHandle = $_POST[ self::META_KEY ] ?? null;,not reviewed
+src/Modules/InstantIndexing/KeyFileServer.php,73,12,GET,$_GET,$query = $_GET;,not reviewed
+src/Modules/Monitor/Logger.php,262,20,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Modules/Monitor/Logger.php,262,60,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Modules/Monitor/Logger.php,262,109,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Modules/Monitor/Logger.php,580,17,SERVER,$_SERVER,if ( ! isset( $_SERVER[ $name ] ) ) {,not reviewed
+src/Modules/Monitor/Logger.php,585,10,SERVER,$_SERVER,$raw = $_SERVER[ $name ];,not reviewed
+src/Modules/Redirects/Redirector.php,207,20,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Modules/Redirects/Redirector.php,207,60,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Modules/Redirects/Redirector.php,207,109,SERVER,$_SERVER,$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';,not reviewed
+src/Support/SupportDelivery.php,113,47,FILES,$_FILES,"* @param array<string, mixed>|null $raw Raw $_FILES entry, or null.",not reviewed
+src/Support/SupportDelivery.php,181,59,FILES,$_FILES,"* @param array<string, mixed>|null $file One entry from $_FILES, or null when nothing was sent.",not reviewed
+src/Support/SupportDelivery.php,278,54,FILES,$_FILES,"* @param array<string, mixed> $file One entry from $_FILES.",not reviewed
