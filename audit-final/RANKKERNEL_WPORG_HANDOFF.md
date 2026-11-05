@@ -33,8 +33,8 @@ Manifest: `manifest.txt` — 239 rows, SHA-256 `1298873705f453e1bcf8430b0f62bdcf
 
 ## Old branch state
 
-- `release/wporg-0.1.0-final` was at `2afb118` and is now redundant. Do not delete until the owner confirms the history-preservation check; `release/wporg-0.1.0` contains all its production commits plus `fb386a4`.
-- `main` is at `2afb118`; it must be fast-forwarded to `fb386a4` after final verification.
+- `release/wporg-0.1.0-final` was at `2afb118`, verified as an ancestor of `release/wporg-0.1.0`, then deleted locally and remotely. Its production commits are preserved in the active branch.
+- `main` is at `fb386a4`, identical to `release/wporg-0.1.0`.
 - `release/wporg-0.1.0` previously pointed at `390ee9a`; it was fast-forwarded to `2afb118`, then received `fb386a4`.
 
 ## GitHub draft release

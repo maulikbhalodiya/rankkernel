@@ -25,8 +25,8 @@ Details and full RK-F-01…RK-F-14 table: `RANKKERNEL_FINAL_REMEDIATION_REPORT.m
 ## 2. Required branch consolidation
 
 - `release/wporg-0.1.0` fast-forwarded from `390ee9a` to `2afb118`, then received `fb386a4`.
-- `release/wporg-0.1.0-final` remains preserved at `2afb118` until the owner confirms removal; all its production commits are contained in `release/wporg-0.1.0`.
-- `main` is at `2afb118`; it is to be fast-forwarded to `fb386a4` after final verification.
+- `release/wporg-0.1.0-final` was verified as an ancestor of `release/wporg-0.1.0` at `fb386a4`, then removed from local and remote. Its production commits are contained in the active branch.
+- `main` was fast-forwarded to `fb386a4` and is identical to `release/wporg-0.1.0`.
 - No force-push, history rewrite, tag, publication or WordPress.org upload occurred.
 
 ## 3. Earlier fixes retained
