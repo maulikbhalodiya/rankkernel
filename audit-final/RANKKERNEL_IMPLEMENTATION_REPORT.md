@@ -31,8 +31,7 @@ PR #421: merged into main.
 - #419 AuthorsProvider `cache_users()` priming — merged into main via #421.
 - #416 sitemap/XSL `X-Content-Type-Options: nosniff` — merged into main via #421.
 - #420, #418, #422 closed as duplicates after integration.
-- #415 Classic Editor a11y and #414 TrailBuilder memoization remain open/deferred: #415 needs rebase and manual a11y verification; #414 has unresolved cache-key/multisite/filter-invalidation risk.
-- #342 tooling-only dependabot update remains separate.
+- #415 Classic Editor a11y, #414 TrailBuilder memoization and #342 tooling-only update were **closed without merging**; no open PRs remain. #415 needs rebase and manual a11y verification; #414 has unresolved cache-key/multisite/filter-invalidation risk; #342 is tooling-only.
 
 ### Reviewer rules
 - `.opencode-reviewer.yml` and `.coderabbit.yaml` now require callback/filter output tracing, post-filter sanitization, superglobal type/array tracing, upload validation, and evidence format.
@@ -71,8 +70,8 @@ Plugin Check warnings were reviewed as the established false-positive categories
 
 - The reviewer's complete 48-line scanner list remains unavailable; the 409-occurrence input matrix is an inventory with per-file handler review, not a claim that every one of the 409 lines received an individual manual trace.
 - Plugin Check warnings were grouped by the established categories rather than reclassified line-by-line in this pass.
-- #415 and #414 are not merged; they need separate review/tests.
-- #342 is tooling-only and not part of the release.
+- #415 and #414 are not merged and are closed; they need separate review/tests before future inclusion.
+- #342 is tooling-only, closed, and not part of the release.
 - Independent final ZIP audit is still required; this report is not an independent approval.
 
 ## 5. Release status

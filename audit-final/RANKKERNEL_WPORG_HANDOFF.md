@@ -11,14 +11,16 @@ Version: `0.1.0`
 - P1-01 breadcrumb filter output sanitized after filtering for getter, template tag, shortcode and block.
 - Protocol-relative and dangerous URL schemes rejected; custom separator style validated and restored after KSES.
 - P2-01 custom schema JSON bounded at 1 MiB and depth 64.
-- PR #417, #419 and #416 integrated via #421; duplicates #420, #418 and #422 closed.
+- PR #417, #419 and #416 integrated via #421; duplicates #420, #418 and #422 closed. #415, #414 and #342 were closed without merging (see below).
 - AI reviewer rules updated for callback/filter output, superglobal tracing and upload validation.
 
-## Open / deferred
+## Pull requests
 
-- #415 Classic Editor a11y announcements: open; needs rebase onto main and manual screen-reader verification.
-- #414 TrailBuilder memoization: open; cache-key/multisite/filter-invalidation concerns unresolved; do not merge without tests.
-- #342 tooling-only AI reviewer bump: separate owner decision.
+- **Zero open PRs.**
+- #415 closed without merge: useful accessibility work, but based on pre-integration main and needs a rebase plus real screen-reader verification; not part of 0.1.0.
+- #414 closed without merge: TrailBuilder static cache has unresolved blog-ID fallback, cross-context/filter invalidation and stale-trail risks; not safe for release.
+- #342 closed: tooling-only, conflicting, title/version metadata mismatch; current v1.23.1 workflow pin remains unchanged.
+- #417/#419/#416 are in main via #421; #420/#418/#422 were duplicates.
 
 ## Verification
 
