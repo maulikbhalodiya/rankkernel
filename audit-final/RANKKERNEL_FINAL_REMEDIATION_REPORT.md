@@ -123,6 +123,40 @@ The release branch now contains `docs/audit-final/README.md`, which points to th
 
 `docs/` is excluded by `.distignore`; these files do not ship in the ZIP.
 
+## Branch consolidation
+
+- Active release branch: `release/wporg-0.1.0` at `fb386a4`.
+- `main`: `fb386a4`, identical to the active release branch.
+- Old release/remediation branches verified as ancestors of `fb386a4`, then deleted locally and remotely:
+  - `release/wporg-0.1.0-final`
+  - `release/wporg-0.1.0-integration`
+  - `release/wporg-0.1.0-review-fixes`
+  - `release-candidate/integrate-0.1.0`
+  - `transfer/release-finalize-0.1.0`
+  - `wporg/remediation-2026-11`
+  - `wporg/remediation-2026-10`
+  - `wporg/audit-2026-10`
+  - `wporg/final-verification`
+  - `wporg/review-fixes-consolidated`
+- Preserved evidence branches: `audit/final-fc5c641` (current reports) and `audit/wporg-0.1.0-final-delivery` (Server's independent audit).
+- No force-push or history rewrite was used.
+
+## Local release storage
+
+`Rankkernel/release-output/` now contains exactly the current and last candidate:
+
+```text
+rankkernel-0.1.0.zip        current, fb386a4, 4edb5beb…
+rankkernel-0.1.0-last.zip   last, 2afb118, 87d94a56…
+manifest.txt                239 rows
+SHA256SUMS
+BUILD_INFO.md
+SHA256SUMS-github           prepared for draft asset replacement
+RELEASE_NOTES_DRAFT.md      prepared, not published
+```
+
+Older release folders, extracted copies, root ZIPs, frozen baseline and `rankkernel-old/` were removed. The release-output SHAs verify with `sha256sum -c`.
+
 ## Old and new package identity
 
 | | Previous | Final |
