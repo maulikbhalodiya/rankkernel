@@ -276,6 +276,37 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Network activation is refused before any option, cron or table setup.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_network_activation_is_refused_before_any_setup(): void {
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+		if ( ! function_exists( 'rankkernel_activate' ) ) {
+			require_once dirname( __DIR__, 2 ) . '/rankkernel.php';
+		}
+
+		$deactivated = [];
+		Functions\when( 'deactivate_plugins' )->alias(
+			static function ( string $plugin, bool $network = false ) use ( &$deactivated ): bool {
+				$deactivated[] = [ $plugin, $network ];
+
+				return true;
+			}
+		);
+
+		$store = [];
+		$this->stub_option_store( $store );
+
+		\rankkernel_activate( true );
+
+		$this->assertSame( [ [ 'rankkernel/rankkernel.php', true ] ], $deactivated );
+		$this->assertSame( [], $store, 'network activation must not seed options, cron or tables' );
+	}
+
+	/**
 	 * Activation seeds the conflict option with every known SEO plugin slug.
 	 *
 	 * Runs in a separate process because it loads rankkernel.php and defines

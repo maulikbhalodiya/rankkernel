@@ -869,8 +869,9 @@ final class ImportController {
 			return $reader;
 		}
 
-		$params = $this->bodyParams( $request );
-		$runId  = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+		$params   = $this->bodyParams( $request );
+		$runIdRaw = $params['run_id'] ?? null;
+		$runId    = is_string( $runIdRaw ) ? sanitize_text_field( $runIdRaw ) : '';
 
 		if ( 1 !== preg_match( '/' . self::RUN_ID_PATTERN . '/', $runId ) ) {
 			return new WP_Error(

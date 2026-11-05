@@ -106,4 +106,19 @@ final class ModuleRegistryTest extends TestCase {
 		$this->expectException( \InvalidArgumentException::class );
 		ModuleRegistry::label( 'not-real' );
 	}
+
+	/**
+	 * Exception messages stay raw so a future display site can escape once.
+	 */
+	public function test_label_exception_message_is_not_pre_escaped(): void {
+		try {
+			ModuleRegistry::label( '<script>alert(1)</script>' );
+		} catch ( \InvalidArgumentException $exception ) {
+			$this->assertSame( 'Unknown module id: <script>alert(1)</script>', $exception->getMessage() );
+
+			return;
+		}
+
+		$this->fail( 'Expected InvalidArgumentException for an unknown module id.' );
+	}
 }

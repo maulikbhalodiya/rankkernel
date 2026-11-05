@@ -30,7 +30,7 @@ RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress, all fre
 
 Modules are hard-gated: a module that is off is never loaded.
 
-RankKernel is built for single-site installations. Network activation is not supported.
+RankKernel is built for single-site installations. Network activation is blocked: a network activation attempt is refused and the plugin is network-deactivated before any options, cron events or tables are created. Activate RankKernel on each site individually.
 
 Hard-gated modules, single-row metadata. A module that is off is never loaded: no hooks, no queries, no bloat.
 
@@ -67,7 +67,7 @@ Portions of RankKernel were developed with AI assistance. Tools used include Cla
 
 The developer reviewed, tested, and verified all AI-assisted code and documentation, and remains responsible for the plugin. All code is licensed under GPL-2.0-or-later.
 
-Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled.
+Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled. Uninstall is scoped to the current site; network activation is unsupported and blocked at activation.
 
 == Changelog ==
 

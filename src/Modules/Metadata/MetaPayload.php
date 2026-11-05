@@ -282,11 +282,11 @@ final class MetaPayload {
 			$flags = $payload['flags'];
 
 			if ( array_key_exists( 'pillar', $flags ) ) {
-				$out['flags']['pillar'] = (bool) $flags['pillar'];
+				$out['flags']['pillar'] = self::nullableBool( $flags['pillar'] ) ?? false;
 			}
 
 			if ( array_key_exists( 'cornerstone', $flags ) ) {
-				$out['flags']['cornerstone'] = (bool) $flags['cornerstone'];
+				$out['flags']['cornerstone'] = self::nullableBool( $flags['cornerstone'] ) ?? false;
 			}
 
 			if ( array_key_exists( 'breadcrumb_title', $flags ) ) {
@@ -434,6 +434,13 @@ final class MetaPayload {
 	 * Empty input stays an empty list so fresh rows stay lean. A legacy
 	 * flat list keeps array rows only. Any other non empty array is
 	 * normalized to the object shape from the class docblock.
+	 *
+	 * Legacy list rows are intentionally retained for backward compatibility.
+	 * They are never rendered as HTML: the schema graph is JSON-encoded with
+	 * HEX flags, and the schema pieces consume only known object fields. Any
+	 * unsafe string still passes through `wp_kses_post()` or JSON encoding at
+	 * the final sink, so this shape is retained deliberately rather than
+	 * being silently rewritten.
 	 *
 	 * @param array<int|string, mixed> $raw Raw schema value.
 	 * @return array<string, mixed>|array<int, mixed>

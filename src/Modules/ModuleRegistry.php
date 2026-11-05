@@ -93,7 +93,8 @@ final class ModuleRegistry {
 	 */
 	public static function label( string $id ): string {
 		if ( ! array_key_exists( $id, self::MODULES ) ) {
-			throw new \InvalidArgumentException( esc_html( sprintf( 'Unknown module id: %s', $id ) ) );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal exception message; escape once at any future display site.
+			throw new \InvalidArgumentException( sprintf( 'Unknown module id: %s', $id ) );
 		}
 
 		return self::MODULES[ $id ];

@@ -885,6 +885,43 @@ final class BreadcrumbsOutputTest extends TestCase {
 	}
 
 	/**
+	 * Block attributes must not turn nested arrays/objects into true.
+	 */
+	public function test_block_boolean_attributes_reject_malformed_values(): void {
+		$this->useSingularPost();
+
+		$html = ( new BreadcrumbsBlock() )->render(
+			[
+				'showHomeItem'    => [ 'nested' ],
+				'showCurrentItem' => (object) [ 'nested' => true ],
+			]
+		);
+
+		$this->assertStringContainsString( 'https://example.com/">Home', $html, 'malformed attributes fall back to the enabled settings' );
+		$this->assertStringContainsString( 'Hello World', $html, 'the current item remains visible' );
+
+		$html = ( new BreadcrumbsBlock() )->render(
+			[
+				'showHomeItem'    => '0',
+				'showCurrentItem' => 'false',
+			]
+		);
+
+		$this->assertStringNotContainsString( 'https://example.com/">Home', $html, 'valid false strings still hide the home item' );
+		$this->assertStringNotContainsString( 'Hello World', $html, 'valid false strings still hide the current item' );
+	}
+
+	/**
+	 * A malformed showOnHomePage attribute falls back to false.
+	 */
+	public function test_block_show_on_home_page_rejects_malformed_value(): void {
+		$this->useSingularPost();
+		$this->frontPage = true;
+
+		$this->assertSame( '', ( new BreadcrumbsBlock() )->render( [ 'showOnHomePage' => [ 'nested' ] ] ) );
+	}
+
+	/**
 	 * Test block hides on the front page by default.
 	 */
 	public function test_block_hides_on_front_page_by_default(): void {

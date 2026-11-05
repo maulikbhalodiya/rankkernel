@@ -934,6 +934,26 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test the release endpoint refuses an array run id.
+	 */
+	public function test_release_with_array_run_id_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+
+		$res = $ctrl->release(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'run_id' => [ 'run-aaaa-1111' ],
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_invalid_run_id', $res->get_error_code() );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
 	 * Test a run on another source is refused while a run is active.
 	 *
 	 * The lock is global, because a redirect or a meta row belongs to

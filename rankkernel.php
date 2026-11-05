@@ -104,8 +104,32 @@ if ( ! class_exists( \RankKernel\Plugin::class ) ) {
 
 /**
  * Activation callback.
+ *
+ * @param bool $network_wide Whether WordPress is network-activating the plugin.
  */
-function rankkernel_activate(): void {
+function rankkernel_activate( $network_wide = false ): void {
+	// Network activation is unsupported and would seed only the current site.
+	// Refuse it before any option, cron or table setup so no partial network
+	// state can be created.
+	if ( $network_wide ) {
+		if ( function_exists( 'deactivate_plugins' ) ) {
+			deactivate_plugins( plugin_basename( RANKKERNEL_FILE ), true );
+		}
+
+		if ( function_exists( 'wp_die' ) ) {
+			wp_die(
+				esc_html__( 'RankKernel supports single-site activation only. Network activation is not supported; please activate RankKernel on each site individually.', 'rankkernel' ),
+				'',
+				array(
+					'response'  => 403,
+					'back_link' => true,
+				)
+			);
+		}
+
+		return;
+	}
+
 	// Check requirements at activation, deactivate self if missing.
 	if ( version_compare( PHP_VERSION, '8.2.0', '<' ) ) {
 		deactivate_plugins( plugin_basename( RANKKERNEL_FILE ) );

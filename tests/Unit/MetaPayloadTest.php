@@ -240,6 +240,40 @@ final class MetaPayloadTest extends TestCase {
 	}
 
 	/**
+	 * Nested arrays in the pillar/cornerstone flags must not coerce to true.
+	 */
+	public function test_sanitize_rejects_nested_arrays_for_pillar_and_cornerstone_flags(): void {
+		$clean = MetaPayload::sanitize(
+			[
+				'flags' => [
+					'pillar'      => [ 'nested' ],
+					'cornerstone' => (object) [ 'nested' => true ],
+				],
+			]
+		);
+
+		$this->assertFalse( $clean['flags']['pillar'] );
+		$this->assertFalse( $clean['flags']['cornerstone'] );
+	}
+
+	/**
+	 * Scalar pillar/cornerstone representations still normalize.
+	 */
+	public function test_sanitize_accepts_scalar_pillar_and_cornerstone_flags(): void {
+		$clean = MetaPayload::sanitize(
+			[
+				'flags' => [
+					'pillar'      => '1',
+					'cornerstone' => '0',
+				],
+			]
+		);
+
+		$this->assertTrue( $clean['flags']['pillar'] );
+		$this->assertFalse( $clean['flags']['cornerstone'] );
+	}
+
+	/**
 	 * Nested arrays in FAQ, HowTo, and schema field string slots are rejected.
 	 *
 	 * FAQ rows keep the answer default instead of "Array", a howto step with

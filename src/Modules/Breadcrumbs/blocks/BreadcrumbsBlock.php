@@ -171,8 +171,8 @@ final class BreadcrumbsBlock {
 
 		$args = [
 			'separator'    => $this->blockSeparator( $attributes, $settings ),
-			'show_home'    => array_key_exists( 'showHomeItem', $attributes ) ? (bool) $attributes['showHomeItem'] : (bool) $settings->get( 'show_home', true ),
-			'show_current' => array_key_exists( 'showCurrentItem', $attributes ) ? (bool) $attributes['showCurrentItem'] : (bool) $settings->get( 'show_current', true ),
+			'show_home'    => $this->boolAttribute( $attributes, 'showHomeItem', (bool) $settings->get( 'show_home', true ) ),
+			'show_current' => $this->boolAttribute( $attributes, 'showCurrentItem', (bool) $settings->get( 'show_current', true ) ),
 		];
 
 		// Route through the shared resolver so the block honors the
@@ -231,11 +231,58 @@ final class BreadcrumbsBlock {
 	 * @return bool The result.
 	 */
 	private function showOnHomePage( array $attributes ): bool {
-		if ( ! array_key_exists( 'showOnHomePage', $attributes ) ) {
-			return false;
+		return $this->boolAttribute( $attributes, 'showOnHomePage', false );
+	}
+
+	/**
+	 * Read a block boolean without PHP's array to bool coercion.
+	 *
+	 * The editor sends real booleans for the declared block.json attributes,
+	 * but saved post content is user-editable. Only documented boolean shapes
+	 * are accepted; arrays, objects and unknown strings fall back to the
+	 * existing setting/default.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 * @param string               $key        Attribute key.
+	 * @param bool                 $fallback   Value to use when the attribute is absent or malformed.
+	 * @return bool The result.
+	 */
+	private function boolAttribute( array $attributes, string $key, bool $fallback ): bool {
+		if ( ! array_key_exists( $key, $attributes ) ) {
+			return $fallback;
 		}
 
-		return (bool) $attributes['showOnHomePage'];
+		$value = $attributes[ $key ];
+
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			if ( 0 === $value ) {
+				return false;
+			}
+
+			if ( 1 === $value ) {
+				return true;
+			}
+
+			return $fallback;
+		}
+
+		if ( is_string( $value ) ) {
+			$normalized = strtolower( trim( $value ) );
+
+			if ( in_array( $normalized, [ '1', 'true', 'yes', 'on' ], true ) ) {
+				return true;
+			}
+
+			if ( in_array( $normalized, [ '0', 'false', 'no', 'off', '' ], true ) ) {
+				return false;
+			}
+		}
+
+		return $fallback;
 	}
 
 	/**
