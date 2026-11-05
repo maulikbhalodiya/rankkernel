@@ -149,6 +149,51 @@ jobs:
             $wpdb->prepare() for all SQL, a REST permission_callback, no
             unserialize/eval/shell execution, no SSRF in remote requests, no secrets in
             tracked files.
+            Perform complete source-to-sink tracing for every externally controlled or
+            persisted value: $_GET, $_POST, $_FILES, $_SERVER, $_COOKIE, $_SESSION,
+            $_REQUEST, $_ENV, REST parameters and JSON bodies, request objects, shortcode
+            and block attributes, imported JSON/CSV, database rows, options, metadata,
+            filter output, third-party integrations and remote responses. Record file,
+            line, source, expected type, validation, unslashing, sanitization and
+            normalization, semantic allowlists, transformation, final sink, contextual
+            escaping, capability/nonce and regression test. Do not use generic evidence
+            for many occurrences; use PASS, FIXED, ACCEPTED_WITH_REASON, BLOCKED or
+            UNREVIEWED per occurrence and report every BLOCKED/UNREVIEWED row.
+            Nested arrays and objects need recursive type/shape validation. REST JSON
+            bodies need explicit validation even when a route schema exists. Uploads need
+            actual size, extension, sniffed MIME/content, path containment and cleanup.
+            $_SERVER request values need normalization, control-character stripping,
+            query redaction and contextual escaping. Cookies and sessions are untrusted.
+            Database rows, options and metadata are untrusted on read. apply_filters()
+            results are untrusted; sanitize after the final filter with a narrow wp_kses()
+            allowlist. Never apply esc_html() to a whole HTML string.
+            Distinguish unslashing, sanitization, validation, type checking and escaping.
+            absint() is not sufficient validation for every identifier;
+            sanitize_text_field() is not appropriate for every value; esc_html() is not
+            a URL or attribute escaper; esc_url_raw() does not replace esc_url() at an
+            HTML sink; wp_kses_post() does not make arbitrary filtered HTML safe for
+            every context.
+            URLs: validate schemes and destinations, including javascript:, data:,
+            vbscript:, file:, protocol-relative //, backslashes and encoded control
+            characters. Redirects must revalidate after filters and use
+            wp_safe_redirect() where appropriate. SQL: prepared values, allowlisted
+            identifiers, int-cast IN lists, esc_like() for user LIKE values and
+            allowlisted ORDER BY/LIMIT.
+            WordPress.org review: inspect the historical examples at
+            src/Admin/UserProfileField.php:90, src/Admin/SchemaMetabox.php:687 and :944,
+            src/Admin/InstantIndexingPage.php:330, src/Admin/NotFoundPage.php:616,
+            src/Admin/RedirectsPage.php:732, src/Admin/SettingsPage.php:470,
+            src/Admin/MetadataBox.php:1196 and :1213,
+            src/Modules/Monitor/Logger.php:262 and
+            src/Modules/Redirects/Redirector.php:207, and follow each to its final sink.
+            Reproduce the current Plugin Check findings instead of assuming the historical
+            ten examples cover them. Check privacy, external-service disclosure, uninstall
+            cleanup and multisite/network activation behavior. Read rankkernel.php and
+            uninstall.php in full even when the diff only touches src/ or assets/.
+            Report only file-and-line findings with a real trigger and outcome. If a
+            complete trace is not possible, mark it UNREVIEWED; never invent evidence or
+            claim full coverage from a sample.
+            Do not approve, merge, publish, release or apply fixes automatically.
             Standards: WPCS, PSR-12, strict_types, an ABSPATH guard in every PHP file,
             the rankkernel or RankKernel prefix on every symbol, hook, option and table,
             and the exact rankkernel text domain.

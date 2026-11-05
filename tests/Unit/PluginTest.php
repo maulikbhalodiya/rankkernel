@@ -302,7 +302,11 @@ final class PluginTest extends TestCase {
 
 		\rankkernel_activate( true );
 
-		$this->assertSame( [ [ 'rankkernel/rankkernel.php', true ] ], $deactivated );
+		$this->assertSame(
+			[ [ plugin_basename( RANKKERNEL_FILE ), true ] ],
+			$deactivated,
+			'Network deactivation must use the actual checkout basename, not a hardcoded plugin path.'
+		);
 		$this->assertSame( [], $store, 'network activation must not seed options, cron or tables' );
 	}
 

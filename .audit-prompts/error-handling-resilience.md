@@ -102,6 +102,10 @@ A remote call can fail in four distinct ways, and each needs a defined outcome: 
 - Flag a handler that does more work than it can finish inside one request, and flag work that should be chunked.
 - Flag a failure in a background job that is never recorded, so a silent job failure is invisible.
 
+## Cross-Cutting Security Evidence
+
+For any failure path that handles request, file, database, option, metadata, filter or remote data, trace the value from source to the failure/return sink and record file, line, type, validation, sanitization, transformation, capability/nonce and test reference. Do not use one generic explanation for unrelated occurrences; use `UNREVIEWED` when a complete trace is not possible. Read `rankkernel.php` and `uninstall.php` in full even when the target is `src` or `assets`.
+
 ## Severity Guide
 
 - **critical**: a reachable fatal, an unchecked write that can lose data, a swallowed error that hides a broken feature, a partial update left in an invalid state, a failure reported as a success.

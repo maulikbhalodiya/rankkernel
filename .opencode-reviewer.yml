@@ -56,6 +56,23 @@ review:
     - "Features and parity: flag any feature that is a visual shell with no behaviour, or that claims parity without real implementation or tests."
     - "Tests: new behaviour needs tests; never delete or weaken a test to make a check pass."
     - "Never copy competitor code, CSS, markup, icons, class names or wording (rank_math, rank-math-, rm-icon, edfa-d-f)."
+    - "Source-to-sink trace: every externally controlled or persisted value is untrusted. Input sources include $_GET, $_POST, $_FILES, $_SERVER, $_COOKIE, $_SESSION, $_REQUEST, $_ENV, REST request parameters, REST JSON bodies, WordPress request objects, shortcode attributes, dynamic block attributes, imported JSON, CSV imports, database rows, options and metadata, user-controlled filter output, third-party plugin integrations and remote API responses. For every occurrence record: source file and line; input origin; expected type and structure; type validation; unslashing; sanitization or normalization; semantic validation and allowlists; storage or transformation; final sink; contextual escaping; capability and nonce for state changes; regression test."
+    - "Occurrence-level inventory: do not classify hundreds of occurrences with a few generic explanations. Produce one structured record per occurrence with file, line, source, data type, validation, sanitization, transformation, final sink, escaping, capability/nonce, verdict, evidence and test reference. Allowed verdicts: PASS, FIXED, ACCEPTED_WITH_REASON, BLOCKED, UNREVIEWED. Report every BLOCKED and UNREVIEWED occurrence. Every ACCEPTED_WITH_REASON needs a specific explanation tied to that exact line. Do not claim full coverage unless every discovered occurrence has an individual record. Never invent line numbers or evidence."
+    - "Distinguish the controls: unslashing is not sanitization; sanitization is not validation; validation is not output escaping; type checking is not a sanitizer. absint() is not sufficient validation for every identifier; sanitize_text_field() is not appropriate for every value; esc_html() is not a URL or attribute escaper; esc_url_raw() does not replace esc_url() at an HTML sink; wp_kses_post() does not make arbitrary filtered HTML safe for every context."
+    - "Nested arrays and objects: require recursive type/shape validation. Arrays submitted where strings/booleans/ints are expected must not become 'Array', 1 or true. Reject or safely default malformed nested values and preserve documented defaults. Check REST JSON bodies and direct meta/import values, not only form posts."
+    - "REST and JSON: inspect permission callbacks, route args, sanitize/validate callbacks, get_json_params(), get_params(), nested array items, enums, numeric bounds, string patterns and fail-closed 400/403 responses. A registered schema does not protect a hand-read JSON body."
+    - "Uploads and imports: validate $_FILES structure, UPLOAD_ERR_*, actual temp-file size, extension and sniffed MIME/content, temporary path, archive/JSON/CSV structure, depth and row/size limits, path containment and cleanup. Do not trust client-supplied name, type or size."
+    - "Request-derived $_SERVER values: treat REQUEST_URI, QUERY_STRING, HTTP_HOST, HTTP_REFERER, HTTP_USER_AGENT, REMOTE_ADDR, HTTPS and all HTTP_* as untrusted. Validate/normalize for the actual purpose, strip control characters, redact sensitive query parameters and escape at the final sink. A server variable is not trusted because it is in $_SERVER."
+    - "Cookies and sessions: validate type, format, length, signature and allowed values before use. Do not trust a value because the plugin created the cookie or because it is stored server-side."
+    - "Persisted and imported data: database rows, options, metadata, serialized/JSON rows and third-party plugin data can be malformed or attacker-influenced. Normalize the shape on read and escape at the sink; do not assume a stored value is safe because it was once sanitized."
+    - "Callback and filter output: trace add_shortcode, register_block_type render_callback, output-modifying filters, template tags, public HTML-returning methods, REST responses and schema output to the final return. Treat apply_filters() results as untrusted and sanitize after the final filter with a narrow context-appropriate wp_kses() allowlist. Never apply esc_html() to a whole HTML string."
+    - "Context escaping: require esc_html() for HTML text, esc_attr() for attributes, esc_url() for URLs in HTML, wp_json_encode()/script-data for JavaScript, XML escaping for XML, strict CSS validation, CSV formula-injection protection and safe redirect handling. Flag double escaping and escaping that breaks JSON/XML/CSS."
+    - "URL policy: validate schemes and destinations, including javascript:, data:, vbscript:, file:, protocol-relative //, backslashes, encoded control characters and user-controlled redirect destinations. Use wp_safe_redirect() where appropriate and revalidate after filters."
+    - "SQL: require $wpdb->prepare() for values, allowlisted identifiers, int-cast IN lists, esc_like() for user LIKE values, and allowlisted ORDER BY/LIMIT. A prepared value does not make a dynamic identifier safe."
+    - "Authorization and CSRF: require capability and nonce checks before every state change, a REST permission_callback that returns 403, object-level authorization, and no nopriv AJAX for privileged actions. A nonce is not sanitization; a capability check is not input validation."
+    - "WordPress.org historical examples: inspect src/Admin/UserProfileField.php:90, src/Admin/SchemaMetabox.php:687, src/Admin/InstantIndexingPage.php:330, src/Admin/SchemaMetabox.php:944, src/Admin/NotFoundPage.php:616, src/Admin/RedirectsPage.php:732, src/Admin/SettingsPage.php:470, src/Admin/MetadataBox.php:1213, src/Admin/MetadataBox.php:1196, src/Modules/Monitor/Logger.php:262 and src/Modules/Redirects/Redirector.php:207. Follow each value to its final sink. These are historical examples, not presumed current vulnerabilities."
+    - "Plugin Check: reproduce the current exact-package Plugin Check findings rather than assuming the historical ten examples account for all reported incidences. Distinguish actual defect, already-fixed defect, safe validation/normalization, contextual false positive and unreviewed occurrence. Do not suppress a real warning."
+    - "Evidence quality: every finding must point at a real file and line and state the trigger and outcome. Do not report a raw-superglobal pattern without tracing its actual use. Do not use a generic explanation for multiple unrelated occurrences. If a complete trace is not possible, mark the occurrence UNREVIEWED rather than PASS."
 
 audit:
   createIssues: true
@@ -64,11 +81,10 @@ audit:
     - src
     - assets
   categories:
-    - security
-    - performance
-    - code-quality
-    - maintainability
-    - javascript
+    - security-privacy
+    - performance-efficiency
+    - code-quality-conventions
+    - error-handling-resilience
 
 fix:
   maxIterations: 3

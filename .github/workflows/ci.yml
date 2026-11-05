@@ -137,14 +137,16 @@ jobs:
 
       - name: Psalm security scan
         uses: docker://ghcr.io/psalm/psalm-security-scan
-        continue-on-error: true
         with:
           report_file: psalm.sarif
 
       - name: Check report
         id: report
         if: always()
-        run: echo "exists=$(test -f psalm.sarif && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        run: |
+          test -s psalm.sarif
+          python3 -c 'import json; d=json.load(open("psalm.sarif", encoding="utf-8")); assert isinstance(d.get("runs"), list)'
+          echo "exists=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload SARIF
         if: always() && steps.report.outputs.exists == 'true'

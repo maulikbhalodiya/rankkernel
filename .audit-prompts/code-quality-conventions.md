@@ -126,6 +126,10 @@ Flag a class, method, constant or file with no caller, a constant that duplicate
 
 Flag a `readme.txt` whose stable tag, tested-up-to version, or feature list disagrees with the code. Flag a feature described as complete that is a visual shell or is unreachable. Flag a file with a competing licence header, a bundled asset without provenance, or an external dependency that is not GPL compatible.
 
+## Cross-Cutting Security Evidence
+
+When a code-quality finding touches an input, output, callback or stored value, require a source-to-sink record with file, line, source, data type, validation, sanitization, transformation, final sink, escaping, capability/nonce and test reference. Use the verdicts `PASS`, `FIXED`, `ACCEPTED_WITH_REASON`, `BLOCKED` or `UNREVIEWED`. Do not classify multiple unrelated occurrences with one generic explanation. Read `rankkernel.php` and `uninstall.php` in full even when the target is `src` or `assets`.
+
 ## Severity Guide
 
 - **critical**: a broken contract. A missing `ABSPATH` guard, a docblock that contradicts the signature, a stored key without the prefix, a hardcoded user-facing string, a `readme.txt` promise the code does not keep.

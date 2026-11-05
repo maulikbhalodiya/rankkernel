@@ -140,6 +140,109 @@ Flag direct file writes whose path is built from input, and flag `unlink`, `rena
 
 Flag anything a plugin reviewer would reject: a bundled library without a GPL-compatible licence recorded in a provenance or dependency audit, an undisclosed external service call, a trialware or upsell gate, a licence check, an artificial limit, an admin notice that only promotes the plugin, or a `readme.txt` promise the code does not implement.
 
+## Complete Input-Source Inventory
+
+Do not limit the audit to superglobals. Inventory every externally controlled or persisted value, including:
+
+- `$_GET`, `$_POST`, `$_FILES`, `$_SERVER`, `$_COOKIE`, `$_SESSION`, `$_REQUEST`, `$_ENV`
+- REST request parameters and REST JSON bodies
+- WordPress request objects, query vars and rewrite values
+- shortcode attributes and dynamic block attributes
+- imported JSON, CSV imports and uploaded files
+- database rows, options, metadata, transients and serialized/JSON rows
+- user-controlled `apply_filters()` output
+- third-party plugin integrations and remote API responses
+
+Always read the root `rankkernel.php` and `uninstall.php` in full, even when the audit target is `src` or `assets`.
+
+## Occurrence-Level Evidence Inventory
+
+Produce one structured record per occurrence, not a generic summary. Required fields:
+
+`file`, `line`, `source`, `data_type`, `validation`, `sanitization`, `transformation`, `final_sink`, `escaping`, `capability_nonce`, `verdict`, `evidence`, `test_reference`.
+
+Allowed verdicts: `PASS`, `FIXED`, `ACCEPTED_WITH_REASON`, `BLOCKED`, `UNREVIEWED`.
+
+Every `BLOCKED` and `UNREVIEWED` occurrence must be reported separately. Every `ACCEPTED_WITH_REASON` must explain that exact occurrence. Do not claim full coverage unless every discovered occurrence has an individual record. Never invent line numbers or evidence.
+
+## Nested Arrays and Recursive Type Validation
+
+Require recursive shape validation for arrays and objects. A value expected to be a string, boolean, integer or enum must not silently become `"Array"`, `1` or `true`. Reject or safely default malformed nested values. Check direct meta/import values as well as form posts. Validation must cover array keys, element types, nesting depth and allowed values.
+
+## REST Requests and JSON Bodies
+
+Inspect `permission_callback`, route `args`, `sanitize_callback`, `validate_callback`, `get_param()`, `get_params()` and `get_json_params()`. A registered route schema does not validate a hand-read JSON body. Require strict types, enums, numeric bounds, string patterns and fail-closed `400`/`403` responses. Check object-level authorization.
+
+## File Uploads and Cleanup
+
+Validate the complete upload contract: `$_FILES` structure, `UPLOAD_ERR_*`, actual temp-file size, extension, sniffed MIME/content, temporary path, archive/JSON/CSV structure, row/size/depth limits, path containment and cleanup on every success/failure path. Do not trust the client-supplied filename, MIME type or size.
+
+## Request-Derived Server Values
+
+Treat `REQUEST_URI`, `QUERY_STRING`, `HTTP_HOST`, `HTTP_REFERER`, `HTTP_USER_AGENT`, `REMOTE_ADDR`, `HTTPS` and every `HTTP_*` value as untrusted. Validate and normalize for the actual purpose, strip control characters, redact sensitive query parameters and escape at the final sink. Do not assume a server variable is safe.
+
+## Cookie and Session Data
+
+Validate type, format, length, signature and allowed values before use. Do not trust a value because the plugin created the cookie or because it is stored server-side.
+
+## Imported and Persisted Data
+
+Database rows, options, metadata, serialized/JSON rows and third-party plugin data can be malformed or attacker-influenced. Normalize the shape on read, reject unexpected nested values and escape at the final sink. A stored value is not safe merely because it was sanitized earlier.
+
+## Callback and Filter Output
+
+Trace `add_shortcode`, `register_block_type` `render_callback`, output-modifying filters, template tags, public HTML-returning methods, REST responses and schema output to the final return. Treat `apply_filters()` results as untrusted. Sanitize after the final filter with a narrow context-appropriate `wp_kses()` allowlist. Never apply `esc_html()` to a whole HTML string.
+
+## Context-Specific Output Escaping
+
+Require `esc_html()` for HTML text, `esc_attr()` for attributes, `esc_url()` for URLs in HTML, `wp_json_encode()` or script-data APIs for JavaScript, correct XML escaping for XML, strict validation for CSS, CSV formula-injection protection and safe redirect handling. Flag double escaping and escaping that breaks JSON, XML, CSS or CSV.
+
+## Redirect and URL Validation
+
+Validate schemes and destinations, including `javascript:`, `data:`, `vbscript:`, `file:`, protocol-relative `//`, backslashes, encoded control characters and user-controlled redirects. Use `wp_safe_redirect()` where appropriate and revalidate after filters.
+
+## Stored and Reflected XSS
+
+Trace stored values from database reads to HTML, attribute, URL, JavaScript, JSON, XML and CSS sinks. Trace reflected request values the same way. A sanitized input can still be unsafe in a different output context. Escape at the final sink.
+
+## Database-to-HTML Data Flows
+
+Treat every database read as untrusted. Confirm the repository normalizes the expected row shape and the view escapes each cell for its context. Do not accept a repository-level sanitizer as a substitute for output escaping.
+
+## Serialization and JSON Limits
+
+Flag `unserialize()`/`maybe_unserialize()` on request, file or request-written option data. Require `allowed_classes => false` for legacy stored data. Require byte-size and depth limits before `json_decode()`, and structure/limit checks before importing CSV/JSON.
+
+## Authorization and CSRF
+
+Require capability and nonce checks before every state change, a REST `permission_callback` returning 403, object-level authorization and no unauthenticated privileged AJAX. A nonce is not sanitization; a capability check is not input validation.
+
+## Privacy and Logging
+
+Check that no IP, user agent, referer, API key, nonce, session token, email or stored key is logged unless explicitly documented and bounded. Confirm no telemetry, no phone-home and no undocumented external request. Check uninstall cleanup and external-service disclosure.
+
+## WordPress.org Historical Examples
+
+Inspect the current code at every historical example:
+
+- `src/Admin/UserProfileField.php:90`
+- `src/Admin/SchemaMetabox.php:687`
+- `src/Admin/InstantIndexingPage.php:330`
+- `src/Admin/SchemaMetabox.php:944`
+- `src/Admin/NotFoundPage.php:616`
+- `src/Admin/RedirectsPage.php:732`
+- `src/Admin/SettingsPage.php:470`
+- `src/Admin/MetadataBox.php:1213`
+- `src/Admin/MetadataBox.php:1196`
+- `src/Modules/Monitor/Logger.php:262`
+- `src/Modules/Redirects/Redirector.php:207`
+
+These are historical review examples, not presumed current vulnerabilities. Follow each value to its final sink and classify it as actual defect, already fixed, safe validation/normalization, contextual false positive or unreviewed.
+
+## Plugin Check Findings
+
+Reproduce the current exact-package Plugin Check findings; do not assume the historical ten examples account for all reported incidences. For every warning, distinguish actual defect, already-fixed defect, safe validation/normalization, contextual false positive and unreviewed occurrence. Do not suppress a real warning.
+
 ## Severity Guide
 
 - **critical**: an exploitable vulnerability. Missing capability or nonce on a write, SQL injection, unescaped stored or reflected output, SSRF to an attacker-controlled host, a leaked secret, uninstall leaving private data behind.
@@ -152,9 +255,10 @@ Write findings to the output file in JSON Lines format:
 
 ```jsonl
 {"type":"summary","text":"Audited {target_dir}. Found X issues."}
+{"type":"occurrence","file":"relative/path","line":42,"source":"$_POST['field']","data_type":"string","validation":"is_string, allowlist","sanitization":"sanitize_text_field(wp_unslash())","transformation":"stored in option","final_sink":"admin HTML text","escaping":"esc_html()","capability_nonce":"manage_options + nonce","verdict":"PASS","evidence":"traced source line to sink line","test_reference":"tests/Unit/ExampleTest.php::test_field_is_escaped"}
 {"type":"issue","severity":"critical|important|minor","file":"relative/path","line":42,"message":"What the issue is","suggestion":"How to fix it","inline":false}
 ```
 
-Every `issue` record carries a real relative file path and a real line number. Do not report a finding you cannot point at. Do not report one root cause twice: one record, at the earliest line where it appears.
+Every occurrence record must contain real values for every field. If a field cannot be verified, use `UNREVIEWED`, not an invented value. Every `issue` record carries a real relative file path and a real line number. Do not report a finding you cannot point at. Do not report one root cause twice: one record, at the earliest line where it appears.
 
 Name the concrete WordPress API or sniff that applies, for example "use `$wpdb->esc_like()`", "use `esc_url()`", "restore the `check_admin_referer()` call", "add the table to the uninstall sweep". A suggestion the author cannot apply directly is not a suggestion.

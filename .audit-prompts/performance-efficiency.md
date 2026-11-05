@@ -63,6 +63,10 @@ The `alloptions` array is loaded on every request, so anything in it is paid on 
 - Flag an icon or font set bundled in full where a subset would do, given the plugin markets itself as lightweight.
 - Flag a script or style registered on a screen that does not use it.
 
+## Cross-Cutting Security Evidence
+
+When a performance finding touches request, file, database, option, metadata, filter or remote data, record the source-to-sink path and the exact input origin. Do not recommend caching or normalization without confirming the value's type/shape and authorization. Use `UNREVIEWED` when a complete trace is not possible. Read `rankkernel.php` and `uninstall.php` in full even when the target is `src` or `assets`.
+
 ## Severity Guide
 
 - **critical**: work on every front-end request that grows with content, an unbounded query on a public path, an autoloaded value that grows without limit, an external request from a page render.

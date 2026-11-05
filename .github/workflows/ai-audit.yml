@@ -1,28 +1,71 @@
-name: Daily Codebase Audit
+name: Weekly Codebase Audit
 
 on:
   schedule:
-    - cron: '0 2 * * *'
+    # Weekly full matrix, Monday 02:00 UTC. Four categories x two directories.
+    - cron: '0 2 * * 1'
   workflow_dispatch:
     inputs:
       audit_category:
-        description: 'Optional single audit category'
-        type: string
-        required: false
+        description: 'Audit category'
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - security-privacy
+          - performance-efficiency
+          - code-quality-conventions
+          - error-handling-resilience
+      audit_target:
+        description: 'Audit target directory'
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - src
+          - assets
 
 permissions:
   contents: read
   issues: write
 
-concurrency:
-  group: ai-audit
-  cancel-in-progress: false
-
 jobs:
   audit:
-    name: Codebase Audit
+    name: Codebase Audit (${{ matrix.category }} / ${{ matrix.target }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    concurrency:
+      group: ai-audit-${{ matrix.category }}-${{ matrix.target }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - category: security-privacy
+            target: src
+          - category: security-privacy
+            target: assets
+          - category: performance-efficiency
+            target: src
+          - category: performance-efficiency
+            target: assets
+          - category: code-quality-conventions
+            target: src
+          - category: code-quality-conventions
+            target: assets
+          - category: error-handling-resilience
+            target: src
+          - category: error-handling-resilience
+            target: assets
+    if: |
+      github.event_name == 'schedule' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.audit_category == 'all' || github.event.inputs.audit_category == matrix.category) &&
+        (github.event.inputs.audit_target == 'all' || github.event.inputs.audit_target == matrix.target)
+      )
     steps:
       - name: Diagnose GitHub token (non-secret)
         env:
@@ -77,32 +120,58 @@ jobs:
           audit_create_issues: true
           audit_auto_fix: false
           audit_labels: 'audit'
-          audit_target_dirs: 'src,assets'
+          audit_prompt_name: ${{ matrix.category }}
+          audit_target_dirs: ${{ matrix.target }}
           enable_mcp: false
           project_context: >
-            RankKernel is a 100% free, zero-bloat WordPress SEO plugin. Audit src/ and
-            assets/ for security, data integrity, performance, standards and WordPress
-            API misuse.
-            Security: missing capability or nonce checks, missing sanitization or
-            escaping, unsafe SQL, unsafe deserialization, SSRF, and secrets in tracked
-            files.
+            RankKernel is a 100% free, zero-bloat WordPress SEO plugin. Audit the assigned
+            category and target directory for security, data integrity, performance,
+            standards and WordPress API misuse. Read rankkernel.php and uninstall.php in
+            full even when the target is src or assets.
+            Evidence: for every externally controlled or persisted value, trace source to
+            final sink and record file, line, source, data type, validation, unslashing,
+            sanitization/normalization, semantic allowlist, transformation, final sink,
+            contextual escaping, capability/nonce and test reference. Input sources include
+            $_GET, $_POST, $_FILES, $_SERVER, $_COOKIE, $_SESSION, $_REQUEST, $_ENV, REST
+            parameters and JSON bodies, request objects, shortcode/block attributes,
+            imported JSON/CSV, database rows, options, metadata, filter output, third-party
+            integrations and remote responses. Use one record per occurrence and the
+            verdicts PASS, FIXED, ACCEPTED_WITH_REASON, BLOCKED or UNREVIEWED. Report every
+            BLOCKED/UNREVIEWED occurrence. Never invent line numbers or evidence, and do
+            not classify many occurrences with one generic explanation.
+            Security: missing capability or nonce checks, missing validation,
+            sanitization or contextual escaping, unsafe SQL, unsafe deserialization,
+            SSRF, open redirects, file upload/path traversal, and secrets in tracked files.
+            Nested arrays need recursive type validation. REST JSON bodies need explicit
+            validation even with a route schema. Uploads need actual size, extension,
+            sniffed MIME/content, path containment and cleanup. $_SERVER request values
+            need normalization, control-character stripping, query redaction and
+            escaping. Cookies, sessions, database rows, options and metadata are untrusted.
+            apply_filters() output is untrusted; sanitize after the final filter with a
+            narrow wp_kses() allowlist.
+            Distinguish unslashing, sanitization, validation, type checking and escaping.
+            esc_html() is not a URL or attribute escaper; esc_url_raw() does not replace
+            esc_url() at an HTML sink; wp_kses_post() is not safe for every context;
+            absint() is not sufficient validation for every identifier.
+            WordPress.org: inspect the historical examples at
+            src/Admin/UserProfileField.php:90, src/Admin/SchemaMetabox.php:687 and :944,
+            src/Admin/InstantIndexingPage.php:330, src/Admin/NotFoundPage.php:616,
+            src/Admin/RedirectsPage.php:732, src/Admin/SettingsPage.php:470,
+            src/Admin/MetadataBox.php:1196 and :1213,
+            src/Modules/Monitor/Logger.php:262 and
+            src/Modules/Redirects/Redirector.php:207, and follow each to its final sink.
+            Reproduce the current Plugin Check findings instead of assuming the historical
+            ten examples cover them. Check privacy, external-service disclosure, uninstall
+            cleanup and multisite/network activation behavior.
             Data integrity: one metadata source of truth through MetaPayload, no second
             store, and correct handling of legacy JSON and serialized rows.
-            Performance: unbounded queries, missing pagination or indexes, repeated
-            option reads, and missing caching.
-            Standards: WPCS, PSR-12, strict_types, the rankkernel or RankKernel prefix,
-            the exact rankkernel text domain, and an ABSPATH guard in every PHP file.
-            WPCS is enforced with zero tolerance: one real tab per indent level and never
-            spaces, WordPress spacing inside control structures and function calls, Yoda
-            conditions, elseif not else if, single quotes for strings without
-            interpolation, no trailing whitespace, array arrows aligned in multi line
-            arrays, and a WordPress docblock with a short description plus @param,
-            @return and @var on every class, method, property and constant. Report a
-            violation with the exact sniff name, for example
-            WordPress.PHP.YodaConditions, plus the file and the line.
-            Features and parity: features that are only a visual shell, or claims of
-            parity with no implementation or tests.
-            Tests: behaviour without coverage, and tests that do not actually prove the
-            behaviour they name.
-            Report only issues you can point at in the current code, with a file and line,
-            and rank them by severity. The docs/ directory is internal and out of scope.
+            Performance: unbounded queries, missing pagination or indexes, repeated option
+            reads, N+1 loops and missing caching.
+            Standards: WPCS, PSR-12, strict_types, the rankkernel or RankKernel prefix, the
+            exact rankkernel text domain, and an ABSPATH guard in every PHP file. Report
+            the exact sniff name plus file and line.
+            Existing issue behavior: keep audit_create_issues enabled, labels unchanged,
+            and do not create duplicate issues for the same finding.
+            Report only issues you can point at in the current code, with a real file and
+            line and a concrete trigger/outcome. The docs/ directory is internal and out of
+            scope.
