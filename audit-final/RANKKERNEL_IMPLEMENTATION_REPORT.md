@@ -85,7 +85,7 @@ REL-01 insert-ID capture, atomic/private `.htaccess` backups, deactivation block
 
 ## 5. Final ZIP
 
-- Path: `/home/web-dev-3/Documents/my personal plugin/release-output-2afb118/rankkernel-0.1.0.zip`
+- Path: `/home/web-dev-3/Documents/my personal plugin/rankkernel-0.1.0/rankkernel-0.1.0.zip`
 - Size: **902,022 bytes**
 - Files: **239**, single top-level `rankkernel/`
 - ZIP SHA-256: **`87d94a568cf3a404f4b84648277e20fc81ed64de8fce5c6064343c9a3c0d8252`**
