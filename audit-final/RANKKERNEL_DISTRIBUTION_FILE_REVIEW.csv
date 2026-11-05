@@ -1,0 +1,240 @@
+file_path,recommendation,reason,runtime_dependency_status
+rankkernel/LICENSE,KEEP,GPLv2 license text required for WordPress.org distribution.,Required license
+rankkernel/assets/css/admin-nojs.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/analysis-column.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/dashboard-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/importer-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/instant-indexing-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/metadata-classic.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/metadata-editor.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/metadata-modal.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/monitor-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/rankkernel-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/rankkernel-ui.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/redirects-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/schema-settings-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/settings-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/sitemap-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/css/support-admin.css,KEEP,Admin stylesheet enqueued by the plugin screens; part of the runtime UI.,Required runtime asset
+rankkernel/assets/fonts/LICENSE-Inter.txt,KEEP,License text for a bundled self-hosted webfont; required attribution for redistribution.,Required license/attribution
+rankkernel/assets/fonts/LICENSE-JetBrainsMono.txt,KEEP,License text for a bundled self-hosted webfont; required attribution for redistribution.,Required license/attribution
+rankkernel/assets/fonts/LICENSE-MaterialSymbols.txt,KEEP,License text for a bundled self-hosted webfont; required attribution for redistribution.,Required license/attribution
+rankkernel/assets/fonts/README.md,KEEP,"Font provenance, subset and source documentation for the bundled self-hosted webfonts. Not runtime code; retained as licensing evidence.",Optional licensing provenance; retained
+rankkernel/assets/fonts/inter-variable-latin.woff2,KEEP,Self-hosted variable webfont used by the admin UI; no external font request at runtime.,Required runtime asset
+rankkernel/assets/fonts/jetbrains-mono-variable-latin.woff2,KEEP,Self-hosted variable webfont used by the admin UI; no external font request at runtime.,Required runtime asset
+rankkernel/assets/fonts/material-symbols-outlined-variable.woff2,KEEP,Self-hosted variable webfont used by the admin UI; no external font request at runtime.,Required runtime asset
+rankkernel/assets/js/analysis-editor.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/analysis/accents.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/analysis/analysis-format.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/analysis/analyzer.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/analysis/editor-bridge.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/analysis/keyword-matcher.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/analysis/text-stats.js,KEEP,Pure analysis-engine module used by the editor/classic analysis runtime.,Required runtime asset
+rankkernel/assets/js/breadcrumbs-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/dashboard-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/importer-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/instant-indexing-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/metadata-editor.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/metadata-sidebar.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/monitor-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/monitor-settings.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/redirects-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/schema-metabox.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/schema-settings.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/settings-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/sitemap-settings-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/assets/js/support-admin.js,KEEP,Admin/editor JavaScript enqueued by the plugin; runtime UI behavior.,Required runtime asset
+rankkernel/languages/README.txt,KEEP,Small translation-directory note explaining that WordPress.org auto-loads translations and no local .mo files ship; keeps the declared Domain Path directory present. Not runtime code.,Optional translation metadata; retained
+rankkernel/rankkernel.php,KEEP,"Plugin bootstrap: headers, requirement checks, PSR-4 fallback autoloader, activation/deactivation hooks.",Required runtime
+rankkernel/readme.txt,KEEP,"WordPress.org readme: install, privacy, external services, AI disclosure, changelog and upgrade notice.",Required WordPress.org metadata
+rankkernel/src/Admin/AdminMenu.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/AdminStyles.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/DashboardPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/HtaccessFile.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/ImporterPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/InstantIndexingKeyCheck.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/InstantIndexingLogView.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/InstantIndexingOutcomes.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/InstantIndexingPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/MetadataBox.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/NotFoundPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/RedirectsPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/SchemaMetabox.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/SchemaSettingsPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/ScreenGuard.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/SettingsPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/SitemapSettingsPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/SupportPage.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/UserProfileField.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Admin/Views/dashboard.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/instant-indexing.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/metadata-box.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/not-found.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/redirects-list.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/redirects.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/schema-metabox.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/schema-settings.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/advanced.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/breadcrumbs.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/general.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/htaccess.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/llms.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/robots.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/social.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sections/webmaster.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/settings.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/sitemap-settings.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Admin/Views/support.php,KEEP,Admin view template included by the page renderer; no standalone execution.,Required runtime view
+rankkernel/src/Database/Migrations/MigrationRunner.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/AnalysisColumn.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/AnalysisModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/AnalysisSaveHandler.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/AnalysisScore.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/Analyzer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/KeywordIndex.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/KeywordMatcher.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/RecalculateCommand.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Analysis/TextStats.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/BreadcrumbsModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/BreadcrumbsSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/Item.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/Renderer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/TrailBuilder.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/blocks/BreadcrumbsBlock.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json,KEEP,Block registration metadata required for WordPress block editor/runtime.,Required runtime block metadata
+rankkernel/src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js,KEEP,Block editor script required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Breadcrumbs/blocks/breadcrumbs/editor.css,KEEP,Block editor stylesheet required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Breadcrumbs/breadcrumbs.css,KEEP,Frontend/block stylesheet or script used by the corresponding module at runtime.,Required runtime asset
+rankkernel/src/Modules/Breadcrumbs/functions.php,KEEP,Public breadcrumb functions and template helpers used by themes/shortcodes/blocks.,Required runtime
+rankkernel/src/Modules/Breadcrumbs/template-tags.php,KEEP,Public breadcrumb template tags used by themes.,Required runtime
+rankkernel/src/Modules/Importer/AioseoMapper.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/AioseoReader.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/BulkScope.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/ImportLock.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/ImportRunException.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/ImportRunner.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/ImporterModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/PayloadImporter.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/PreviewBuilder.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/RankMathMapper.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/RankMathReader.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/RedirectMapper.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/Row.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/SitewideMapper.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/SourceReader.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/TokenTranslator.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/YoastMapper.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Importer/YoastReader.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/IndexNowClient.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/IndexNowSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/InstantIndexingModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/KeyFileServer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/LogFilters.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/LogQuery.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/LogTable.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/InstantIndexing/UrlCollector.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/Context.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/HeadRenderer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/MetaPayload.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/MetadataModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/NoindexFlag.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Metadata/TagsReplacer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/ModuleEnableMap.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/ModuleInterface.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/ModuleManager.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/ModuleRegistry.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/Exclusions.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/FloodGuard.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/LogTable.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/Logger.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/MonitorModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/MonitorRepository.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/MonitorSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Monitor/Pruner.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/CsvHandler.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/DestinationValidator.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/HitCounter.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/Matcher.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/Normalizer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RedirectCache.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RedirectRepository.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RedirectTable.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/Redirector.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RedirectsModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RedirectsSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/RegexSafety.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/SlugWatcher.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Redirects/Validator.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/CrawlConsistency.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/CrawlerPolicy.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/LlmsFileWriter.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/LlmsGenerator.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/LlmsRouter.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/LlmsSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/RobotsBuilder.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/RobotsDirectives.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/RobotsModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Robots/RobotsSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Generator.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/GraphNormalizer.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/PieceInterface.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ArticlePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/BookPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/BreadcrumbPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/CarouselPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ClaimReviewPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/CoursePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/CustomJsonPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/DatasetPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/EventPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/FaqPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/HowtoPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ImageObjectPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ItemListPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/JobPostingPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/LocalBusinessPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/MoviePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/MusicPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/OrganizationPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/PersonPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/PodcastEpisodePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ProductPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/QaPagePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/RecipePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ReviewPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/SchemaHelpers.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/ServicePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/SoftwarePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/VideoPiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/WebpagePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/Pieces/WebsitePiece.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/SchemaModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/SchemaTypes.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/blocks/FaqBlock.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/blocks/HowtoBlock.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Schema/blocks/faq/block.json,KEEP,Block registration metadata required for WordPress block editor/runtime.,Required runtime block metadata
+rankkernel/src/Modules/Schema/blocks/faq/editor.css,KEEP,Block editor stylesheet required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Schema/blocks/faq/faq-editor.js,KEEP,Block editor script required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Schema/blocks/howto/block.json,KEEP,Block registration metadata required for WordPress block editor/runtime.,Required runtime block metadata
+rankkernel/src/Modules/Schema/blocks/howto/editor.css,KEEP,Block editor stylesheet required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Schema/blocks/howto/howto-editor.js,KEEP,Block editor script required for the corresponding dynamic block.,Required runtime asset
+rankkernel/src/Modules/Sitemaps/IndexBuilder.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/Provider/AuthorsProvider.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/Provider/PostsProvider.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/Router.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/SitemapCache.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/SitemapSettings.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/SitemapsModule.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/XslStylesheet.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Modules/Sitemaps/sitemap.xsl,KEEP,Sitemap XSL stylesheet served by the sitemap route.,Required runtime asset
+rankkernel/src/Plugin.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Rest/AnalysisController.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Rest/ImportController.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Rest/LogController.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Rest/ModulesController.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Rest/SettingsController.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Settings/SettingsStore.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Support/SupportDelivery.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/src/Support/SupportRequest.php,KEEP,Runtime PHP class/interface/trait autoloaded through the RankKernel namespace mapping.,Required runtime
+rankkernel/uninstall.php,KEEP,"Uninstall cleanup: plugin tables, transients, options, metadata and private files.",Required runtime
