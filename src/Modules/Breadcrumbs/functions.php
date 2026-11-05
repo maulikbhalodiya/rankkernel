@@ -172,7 +172,19 @@ function is_safe_breadcrumb_url( string $url ): bool {
 		return true;
 	}
 
-	if ( 1 === preg_match( '/^\s*(?:javascript|data|vbscript|file):/i', $url ) ) {
+	// Reject control characters, raw whitespace, and backslashes. Browsers
+	// normalize backslashes to slashes, so a leading \\ can become a
+	// protocol-relative URL even though it does not look like one.
+	if ( 1 === preg_match( '/[\x00-\x20\x7F\\\\]/', $url ) ) {
+		return false;
+	}
+
+	// Protocol-relative URLs are external even though they start with a slash.
+	if ( str_starts_with( $url, '//' ) ) {
+		return false;
+	}
+
+	if ( 1 === preg_match( '/^(?:javascript|data|vbscript|file):/i', $url ) ) {
 		return false;
 	}
 

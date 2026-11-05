@@ -249,6 +249,14 @@ final class BreadcrumbsSecurityTest extends TestCase {
 	public function test_breadcrumb_url_policy(): void {
 		$check = static fn ( string $url ): bool => \RankKernel\Modules\Breadcrumbs\is_safe_breadcrumb_url( $url );
 
+		$this->assertFalse( $check( '//evil.example/x' ) );
+		$this->assertFalse( $check( '\\\\evil.example/x' ) );
+		$this->assertFalse( $check( '/safe path' ) );
+		$this->assertFalse( $check( '/safe\\path' ) );
+		$this->assertFalse( $check( 'file:///etc/passwd' ) );
+		$this->assertTrue( $check( '/about/' ) );
+		$this->assertTrue( $check( '?q=1' ) );
+		$this->assertTrue( $check( '../up' ) );
 		$this->assertFalse( $check( 'javascript:alert(1)' ) );
 		$this->assertFalse( $check( 'data:text/html,<script>alert(1)</script>' ) );
 		$this->assertFalse( $check( 'vbscript:msgbox(1)' ) );

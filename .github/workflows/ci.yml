@@ -61,6 +61,47 @@ jobs:
           composer test:js
           find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
 
+  breadcrumb-kses:
+    name: Breadcrumb KSES Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP and WP-CLI
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2, wp-cli
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Provision WordPress and run real KSES test
+        run: |
+          set -euo pipefail
+          WP_PATH=/tmp/rankkernel-wp
+          wp core download --version=7.1.4 --path="$WP_PATH" --force
+          wp config create --path="$WP_PATH" --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1 --skip-check
+          wp core install --path="$WP_PATH" --url=http://localhost:8080 --title=RankKernel-CI --admin_user=admin --admin_password=Admin-2026! --admin_email=admin@example.test --skip-email
+          ln -s "$GITHUB_WORKSPACE" "$WP_PATH/wp-content/plugins/rankkernel"
+          wp plugin activate rankkernel --path="$WP_PATH"
+          wp eval-file "$GITHUB_WORKSPACE/tests/Integration/breadcrumb-kses.php" --path="$WP_PATH"
+
   removed-work:
     name: Removed Work Guard
     runs-on: ubuntu-latest
