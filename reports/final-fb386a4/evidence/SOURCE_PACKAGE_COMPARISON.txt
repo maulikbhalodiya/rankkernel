@@ -1,0 +1,22 @@
+RankKernel 0.1.0 — exact source/package comparison
+Generated: 2026-11-05T08:49:43Z
+Source commit: fb386a419d6b32394cc342cf740f8e41a75389bb
+Branch: release/wporg-0.1.0; main: same commit
+ZIP: rankkernel-0.1.0.zip
+SHA-256: 4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a
+Size: 902973 bytes
+Files: 239; top-level: rankkernel/
+Every packaged file matches git show fb386a4:<path>: YES (0 missing, 0 mismatched, 0 extra)
+Canonical manifest SHA-256: 1298873705f453e1bcf8430b0f62bdcf5bf2ed0929f0f98dc993be2e1b7de000
+Text manifest SHA-256: b15d8449707dc3003e59fef99eadc7f4302d6b8e24fe378daed1b6852f36fd13
+Source files: 540; not shipped: 301 (tests/docs/dev)
+Packaged files byte-identical to 2afb118: 233
+Packaged files changed from 2afb118: 6
+Changed shipped files:
+  rankkernel.php
+  readme.txt
+  src/Modules/Breadcrumbs/blocks/BreadcrumbsBlock.php
+  src/Modules/Metadata/MetaPayload.php
+  src/Modules/ModuleRegistry.php
+  src/Rest/ImportController.php
+Source 2afb118..fb386a4: 12 files, +252/-13, no production deletions
