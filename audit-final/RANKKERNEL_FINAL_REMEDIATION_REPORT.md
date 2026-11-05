@@ -4,13 +4,14 @@ Date: 2026-11-05
 Role: Office OpenCode, lead developer/implementer  
 Release branch: `release/wporg-0.1.0`  
 Previous source commit: `2afb1185d919f03ad4ed74444466db3b44db0786`  
-Final source commit: `fb386a419d6b32394cc342cf740f8e41a75389bb`  
+Production source for the approved ZIP: `fb386a419d6b32394cc342cf740f8e41a75389bb`  
+Final branch commit (dev-only workflow/test/prompt changes): `eba5018e66bb9a3236594535b748cc04fdb7779b`  
 Final ZIP: `rankkernel-0.1.0.zip` — 902,973 bytes, 239 files, SHA-256 `4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a`  
 Manifest: `manifest.txt` — 239 rows, SHA-256 `1298873705f453e1bcf8430b0f62bdcf5bf2ed0929f0f98dc993be2e1b7de000`
 
-This report closes the findings from `RANKKERNEL_FINAL_INDEPENDENT_AUDIT.md` and `RANKKERNEL_FINAL_AUDIT_FINDINGS.csv` on `audit/wporg-0.1.0-final-delivery`. The Server audit remains historical evidence and was not modified.
+This report closes the findings from the independent Server audits on `audit/wporg-0.1.0-final-delivery` and `audit/wporg-0.1.0-fb386a4-delivery`. The Server audit reports remain historical evidence and were not modified.
 
-## Findings table RK-F-01 through RK-F-14
+## Findings table RK-F-01 through RK-F-15
 
 | ID | Severity | Status after this round | Evidence |
 |---|---|---|---|
@@ -26,8 +27,9 @@ This report closes the findings from `RANKKERNEL_FINAL_INDEPENDENT_AUDIT.md` and
 | RK-F-10 | Info | **Rejected false positive; no change** | WordPress 7.1.4 is real; `Tested up to: 7.1` remains truthful. |
 | RK-F-11 | Info | **Closed; no change** | Breadcrumb KSES test requires the exact plugin active. Documented; exact-SHA CI passes. |
 | RK-F-12 | Info | **Verified; strengthened locally** | Local Psalm 5.26.1 taint/security analysis ran successfully: **exit 0, no taint errors**. CI `continue-on-error` remains noted; the local run is now the substantive evidence. |
-| RK-F-13 | Info | **Measured locally** | Psalm 5.26.1 `--taint-analysis` exited 0 with “No errors found”. Standard non-taint scan at level 6 has unrelated typing/config noise; the security scan is clean. |
+| RK-F-13 | Info | **Fixed CI gate** | Removed `continue-on-error` from `.github/workflows/ci.yml`; added a mandatory SARIF existence/structure gate. Local Psalm 5.26.1 taint scan exits 0 with no taint errors; exact-commit CI run 42003340011 passes the hardened job. |
 | RK-F-14 | Info | **Closed; no code change** | Exact new ZIP passes WP 7.1.4 and WP 6.5.14 runtime smoke after enabling all modules. |
+| RK-F-15 | Low | **Fixed** | `tests/Unit/PluginTest.php` now derives the deactivation basename from `plugin_basename( RANKKERNEL_FILE )`; focused tests pass from an alternate checkout basename (`rk-alt-basename`, 18/18). |
 
 ## Code-level changes
 
@@ -125,9 +127,9 @@ The release branch now contains `docs/audit-final/README.md`, which points to th
 
 ## Branch consolidation
 
-- Active release branch: `release/wporg-0.1.0` at `fb386a4`.
-- `main`: `fb386a4`, identical to the active release branch.
-- Old release/remediation branches verified as ancestors of `fb386a4`, then deleted locally and remotely:
+- Active release branch: `release/wporg-0.1.0` at `eba5018`.
+- `main`: `eba5018`, identical to the active release branch.
+- Old release/remediation branches verified as ancestors of `eba5018`, then deleted locally and remotely:
   - `release/wporg-0.1.0-final`
   - `release/wporg-0.1.0-integration`
   - `release/wporg-0.1.0-review-fixes`
@@ -170,22 +172,39 @@ Older release folders, extracted copies, root ZIPs, frozen baseline and `rankker
 
 The six changed packaged files are exactly: `rankkernel.php`, `readme.txt`, `src/Modules/Breadcrumbs/blocks/BreadcrumbsBlock.php`, `src/Modules/Metadata/MetaPayload.php`, `src/Modules/ModuleRegistry.php`, `src/Rest/ImportController.php`.
 
+## AI reviewer and audit workflow upgrade
+
+- `.opencode-reviewer.yml`: added evidence-based source-to-sink tracing for superglobals, REST parameters/JSON, request objects, shortcode/block attributes, imports, uploads, database rows, options, metadata, filter output, third-party integrations and remote responses; occurrence-level verdicts; nested-array validation; URL/SQL/escape distinction; WordPress.org historical examples; full Plugin Check reproduction; explicit no-generic-evidence rule.
+- `.audit-prompts/security-privacy.md`: added dedicated sections for input inventory, occurrence records, nested arrays, REST/JSON, uploads, `$_SERVER`/URI, cookies/sessions, persisted/imported data, callback/filter output, contextual escaping, redirects/URLs, stored/reflected XSS, database-to-HTML, serialization limits, authorization/CSRF and privacy/logging.
+- `.audit-prompts/code-quality-conventions.md`, `error-handling-resilience.md`, `performance-efficiency.md`: added cross-cutting security evidence requirements and root `rankkernel.php`/`uninstall.php` review.
+- `.github/workflows/ai-review.yml`: project context now requires complete source-to-sink tracing, WordPress.org review targets, current Plugin Check reproduction, file/line evidence and explicit no-auto-approval/fix/release behavior.
+- `.github/workflows/ai-audit.yml`: weekly matrix of 4 categories x 2 directories, deterministic `audit_prompt_name`/`audit_target_dirs`, manual category/target selection with an `all` option, `audit_auto_fix: false`, existing action pin and issue deduplication behavior preserved.
+- `.github/workflows/ci.yml`: removed Psalm `continue-on-error`; added a mandatory SARIF existence and structure gate so a failed/incomplete scan fails the job while SARIF upload still runs with `if: always()`.
+
+## Final security occurrence inventory
+
+- Input: **437** records (409 original superglobal occurrences + 28 REST/validator/lifecycle/downstream rows). PASS 15, FIXED 31, ACCEPTED_WITH_REASON 383, comment-only 8, BLOCKED 0, UNREVIEWED 0.
+- Output: **1,244** statements. PASS 1,237, ACCEPTED_WITH_REASON 7, BLOCKED 0, UNREVIEWED 0.
+- Per-occurrence files: `RANKKERNEL_FINAL_INPUT_OCCURRENCES.csv`, `RANKKERNEL_FINAL_OUTPUT_OCCURRENCES.csv`, summarized in `RANKKERNEL_FINAL_SECURITY_INVENTORY.md`.
+- Every record carries file, line, source, type, validation, sanitization, final sink, escaping/capability evidence, verdict, evidence and test/evidence reference.
+
 ## Verification
 
 | Gate | Result |
 |---|---|
 | PHPUnit | **2392 tests / 9197 assertions — OK** |
-| Focused audit tests | All RK-F-02/03/04/05/06 tests pass |
+| Focused audit tests | All RK-F-02/03/04/05/06 tests pass; RK-F-15 passes from an alternate checkout basename (18/18) |
 | PHPCS/WPCS | exit 0 |
 | PHPStan L6 | `[OK] No errors` |
 | Psalm Security (local, Psalm 5.26.1) | `--taint-analysis` exit 0, no taint errors |
 | JavaScript | 352 pass / 0 fail; `node --check` clean |
 | Composer validate / audit | valid / no advisories |
+| GitHub Actions CI | Run 42003340011 at `eba5018`: PHP 8.3/8.4, Psalm and Breadcrumb KSES success |
 | Plugin Check WP 7.1.4, exact ZIP | 0 errors / 223 warnings |
 | Plugin Check WP 6.5.14, exact ZIP | 0 errors / 223 warnings |
 | WP 7.1.4 smoke | 9 admin screens 200; home 200; sitemap 200 XML; robots 200; unknown path 404; debug log clean |
 | WP 6.5.14 smoke | 9 admin screens 200; home 200; sitemap 200 XML; robots 200; unknown path 404; debug log clean |
-| Source/package comparison | 239/239 packaged files match `fb386a4`; 0 extra, 0 mismatch |
+| Source/package comparison | 239/239 packaged files match both `fb386a4` and `eba5018`; development-only files are not packaged; 0 extra, 0 mismatch |
 
 ## Remaining limitations
 
@@ -196,6 +215,6 @@ The six changed packaged files are exactly: `rankkernel.php`, `readme.txt`, `src
 
 ## Release status
 
-**READY FOR SERVER INDEPENDENT AUDIT** of commit `fb386a4` and ZIP `4edb5beb…`, subject to the owner approving replacement of the stale draft assets.
+**READY FOR WORDPRESS.ORG SUBMISSION PREPARATION** for the exact candidate `4edb5beb…` at production source `fb386a4`. Final branch `release/wporg-0.1.0` is at `eba5018`, which differs only in development files excluded from the ZIP.
 
-The previous independent audit approved `2afb118` with non-blocking follow-ups. This report does not claim approval of `fb386a4`.
+The previous independent audit approved `2afb118` with non-blocking follow-ups. The Server audit on `audit/wporg-0.1.0-fb386a4-delivery` approved the exact `fb386a4` candidate ZIP `4edb5beb…` with non-blocking follow-ups. This report does not claim independent approval of the dev-only workflow changes, and does not authorize publication.

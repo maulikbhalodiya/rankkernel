@@ -3,6 +3,14 @@
 Date: 2026-11-05  
 Applies to: WordPress.org releases and all Office/Server agent work.
 
+## Current state (2026-11-05)
+
+- `release/wporg-0.1.0` and `main` are both at `eba5018e66bb9a3236594535b748cc04fdb7779b`.
+- The approved production source for the exact ZIP is `fb386a419d6b32394cc342cf740f8e41a75389bb`.
+- The `fb386a4..eba5018` delta is development-only: `.github/`, `.audit-prompts/`, `.opencode-reviewer.yml` and `tests/Unit/PluginTest.php`; all are excluded by `.distignore`.
+- Exact approved ZIP `4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a` is preserved; no rebuild was performed.
+- CI run 42003340011 at `eba5018` passes PHP 8.3/8.4, Psalm Security (hardened gate) and Breadcrumb KSES.
+
 ## 1. One branch per version
 
 | Branch | Purpose |

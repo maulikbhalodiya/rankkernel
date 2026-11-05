@@ -1,8 +1,8 @@
 # RankKernel — Final Test Report
 
-Final source: `fb386a419d6b32394cc342cf740f8e41a75389bb`  
-Release branch: `release/wporg-0.1.0`  
-Final ZIP: `rankkernel-0.1.0.zip` — 902,973 bytes, 239 files  
+Final branch: `release/wporg-0.1.0` at `eba5018e66bb9a3236594535b748cc04fdb7779b`  
+Production source for the approved ZIP: `fb386a419d6b32394cc342cf740f8e41a75389bb`  
+Final ZIP: `rankkernel-0.1.0.zip` — 902,973 bytes, 239 files (unchanged; dev-only changes did not touch distributed files)  
 ZIP SHA-256: `4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a`  
 Manifest: `manifest.txt` — 239 rows, SHA-256 `1298873705f453e1bcf8430b0f62bdcf5bf2ed0929f0f98dc993be2e1b7de000`
 
@@ -11,9 +11,10 @@ Manifest: `manifest.txt` — 239 rows, SHA-256 `1298873705f453e1bcf8430b0f62bdcf
 | | Commit | ZIP SHA-256 | ZIP size | Result |
 |---|---|---|---:|---|
 | Previous independently audited candidate | `2afb118` | `87d94a56…` | 902,022 | Approved with non-blocking follow-ups |
-| Final remediation candidate | `fb386a4` | `4edb5beb…` | 902,973 | **This report** |
+| Candidate independently approved by Server | `fb386a4` | `4edb5beb…` | 902,973 | Approved with non-blocking follow-ups |
+| Final branch (dev-only workflow/test/prompt changes) | `eba5018` | `4edb5beb…` | 902,973 | **This report** |
 
-The previous `2afb118` results are historical and were not reused for this candidate.
+The previous `2afb118` and `fb386a4` results are historical. `eba5018` changes only `.github/`, `.audit-prompts/`, `.opencode-reviewer.yml` and `tests/Unit/PluginTest.php`, all excluded from the ZIP. The exact approved ZIP is preserved byte-for-byte; no rebuild was performed.
 
 ## Automated gates (final commit)
 
@@ -28,6 +29,9 @@ The previous `2afb118` results are historical and were not reused for this candi
 | JS syntax | `node --check assets/js/*.js` | clean |
 | Composer validation | `composer validate --strict` | valid |
 | Composer audit | `composer audit --locked` | no advisories |
+| GitHub Actions CI | Run 42003340011 at `eba5018` | PHP 8.3/8.4 WPCS+PHPStan+PHPUnit success, Psalm success with hardened gate, Breadcrumb KSES success |
+| Workflow validation | `actionlint .github/workflows/*.yml` | exit 0 |
+| Alternate checkout basename | `PluginTest` from `/tmp/opencode/rk-alt-basename` | 18/18 tests, 51 assertions, OK |
 | Plugin Check, exact ZIP, WP 7.1.4 | Plugin Check 2.1.0 | **0 errors / 223 warnings** |
 | Plugin Check, exact ZIP, WP 6.5.14 | Plugin Check 2.1.0 | **0 errors / 223 warnings** |
 | GitHub Actions CI, exact commit | Run [41988654857](https://github.com/maulikbhalodiya/rankkernel/actions/runs/41988654857) | PHP 8.3/8.4 WPCS+PHPStan+PHPUnit success; Psalm job success; Breadcrumb KSES success |
@@ -47,6 +51,7 @@ The CI job still uses `continue-on-error: true`, so the green CI check alone is 
 | `ModuleRegistryTest::test_label_exception_message_is_not_pre_escaped` | RK-F-04 |
 | `PluginTest::test_network_activation_is_refused_before_any_setup` | RK-F-05 |
 | `ImportControllerTest::test_release_with_array_run_id_returns_400` | RK-F-06 |
+| `PluginTest` basename-agnostic assertion plus alternate-directory run | RK-F-15 |
 
 ## Plugin Check warning breakdown
 
