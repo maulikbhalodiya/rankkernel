@@ -21,9 +21,10 @@ use RankKernel\Admin\InstantIndexingOutcomes;
  * builds its query through fromInput(), so the accepted values, the
  * fallbacks and the page size clamp can never drift between the two.
  * Unknown values normalize to the unfiltered default instead of failing.
- * Input is taken exactly as handed over: WordPress unslashing stays at
- * the consumer boundary so an already unslashed REST value is not
- * mangled here.
+ * WordPress unslashing stays at the consumer boundary so an already
+ * unslashed REST value is not mangled here. The free text search term is
+ * sanitized here because it is the only value that reaches SQL and output
+ * as text rather than being compared against an allowlist.
  */
 final class LogFilters {
 	/**
@@ -121,6 +122,10 @@ final class LogFilters {
 	public static function fromInput( array $input, int $defaultPerPage ): self {
 		$search = $input['s'] ?? '';
 		$search = is_string( $search ) ? trim( substr( $search, 0, self::SEARCH_MAX ) ) : '';
+
+		if ( '' !== $search && function_exists( 'sanitize_text_field' ) ) {
+			$search = sanitize_text_field( $search );
+		}
 
 		$source = $input['rk_source'] ?? self::SOURCE_ALL;
 		$source = is_string( $source ) ? $source : self::SOURCE_ALL;

@@ -611,6 +611,67 @@ final class ImportControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test run rejects an array where a string kind is expected.
+	 */
+	public function test_run_array_kind_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => [ 'posts' ],
+					'mode'   => 'skip',
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test run rejects an array where a string mode is expected.
+	 */
+	public function test_run_array_mode_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => [ 'skip' ],
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
+	 * Test run rejects an array where a numeric offset is expected.
+	 */
+	public function test_run_array_offset_returns_400(): void {
+		[ $ctrl ] = $this->makeController();
+		$res      = $ctrl->runChunk(
+			$this->makeRequest(
+				[
+					'source' => 'yoast',
+					'kind'   => 'posts',
+					'mode'   => 'skip',
+					'offset' => [ '0' ],
+					'run_id' => 'run-aaaa-1111',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $res );
+		$this->assertSame( 400, $res->get_error_data()['status'] ?? null );
+	}
+
+	/**
 	 * Test run executes the runner and clamps the limit.
 	 */
 	public function test_run_executes_runner_and_clamps_limit(): void {

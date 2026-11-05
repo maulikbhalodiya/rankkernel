@@ -125,8 +125,18 @@ final class InstantIndexingPageTest extends TestCase {
 		Functions\when( 'esc_url' )->alias( static fn( string $v ): string => $v );
 		Functions\when( 'esc_url_raw' )->alias( static fn( string $v ): string => $v );
 		Functions\when( 'wp_unslash' )->alias(
-			static fn( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v
+			static function ( mixed $v ): mixed {
+				if ( is_array( $v ) ) {
+					return array_map(
+						static fn( mixed $item ): mixed => is_string( $item ) ? stripslashes( $item ) : $item,
+						$v
+					);
+				}
+
+				return is_string( $v ) ? stripslashes( $v ) : $v;
+			}
 		);
+		Functions\when( 'sanitize_text_field' )->alias( static fn( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double mirrors WordPress text field sanitization without loading WordPress.
 		Functions\when( 'esc_html__' )->alias( static fn( string $v ): string => $v );
 		Functions\when( 'esc_attr__' )->alias( static fn( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
@@ -1802,6 +1812,27 @@ final class InstantIndexingPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'rk-ui-tabs', $html );
 		$this->assertStringNotContainsString( 'rk-ui-page-nums', $html );
 		$this->assertStringNotContainsString( 'Showing 1 to', $html );
+	}
+
+	/**
+	 * The search query string is unslashed at the request boundary and
+	 * sanitized before it reaches the query and the search field.
+	 */
+	public function test_search_filter_is_unslashed_and_sanitized(): void {
+		$this->settings->logEntry( 'https://example.com/hello', 200, 'manual', 'Accepted.' );
+
+		$_GET = [
+			'page' => InstantIndexingPage::SLUG,
+			's'    => "<b>hello</b> O\\'Reilly",
+		];
+
+		$page = $this->page();
+		ob_start();
+		$page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '<b>hello</b>', $html, 'tags must not survive into the search field' );
+		$this->assertStringContainsString( 'hello O&#039;Reilly', $html, 'the slashed quote must be unslashed before sanitizing' );
 	}
 
 	/**

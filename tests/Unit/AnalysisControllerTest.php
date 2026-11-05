@@ -379,6 +379,19 @@ final class AnalysisControllerTest extends TestCase {
 	}
 
 	/**
+	 * Test a nested keyword array is preserved for type validation rather
+	 * than being cast to the literal string "Array".
+	 */
+	public function test_nested_keyword_arrays_are_preserved_for_validation(): void {
+		$this->stubSanitizers();
+
+		$clean = AnalysisController::sanitizeKeywords( [ 'red apples', [ 'nested' ] ] );
+
+		$this->assertSame( 'red apples', $clean[0] );
+		$this->assertSame( [ 'nested' ], $clean[1] );
+	}
+
+	/**
 	 * Test a scalar keyword parameter keeps the framework list behaviour.
 	 */
 	public function test_scalar_keywords_keep_the_framework_list_behaviour(): void {

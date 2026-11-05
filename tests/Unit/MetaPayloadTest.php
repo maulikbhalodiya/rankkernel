@@ -187,6 +187,59 @@ final class MetaPayloadTest extends TestCase {
 	}
 
 	/**
+	 * Nested arrays in boolean, attachment id and schema flag slots must not
+	 * be coerced by PHP. The documented defaults survive malformed input.
+	 */
+	public function test_sanitize_rejects_nested_arrays_for_boolean_and_id_fields(): void {
+		$payload = [
+			'robots'  => [
+				'index'        => [ 'nested' ],
+				'follow'       => [ 'nested' ],
+				'noarchive'    => [ 'nested' ],
+				'noimageindex' => [ 'nested' ],
+				'nosnippet'    => [ 'nested' ],
+			],
+			'og'      => [ 'image_id' => [ 'nested' ] ],
+			'twitter' => [ 'image_id' => [ 'nested' ] ],
+			'schema'  => [ 'disabled' => [ 'nested' ] ],
+		];
+
+		$clean = MetaPayload::sanitize( $payload );
+
+		$this->assertTrue( $clean['robots']['index'], 'index keeps its true default' );
+		$this->assertTrue( $clean['robots']['follow'], 'follow keeps its true default' );
+		$this->assertFalse( $clean['robots']['noarchive'] );
+		$this->assertFalse( $clean['robots']['noimageindex'] );
+		$this->assertFalse( $clean['robots']['nosnippet'] );
+		$this->assertSame( 0, $clean['og']['image_id'] );
+		$this->assertSame( 0, $clean['twitter']['image_id'] );
+		$this->assertFalse( $clean['schema']['disabled'] );
+	}
+
+	/**
+	 * Valid boolean and attachment id scalar shapes still normalize.
+	 */
+	public function test_sanitize_accepts_scalar_boolean_and_id_fields(): void {
+		$clean = MetaPayload::sanitize(
+			[
+				'robots'  => [
+					'index'     => '0',
+					'follow'    => '1',
+					'noarchive' => 1,
+				],
+				'og'      => [ 'image_id' => '42' ],
+				'twitter' => [ 'image_id' => 7 ],
+			]
+		);
+
+		$this->assertFalse( $clean['robots']['index'] );
+		$this->assertTrue( $clean['robots']['follow'] );
+		$this->assertTrue( $clean['robots']['noarchive'] );
+		$this->assertSame( 42, $clean['og']['image_id'] );
+		$this->assertSame( 7, $clean['twitter']['image_id'] );
+	}
+
+	/**
 	 * Nested arrays in FAQ, HowTo, and schema field string slots are rejected.
 	 *
 	 * FAQ rows keep the answer default instead of "Array", a howto step with

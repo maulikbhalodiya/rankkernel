@@ -326,8 +326,8 @@ final class InstantIndexingPage {
 
 		$screenUrl = function_exists( 'admin_url' ) ? admin_url( 'admin.php?page=' . self::SLUG ) : '';
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only display filters, normalized by LogQuery::fromInput, never stored.
-		$logQuery = LogQuery::fromInput( $_GET, InstantIndexingLogView::PER_PAGE );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read only display filters, unslashed here, normalized and sanitized by LogQuery::fromInput, never stored.
+		$logQuery = LogQuery::fromInput( wp_unslash( $_GET ), InstantIndexingLogView::PER_PAGE );
 
 		$logView     = new InstantIndexingLogView( $logQuery, $screenUrl );
 		$statusTabs  = $logView->tabs();

@@ -178,24 +178,19 @@ final class MetaPayload {
 		if ( isset( $payload['robots'] ) && is_array( $payload['robots'] ) ) {
 			$robots = $payload['robots'];
 
-			if ( array_key_exists( 'index', $robots ) ) {
-				$out['robots']['index'] = (bool) $robots['index'];
-			}
+			foreach ( [ 'index', 'follow', 'noarchive', 'noimageindex', 'nosnippet' ] as $flag ) {
+				if ( ! array_key_exists( $flag, $robots ) ) {
+					continue;
+				}
 
-			if ( array_key_exists( 'follow', $robots ) ) {
-				$out['robots']['follow'] = (bool) $robots['follow'];
-			}
+				// A nested array is malformed input, not truthy input. Keep
+				// the documented default instead of silently flipping the
+				// flag through PHP's array to bool coercion.
+				$value = self::nullableBool( $robots[ $flag ] );
 
-			if ( array_key_exists( 'noarchive', $robots ) ) {
-				$out['robots']['noarchive'] = (bool) $robots['noarchive'];
-			}
-
-			if ( array_key_exists( 'noimageindex', $robots ) ) {
-				$out['robots']['noimageindex'] = (bool) $robots['noimageindex'];
-			}
-
-			if ( array_key_exists( 'nosnippet', $robots ) ) {
-				$out['robots']['nosnippet'] = (bool) $robots['nosnippet'];
+				if ( null !== $value ) {
+					$out['robots'][ $flag ] = $value;
+				}
 			}
 
 			// A non numeric string normalizes to null, never 0: 0 is the
@@ -234,7 +229,7 @@ final class MetaPayload {
 			}
 
 			if ( array_key_exists( 'image_id', $og ) ) {
-				$out['og']['image_id'] = absint( $og['image_id'] );
+				$out['og']['image_id'] = self::scalarAbsint( $og['image_id'] );
 			}
 
 			if ( array_key_exists( 'type', $og ) ) {
@@ -262,7 +257,7 @@ final class MetaPayload {
 			}
 
 			if ( array_key_exists( 'image_id', $tw ) ) {
-				$out['twitter']['image_id'] = absint( $tw['image_id'] );
+				$out['twitter']['image_id'] = self::scalarAbsint( $tw['image_id'] );
 			}
 		}
 
@@ -314,6 +309,67 @@ final class MetaPayload {
 	 */
 	private static function scalarString( mixed $value ): string {
 		return is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/**
+	 * Normalize a boolean field without the array coercion trap.
+	 *
+	 * Only documented boolean shapes are accepted: real booleans, 0/1
+	 * integers, and the usual checkbox strings. Anything else, including a
+	 * nested array or object, returns null so the caller keeps the documented
+	 * default rather than PHP's array-to-bool coercion.
+	 *
+	 * @param mixed $value Raw boolean field.
+	 * @return bool|null The result.
+	 */
+	private static function nullableBool( mixed $value ): ?bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			if ( 0 === $value ) {
+				return false;
+			}
+
+			if ( 1 === $value ) {
+				return true;
+			}
+
+			return null;
+		}
+
+		if ( is_string( $value ) ) {
+			$normalized = strtolower( trim( $value ) );
+
+			if ( in_array( $normalized, [ '1', 'true', 'yes', 'on' ], true ) ) {
+				return true;
+			}
+
+			if ( in_array( $normalized, [ '0', 'false', 'no', 'off', '' ], true ) ) {
+				return false;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Normalize an attachment id without the array coercion trap.
+	 *
+	 * `absint()` on a nested array becomes 1 in PHP, which would silently
+	 * attach an unrelated image. Only scalars are accepted; anything else is
+	 * zero, the documented "no image" value.
+	 *
+	 * @param mixed $value Raw id field.
+	 * @return int The result.
+	 */
+	private static function scalarAbsint( mixed $value ): int {
+		if ( ! is_scalar( $value ) || ! is_numeric( $value ) ) {
+			return 0;
+		}
+
+		return absint( $value );
 	}
 
 	/**
@@ -407,7 +463,7 @@ final class MetaPayload {
 
 		return [
 			'type'     => SchemaTypes::normalizeOrEmpty( $raw['type'] ?? null ),
-			'disabled' => ! empty( $raw['disabled'] ),
+			'disabled' => self::nullableBool( $raw['disabled'] ?? null ) ?? false,
 			'fields'   => self::sanitizeSchemaFields( $raw['fields'] ?? [] ),
 			'faq'      => [
 				'questions' => self::sanitizeFaqQuestions( $faq['questions'] ?? [] ),

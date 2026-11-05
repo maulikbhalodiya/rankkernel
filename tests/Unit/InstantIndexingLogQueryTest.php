@@ -46,6 +46,7 @@ final class InstantIndexingLogQueryTest extends TestCase {
 		$GLOBALS['wpdb'] = $this->db;
 
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double mirrors WordPress text field sanitization without loading WordPress.
 	}
 
 	/**
@@ -234,6 +235,15 @@ final class InstantIndexingLogQueryTest extends TestCase {
 		$this->assertStringNotContainsString( 'id = ' . $id, $templates, 'the raw id must never be concatenated into the SQL template' );
 		$this->assertStringContainsString( 'id = ' . $id, $image, 'prepare must interpolate the id value' );
 		$this->assertSame( 0, $this->db->unpreparedReads, 'the single row read must go through prepare' );
+	}
+
+	/**
+	 * Test the search term is sanitized before it reaches SQL and output.
+	 */
+	public function test_search_term_is_sanitized_before_query(): void {
+		$query = $this->query( [ 's' => '<b>hello</b>' ] );
+
+		$this->assertSame( 'hello', $query->filters()->search() );
 	}
 
 	/**

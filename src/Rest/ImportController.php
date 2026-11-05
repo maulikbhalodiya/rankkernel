@@ -328,7 +328,19 @@ final class ImportController {
 	 * @return string|WP_Error The mode or error.
 	 */
 	private function modeFor( array $params ): string|WP_Error {
-		$mode = isset( $params['mode'] ) ? sanitize_text_field( (string) $params['mode'] ) : 'skip';
+		if ( ! array_key_exists( 'mode', $params ) ) {
+			return 'skip';
+		}
+
+		if ( ! is_string( $params['mode'] ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_mode',
+				__( 'Invalid conflict mode: must be skip or overwrite.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$mode = sanitize_text_field( $params['mode'] );
 
 		if ( ! in_array( $mode, self::MODES, true ) ) {
 			return new WP_Error(
@@ -365,7 +377,17 @@ final class ImportController {
 			return $mode;
 		}
 
-		$kind = isset( $params['kind'] ) ? sanitize_text_field( (string) $params['kind'] ) : 'posts';
+		$kindRaw = array_key_exists( 'kind', $params ) ? $params['kind'] : 'posts';
+
+		if ( ! is_string( $kindRaw ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_kind',
+				__( 'Invalid preview kind.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$kind = sanitize_text_field( $kindRaw );
 
 		if ( ! in_array( $kind, self::PREVIEW_KINDS, true ) ) {
 			return new WP_Error(
@@ -375,12 +397,47 @@ final class ImportController {
 			);
 		}
 
-		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
-		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
-		$limit  = max( 1, min( self::PREVIEW_LIMIT_MAX, $limit ) );
+		$offset = 0;
 
-		$q = isset( $params['q'] ) ? sanitize_text_field( (string) $params['q'] ) : '';
-		$q = substr( $q, 0, 100 );
+		if ( array_key_exists( 'offset', $params ) ) {
+			if ( ! is_numeric( $params['offset'] ) ) {
+				return new WP_Error(
+					'rankkernel_invalid_offset',
+					__( 'Invalid preview offset.', 'rankkernel' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$offset = max( 0, (int) $params['offset'] );
+		}
+
+		$limit = 50;
+
+		if ( array_key_exists( 'limit', $params ) ) {
+			if ( ! is_numeric( $params['limit'] ) ) {
+				return new WP_Error(
+					'rankkernel_invalid_limit',
+					__( 'Invalid preview limit.', 'rankkernel' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$limit = (int) $params['limit'];
+		}
+
+		$limit = max( 1, min( self::PREVIEW_LIMIT_MAX, $limit ) );
+
+		$qRaw = array_key_exists( 'q', $params ) ? $params['q'] : '';
+
+		if ( ! is_string( $qRaw ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_search',
+				__( 'Invalid preview search term.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$q = substr( sanitize_text_field( $qRaw ), 0, 100 );
 
 		$totals = $reader->detect();
 		$page   = $this->previewPage( $reader, $source, $kind, $offset, $limit, $mode, $totals, $q );
@@ -654,7 +711,18 @@ final class ImportController {
 			return $mode;
 		}
 
-		$kind = isset( $params['kind'] ) ? sanitize_text_field( (string) $params['kind'] ) : sanitize_text_field( (string) $request->get_param( 'kind' ) );
+		$kindRaw = array_key_exists( 'kind', $params ) ? $params['kind'] : $request->get_param( 'kind' );
+
+		if ( ! is_string( $kindRaw ) ) {
+			return new WP_Error(
+				'rankkernel_invalid_kind',
+				__( 'Invalid chunk kind.', 'rankkernel' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$kind = sanitize_text_field( $kindRaw );
+
 		if ( ! in_array( $kind, self::KINDS, true ) ) {
 			return new WP_Error(
 				'rankkernel_invalid_kind',
@@ -663,12 +731,52 @@ final class ImportController {
 			);
 		}
 
-		$offset = isset( $params['offset'] ) ? max( 0, (int) $params['offset'] ) : 0;
-		$limit  = isset( $params['limit'] ) ? (int) $params['limit'] : 50;
-		$limit  = max( 1, min( self::RUN_LIMIT_MAX, $limit ) );
+		$offset = 0;
 
-		$excludes = ( isset( $params['excludes'] ) && is_array( $params['excludes'] ) ) ? array_values( array_filter( array_map( 'strval', $params['excludes'] ) ) ) : [];
-		$options  = [];
+		if ( array_key_exists( 'offset', $params ) ) {
+			if ( ! is_numeric( $params['offset'] ) ) {
+				return new WP_Error(
+					'rankkernel_invalid_offset',
+					__( 'Invalid run offset.', 'rankkernel' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$offset = max( 0, (int) $params['offset'] );
+		}
+
+		$limit = 50;
+
+		if ( array_key_exists( 'limit', $params ) ) {
+			if ( ! is_numeric( $params['limit'] ) ) {
+				return new WP_Error(
+					'rankkernel_invalid_limit',
+					__( 'Invalid run limit.', 'rankkernel' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$limit = (int) $params['limit'];
+		}
+
+		$limit = max( 1, min( self::RUN_LIMIT_MAX, $limit ) );
+
+		$excludes = [];
+
+		if ( isset( $params['excludes'] ) && is_array( $params['excludes'] ) ) {
+			foreach ( $params['excludes'] as $exclude ) {
+				if ( ! is_scalar( $exclude ) ) {
+					continue;
+				}
+
+				$exclude = sanitize_text_field( (string) $exclude );
+
+				if ( '' !== $exclude ) {
+					$excludes[] = $exclude;
+				}
+			}
+		}
+		$options = [];
 
 		if ( isset( $params['choices'] ) && is_array( $params['choices'] ) ) {
 			$choices = [];
@@ -686,7 +794,8 @@ final class ImportController {
 			$options['rule'] = sanitize_text_field( $params['rule'] );
 		}
 
-		$runId = isset( $params['run_id'] ) ? sanitize_text_field( (string) $params['run_id'] ) : '';
+		$runIdRaw = $params['run_id'] ?? null;
+		$runId    = is_string( $runIdRaw ) ? sanitize_text_field( $runIdRaw ) : '';
 
 		if ( 1 !== preg_match( '/' . self::RUN_ID_PATTERN . '/', $runId ) ) {
 			return new WP_Error(

@@ -65,6 +65,30 @@ final class SupportRequestTest extends TestCase {
 	}
 
 	/**
+	 * Arrays submitted where scalars are expected are refused field by field
+	 * instead of being cast to the literal string "Array".
+	 */
+	public function test_array_values_are_rejected_field_by_field(): void {
+		$result = SupportRequest::validate(
+			[
+				'category'    => [ 'bug' ],
+				'subject'     => [ 'Sitemap index missing' ],
+				'message'     => [ 'The sitemap index is empty.' ],
+				'email'       => [ 'owner@example.com' ],
+				'consent'     => [ '1' ],
+				'diagnostics' => [ '1' ],
+			]
+		);
+
+		$this->assertArrayHasKey( 'category', $result['errors'] );
+		$this->assertArrayHasKey( 'subject', $result['errors'] );
+		$this->assertArrayHasKey( 'message', $result['errors'] );
+		$this->assertArrayHasKey( 'email', $result['errors'] );
+		$this->assertArrayHasKey( 'consent', $result['errors'] );
+		$this->assertSame( '0', $result['values']['diagnostics'] );
+	}
+
+	/**
 	 * Every category in the published list is accepted.
 	 */
 	public function test_every_published_category_is_accepted(): void {

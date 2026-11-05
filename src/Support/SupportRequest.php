@@ -153,7 +153,7 @@ final class SupportRequest {
 		$errors = [];
 		$values = [];
 
-		$category = trim( (string) ( $input['category'] ?? '' ) );
+		$category = is_scalar( $input['category'] ?? null ) ? trim( (string) $input['category'] ) : '';
 
 		if ( '' === $category || ! isset( self::categories()[ $category ] ) ) {
 			$errors['category'] = __( 'Choose what this is about.', 'rankkernel' );
@@ -161,7 +161,7 @@ final class SupportRequest {
 			$values['category'] = $category;
 		}
 
-		$subject = trim( (string) ( $input['subject'] ?? '' ) );
+		$subject = is_scalar( $input['subject'] ?? null ) ? trim( (string) $input['subject'] ) : '';
 
 		if ( '' === $subject ) {
 			$errors['subject'] = __( 'Add a short subject.', 'rankkernel' );
@@ -181,7 +181,7 @@ final class SupportRequest {
 			$values['subject'] = $subject;
 		}
 
-		$message = trim( (string) ( $input['message'] ?? '' ) );
+		$message = is_scalar( $input['message'] ?? null ) ? trim( (string) $input['message'] ) : '';
 
 		if ( '' === $message ) {
 			$errors['message'] = __( 'Describe what happened.', 'rankkernel' );
@@ -201,7 +201,7 @@ final class SupportRequest {
 			$values['message'] = $message;
 		}
 
-		$email = trim( (string) ( $input['email'] ?? '' ) );
+		$email = is_scalar( $input['email'] ?? null ) ? trim( (string) $input['email'] ) : '';
 
 		if ( '' === $email ) {
 			$errors['email'] = __( 'Add an email address so we can reply.', 'rankkernel' );
@@ -213,11 +213,14 @@ final class SupportRequest {
 			$values['email'] = $email;
 		}
 
-		if ( empty( $input['consent'] ) ) {
+		$consent = $input['consent'] ?? null;
+
+		if ( ! is_scalar( $consent ) || '' === (string) $consent || '0' === (string) $consent ) {
 			$errors['consent'] = __( 'Please confirm before sending.', 'rankkernel' );
 		}
 
-		$values['diagnostics'] = empty( $input['diagnostics'] ) ? '0' : '1';
+		$diagnostics           = $input['diagnostics'] ?? null;
+		$values['diagnostics'] = ( is_scalar( $diagnostics ) && '' !== (string) $diagnostics && '0' !== (string) $diagnostics ) ? '1' : '0';
 
 		return [
 			'errors' => $errors,

@@ -107,15 +107,19 @@ final class AnalysisController {
 	 *
 	 * The framework normalisation the default sanitizer would have applied is
 	 * kept by rest_sanitize_array (a scalar becomes a list, keys are
-	 * reindexed), then each surviving element is passed through
-	 * sanitize_text_field. The list shape, order and entry count are kept.
+	 * reindexed), then each scalar element is passed through
+	 * sanitize_text_field. A non scalar element is left untouched so the
+	 * route's type validation rejects it instead of PHP casting it to the
+	 * literal string "Array".
 	 *
 	 * @param mixed $value Raw keyword list.
-	 * @return array<int, string> The result.
+	 * @return array<int, mixed> The result.
 	 */
 	public static function sanitizeKeywords( mixed $value ): array {
 		return array_map(
-			static fn ( mixed $keyword ): string => sanitize_text_field( (string) $keyword ),
+			static fn ( mixed $keyword ): mixed => is_scalar( $keyword )
+				? sanitize_text_field( (string) $keyword )
+				: $keyword,
 			rest_sanitize_array( $value )
 		);
 	}
@@ -159,7 +163,9 @@ final class AnalysisController {
 		}
 
 		$keywords = $request->get_param( 'keywords' );
-		$keywords = is_array( $keywords ) ? array_map( 'strval', $keywords ) : [];
+		$keywords = is_array( $keywords )
+			? array_values( array_map( 'strval', array_filter( $keywords, 'is_scalar' ) ) )
+			: [];
 
 		$analyzer = $this->analyzer ?? new Analyzer();
 

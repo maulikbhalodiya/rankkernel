@@ -52,6 +52,7 @@ final class InstantIndexingLogViewTest extends TestCase {
 		$GLOBALS['wpdb'] = $this->db;
 
 		Functions\when( '__' )->alias( static fn( string $v ): string => $v );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double mirrors WordPress text field sanitization without loading WordPress.
 	}
 
 	/**
