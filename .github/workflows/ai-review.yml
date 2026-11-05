@@ -275,12 +275,13 @@ jobs:
         id: resolve-ref
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             REF=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefName --jq .headRefName)
           else
-            REF="${{ github.event.pull_request.head.ref }}"
+            REF="${PR_HEAD_REF}"
           fi
           if [ -z "${REF}" ]; then
             echo "::error::Unable to resolve pull request ref."

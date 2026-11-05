@@ -32,8 +32,53 @@ permissions:
   issues: write
 
 jobs:
+  select:
+    name: Select audit matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Build audit matrix
+        id: matrix
+        env:
+          AUDIT_CATEGORY: ${{ github.event.inputs.audit_category || 'all' }}
+          AUDIT_TARGET: ${{ github.event.inputs.audit_target || 'all' }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          categories = [
+              "security-privacy",
+              "performance-efficiency",
+              "code-quality-conventions",
+              "error-handling-resilience",
+          ]
+          targets = ["src", "assets"]
+          category = os.environ.get("AUDIT_CATEGORY", "all")
+          target = os.environ.get("AUDIT_TARGET", "all")
+
+          if category not in ["all", *categories]:
+              raise SystemExit(f"invalid audit category: {category}")
+          if target not in ["all", *targets]:
+              raise SystemExit(f"invalid audit target: {target}")
+
+          selected_categories = categories if category == "all" else [category]
+          selected_targets = targets if target == "all" else [target]
+          matrix = {
+              "include": [
+                  {"category": item_category, "target": item_target}
+                  for item_category in selected_categories
+                  for item_target in selected_targets
+              ]
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write("matrix=" + json.dumps(matrix) + "\n")
+          PY
+
   audit:
     name: Codebase Audit (${{ matrix.category }} / ${{ matrix.target }})
+    needs: select
     runs-on: ubuntu-latest
     timeout-minutes: 60
     concurrency:
@@ -41,31 +86,7 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - category: security-privacy
-            target: src
-          - category: security-privacy
-            target: assets
-          - category: performance-efficiency
-            target: src
-          - category: performance-efficiency
-            target: assets
-          - category: code-quality-conventions
-            target: src
-          - category: code-quality-conventions
-            target: assets
-          - category: error-handling-resilience
-            target: src
-          - category: error-handling-resilience
-            target: assets
-    if: |
-      github.event_name == 'schedule' ||
-      (
-        github.event_name == 'workflow_dispatch' &&
-        (github.event.inputs.audit_category == 'all' || github.event.inputs.audit_category == matrix.category) &&
-        (github.event.inputs.audit_target == 'all' || github.event.inputs.audit_target == matrix.target)
-      )
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
     steps:
       - name: Diagnose GitHub token (non-secret)
         env:
