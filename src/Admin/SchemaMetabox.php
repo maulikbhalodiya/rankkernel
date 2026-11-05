@@ -700,9 +700,15 @@ final class SchemaMetabox {
 			if ( strlen( $customRaw ) > self::MAX_IMPORT_BYTES ) {
 				$status = 'invalid-json';
 			} else {
-				$decoded = json_decode( $customRaw, true, self::MAX_JSON_DEPTH );
+				/**
+				 * Raw decoded JSON value.
+				 *
+				 * @var mixed $decodedRaw
+				 */
+				$decodedRaw = json_decode( $customRaw, true, self::MAX_JSON_DEPTH );
+				$decoded    = is_array( $decodedRaw ) ? $decodedRaw : null;
 
-				if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
+				if ( JSON_ERROR_NONE !== json_last_error() || null === $decoded ) {
 					$status = 'invalid-json';
 				} else {
 					$custom = $decoded;
