@@ -672,10 +672,10 @@ final class NotFoundPage {
 	 */
 	private function postedExclusions(): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by the caller; sanitized below.
-		$comparators = isset( $_POST['rk_excl_comparator'] ) && is_array( $_POST['rk_excl_comparator'] ) ? array_values( array_map( 'sanitize_key', wp_unslash( $_POST['rk_excl_comparator'] ) ) ) : [];
+		$comparators = isset( $_POST['rk_excl_comparator'] ) && is_array( $_POST['rk_excl_comparator'] ) ? array_values( array_filter( map_deep( wp_unslash( $_POST['rk_excl_comparator'] ), 'sanitize_key' ), 'is_scalar' ) ) : [];
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by the caller; sanitized below.
-		$values = isset( $_POST['rk_excl_value'] ) && is_array( $_POST['rk_excl_value'] ) ? array_values( array_map( 'sanitize_text_field', wp_unslash( $_POST['rk_excl_value'] ) ) ) : [];
+		$values = isset( $_POST['rk_excl_value'] ) && is_array( $_POST['rk_excl_value'] ) ? array_values( array_filter( map_deep( wp_unslash( $_POST['rk_excl_value'] ), 'sanitize_text_field' ), 'is_scalar' ) ) : [];
 		$count  = min( count( $comparators ), count( $values ), MonitorSettings::MAX_EXCLUSIONS );
 		$clean  = [];
 
