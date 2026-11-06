@@ -1,0 +1,15 @@
+id,area,status,evidence
+A,"Plugin name, slug, trademark, ownership",FIXED / OWNER DECISION,"Header and readme display name are ""RankKernel SEO & Schema Engine""; slug rankkernel; no redundant ""Free"" in display name. No documentary trademark ownership in repo; owner must confirm legal clearance."
+B,Dashboard notices / Guideline 11,PASS,No global promotional/upgrade dashboard notices. Requirement notices are scoped to plugin screens; save notices render inline on plugin admin pages only.
+C,Arbitrary .htaccess/server directives,FIXED,HtaccessFile::DIRECTIVES contains only two fixed directive blocks; SettingsPage::saveHtaccess() accepts allowlisted ids; unknown ids ignored.
+D,CSS/JavaScript enqueue,FIXED,AdminStyles enqueues no-JS CSS via wp_register_style/wp_enqueue_style and sets rk-js via wp_add_inline_script; no static <style>/<link> tags or EnqueuedResources ignores.
+E,Nonces and capability checks,FIXED,Mutation handlers require capability + action-scoped nonce; MetadataBox exact-post GET now requires edit_post; REST permission callbacks and AJAX cap+nonce reviewed.
+F,Input sanitization and validation,FIXED,236 superglobal occurrences across 16 files inventoried; 0 UNREVIEWED/BLOCKED; boundary sanitizers/allowlists/type checks added or verified.
+G,Output escaping,PASS,"1,244 output statements inventoried; 1,231 PASS, 13 ACCEPTED_WITH_REASON (JSON/XML/CSV/pre-escaped fragments), 0 UNREVIEWED."
+H,Callback return-value escaping,FIXED,Breadcrumb shortcode/block/filter final HTML sanitized with KSES + URL/style allowlist; FAQ/HowTo/Schema callbacks reviewed.
+I,Prefixes and JavaScript globals,FIXED,Localized JS object is rankkernelRedirects; handles/actions/options/meta/transients/blocks/shortcodes are prefixed.
+J,IndexNow/external-service disclosure,PASS,readme.txt Privacy + External Services disclose Support email and IndexNow data/timing/endpoint; documentation and terms links return HTTP 200; terms page contains privacy section.
+K,Plugin/content/uploads path resolution,PASS,No hardcoded wp-content/uploads references; plugin paths use plugins_url/plugin_dir_path; uploads use wp_upload_dir or private temp dir.
+L,Safe filesystem writes and backups,PASS,.htaccess backups are non-autoloaded DB snapshots; same-directory atomic temp+rename; llms.txt opt-in path containment/no overwrite; support uploads private 0700 temp.
+M,"REST, AJAX, imports, uploads",PASS,"7 REST routes and 1 AJAX action inventoried; permission callbacks, nonce/capability checks, source/run_id allowlists, upload size/MIME/path checks verified."
+N,General WordPress.org detailed guidelines,PASS,"License GPLv2+, no telemetry, no undisclosed external service, no dashboard hijacking, no arbitrary code insertion, no forced plugin-file edits; Plugin Check 0 errors."

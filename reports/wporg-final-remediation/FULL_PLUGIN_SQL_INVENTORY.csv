@@ -1,0 +1,38 @@
+id,file,line,source,call,verdict,evidence
+SQL-001,src/Modules/InstantIndexing/LogQuery.php,28,"* $wpdb->prepare() with placeholders, the table name comes from",prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-002,src/Modules/InstantIndexing/LogTable.php,114,"$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );",get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-003,src/Modules/InstantIndexing/LogTable.php,183,$wpdb->query( $sql );,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-004,src/Modules/Monitor/LogTable.php,121,"$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );",get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-005,src/Modules/Monitor/LogTable.php,196,$wpdb->query( $sql );,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-006,src/Modules/Redirects/HitCounter.php,85,"$wpdb->query( $wpdb->prepare( $sql, $increments, $now, $ruleId ) );",query,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-007,src/Modules/Redirects/RedirectTable.php,121,"$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );",get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-008,src/Modules/Redirects/RedirectTable.php,224,$wpdb->query( $sql );,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-009,src/Modules/Sitemaps/Provider/AuthorsProvider.php,175,$count                            = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-010,src/Modules/Sitemaps/Provider/AuthorsProvider.php,225,$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-011,src/Modules/Sitemaps/Provider/AuthorsProvider.php,254,$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-012,src/Modules/Sitemaps/Provider/AuthorsProvider.php,400,"return $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-013,src/Modules/Sitemaps/Provider/AuthorsProvider.php,450,"return $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-014,src/Modules/Sitemaps/Provider/PostsProvider.php,184,$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-015,src/Modules/Sitemaps/Provider/PostsProvider.php,230,$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-016,src/Modules/Sitemaps/Provider/PostsProvider.php,275,"$rows = $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-017,src/Modules/Sitemaps/Provider/PostsProvider.php,675,"$metaRows = $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-018,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,202,$count = (int) $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-019,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,259,$max = $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-020,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,293,$count = $wpdb->get_var( $wpdb->prepare( ...$args ) );,get_var,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-021,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,355,"$rows = $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-022,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,489,"return $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-023,src/Modules/Sitemaps/Provider/TaxonomiesProvider.php,658,"$metaRows = $wpdb->get_results( $wpdb->prepare( ...$args ), ARRAY_A );",get_results,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-024,uninstall.php,36,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-025,uninstall.php,37,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-026,uninstall.php,47,"$rankkernel_tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );",get_col,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-027,uninstall.php,58,"$wpdb->query( ""DROP TABLE IF EXISTS `{$rankkernel_table}`"" );",query,ACCEPTED_WITH_REASON,"fixed plugin-owned table statement; identifiers validated/regex-gated, no request value interpolated"
+SQL-028,uninstall.php,108,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-029,uninstall.php,109,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-030,uninstall.php,117,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-031,uninstall.php,118,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-032,uninstall.php,126,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-033,uninstall.php,127,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-034,uninstall.php,135,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-035,uninstall.php,136,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()
+SQL-036,uninstall.php,147,$wpdb->query(,query,ACCEPTED_WITH_REASON,query text is constant or built from fixed table identifiers; request data is bound by a preceding prepare() call
+SQL-037,uninstall.php,148,$wpdb->prepare(,prepare,PASS,value/identifier prepared with $wpdb->prepare()

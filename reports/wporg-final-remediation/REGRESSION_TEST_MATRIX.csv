@@ -1,0 +1,23 @@
+id,regression_area,test_file,assertion,result
+RT-01,Arbitrary .htaccess directive rejection,tests/Unit/HtaccessFileTest.php,forged directive id/text is ignored; only fixed block generated,PASS
+RT-02,Safe .htaccess backup/storage,tests/Unit/HtaccessFileTest.php,"DB-backed snapshots, bounded keep, fail closed when storage unavailable",PASS
+RT-03,Custom/unavailable upload directories,"tests/Unit/HtaccessFileTest.php, tests/Unit/LlmsFileWriterTest.php","path filters, containment, missing directory fail closed",PASS
+RT-04,Nonce and capability checks,"tests/Unit/MonitorAdminTest.php, RedirectsAdminTest.php, SettingsPageTest.php, InstantIndexingPageTest.php",missing/invalid nonce and missing capability rejected; valid path proceeds,PASS
+RT-05,Cross-post metadata authorization,tests/Unit/MetadataBoxTest.php,unauthorized GET post yields postId 0 and no localized meta; currentPostId checks edit_post,PASS
+RT-06,Invalid/negative post and row IDs,"tests/Unit/MetadataBoxTest.php, MonitorAdminTest.php, RedirectsAdminTest.php",invalid IDs rejected; positive filtering prevents cross-row operations,PASS
+RT-07,Array where scalar expected,"tests/Unit/MetadataBoxTest.php, InstantIndexingPageTest.php, SchemaMetaboxTest.php",array/nested shapes rejected or normalized; no fatal,PASS
+RT-08,Malicious URL input,"tests/Unit/BreadcrumbsSecurityTest.php, RedirectsDestinationValidatorTest.php",javascript/data/vbscript/file/protocol-relative/backslash URLs rejected,PASS
+RT-09,Malicious HTML / KSES,"tests/Unit/BreadcrumbsSecurityTest.php, MetaPayloadTest.php",script/event/style injection stripped; allowlist output,PASS
+RT-10,Breadcrumb filter injection,tests/Unit/BreadcrumbsSecurityTest.php,hostile filter output sanitized after final filter,PASS
+RT-11,Shortcode/block return escaping,"tests/Unit/BreadcrumbsBlockTest.php, BreadcrumbsOutputTest.php, FaqBlockTest.php, HowtoBlockTest.php",returned HTML/JSON-LD escaped; hostile attributes rejected,PASS
+RT-12,Invalid/oversized upload,"tests/Unit/SupportPageTest.php, SchemaMetaboxTest.php, RedirectsAdminTest.php",error/MIME/size/path checks; no execution,PASS
+RT-13,Invalid/oversized JSON import,"tests/Unit/SchemaMetaboxTest.php, ImportControllerTest.php",1 MiB/depth bounds; invalid JSON rejected without wiping stored schema,PASS
+RT-14,REST permission/schema,"tests/Unit/AnalysisControllerTest.php, ImportControllerTest.php, RestControllersTest.php",permission callbacks and parameter allowlists,PASS
+RT-15,Redirect destination/loop,"tests/Unit/RedirectsValidatorTest.php, RedirectsDestinationValidatorTest.php",open redirect/loop/unsafe scheme rejected,PASS
+RT-16,Malicious server URI,"tests/Unit/MonitorLoggerTest.php, RedirectsRedirectorTest.php",control chars/nul stripped; normalized before storage/match,PASS
+RT-17,Sort/action/enum params,"tests/Unit/MonitorAdminTest.php, RedirectsAdminTest.php",strict allowlists/defaults; no arbitrary column/action,PASS
+RT-18,IndexNow disclosure consistency,"tests/Unit/IndexNowClientTest.php, readme check",readme endpoint/data/timing/terms + source endpoint match,PASS
+RT-19,No-JS admin fallback,tests/Unit/AdminStylesTest.php,enqueued no-JS CSS + rk-js flag; no static link/style,PASS
+RT-20,Admin notice scope,"tests/Unit/RobotsModuleTest.php, SitemapsModuleTest.php, DashboardPageTest.php",notices gate on rankkernel screen + capability,PASS
+RT-21,Uninstall safety,"tests/Unit/MonitorUninstallTest.php, InstantIndexingLogTableTest.php, RedirectsTableTest.php",owned tables/transients removed; regex-gated DROP; no arbitrary table,PASS
+RT-22,November 6 exact input examples,"tests/Unit/NotFoundPageTest.php, RedirectsAdminTest.php, SchemaMetaboxTest.php, MonitorLoggerTest.php, SettingsPageTest.php, MetadataBoxTest.php",all nine examples sanitized/validated and covered by focused tests,PASS
