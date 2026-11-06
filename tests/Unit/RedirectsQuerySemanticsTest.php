@@ -104,6 +104,8 @@ final class RedirectsQuerySemanticsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Functions\when( 'sanitize_key' )->alias( static fn ( mixed $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $v ) ) );
+		Functions\when( 'sanitize_text_field' )->alias( static fn ( mixed $v ): string => trim( strip_tags( (string) $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test stub; WordPress is not loaded.
 		RedirectsSettings::resetCache();
 
 		if ( ! defined( 'ARRAY_A' ) ) {

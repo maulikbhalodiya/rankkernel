@@ -50,8 +50,10 @@ final class SchemaSettingsPage {
 	 * Runs on load-{page}, so wp_safe_redirect can still send headers.
 	 */
 	public function maybeHandleSave(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to handleSave which verifies capability plus nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && isset( $_POST['rankkernel_schema_save'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
+		$requestMethod = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to handleSave which verifies capability plus nonce.
+		if ( 'POST' === $requestMethod && isset( $_POST['rankkernel_schema_save'] ) ) {
 			$this->handleSave();
 		}
 	}
@@ -148,15 +150,15 @@ final class SchemaSettingsPage {
 	public function render(): void {
 		$all = $this->store->all();
 
-		// Read only display flag, compared strictly against a literal, never stored or output.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, compared strictly against a literal, never stored or output.
-		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === (string) wp_unslash( $_GET['settings-updated'] );
+		// Read only display flag, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag, sanitized below.
+		$settingsUpdated = isset( $_GET['settings-updated'] ) && is_string( $_GET['settings-updated'] ) && '1' === sanitize_key( wp_unslash( $_GET['settings-updated'] ) );
 
 		// Read only failure flag, sanitized below. It rides the same rk_notice
 		// query argument the other admin screens use for a failed save.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only flag, sanitized below.
-		$rawNotice          = isset( $_GET['rk_notice'] ) ? wp_unslash( $_GET['rk_notice'] ) : '';
-		$settingsSaveFailed = 'save_failed' === sanitize_key( is_scalar( $rawNotice ) ? (string) $rawNotice : '' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag, sanitized below.
+		$notice             = isset( $_GET['rk_notice'] ) && is_string( $_GET['rk_notice'] ) ? sanitize_key( wp_unslash( $_GET['rk_notice'] ) ) : '';
+		$settingsSaveFailed = 'save_failed' === $notice;
 
 		$represents = 'organization';
 
@@ -258,33 +260,28 @@ final class SchemaSettingsPage {
 	private function collect(): array {
 		$partial = [];
 
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
-		if ( isset( $_POST['site_represents'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value sanitized in the store, unslashed here, sanitized or validated on the following statements.
-			$rawRepresents = is_string( $_POST['site_represents'] ) ? wp_unslash( $_POST['site_represents'] ) : '';
-
-			$partial['site_represents'] = $rawRepresents;
+		if ( isset( $_POST['site_represents'] ) && is_string( $_POST['site_represents'] ) ) {
+			$partial['site_represents'] = sanitize_key( wp_unslash( $_POST['site_represents'] ) );
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
-		if ( isset( $_POST['org_name'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value sanitized in the store, unslashed here, sanitized or validated on the following statements.
-			$partial['org_name'] = is_string( $_POST['org_name'] ) ? wp_unslash( $_POST['org_name'] ) : '';
+		if ( isset( $_POST['org_name'] ) && is_string( $_POST['org_name'] ) ) {
+			$partial['org_name'] = sanitize_text_field( wp_unslash( $_POST['org_name'] ) );
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
-		if ( isset( $_POST['org_logo'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value sanitized in the store, unslashed here, sanitized or validated on the following statements.
-			$partial['org_logo'] = is_string( $_POST['org_logo'] ) ? wp_unslash( $_POST['org_logo'] ) : '';
+		if ( isset( $_POST['org_logo'] ) && is_string( $_POST['org_logo'] ) ) {
+			$partial['org_logo'] = esc_url_raw( wp_unslash( $_POST['org_logo'] ) );
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
-		if ( isset( $_POST['org_sameas'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value sanitized in the store, unslashed here, sanitized or validated on the following statements.
-			$rawSameAs = is_string( $_POST['org_sameas'] ) ? wp_unslash( $_POST['org_sameas'] ) : '';
+		if ( isset( $_POST['org_sameas'] ) && is_string( $_POST['org_sameas'] ) ) {
+			$rawSameAs = sanitize_textarea_field( wp_unslash( $_POST['org_sameas'] ) );
 			$lines     = preg_split( '/\r\n|\r|\n/', $rawSameAs );
 
-			$partial['org_sameas'] = is_array( $lines ) ? $lines : [];
+			$partial['org_sameas'] = is_array( $lines ) ? array_values( array_filter( array_map( 'esc_url_raw', $lines ) ) ) : [];
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
@@ -292,11 +289,8 @@ final class SchemaSettingsPage {
 
 		foreach ( $this->publicPostTypes() as $slug => $label ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
-			if ( isset( $_POST[ 'schema_default_' . $slug ] ) ) {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in handleSave, value validated in the store, unslashed here, sanitized or validated on the following statements.
-				$rawDefault = wp_unslash( $_POST[ 'schema_default_' . $slug ] );
-
-				$partial[ 'schema_default_' . $slug ] = is_string( $rawDefault ) ? $rawDefault : '';
+			if ( isset( $_POST[ 'schema_default_' . $slug ] ) && is_string( $_POST[ 'schema_default_' . $slug ] ) ) {
+				$partial[ 'schema_default_' . $slug ] = sanitize_text_field( wp_unslash( $_POST[ 'schema_default_' . $slug ] ) );
 			}
 		}
 
@@ -304,6 +298,7 @@ final class SchemaSettingsPage {
 		$partial['schema_breadcrumbs'] = isset( $_POST['schema_breadcrumbs'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in handleSave before collect runs.
 		$partial['schema_author'] = isset( $_POST['schema_author'] );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		return $partial;
 	}

@@ -85,6 +85,36 @@ if (! function_exists('wp_json_encode')) {
     }
 }
 
+if (! function_exists('map_deep')) {
+    /**
+     * Mirror WordPress map_deep() for unit tests.
+     *
+     * @param mixed    $value    Value to walk.
+     * @param callable $callback Callback applied to each leaf.
+     * @return mixed
+     */
+    function map_deep( $value, $callback ) {
+        if (is_array($value)) {
+            foreach ($value as $index => $item) {
+                $value[ $index ] = map_deep($item, $callback);
+            }
+
+            return $value;
+        }
+
+        if (is_object($value)) {
+            $objectVars = get_object_vars($value);
+            foreach ($objectVars as $property => $propertyValue) {
+                $objectVars[ $property ] = map_deep($propertyValue, $callback);
+            }
+
+            return (object) $objectVars;
+        }
+
+        return call_user_func($callback, $value);
+    }
+}
+
 if (! function_exists('plugin_dir_path')) {
     function plugin_dir_path( string $file ): string {
         return rtrim(dirname($file), '/\\') . '/';

@@ -62,8 +62,9 @@ final class SupportPage {
 	 */
 	public function maybeHandleSave(): void {
 		// Delegates to a handler which verifies capability plus its own nonce.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- delegates to a handler which verifies capability plus its own nonce, compared strictly against a literal, never stored or output.
-		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- delegates to a handler which verifies capability plus its own nonce.
+		$requestMethod = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		if ( 'POST' !== $requestMethod ) {
 			return;
 		}
 
@@ -132,7 +133,9 @@ final class SupportPage {
 			// than read from a control that no longer exists.
 			'diagnostics' => '1',
 		];
-		$file  = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;
+		// Raw upload metadata is normalized and validated by SupportDelivery::normalizeScreenshots() and validateScreenshot() (is_uploaded_file, MIME sniff, actual size, private temp path).
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above; every upload field is validated before use.
+		$file = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		$check = SupportRequest::validate( $input );

@@ -257,9 +257,9 @@ final class Logger {
 			return;
 		}
 
-		// Frontend capture runs outside any form context, the raw URI is parsed and normalized before use and never echoed.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
-		$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		// Frontend capture runs outside any form context, the raw URI is sanitized and normalized before use and never echoed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- frontend request context, sanitized below.
+		$rawUri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
 		$uri    = $this->normalizeUri( $rawUri );
 
 		if ( '' === $uri || '/' === $uri ) {
@@ -577,18 +577,11 @@ final class Logger {
 	 * @return string Sanitized value, at most 255 characters.
 	 */
 	private function serverField( string $name ): string {
-		if ( ! isset( $_SERVER[ $name ] ) ) {
+		if ( ! isset( $_SERVER[ $name ] ) || ! is_string( $_SERVER[ $name ] ) ) {
 			return '';
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- key allowlisted by callers, value unslashed and sanitized below.
-		$raw = $_SERVER[ $name ];
-
-		if ( ! is_string( $raw ) ) {
-			return '';
-		}
-
-		$value = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( wp_unslash( $raw ) ) : trim( $raw );
+		$value = sanitize_text_field( wp_unslash( (string) $_SERVER[ $name ] ) );
 
 		if ( 'HTTP_REFERER' === $name ) {
 			$value = $this->redactUrlQuery( $value );

@@ -5,6 +5,7 @@
 .opencode-reviewer.yml
 AGENTS.md
 docs/
+reports/
 tests/
 vendor/
 node_modules/

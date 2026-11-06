@@ -161,6 +161,8 @@ final class RedirectsAdminTest extends TestCase {
 		// Test double for sanitize_text_field, strip_tags mirrors the core behavior closely enough.
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) );
+		Functions\when( 'sanitize_file_name' )->alias( static fn ( string $v ): string => $v );
+		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->alias( static fn ( mixed $v ): mixed => is_string( $v ) ? stripslashes( $v ) : $v );
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_html__' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );

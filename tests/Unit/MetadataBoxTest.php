@@ -156,6 +156,12 @@ final class MetadataBoxTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 		Functions\when( 'rest_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com/wp-json/' . ltrim( $p, '/' ) );
 		Functions\when( 'get_post_type' )->alias( static fn ( mixed $p = null ): string => 'post' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_type signature.
+		Functions\when( 'get_post' )->alias(
+			static fn ( int $id ): object => (object) [
+				'ID'        => $id,
+				'post_type' => 'post',
+			]
+		);
 		// The metabox gate calls get_current_screen. Stub it here so the
 		// default is the Classic Editor path and the suite stays independent
 		// of any get_current_screen patch left by a previously run test.
@@ -577,6 +583,33 @@ final class MetadataBoxTest extends TestCase {
 		$this->assertSame( 'Example Site', $state['tokens']['sitename'] );
 		$this->assertSame( '-', $state['tokens']['sep'] );
 		$this->assertSame( '', $state['featuredAlt'] );
+	}
+
+	/**
+	 * A post the current user cannot edit never reaches the localized editor.
+	 */
+	public function test_localized_state_rejects_a_post_without_edit_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$state = $this->newBox()->localizedState( 7 );
+
+		$this->assertSame( 0, $state['postId'] );
+		$this->assertSame( '', $state['permalink'] );
+		$this->assertSame( [], array_filter( $state['tokens'], static fn ( mixed $value ): bool => '' !== (string) $value ) );
+	}
+
+	/**
+	 * The screen post argument is checked against the exact post capability.
+	 */
+	public function test_current_post_id_rejects_the_get_post_argument_without_capability(): void {
+		Functions\when( 'get_the_ID' )->justReturn( 0 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$_GET['post'] = '99';
+
+		$method = new \ReflectionMethod( MetadataBox::class, 'currentPostId' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 0, $method->invoke( $this->newBox() ) );
 	}
 
 	/**

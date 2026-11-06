@@ -349,9 +349,8 @@ final class SchemaMetabox {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display flag, non-scalar input is discarded and scalars are sanitized on the following statement.
-		$rawMsg        = isset( $_GET['rankkernel_schema_msg'] ) ? wp_unslash( $_GET['rankkernel_schema_msg'] ) : '';
-		$noticeMessage = is_scalar( $rawMsg ) ? sanitize_key( (string) $rawMsg ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag, sanitized below.
+		$noticeMessage = isset( $_GET['rankkernel_schema_msg'] ) && is_string( $_GET['rankkernel_schema_msg'] ) ? sanitize_key( wp_unslash( $_GET['rankkernel_schema_msg'] ) ) : '';
 
 		$schema   = $this->readSchema( $this->readPayload( $postId ) );
 		$rawType  = $schema['type'] ?? '';
@@ -687,10 +686,8 @@ final class SchemaMetabox {
 			return;
 		}
 
-		$customRaw = isset( $_POST['rankkernel_schema_custom'] )
-			&& is_string( $_POST['rankkernel_schema_custom'] )
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- unslashed here, sanitized or validated on the following statements.
-			? (string) wp_unslash( $_POST['rankkernel_schema_custom'] )
+		$customRaw = isset( $_POST['rankkernel_schema_custom'] ) && is_string( $_POST['rankkernel_schema_custom'] )
+			? sanitize_textarea_field( wp_unslash( $_POST['rankkernel_schema_custom'] ) )
 			: '';
 
 		$custom = [];
@@ -791,11 +788,9 @@ final class SchemaMetabox {
 	 */
 	private function postedType(): string {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-		$raw = isset( $_POST['rankkernel_schema_type'] )
+		$raw = isset( $_POST['rankkernel_schema_type'] ) && is_string( $_POST['rankkernel_schema_type'] )
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			&& is_string( $_POST['rankkernel_schema_type'] )
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave, unslashed here, validated against an allow list below.
-			? trim( (string) wp_unslash( $_POST['rankkernel_schema_type'] ) )
+			? sanitize_text_field( wp_unslash( $_POST['rankkernel_schema_type'] ) )
 			: '';
 
 		return in_array( $raw, SchemaTypes::SUPPORTED, true ) ? $raw : '';
@@ -807,8 +802,8 @@ final class SchemaMetabox {
 	 * @return array<string, string>
 	 */
 	private function postedFields(): array {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
-		$raw = $_POST['rankkernel_schema_fields'] ?? [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+		$raw = isset( $_POST['rankkernel_schema_fields'] ) ? map_deep( wp_unslash( $_POST['rankkernel_schema_fields'] ), 'sanitize_text_field' ) : [];
 
 		if ( ! is_array( $raw ) ) {
 			return [];
@@ -821,8 +816,7 @@ final class SchemaMetabox {
 				continue;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$posted = (string) wp_unslash( $raw[ $key ] );
+			$posted = (string) $raw[ $key ];
 
 			if ( in_array( $key, self::URL_KEYS, true ) ) {
 				$value = function_exists( 'esc_url_raw' ) ? esc_url_raw( $posted ) : trim( $posted );
@@ -845,8 +839,8 @@ final class SchemaMetabox {
 	 * @return array<int, array{question: string, answer: string}>
 	 */
 	private function postedQuestions(): array {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
-		$raw = $_POST['rankkernel_schema_faq'] ?? [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+		$raw = isset( $_POST['rankkernel_schema_faq'] ) ? map_deep( wp_unslash( $_POST['rankkernel_schema_faq'] ), 'sanitize_text_field' ) : [];
 
 		if ( ! is_array( $raw ) ) {
 			return [];
@@ -859,15 +853,11 @@ final class SchemaMetabox {
 				continue;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
 			$question = isset( $row['question'] ) && is_string( $row['question'] )
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-				? sanitize_text_field( (string) wp_unslash( $row['question'] ) )
+				? (string) $row['question']
 				: '';
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-			$answer = isset( $row['answer'] ) && is_string( $row['answer'] )
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
-				? sanitize_text_field( (string) wp_unslash( $row['answer'] ) )
+			$answer   = isset( $row['answer'] ) && is_string( $row['answer'] )
+				? (string) $row['answer']
 				: '';
 
 			$rows[] = [
@@ -901,8 +891,8 @@ final class SchemaMetabox {
 			? sanitize_text_field( (string) wp_unslash( $_POST['rankkernel_schema_howto_cost'] ) )
 			: '';
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave, array of rows, each scalar unslashed and sanitized in the loop below.
-		$rawSteps = $_POST['rankkernel_schema_howto_steps'] ?? [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave.
+		$rawSteps = isset( $_POST['rankkernel_schema_howto_steps'] ) ? map_deep( wp_unslash( $_POST['rankkernel_schema_howto_steps'] ), 'sanitize_text_field' ) : [];
 		$steps    = [];
 
 		if ( is_array( $rawSteps ) ) {
@@ -912,21 +902,9 @@ final class SchemaMetabox {
 				}
 
 				$steps[] = [
-                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'title' => isset( $row['title'] ) && is_string( $row['title'] )
-                        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-						? sanitize_text_field( (string) wp_unslash( $row['title'] ) )
-						: '',
-                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'text'  => isset( $row['text'] ) && is_string( $row['text'] )
-                        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-						? sanitize_text_field( (string) wp_unslash( $row['text'] ) )
-						: '',
-                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-					'image' => isset( $row['image'] ) && is_string( $row['image'] )
-                        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified.
-						? esc_url_raw( (string) wp_unslash( $row['image'] ) )
-						: '',
+					'title' => isset( $row['title'] ) && is_string( $row['title'] ) ? (string) $row['title'] : '',
+					'text'  => isset( $row['text'] ) && is_string( $row['text'] ) ? (string) $row['text'] : '',
+					'image' => isset( $row['image'] ) && is_string( $row['image'] ) ? esc_url_raw( (string) $row['image'] ) : '',
 				];
 			}
 		}
@@ -956,9 +934,8 @@ final class SchemaMetabox {
 			return $empty;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before readImportFile runs, upload metadata validated below, file contents never executed.
-		$file  = $_FILES['rankkernel_schema_import'];
-		$error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave before readImportFile runs; upload paths are not slashed by WordPress, and every metadata field is sanitized below.
+		$error = isset( $_FILES['rankkernel_schema_import']['error'] ) ? absint( $_FILES['rankkernel_schema_import']['error'] ) : UPLOAD_ERR_NO_FILE;
 
 		if ( UPLOAD_ERR_NO_FILE === $error ) {
 			return $empty;
@@ -972,11 +949,12 @@ final class SchemaMetabox {
 			];
 		}
 
-		$tmp = $file['tmp_name'] ?? '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave; the temp path is server supplied and is validated with is_uploaded_file() and is_readable() below.
+		$tmp = isset( $_FILES['rankkernel_schema_import']['tmp_name'] ) && is_string( $_FILES['rankkernel_schema_import']['tmp_name'] ) ? sanitize_text_field( $_FILES['rankkernel_schema_import']['tmp_name'] ) : '';
 
 		$probe = $this->isUploadedFile;
 
-		if ( ! is_string( $tmp ) || '' === $tmp || ! $probe( $tmp ) || ! is_readable( $tmp ) ) {
+		if ( '' === $tmp || ! $probe( $tmp ) || ! is_readable( $tmp ) ) {
 			return [
 				'found'  => true,
 				'valid'  => false,
@@ -984,7 +962,8 @@ final class SchemaMetabox {
 			];
 		}
 
-		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave; the upload name is not slashed, sanitized with sanitize_file_name below.
+		$name = isset( $_FILES['rankkernel_schema_import']['name'] ) && is_string( $_FILES['rankkernel_schema_import']['name'] ) ? sanitize_file_name( $_FILES['rankkernel_schema_import']['name'] ) : '';
 
 		if ( '' === $name ) {
 			return [
@@ -1112,9 +1091,8 @@ final class SchemaMetabox {
 	 * Export handler, downloads the stored schema object as JSON.
 	 */
 	public function handleExport(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified below, unslashed here, cast to scalar on the following statement.
-		$rawPostId = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : 0;
-		$postId    = max( 0, (int) ( is_scalar( $rawPostId ) ? $rawPostId : 0 ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only export parameter, cast and authorized below.
+		$postId = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? max( 0, (int) sanitize_text_field( wp_unslash( (string) $_GET['post'] ) ) ) : 0;
 
 		if ( $postId <= 0 ) {
 			wp_die(

@@ -86,8 +86,8 @@ final class UserProfileField {
 
 		// The value is only read when it is a string, so an array shaped field
 		// can never reach the sanitiser with the wrong type.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified above, the value is a string that is unslashed then sanitised below.
-		$rawHandle = $_POST[ self::META_KEY ] ?? null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+		$rawHandle = isset( $_POST[ self::META_KEY ] ) && is_string( $_POST[ self::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::META_KEY ] ) ) : null;
 
 		if ( ! is_string( $rawHandle ) ) {
 			return;
@@ -95,7 +95,7 @@ final class UserProfileField {
 
 		$storedHandle  = get_user_meta( $userId, self::META_KEY, true );
 		$currentHandle = MetaPayload::sanitizeTwitterHandle( is_string( $storedHandle ) ? $storedHandle : '' );
-		$newHandle     = MetaPayload::sanitizeTwitterHandle( wp_unslash( $rawHandle ) );
+		$newHandle     = MetaPayload::sanitizeTwitterHandle( $rawHandle );
 
 		if ( $currentHandle === $newHandle ) {
 			return;

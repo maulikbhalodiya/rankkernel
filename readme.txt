@@ -12,7 +12,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 
-RankKernel is the Free, Zero-Bloat Open-Source SEO Engine for WordPress, all free, forever:
+RankKernel is the zero-bloat, open-source SEO engine for WordPress:
 
 * Metadata engine (titles, meta descriptions, robots, canonical, Open Graph, Twitter cards)
 * Content analysis

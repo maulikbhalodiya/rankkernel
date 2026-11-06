@@ -64,6 +64,7 @@ final class InstantIndexingPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Functions\when( 'sanitize_key' )->alias( static fn ( mixed $v ): string => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $v ) ) );
 
 		if ( ! defined( 'ARRAY_A' ) ) {
 			define( 'ARRAY_A', 'ARRAY_A' );

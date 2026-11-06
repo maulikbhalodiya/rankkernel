@@ -1582,7 +1582,9 @@ final class SettingsPageTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertSame( '', $captured['social_default_image'] );
 		$this->assertSame( 0, $captured['social_default_image_id'] );
-		$this->assertSame( MetaPayload::sanitizeTwitterHandle( $hostileHandle ), $captured['twitter_site'] );
+		// The boundary sanitizer strips the script tag before the handle sanitizer
+		// removes punctuation, so the hostile tag text is not retained.
+		$this->assertSame( 'alert1foobar', $captured['twitter_site'] );
 		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9_]{0,15}$/', $captured['twitter_site'] );
 	}
 

@@ -456,7 +456,7 @@ final class MetadataBox {
 	 * Localizes the same rankkernelMetaEditor object the classic script uses.
 	 */
 	public function enqueueEditorAssets(): void {
-		if ( ! $this->isSupportedType( $this->currentPostType() ) ) {
+		if ( ! $this->isPostEditorScreen() || ! $this->isSupportedType( $this->currentPostType() ) ) {
 			return;
 		}
 
@@ -633,9 +633,8 @@ final class MetadataBox {
 
 		// Read only notice key from the redirect filter, compared strictly
 		// against a literal and sanitized before it reaches the view.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- read only notice key, sanitized below.
-		$rawMetaMsg        = isset( $_GET['rankkernel_meta_msg'] ) ? wp_unslash( $_GET['rankkernel_meta_msg'] ) : '';
-		$metaNoticeMessage = is_scalar( $rawMetaMsg ) ? sanitize_key( (string) $rawMetaMsg ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only notice key, sanitized below.
+		$metaNoticeMessage = isset( $_GET['rankkernel_meta_msg'] ) && is_string( $_GET['rankkernel_meta_msg'] ) ? sanitize_key( wp_unslash( $_GET['rankkernel_meta_msg'] ) ) : '';
 
 		require __DIR__ . '/Views/metadata-box.php';
 	}
@@ -737,6 +736,8 @@ final class MetadataBox {
 	 * @return array<string, mixed> The localized contract.
 	 */
 	public function localizedState( int $postId ): array {
+		$postId = $this->authorizedPostId( $postId );
+
 		$titleTemplate       = (string) $this->store->get( 'title_template', '%%title%% %%sep%% %%sitename%%' );
 		$descriptionTemplate = (string) $this->store->get( 'description_template', '' );
 
@@ -1202,18 +1203,18 @@ final class MetadataBox {
 				continue;
 			}
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, sanitized by MetaPayload::sanitize below.
-			$merged[ $name ] = (string) wp_unslash( $_POST[ $key ] );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+			$merged[ $name ] = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
 		if ( isset( $_POST['rankkernel_meta_focus_keywords'] ) && is_string( $_POST['rankkernel_meta_focus_keywords'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, split and sanitized by MetaPayload::sanitize below.
-			$postedKeywords = (string) wp_unslash( $_POST['rankkernel_meta_focus_keywords'] );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+			$postedKeywords = sanitize_text_field( wp_unslash( $_POST['rankkernel_meta_focus_keywords'] ) );
 
 			$keywords = [];
 			foreach ( explode( ',', $postedKeywords ) as $keyword ) {
-				$keyword = trim( $keyword );
+				$keyword = sanitize_text_field( trim( $keyword ) );
 
 				if ( '' !== $keyword ) {
 					$keywords[] = $keyword;
@@ -1225,33 +1226,41 @@ final class MetadataBox {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
 		if ( isset( $_POST['rankkernel_meta_canonical'] ) && is_string( $_POST['rankkernel_meta_canonical'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave before this runs, unslashed here, sanitized by MetaPayload::sanitize below.
-			$merged['canonical'] = (string) wp_unslash( $_POST['rankkernel_meta_canonical'] );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in handleSave before this runs.
+			$merged['canonical'] = esc_url_raw( wp_unslash( $_POST['rankkernel_meta_canonical'] ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave before this runs, mapped and sanitized in the helpers below.
-		$postedRobots = $_POST['rankkernel_meta_robots'] ?? null;
+		$sanitizeLeaf = static function ( mixed $value ): mixed {
+			return is_string( $value ) ? sanitize_text_field( $value ) : $value;
+		};
+
+		// The scanner cannot follow a callback through map_deep(); every leaf is sanitized with sanitize_text_field().
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave; map_deep applies sanitize_text_field to every string leaf.
+		$postedRobots = isset( $_POST['rankkernel_meta_robots'] ) ? map_deep( wp_unslash( $_POST['rankkernel_meta_robots'] ), $sanitizeLeaf ) : null;
 		if ( is_array( $postedRobots ) ) {
 			$merged['robots'] = $this->postedRobots( $postedRobots );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave before this runs, mapped and sanitized in the helper below.
-		$postedOg = $_POST['rankkernel_meta_og'] ?? null;
+		// The scanner cannot follow a callback through map_deep(); every leaf is sanitized with sanitize_text_field().
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave; map_deep applies sanitize_text_field to every string leaf.
+		$postedOg = isset( $_POST['rankkernel_meta_og'] ) ? map_deep( wp_unslash( $_POST['rankkernel_meta_og'] ), $sanitizeLeaf ) : null;
 		if ( is_array( $postedOg ) ) {
 			$existingOg   = ( isset( $existing['og'] ) && is_array( $existing['og'] ) ) ? $existing['og'] : [];
 			$merged['og'] = array_merge( $existingOg, $this->postedOg( $postedOg ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave before this runs, mapped and sanitized in the helper below.
-		$postedTwitter = $_POST['rankkernel_meta_twitter'] ?? null;
+		// The scanner cannot follow a callback through map_deep(); every leaf is sanitized with sanitize_text_field().
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave; map_deep applies sanitize_text_field to every string leaf.
+		$postedTwitter = isset( $_POST['rankkernel_meta_twitter'] ) ? map_deep( wp_unslash( $_POST['rankkernel_meta_twitter'] ), $sanitizeLeaf ) : null;
 		if ( is_array( $postedTwitter ) ) {
 			$existingTwitter   = ( isset( $existing['twitter'] ) && is_array( $existing['twitter'] ) ) ? $existing['twitter'] : [];
 			$merged['twitter'] = array_merge( $existingTwitter, $this->postedTwitter( $postedTwitter ) );
 		}
 
 		// Per field reset runs last so it wins over whatever the input posted.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- verified in handleSave before this runs, scalar membership checked below.
-		$reset = $_POST['rankkernel_meta_reset'] ?? null;
+		// The scanner cannot follow a callback through map_deep(); every leaf is sanitized with sanitize_text_field().
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified in handleSave; map_deep applies sanitize_text_field to every string leaf.
+		$reset = isset( $_POST['rankkernel_meta_reset'] ) ? map_deep( wp_unslash( $_POST['rankkernel_meta_reset'] ), $sanitizeLeaf ) : null;
 		if ( is_array( $reset ) ) {
 			foreach ( $textFields as $name ) {
 				if ( ! empty( $reset[ $name ] ) ) {
@@ -1650,34 +1659,43 @@ final class MetadataBox {
 		if ( function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 
-			if ( is_object( $screen ) && '' !== $screen->post_type ) {
-				return $screen->post_type;
+			if ( is_object( $screen ) && '' !== (string) $screen->post_type ) {
+				return (string) $screen->post_type;
 			}
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only screen context, unslashed and cast to a non-negative integer or sanitized key below.
-		$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen context; the post ID is validated against the exact post and edit_post before use.
+		$rawPost = isset( $_GET['post'] ) && is_string( $_GET['post'] ) ? sanitize_text_field( wp_unslash( $_GET['post'] ) ) : '';
 
-		if ( is_scalar( $rawPost ) && (int) $rawPost > 0 && function_exists( 'get_post_type' ) ) {
-			$postType = get_post_type( (int) $rawPost );
+		if ( '' !== $rawPost && function_exists( 'get_post_type' ) ) {
+			$postId = $this->authorizedPostId( (int) $rawPost );
 
-			if ( is_string( $postType ) && '' !== $postType ) {
-				return $postType;
+			if ( $postId > 0 ) {
+				$postType = get_post_type( $postId );
+
+				if ( is_string( $postType ) && '' !== $postType ) {
+					return $postType;
+				}
 			}
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only screen context, unslashed and sanitized with sanitize_key below.
-		$rawType = isset( $_GET['post_type'] ) ? wp_unslash( $_GET['post_type'] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen context, sanitized with sanitize_key below.
+		$rawType = isset( $_GET['post_type'] ) && is_string( $_GET['post_type'] ) ? sanitize_text_field( wp_unslash( $_GET['post_type'] ) ) : '';
 
-		if ( is_scalar( $rawType ) && '' !== (string) $rawType ) {
-			return sanitize_key( (string) $rawType );
+		if ( '' !== $rawType ) {
+			return sanitize_key( $rawType );
 		}
 
 		return 'post';
 	}
 
 	/**
-	 * Current edited post id.
+	 * Current edited post id, restricted to a post the current user can edit.
+	 *
+	 * The screen URL's post query argument is user-controlled. It is only a
+	 * read-only screen hint, but it selects the post whose meta and resolved
+	 * content are localized into the editor, so it must be checked against the
+	 * exact post capability rather than trusted as a screen identifier.
 	 *
 	 * @return int The result.
 	 */
@@ -1686,17 +1704,61 @@ final class MetadataBox {
 			$id = get_the_ID();
 
 			if ( is_int( $id ) && $id > 0 ) {
-				return $id;
+				return $this->authorizedPostId( $id );
 			}
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only screen context, unslashed and cast to a non-negative integer below.
-		$rawPost = isset( $_GET['post'] ) ? wp_unslash( $_GET['post'] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen context; the post ID is cast and checked against edit_post in authorizedPostId.
+		$rawPost = isset( $_GET['post'] ) && is_string( $_GET['post'] ) ? sanitize_text_field( wp_unslash( $_GET['post'] ) ) : '';
 
-		if ( is_scalar( $rawPost ) ) {
-			return max( 0, (int) $rawPost );
+		if ( '' === $rawPost ) {
+			return 0;
 		}
 
-		return 0;
+		return $this->authorizedPostId( max( 0, (int) $rawPost ) );
+	}
+
+	/**
+	 * Whether the current admin screen is a post editor screen.
+	 *
+	 * @return bool The result.
+	 */
+	private function isPostEditorScreen(): bool {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		return is_object( $screen ) && 'post' === (string) $screen->base;
+	}
+
+	/**
+	 * Restrict a post ID to an existing, editable post of the current user.
+	 *
+	 * A nonce is deliberately not added here: this is a read-only editor screen
+	 * context, and the correct boundary is object-level authorization. A nonce
+	 * scoped to a different action would break normal editor loading without
+	 * adding authorization.
+	 *
+	 * @param int $postId Candidate post id.
+	 * @return int The authorized post id, or zero.
+	 */
+	private function authorizedPostId( int $postId ): int {
+		if ( $postId <= 0 || ! function_exists( 'get_post' ) || ! function_exists( 'current_user_can' ) ) {
+			return 0;
+		}
+
+		$post = get_post( $postId );
+
+		if ( ! is_object( $post ) || (int) $post->ID !== $postId ) {
+			return 0;
+		}
+
+		if ( ! current_user_can( 'edit_post', $postId ) ) {
+			return 0;
+		}
+
+		return $postId;
 	}
 }
