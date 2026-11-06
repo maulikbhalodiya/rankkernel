@@ -1,10 +1,10 @@
 # RankKernel 0.1.0 — Final Security Audit
 
-Production source: `9e2cecc3ec49241aeaf40e718fc55f1262c4e6d4`  
+Production source: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`  
 Branch: `release/wporg-0.1.0`  
-Package: `rankkernel-0.1.0-candidate-9e2cecc.zip`  
-Size: 902,481 bytes — 239 files — SHA-256 `257e546d131fa10eecd444a47802737157b8984018a5c26424e1605b4fc5cb34`  
-Manifest SHA-256: `3d56ec6c9e0e72d16be427309d2c86d2b0cf593d8f5acdc3d77a58cc32ff4634`
+Package: `rankkernel-0.1.0-candidate-96008d2.zip`  
+Size: 902,496 bytes — 239 files — SHA-256 `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0`  
+Manifest SHA-256: `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35`
 
 ## Scope and method
 
@@ -79,4 +79,4 @@ Warnings: 203 included-view local-variable false positives, 20 custom-table prep
 
 ## Verdict
 
-**READY FOR INDEPENDENT SERVER AUDIT** of source `9e2cecc` and ZIP `257e546d…`. Not approved for WordPress.org upload or publication.
+**READY FOR INDEPENDENT SERVER AUDIT** of source `96008d2` and ZIP `5e8ecd1a…`. Not approved for WordPress.org upload or publication.

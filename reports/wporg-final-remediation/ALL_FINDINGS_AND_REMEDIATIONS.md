@@ -1,7 +1,7 @@
 # RankKernel 0.1.0 — All Findings and Remediations
 
-Production source: `9e2cecc3ec49241aeaf40e718fc55f1262c4e6d4`  
-Final ZIP: `rankkernel-0.1.0-candidate-9e2cecc.zip`, 902,481 bytes, 239 files, SHA-256 `257e546d131fa10eecd444a47802737157b8984018a5c26424e1605b4fc5cb34`
+Production source: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`  
+Final ZIP: `rankkernel-0.1.0-candidate-96008d2.zip`, 902,496 bytes, 239 files, SHA-256 `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0`
 
 ## Finding F-01 — Metadata editor used an unverified screen post ID
 

@@ -1,6 +1,6 @@
 # RankKernel — False-Positive / Accepted-Warning Justifications
 
-Exact ZIP: `rankkernel-0.1.0-candidate-9e2cecc.zip` (SHA-256 `257e546d...`). Plugin Check 2.1.0 on WordPress 7.1.4 and 6.5.14: **0 errors / 223 warnings**.
+Exact ZIP: `rankkernel-0.1.0-candidate-96008d2.zip` (SHA-256 `5e8ecd1a...`). Plugin Check 2.1.0 on WordPress 7.1.4 and 6.5.14: **0 errors / 223 warnings**.
 
 ## Summary
 

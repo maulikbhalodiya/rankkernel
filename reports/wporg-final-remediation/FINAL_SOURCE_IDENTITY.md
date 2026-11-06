@@ -2,21 +2,21 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production package source commit: `9e2cecc3ec49241aeaf40e718fc55f1262c4e6d4`
+Production package source commit: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`
 
 ## Source and package
 
 | Field | Value |
 |---|---|
 | Branch | `release/wporg-0.1.0` |
-| Production source commit | `9e2cecc3ec49241aeaf40e718fc55f1262c4e6d4` |
+| Production source commit | `96008d2cce1c4c76e628cb35a08352ede8a7e6e9` |
 | Commit subject | `Harden November 6 input and editor authorization paths` |
-| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-9e2cecc.zip` |
-| ZIP size | 902,481 bytes |
+| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-96008d2.zip` |
+| ZIP size | 902,496 bytes |
 | ZIP files | 239 |
-| ZIP SHA-256 | `257e546d131fa10eecd444a47802737157b8984018a5c26424e1605b4fc5cb34` |
-| Manifest | `rankkernel-0.1.0-candidate-9e2cecc-manifest.txt` |
-| Manifest SHA-256 | `3d56ec6c9e0e72d16be427309d2c86d2b0cf593d8f5acdc3d77a58cc32ff4634` |
+| ZIP SHA-256 | `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0` |
+| Manifest | `rankkernel-0.1.0-candidate-96008d2-manifest.txt` |
+| Manifest SHA-256 | `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35` |
 | Top-level directory | `rankkernel/` only |
 
 ## Superseded package
@@ -42,4 +42,4 @@ It must not be uploaded for this remediation. The new candidate supersedes it be
 
 ## Branch tip note
 
-The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `9e2cecc`.
+The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `96008d2`.

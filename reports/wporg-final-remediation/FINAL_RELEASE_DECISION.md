@@ -2,7 +2,7 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production source commit: `9e2cecc3ec49241aeaf40e718fc55f1262c4e6d4`
+Production source commit: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`
 
 ## Decision
 
@@ -16,11 +16,11 @@ This is **not** an approval, not a WordPress.org submission, and not authorizati
 
 | Field | Value |
 |---|---|
-| ZIP | `rankkernel-0.1.0-candidate-9e2cecc.zip` |
-| Size | 902,481 bytes |
+| ZIP | `rankkernel-0.1.0-candidate-96008d2.zip` |
+| Size | 902,496 bytes |
 | Files | 239 |
-| SHA-256 | `257e546d131fa10eecd444a47802737157b8984018a5c26424e1605b4fc5cb34` |
-| Manifest SHA-256 | `3d56ec6c9e0e72d16be427309d2c86d2b0cf593d8f5acdc3d77a58cc32ff4634` |
+| SHA-256 | `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0` |
+| Manifest SHA-256 | `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35` |
 | Top level | `rankkernel/` only |
 
 The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded for this remediation. It must not be uploaded instead of the candidate.
@@ -43,7 +43,7 @@ The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded 
 | No unresolved BLOCKED/UNREVIEWED | PASS | 0 in both inventories |
 | No new production regression | PASS | PHPCS clean, PHPStan L6 clean, JS 352/0 |
 | Distribution contents correct | PASS | 239 files, `.distignore` applied, no dev/test/docs/reports |
-| ZIP manifest/SHA-256 verified | PASS | `257e546d…` / `3d56ec6c…` |
+| ZIP manifest/SHA-256 verified | PASS | `5e8ecd1a…` / `938017bf…` |
 
 ## Owner decisions still required
 
