@@ -2,21 +2,21 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production package source commit: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`
+Production package source commit: `57dfc063d022d380d43947972c26f9bd976e5b56`
 
 ## Source and package
 
 | Field | Value |
 |---|---|
 | Branch | `release/wporg-0.1.0` |
-| Production source commit | `96008d2cce1c4c76e628cb35a08352ede8a7e6e9` |
-| Commit subject | `Harden November 6 input and editor authorization paths` |
-| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-96008d2.zip` |
-| ZIP size | 902,496 bytes |
-| ZIP files | 239 |
-| ZIP SHA-256 | `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0` |
-| Manifest | `rankkernel-0.1.0-candidate-96008d2-manifest.txt` |
-| Manifest SHA-256 | `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35` |
+| Production source commit | `57dfc063d022d380d43947972c26f9bd976e5b56` |
+| Commit subject | `Add languages/rankkernel.pot translation template` |
+| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-57dfc06.zip` |
+| ZIP size | 937,587 bytes |
+| ZIP files | 240 |
+| ZIP SHA-256 | `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd` |
+| Manifest | `rankkernel-0.1.0-candidate-57dfc06-manifest.txt` |
+| Manifest SHA-256 | `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6` |
 | Top-level directory | `rankkernel/` only |
 
 ## Superseded package
@@ -34,7 +34,7 @@ It must not be uploaded for this remediation. The new candidate supersedes it be
 
 - Built with `build_release_zip.py` from the exact commit.
 - `.distignore` applied; `reports/` is excluded from the package (audit evidence only).
-- 239 files: 181 PHP, 24 JS, 20 CSS, 3 JSON, 5 TXT, 1 MD, 3 WOFF2.
+- 240 files: 181 PHP, 24 JS, 20 CSS, 3 JSON, 5 TXT, 1 MD, 3 WOFF2, 1 XSL, 1 POT (239 code+assets plus `languages/rankernel.pot`).
 - No development, test, CI, docs, vendor, report or build files.
 - `unzip -t` clean.
 - The exact ZIP was installed on WordPress 7.1.4 and 6.5.14 and activated without a fatal error; `debug.log` was empty.
@@ -42,4 +42,4 @@ It must not be uploaded for this remediation. The new candidate supersedes it be
 
 ## Branch tip note
 
-The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `96008d2`.
+The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `57dfc06`.

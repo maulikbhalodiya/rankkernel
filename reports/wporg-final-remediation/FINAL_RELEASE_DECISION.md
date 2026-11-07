@@ -2,7 +2,7 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production source commit: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`
+Production source commit: `57dfc063d022d380d43947972c26f9bd976e5b56`
 
 ## Decision
 
@@ -16,11 +16,11 @@ This is **not** an approval, not a WordPress.org submission, and not authorizati
 
 | Field | Value |
 |---|---|
-| ZIP | `rankkernel-0.1.0-candidate-96008d2.zip` |
-| Size | 902,496 bytes |
-| Files | 239 |
-| SHA-256 | `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0` |
-| Manifest SHA-256 | `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35` |
+| ZIP | `rankkernel-0.1.0-candidate-57dfc06.zip` |
+| Size | 937,587 bytes |
+| Files | 240 (239 code+assets plus `languages/rankkernel.pot`) |
+| SHA-256 | `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd` |
+| Manifest SHA-256 | `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6` |
 | Top level | `rankkernel/` only |
 
 The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded for this remediation. It must not be uploaded instead of the candidate.
@@ -38,12 +38,12 @@ The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded 
 | Filesystem/upload paths reviewed | PASS | 41 operations inventoried |
 | Callbacks/returned HTML reviewed | PASS | Shortcode/block/filter/schema callbacks |
 | WordPress.org guidelines reviewed | PASS | A–N matrix; name/slug, notices, enqueue, external services, paths |
-| Regression tests | PASS | PHPUnit 2394 tests / 9201 assertions |
+| Regression tests | PASS | PHPUnit 2399 tests / 9212 assertions |
 | Plugin Check classified | PASS | 0 errors / 223 warnings on WP 7.1.4 and 6.5.14 |
 | No unresolved BLOCKED/UNREVIEWED | PASS | 0 in both inventories |
 | No new production regression | PASS | PHPCS clean, PHPStan L6 clean, JS 352/0 |
-| Distribution contents correct | PASS | 239 files, `.distignore` applied, no dev/test/docs/reports |
-| ZIP manifest/SHA-256 verified | PASS | `5e8ecd1a…` / `938017bf…` |
+| Distribution contents correct | PASS | 240 files, `.distignore` applied, no dev/test/docs/reports |
+| ZIP manifest/SHA-256 verified | PASS | `f6beba8f…` / `b0057ec6…` |
 
 ## Owner decisions still required
 

@@ -1,14 +1,14 @@
 # RankKernel 0.1.0 — Final Security Audit
 
-Production source: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`  
+Production source: `57dfc063d022d380d43947972c26f9bd976e5b56`  
 Branch: `release/wporg-0.1.0`  
-Package: `rankkernel-0.1.0-candidate-96008d2.zip`  
-Size: 902,496 bytes — 239 files — SHA-256 `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0`  
-Manifest SHA-256: `938017bff8b60f7bdb96074e42075bc5e0adf004183bd39714bd54976b20fd35`
+Package: `rankkernel-0.1.0-candidate-57dfc06.zip`  
+Size: 937,587 bytes — 240 files — SHA-256 `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`  
+Manifest SHA-256: `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6`
 
 ## Scope and method
 
-The audit used the actual package, not the repository alone. `.distignore` and the deterministic builder were applied first; the candidate contains 239 files, all under a single `rankkernel/` directory. Tests, CI, docs, vendor, developer tooling and `reports/` are excluded.
+The audit used the actual package, not the repository alone. `.distignore` and the deterministic builder were applied first; the candidate contains 240 files, all under a single `rankkernel/` directory. Tests, CI, docs, vendor, developer tooling and `reports/` are excluded.
 
 Evidence was collected at occurrence level:
 
@@ -79,4 +79,4 @@ Warnings: 203 included-view local-variable false positives, 20 custom-table prep
 
 ## Verdict
 
-**READY FOR INDEPENDENT SERVER AUDIT** of source `96008d2` and ZIP `5e8ecd1a…`. Not approved for WordPress.org upload or publication.
+**READY FOR INDEPENDENT SERVER AUDIT** of source `57dfc06` and ZIP `f6beba8f…`. Not approved for WordPress.org upload or publication.

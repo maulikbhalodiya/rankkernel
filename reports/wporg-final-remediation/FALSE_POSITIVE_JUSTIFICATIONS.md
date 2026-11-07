@@ -1,12 +1,14 @@
 # RankKernel — False-Positive / Accepted-Warning Justifications
 
-Exact ZIP: `rankkernel-0.1.0-candidate-96008d2.zip` (SHA-256 `5e8ecd1a...`). Plugin Check 2.1.0 on WordPress 7.1.4 and 6.5.14: **0 errors / 223 warnings**.
+Exact ZIP: `rankkernel-0.1.0-candidate-57dfc06.zip` (SHA-256 `f6beba8f...`). Plugin Check 2.1.0 on WordPress 7.1.4 and 6.5.14: **0 errors / 223 warnings**.
 
 ## Summary
 
 - PrefixAllGlobals warnings: 203
-- DirectDB warnings: {sum(1 for r in rows if r["code"].endswith("DirectDB.UnescapedDBParameter"))}
+- DirectDB warnings: 20
 - Unclassified warnings: 0
+
+A prior pass reported 204 PrefixAllGlobals warnings; the 204th was a transient-name warning on an unprefixed `$sites` variable. It was renamed to `$rankkernel_sites`, removing that warning and leaving the 203 included-view locals listed below.
 
 ## PrefixAllGlobals — included-view scope
 

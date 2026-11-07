@@ -1,7 +1,7 @@
 # RankKernel 0.1.0 — All Findings and Remediations
 
-Production source: `96008d2cce1c4c76e628cb35a08352ede8a7e6e9`  
-Final ZIP: `rankkernel-0.1.0-candidate-96008d2.zip`, 902,496 bytes, 239 files, SHA-256 `5e8ecd1ae4b26ee7a80cd8a94c8b367d183ba16436932c16adba55ff4ba538f0`
+Production source: `57dfc063d022d380d43947972c26f9bd976e5b56`  
+Final ZIP: `rankkernel-0.1.0-candidate-57dfc06.zip`, 937,587 bytes, 240 files, SHA-256 `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`
 
 ## Finding F-01 — Metadata editor used an unverified screen post ID
 
@@ -40,7 +40,7 @@ Final ZIP: `rankkernel-0.1.0-candidate-96008d2.zip`, 902,496 bytes, 239 files, S
 
 **Important distinction:** Most of these were already allowlisted/cast/escaped downstream. The fix moves the scanner-visible sanitizer to the boundary and documents the final sink; it does not claim every line was an exploitable vulnerability. The one confirmed authorization defect was F-01.
 
-**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2394/9201 passes; PHPCS clean; focused tests cover the nine November 6 examples.
+**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2399/9212 passes; PHPCS clean; focused tests cover the nine November 6 examples.
 
 ## Finding F-03 — Request-method normalization preserved no case
 

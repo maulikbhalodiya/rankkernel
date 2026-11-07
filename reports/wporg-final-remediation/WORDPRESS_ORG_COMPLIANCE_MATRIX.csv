@@ -1,5 +1,5 @@
 id,area,status,evidence
-A,"Plugin name, slug, trademark, ownership",FIXED / OWNER DECISION,"Header and readme display name are ""RankKernel SEO & Schema Engine""; slug rankkernel; no redundant ""Free"" in display name. No documentary trademark ownership in repo; owner must confirm legal clearance."
+A,"Plugin name, slug, trademark, ownership",ACCEPTED_WITH_REASON,"Header and readme display name are ""RankKernel SEO & Schema Engine""; slug rankkernel; no redundant ""Free"" in display name (that part is FIXED). No documentary trademark ownership in repo; owner must confirm legal clearance (owner decision)."
 B,Dashboard notices / Guideline 11,PASS,No global promotional/upgrade dashboard notices. Requirement notices are scoped to plugin screens; save notices render inline on plugin admin pages only.
 C,Arbitrary .htaccess/server directives,FIXED,HtaccessFile::DIRECTIVES contains only two fixed directive blocks; SettingsPage::saveHtaccess() accepts allowlisted ids; unknown ids ignored.
 D,CSS/JavaScript enqueue,FIXED,AdminStyles enqueues no-JS CSS via wp_register_style/wp_enqueue_style and sets rk-js via wp_add_inline_script; no static <style>/<link> tags or EnqueuedResources ignores.
