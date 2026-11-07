@@ -476,6 +476,11 @@ final class HtaccessFile {
 	/**
 	 * Back up the current file, then write the new content.
 	 *
+	 * Production callers are saveBlock() and removeBlock() only, both of
+	 * which write generated marker-block content, never request text.
+	 * Kept public for the unit-test seam; no HTTP path reaches it with
+	 * arbitrary content.
+	 *
 	 * @param string $content          New .htaccess content.
 	 * @param bool   $require_supported Whether server detection must pass.
 	 * @return array{saved: bool, reason: string, backup: string} Result, reason code and backup path.

@@ -754,7 +754,7 @@ final class SettingsPage {
 			$partial['purge_on_uninstall'] = isset( $_POST['purge_on_uninstall'] );
 		}
 
-		$saved = $this->store->set( $partial );
+		$saved = [] === $partial ? true : $this->store->set( $partial );
 
 		if ( 'breadcrumbs' === $this->postedSection() ) {
 			$saved = $this->saveBreadcrumbs() && $saved;

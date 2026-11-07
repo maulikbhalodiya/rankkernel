@@ -172,7 +172,16 @@ final class MetaPayload {
 		}
 
 		if ( isset( $payload['canonical'] ) ) {
-			$out['canonical'] = esc_url_raw( self::scalarString( $payload['canonical'] ) );
+			$canonical = esc_url_raw( self::scalarString( $payload['canonical'] ) );
+
+			// Protocol-relative or off-site canonicals are dropped so an
+			// editor value can never point the canonical off-site. Empty
+			// falls back to the permalink at render time.
+			if ( '' !== $canonical && ! self::isHomeUrl( $canonical ) ) {
+				$canonical = '';
+			}
+
+			$out['canonical'] = $canonical;
 		}
 
 		if ( isset( $payload['robots'] ) && is_array( $payload['robots'] ) ) {
@@ -309,6 +318,48 @@ final class MetaPayload {
 	 */
 	private static function scalarString( mixed $value ): string {
 		return is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/**
+	 * Whether a canonical URL stays on the home host.
+	 *
+	 * Relative paths, fragments and query strings are allowed. Absolute
+	 * and protocol-relative URLs must match the home host so an editor
+	 * value can never point the canonical off-site.
+	 *
+	 * @param string $url Sanitized canonical candidate.
+	 * @return bool True when the URL is home-hosted or relative.
+	 */
+	private static function isHomeUrl( string $url ): bool {
+		if ( '' === $url ) {
+			return true;
+		}
+
+		if ( str_starts_with( $url, '//' ) ) {
+			return false;
+		}
+
+		$parts = parse_url( $url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- canonical host check only, result strictly type checked, wp_parse_url unavailable in unit tests.
+
+		if ( ! is_array( $parts ) ) {
+			return false;
+		}
+
+		if ( ! isset( $parts['host'] ) ) {
+			return true;
+		}
+
+		if ( ! function_exists( 'home_url' ) ) {
+			return true;
+		}
+
+		$home_parts = parse_url( (string) home_url( '/' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- canonical host check only, result strictly type checked, wp_parse_url unavailable in unit tests.
+
+		if ( ! is_array( $home_parts ) || ! isset( $home_parts['host'] ) ) {
+			return true;
+		}
+
+		return strtolower( (string) $parts['host'] ) === strtolower( (string) $home_parts['host'] );
 	}
 
 	/**

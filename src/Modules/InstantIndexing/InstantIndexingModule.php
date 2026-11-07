@@ -12,6 +12,7 @@ namespace RankKernel\Modules\InstantIndexing;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Metadata\NoindexFlag;
 use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Modules\ModuleInterface;
 
@@ -318,11 +319,15 @@ final class InstantIndexingModule implements ModuleInterface {
 
 		$postType = $this->postType( $post );
 
-		if ( '' === $postType || ! $this->isViewablePostType( $postType ) ) {
+		if ( '' === $postType || 'attachment' === $postType || ! $this->isViewablePostType( $postType ) ) {
 			return;
 		}
 
 		if ( '' !== $this->postPassword( $post ) ) {
+			return;
+		}
+
+		if ( function_exists( 'get_post_meta' ) && NoindexFlag::isNoindex( get_post_meta( $postId, NoindexFlag::POST_PAYLOAD, true ) ) ) {
 			return;
 		}
 
@@ -457,7 +462,11 @@ final class InstantIndexingModule implements ModuleInterface {
 			return;
 		}
 
-		$this->submitUrls( [ $url ], 'auto' );
+		if ( function_exists( 'get_term_meta' ) && NoindexFlag::isNoindex( get_term_meta( $termId, NoindexFlag::TERM_PAYLOAD, true ) ) ) {
+			return;
+		}
+
+		$this->queueDeferredSubmit( 0, [ $url ], $url, '', 'term_' . $action );
 	}
 
 	/**

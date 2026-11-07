@@ -644,4 +644,33 @@ final class RedirectsMatcherTest extends TestCase {
 
 		$this->assertFalse( Matcher::rule_matches( $badRule, '/anything' ) );
 	}
+
+	/**
+	 * Test overlong and star-heavy wildcards fail closed.
+	 */
+	public function test_overlong_and_star_heavy_wildcard_is_refused(): void {
+		$longWildcard = '/' . str_repeat( 'a', Matcher::MAX_WILDCARD_LENGTH );
+
+		$rule = [
+			'match_type' => 'wildcard',
+			'source'     => $longWildcard,
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertFalse( Matcher::rule_matches( $rule, $longWildcard ) );
+
+		$starHeavy = '/' . str_repeat( 'a*', Matcher::MAX_WILDCARD_STARS + 1 ) . 'b';
+
+		$heavyRule = [
+			'match_type' => 'wildcard',
+			'source'     => $starHeavy,
+			'target'     => '/new',
+			'code'       => '301',
+			'is_active'  => 1,
+		];
+
+		$this->assertFalse( Matcher::rule_matches( $heavyRule, '/anything' ) );
+	}
 }

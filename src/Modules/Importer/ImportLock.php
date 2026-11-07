@@ -135,7 +135,7 @@ final class ImportLock {
 
 		$data = self::decode( $current );
 
-		if ( null !== $data && $data['owner'] === $owner ) {
+		if ( null !== $data && $data['owner'] === $owner && self::sameUser( $data ) ) {
 			return $this->swap( self::OPTION_NAME, $current, $this->payload( $owner ) );
 		}
 
@@ -169,7 +169,7 @@ final class ImportLock {
 
 		$data = self::decode( $current );
 
-		if ( null === $data || $data['owner'] !== $owner ) {
+		if ( null === $data || $data['owner'] !== $owner || ! self::sameUser( $data ) ) {
 			return false;
 		}
 
@@ -191,7 +191,7 @@ final class ImportLock {
 
 		$data = self::decode( $current );
 
-		if ( null === $data || $data['owner'] !== $owner ) {
+		if ( null === $data || $data['owner'] !== $owner || ! self::sameUser( $data ) ) {
 			return false;
 		}
 
@@ -213,6 +213,7 @@ final class ImportLock {
 				'owner'   => $owner,
 				'expires' => time() + self::leaseSeconds(),
 				'nonce'   => self::nonce(),
+				'user'    => function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0,
 			]
 		);
 	}
@@ -234,7 +235,7 @@ final class ImportLock {
 	 * Read the stored payload.
 	 *
 	 * @param string $raw Stored value.
-	 * @return array{owner: string, expires: int}|null The payload, null when unreadable.
+	 * @return array{owner: string, expires: int, user: int}|null The payload, null when unreadable.
 	 */
 	private static function decode( string $raw ): ?array {
 		$data = json_decode( $raw, true );
@@ -250,7 +251,20 @@ final class ImportLock {
 		return [
 			'owner'   => $data['owner'],
 			'expires' => $data['expires'],
+			'user'    => isset( $data['user'] ) && is_int( $data['user'] ) ? $data['user'] : 0,
 		];
+	}
+
+	/**
+	 * Whether the stored lock belongs to the current user.
+	 *
+	 * @param array{owner: string, expires: int, user: int} $data Decoded payload.
+	 * @return bool True when the current user matches the claiming user (or either is 0 in tests).
+	 */
+	private static function sameUser( array $data ): bool {
+		$current = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+
+		return 0 === $current || 0 === $data['user'] || $current === $data['user'];
 	}
 
 	/**

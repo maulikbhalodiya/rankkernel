@@ -43,7 +43,7 @@ final class RedirectCache {
 	/**
 	 * Transient prefix for the no object cache fallback.
 	 */
-	private const TRANSIENT_PREFIX = 'rkredir_';
+	private const TRANSIENT_PREFIX = 'rankkernel_redir_';
 
 	/**
 	 * Store key for the cached active pattern list.

@@ -724,7 +724,12 @@ final class SettingsPageTest extends TestCase {
 	public function test_robots_settings_saved(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+		$redirect = null;
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): void {
+				$redirect = $url;
+			}
+		);
 		Functions\when( 'wp_rand' )->justReturn( 12345 );
 		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
 		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
@@ -769,6 +774,54 @@ final class SettingsPageTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertStringContainsString( 'Disallow: /tmp/', $captured['override'] );
 		$this->assertSame( 'allow', $captured['crawlers']['gptbot'] );
+		$this->assertIsString( $redirect );
+		$this->assertStringContainsString( 'settings-updated=1', (string) $redirect );
+		$this->assertStringNotContainsString( 'save_failed', (string) $redirect );
+	}
+
+	/**
+	 * Test robots edit inner save reports success without general fields.
+	 */
+	public function test_robots_edit_inner_save_reports_success(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		$redirect = null;
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ) use ( &$redirect ): void {
+				$redirect = $url;
+			}
+		);
+		Functions\when( 'wp_check_invalid_utf8' )->alias( static fn ( string $text, bool $strip = false ): string => $text ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_check_invalid_utf8 signature.
+		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, mixed $value ): mixed => $value );
+
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'robots' ];
+				}
+
+				return $fallback;
+			}
+		);
+
+		$page = new SettingsPage( new SettingsStore(), new ModuleEnableMap() );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'robots';
+		$_POST                     = [
+			'rk_robots_save'     => '1',
+			'_wpnonce'           => 'valid',
+			'rk_robots_override' => "User-agent: *\nDisallow: /tmp/\n",
+		];
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		$this->assertIsString( $redirect );
+		$this->assertStringContainsString( 'settings-updated=1', (string) $redirect );
+		$this->assertStringNotContainsString( 'save_failed', (string) $redirect );
 	}
 
 	/**

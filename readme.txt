@@ -51,7 +51,7 @@ When the Instant Indexing module is enabled, submitting a URL sends that URL plu
 
 == External Services ==
 
-RankKernel contacts two external services, and only with your explicit action:
+RankKernel contacts two external services, and only after your explicit opt-in (manual submit, or enabling the module with auto-submit on):
 
 1. Support inbox (email). The Support screen sends an email through wp_mail to rankkernelsupport@gmail.com. Sending happens only when you press Send. The message carries the subject, the message body, the reply address, optional screenshots you attach, and site diagnostics: RankKernel version, WordPress version, PHP version, theme name, site URL, and multisite yes/no. The Reply-To header is set to your address.
 

@@ -184,7 +184,7 @@ final class RestControllersTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $res );
 		$this->assertSame( 200, $res->get_status() );
 		$this->assertContains( 'metadata', $res->get_data()['modules'] ?? [] );
-		$this->assertSame( 1, $this->flushCount );
+		$this->assertSame( 0, $this->flushCount );
 	}
 
 	/**

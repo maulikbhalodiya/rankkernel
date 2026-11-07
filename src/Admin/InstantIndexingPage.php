@@ -655,6 +655,10 @@ final class InstantIndexingPage {
 		$seen = [];
 
 		foreach ( $lines as $line ) {
+			if ( count( $urls ) >= 100 ) {
+				break;
+			}
+
 			$url = trim( (string) $line );
 
 			if ( '' === $url || isset( $seen[ $url ] ) ) {

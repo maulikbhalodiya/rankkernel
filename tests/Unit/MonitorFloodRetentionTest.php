@@ -234,7 +234,7 @@ final class MonitorFloodRetentionTest extends TestCase {
 
 		$this->assertSame( 1, $this->repo->count() );
 
-		$this->transients['rk404_flood_1'] = [
+		$this->transients['rankkernel_404flood_1'] = [
 			'start' => time() - 400,
 			'count' => 1,
 		];

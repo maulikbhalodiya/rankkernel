@@ -32,7 +32,7 @@ final class FloodGuard {
 	/**
 	 * Transient prefix for the no object cache fallback.
 	 */
-	public const TRANSIENT_PREFIX = 'rk404_flood_';
+	public const TRANSIENT_PREFIX = 'rankkernel_404flood_';
 
 	/**
 	 * Suppressed marker option, read by the admin notice in a later phase.

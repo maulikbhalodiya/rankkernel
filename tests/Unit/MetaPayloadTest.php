@@ -29,6 +29,7 @@ final class MetaPayloadTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'esc_url_raw' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : '' );
 		Functions\when( 'absint' )->alias( static fn ( mixed $v ): int => abs( (int) $v ) );
+		Functions\when( 'home_url' )->alias( static fn ( string $p = '' ): string => 'https://example.com' . $p );
 	}
 
 	/**
@@ -58,6 +59,17 @@ final class MetaPayloadTest extends TestCase {
 		$clean   = MetaPayload::sanitize( $payload );
 
 		$this->assertSame( 'https://example.com/page?q=1', $clean['canonical'] );
+	}
+
+	/**
+	 * Test off-site and protocol-relative canonicals are dropped.
+	 */
+	public function test_sanitize_canonical_rejects_offsite_and_protocol_relative(): void {
+		$offsite = MetaPayload::sanitize( [ 'canonical' => 'https://evil.com/page' ] );
+		$this->assertSame( '', $offsite['canonical'] );
+
+		$protocolRelative = MetaPayload::sanitize( [ 'canonical' => '//evil.com/x' ] );
+		$this->assertSame( '', $protocolRelative['canonical'] );
 	}
 
 	/**

@@ -84,6 +84,11 @@ final class Logger {
 		'access',
 		'reset',
 		'verify',
+		'nonce',
+		'otp',
+		'pin',
+		'pass',
+		'private',
 	];
 
 	/**

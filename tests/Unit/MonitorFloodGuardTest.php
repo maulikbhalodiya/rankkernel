@@ -104,11 +104,11 @@ final class MonitorFloodGuardTest extends TestCase {
 	 * Test expired window resets the budget.
 	 */
 	public function test_expired_window_resets_the_budget(): void {
-		$this->options['rankkernel_404_settings'] = [
+		$this->options['rankkernel_404_settings']  = [
 			'flood_budget' => 1,
 			'flood_window' => 300,
 		];
-		$this->transients['rk404_flood_1']        = [
+		$this->transients['rankkernel_404flood_1'] = [
 			'start' => time() - 400,
 			'count' => 1,
 		];
@@ -141,6 +141,6 @@ final class MonitorFloodGuardTest extends TestCase {
 		$guard = new FloodGuard( new MonitorSettings() );
 
 		$this->assertTrue( $guard->allowNew() );
-		$this->assertArrayHasKey( 'rk404_flood_1', $this->transients );
+		$this->assertArrayHasKey( 'rankkernel_404flood_1', $this->transients );
 	}
 }

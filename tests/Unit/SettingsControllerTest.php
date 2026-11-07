@@ -85,8 +85,8 @@ final class SettingsControllerTest extends TestCase {
 	 */
 	private function makeRequest( array $params ): \WP_REST_Request {
 		$request = Mockery::mock( \WP_REST_Request::class );
-		$request->shouldNotReceive( 'get_json_params' );
-		$request->shouldReceive( 'get_params' )->andReturn( $params );
+		$request->shouldReceive( 'get_json_params' )->andReturn( $params );
+		$request->shouldReceive( 'get_body_params' )->andReturn( $params );
 
 		return $request;
 	}

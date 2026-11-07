@@ -10,146 +10,187 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-$rankkernel_settings = get_option( 'rankkernel_settings', array() );
-
-$rankkernel_purge = false;
-if ( is_array( $rankkernel_settings ) && isset( $rankkernel_settings['purge_on_uninstall'] ) ) {
-	$rankkernel_purge = (bool) $rankkernel_settings['purge_on_uninstall'];
+// Clear scheduled module hooks so an uninstall never orphans cron events.
+// The hooks are strings here so uninstall stays standalone and never loads
+// a module class that may already be gone.
+foreach ( array( 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ) as $rankkernel_hook ) {
+	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+		wp_clear_scheduled_hook( $rankkernel_hook );
+	}
 }
 
-global $wpdb;
+foreach ( array( 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ) as $rankkernel_hook ) {
+	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+		wp_clear_scheduled_hook( $rankkernel_hook );
+	}
+}
 
-// An uninstall must never leave personal data behind, so the plugin's own
-// custom tables and every module owned transient are always removed, whatever
-// the purge_on_uninstall setting says. That setting only governs the broader
-// option, post meta, term meta and user meta purge below, whose contents are
-// configuration rather than captured visitor data. The 404 log table holds
-// request URIs, referers and user agents, so it can never survive a default
-// uninstall.
+if ( ! function_exists( 'rankkernel_uninstall_current_site' ) ) {
+	/**
+	 * Run the single-site uninstall purge for the current site.
+	 */
+	function rankkernel_uninstall_current_site() {
+		global $wpdb;
 
-// Purge all transients and transient timeouts owned by RankKernel modules.
-// Covers rankkernel_* (sitemap caches, llms.txt document, table existence flags),
-// rkredir_* (redirect match caches), and rk404_flood_* (404 rate limit windows).
-$rankkernel_transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
-foreach ( $rankkernel_transient_prefixes as $rankkernel_transient_prefix ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-	$wpdb->query(
-		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-			$wpdb->esc_like( '_transient_' . $rankkernel_transient_prefix ) . '%',
-			$wpdb->esc_like( '_transient_timeout_' . $rankkernel_transient_prefix ) . '%'
+		// An uninstall must never leave personal data behind, so the plugin's own
+		// custom tables and every module owned transient are always removed, whatever
+		// the purge_on_uninstall setting says. That setting only governs the broader
+		// option, post meta, term meta and user meta purge below, whose contents are
+		// configuration rather than captured visitor data. The 404 log table holds
+		// request URIs, referers and user agents, so it can never survive a default
+		// uninstall.
+
+		// Purge all transients and transient timeouts owned by RankKernel modules.
+		// Covers rankkernel_* (sitemap caches, llms.txt document, table existence flags,
+		// redirect match caches, 404 rate limit windows) plus legacy short prefixes.
+		$rankkernel_transient_prefixes = array( 'rankkernel_', 'rkredir_', 'rk404_flood_' );
+		foreach ( $rankkernel_transient_prefixes as $rankkernel_transient_prefix ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+					$wpdb->esc_like( '_transient_' . $rankkernel_transient_prefix ) . '%',
+					$wpdb->esc_like( '_transient_timeout_' . $rankkernel_transient_prefix ) . '%'
+				)
+			);
+		}
+
+		// Drop every wp_rankkernel_* table, the 404 log included, on every uninstall path.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$rankkernel_tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );
+		if ( is_array( $rankkernel_tables ) ) {
+			foreach ( $rankkernel_tables as $rankkernel_table ) {
+				// Names only ever arrive from the wp_rankkernel_ prefix sweep, still
+				// validate the identifier before it lands in a DROP statement, so an
+				// unexpected character can never smuggle SQL through the table name.
+				if ( ! is_string( $rankkernel_table ) || 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $rankkernel_table ) ) {
+					continue;
+				}
+
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+				$wpdb->query( "DROP TABLE IF EXISTS `{$rankkernel_table}`" );
+
+				// Retire the cached existence flag after the drop, never before it. That flag
+				// is held for a day when a persistent object cache is present, and a stale
+				// true would make ensureTables() believe the table still exists after a
+				// reinstall, so it would never recreate the one dropped here. Dropping first
+				// also clears any value a concurrent request cached while the table was
+				// still present.
+				if ( function_exists( 'wp_cache_delete' ) ) {
+					wp_cache_delete( 'table_exists_' . $rankkernel_table, 'rankkernel_tables' );
+				}
+
+				if ( function_exists( 'delete_transient' ) ) {
+					delete_transient( 'rankkernel_tbl_exists_' . md5( $rankkernel_table ) );
+				}
+			}
+		}
+
+		// Private .htaccess snapshots contain server configuration. They are never
+		// public files, but uninstall must still remove them regardless of the
+		// optional configuration-purge choice.
+		delete_option( 'rankkernel_htaccess_backups' );
+
+		// Remove a plugin-managed physical llms.txt. The writer only ever removes
+		// a path it recorded on a successful write, so a hand made file is safe.
+		// The class files load standalone here: uninstall runs with WordPress
+		// loaded but without the plugin, so require exactly what is needed.
+		$rankkernel_llms_writer_file = __DIR__ . '/src/Modules/Robots/LlmsFileWriter.php';
+		$rankkernel_llms_router_file = __DIR__ . '/src/Modules/Robots/LlmsRouter.php';
+
+		if ( is_readable( $rankkernel_llms_writer_file ) && is_readable( $rankkernel_llms_router_file ) ) {
+			require_once $rankkernel_llms_writer_file;
+			require_once $rankkernel_llms_router_file;
+
+			if ( class_exists( 'RankKernel\Modules\Robots\LlmsFileWriter' ) ) {
+				$rankkernel_llms_writer  = new \RankKernel\Modules\Robots\LlmsFileWriter();
+				$rankkernel_llms_deleted = $rankkernel_llms_writer->delete();
+
+				unset( $rankkernel_llms_writer, $rankkernel_llms_deleted );
+			}
+		}
+
+		$rankkernel_settings = get_option( 'rankkernel_settings', array() );
+
+		$rankkernel_purge = false;
+		if ( is_array( $rankkernel_settings ) && isset( $rankkernel_settings['purge_on_uninstall'] ) ) {
+			$rankkernel_purge = (bool) $rankkernel_settings['purge_on_uninstall'];
+		}
+
+		if ( ! $rankkernel_purge ) {
+			return;
+		}
+
+		// Full purge, only when the owner opted in. The setting keeps its meaning for
+		// configuration data, stored options, post meta, term meta and user meta.
+		// Purge all rankkernel_* options.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'rankkernel_' ) . '%'
+			)
+		);
+
+		// Purge all _rankkernel_* post meta (direct $wpdb for scale, meta API would be slow).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
+				$wpdb->esc_like( '_rankkernel_' ) . '%'
+			)
+		);
+
+		// Purge all _rankkernel_* term meta.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE %s",
+				$wpdb->esc_like( '_rankkernel_' ) . '%'
+			)
+		);
+
+		// Purge all _rankkernel_* user meta.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
+				$wpdb->esc_like( '_rankkernel_' ) . '%'
+			)
+		);
+
+		// Purge the unprefixed user meta key. UserProfileField::META_KEY carries no
+		// leading underscore, so the LIKE sweep above never matches it and an opted-in
+		// purge would otherwise leave the stored X handle behind. Exact match on the
+		// single known key, so no wildcard can overreach into unrelated rows.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->usermeta} WHERE meta_key = %s",
+				'rankkernel_twitter_handle'
+			)
+		);
+	}
+
+} // End rankkernel_uninstall_current_site definition.
+
+if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_sites' ) ) {
+	$sites = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
 		)
 	);
-}
 
-// Drop every wp_rankkernel_* table, the 404 log included, on every uninstall path.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-$rankkernel_tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'rankkernel_' ) . '%' ) );
-if ( is_array( $rankkernel_tables ) ) {
-	foreach ( $rankkernel_tables as $rankkernel_table ) {
-		// Names only ever arrive from the wp_rankkernel_ prefix sweep, still
-		// validate the identifier before it lands in a DROP statement, so an
-		// unexpected character can never smuggle SQL through the table name.
-		if ( ! is_string( $rankkernel_table ) || 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $rankkernel_table ) ) {
-			continue;
+	if ( is_array( $sites ) ) {
+		foreach ( $sites as $rankkernel_site_id ) {
+			switch_to_blog( (int) $rankkernel_site_id );
+			rankkernel_uninstall_current_site();
+			restore_current_blog();
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE IF EXISTS `{$rankkernel_table}`" );
-
-		// Retire the cached existence flag after the drop, never before it. That flag
-		// is held for a day when a persistent object cache is present, and a stale
-		// true would make ensureTables() believe the table still exists after a
-		// reinstall, so it would never recreate the one dropped here. Dropping first
-		// also clears any value a concurrent request cached while the table was
-		// still present.
-		if ( function_exists( 'wp_cache_delete' ) ) {
-			wp_cache_delete( 'table_exists_' . $rankkernel_table, 'rankkernel_tables' );
-		}
-
-		if ( function_exists( 'delete_transient' ) ) {
-			delete_transient( 'rankkernel_tbl_exists_' . md5( $rankkernel_table ) );
-		}
+		return;
 	}
 }
 
-// Private .htaccess snapshots contain server configuration. They are never
-// public files, but uninstall must still remove them regardless of the
-// optional configuration-purge choice.
-delete_option( 'rankkernel_htaccess_backups' );
-
-// Remove a plugin-managed physical llms.txt. The writer only ever removes
-// a path it recorded on a successful write, so a hand made file is safe.
-// The class files load standalone here: uninstall runs with WordPress
-// loaded but without the plugin, so require exactly what is needed.
-$rankkernel_llms_writer_file = __DIR__ . '/src/Modules/Robots/LlmsFileWriter.php';
-$rankkernel_llms_router_file = __DIR__ . '/src/Modules/Robots/LlmsRouter.php';
-
-if ( is_readable( $rankkernel_llms_writer_file ) && is_readable( $rankkernel_llms_router_file ) ) {
-	require_once $rankkernel_llms_writer_file;
-	require_once $rankkernel_llms_router_file;
-
-	if ( class_exists( 'RankKernel\Modules\Robots\LlmsFileWriter' ) ) {
-		$rankkernel_llms_writer  = new \RankKernel\Modules\Robots\LlmsFileWriter();
-		$rankkernel_llms_deleted = $rankkernel_llms_writer->delete();
-
-		unset( $rankkernel_llms_writer, $rankkernel_llms_deleted );
-	}
-}
-
-if ( ! $rankkernel_purge ) {
-	return;
-}
-
-// Full purge, only when the owner opted in. The setting keeps its meaning for
-// configuration data, stored options, post meta, term meta and user meta.
-// Purge all rankkernel_* options.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-		$wpdb->esc_like( 'rankkernel_' ) . '%'
-	)
-);
-
-// Purge all _rankkernel_* post meta (direct $wpdb for scale, meta API would be slow).
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
-		$wpdb->esc_like( '_rankkernel_' ) . '%'
-	)
-);
-
-// Purge all _rankkernel_* term meta.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE %s",
-		$wpdb->esc_like( '_rankkernel_' ) . '%'
-	)
-);
-
-// Purge all _rankkernel_* user meta.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
-		$wpdb->esc_like( '_rankkernel_' ) . '%'
-	)
-);
-
-// Purge the unprefixed user meta key. UserProfileField::META_KEY carries no
-// leading underscore, so the LIKE sweep above never matches it and an opted-in
-// purge would otherwise leave the stored X handle behind. Exact match on the
-// single known key, so no wildcard can overreach into unrelated rows.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall purge of plugin-owned data via $wpdb->prepare, one-shot delete needs no caching.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->usermeta} WHERE meta_key = %s",
-		'rankkernel_twitter_handle'
-	)
-);
-
-// Note: Multisite purge is single-site scope in v1 (ledger ruling §O3).
-// A future multisite loop would iterate over get_sites() and switch_to_blog().
+rankkernel_uninstall_current_site();

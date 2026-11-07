@@ -330,7 +330,23 @@ class RobotsModule implements ModuleInterface {
 
 		$path = apply_filters( 'rankkernel/robots/physical_file', $default ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- public hook name, part of the plugin API, must stay stable.
 
-		return ( is_string( $path ) && '' !== $path ) ? $path : $default;
+		if ( ! is_string( $path ) || '' === $path || $path === $default ) {
+			return $default;
+		}
+
+		if ( ! class_exists( LlmsFileWriter::class ) ) {
+			return $default;
+		}
+
+		// Reuse the llms writer containment check so a filtered path that
+		// climbs outside the site root falls back instead of being trusted.
+		$writer = new LlmsFileWriter();
+
+		$method = new \ReflectionMethod( $writer, 'containedPath' );
+		$method->setAccessible( true );
+		$contained = $method->invoke( $writer, $path, $default );
+
+		return is_string( $contained ) ? $contained : $default;
 	}
 
 	/**

@@ -66,10 +66,10 @@ final class Renderer {
 			return '';
 		}
 
-		$before     = isset( $args['before'] ) && is_string( $args['before'] ) ? $args['before'] : '';
-		$after      = isset( $args['after'] ) && is_string( $args['after'] ) ? $args['after'] : '';
-		$wrapBefore = isset( $args['wrap_before'] ) && is_string( $args['wrap_before'] ) ? $args['wrap_before'] : '';
-		$wrapAfter  = isset( $args['wrap_after'] ) && is_string( $args['wrap_after'] ) ? $args['wrap_after'] : '';
+		$before     = isset( $args['before'] ) && is_string( $args['before'] ) ? wp_kses_post( $args['before'] ) : '';
+		$after      = isset( $args['after'] ) && is_string( $args['after'] ) ? wp_kses_post( $args['after'] ) : '';
+		$wrapBefore = isset( $args['wrap_before'] ) && is_string( $args['wrap_before'] ) ? wp_kses_post( $args['wrap_before'] ) : '';
+		$wrapAfter  = isset( $args['wrap_after'] ) && is_string( $args['wrap_after'] ) ? wp_kses_post( $args['wrap_after'] ) : '';
 		$separator  = isset( $args['separator'] ) ? self::sanitizeSeparator( (string) $args['separator'] ) : '/';
 		$ariaLabel  = isset( $args['aria_label'] ) && is_string( $args['aria_label'] ) && '' !== trim( $args['aria_label'] ) ? $args['aria_label'] : __( 'Breadcrumbs', 'rankkernel' );
 

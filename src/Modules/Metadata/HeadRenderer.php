@@ -292,6 +292,11 @@ final class HeadRenderer {
 			return;
 		}
 
+		// Password-protected posts: title + noindex only, matching schema suppression.
+		if ( $ctxEarly->queriedId() > 0 && function_exists( 'post_password_required' ) && post_password_required( $ctxEarly->queriedId() ) ) {
+			return;
+		}
+
 		// Feed pages: skip all tags (return early).
 		if ( function_exists( 'is_feed' ) && is_feed() ) {
 			return;

@@ -679,6 +679,25 @@ final class SchemaMetaboxTest extends TestCase {
 	}
 
 	/**
+	 * Test programmatic save without schema fields never reaches wp_die.
+	 */
+	public function test_save_without_fields_skips_before_capability_check(): void {
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'update_post_meta' )->never();
+		Functions\expect( 'wp_die' )->never();
+
+		$_POST  = [];
+		$_FILES = [];
+
+		$box = new SchemaMetabox();
+		$box->handleSave( 11, (object) [ 'ID' => 11 ] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
 	 * Test save bad nonce wp die.
 	 */
 	public function test_save_bad_nonce_wp_die(): void {

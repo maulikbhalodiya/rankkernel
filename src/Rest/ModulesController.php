@@ -34,30 +34,6 @@ final class ModulesController {
 	private const OPTION = 'rankkernel_modules';
 
 	/**
-	 * Known optional module ids.
-	 *
-	 * Delegates to ModuleRegistry, single source of truth.
-	 *
-	 * @var string[]
-	 */
-	public const KNOWN_MODULES = [
-		'metadata',
-		'analysis',
-		'sitemaps',
-		'schema',
-		'breadcrumbs',
-		'importer',
-		'redirects',
-		'404',
-		'instant-indexing',
-		'robots',
-		'image-seo',
-		'gutenberg',
-		'ai',
-		'headless',
-	];
-
-	/**
 	 * Register routes.
 	 */
 	public function registerRoutes(): void {
@@ -198,6 +174,16 @@ final class ModulesController {
 				'rankkernel_storage_failed',
 				__( 'The module status could not be saved.', 'rankkernel' ),
 				[ 'status' => 500 ]
+			);
+		}
+
+		if ( $updated === $current ) {
+			return new WP_REST_Response(
+				[
+					'modules' => $updated,
+					'message' => __( 'Module status updated. Changes take effect on the next request.', 'rankkernel' ),
+				],
+				200
 			);
 		}
 

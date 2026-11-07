@@ -135,6 +135,7 @@ final class InstantIndexingModuleTest extends TestCase {
 		Functions\when( 'get_permalink' )->alias( static fn ( int $id ): string => 'https://example.com/p' . $id );
 		Functions\when( 'get_term_link' )->alias( static fn ( int $id ): string => 'https://example.com/t' . $id );
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_term_meta' )->justReturn( '' );
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
@@ -800,15 +801,20 @@ final class InstantIndexingModuleTest extends TestCase {
 	}
 
 	/**
-	 * Test a created term submits the term URL.
+	 * Test a created term queues the term URL without inline HTTP.
 	 */
 	public function test_term_create_submits_the_term_url(): void {
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		$module = $this->module( true, true );
 		$module->boot();
 
 		$module->onTermChange( 8, 8, 'category', 'created' );
 
-		$this->assertSame( 1, $this->clientCalls );
+		$this->assertSame( 0, $this->clientCalls );
+		$this->assertCount( 1, $queued );
+		$this->assertSame( 'rankkernel_indexnow_submit', $queued[0]['hook'] );
 	}
 
 	/**
@@ -831,11 +837,15 @@ final class InstantIndexingModuleTest extends TestCase {
 		$callback = $callbacks['pre_delete_term'];
 		$this->assertIsCallable( $callback );
 
+		$queued = [];
+		$this->stubCronQueue( $queued );
+
 		// WordPress core fires pre_delete_term with the term id and the
 		// taxonomy only, not the term taxonomy id.
 		$callback( 8, 'category' );
 
-		$this->assertSame( 1, $this->clientCalls );
-		$this->assertSame( [ 'https://example.com/t8' ], $this->submittedUrls );
+		$this->assertSame( 0, $this->clientCalls );
+		$this->assertCount( 1, $queued );
+		$this->assertSame( [ 'https://example.com/t8' ], $queued[0]['args'][0]['urls'] );
 	}
 }

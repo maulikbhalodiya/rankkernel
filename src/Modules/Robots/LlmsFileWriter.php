@@ -207,10 +207,29 @@ final class LlmsFileWriter {
 			];
 		}
 
-		// LOCK_EX keeps a concurrent request from interleaving a partial write.
-		$bytes = file_put_contents( $path, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing the opt-in physical llms.txt at the site root, the only portable option.
+		// Atomic write: same-directory temp file plus rename, so a crash
+		// never leaves a truncated web-served llms.txt.
+		try {
+			$suffix = bin2hex( random_bytes( 8 ) );
+		} catch ( \Throwable $throwable ) {
+			$suffix = str_replace( '.', '', uniqid( '', true ) );
+		}
 
-		if ( false === $bytes ) {
+		$tmp   = $path . '.rankkernel-tmp-' . $suffix;
+		$bytes = file_put_contents( $tmp, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- writing a same-directory temp file before the atomic rename.
+
+		if ( false === $bytes || $bytes < strlen( $content ) ) {
+			@unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- removing our own failed temp file.
+
+			return [
+				'written' => false,
+				'reason'  => 'write_failed',
+			];
+		}
+
+		if ( ! rename( $tmp, $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace of the opt-in llms.txt on the same filesystem.
+			@unlink( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink, WordPress.PHP.NoSilencedErrors.Discouraged -- removing our own temp file after a failed rename.
+
 			return [
 				'written' => false,
 				'reason'  => 'write_failed',

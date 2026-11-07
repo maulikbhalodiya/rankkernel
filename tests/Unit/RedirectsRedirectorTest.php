@@ -590,7 +590,7 @@ final class RedirectsRedirectorTest extends TestCase {
 
 		Functions\when( 'get_transient' )->alias(
 			static function ( string $key ): mixed {
-				if ( str_starts_with( $key, 'rkredir_' ) ) {
+				if ( str_starts_with( $key, 'rankkernel_redir_' ) ) {
 					throw new \RuntimeException( 'cache failure' );
 				}
 

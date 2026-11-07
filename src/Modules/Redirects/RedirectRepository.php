@@ -1377,6 +1377,10 @@ final class RedirectRepository {
 				return null;
 			}
 
+			if ( 'wildcard' === $matchType && ( strlen( $source ) > 200 || substr_count( $source, '*' ) > 10 ) ) {
+				return null;
+			}
+
 			// Refuse a pattern that can backtrack catastrophically. PHP
 			// preg_match has no execution timeout, so a stored pattern that
 			// costs the engine real time on every uncached request is a cost

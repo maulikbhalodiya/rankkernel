@@ -644,6 +644,13 @@ final class SchemaMetabox {
 			return;
 		}
 
+		// save_post fires for cron, WP-CLI and programmatic saves with no
+		// request and no user. Only a request that actually carries schema
+		// fields may reach the capability check and wp_die().
+		if ( ! $this->hasPostedFields() ) {
+			return;
+		}
+
 		if ( ! current_user_can( 'edit_post', $postId ) ) {
 			wp_die(
 				esc_html__( 'Sorry, you are not allowed to edit this post.', 'rankkernel' ),
@@ -1185,5 +1192,33 @@ final class SchemaMetabox {
 		}
 
 		return $schema;
+	}
+
+	/**
+	 * Whether the request carries any schema metabox field or import file.
+	 *
+	 * Presence only; values are read after the capability and nonce checks.
+	 *
+	 * @return bool True when a schema save is in progress.
+	 */
+	private function hasPostedFields(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence-only guard that runs before capability and nonce checks, reads no posted value.
+		if ( isset( $_POST[ self::NONCE_FIELD ] ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence-only guard that runs before capability and nonce checks, reads no posted value.
+		if ( isset( $_FILES['rankkernel_schema_import'] ) ) {
+			return true;
+		}
+
+		foreach ( [ 'rankkernel_schema_custom', 'rankkernel_schema_type', 'rankkernel_schema_fields', 'rankkernel_schema_faq', 'rankkernel_schema_howto_name', 'rankkernel_schema_howto_steps', 'rankkernel_schema_howto_totaltime', 'rankkernel_schema_howto_cost', 'rankkernel_schema_disabled' ] as $field ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- presence-only guard that runs before capability and nonce checks, reads no posted value.
+			if ( isset( $_POST[ $field ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

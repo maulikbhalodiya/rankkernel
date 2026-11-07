@@ -544,6 +544,24 @@ final class MonitorLoggerTest extends TestCase {
 	}
 
 	/**
+	 * Test CSRF nonces and bare secrets are redacted before storage.
+	 */
+	public function test_csrf_nonces_and_bare_secrets_are_redacted_before_storage(): void {
+		$this->options['rankkernel_404_settings'] = [ 'ignore_query' => false ];
+
+		$logger = $this->makeLogger();
+
+		$this->request( $logger, '/old?_wpnonce=abc123&nonce=xyz&otp=123456&pass=secret&page=2' );
+
+		$uri = '/old?_wpnonce=[redacted]&nonce=[redacted]&otp=[redacted]&pass=[redacted]&page=2';
+		$row = $this->repo->findByHash( hash( 'sha256', $uri ) );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( $uri, $row['uri'] );
+		$this->assertStringNotContainsString( 'abc123', (string) $row['uri'] );
+	}
+
+	/**
 	 * Test a safe query is unchanged and its hash stays stable.
 	 */
 	public function test_safe_query_is_unchanged_and_hash_is_stable(): void {

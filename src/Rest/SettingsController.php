@@ -105,11 +105,12 @@ final class SettingsController {
 	 * @return WP_REST_Response|WP_Error The result.
 	 */
 	public function updateSettings( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		// The endpoint args schema validates and sanitizes every param before
-		// WP_REST_Server::dispatch() calls this handler. get_params() returns
-		// those validated, sanitized values for JSON and form encoded bodies
-		// alike, so the store never receives raw input.
-		$params = $request->get_params();
+		// The endpoint args schema validates and sanitizes body params before
+		// dispatch. Read the body only so a query argument cannot write.
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) || [] === $params ) {
+			$params = $request->get_body_params();
+		}
 
 		if ( ! is_array( $params ) || [] === $params ) {
 			return new WP_Error(
