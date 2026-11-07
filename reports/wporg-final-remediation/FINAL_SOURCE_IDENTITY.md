@@ -2,21 +2,21 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production package source commit: `57dfc063d022d380d43947972c26f9bd976e5b56`
+Production package source commit: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`
 
 ## Source and package
 
 | Field | Value |
 |---|---|
 | Branch | `release/wporg-0.1.0` |
-| Production source commit | `57dfc063d022d380d43947972c26f9bd976e5b56` |
-| Commit subject | `Add languages/rankkernel.pot translation template` |
+| Production source commit | `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05` |
+| Commit subject | `Fix password-post noindex and single-site uninstall scope` |
 | Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0.zip` |
-| ZIP size | 937,587 bytes |
+| ZIP size | 937,797 bytes |
 | ZIP files | 240 |
-| ZIP SHA-256 | `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd` |
+| ZIP SHA-256 | `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed` |
 | Manifest | `rankkernel-0.1.0-manifest.txt` |
-| Manifest SHA-256 | `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6` |
+| Manifest SHA-256 | `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354` |
 | Top-level directory | `rankkernel/` only |
 
 ## Superseded package
@@ -30,6 +30,8 @@ The previously submitted ZIP is preserved unchanged:
 
 It must not be uploaded for this remediation. The new candidate supersedes it because distributed production files changed.
 
+Previous build kept as `rankkernel-0.1.0-last.zip` (904,565 bytes, source `e310308`).
+
 ## Packaging verification
 
 - Built with `build_release_zip.py` from the exact commit.
@@ -42,4 +44,4 @@ It must not be uploaded for this remediation. The new candidate supersedes it be
 
 ## Branch tip note
 
-The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `57dfc06`.
+The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `5e404ef`.

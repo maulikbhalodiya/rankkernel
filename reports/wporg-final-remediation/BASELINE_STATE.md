@@ -24,7 +24,7 @@ The November 5, 2026 submission was downloaded from the URL in the WordPress.org
 - Production source recorded in `BUILD_INFO.txt` and `FINAL_SOURCE_IDENTITY.md`: `fb386a419d6b32394cc342cf740f8e41a75389bb`.
 - The final branch tip `eba5018` differs from `fb386a4` only in distributed-excluded development files (`.audit-prompts/*`, `.github/workflows/*`, `.opencode-reviewer.yml`, `tests/Unit/PluginTest.php`).
 - The submitted ZIP does not contain those development files; its 239 files match the packaged production files at both revisions.
-- Previous approved ZIP `87d94a568cf3a404f4b84648277e20fc81ed64de8fce5c6064343c9a3c0d8252` (source `2afb118`) is preserved as `rankkernel-0.1.0-last.zip`.
+- Earlier approved ZIP `87d94a568cf3a404f4b84648277e20fc81ed64de8fce5c6064343c9a3c0d8252` (source `2afb118`) is superseded history. Previous build kept as `rankkernel-0.1.0-last.zip` (904,565 bytes, source `e310308`).
 
 ## Preservation rules for this remediation
 
@@ -42,4 +42,4 @@ The November 5, 2026 submission was downloaded from the URL in the WordPress.org
 
 ## Superseding final candidate (pointer; baseline above is historical and unchanged)
 
-The baseline above is preserved as history. It is superseded by the final production candidate recorded in `FINAL_SOURCE_IDENTITY.md`: source `57dfc063d022d380d43947972c26f9bd976e5b56`, ZIP `rankkernel-0.1.0.zip` (937,587 bytes, 240 files, SHA-256 `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`). See `FINAL_TEST_REPORT.md`, `FINAL_SECURITY_AUDIT.md` and `FINAL_RELEASE_DECISION.md` for the final evidence.
+The baseline above is preserved as history. It is superseded by the final production candidate recorded in `FINAL_SOURCE_IDENTITY.md`: source `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`, ZIP `rankkernel-0.1.0.zip` (937,797 bytes, 240 files, SHA-256 `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`). See `FINAL_TEST_REPORT.md`, `FINAL_SECURITY_AUDIT.md` and `FINAL_RELEASE_DECISION.md` for the final evidence.

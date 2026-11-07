@@ -1,7 +1,7 @@
 # RankKernel 0.1.0 — All Findings and Remediations
 
-Production source: `57dfc063d022d380d43947972c26f9bd976e5b56`  
-Final ZIP: `rankkernel-0.1.0.zip`, 937,587 bytes, 240 files, SHA-256 `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`
+Production source: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`  
+Final ZIP: `rankkernel-0.1.0.zip`, 937,797 bytes, 240 files, SHA-256 `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`
 
 ## Finding F-01 — Metadata editor used an unverified screen post ID
 
@@ -40,7 +40,7 @@ Final ZIP: `rankkernel-0.1.0.zip`, 937,587 bytes, 240 files, SHA-256 `f6beba8f83
 
 **Important distinction:** Most of these were already allowlisted/cast/escaped downstream. The fix moves the scanner-visible sanitizer to the boundary and documents the final sink; it does not claim every line was an exploitable vulnerability. The one confirmed authorization defect was F-01.
 
-**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2399/9212 passes; PHPCS clean; focused tests cover the nine November 6 examples.
+**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2400/9216 passes; PHPCS clean; focused tests cover the nine November 6 examples.
 
 ## Finding F-03 — Request-method normalization preserved no case
 
@@ -85,6 +85,26 @@ Final ZIP: `rankkernel-0.1.0.zip`, 937,587 bytes, 240 files, SHA-256 `f6beba8f83
 
 **Status:** Already fixed before this pass; verified again.  
 **Evidence:** `readme.txt` Privacy + External Services disclose the support email and IndexNow endpoint/data/timing. `https://www.indexnow.org/documentation` and `https://www.indexnow.org/terms` return HTTP 200; no standalone privacy URL exists and the readme says so. No `wp-content/uploads` hardcoding found.
+
+## Finding F-10 — Password-protected posts now force noindex
+
+**Severity:** Medium correctness (search-indexing honesty for protected content)  
+**Cause:** `HeadRenderer::render()` emits no tags for password-protected posts, but core still prints the `wp_robots` tag from `filterRobots()`, so a password-protected post could be left indexable.  
+**Fix:** `HeadRenderer::robotsDirectives()` now forces `index=false,follow=true` for password-protected posts via a new `isPasswordProtected()` helper (reads the get-queried object id and `post_password_required()`). The helper returns false when no post context exists, preserving existing behavior elsewhere.  
+**Tests:** New regression `HeadRendererTest::test_password_protected_post_forces_noindex`; `post_password_required` default-false stub added to `setUp()` of `HeadRendererTest`, `SchemaBatch2/3/4Test`, `SchemaGeneratorTest`, `SchemaModuleTest`, `SchemaProductionTest`.
+
+## Finding F-11 — Multisite uninstall loop removed; single-site scope
+
+**Severity:** Medium correctness (uninstall scope must match the per-site activation model and readme)  
+**Cause:** Uninstall iterated `get_sites()` and purged every site in the network, while activation is per-site and the readme documents single-site removal.  
+**Fix:** Removed the `get_sites()` loop; uninstall purges the current site only, matching the readme and per-site activation model. Moved the `wp_clear_scheduled_hook()` calls inside `rankkernel_uninstall_current_site()` and removed the duplicated loop.  
+**Tests:** Uninstall regression coverage updated; new `RT-24` row in `REGRESSION_TEST_MATRIX.csv` (24 rows total).
+
+## Minor hardening in this candidate (no new finding ID)
+
+- `RedirectRepository` wildcard caps now use `Matcher::MAX_WILDCARD_LENGTH`/`STARS` constants instead of inline literals.
+- `MetaPayload::isHomeUrl()` rejects scheme-without-host URLs (`mailto:`/`tel:`) instead of treating them as home URLs.
+- Uninstall cron duplication removed (covered by F-11).
 
 ## Accepted risks / limitations
 

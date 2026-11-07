@@ -1,10 +1,10 @@
 # RankKernel 0.1.0 — Final Security Audit
 
-Production source: `57dfc063d022d380d43947972c26f9bd976e5b56`  
+Production source: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`  
 Branch: `release/wporg-0.1.0`  
 Package: `rankkernel-0.1.0.zip`  
-Size: 937,587 bytes — 240 files — SHA-256 `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`  
-Manifest SHA-256: `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6`
+Size: 937,797 bytes — 240 files — SHA-256 `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`  
+Manifest SHA-256: `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354`
 
 ## Scope and method
 
@@ -26,6 +26,8 @@ Evidence was collected at occurrence level:
 The one confirmed authorization defect was `MetadataBox::currentPostId()`: the screen `post` argument could select another post's metadata/resolved content for `localizedState()` without an exact-post `edit_post` check. The fix adds `authorizedPostId()` (existence + exact ID + `current_user_can( 'edit_post' )`), validates both `get_the_ID()` and `$_GET['post']`, refuses non-post-editor screens, and revalidates inside `localizedState()`. Two regression tests cover the unauthorized path. No GET nonce was added because the context is read-only and object authorization is the correct boundary.
 
 The remaining November 6 examples were mostly scanner-visible sanitization gaps, not confirmed exploits: `rk_orderby`, `rk_action`, `rk_final`, `rankkernel_schema_custom`, `rankkernel_schema_msg`, `REQUEST_URI`, `rk_htaccess_directives`, and `rankkernel_meta_focus_keywords` were already allowlisted, cast, normalized or sanitized downstream. Their boundaries now use the correct sanitizer directly, with array/type checks preserved.
+
+Additional fixes in this candidate (source `5e404ef`): F-10 forces `noindex` for password-protected posts in `HeadRenderer::robotsDirectives()` via a new `isPasswordProtected()` helper (get-queried object id plus `post_password_required()`), with regression `HeadRendererTest::test_password_protected_post_forces_noindex`; F-11 removes the multisite `get_sites()` uninstall loop so uninstall purges the current site only and moves `wp_clear_scheduled_hook()` inside `rankkernel_uninstall_current_site()`; minor hardening uses `Matcher::MAX_WILDCARD_LENGTH`/`STARS` caps and rejects scheme-without-host URLs in `MetaPayload::isHomeUrl()`.
 
 ## Control review
 
@@ -79,4 +81,4 @@ Warnings: 203 included-view local-variable false positives, 20 custom-table prep
 
 ## Verdict
 
-**READY FOR INDEPENDENT SERVER AUDIT** of source `57dfc06` and ZIP `f6beba8f…`. Not approved for WordPress.org upload or publication.
+**READY FOR INDEPENDENT SERVER AUDIT** of source `5e404ef` and ZIP `45ffccd6…`. Not approved for WordPress.org upload or publication.
