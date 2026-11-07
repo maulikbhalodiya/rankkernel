@@ -523,6 +523,22 @@ final class HeadRenderer {
 	}
 
 	/**
+	 * Whether the queried post requires a password.
+	 *
+	 * @param Context $ctx Context.
+	 * @return bool The result.
+	 */
+	private static function isPasswordProtected( Context $ctx ): bool {
+		$id = $ctx->queriedId();
+
+		if ( $id <= 0 || ! function_exists( 'post_password_required' ) ) {
+			return false;
+		}
+
+		return (bool) post_password_required( $id );
+	}
+
+	/**
 	 * Translate payload robots settings into wp_robots directive keys.
 	 *
 	 * @param Context              $ctx  Context.
@@ -537,7 +553,10 @@ final class HeadRenderer {
 		}
 
 		// Noindex rules: search, 404 and attachment pages are noindex, follow.
-		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) || self::isAttachmentPage( $ctx ) ) {
+		// Password-protected posts are noindex, follow: render() emits no
+		// tags for them, but core still prints the wp_robots tag from
+		// filterRobots(), so the directive must carry the noindex itself.
+		if ( in_array( $ctx->queriedType(), [ 'search', '404' ], true ) || self::isAttachmentPage( $ctx ) || self::isPasswordProtected( $ctx ) ) {
 			$robots['index']  = false;
 			$robots['follow'] = true;
 		}

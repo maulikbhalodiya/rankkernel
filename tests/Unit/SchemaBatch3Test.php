@@ -43,6 +43,7 @@ final class SchemaBatch3Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+		Functions\when( 'post_password_required' )->justReturn( false );
 
 		WooProductDouble::$woo       = [];
 		WooProductDouble::$available = true;

@@ -1377,7 +1377,7 @@ final class RedirectRepository {
 				return null;
 			}
 
-			if ( 'wildcard' === $matchType && ( strlen( $source ) > 200 || substr_count( $source, '*' ) > 10 ) ) {
+			if ( 'wildcard' === $matchType && ( strlen( $source ) > Matcher::MAX_WILDCARD_LENGTH || substr_count( $source, '*' ) > Matcher::MAX_WILDCARD_STARS ) ) {
 				return null;
 			}
 

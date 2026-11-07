@@ -10,27 +10,21 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-// Clear scheduled module hooks so an uninstall never orphans cron events.
-// The hooks are strings here so uninstall stays standalone and never loads
-// a module class that may already be gone.
-foreach ( array( 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ) as $rankkernel_hook ) {
-	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
-		wp_clear_scheduled_hook( $rankkernel_hook );
-	}
-}
-
-foreach ( array( 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ) as $rankkernel_hook ) {
-	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
-		wp_clear_scheduled_hook( $rankkernel_hook );
-	}
-}
-
 if ( ! function_exists( 'rankkernel_uninstall_current_site' ) ) {
 	/**
 	 * Run the single-site uninstall purge for the current site.
 	 */
 	function rankkernel_uninstall_current_site() {
 		global $wpdb;
+
+		// Clear scheduled module hooks so an uninstall never orphans cron
+		// events. The hooks are strings here so uninstall stays standalone
+		// and never loads a module class that may already be gone.
+		foreach ( array( 'rankkernel_daily_prune', 'rankkernel_indexnow_submit' ) as $rankkernel_hook ) {
+			if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+				wp_clear_scheduled_hook( $rankkernel_hook );
+			}
+		}
 
 		// An uninstall must never leave personal data behind, so the plugin's own
 		// custom tables and every module owned transient are always removed, whatever
@@ -174,23 +168,8 @@ if ( ! function_exists( 'rankkernel_uninstall_current_site' ) ) {
 
 } // End rankkernel_uninstall_current_site definition.
 
-if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_sites' ) ) {
-	$rankkernel_sites = get_sites(
-		array(
-			'fields' => 'ids',
-			'number' => 0,
-		)
-	);
-
-	if ( is_array( $rankkernel_sites ) ) {
-		foreach ( $rankkernel_sites as $rankkernel_site_id ) {
-			switch_to_blog( (int) $rankkernel_site_id );
-			rankkernel_uninstall_current_site();
-			restore_current_blog();
-		}
-
-		return;
-	}
-}
-
+// Uninstall is scoped to the current site only, matching the readme and the
+// plugin's per-site activation model: network activation is refused, so the
+// plugin may only ever be active on individual sites. Looping get_sites()
+// here would purge RankKernel data from sites where it was never active.
 rankkernel_uninstall_current_site();

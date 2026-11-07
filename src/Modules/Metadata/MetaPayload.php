@@ -346,6 +346,13 @@ final class MetaPayload {
 		}
 
 		if ( ! isset( $parts['host'] ) ) {
+			// A URL without a host must be relative or protocol-relative;
+			// protocol-relative is rejected above. A scheme without a host
+			// (mailto:, tel:) is never a home-hosted canonical.
+			if ( isset( $parts['scheme'] ) ) {
+				return false;
+			}
+
 			return true;
 		}
 

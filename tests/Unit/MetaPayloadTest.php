@@ -70,6 +70,12 @@ final class MetaPayloadTest extends TestCase {
 
 		$protocolRelative = MetaPayload::sanitize( [ 'canonical' => '//evil.com/x' ] );
 		$this->assertSame( '', $protocolRelative['canonical'] );
+
+		$mailto = MetaPayload::sanitize( [ 'canonical' => 'mailto:editor@example.com' ] );
+		$this->assertSame( '', $mailto['canonical'] );
+
+		$tel = MetaPayload::sanitize( [ 'canonical' => 'tel:+15551234567' ] );
+		$this->assertSame( '', $tel['canonical'] );
 	}
 
 	/**

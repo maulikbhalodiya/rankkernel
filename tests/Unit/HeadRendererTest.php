@@ -47,6 +47,7 @@ final class HeadRendererTest extends TestCase {
 		// attachment page override this. It cannot live in the test bootstrap,
 		// because Patchwork cannot redefine a function the bootstrap declares.
 		Functions\when( 'get_post_type' )->justReturn( false );
+		Functions\when( 'post_password_required' )->justReturn( false );
 		Functions\when( 'is_preview' )->justReturn( false );
 		Functions\when( 'is_feed' )->justReturn( false );
 	}
@@ -194,6 +195,25 @@ final class HeadRendererTest extends TestCase {
 
 			$seen[ $tag ] = true;
 		}
+	}
+
+	/**
+	 * Password-protected posts force noindex through wp_robots.
+	 *
+	 * The renderer emits no tags for password posts, but core still prints the
+	 * wp_robots tag from filterRobots(), so the directive itself must carry
+	 * the noindex or the protected URL stays indexable.
+	 */
+	public function test_password_protected_post_forces_noindex(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+		$renderer           = new HeadRenderer( $settings, null, $ctx );
+
+		Functions\when( 'post_password_required' )->justReturn( true );
+
+		$robots = $renderer->filterRobots( [] );
+
+		$this->assertTrue( $robots['noindex'] );
+		$this->assertArrayNotHasKey( 'nofollow', $robots );
 	}
 
 	/**
