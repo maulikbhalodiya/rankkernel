@@ -1,0 +1,6844 @@
+# Copyright (C) 2026 Maulik Bhalodiya
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: RankKernel SEO & Schema Engine 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rankkernel\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-07T04:51:14+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
+"X-Domain: rankkernel\n"
+
+#. Plugin Name of the plugin
+#: rankkernel.php
+msgid "RankKernel SEO & Schema Engine"
+msgstr ""
+
+#. Description of the plugin
+#: rankkernel.php
+msgid "100% free, lightweight SEO with no paywalls or upsell banners: metadata engine, content analysis, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, robots.txt and llms.txt editors, IndexNow instant indexing and a support screen. Modules that are off cost zero: no hooks, no queries, no bloat."
+msgstr ""
+
+#. Author of the plugin
+#: rankkernel.php
+msgid "Maulik Bhalodiya"
+msgstr ""
+
+#. Author URI of the plugin
+#: rankkernel.php
+msgid "https://github.com/maulikbhalodiya"
+msgstr ""
+
+#: rankkernel.php:28
+msgid "RankKernel requires PHP 8.2 or higher. Please upgrade PHP to use this plugin."
+msgstr ""
+
+#: rankkernel.php:41
+msgid "RankKernel requires WordPress 6.5 or higher. Please upgrade WordPress to use this plugin."
+msgstr ""
+
+#: rankkernel.php:97
+msgid "RankKernel could not load its own classes, so the plugin files look incomplete. Please reinstall RankKernel."
+msgstr ""
+
+#: rankkernel.php:121
+msgid "RankKernel supports single-site activation only. Network activation is not supported; please activate RankKernel on each site individually."
+msgstr ""
+
+#. translators: %s: comma-separated list of conflicting plugins
+#: rankkernel.php:285
+msgid "RankKernel detected another SEO plugin active (%s). Running multiple SEO plugins may cause duplicated meta tags. Please deactivate the one you do not need."
+msgstr ""
+
+#: src/Admin/AdminMenu.php:304
+#: src/Admin/ImporterPage.php:222
+#: src/Admin/Views/dashboard.php:273
+#: src/Admin/Views/instant-indexing.php:77
+#: src/Admin/Views/schema-settings.php:150
+#: src/Admin/Views/settings.php:141
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:337
+#: src/Admin/AdminMenu.php:338
+msgid "Dashboard"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:355
+#: src/Admin/Views/sitemap-settings.php:76
+#: src/Admin/Views/sitemap-settings.php:111
+msgid "Sitemap Settings"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:356
+msgid "Sitemap"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:448
+#: src/Admin/AdminMenu.php:449
+#: src/Admin/Views/sitemap-settings.php:152
+msgid "General Settings"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:500
+#: src/Admin/Views/schema-settings.php:68
+#: src/Admin/Views/schema-settings.php:124
+msgid "Schema Settings"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:501
+#: src/Admin/Views/metadata-box.php:117
+#: src/Admin/Views/metadata-box.php:283
+#: src/Admin/Views/schema-settings.php:125
+#: src/Modules/Schema/SchemaModule.php:149
+#: assets/js/metadata-sidebar.js:3152
+msgid "Schema"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:560
+#: src/Admin/AdminMenu.php:561
+#: src/Admin/ImporterPage.php:223
+#: src/Admin/Views/redirects.php:121
+#: src/Admin/Views/redirects.php:206
+#: src/Modules/Redirects/RedirectsModule.php:80
+#: assets/js/importer-admin.js:504
+msgid "Redirects"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:583
+#: src/Admin/AdminMenu.php:584
+#: src/Admin/Views/support.php:101
+#: src/Admin/Views/support.php:106
+msgid "Support"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:675
+#: src/Admin/AdminMenu.php:676
+#: src/Admin/Views/not-found.php:133
+#: src/Admin/Views/not-found.php:220
+#: src/Modules/Monitor/MonitorModule.php:76
+msgid "404 Monitor"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:735
+#: src/Admin/AdminMenu.php:736
+#: src/Admin/Views/instant-indexing.php:58
+#: src/Admin/Views/instant-indexing.php:66
+msgid "Instant Indexing"
+msgstr ""
+
+#: src/Admin/AdminMenu.php:795
+#: src/Admin/AdminMenu.php:796
+#: src/Admin/ImporterPage.php:90
+#: src/Admin/ImporterPage.php:94
+msgid "Importer"
+msgstr ""
+
+#: src/Admin/DashboardPage.php:228
+#: src/Rest/ModulesController.php:77
+msgid "Sorry, you are not allowed to manage RankKernel modules."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:97
+msgid "Move titles, descriptions, robots rules and redirects from your old SEO plugin into RankKernel."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:100
+msgid "Rescan Database"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:109
+msgid "Detect"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:111
+msgid "Scanned active and dormant SEO database tables"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:116
+#: src/Admin/ImporterPage.php:284
+#: src/Admin/ImporterPage.php:288
+#: src/Admin/Views/sections/llms.php:177
+#: src/Admin/Views/sections/robots.php:112
+msgid "Preview"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:118
+msgid "Review items, post types and taxonomy mapping"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:123
+msgid "Run"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:125
+msgid "Execute batch import"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:147
+msgid "How this works"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:149
+msgid "Preview one source first."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:149
+msgid "Pick the Preview button on a single source row above and review what would change."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:150
+msgid "Exclude and choose."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:150
+msgid "Tick Exclude on rows to skip, pick at most one template per slot, and tick only the bulk rules to apply."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:151
+msgid "Confirm, then run."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:151
+msgid "Read the confirmation summary and start the import. Re-running is safe: finished rows report as skipped."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:153
+msgid "Suggested order: import the smallest source first, spot-check a few posts, then run the rest. Leave the old plugin active until the results look right."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:164
+msgid "Conflict Mode"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:165
+msgid "Choose how RankKernel handles SEO metadata when a post, page, or term already has data in both databases."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:166
+msgid "Applies to all selected sources"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:171
+msgid "Skip existing values"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:172
+msgid "Recommended"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:174
+msgid "Preserves all existing RankKernel metadata. Only imports missing fields, empty snippets, or unmapped redirects. Safe and non-destructive."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:179
+msgid "Overwrite with incoming values"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:180
+msgid "Overwrite"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:182
+msgid "Replaces current RankKernel metadata with data found in the source plugin. Ideal for full migrations to match legacy configurations one to one."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:211
+msgid "Detected SEO Data Sources"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:212
+msgid "RankKernel scanned your database for current or removed SEO plugins. Preview anything before importing."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:219
+#: src/Admin/Views/instant-indexing.php:302
+#: src/Admin/Views/instant-indexing.php:425
+#: assets/js/instant-indexing-admin.js:1199
+msgid "Source"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:220
+#: assets/js/importer-admin.js:502
+msgid "Posts"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:221
+#: assets/js/importer-admin.js:503
+msgid "Terms"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:224
+msgid "Status and Action"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:278
+msgid "Yes"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:278
+msgid "No"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:283
+msgid "Nothing to import"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:286
+msgid "Ready"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:300
+msgid "Selecting Preview does not make any database changes. You can review mappings before running."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:310
+msgid "Safe, non-blocking execution:"
+msgstr ""
+
+#: src/Admin/ImporterPage.php:311
+msgid "RankKernel reads source data in small bounded batches to keep server load minimal. Your source plugin data stays untouched until you decide to deactivate the plugin yourself."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:327
+msgid "Preview a source first, then review each kind before running."
+msgstr ""
+
+#: src/Admin/ImporterPage.php:327
+#: assets/js/importer-admin.js:654
+#: assets/js/importer-admin.js:866
+msgid "Run import"
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:96
+#: src/Admin/InstantIndexingPage.php:436
+msgid "Rejected: the Instant Indexing module is disabled."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:103
+#: src/Admin/InstantIndexingPage.php:445
+msgid "Rejected: no URLs were provided."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:110
+msgid "Could not submit. The URL host does not match this site. See the log below for details."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:117
+msgid "Could not submit. One or more URLs could not be validated. See the log below for details."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:124
+msgid "Some URLs were rejected. See the log below for details."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:131
+msgid "Log cleared."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:138
+msgid "Re-submitted. A new entry was added to the log below."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:145
+msgid "Could not retry. No log entry was selected."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:152
+msgid "Could not retry. The selected log entry no longer exists."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:159
+msgid "Could not retry. The stored URL could not be validated."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:166
+msgid "Could not retry. The stored URL host does not match this site."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:173
+msgid "Could not record the outcome. The log could not be written, so the rejected URLs are not listed below. Please check the database and try again."
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:257
+#: src/Admin/RedirectsPage.php:896
+msgid "All"
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:258
+#: src/Admin/InstantIndexingOutcomes.php:131
+#: src/Admin/Views/instant-indexing.php:106
+#: src/Admin/Views/instant-indexing.php:319
+#: src/Admin/Views/instant-indexing.php:359
+#: assets/js/instant-indexing-admin.js:798
+msgid "Accepted"
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:259
+#: src/Admin/InstantIndexingOutcomes.php:116
+#: src/Admin/Views/instant-indexing.php:327
+#: assets/js/instant-indexing-admin.js:783
+msgid "Key pending"
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:260
+#: src/Admin/InstantIndexingOutcomes.php:120
+#: src/Admin/Views/instant-indexing.php:111
+#: src/Admin/Views/instant-indexing.php:343
+#: assets/js/instant-indexing-admin.js:787
+msgid "Rejected"
+msgstr ""
+
+#: src/Admin/InstantIndexingLogView.php:261
+#: src/Admin/InstantIndexingOutcomes.php:124
+#: src/Admin/Views/instant-indexing.php:116
+#: src/Admin/Views/instant-indexing.php:335
+#: assets/js/instant-indexing-admin.js:791
+msgid "Rate limited"
+msgstr ""
+
+#: src/Admin/InstantIndexingOutcomes.php:128
+#: src/Admin/Views/instant-indexing.php:351
+#: assets/js/instant-indexing-admin.js:795
+msgid "Retry later"
+msgstr ""
+
+#: src/Admin/InstantIndexingOutcomes.php:160
+#: src/Admin/Views/instant-indexing.php:328
+#: src/Admin/Views/instant-indexing.php:336
+#: src/Admin/Views/instant-indexing.php:360
+#: src/Admin/Views/instant-indexing.php:392
+#: assets/js/instant-indexing-admin.js:829
+msgid "Manual"
+msgstr ""
+
+#: src/Admin/InstantIndexingOutcomes.php:163
+#: src/Admin/Views/instant-indexing.php:320
+#: src/Admin/Views/instant-indexing.php:344
+#: src/Admin/Views/instant-indexing.php:352
+#: src/Admin/Views/instant-indexing.php:391
+#: assets/js/instant-indexing-admin.js:829
+msgid "Auto"
+msgstr ""
+
+#. translators: %d: HTTP status code from the key file check.
+#: src/Admin/InstantIndexingPage.php:301
+msgid "Key file verified. The file returned %d and contained the expected key."
+msgstr ""
+
+#. translators: %d: HTTP status code from the key file check.
+#: src/Admin/InstantIndexingPage.php:310
+msgid "Key file check failed. The file returned %d. Opening the key file URL should show only the key as plain text."
+msgstr ""
+
+#: src/Admin/InstantIndexingPage.php:461
+msgid "Rejected: the URL could not be validated."
+msgstr ""
+
+#: src/Admin/InstantIndexingPage.php:470
+msgid "Rejected: the URL host does not match this site."
+msgstr ""
+
+#: src/Admin/InstantIndexingPage.php:684
+msgid "Sorry, you are not allowed to manage Instant Indexing."
+msgstr ""
+
+#: src/Admin/MetadataBox.php:376
+#: assets/js/metadata-sidebar.js:2088
+msgid "RankKernel SEO"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:543
+#: assets/js/metadata-sidebar.js:2650
+msgid "Summary with large image"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:547
+#: src/Admin/Views/sections/llms.php:120
+#: assets/js/metadata-sidebar.js:2651
+msgid "Summary"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:554
+#: src/Admin/Views/metadata-box.php:273
+#: assets/js/metadata-editor.js:551
+#: assets/js/metadata-sidebar.js:2852
+msgid "Default"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:558
+#: assets/js/metadata-sidebar.js:2853
+msgid "None"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:562
+#: assets/js/metadata-sidebar.js:2854
+msgid "Standard"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:566
+#: assets/js/metadata-sidebar.js:2855
+msgid "Large"
+msgstr ""
+
+#. translators: %s: schema type name, e.g. Blog Posting.
+#: src/Admin/MetadataBox.php:590
+#: src/Admin/SchemaMetabox.php:370
+msgid "Automatic (%s)"
+msgstr ""
+
+#. translators: %s: post type label
+#: src/Admin/MetadataBox.php:591
+#: src/Admin/SchemaMetabox.php:372
+#: src/Admin/Views/schema-settings.php:438
+#: assets/js/metadata-sidebar.js:2926
+msgid "Automatic"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:673
+#: src/Admin/SchemaMetabox.php:656
+#: src/Admin/SchemaMetabox.php:1114
+msgid "Sorry, you are not allowed to edit this post."
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1155
+#: assets/js/metadata-editor.js:375
+msgid "Custom override active"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1156
+#: assets/js/metadata-editor.js:374
+msgid "Inherited from the template"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1157
+#: src/Admin/Views/metadata-box.php:167
+#: src/Admin/Views/metadata-box.php:196
+msgid "Reset to template"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1158
+msgid "Template"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1159
+msgid "Effective value"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1160
+#: src/Admin/Views/metadata-box.php:170
+#: src/Admin/Views/metadata-box.php:199
+#: assets/js/metadata-editor.js:325
+#: assets/js/metadata-sidebar.js:974
+#: assets/js/metadata-sidebar.js:975
+#: assets/js/metadata-sidebar.js:991
+#: assets/js/metadata-sidebar.js:1022
+msgid "Insert token"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1161
+#: src/Admin/Views/metadata-box.php:356
+#: src/Admin/Views/metadata-box.php:393
+#: src/Admin/Views/schema-settings.php:310
+#: src/Admin/Views/sections/social.php:40
+#: assets/js/metadata-editor.js:524
+#: assets/js/metadata-sidebar.js:2566
+msgid "Select image"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1162
+#: assets/js/metadata-sidebar.js:1337
+#: src/Modules/Schema/blocks/howto/howto-editor.js:351
+msgid "Remove image"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1163
+#: src/Admin/Views/metadata-box.php:127
+#: assets/js/metadata-sidebar.js:1082
+msgid "Desktop"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1164
+#: src/Admin/Views/metadata-box.php:128
+#: assets/js/metadata-sidebar.js:1091
+msgid "Mobile"
+msgstr ""
+
+#: src/Admin/MetadataBox.php:1165
+msgid "This clears the override and restores the template value."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:230
+msgid "404 log cleared."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:233
+msgid "The 404 log was partially cleared because the clear loop is bounded. Some entries remain, run Clear Log again to remove them."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:236
+msgid "404 entry deleted."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:239
+#: src/Admin/RedirectsPage.php:798
+#: src/Admin/Views/instant-indexing.php:86
+#: src/Admin/Views/schema-settings.php:83
+#: src/Admin/Views/settings.php:112
+#: src/Admin/Views/sitemap-settings.php:88
+msgid "Settings saved."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:242
+#: src/Admin/RedirectsPage.php:788
+msgid "Redirect saved."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:254
+msgid "That 404 entry no longer exists."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:255
+#: src/Admin/RedirectsPage.php:827
+msgid "The action could not be completed. Please try again."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:256
+msgid "Choose at least one entry and the delete action."
+msgstr ""
+
+#. translators: %s: 404 URI
+#: src/Admin/NotFoundPage.php:370
+msgid "Select 404 entry for %s"
+msgstr ""
+
+#. translators: %1$d: current page, %2$d: total pages
+#. translators: 1: current page number, 2: total page count
+#: src/Admin/NotFoundPage.php:398
+#: src/Admin/RedirectsPage.php:364
+#: src/Modules/Metadata/TagsReplacer.php:355
+#: src/Modules/Metadata/TagsReplacer.php:367
+msgid "Page %1$d of %2$d"
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:509
+msgid "Sorry, you are not allowed to manage the 404 log."
+msgstr ""
+
+#. translators: %d: number of deleted 404 entries
+#: src/Admin/NotFoundPage.php:714
+msgid "Bulk delete finished for %d entries."
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:820
+#: src/Admin/RedirectsPage.php:2106
+msgid "Exact"
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:821
+#: src/Admin/RedirectsPage.php:2107
+msgid "Prefix"
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:822
+#: src/Admin/RedirectsPage.php:2108
+msgid "Contains"
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:823
+#: src/Admin/RedirectsPage.php:2109
+msgid "Suffix"
+msgstr ""
+
+#: src/Admin/NotFoundPage.php:824
+#: src/Admin/RedirectsPage.php:2110
+msgid "Wildcard"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:293
+msgid "Insufficient permissions."
+msgstr ""
+
+#. translators: %1$s: first visible row, %2$s: last visible row, %3$s: total rows
+#: src/Admin/RedirectsPage.php:374
+msgid "Showing <strong>%1$s to %2$s</strong> of <strong>%3$s</strong> redirects"
+msgstr ""
+
+#. translators: %s: total number of redirects
+#: src/Admin/RedirectsPage.php:382
+msgid "%s redirects"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:517
+msgid "Edit Redirect"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:517
+#: src/Admin/Views/redirects.php:220
+#: src/Admin/Views/redirects.php:478
+msgid "Add Redirect"
+msgstr ""
+
+#. translators: %s: total number of redirect rules
+#: src/Admin/RedirectsPage.php:536
+msgid "%s Total Rule"
+msgstr ""
+
+#. translators: %s: total number of redirect rules
+#: src/Admin/RedirectsPage.php:542
+msgid "%s Total Rules"
+msgstr ""
+
+#. translators: %d: character count of the source field
+#. translators: %d: character count of the destination field
+#: src/Admin/RedirectsPage.php:553
+#: src/Admin/RedirectsPage.php:567
+msgid "%d char"
+msgstr ""
+
+#. translators: %d: character count of the source field
+#. translators: %d: character count of the destination field
+#: src/Admin/RedirectsPage.php:559
+#: src/Admin/RedirectsPage.php:573
+msgid "%d chars"
+msgstr ""
+
+#. translators: %1$d: created count, %2$d: updated count, %3$d: skipped count, %4$d: error count
+#: src/Admin/RedirectsPage.php:593
+msgid "Import finished: %1$d created, %2$d updated, %3$d skipped, %4$d with errors."
+msgstr ""
+
+#. translators: %s: dry run result summary
+#: src/Admin/RedirectsPage.php:603
+msgid "Dry run, nothing was saved. %s"
+msgstr ""
+
+#. translators: %d: number of rows imported with an unverified chain
+#: src/Admin/RedirectsPage.php:613
+msgid "%d row(s) imported with an unverified chain at your request."
+msgstr ""
+
+#. translators: %d: number of rolled back changes
+#: src/Admin/RedirectsPage.php:623
+msgid "%d change(s) rolled back."
+msgstr ""
+
+#. translators: %1$d: CSV row number, %2$s: reason the row was rejected
+#. translators: %1$d: CSV row number, %2$s: advisory warning text
+#: src/Admin/RedirectsPage.php:639
+#: src/Admin/RedirectsPage.php:665
+msgid "Row %1$d: %2$s"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:706
+msgid "Please fix the highlighted fields and try again."
+msgstr ""
+
+#. translators: %s: redirect chain path
+#: src/Admin/RedirectsPage.php:745
+msgid "Redirect chain detected: %s."
+msgstr ""
+
+#. translators: %s: recommended final destination
+#: src/Admin/RedirectsPage.php:756
+#: src/Modules/Redirects/CsvHandler.php:866
+msgid "Consider pointing the source directly to %s."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:790
+msgid "Redirect updated."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:792
+msgid "Redirect deleted."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:794
+msgid "Redirect activated."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:796
+msgid "Redirect deactivated."
+msgstr ""
+
+#. translators: %s: redirect chain path showing the loop
+#: src/Admin/RedirectsPage.php:820
+#: src/Admin/RedirectsPage.php:1234
+msgid "This redirect would create a redirect loop: %s. The rule was not saved."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:826
+msgid "That redirect no longer exists."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:828
+msgid "Choose at least one redirect and a bulk action."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:851
+#: src/Admin/Views/redirects-list.php:176
+msgid "Deactivate"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:851
+#: src/Admin/Views/redirects-list.php:175
+msgid "Activate"
+msgstr ""
+
+#. translators: %s: redirect source URL
+#: src/Admin/RedirectsPage.php:860
+msgid "Select redirect for %s"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:872
+msgid "Never"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:881
+#: src/Admin/RedirectsPage.php:897
+#: src/Admin/Views/dashboard.php:237
+#: src/Admin/Views/dashboard.php:246
+#: src/Admin/Views/dashboard.php:380
+#: src/Admin/Views/redirects.php:425
+msgid "Active"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:881
+#: src/Admin/RedirectsPage.php:898
+#: src/Admin/Views/dashboard.php:175
+msgid "Inactive"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1062
+msgid "Sorry, you are not allowed to manage redirects."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1197
+msgid "That redirect no longer exists. It may have been deleted."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1220
+msgid "The rule was not saved."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1268
+msgid "The redirect chain could not be fully verified, so the rule was not saved because a loop cannot be ruled out. Save an exact source and target, then add the rule, or tick the override box to save it anyway and have it recorded."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1298
+msgid "A redirect with this source and match type already exists."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1308
+msgid "This pattern can backtrack catastrophically and slow every uncached request, so it was not saved. Remove the repeated group or the nested quantifier. The rule was not saved."
+msgstr ""
+
+#. translators: %d: maximum regex source length
+#: src/Admin/RedirectsPage.php:1321
+msgid "A regex source may be at most %d characters, because longer patterns are never evaluated. The rule was not saved."
+msgstr ""
+
+#. translators: %d: maximum active regex rules
+#: src/Admin/RedirectsPage.php:1336
+msgid "The active regex rule limit of %d is reached, and a rule past the limit is never evaluated. Deactivate or delete a regex rule before adding another. The rule was not saved."
+msgstr ""
+
+#. translators: %d: maximum active pattern rules
+#: src/Admin/RedirectsPage.php:1351
+msgid "The active pattern rule limit of %d is reached. Deactivate or delete a pattern rule before adding another."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1379
+#: src/Modules/Redirects/CsvHandler.php:825
+#: src/Modules/Redirects/CsvHandler.php:838
+msgid "The redirect could not be saved. Please try again."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1444
+msgid "A redirect was saved with an unverified chain because an operator overrode the check. The chain could not be proven free of a loop."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1569
+msgid "Please choose a valid match type."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1576
+msgid "Please choose a valid redirect type."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1584
+msgid "Please enter a source URL."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1586
+#: src/Modules/Redirects/CsvHandler.php:637
+msgid "That source is too long. Please keep it under 2000 characters."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1588
+msgid "Remove the part starting with #. Fragments stay in the browser and are never sent to the server, so they cannot be matched."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1593
+msgid "The home page cannot be used as a redirect source. Please enter a path such as /old page."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1595
+#: src/Admin/RedirectsPage.php:2184
+#: src/Admin/Views/redirects.php:412
+msgid "That pattern is too long. Please keep regex patterns under 200 characters."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1597
+#: src/Modules/Redirects/CsvHandler.php:677
+msgid "That regex pattern could not be compiled. Please check the pattern and try again."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1605
+#: src/Modules/Redirects/CsvHandler.php:655
+msgid "That destination is too long. Please keep it under 2000 characters."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1637
+msgid "That destination is not valid: please enter a destination, or choose 410 Gone or 451 which need none."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1639
+msgid "That destination is not valid: remove line breaks and control characters."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1641
+msgid "That destination is not valid: blocked scheme. Use a relative path or an http or https URL."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1643
+msgid "That destination is not valid: external hosts are not allowlisted. Use a relative path or a URL on this site."
+msgstr ""
+
+#. translators: %s: reason the destination was rejected
+#: src/Admin/RedirectsPage.php:1647
+#: src/Modules/Redirects/CsvHandler.php:664
+msgid "That destination is not valid: %s."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1910
+msgid "Please choose a CSV file to import."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1919
+msgid "That upload did not complete. Please try again."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1929
+#: src/Modules/Redirects/CsvHandler.php:143
+#: src/Modules/Redirects/CsvHandler.php:152
+#: src/Modules/Redirects/CsvHandler.php:177
+msgid "The uploaded file could not be read."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:1968
+msgid "Invalid file type. Please upload a valid CSV file."
+msgstr ""
+
+#. translators: %d: number of deleted redirects
+#: src/Admin/RedirectsPage.php:2042
+msgid "Bulk delete finished for %d redirects."
+msgstr ""
+
+#. translators: %d: number of activated redirects
+#: src/Admin/RedirectsPage.php:2050
+msgid "Bulk activate finished for %d redirects."
+msgstr ""
+
+#. translators: %d: number of deactivated redirects
+#: src/Admin/RedirectsPage.php:2058
+msgid "Bulk deactivate finished for %d redirects."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2063
+msgid "Bulk action finished."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2111
+msgid "Regex"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2122
+msgid "Matches one path exactly. This is the fastest option."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2123
+msgid "Matches the path and everything under it. The longest match wins."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2124
+msgid "Matches when the path includes this text anywhere."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2125
+msgid "Matches when the path ends with this text."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2126
+msgid "Use * for any characters, for example /blog/*."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2127
+msgid "Full pattern match for advanced use. The pattern is tested before save."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2141
+msgid "301 Permanent"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2142
+msgid "302 Temporary"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2143
+msgid "307 Temporary, method kept"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2144
+msgid "410 Gone"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2145
+msgid "451 Legal block"
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2159
+msgid "Permanent move. Search engines pass ranking to the new address."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2160
+msgid "Temporary move. The old address stays indexed."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2161
+msgid "Temporary move that keeps the request method."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2162
+msgid "Gone. No destination needed. Use for permanently removed content."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2163
+msgid "Unavailable for legal reasons. No destination needed."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2177
+#: src/Admin/Views/redirects.php:411
+msgid "Enter a pattern to check it. Patterns are limited to 200 characters."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2191
+msgid "That pattern does not compile. Check the syntax and try again."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2200
+msgid "Pattern compiles cleanly. Tip: add ^ at the start and $ at the end to match the whole path."
+msgstr ""
+
+#: src/Admin/RedirectsPage.php:2206
+msgid "Pattern compiles cleanly."
+msgstr ""
+
+#: src/Admin/SchemaMetabox.php:304
+msgid "RankKernel Schema"
+msgstr ""
+
+#: src/Admin/SchemaMetabox.php:1106
+msgid "Missing post."
+msgstr ""
+
+#: src/Admin/SchemaSettingsPage.php:230
+#: src/Admin/SettingsPage.php:642
+#: src/Admin/SitemapSettingsPage.php:316
+#: src/Rest/SettingsController.php:86
+msgid "Sorry, you are not allowed to manage RankKernel settings."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:145
+msgid "Google"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:146
+msgid "Bing"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:147
+msgid "Yandex"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:148
+#: src/Admin/Views/sections/social.php:84
+msgid "Pinterest"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:149
+msgid "Baidu"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:172
+msgid "Show home link"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:174
+msgid "Start the trail with a link to the homepage."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:178
+msgid "Show current page"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:180
+msgid "End the trail with the current page title."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:184
+msgid "Hide on front page"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:186
+msgid "Show no trail on the static front page."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:193
+msgid "Show blog page"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:195
+msgid "Include the posts page in post trails when one exists."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:199
+msgid "Show term ancestors"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:201
+msgid "Include parent terms above the current term."
+msgstr ""
+
+#. translators: %s: post type label.
+#: src/Admin/SettingsPage.php:251
+#: src/Admin/SettingsPage.php:276
+msgid "Primary taxonomy (%s)"
+msgstr ""
+
+#. translators: %s: taxonomy label.
+#: src/Admin/SettingsPage.php:253
+msgid "Uses %s, the only public taxonomy available."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:289
+#: src/Admin/SitemapSettingsPage.php:163
+#: src/Admin/Views/metadata-box.php:115
+#: src/Admin/Views/sections/general.php:66
+#: assets/js/metadata-sidebar.js:1504
+#: assets/js/metadata-sidebar.js:3150
+msgid "General"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:293
+#: src/Admin/Views/schema-settings.php:200
+#: src/Admin/Views/sections/breadcrumbs.php:64
+#: src/Modules/Breadcrumbs/BreadcrumbsModule.php:77
+#: src/Modules/Breadcrumbs/Renderer.php:74
+msgid "Breadcrumbs"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:297
+#: src/Admin/Views/sections/webmaster.php:57
+msgid "Webmaster Tools"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:301
+#: src/Admin/Views/metadata-box.php:118
+#: src/Admin/Views/sections/social.php:30
+#: assets/js/metadata-sidebar.js:1505
+#: assets/js/metadata-sidebar.js:3153
+msgid "Social"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:308
+#: src/Admin/Views/sections/robots.php:63
+msgid "Robots.txt"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:350
+#: src/Admin/Views/sections/llms.php:64
+msgid "llms.txt"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:369
+#: src/Admin/Views/sections/htaccess.php:77
+msgid ".htaccess"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:385
+#: src/Admin/Views/metadata-box.php:116
+#: src/Admin/Views/metadata-box.php:312
+#: src/Admin/Views/sections/advanced.php:58
+#: assets/js/metadata-sidebar.js:2949
+#: assets/js/metadata-sidebar.js:3151
+msgid "Advanced"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:405
+#: src/Admin/Views/schema-settings.php:90
+#: src/Admin/Views/settings.php:119
+#: src/Admin/Views/sitemap-settings.php:95
+msgid "Settings could not be saved. Please try again."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:411
+#: src/Admin/Views/redirects.php:556
+#: src/Admin/Views/schema-settings.php:133
+#: src/Admin/Views/settings.php:164
+#: src/Admin/Views/sitemap-settings.php:121
+msgid "Save Settings"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:164
+#: src/Admin/Views/sitemap-settings.php:260
+msgid "Post Types"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:165
+#: src/Admin/Views/sitemap-settings.php:325
+msgid "Taxonomies"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:166
+#: src/Admin/Views/sitemap-settings.php:380
+msgid "Authors"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:194
+msgid "Images in Sitemaps"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:196
+msgid "Include reference to images from the post content in sitemaps. This helps search engines index the important images on your pages."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:201
+msgid "Include Featured Images"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:203
+msgid "Include the Featured Image too, even if it does not appear directly in the post content."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:208
+msgid "Exclude Posts"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:210
+msgid "Enter post IDs of posts you want to exclude from the sitemap, separated by commas. This option applies to all posts types including posts, pages, and custom post types."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:215
+msgid "Exclude Terms"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:217
+msgid "Add term IDs, separated by comma. This option is applied for all taxonomies."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:222
+msgid "Include empty terms"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:224
+msgid "List terms that have no published posts."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:257
+msgid "Authors sitemap"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:259
+msgid "List authors in the sitemap index."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:263
+msgid "Include authors without posts"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:265
+msgid "Also list users who can publish, such as authors and editors, even when they have no published posts. Enabling this can expose author archives to search engines."
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:302
+msgid "Exclude users"
+msgstr ""
+
+#: src/Admin/SitemapSettingsPage.php:304
+msgid "Comma separated user ids to leave out of the authors sitemap."
+msgstr ""
+
+#: src/Admin/SupportPage.php:87
+msgid "Sorry, you are not allowed to send a support request."
+msgstr ""
+
+#. translators: %d: number of seconds.
+#: src/Admin/SupportPage.php:116
+msgid "You have sent several requests already. Please wait %d seconds and try again."
+msgstr ""
+
+#. translators: %d: minimum number of characters.
+#: src/Admin/SupportPage.php:414
+#: src/Support/SupportRequest.php:171
+msgid "The subject must be at least %d characters."
+msgstr ""
+
+#. translators: %d: maximum number of characters.
+#: src/Admin/SupportPage.php:416
+#: src/Support/SupportRequest.php:177
+msgid "The subject must be %d characters or fewer."
+msgstr ""
+
+#. translators: %d: minimum number of characters.
+#: src/Admin/SupportPage.php:418
+#: src/Support/SupportRequest.php:191
+msgid "Please add a little more detail, at least %d characters."
+msgstr ""
+
+#. translators: %d: maximum number of characters.
+#: src/Admin/SupportPage.php:420
+#: src/Support/SupportRequest.php:197
+msgid "The message must be %d characters or fewer."
+msgstr ""
+
+#: src/Admin/SupportPage.php:421
+#: src/Support/SupportDelivery.php:198
+#: src/Support/SupportDelivery.php:214
+#: src/Support/SupportDelivery.php:268
+msgid "That screenshot is too large. Please keep it under 2 MB."
+msgstr ""
+
+#: src/Admin/SupportPage.php:422
+#: src/Support/SupportDelivery.php:237
+#: src/Support/SupportDelivery.php:246
+msgid "The screenshot must be a PNG, JPEG, GIF or WebP image."
+msgstr ""
+
+#. translators: %d: maximum number of screenshots.
+#: src/Admin/SupportPage.php:424
+#: src/Support/SupportDelivery.php:172
+msgid "Please keep it to %d screenshots or fewer."
+msgstr ""
+
+#. translators: %d: number of selected files.
+#: src/Admin/SupportPage.php:426
+msgid "%d files selected"
+msgstr ""
+
+#. translators: %d: position of the exclusion rule in the list
+#: src/Admin/SupportPage.php:427
+#: src/Admin/Views/metadata-box.php:357
+#: src/Admin/Views/metadata-box.php:394
+#: src/Admin/Views/not-found.php:404
+#: src/Admin/Views/not-found.php:429
+#: src/Admin/Views/schema-settings.php:311
+#: src/Admin/Views/sections/social.php:49
+#: assets/js/metadata-sidebar.js:1339
+#: assets/js/schema-settings.js:154
+#: src/Modules/Schema/blocks/faq/faq-editor.js:221
+#: src/Modules/Schema/blocks/howto/howto-editor.js:495
+#: src/Modules/Schema/blocks/howto/howto-editor.js:527
+msgid "Remove"
+msgstr ""
+
+#: src/Admin/SupportPage.php:428
+#: src/Support/SupportRequest.php:209
+msgid "That email address does not look valid."
+msgstr ""
+
+#: src/Admin/SupportPage.php:429
+#: src/Support/SupportRequest.php:207
+msgid "Add an email address so we can reply."
+msgstr ""
+
+#: src/Admin/SupportPage.php:430
+#: src/Support/SupportRequest.php:159
+msgid "Choose what this is about."
+msgstr ""
+
+#: src/Admin/SupportPage.php:431
+#: src/Support/SupportRequest.php:219
+msgid "Please confirm before sending."
+msgstr ""
+
+#: src/Admin/SupportPage.php:432
+#: src/Support/SupportRequest.php:167
+msgid "Add a short subject."
+msgstr ""
+
+#: src/Admin/SupportPage.php:433
+#: src/Support/SupportRequest.php:187
+msgid "Describe what happened."
+msgstr ""
+
+#: src/Admin/UserProfileField.php:51
+msgid "RankKernel Social"
+msgstr ""
+
+#: src/Admin/UserProfileField.php:55
+msgid "X handle"
+msgstr ""
+
+#: src/Admin/UserProfileField.php:58
+#: src/Admin/Views/sections/social.php:73
+msgid "Enter the handle without the at sign. RankKernel adds it when rendering metadata."
+msgstr ""
+
+#: src/Admin/UserProfileField.php:79
+msgid "Sorry, you are not allowed to edit this user."
+msgstr ""
+
+#: src/Admin/UserProfileField.php:110
+msgid "The X handle could not be saved. Please try again."
+msgstr ""
+
+#. translators: %d: number of optional, available modules that are switched off.
+#: src/Admin/Views/dashboard.php:114
+msgid "%d optional module is off"
+msgid_plural "%d optional modules are off"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: comma separated list of module names.
+#: src/Admin/Views/dashboard.php:120
+msgid "Switched off: %s. Turn modules on or off from the Modules list."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:130
+#: src/Admin/Views/dashboard.php:139
+msgid "RankKernel"
+msgstr ""
+
+#. translators: %s: the plugin version number.
+#: src/Admin/Views/dashboard.php:140
+#: src/Admin/Views/support.php:108
+msgid "v%s"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:142
+msgid "SEO plugin for WordPress. Modules you disable cost nothing."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:146
+msgid "View Site"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:155
+msgid "Module updated."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:160
+msgid "Module status"
+msgstr ""
+
+#. translators: %d: total number of registered modules.
+#: src/Admin/Views/dashboard.php:164
+msgid "of %d modules active"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:172
+msgid "Live"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:172
+#: src/Admin/Views/dashboard.php:380
+#: src/Admin/Views/schema-settings.php:201
+#: src/Admin/Views/schema-settings.php:205
+msgid "Off"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:175
+msgid "Healthy"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:178
+msgid "sitemap_index.xml serving"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:178
+msgid "XML sitemaps are switched off"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:188
+#: src/Admin/Views/dashboard.php:190
+msgid "Optional"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:193
+msgid "available modules switched off"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:209
+#: src/Admin/Views/not-found.php:732
+msgid "Details"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:215
+msgid "Go to Modules"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:226
+msgid "Modules"
+msgstr ""
+
+#. translators: %d: number of available modules.
+#: src/Admin/Views/dashboard.php:227
+msgid "%d active"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:230
+msgid "Search modules"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:232
+msgid "Search modules..."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:236
+msgid "Module lists"
+msgstr ""
+
+#. translators: %s: module name
+#: src/Admin/Views/dashboard.php:269
+msgid "Settings for %s"
+msgstr ""
+
+#. translators: %s: module name
+#: src/Admin/Views/dashboard.php:282
+msgid "Turn off %s module"
+msgstr ""
+
+#. translators: %s: module name
+#: src/Admin/Views/dashboard.php:287
+msgid "Turn on %s module"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:300
+msgid "No modules match this search."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:310
+msgid "Quick Actions"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:311
+#: src/Modules/Schema/blocks/HowtoBlock.php:313
+#: src/Modules/Schema/blocks/howto/howto-editor.js:630
+msgid "Tools"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:316
+#: src/Admin/Views/dashboard.php:322
+msgid "View XML Sitemap"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:318
+#: src/Admin/Views/dashboard.php:340
+#: src/Admin/Views/instant-indexing.php:182
+#: src/Admin/Views/metadata-box.php:329
+#: src/Admin/Views/schema-metabox.php:96
+#: src/Admin/Views/schema-settings.php:131
+#: src/Admin/Views/schema-settings.php:132
+#: src/Admin/Views/schema-settings.php:524
+#: src/Admin/Views/schema-settings.php:569
+#: src/Admin/Views/schema-settings.php:579
+#: src/Admin/Views/sections/llms.php:87
+#: src/Admin/Views/sitemap-settings.php:176
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:327
+#: src/Admin/Views/dashboard.php:332
+msgid "Export Redirects CSV"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:328
+#: src/Admin/Views/dashboard.php:333
+msgid ".csv"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:338
+#: src/Admin/Views/dashboard.php:344
+msgid "View robots.txt"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:351
+#: src/Admin/Views/dashboard.php:356
+msgid "Clear 404 Log"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:360
+msgid "Shortcuts open their own screens. A shortcut stays off while its module is off."
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:366
+msgid "SEO Health"
+msgstr ""
+
+#: src/Admin/Views/dashboard.php:367
+msgid "Live Status"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:68
+msgid "Automatic submission on"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:70
+msgid "Automatic submission off"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:73
+msgid "Notify participating search engines when a URL changes, using the IndexNow protocol."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:76
+#: src/Admin/Views/instant-indexing.php:286
+msgid "Submit a URL"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:78
+#: src/Admin/Views/instant-indexing.php:242
+msgid "How Instant Indexing works"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:87
+#: src/Admin/Views/instant-indexing.php:94
+msgid "Dismiss notice"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:99
+msgid "Submission statistics"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:101
+msgid "Total submissions"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:103
+msgid "since the log was last cleared"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:108
+msgid "200 and 202 responses"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:113
+msgid "400, 403, 405, 422 or refused"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:118
+msgid "429 temporary status"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:121
+msgid "Need retry"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:123
+msgid "failed responses awaiting retry"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:132
+#: src/Admin/Views/instant-indexing.php:149
+msgid "Submit URLs"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:133
+msgid "One per line"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:136
+msgid "Hide submit URLs"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:136
+#: src/Admin/Views/instant-indexing.php:162
+#: src/Admin/Views/instant-indexing.php:246
+#: src/Admin/Views/not-found.php:262
+#: src/Admin/Views/redirects.php:507
+msgid "Hide"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:143
+msgid "URLs"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:148
+msgid "Must be URLs on this site. Deleted pages can be submitted too. Up to 10000 URLs are sent per request."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:158
+msgid "Settings and key"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:159
+msgid "Open to manage the key and automatic submission."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:162
+msgid "Hide settings and key"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:170
+msgid "Verification key"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:173
+msgid "Key configured"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:175
+msgid "No key configured"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:179
+msgid "The key is generated on the server and is never shown here, so it cannot leak into your browser."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:181
+msgid "Key file:"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:184
+msgid "Opening that URL should show only the key as plain text. A 404 or a login redirect means the file is not publicly reachable and verification will fail."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:189
+msgid "Verify key file"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:194
+msgid "Regenerate key"
+msgstr ""
+
+#. translators: %d: HTTP status code from the key file check.
+#: src/Admin/Views/instant-indexing.php:198
+msgid "Key file verified. Returned %d and contained the expected key."
+msgstr ""
+
+#. translators: %d: HTTP status code from the key file check.
+#: src/Admin/Views/instant-indexing.php:200
+msgid "Key file check failed. Returned %d. The file did not contain the expected key."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:203
+msgid "A key is generated automatically the first time the module is enabled."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:207
+msgid "Generate key"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:210
+msgid "The verification file is served virtually from your site root. No file is written to disk."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:221
+#: src/Admin/Views/instant-indexing.php:226
+msgid "Submit URLs automatically when a post or term changes."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:222
+msgid "Runs when a post is published, updated or trashed. Autosaves and revisions are skipped."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:223
+msgid "Off by default. Nothing is sent until you turn this on."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:231
+#: src/Admin/Views/redirects.php:259
+#: src/Admin/Views/redirects.php:487
+#: src/Admin/Views/sections/robots.php:123
+msgid "Cancel"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:232
+msgid "Save settings"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:243
+msgid "The IndexNow flow from setup to submission, in short steps."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:246
+msgid "Hide the walkthrough"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:251
+msgid "The module is on, and this page is where its settings live. Automatic submission is still off by default, so turn it on in the Settings panel if you want the plugin to notify search engines by itself."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:252
+msgid "A verification key was created on your server when the module was enabled. It is stored on the server and the key value is never sent to your browser."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:253
+msgid "Search engines confirm the key by fetching a small public text file at the key file URL shown in Settings. This plugin serves that file virtually, so no file is written to your site root or your disk."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:254
+msgid "When a post, page or term is published, updated or trashed, the plugin tells the search engines the URL changed. Autosaves and revisions are skipped, and the same URL is not sent more than once every 10 minutes."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:255
+msgid "The engines answer with a status. 200 means accepted. 202 means accepted and the key is still pending verification, which is normal for a new key. 4xx means rejected, and the engine is likely to reject the same URL again unless the page changes, though you can still retry it. 429 means too many requests, so try again later."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:256
+msgid "You can also submit URLs by hand from the Submit a URL panel when you change something outside the normal publishing flow."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:257
+msgid "A submission means the engine was notified, not that the page was indexed. Sitemaps still cover your whole site."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:258
+msgid "Nothing else is contacted. There is no telemetry."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:267
+msgid "Submission history"
+msgstr ""
+
+#. translators: %d: number of log entries
+#. translators: %d: number of tracked 404 entries
+#: src/Admin/Views/instant-indexing.php:268
+#: src/Admin/Views/not-found.php:537
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/Views/instant-indexing.php:271
+msgid "Clear the whole submission history? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:275
+msgid "Clear log"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:284
+msgid "Nothing has been submitted yet."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:285
+msgid "Published and updated URLs will appear here once automatic submission is on."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:295
+msgid "Example preview. These rows are illustrative and are not real submissions."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:300
+#: src/Admin/Views/instant-indexing.php:423
+#: assets/js/instant-indexing-admin.js:1197
+msgid "URL"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:301
+#: src/Admin/Views/instant-indexing.php:424
+#: src/Admin/Views/redirects-list.php:230
+#: assets/js/instant-indexing-admin.js:1198
+msgid "Status"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:303
+#: src/Admin/Views/instant-indexing.php:426
+#: assets/js/instant-indexing-admin.js:1200
+msgid "Time (UTC)"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:304
+#: src/Admin/Views/instant-indexing.php:427
+#: src/Admin/Views/support.php:206
+#: assets/js/instant-indexing-admin.js:1201
+msgid "Message"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:305
+#: src/Admin/Views/instant-indexing.php:428
+#: src/Admin/Views/not-found.php:684
+#: src/Admin/Views/redirects-list.php:231
+#: assets/js/instant-indexing-admin.js:1202
+msgid "Actions"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:322
+#: src/Admin/Views/instant-indexing.php:362
+msgid "Accepted."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:330
+msgid "Accepted, the key is pending verification."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:338
+#: src/Admin/Views/instant-indexing.php:354
+msgid "Temporary failure, retry later."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:346
+msgid "Rejected permanently, retrying will not help."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:371
+msgid "Filter submissions"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:375
+#: src/Admin/Views/instant-indexing.php:382
+msgid "Search URL or message"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:387
+msgid "Source:"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:390
+msgid "All sources"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:396
+#: src/Admin/Views/redirects-list.php:98
+msgid "Filter"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:401
+msgid "Filter submissions by status"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:414
+#: assets/js/instant-indexing-admin.js:1259
+#: assets/js/instant-indexing-admin.js:1669
+msgid "No submissions match your filters."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:415
+#: assets/js/instant-indexing-admin.js:1260
+msgid "Try a different search term or clear the filters."
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:416
+#: src/Admin/Views/instant-indexing.php:503
+#: src/Admin/Views/redirects-list.php:135
+#: src/Admin/Views/redirects-list.php:150
+#: assets/js/instant-indexing-admin.js:1256
+#: assets/js/instant-indexing-admin.js:1474
+msgid "Clear filters"
+msgstr ""
+
+#. translators: %s: submitted URL being retried
+#: src/Admin/Views/instant-indexing.php:466
+msgid "Retry submission for %s"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:467
+#: assets/js/instant-indexing-admin.js:1138
+msgid "Retry"
+msgstr ""
+
+#. translators: 1: first visible entry, 2: last visible entry, 3: total entries
+#: src/Admin/Views/instant-indexing.php:478
+msgid "Showing %1$d to %2$d of %3$d entries"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:480
+#: assets/js/instant-indexing-admin.js:1273
+msgid "Submission log pages"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:482
+#: src/Admin/Views/instant-indexing.php:484
+#: src/Admin/Views/not-found.php:620
+#: src/Admin/Views/not-found.php:622
+#: src/Admin/Views/not-found.php:796
+#: src/Admin/Views/not-found.php:798
+#: src/Admin/Views/redirects-list.php:187
+#: src/Admin/Views/redirects-list.php:189
+#: src/Admin/Views/redirects-list.php:336
+#: src/Admin/Views/redirects-list.php:338
+#: assets/js/instant-indexing-admin.js:1276
+#: assets/js/instant-indexing-admin.js:1280
+msgid "Previous"
+msgstr ""
+
+#: src/Admin/Views/instant-indexing.php:496
+#: src/Admin/Views/instant-indexing.php:498
+#: src/Admin/Views/not-found.php:625
+#: src/Admin/Views/not-found.php:627
+#: src/Admin/Views/not-found.php:801
+#: src/Admin/Views/not-found.php:803
+#: src/Admin/Views/redirects-list.php:192
+#: src/Admin/Views/redirects-list.php:194
+#: src/Admin/Views/redirects-list.php:350
+#: src/Admin/Views/redirects-list.php:352
+#: assets/js/importer-admin.js:303
+#: assets/js/instant-indexing-admin.js:1305
+#: assets/js/instant-indexing-admin.js:1309
+msgid "Next"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:87
+#: assets/js/metadata-editor.js:488
+#: assets/js/metadata-sidebar.js:1179
+msgid "Small image card"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:87
+#: assets/js/metadata-editor.js:489
+#: assets/js/metadata-sidebar.js:1179
+msgid "Large image card"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:90
+#: assets/js/metadata-editor.js:580
+msgid "Disabled for this post. No structured data prints."
+msgstr ""
+
+#. translators: %s: schema type label, e.g. Blog Posting.
+#: src/Admin/Views/metadata-box.php:94
+msgid "Custom type: %s."
+msgstr ""
+
+#. translators: %s: automatic option label, e.g. Automatic (Blog Posting).
+#: src/Admin/Views/metadata-box.php:100
+msgid "Status: %s."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:110
+msgid "The SEO fields could not be saved. Please try again."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:114
+#: assets/js/metadata-sidebar.js:3193
+msgid "SEO settings sections"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:125
+msgid "Search preview"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:126
+#: assets/js/metadata-sidebar.js:1073
+msgid "Preview width"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:151
+#: assets/js/metadata-sidebar.js:1129
+msgid "Preview is approximate, not exact search rendering."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:157
+#: assets/js/metadata-sidebar.js:2736
+msgid "SEO title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:158
+#: src/Admin/Views/metadata-box.php:187
+#: assets/js/metadata-sidebar.js:788
+msgid "Inherited"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:158
+#: src/Admin/Views/metadata-box.php:187
+#: src/Admin/Views/metadata-box.php:273
+#: src/Admin/Views/sections/breadcrumbs.php:105
+#: src/Admin/Views/sections/general.php:136
+#: src/Admin/Views/sections/robots.php:95
+#: assets/js/metadata-editor.js:550
+#: assets/js/metadata-sidebar.js:788
+msgid "Custom"
+msgstr ""
+
+#. translators: 1: visible token label, for example Title, 2: template token code, for example %%title%%
+#: src/Admin/Views/metadata-box.php:175
+msgid "Insert %1$s (%2$s) token into SEO title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:181
+msgid "Blank uses the template. Typing makes it custom."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:186
+#: assets/js/metadata-sidebar.js:2737
+msgid "Meta description"
+msgstr ""
+
+#. translators: 1: visible token label, for example Title, 2: template token code, for example %%title%%
+#: src/Admin/Views/metadata-box.php:204
+msgid "Insert %1$s (%2$s) token into meta description"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:210
+msgid "Blank uses the template, then the excerpt."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:216
+#: assets/js/metadata-sidebar.js:2028
+msgid "Content analysis"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:220
+msgid "Focus keywords"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:223
+msgid "Separate keywords with commas. The first keyword is the primary one."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:231
+#: assets/js/metadata-sidebar.js:2756
+msgid "Search engine visibility"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:232
+msgid "Index this post"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:233
+#: assets/js/metadata-sidebar.js:2761
+msgid "Index"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:234
+#: assets/js/metadata-sidebar.js:2762
+msgid "Noindex"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:236
+msgid "Follow links on this post"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:237
+#: assets/js/metadata-sidebar.js:2783
+msgid "Follow"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:238
+#: assets/js/metadata-sidebar.js:2784
+msgid "Nofollow"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:243
+#: assets/js/metadata-sidebar.js:2801
+msgid "Additional robots settings"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:245
+msgid "Additional robots directives"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:246
+#: assets/js/metadata-sidebar.js:2804
+msgid "No archive"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:247
+#: assets/js/metadata-sidebar.js:2817
+msgid "No snippet"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:248
+#: assets/js/metadata-sidebar.js:2830
+msgid "No image index"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:251
+#: assets/js/metadata-sidebar.js:2846
+msgid "Max snippet"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:253
+msgid "Blank means unlimited."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:256
+#: assets/js/metadata-sidebar.js:2849
+msgid "Max image preview"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:264
+#: assets/js/metadata-sidebar.js:2866
+msgid "Max video preview"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:266
+msgid "Seconds. Blank means unlimited."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:272
+#: assets/js/metadata-sidebar.js:2535
+msgid "Canonical URL"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:277
+msgid "Blank uses the generated canonical. A full URL is required."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:286
+#: src/Admin/Views/schema-metabox.php:53
+#: src/Admin/Views/schema-settings.php:411
+#: assets/js/metadata-sidebar.js:2921
+msgid "Schema type"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:295
+msgid "Automatic uses the default type set for this post type in Schema settings."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:297
+#: src/Admin/Views/schema-metabox.php:51
+#: assets/js/metadata-sidebar.js:2911
+msgid "Disable schema output for this post"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:301
+#: assets/js/metadata-sidebar.js:2937
+msgid "Manual overrides"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:302
+#: src/Admin/Views/schema-metabox.php:67
+msgid "Only needed when a value must differ from the post itself. Rows unrelated to the chosen type stay hidden."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:314
+#: src/Admin/Views/schema-metabox.php:79
+#: assets/js/metadata-sidebar.js:2955
+msgid "Custom JSON"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:316
+#: src/Admin/Views/schema-metabox.php:82
+#: assets/js/metadata-sidebar.js:2956
+msgid "Optional, for advanced use. A valid JSON object typed here is added to the schema output as is."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:318
+#: src/Admin/Views/schema-metabox.php:84
+#: src/Admin/Views/sections/llms.php:160
+#: src/Admin/Views/sections/llms.php:169
+#: src/Admin/Views/sections/robots.php:130
+#: src/Admin/Views/sections/robots.php:139
+msgid "Validation"
+msgstr ""
+
+#. translators: %s: schema type name
+#: src/Admin/Views/metadata-box.php:320
+#: src/Admin/Views/schema-metabox.php:86
+msgid "All required fields for %s are present."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:328
+#: src/Admin/Views/schema-metabox.php:95
+msgid "Test this page"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:329
+#: src/Admin/Views/schema-metabox.php:96
+#: src/Admin/Views/schema-settings.php:131
+#: src/Admin/Views/schema-settings.php:565
+#: assets/js/metadata-sidebar.js:3003
+msgid "Rich Results Test"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:329
+#: src/Admin/Views/schema-metabox.php:96
+#: src/Admin/Views/schema-settings.php:132
+#: src/Admin/Views/schema-settings.php:575
+#: assets/js/metadata-sidebar.js:3005
+msgid "Schema Validator"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:330
+#: src/Admin/Views/schema-metabox.php:98
+msgid "Import and export"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:331
+#: src/Admin/Views/schema-metabox.php:99
+#: src/Admin/Views/schema-settings.php:522
+#: assets/js/metadata-sidebar.js:3016
+msgid "Export JSON"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:332
+#: src/Admin/Views/schema-metabox.php:100
+#: assets/js/metadata-sidebar.js:3025
+msgid "Import JSON"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:333
+#: src/Admin/Views/schema-metabox.php:101
+msgid "Upload a file previously exported with the Export JSON button above."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:339
+msgid "Open Graph"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:341
+msgid "Open Graph title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:343
+msgid "Reset Open Graph title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:343
+#: src/Admin/Views/metadata-box.php:348
+#: src/Admin/Views/metadata-box.php:380
+#: src/Admin/Views/metadata-box.php:385
+#: src/Admin/Views/sections/llms.php:152
+#: src/Admin/Views/sections/robots.php:124
+#: src/Admin/Views/sections/robots.php:150
+#: assets/js/metadata-sidebar.js:832
+msgid "Reset"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:346
+msgid "Open Graph description"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:348
+msgid "Reset Open Graph description"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:351
+msgid "Open Graph image"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:356
+#: src/Admin/Views/metadata-box.php:393
+#: assets/js/metadata-editor.js:523
+msgid "Change image"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:361
+#: assets/js/metadata-sidebar.js:2642
+msgid "Open Graph type"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:363
+msgid "Blank inherits (article for posts, website for pages)."
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:368
+#: src/Admin/Views/sections/social.php:80
+#: assets/js/metadata-sidebar.js:2595
+#: assets/js/metadata-sidebar.js:2613
+#: assets/js/metadata-sidebar.js:3137
+msgid "Twitter"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:370
+#: assets/js/metadata-sidebar.js:2647
+msgid "Twitter card"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:378
+msgid "Twitter title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:380
+msgid "Reset Twitter title"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:383
+msgid "Twitter description"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:385
+msgid "Reset Twitter description"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:388
+msgid "Twitter image"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:400
+msgid "Social preview"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:401
+msgid "Social unfurl preview"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:405
+#: assets/js/metadata-editor.js:410
+#: assets/js/metadata-editor.js:468
+#: assets/js/metadata-sidebar.js:1125
+#: assets/js/metadata-sidebar.js:1186
+#: assets/js/metadata-sidebar.js:1200
+msgid "Untitled"
+msgstr ""
+
+#: src/Admin/Views/metadata-box.php:410
+msgid "Blank social fields fall back to the General values."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:111
+msgid "Near limit (90% and above)"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:115
+msgid "Approaching limit (80 to 89%)"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:119
+msgid "Normal (0 to 79%)"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:161
+msgid "Redirect chain detected:"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:170
+#: src/Admin/Views/redirects.php:172
+msgid "RankKernel could not determine the final destination, so please verify the chain manually. Saved as entered."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:172
+msgid "Consider pointing the source directly to"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:183
+#: src/Admin/Views/redirects.php:184
+msgid "The loop check could not fully verify this redirect, so a loop is still possible. Please verify it manually."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:190
+#: src/Admin/Views/redirects.php:195
+msgid "Chain analysis could not determine the final destination because the next rule uses a pattern matcher. Saved as entered."
+msgstr ""
+
+#. translators: %s: configured maximum entry count
+#: src/Admin/Views/not-found.php:198
+msgid "Your 404 log is nearly at its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:206
+msgid "PERSISTENT LIMIT ALERT"
+msgstr ""
+
+#. translators: %s: configured maximum entry count
+#: src/Admin/Views/not-found.php:211
+msgid "Your 404 log is approaching its configured entry limit of %s entries. The oldest entries are removed automatically when the limit is reached. You can clear the log manually at any time."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:223
+msgid "See which missing pages visitors hit, then turn the busy ones into redirects. Oldest entries prune automatically."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:235
+msgid "Clear the whole 404 log? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:237
+msgid "Clear Log"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:239
+#: src/Admin/Views/not-found.php:259
+msgid "Monitor Settings"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:260
+msgid "Stored in WordPress. Retention, entry limit, flood guard and address exclusions."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:262
+msgid "Show"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:273
+msgid "Advanced fields"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:274
+msgid "Store referer and user agent with each entry."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:275
+msgid "Optional and off by default. Values are truncated to 255 characters. IP addresses are never stored."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:286
+msgid "Retention days"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:287
+msgid "Log rotation threshold in days"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:288
+msgid "Entries older than this many days are removed automatically, from 1 to 365."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:292
+msgid "days"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:299
+msgid "Maximum entries"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:300
+msgid "Table limit guard"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:301
+msgid "Maximum entries kept in the log, from 100 to 10000. When the limit is reached, the oldest entries are removed first."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:305
+msgid "entries"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:314
+msgid "Flood budget"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:315
+msgid "Rate limiting protection against bot scans"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:316
+msgid "New addresses allowed per time window, from 1 to 1000. Repeat hits on known addresses always keep counting."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:320
+msgid "addrs"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:327
+msgid "Flood window"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:328
+msgid "Rolling window duration"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:329
+msgid "Length of the flood window in seconds, from 60 to 3600."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:333
+msgid "sec"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:340
+#: src/Admin/Views/redirects.php:515
+msgid "Query strings"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:341
+msgid "Ignore query strings when logging."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:342
+msgid "On by default. Turn off to track each query string as a separate entry."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:362
+msgid "URL Exclusions"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:363
+msgid "Skip logging for addresses that match a rule. Matching is case sensitive. Examples: Prefix /wp-admin/, Contains utm_, Exact /old-page."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:370
+msgid "Compare"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:371
+msgid "Value"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:372
+msgid "Action"
+msgstr ""
+
+#. translators: %s: exclusion value or pattern
+#: src/Admin/Views/not-found.php:391
+msgid "Remove exclusion rule for %s"
+msgstr ""
+
+#. translators: %s: exclusion value or pattern
+#: src/Admin/Views/not-found.php:392
+#: src/Admin/Views/not-found.php:429
+msgid "Remove exclusion rule"
+msgstr ""
+
+#. translators: %d: position of the exclusion rule in the list
+#: src/Admin/Views/not-found.php:396
+msgid "How to compare for exclusion rule %d"
+msgstr ""
+
+#. translators: %d: position of the exclusion rule in the list
+#: src/Admin/Views/not-found.php:403
+msgid "Exclusion value for exclusion rule %d"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:421
+msgid "How to compare for a new exclusion rule"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:428
+msgid "Exclusion value for a new exclusion rule"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:433
+msgid "Add Exclusion"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:434
+msgid "Without JavaScript, clear a row value and save to remove its rule."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:436
+msgid "Save Monitor Settings"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:445
+msgid "Log Status"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:447
+msgid "Monitoring active"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:449
+msgid "Monitoring inactive"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:452
+msgid "Real-time HTTP 404 listener"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:455
+msgid "404 log status figures"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:459
+msgid "Tracked"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:463
+msgid "tracked addresses"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:469
+msgid "Capacity"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:472
+msgid "404 Log Storage Usage"
+msgstr ""
+
+#. translators: %1$s: current entry count, %2$s: configured maximum
+#: src/Admin/Views/not-found.php:472
+msgid "%1$s of %2$s entries used"
+msgstr ""
+
+#. translators: %1$s: current entry count, %2$s: configured maximum, %3$s: usage percent
+#: src/Admin/Views/not-found.php:474
+msgid "%1$s / %2$s entries (%3$s%%)"
+msgstr ""
+
+#. translators: %s: number of free entry slots left in the log
+#: src/Admin/Views/not-found.php:475
+msgid "%s slots available"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:485
+msgid "Thresholds: blue 0 to 79%, amber 80 to 89%, red 90% and above"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:491
+msgid "Retention"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:495
+msgid "days retention"
+msgstr ""
+
+#. translators: %s: retention period in days
+#: src/Admin/Views/not-found.php:496
+msgid "Entries older than %s days removed automatically."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:503
+msgid "Most recent"
+msgstr ""
+
+#. translators: %s: number of hits for this 404 entry
+#: src/Admin/Views/not-found.php:506
+#: src/Admin/Views/not-found.php:756
+#: src/Admin/Views/not-found.php:757
+#: src/Admin/Views/not-found.php:776
+#: src/Admin/Views/not-found.php:777
+msgid "Unknown"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:507
+msgid "most recent 404"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:521
+msgid "Manual clearing is separate from automatic pruning and removes entries in bounded batches."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:525
+msgid "Tracked 404 Errors"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:536
+msgid "Tracked 404s"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:539
+msgid "Search tracked 404 addresses"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:542
+#: src/Admin/Views/not-found.php:549
+msgid "Search addresses"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:553
+#: assets/js/importer-admin.js:175
+msgid "Search"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:560
+msgid "Redirect creation needs the Redirects module. Enable Redirects to turn a 404 entry into a redirect."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:561
+msgid "Module Settings"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:570
+msgid "No 404 entries match your search."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:571
+msgid "Try a different term or clear the search to see all tracked addresses."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:572
+#: assets/js/importer-admin.js:176
+msgid "Clear search"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:578
+msgid "No 404 entries are being tracked yet."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:579
+msgid "When visitors hit a missing page, the URL appears here with hit counts and first and last seen times."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:583
+msgid "Delete the selected entries? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:588
+#: src/Admin/Views/redirects-list.php:172
+msgid "Select bulk action"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:591
+#: src/Admin/Views/redirects-list.php:174
+msgid "Bulk actions"
+msgstr ""
+
+#. translators: %s: missing page URL
+#: src/Admin/Views/not-found.php:592
+#: src/Admin/Views/not-found.php:782
+#: src/Admin/Views/redirects-list.php:177
+msgid "Delete"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:596
+#: src/Admin/Views/redirects-list.php:179
+#: src/Admin/Views/redirects-list.php:331
+msgid "Apply"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:655
+#: src/Admin/Views/redirects-list.php:206
+msgid "Select All"
+msgstr ""
+
+#. translators: %s: column label
+#: src/Admin/Views/not-found.php:664
+msgid "Sort by %s, currently sorted ascending"
+msgstr ""
+
+#. translators: %s: column label
+#: src/Admin/Views/not-found.php:667
+msgid "Sort by %s, currently sorted descending"
+msgstr ""
+
+#. translators: %s: column label
+#: src/Admin/Views/not-found.php:670
+msgid "Sort by %s, not currently sorted"
+msgstr ""
+
+#. translators: %s: number of hits for this 404 entry
+#: src/Admin/Views/not-found.php:718
+msgid "%s hits"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:736
+msgid "Detailed Log Payload"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:738
+msgid "Advanced fields enabled, full trace captured"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:742
+msgid "IP masking applied (zero storage policy)"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:754
+msgid "Full address"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:755
+msgid "Total hits"
+msgstr ""
+
+#. translators: %s: number of hits for this 404 entry
+#: src/Admin/Views/not-found.php:755
+msgid "%s total occurrences"
+msgstr ""
+
+#. translators: %s: number of hits for this 404 entry
+#: src/Admin/Views/not-found.php:756
+msgid "First seen"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:757
+msgid "Last seen"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:759
+msgid "Referer"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:759
+#: src/Admin/Views/not-found.php:760
+msgid "None recorded"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:760
+msgid "User agent"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:764
+msgid "Referer and user agent logging is off. Turn on Advanced fields in Monitor Settings below to capture them."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:768
+msgid "Create Redirect from this URL"
+msgstr ""
+
+#: src/Admin/Views/not-found.php:770
+#: src/Admin/Views/not-found.php:782
+msgid "Delete this entry? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/not-found.php:770
+msgid "Delete entry"
+msgstr ""
+
+#. translators: %s: missing page URL
+#: src/Admin/Views/not-found.php:780
+msgid "Create redirect for %s"
+msgstr ""
+
+#. translators: %s: missing page URL
+#: src/Admin/Views/not-found.php:780
+msgid "Create Redirect"
+msgstr ""
+
+#. translators: %s: missing page URL
+#: src/Admin/Views/not-found.php:782
+msgid "Delete 404 entry for %s"
+msgstr ""
+
+#. translators: %d: total number of 404 entries
+#: src/Admin/Views/not-found.php:791
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/Views/not-found.php:793
+msgid "404 log pages"
+msgstr ""
+
+#. translators: %s: plugin version
+#: src/Admin/Views/not-found.php:814
+msgid "RankKernel SEO Suite · 404 Monitor · v%s · Zero runtime overhead background logging"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:63
+msgid "Filter redirects by status"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:87
+msgid "Search redirects"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:94
+msgid "Search redirects..."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:102
+msgid "Filter by match type"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:105
+msgid "All match types"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:116
+msgid "Filter by redirect type"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:119
+msgid "All codes"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:148
+msgid "No redirects match your search."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:149
+msgid "Try a different search or clear the active filter controls."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:153
+msgid "No redirects yet."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:154
+msgid "Add your first redirect to send visitors from an old address to a new one."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:155
+msgid "Add your first redirect"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:165
+msgid "Delete the selected redirects? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:252
+msgid "(none)"
+msgstr ""
+
+#. translators: %s: redirect source URL
+#: src/Admin/Views/redirects-list.php:286
+msgid "Deactivate redirect for %s"
+msgstr ""
+
+#. translators: %s: redirect source URL
+#: src/Admin/Views/redirects-list.php:289
+msgid "Activate redirect for %s"
+msgstr ""
+
+#. translators: %s: redirect source URL
+#: src/Admin/Views/redirects-list.php:293
+msgid "Edit redirect for %s"
+msgstr ""
+
+#. translators: %s: redirect source URL
+#: src/Admin/Views/redirects-list.php:296
+msgid "Delete redirect for %s"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:300
+#: src/Admin/Views/sections/robots.php:113
+msgid "Edit"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:302
+msgid "Delete this redirect? This cannot be undone."
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:302
+msgid "Trash"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:322
+msgid "Rows per page:"
+msgstr ""
+
+#: src/Admin/Views/redirects-list.php:334
+msgid "Redirect list pages"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:131
+msgid "Action blocked."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:143
+#: src/Admin/Views/redirects.php:154
+#: src/Admin/Views/redirects.php:175
+#: src/Admin/Views/redirects.php:186
+#: src/Admin/Views/redirects.php:197
+#: src/Admin/Views/support.php:124
+#: src/Admin/Views/support.php:136
+msgid "Dismiss this notice"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:151
+msgid "Action failed."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:162
+msgid "Redirect chain detected."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:170
+msgid "Use recommended destination"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:183
+msgid "Loop check inconclusive."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:194
+msgid "Chain analysis incomplete."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:209
+msgid "Send visitors from old addresses to new ones. Loops are blocked at save, chains save with a warning."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:228
+msgid "Export CSV"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:236
+#: src/Admin/Views/redirects.php:237
+#: src/Admin/Views/redirects.php:502
+msgid "Redirect Settings"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:266
+msgid "Source prefilled from the 404 Monitor."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:267
+msgid "Add a destination and save to return to the monitor."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:289
+msgid "Source URL"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:313
+msgid "Remove the # part. Fragments stay in the browser and are never sent to the server."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:314
+msgid "Enter the old path, e.g. /old-page. Query strings are ignored when matching."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:319
+msgid "Match Type"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:350
+msgid "Destination URL"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:366
+msgid "Where to send the visitor, e.g. /new-page or https://example.com. Leave empty only for 410 and 451."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:371
+msgid "410 Gone and 451 mean the content is intentionally unavailable, so no destination is needed."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:376
+msgid "Redirect Type"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:406
+msgid "Pattern check"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:413
+msgid "The browser preview could not compile this pattern. The server will verify it when you save."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:414
+msgid "Pattern compiles in the browser preview. The server tests it again before saving."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:415
+msgid "Tip: add ^ at the start and $ at the end to match the whole path."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:417
+msgid "Full pattern match, limited to 200 characters. Anchor with ^ and $ to match the whole path, e.g. ^/blog/[0-9]+$."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:426
+msgid "Send visitors now. Turn off to keep the rule saved without redirecting."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:437
+msgid "Advanced options"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:438
+msgid "Query string handling and matcher limits"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:442
+msgid "Matching ignores the query string, and the query string is currently passed to the destination. Change this under Redirect Settings below."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:444
+msgid "Matching ignores the query string, and the query string is currently dropped. Change this under Redirect Settings below."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:447
+msgid "Pattern matchers (everything except Exact) are limited in how many active rules they can hold. Exact matches are unlimited and fastest."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:449
+msgid "What do the match types mean"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:457
+msgid "Which redirect type should I use"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:468
+msgid "Save even if the chain cannot be verified"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:469
+msgid "Administrators only, and only when the chain could not be proven free of a loop. Check the destination yourself first. A proven redirect loop is still refused, and every override is recorded in the error log."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:478
+msgid "Update Redirect"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:516
+msgid "Determine whether incoming query variables like UTM tags are preserved."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:520
+msgid "Pass the query string to the destination. Turn off to drop it."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:526
+msgid "Slug changes"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:527
+msgid "Automated detection when posts, pages, or custom post types change permalinks."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:531
+msgid "Create a 301 redirect automatically when a post slug changes."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:537
+msgid "Rows per page"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:538
+msgid "How many redirects to show per page in the admin table."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:551
+msgid "Min 1, max 100"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:574
+msgid "Import and Export"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:590
+msgid "Move redirects in and out with a CSV file. Expected columns:"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:601
+msgid "Export"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:603
+msgid "Download all redirects in UTF-8 formatted CSV for backups or external editing."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:604
+msgid "Export Redirects"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:611
+msgid "Import"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:620
+msgid "Choose CSV file"
+msgstr ""
+
+#. translators: %s: maximum accepted CSV upload size, for example 2 MB
+#: src/Admin/Views/redirects.php:630
+msgid ".csv files only (up to %s)"
+msgstr ""
+
+#: src/Admin/Views/redirects.php:636
+msgid "Update existing redirects when the source and match type already exist. Leave off to skip duplicates."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:643
+msgid "Dry run only. Validate the file and report what would happen without saving anything."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:650
+msgid "Import rows whose chain could not be fully verified. Use only when you accept that a loop cannot be ruled out."
+msgstr ""
+
+#: src/Admin/Views/redirects.php:654
+msgid "Import Redirects"
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:34
+msgid "Schema saved."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:38
+msgid "Custom JSON was invalid, it was cleared and nothing else changed."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:42
+#: assets/js/metadata-sidebar.js:3055
+msgid "Import file was invalid, nothing was saved."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:46
+msgid "The schema could not be saved. Please try again."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:51
+msgid "No structured data prints on this post while checked."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:54
+msgid "Type"
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:63
+msgid "Automatic uses the default type set for this post type in RankKernel Schema settings."
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:66
+msgid "Manual field overrides (optional)"
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:78
+msgid "Advanced: custom JSON, import, export"
+msgstr ""
+
+#: src/Admin/Views/schema-metabox.php:80
+msgid "Extra schema properties"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:96
+msgid "Schema output is one unified JSON-LD graph per page, assembled from the entities configured below."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:128
+msgid "Configure structured data graph output for search engines."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:133
+msgid "Save Schema Settings"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:149
+msgid "Schema settings sections"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:155
+#: src/Admin/Views/schema-settings.php:227
+msgid "Identity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:161
+#: src/Admin/Views/schema-settings.php:377
+msgid "Schema Defaults"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:167
+#: src/Admin/Views/schema-settings.php:459
+msgid "Output Options"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:173
+#: src/Admin/Views/schema-settings.php:514
+msgid "JSON-LD Preview"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:180
+#: src/Admin/Views/schema-settings.php:554
+msgid "Testing Tools"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:187
+msgid "Schema status"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:188
+msgid "JSON graph"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:192
+msgid "WebSite entity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:193
+msgid "Always included"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:196
+msgid "Person entity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:196
+msgid "Organization entity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:197
+msgid "Selected"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:201
+#: src/Admin/Views/schema-settings.php:205
+msgid "On"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:204
+msgid "Author entity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:209
+msgid "JSON-LD"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:210
+msgid "One per page"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:217
+msgid "RankKernel compiles all entities into a single unified JSON-LD graph to eliminate markup bloat."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:228
+msgid "Define who owns this site for the WebSite and Organization schema entities."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:245
+msgid "Represents"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:246
+msgid "Affects which entity type is used in the WebSite schema."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:253
+msgid "Organization"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:254
+msgid "Business or group"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:261
+msgid "Person"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:262
+msgid "Personal site"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:279
+msgid "Name"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:280
+msgid "The official entity name output in schema. Leave empty to use the site name."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:299
+msgid "Logo"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:300
+msgid "PNG recommended. Pick from the media library or upload a new image."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:313
+msgid "Shown in Google Knowledge Graph and Search results."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:332
+#: src/Admin/Views/sections/social.php:76
+msgid "Social profiles"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:333
+msgid "Links your site to these profiles in structured data, one URL per line."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:336
+msgid "Remove profile URL"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:336
+msgid "Enter a full profile URL starting with http:// or https://."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:340
+msgid "Add a profile URL"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:341
+msgid "Add profile URL (e.g. https://instagram.com/example)"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:342
+msgid "Add"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:359
+msgid "Search box"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:360
+msgid "Sitelinks SearchBox integration."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:364
+#: src/Admin/Views/schema-settings.php:367
+msgid "Enable Google Sitelinks Search Box for this site."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:378
+msgid "The default schema type applied to each post type when no post override exists."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:395
+msgid "Automatic falls back to BlogPosting for posts and Article for all other types."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:410
+msgid "Post type"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:431
+msgid "Overridden"
+msgstr ""
+
+#. translators: %s: post type label
+#: src/Admin/Views/schema-settings.php:437
+msgid "Default schema type for %s"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:445
+msgid "Default schema type for this post type."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:460
+msgid "Control which optional schema pieces are included in the JSON-LD graph."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:471
+msgid "BreadcrumbList"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:472
+msgid "Shows the page trail in Google search results as breadcrumb links."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:473
+msgid "Turn this off to stop outputting the BreadcrumbList entity."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:477
+msgid "Output the BreadcrumbList schema entity."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:487
+msgid "Author Entity"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:488
+msgid "Adds the post author as a Person entity in the schema graph."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:489
+msgid "Only applies to posts that have an author."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:493
+msgid "Output the post author as a Person entity."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:515
+msgid "Example"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:517
+msgid "A sample of the graph shape the plugin prints in the page head."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:521
+msgid "Copy JSON"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:524
+msgid "Open in Validator"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:531
+msgid "The graph for your site is assembled from these settings when a page is requested, and an individual post can override the schema type."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:535
+msgid "Live preview. This graph is generated from your settings by the same builder the frontend uses."
+msgstr ""
+
+#. translators: %d: number of schema nodes in the preview.
+#: src/Admin/Views/schema-settings.php:542
+msgid "Live graph: %d nodes"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:545
+msgid "No schema nodes are configured yet. The preview appears once your settings produce a graph."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:555
+msgid "Validate your structured data against official search engine testing tools."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:567
+msgid "Opens with your home URL. Test which rich results your schema enables in Google search."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:569
+#: src/Admin/Views/schema-settings.php:579
+msgid "Open Tool"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:577
+msgid "Paste your JSON-LD output to validate it against schema.org specifications and guidelines."
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:591
+#: src/Admin/Views/sitemap-settings.php:462
+msgid "RankKernel SEO Suite"
+msgstr ""
+
+#: src/Admin/Views/schema-settings.php:591
+msgid "Schema and Structured Data"
+msgstr ""
+
+#: src/Admin/Views/sections/advanced.php:67
+msgid "Destructive"
+msgstr ""
+
+#: src/Admin/Views/sections/advanced.php:70
+msgid "Uninstall"
+msgstr ""
+
+#: src/Admin/Views/sections/advanced.php:74
+msgid "Data removal"
+msgstr ""
+
+#: src/Admin/Views/sections/advanced.php:75
+msgid "Delete all RankKernel data (options, metadata) when the plugin is deleted."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:67
+msgid "Visible trail and breadcrumb schema share one trail. Place it with the block, shortcode, or template tag. Disabling the module in the module list disables breadcrumb integration."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:77
+msgid "Theme template:"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:78
+msgid "Shortcode:"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:82
+msgid "Appearance"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:83
+msgid "How the trail looks."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:97
+#: src/Admin/Views/sections/breadcrumbs.php:100
+#: src/Admin/Views/sections/general.php:126
+#: src/Admin/Views/sections/general.php:131
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:49
+msgid "Separator"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:108
+#: src/Admin/Views/sections/general.php:139
+msgid "Custom separator"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:109
+#: src/Admin/Views/sections/general.php:140
+msgid "e.g. »"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:113
+msgid "Character shown between crumbs."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:117
+msgid "Home label"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:130
+msgid "Trail behavior"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:131
+msgid "Which crumbs are included in the trail."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:158
+msgid "Taxonomy preferences"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:159
+msgid "Chooses which taxonomy supplies the term branch when a post type has several."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:185
+msgid "Default (first taxonomy with terms)"
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:192
+msgid "Which taxonomy supplies the term branch on single views."
+msgstr ""
+
+#: src/Admin/Views/sections/breadcrumbs.php:198
+msgid "Archive, search, and 404 labels follow the trail builder defaults. Custom formats are not configurable in this version."
+msgstr ""
+
+#: src/Admin/Views/sections/general.php:69
+msgid "Title and description templates"
+msgstr ""
+
+#: src/Admin/Views/sections/general.php:71
+msgid "Title template"
+msgstr ""
+
+#: src/Admin/Views/sections/general.php:73
+#: src/Admin/Views/sections/general.php:96
+msgid "Available tokens: %%title%%, %%sitename%%, %%sep%%, %%excerpt%%, %%date%%, %%author%%, %%category%%, %%page%%, %%currentdate%%"
+msgstr ""
+
+#. translators: %s: template token name, for example %%title%%
+#: src/Admin/Views/sections/general.php:79
+msgid "Insert %s token into title template"
+msgstr ""
+
+#: src/Admin/Views/sections/general.php:94
+msgid "Description template"
+msgstr ""
+
+#. translators: %s: template token name, for example %%title%%
+#: src/Admin/Views/sections/general.php:102
+msgid "Insert %s token into description template"
+msgstr ""
+
+#: src/Admin/Views/sections/general.php:127
+msgid "10 characters max"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:66
+msgid "Hide file and directory listings"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:67
+msgid "Stops Apache from listing folder contents when no index file exists."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:70
+msgid "Block AI crawlers at the server level"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:71
+msgid "Returns 403 to known AI training bots, additionally to their robots.txt rules."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:81
+msgid "Saved."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:81
+msgid "A backup was written before the change."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:83
+#: src/Admin/Views/sections/htaccess.php:85
+#: src/Admin/Views/sections/htaccess.php:87
+msgid "Not saved."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:83
+msgid "This server does not read .htaccess."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:85
+msgid "A private backup could not be stored, so the file was left unchanged. Try again after checking the database connection."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:87
+msgid "The file could not be written."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:91
+msgid "Managed directives only"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:92
+msgid "RankKernel writes only its own marked block and never accepts free-form server configuration. Everything else in the file stays untouched."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:93
+msgid "Your host must allow .htaccess overrides for Options and FileInfo, and must enable mod_rewrite for the AI-crawler rule. RankKernel cannot detect those server settings. If the site returns a server error after saving, restore the previous file through your host or a backup."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:98
+msgid "Not available on this server"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:99
+msgid "Only Apache and LiteSpeed read .htaccess. This server does not look like either, so the directives are disabled here."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:103
+msgid "File not writable"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:104
+msgid "WordPress cannot write the .htaccess file. Ask your host, or edit it over SFTP."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:116
+msgid "File path:"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:120
+msgid "Server directives:"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:122
+msgid "The RankKernel block is present in the file."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:122
+msgid "No RankKernel directives in the file yet."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:140
+msgid "Update the .htaccess? A timestamped backup is written first."
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:140
+msgid "Update .htaccess"
+msgstr ""
+
+#: src/Admin/Views/sections/htaccess.php:141
+msgid "Asks for confirmation: Update the .htaccess? A timestamped backup is written first."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:67
+msgid "A curated index for AI tools, served virtually as Markdown with an X-Robots-Tag noindex header. Google Search ignores llms.txt, so this is optional."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:71
+#: src/Admin/Views/sections/robots.php:70
+msgid "Consistency check"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:79
+msgid "How to make llms.txt"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:80
+msgid "Write a one line summary, then a few sections as Markdown. Each item is a link in the form - [Title](https://example.com/page): one line of context. Keep it short and put your most important pages first, not every post."
+msgstr ""
+
+#. translators: %s: link to the official llms.txt website
+#: src/Admin/Views/sections/llms.php:86
+msgid "llms.txt is a community proposal, not a standard. See %s."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:87
+msgid "the official llms.txt site"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:97
+msgid "A physical llms.txt was written."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:102
+msgid "A physical llms.txt already exists, so RankKernel did not overwrite it."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:107
+msgid "The physical llms.txt could not be written."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:114
+msgid "Enable"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:115
+msgid "Serve the virtual llms.txt route"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:122
+msgid "Rendered as a blockquote under the site name."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:126
+msgid "Sections"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:128
+msgid "Use Markdown headings and link lists, for example a ## Company heading, then a line such as - [About](https://example.com/about): one line of context."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:143
+msgid "Physical file"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:144
+msgid "Allow writing a physical llms.txt"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:145
+msgid "The virtual route stays the default. Writing never overwrites an existing file."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:149
+#: src/Admin/Views/sections/robots.php:122
+msgid "Save"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:150
+msgid "Write physical llms.txt"
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:152
+msgid "Reset llms.txt to defaults? Your summary and sections will be cleared."
+msgstr ""
+
+#: src/Admin/Views/sections/llms.php:153
+msgid "Asks for confirmation."
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:66
+msgid "robots.txt is served virtually from the WordPress filter. No file is ever written. The Sitemap line is managed by the Sitemaps module."
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:78
+msgid "AI crawler policy"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:79
+msgid "Training crawlers, AI search crawlers and user triggered fetchers are separate. Blocking a training crawler does not remove you from search. Blocking an AI search crawler removes you from that assistant results."
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:93
+msgid "Allow"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:94
+msgid "Block"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:108
+msgid "robots.txt"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:111
+msgid "Robots.txt tabs"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:117
+msgid "Edit the whole document. One directive per line. Allowed: User-agent, Allow, Disallow, Sitemap, Crawl-delay. Comments start with #."
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:118
+msgid "robots.txt document"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:124
+#: src/Admin/Views/sections/robots.php:150
+msgid "Reset robots.txt to the generated version? Your custom edits will be removed."
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:148
+msgid "Edit robots.txt"
+msgstr ""
+
+#: src/Admin/Views/sections/robots.php:151
+msgid "Asks for confirmation before resetting."
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:34
+msgid "Default social image"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:52
+msgid "Image used when a page has no featured or social image."
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:66
+msgid "X site handle"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:67
+msgid "15 characters max"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:79
+#: assets/js/metadata-sidebar.js:2595
+#: assets/js/metadata-sidebar.js:2607
+#: assets/js/metadata-sidebar.js:3131
+msgid "Facebook"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:81
+msgid "Instagram"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:82
+msgid "LinkedIn"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:83
+msgid "YouTube"
+msgstr ""
+
+#: src/Admin/Views/sections/social.php:97
+msgid "Full profile URLs. Used for the sameAs links in the organization schema."
+msgstr ""
+
+#: src/Admin/Views/sections/webmaster.php:60
+msgid "Paste the verification codes from each search engine."
+msgstr ""
+
+#. translators: %s: Search engine / webmaster service name
+#: src/Admin/Views/sections/webmaster.php:79
+msgid "Enter your %s verification meta tag or meta content code."
+msgstr ""
+
+#: src/Admin/Views/settings.php:93
+#: src/Admin/Views/settings.php:97
+msgid "RankKernel General Settings"
+msgstr ""
+
+#: src/Admin/Views/settings.php:98
+msgid "Manage the templates, verification codes, social defaults and crawler rules RankKernel applies across this site."
+msgstr ""
+
+#: src/Admin/Views/settings.php:140
+msgid "Settings sections"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:60
+msgid "Image search indexing"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:61
+msgid "Header thumbnail indexing"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:62
+msgid "Custom exclusions"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:63
+msgid "Taxonomy blacklist"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:64
+msgid "Zero-post archives"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:120
+msgid "View Sitemap"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:121
+#: src/Admin/Views/sitemap-settings.php:245
+msgid "Save Sitemap Settings"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:132
+msgid "Sitemap settings tabs"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:153
+msgid "Core XML generator parameters and global sitemap configuration."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:171
+msgid "Sitemap Index URL:"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:174
+msgid "Your primary index sitemap. Submit this exact URL to Google Search Console and Bing Webmaster Tools."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:176
+msgid "Submit to Google"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:182
+msgid "Links per sitemap"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:183
+msgid "Pagination threshold"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:188
+msgid "entries per file"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:190
+msgid "Maximum number of links on each sitemap page. Default is 1,000. Maximum allowed by search protocol is 50,000."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:243
+msgid "Sitemap cache clears automatically on save."
+msgstr ""
+
+#. translators: %d: number of registered public post types.
+#: src/Admin/Views/sitemap-settings.php:253
+msgid "%d post type registered"
+msgid_plural "%d post types registered"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/Views/sitemap-settings.php:261
+msgid "Choose which post types are included in the XML sitemap. Each post type gets its own sitemap file."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:288
+#: src/Admin/Views/sitemap-settings.php:351
+msgid "Sitemap:"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:294
+#: src/Admin/Views/sitemap-settings.php:357
+msgid "Included in sitemap"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:296
+#: src/Admin/Views/sitemap-settings.php:359
+msgid "Excluded from sitemap"
+msgstr ""
+
+#. translators: %s: post type name.
+#. translators: %s: taxonomy name.
+#: src/Admin/Views/sitemap-settings.php:299
+#: src/Admin/Views/sitemap-settings.php:362
+msgid "Include %s in sitemap"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:308
+msgid "Attachments are never included in XML sitemaps to prevent zero-value asset indexing."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:310
+msgid "Save Post Types Settings"
+msgstr ""
+
+#. translators: %d: number of registered public taxonomies.
+#: src/Admin/Views/sitemap-settings.php:318
+msgid "%d taxonomy registered"
+msgid_plural "%d taxonomies registered"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/Views/sitemap-settings.php:326
+msgid "Choose which taxonomies are included. Each taxonomy gets its own sitemap file."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:371
+msgid "Empty terms are listed only when the general include empty terms setting is on."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:373
+msgid "Save Taxonomy Settings"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:381
+msgid "Control whether author archive pages appear in the sitemap and which users are excluded."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:423
+msgid "Exclude roles"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:424
+msgid "Role exclusions"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:428
+msgid "No editable roles found."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:435
+msgid "Authors with these user roles are filtered out from the sitemap files."
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:443
+msgid "Custom ID blacklist"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:454
+msgid "Save Author Settings"
+msgstr ""
+
+#: src/Admin/Views/sitemap-settings.php:462
+msgid "XML Sitemap Module"
+msgstr ""
+
+#: src/Admin/Views/support.php:111
+msgid "Direct Core Team Queue"
+msgstr ""
+
+#: src/Admin/Views/support.php:112
+msgid "Have a question, found something that is not working, or have an idea for RankKernel? Send a message and we will take a look."
+msgstr ""
+
+#: src/Admin/Views/support.php:121
+msgid "Request sent successfully"
+msgstr ""
+
+#: src/Admin/Views/support.php:122
+msgid "Thank you. Your message is on its way and we will reply to the address you gave."
+msgstr ""
+
+#: src/Admin/Views/support.php:130
+msgid "Attention required"
+msgstr ""
+
+#: src/Admin/Views/support.php:131
+msgid "Please fix the highlighted fields below before submitting your inquiry."
+msgstr ""
+
+#: src/Admin/Views/support.php:155
+msgid "What is this about?"
+msgstr ""
+
+#: src/Admin/Views/support.php:156
+msgid "Step 1 of 4"
+msgstr ""
+
+#: src/Admin/Views/support.php:167
+msgid "Choose one"
+msgstr ""
+
+#: src/Admin/Views/support.php:178
+msgid "This decides who picks the request up."
+msgstr ""
+
+#: src/Admin/Views/support.php:183
+msgid "Subject"
+msgstr ""
+
+#: src/Admin/Views/support.php:184
+msgid "Step 2 of 4"
+msgstr ""
+
+#: src/Admin/Views/support.php:187
+msgid "One line that says what the request is about."
+msgstr ""
+
+#: src/Admin/Views/support.php:198
+msgid "e.g. Sitemap returning 404 after enabling RankKernel"
+msgstr ""
+
+#: src/Admin/Views/support.php:215
+msgid "For a problem, say what you did, what you expected and what happened instead. A link to the page helps."
+msgstr ""
+
+#: src/Admin/Views/support.php:222
+msgid "The more precise the steps, the faster the fix."
+msgstr ""
+
+#: src/Admin/Views/support.php:227
+msgid "Your email address"
+msgstr ""
+
+#: src/Admin/Views/support.php:228
+msgid "Step 3 of 4"
+msgstr ""
+
+#: src/Admin/Views/support.php:240
+msgid "admin@example.com"
+msgstr ""
+
+#: src/Admin/Views/support.php:247
+msgid "Only used to reply to this request. We never send promotional emails or share contacts."
+msgstr ""
+
+#: src/Admin/Views/support.php:252
+msgid "Helpful context"
+msgstr ""
+
+#: src/Admin/Views/support.php:253
+msgid "Step 4 of 4"
+msgstr ""
+
+#: src/Admin/Views/support.php:255
+msgid "Provide additional diagnostics to help our engineers reproduce anomalies quickly."
+msgstr ""
+
+#: src/Admin/Views/support.php:260
+msgid "No file selected"
+msgstr ""
+
+#: src/Admin/Views/support.php:261
+msgid "PNG, JPEG, GIF or WebP up to 2 MB"
+msgstr ""
+
+#: src/Admin/Views/support.php:276
+msgid "Browse files"
+msgstr ""
+
+#: src/Admin/Views/support.php:280
+msgid "Optional. Up to 5 pictures, PNG, JPEG, GIF or WebP, 2 MB each. A picture often says more than a paragraph."
+msgstr ""
+
+#: src/Admin/Views/support.php:284
+msgid "Site details sent with this request"
+msgstr ""
+
+#: src/Admin/Views/support.php:285
+msgid "Your RankKernel and WordPress versions, PHP version, active theme and site address travel with the message, so the issue can be reproduced in the same environment."
+msgstr ""
+
+#: src/Admin/Views/support.php:311
+msgid "I understand this message and any site details are emailed to the plugin author."
+msgstr ""
+
+#: src/Admin/Views/support.php:314
+msgid "Your request is emailed, never posted anywhere and never shared with anyone else."
+msgstr ""
+
+#: src/Admin/Views/support.php:318
+msgid "Leave this field empty"
+msgstr ""
+
+#: src/Admin/Views/support.php:323
+msgid "Your request is emailed directly to the RankKernel core engineering team."
+msgstr ""
+
+#: src/Admin/Views/support.php:324
+msgid "Send request"
+msgstr ""
+
+#: src/Admin/Views/support.php:330
+msgid "Support resources"
+msgstr ""
+
+#: src/Admin/Views/support.php:333
+msgid "Online documentation"
+msgstr ""
+
+#: src/Admin/Views/support.php:334
+msgid "Guides for robots.txt, canonical paths, and schema models."
+msgstr ""
+
+#: src/Admin/Views/support.php:339
+msgid "Instant Indexing API"
+msgstr ""
+
+#: src/Admin/Views/support.php:340
+msgid "Service accounts and IndexNow validation handshakes."
+msgstr ""
+
+#: src/Admin/Views/support.php:345
+msgid "Changelog and releases"
+msgstr ""
+
+#: src/Admin/Views/support.php:346
+msgid "Update manifests, bug fixes, and release revisions."
+msgstr ""
+
+#. translators: %s: the plugin version number.
+#: src/Admin/Views/support.php:354
+msgid "RankKernel SEO Suite, Support Module v%s"
+msgstr ""
+
+#: src/Admin/Views/support.php:356
+msgid "RankKernel SEO Suite, Support Module"
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisColumn.php:101
+#: src/Modules/Analysis/AnalysisColumn.php:106
+msgid "Score"
+msgstr ""
+
+#. translators: 1: score, 2: band label.
+#. translators: 1: the analysis score from 0 to 100, 2: the score band label.
+#: src/Modules/Analysis/AnalysisColumn.php:130
+#: assets/js/analysis-editor.js:241
+msgid "Score %1$d out of 100, %2$s."
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisColumn.php:141
+msgid "Needs recheck"
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisColumn.php:146
+#: src/Modules/Analysis/AnalysisScore.php:346
+#: assets/js/analysis-editor.js:83
+#: assets/js/metadata-sidebar.js:285
+msgid "Not analysed"
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisModule.php:63
+msgid "Content Analysis"
+msgstr ""
+
+#. translators: 1: stored rules version, 2: current rules version.
+#: src/Modules/Analysis/AnalysisScore.php:271
+msgid "Scored with rules version %1$d. The current version is %2$d."
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisScore.php:337
+#: assets/js/analysis-editor.js:75
+#: assets/js/metadata-sidebar.js:277
+msgid "Good"
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisScore.php:340
+#: assets/js/analysis-editor.js:78
+#: assets/js/metadata-sidebar.js:280
+msgid "Needs improvement"
+msgstr ""
+
+#: src/Modules/Analysis/AnalysisScore.php:343
+#: assets/js/analysis-editor.js:81
+#: assets/js/metadata-sidebar.js:283
+msgid "Poor"
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:527
+#: assets/js/analysis/analysis-format.js:80
+msgid "Other content already targets this keyword."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:531
+#: assets/js/analysis/analysis-format.js:79
+msgid "This keyword is not used elsewhere."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:551
+#: assets/js/analysis/analysis-format.js:73
+msgid "Your keyword appears in a natural variation, which is fine."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:552
+#: assets/js/analysis/analysis-format.js:74
+msgid "Your keyword does not appear in the content yet."
+msgstr ""
+
+#. translators: 1: occurrence count, 2: density percentage.
+#. translators: %1$d: number of keyword occurrences, %2$s: keyword density as a percentage.
+#: src/Modules/Analysis/Analyzer.php:558
+#: assets/js/analysis/analysis-format.js:70
+msgid "Your keyword appears %1$d time(s), a density of %2$s percent."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:570
+#: assets/js/analysis/analysis-format.js:71
+msgid "Google states there is no ideal keyword density, so a lower figure is fine."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:579
+#: assets/js/analysis/analysis-format.js:72
+msgid "Above 2.5 percent the repetition can read as unnatural, which Google defines as keyword stuffing."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:613
+#: assets/js/analysis/analysis-format.js:76
+msgid "Your keyword is spread evenly through the content."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:617
+#: assets/js/analysis/analysis-format.js:77
+msgid "Your keyword is used, but a few sections never mention it."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:620
+#: assets/js/analysis/analysis-format.js:78
+msgid "Large parts of the content never mention your keyword."
+msgstr ""
+
+#. translators: %d: word count.
+#. translators: %d: content word count.
+#: src/Modules/Analysis/Analyzer.php:651
+#: assets/js/analysis/analysis-format.js:87
+msgid "The content is %d words long. Google states there is no ideal word count, so treat this as a completeness signal rather than a length requirement."
+msgstr ""
+
+#. translators: %d: character count.
+#. translators: %d: URL character count.
+#: src/Modules/Analysis/Analyzer.php:676
+#: assets/js/analysis/analysis-format.js:89
+msgid "The URL is %d characters long."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:695
+#: assets/js/analysis/analysis-format.js:90
+msgid "The content links to another page on this site."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:696
+#: assets/js/analysis/analysis-format.js:91
+msgid "No internal links found. Link to related content."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:699
+#: assets/js/analysis/analysis-format.js:92
+msgid "The content links out to an external source."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:700
+#: assets/js/analysis/analysis-format.js:93
+msgid "No outbound links found. Cite a source or reference."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:703
+#: assets/js/analysis/analysis-format.js:35
+msgid "There are no outbound links to check."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:705
+#: assets/js/analysis/analysis-format.js:94
+msgid "At least one outbound link is followed."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:707
+#: assets/js/analysis/analysis-format.js:95
+msgid "Every outbound link is nofollow."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:753
+#: src/Modules/Analysis/Analyzer.php:1157
+#: assets/js/analysis/analysis-format.js:34
+msgid "Add a link to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:759
+#: assets/js/analysis/analysis-format.js:96
+msgid "Every link explains where it goes. Anchor text should describe the destination, which is Google guidance."
+msgstr ""
+
+#. translators: %d: number of links with generic anchor text.
+#. translators: %d: number of links using generic anchor text.
+#: src/Modules/Analysis/Analyzer.php:763
+#: assets/js/analysis/analysis-format.js:98
+msgid "%d link(s) use generic anchor text such as click here or a bare URL. Anchor text should describe the destination, which is Google guidance."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:792
+#: assets/js/analysis/analysis-format.js:100
+msgid "The title contains a number."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:792
+#: assets/js/analysis/analysis-format.js:101
+msgid "Consider a number in the title."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:793
+#: assets/js/analysis/analysis-format.js:102
+msgid "The title contains a power word."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:793
+#: assets/js/analysis/analysis-format.js:103
+msgid "Consider a power word in the title."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:794
+#: assets/js/analysis/analysis-format.js:104
+msgid "The title carries a positive or negative sentiment."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:794
+#: assets/js/analysis/analysis-format.js:105
+msgid "The title reads neutral."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:815
+#: assets/js/analysis/analysis-format.js:107
+msgid "The paragraphs are short enough to scan."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:818
+#: assets/js/analysis/analysis-format.js:108
+msgid "At least one paragraph is long. Short paragraphs are easier to read."
+msgstr ""
+
+#. translators: %s: percentage of long sentences.
+#. translators: %s: percentage of sentences longer than 20 words.
+#: src/Modules/Analysis/Analyzer.php:838
+#: assets/js/analysis/analysis-format.js:110
+msgid "%s percent of the sentences are longer than 20 words."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:873
+#: assets/js/analysis/analysis-format.js:36
+msgid "Short enough that subheadings are optional."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:876
+#: assets/js/analysis/analysis-format.js:112
+msgid "No subheadings found. Consider splitting the content."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:882
+#: assets/js/analysis/analysis-format.js:111
+msgid "The content is broken up by subheadings."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:885
+#: assets/js/analysis/analysis-format.js:113
+msgid "A long stretch has no subheading. Add one to break it up."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:905
+#: assets/js/analysis/analysis-format.js:114
+msgid "No run of sentences opens with the same word."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:908
+#: assets/js/analysis/analysis-format.js:115
+msgid "Several sentences in a row start with the same word. Vary the openings."
+msgstr ""
+
+#. translators: %s: percentage of passive sentences.
+#. translators: %s: percentage of sentences read as passive voice.
+#: src/Modules/Analysis/Analyzer.php:940
+#: assets/js/analysis/analysis-format.js:117
+msgid "%s percent of the sentences read as passive voice."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:965
+#: assets/js/analysis/analysis-format.js:37
+msgid "Short enough that transition words are optional."
+msgstr ""
+
+#. translators: %s: percentage of sentences with a transition word.
+#. translators: %s: percentage of sentences using a transition word.
+#: src/Modules/Analysis/Analyzer.php:984
+#: assets/js/analysis/analysis-format.js:119
+msgid "%s percent of the sentences use a transition word."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1012
+#: src/Modules/Analysis/Analyzer.php:1160
+#: assets/js/analysis/analysis-format.js:33
+msgid "Add an image to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1034
+#: assets/js/analysis/analysis-format.js:121
+msgid "Every image has descriptive alt text. Alt text is for accessibility and understanding, not a keyword slot, which is Google guidance."
+msgstr ""
+
+#. translators: 1: images with no alt text, 2: images with stuffed alt text.
+#. translators: %1$d: images without alt text, %2$d: images with stuffed alt text.
+#: src/Modules/Analysis/Analyzer.php:1038
+#: assets/js/analysis/analysis-format.js:123
+msgid "%1$d image(s) have no alt text and %2$d look stuffed. Alt text is for accessibility and understanding, not a keyword slot, which is Google guidance."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1064
+#: assets/js/analysis/analysis-format.js:124
+msgid "No images or video found. Media helps a reader stay."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1068
+#: assets/js/analysis/analysis-format.js:125
+msgid "The content includes enough media."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1071
+#: assets/js/analysis/analysis-format.js:126
+msgid "Consider one or two more images or a video."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1092
+#: assets/js/analysis/analysis-format.js:127
+msgid "The content has at most one h1."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1095
+#: assets/js/analysis/analysis-format.js:128
+msgid "More than one h1 found. Keep a single h1 per page."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1108
+#: assets/js/analysis/analysis-format.js:129
+msgid "The content has a table of contents."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1112
+#: assets/js/analysis/analysis-format.js:38
+msgid "Short enough that a table of contents is optional."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1115
+#: assets/js/analysis/analysis-format.js:130
+msgid "Long content reads better with a table of contents."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1129
+#: assets/js/analysis/analysis-format.js:131
+msgid "The content has enough text to analyse."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1132
+#: assets/js/analysis/analysis-format.js:132
+msgid "Add content so the analysis has something to read."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1145
+#: assets/js/analysis/analysis-format.js:29
+msgid "Add an SEO title to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1148
+#: assets/js/analysis/analysis-format.js:30
+msgid "Add a meta description to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1151
+#: assets/js/analysis/analysis-format.js:32
+msgid "Add an image or set a featured image to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1154
+#: assets/js/analysis/analysis-format.js:31
+msgid "Add a subheading to check this."
+msgstr ""
+
+#: src/Modules/Analysis/Analyzer.php:1163
+#: assets/js/analysis/analysis-format.js:28
+msgid "Not applicable yet."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1177
+#: assets/js/analysis/analysis-format.js:41
+msgid "Your keyword \"%s\" appears in the SEO title."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1181
+#: assets/js/analysis/analysis-format.js:45
+msgid "Your keyword \"%s\" appears in the meta description. The description is a display and click through signal, not a ranking factor, which is Google guidance."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1185
+#: assets/js/analysis/analysis-format.js:49
+msgid "Your keyword \"%s\" appears in the URL."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1189
+#: assets/js/analysis/analysis-format.js:53
+msgid "Your keyword \"%s\" appears near the beginning."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1193
+#: assets/js/analysis/analysis-format.js:57
+msgid "Your keyword \"%s\" appears in the content."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1197
+#: assets/js/analysis/analysis-format.js:61
+msgid "Your keyword \"%s\" appears in a subheading."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1201
+#: assets/js/analysis/analysis-format.js:65
+msgid "Your keyword \"%s\" appears in an image alt."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1205
+#: assets/js/analysis/analysis-format.js:82
+msgid "Your keyword \"%s\" is near the start of the title."
+msgstr ""
+
+#. translators: %s: keyword.
+#: src/Modules/Analysis/Analyzer.php:1209
+msgid "Your keyword \"%s\" is used well here."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1223
+#: assets/js/analysis/analysis-format.js:43
+msgid "Your keyword \"%s\" does not appear in the SEO title."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1227
+#: assets/js/analysis/analysis-format.js:47
+msgid "Your keyword \"%s\" does not appear in the meta description. The description is a display and click through signal, not a ranking factor."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1231
+#: assets/js/analysis/analysis-format.js:51
+msgid "Your keyword \"%s\" does not appear in the URL."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1235
+#: assets/js/analysis/analysis-format.js:55
+msgid "Your keyword \"%s\" does not appear near the beginning."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1239
+#: assets/js/analysis/analysis-format.js:59
+msgid "Your keyword \"%s\" does not appear in the content."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1243
+#: assets/js/analysis/analysis-format.js:63
+msgid "Your keyword \"%s\" does not appear in a subheading."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1247
+#: assets/js/analysis/analysis-format.js:67
+msgid "Your keyword \"%s\" does not appear in an image alt."
+msgstr ""
+
+#. translators: %s: keyword.
+#. translators: %s: the focus keyword.
+#: src/Modules/Analysis/Analyzer.php:1251
+#: assets/js/analysis/analysis-format.js:84
+msgid "Your keyword \"%s\" is not near the start of the title."
+msgstr ""
+
+#. translators: %s: keyword.
+#: src/Modules/Analysis/Analyzer.php:1255
+msgid "Your keyword \"%s\" is missing here."
+msgstr ""
+
+#. translators: %s: search query.
+#: src/Modules/Breadcrumbs/TrailBuilder.php:202
+msgid "Search results for \"%s\""
+msgstr ""
+
+#: src/Modules/Breadcrumbs/TrailBuilder.php:204
+msgid "Search results"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/TrailBuilder.php:231
+msgid "Page not found"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/TrailBuilder.php:1121
+msgid "(no title)"
+msgstr ""
+
+#. translators: %s: page number.
+#: src/Modules/Breadcrumbs/TrailBuilder.php:1197
+msgid "Page %s"
+msgstr ""
+
+#. translators: %s: comments page number.
+#: src/Modules/Breadcrumbs/TrailBuilder.php:1210
+msgid "Comments Page %s"
+msgstr ""
+
+#: src/Modules/Importer/ImportRunner.php:216
+msgid "The import lock was lost, so the run stopped before it wrote more records."
+msgstr ""
+
+#. translators: %s: failure message.
+#: src/Modules/Importer/ImportRunner.php:227
+#: src/Modules/Importer/ImportRunner.php:545
+msgid "The import stopped on an unexpected error: %s"
+msgstr ""
+
+#: src/Modules/Importer/ImportRunner.php:503
+msgid "The import lock was lost, so the run stopped before it wrote more redirects."
+msgstr ""
+
+#: src/Modules/Metadata/MetadataModule.php:70
+msgid "Metadata Engine"
+msgstr ""
+
+#. translators: %d: current page number
+#: src/Modules/Metadata/TagsReplacer.php:375
+msgid "Page %d"
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:163
+msgid "That file is too large. Please keep CSV imports under 2 MB."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:192
+msgid "That file does not use the RankKernel CSV header. Please export first and keep the header row unchanged."
+msgstr ""
+
+#. translators: %d: maximum accepted CSV rows
+#: src/Modules/Redirects/CsvHandler.php:228
+msgid "The row limit of %d rows was reached. The remaining rows were not imported."
+msgstr ""
+
+#. translators: %d: number of rolled back changes
+#: src/Modules/Redirects/CsvHandler.php:366
+msgid "Import stopped on a storage failure; %d earlier changes from this file were rolled back."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:633
+msgid "The source address is required."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:641
+msgid "That redirect type is not supported. Use 301, 302, 307, 410 or 451."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:645
+msgid "That match type is not supported. Use exact, prefix, contains, suffix, wildcard or regex."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:649
+msgid "The active flag must be yes or no."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:673
+msgid "The home page cannot be used as a redirect source. Please use a path such as /old page."
+msgstr ""
+
+#. translators: %s: equivalence explanation
+#: src/Modules/Redirects/CsvHandler.php:710
+msgid "%s The row was not imported."
+msgstr ""
+
+#. translators: %s: redirect chain path showing the loop
+#: src/Modules/Redirects/CsvHandler.php:720
+msgid "This redirect would create a redirect loop: %s. The row was not imported."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:739
+msgid "The redirect chain could not be fully verified, so the rule was refused because a loop cannot be ruled out. Save an exact source and target, then add the rule."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:761
+msgid "This pattern can backtrack catastrophically and slow every uncached request, so the row was not imported. Remove the repeated group or the nested quantifier."
+msgstr ""
+
+#. translators: %d: maximum regex source length
+#: src/Modules/Redirects/CsvHandler.php:770
+msgid "A regex source may be at most %d characters, because longer patterns are never evaluated. The row was not imported."
+msgstr ""
+
+#. translators: %d: maximum active regex rules
+#: src/Modules/Redirects/CsvHandler.php:780
+msgid "The active regex rule limit of %d is reached, and a rule past the limit is never evaluated. The row was not imported."
+msgstr ""
+
+#. translators: %d: maximum active pattern rules
+#: src/Modules/Redirects/CsvHandler.php:790
+msgid "The active pattern rule limit of %d is reached. The row was not imported."
+msgstr ""
+
+#. translators: %s: redirect chain path
+#: src/Modules/Redirects/CsvHandler.php:852
+msgid "Redirect chain detected: %s. The row would be saved."
+msgstr ""
+
+#. translators: %s: redirect chain path
+#: src/Modules/Redirects/CsvHandler.php:858
+msgid "Redirect chain detected: %s. The row was saved."
+msgstr ""
+
+#: src/Modules/Redirects/CsvHandler.php:873
+msgid "Imported with an unverified chain at operator request."
+msgstr ""
+
+#: src/Modules/Redirects/Redirector.php:428
+msgid "This page is gone."
+msgstr ""
+
+#: src/Modules/Redirects/Redirector.php:430
+msgid "This page is unavailable for legal reasons."
+msgstr ""
+
+#: src/Modules/Redirects/Validator.php:55
+msgid "The source and destination resolve to the same URL. Please enter a different destination."
+msgstr ""
+
+#. translators: %s: comma separated list of AI search crawler names.
+#: src/Modules/Robots/CrawlConsistency.php:63
+msgid "llms.txt is on, but these AI search crawlers are blocked in robots.txt, so they cannot read it: %s."
+msgstr ""
+
+#: src/Modules/Robots/CrawlConsistency.php:71
+msgid "robots.txt disallows the whole site for the wildcard group, so no crawler can reach llms.txt."
+msgstr ""
+
+#: src/Modules/Robots/CrawlConsistency.php:73
+msgid "robots.txt disallows /llms.txt, so crawlers cannot read the file this screen publishes."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/LlmsGenerator.php:461
+msgid "Line %d: a list item needs a [title](url) link."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/LlmsGenerator.php:469
+msgid "Line %d: the link target must be absolute and http(s)."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/LlmsGenerator.php:475
+msgid "Line %d: this URL is already listed above."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/RobotsDirectives.php:79
+msgid "Line %d is not a directive."
+msgstr ""
+
+#. translators: 1: line number, 2: directive name.
+#: src/Modules/Robots/RobotsDirectives.php:88
+msgid "Line %1$d: unknown directive \"%2$s\"."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/RobotsDirectives.php:95
+msgid "Line %d: the sitemap URL must be absolute and http(s)."
+msgstr ""
+
+#. translators: 1: line number, 2: host name.
+#: src/Modules/Robots/RobotsDirectives.php:103
+msgid "Line %1$d: the sitemap URL points at a different host (%2$s)."
+msgstr ""
+
+#. translators: %d: line number.
+#: src/Modules/Robots/RobotsDirectives.php:109
+msgid "Line %d: crawl-delay is not supported by Google."
+msgstr ""
+
+#: src/Modules/Robots/RobotsModule.php:101
+msgid "Crawl Signals"
+msgstr ""
+
+#: src/Modules/Robots/RobotsModule.php:221
+msgid "A physical llms.txt file exists in the site root, so the virtual llms.txt route is not used. RankKernel will not overwrite it."
+msgstr ""
+
+#: src/Modules/Robots/RobotsModule.php:308
+msgid "A physical robots.txt file exists in the site root, so the server serves it before WordPress. The RankKernel robots settings have no effect while it is present. RankKernel will not delete it."
+msgstr ""
+
+#. translators: %s: total time value
+#: src/Modules/Schema/blocks/HowtoBlock.php:273
+msgid "Total time: %s"
+msgstr ""
+
+#. translators: %s: estimated cost value
+#: src/Modules/Schema/blocks/HowtoBlock.php:281
+msgid "Estimated cost: %s"
+msgstr ""
+
+#: src/Modules/Schema/blocks/HowtoBlock.php:313
+#: src/Modules/Schema/blocks/howto/howto-editor.js:640
+msgid "Materials"
+msgstr ""
+
+#: src/Modules/Sitemaps/SitemapsModule.php:75
+msgid "XML Sitemaps"
+msgstr ""
+
+#: src/Modules/Sitemaps/SitemapsModule.php:267
+msgid "Core WordPress sitemaps are disabled in favor of RankKernel sitemaps."
+msgstr ""
+
+#: src/Modules/Sitemaps/XslStylesheet.php:59
+msgid "Stylesheet not found."
+msgstr ""
+
+#: src/Rest/AnalysisController.php:142
+msgid "Sorry, you are not allowed to analyse this content."
+msgstr ""
+
+#: src/Rest/AnalysisController.php:160
+msgid "That post could not be found."
+msgstr ""
+
+#: src/Rest/ImportController.php:286
+msgid "Sorry, you are not allowed to run RankKernel imports."
+msgstr ""
+
+#: src/Rest/ImportController.php:316
+msgid "Unknown import source."
+msgstr ""
+
+#: src/Rest/ImportController.php:338
+#: src/Rest/ImportController.php:348
+msgid "Invalid conflict mode: must be skip or overwrite."
+msgstr ""
+
+#: src/Rest/ImportController.php:385
+#: src/Rest/ImportController.php:395
+msgid "Invalid preview kind."
+msgstr ""
+
+#: src/Rest/ImportController.php:406
+msgid "Invalid preview offset."
+msgstr ""
+
+#: src/Rest/ImportController.php:420
+msgid "Invalid preview limit."
+msgstr ""
+
+#: src/Rest/ImportController.php:435
+msgid "Invalid preview search term."
+msgstr ""
+
+#: src/Rest/ImportController.php:719
+#: src/Rest/ImportController.php:729
+msgid "Invalid chunk kind."
+msgstr ""
+
+#: src/Rest/ImportController.php:740
+msgid "Invalid run offset."
+msgstr ""
+
+#: src/Rest/ImportController.php:754
+msgid "Invalid run limit."
+msgstr ""
+
+#: src/Rest/ImportController.php:803
+#: src/Rest/ImportController.php:879
+msgid "A valid run id is required."
+msgstr ""
+
+#: src/Rest/ImportController.php:811
+msgid "Another import run is already active. Wait for it to finish, then try again."
+msgstr ""
+
+#: src/Rest/ImportController.php:847
+msgid "The import stopped unexpectedly. Reload the preview and try again."
+msgstr ""
+
+#: src/Rest/LogController.php:73
+msgid "Sorry, you are not allowed to read the Instant Indexing log."
+msgstr ""
+
+#: src/Rest/ModulesController.php:95
+#: src/Rest/ModulesController.php:112
+msgid "Unknown module id."
+msgstr ""
+
+#: src/Rest/ModulesController.php:120
+msgid "This module is planned and cannot be enabled yet."
+msgstr ""
+
+#: src/Rest/ModulesController.php:133
+msgid "Missing required field: enabled."
+msgstr ""
+
+#: src/Rest/ModulesController.php:148
+msgid "Invalid value for enabled: must be boolean."
+msgstr ""
+
+#: src/Rest/ModulesController.php:175
+msgid "The module status could not be saved."
+msgstr ""
+
+#: src/Rest/ModulesController.php:184
+#: src/Rest/ModulesController.php:204
+msgid "Module status updated. Changes take effect on the next request."
+msgstr ""
+
+#: src/Rest/SettingsController.php:118
+msgid "No settings provided."
+msgstr ""
+
+#: src/Rest/SettingsController.php:134
+msgid "Invalid value for purge_on_uninstall: must be boolean."
+msgstr ""
+
+#: src/Rest/SettingsController.php:148
+msgid "No valid settings to update."
+msgstr ""
+
+#: src/Support/SupportDelivery.php:205
+msgid "The screenshot could not be uploaded. Please try again."
+msgstr ""
+
+#: src/Support/SupportDelivery.php:225
+#: src/Support/SupportDelivery.php:261
+msgid "The screenshot could not be read. Please try again."
+msgstr ""
+
+#: src/Support/SupportDelivery.php:285
+#: src/Support/SupportDelivery.php:304
+#: src/Support/SupportDelivery.php:310
+msgid "Uploads are not available on this site."
+msgstr ""
+
+#: src/Support/SupportDelivery.php:464
+msgid "Email is not available on this site."
+msgstr ""
+
+#. translators: %s: support category label.
+#: src/Support/SupportDelivery.php:473
+msgid "[RankKernel support] %s"
+msgstr ""
+
+#: src/Support/SupportDelivery.php:474
+#: assets/js/metadata-sidebar.js:398
+msgid "Question"
+msgstr ""
+
+#: src/Support/SupportDelivery.php:490
+msgid "The message could not be sent. Please email us directly."
+msgstr ""
+
+#: src/Support/SupportRequest.php:101
+msgid "Something is not working"
+msgstr ""
+
+#: src/Support/SupportRequest.php:102
+msgid "Suggestion or feature request"
+msgstr ""
+
+#: src/Support/SupportRequest.php:103
+msgid "Question about using RankKernel"
+msgstr ""
+
+#: src/Support/SupportRequest.php:211
+msgid "That email address is too long."
+msgstr ""
+
+#: assets/js/analysis-editor.js:215
+msgid "Pass: "
+msgstr ""
+
+#: assets/js/analysis-editor.js:216
+msgid "Needs work: "
+msgstr ""
+
+#: assets/js/analysis-editor.js:261
+#: assets/js/metadata-sidebar.js:288
+msgid "This score measures your content against a checklist. It does not predict rankings."
+msgstr ""
+
+#: assets/js/analysis-editor.js:291
+#: assets/js/metadata-sidebar.js:1959
+msgid "Add a focus keyword to run the content analysis."
+msgstr ""
+
+#: assets/js/analysis-editor.js:296
+#: assets/js/metadata-sidebar.js:1973
+msgid "Analysing the current draft…"
+msgstr ""
+
+#: assets/js/analysis-editor.js:309
+#: assets/js/metadata-sidebar.js:1937
+msgid "The analysis could not be run. Try again."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:277
+msgid "Sidebar menu updated."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:439
+msgid "%s module enabled."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:441
+msgid "%s module disabled."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:444
+msgid "Module enabled."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:445
+msgid "Module disabled."
+msgstr ""
+
+#: assets/js/dashboard-admin.js:513
+msgid "%s modules shown."
+msgstr ""
+
+#: assets/js/importer-admin.js:119
+msgid "Conflicts with the existing value."
+msgstr ""
+
+#: assets/js/importer-admin.js:126
+msgid "Exclude"
+msgstr ""
+
+#: assets/js/importer-admin.js:172
+msgid "Exclude all"
+msgstr ""
+
+#: assets/js/importer-admin.js:173
+msgid "Clear"
+msgstr ""
+
+#: assets/js/importer-admin.js:178
+#: assets/js/importer-admin.js:480
+msgid "excluded"
+msgstr ""
+
+#: assets/js/importer-admin.js:182
+msgid "Nothing to review for this kind."
+msgstr ""
+
+#: assets/js/importer-admin.js:184
+msgid "No results for"
+msgstr ""
+
+#: assets/js/importer-admin.js:193
+msgid "rows, scroll to review"
+msgstr ""
+
+#: assets/js/importer-admin.js:196
+msgid "This search shows at most "
+msgstr ""
+
+#: assets/js/importer-admin.js:196
+msgid " rows (server cap). Clear the search to see the whole kind."
+msgstr ""
+
+#: assets/js/importer-admin.js:197
+msgid "Only the first "
+msgstr ""
+
+#: assets/js/importer-admin.js:197
+msgid " rows are shown (server cap). Use search to find specific rows."
+msgstr ""
+
+#: assets/js/importer-admin.js:214
+msgid "Sitewide templates"
+msgstr ""
+
+#: assets/js/importer-admin.js:215
+msgid "RankKernel holds one global template per slot. Pick at most one candidate per slot, or leave the slot unchanged."
+msgstr ""
+
+#: assets/js/importer-admin.js:218
+msgid "Leave unchanged"
+msgstr ""
+
+#: assets/js/importer-admin.js:220
+msgid "(recommended)"
+msgstr ""
+
+#: assets/js/importer-admin.js:233
+msgid "Bulk noindex rules"
+msgstr ""
+
+#: assets/js/importer-admin.js:234
+msgid "Tick only the rules to apply. Unticked rules change nothing."
+msgstr ""
+
+#: assets/js/importer-admin.js:251
+msgid "Not imported"
+msgstr ""
+
+#: assets/js/importer-admin.js:297
+msgid "Back"
+msgstr ""
+
+#: assets/js/importer-admin.js:300
+msgid "Skip kind"
+msgstr ""
+
+#: assets/js/importer-admin.js:367
+msgid "Confirmation summary"
+msgstr ""
+
+#: assets/js/importer-admin.js:408
+msgid "reviewed"
+msgstr ""
+
+#: assets/js/importer-admin.js:440
+msgid "skipped, will not import"
+msgstr ""
+
+#: assets/js/importer-admin.js:505
+msgid "Sitewide"
+msgstr ""
+
+#: assets/js/importer-admin.js:508
+msgid "Bulk"
+msgstr ""
+
+#: assets/js/importer-admin.js:539
+msgid "exclusions no longer match the refreshed preview and were cleared."
+msgstr ""
+
+#: assets/js/importer-admin.js:556
+msgid "Preview ready. Review the sections, then run the import."
+msgstr ""
+
+#: assets/js/importer-admin.js:558
+#: assets/js/importer-admin.js:945
+#: assets/js/importer-admin.js:974
+msgid "Preview request failed."
+msgstr ""
+
+#: assets/js/importer-admin.js:584
+msgid "Source: "
+msgstr ""
+
+#: assets/js/importer-admin.js:585
+msgid "Conflict mode: "
+msgstr ""
+
+#: assets/js/importer-admin.js:589
+msgid " eligible, "
+msgstr ""
+
+#: assets/js/importer-admin.js:589
+msgid " excluded"
+msgstr ""
+
+#: assets/js/importer-admin.js:592
+msgid "preview shows "
+msgstr ""
+
+#: assets/js/importer-admin.js:592
+msgid " of "
+msgstr ""
+
+#: assets/js/importer-admin.js:592
+msgid "; import will process all eligible rows."
+msgstr ""
+
+#: assets/js/importer-admin.js:610
+msgid "Rows with conflicts in the loaded preview: "
+msgstr ""
+
+#: assets/js/importer-admin.js:611
+msgid "Unsupported or skipped in the loaded preview: "
+msgstr ""
+
+#: assets/js/importer-admin.js:614
+msgid "Sitewide templates: "
+msgstr ""
+
+#: assets/js/importer-admin.js:614
+msgid " candidates, "
+msgstr ""
+
+#: assets/js/importer-admin.js:614
+msgid " chosen"
+msgstr ""
+
+#: assets/js/importer-admin.js:619
+msgid "Bulk rules chosen: "
+msgstr ""
+
+#: assets/js/importer-admin.js:625
+msgid "Kinds skipped, will not import: "
+msgstr ""
+
+#: assets/js/importer-admin.js:627
+msgid "Exclusions: "
+msgstr ""
+
+#: assets/js/importer-admin.js:662
+msgid "Confirm import"
+msgstr ""
+
+#: assets/js/importer-admin.js:666
+msgid "Confirm and run"
+msgstr ""
+
+#: assets/js/importer-admin.js:668
+msgid "Review the summary, then confirm to start the import."
+msgstr ""
+
+#: assets/js/importer-admin.js:754
+#: assets/js/importer-admin.js:790
+msgid " applied, "
+msgstr ""
+
+#: assets/js/importer-admin.js:754
+#: assets/js/importer-admin.js:790
+msgid " skipped, "
+msgstr ""
+
+#: assets/js/importer-admin.js:754
+#: assets/js/importer-admin.js:790
+msgid " failed."
+msgstr ""
+
+#: assets/js/importer-admin.js:822
+msgid "Import complete"
+msgstr ""
+
+#: assets/js/importer-admin.js:824
+msgid "Import complete."
+msgstr ""
+
+#: assets/js/importer-admin.js:828
+msgid "Import stopped"
+msgstr ""
+
+#: assets/js/importer-admin.js:831
+msgid "Another import run is already active. Wait for it to finish and try again."
+msgstr ""
+
+#: assets/js/importer-admin.js:840
+msgid "Progress before the failure:"
+msgstr ""
+
+#: assets/js/importer-admin.js:841
+msgid "applied"
+msgstr ""
+
+#: assets/js/importer-admin.js:842
+msgid "skipped"
+msgstr ""
+
+#: assets/js/importer-admin.js:843
+msgid "failed"
+msgstr ""
+
+#: assets/js/importer-admin.js:846
+msgid "Import run failed partway. Re-run to resume the remaining chunks."
+msgstr ""
+
+#: assets/js/instant-indexing-admin.js:60
+msgid "Not a valid URL."
+msgstr ""
+
+#: assets/js/instant-indexing-admin.js:61
+msgid "This URL is not on this site."
+msgstr ""
+
+#: assets/js/instant-indexing-admin.js:62
+msgid "Enter at least one URL on this site."
+msgstr ""
+
+#. translators: %d: number of URLs ready to submit.
+#: assets/js/instant-indexing-admin.js:133
+msgid "%1$d URL ready to submit."
+msgid_plural "%1$d URLs ready to submit."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$d: number of invalid URLs, %2$d: total number of URLs.
+#: assets/js/instant-indexing-admin.js:137
+msgid "%1$d of %2$d URLs is not valid. Fix it to continue."
+msgid_plural "%1$d of %2$d URLs are not valid. Fix them to continue."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of URLs hidden from the validation list.
+#: assets/js/instant-indexing-admin.js:293
+msgid "+ %1$d more URL"
+msgid_plural "+ %1$d more URLs"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/js/instant-indexing-admin.js:442
+#: assets/js/monitor-admin.js:28
+#: assets/js/monitor-admin.js:43
+#: assets/js/monitor-admin.js:56
+#: assets/js/redirects-admin.js:644
+#: assets/js/redirects-admin.js:660
+msgid "Are you sure?"
+msgstr ""
+
+#. translators: %1$d: first visible entry, %2$d: last visible entry, %3$d: total number of entries.
+#: assets/js/instant-indexing-admin.js:1067
+msgid "Showing %1$d to %2$d of %3$d entry"
+msgid_plural "Showing %1$d to %2$d of %3$d entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/js/metadata-editor.js:190
+#: assets/js/metadata-sidebar.js:173
+msgid "Long"
+msgstr ""
+
+#: assets/js/metadata-editor.js:193
+#: assets/js/metadata-sidebar.js:176
+msgid "Too long"
+msgstr ""
+
+#: assets/js/metadata-editor.js:195
+#: assets/js/metadata-sidebar.js:178
+msgid "OK"
+msgstr ""
+
+#: assets/js/metadata-editor.js:314
+#: assets/js/metadata-sidebar.js:941
+msgid "No tokens available for this post type."
+msgstr ""
+
+#: assets/js/metadata-editor.js:343
+msgid "chars only"
+msgstr ""
+
+#: assets/js/metadata-editor.js:344
+#: assets/js/metadata-sidebar.js:2472
+#: assets/js/redirects-admin.js:810
+msgid "chars"
+msgstr ""
+
+#: assets/js/metadata-editor.js:559
+msgid "Enter a full URL starting with http:// or https://. Invalid input is ignored on save."
+msgstr ""
+
+#: assets/js/metadata-editor.js:589
+msgid "Custom type: "
+msgstr ""
+
+#: assets/js/metadata-editor.js:592
+msgid "Status: "
+msgstr ""
+
+#: assets/js/metadata-editor.js:649
+#: assets/js/metadata-sidebar.js:1127
+msgid "Noindex is on: this post is hidden from search results."
+msgstr ""
+
+#: assets/js/metadata-editor.js:762
+#: assets/js/metadata-sidebar.js:1436
+msgid "Select preview image"
+msgstr ""
+
+#: assets/js/metadata-editor.js:763
+#: assets/js/metadata-sidebar.js:1437
+#: assets/js/schema-settings.js:80
+#: assets/js/settings-admin.js:85
+msgid "Use this image"
+msgstr ""
+
+#. translators: 1: content analysis score from 0 to 100, 2: score band label.
+#: assets/js/metadata-sidebar.js:300
+msgid "Content analysis score: %1$d / 100, %2$s."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:303
+msgid "Content analysis: no score yet"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:316
+msgid "Article"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:317
+msgid "Blog Posting"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:318
+msgid "News Article"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:319
+msgid "Web Page"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:320
+msgid "FAQ Page"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:321
+msgid "How To"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:322
+msgid "Product"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:323
+msgid "Recipe"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:324
+msgid "Event"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:325
+msgid "Service"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:326
+msgid "Video"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:327
+msgid "Image"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:328
+msgid "Book"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:329
+msgid "Course"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:330
+msgid "Job Posting"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:331
+msgid "Software Application"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:332
+msgid "Music Recording"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:333
+msgid "Local Business"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:334
+msgid "Review"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:335
+msgid "Movie"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:336
+msgid "Fact Check"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:337
+msgid "Dataset"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:338
+msgid "Podcast Episode"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:339
+msgid "Carousel"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:340
+msgid "Question and Answer Page"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:341
+msgid "Item List"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:348
+msgid "Headline"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:349
+#: src/Modules/Schema/blocks/howto/howto-editor.js:597
+msgid "Description"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:350
+msgid "Author"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:351
+msgid "Price"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:352
+msgid "Price currency"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:353
+msgid "SKU"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:354
+msgid "Availability"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:355
+msgid "Rating value"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:356
+msgid "Review count"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:357
+msgid "Best rating"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:358
+msgid "Worst rating"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:359
+msgid "ISBN"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:360
+msgid "Start date"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:361
+msgid "End date"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:362
+msgid "Location name"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:363
+msgid "Street address"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:364
+msgid "City"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:365
+msgid "Region"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:366
+msgid "Postal code"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:367
+msgid "Country"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:368
+msgid "Performer"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:369
+msgid "Event status"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:370
+msgid "Ingredients"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:371
+msgid "Instructions"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:372
+msgid "Prep time"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:373
+msgid "Cook time"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:374
+#: src/Modules/Schema/blocks/howto/howto-editor.js:607
+msgid "Total time"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:375
+msgid "Yield"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:376
+msgid "Area served"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:377
+msgid "Thumbnail URL"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:378
+msgid "Upload date"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:379
+msgid "Duration"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:380
+msgid "Content URL"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:381
+msgid "App category"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:382
+msgid "Operating system"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:383
+msgid "Artist"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:384
+msgid "Album"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:385
+msgid "Date created"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:386
+msgid "Director"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:387
+msgid "Company"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:388
+msgid "Job location"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:389
+msgid "Salary"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:390
+msgid "Date posted"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:391
+msgid "Valid through"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:392
+msgid "Claim reviewed"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:393
+msgid "Date published"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:394
+msgid "License URL"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:395
+msgid "File URL"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:396
+msgid "File format"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:397
+msgid "Series name"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:399
+msgid "Answer"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:400
+msgid "Answer author"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:401
+msgid "Reviewed item"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:402
+msgid "Review text"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:403
+msgid "Phone"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:404
+msgid "Price range"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:405
+msgid "Opening hours"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:406
+msgid "Caption"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:407
+msgid "Width"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:408
+msgid "Height"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:409
+msgid "Speakable selectors"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:410
+msgid "About"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:411
+msgid "Mentions"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:507
+msgid "Post"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:510
+#: assets/js/metadata-sidebar.js:1178
+#: assets/js/metadata-sidebar.js:1195
+msgid "Site"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:512
+msgid "Other"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:530
+msgid "Product name (headline) is required for Product."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:533
+msgid "Name (headline) is required for Event."
+msgstr ""
+
+#. translators: %1$s: schema type name.
+#: assets/js/metadata-sidebar.js:537
+msgid "Headline is required for %1$s."
+msgstr ""
+
+#. translators: 1: schema field label, 2: schema type name.
+#: assets/js/metadata-sidebar.js:540
+msgid "%1$s is required for %2$s."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:713
+msgid "At least one question is required for FAQPage. Add questions with the FAQ block or the Classic editor."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:720
+msgid "At least one step is required for HowTo. Add steps with the How-To block or the Classic editor."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:788
+msgid "Invalid"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:796
+msgid "Modified from template"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:827
+#: assets/js/metadata-sidebar.js:829
+msgid "Using template value"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:828
+#: assets/js/metadata-sidebar.js:829
+msgid "Remove post-level override"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:987
+msgid "Token"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:995
+msgid "Search tokens…"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:996
+msgid "Search tokens"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1004
+msgid "Tokens insert at the cursor and update the preview."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1035
+msgid "No tokens match your search."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1039
+msgid "Close token picker"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1041
+#: assets/js/metadata-sidebar.js:1706
+msgid "Close"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1108
+msgid "Search Preview"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1138
+#: assets/js/metadata-sidebar.js:1142
+#: assets/js/metadata-sidebar.js:1500
+#: assets/js/metadata-sidebar.js:3116
+msgid "Edit Snippet"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1166
+#: assets/js/metadata-sidebar.js:1288
+msgid "No image"
+msgstr ""
+
+#. translators: 1: minimum image width in pixels, 2: minimum image height in pixels, 3: actual image width in pixels, 4: actual image height in pixels.
+#: assets/js/metadata-sidebar.js:1273
+msgid "This image is smaller than the minimum %1$dx%2$d (%3$dx%4$d)."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1297
+msgid "Checking image…"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1300
+msgid "This image cannot be loaded. Select a different file."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1318
+#: assets/js/metadata-sidebar.js:1333
+#: src/Modules/Schema/blocks/howto/howto-editor.js:339
+msgid "Replace image"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1324
+msgid "Could not load the selected image. Try a different file."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1330
+msgid "Could not open the media library. Try again."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1341
+msgid "The media library is unavailable here, image selection is disabled."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1342
+msgid "Recommended 1200x630, minimum 600x315."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1587
+msgid "Snippet Editor Sections"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1626
+msgid "Dismiss via Escape or [ × ]"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1647
+msgid "Permalink"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1656
+msgid "The address shown in the preview. Editing is not supported here."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1660
+msgid "Every keystroke writes directly to post draft"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1666
+msgid "Social Preview"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1668
+msgid "Live sync active • Facebook & Twitter tags update instantly"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1760
+msgid "Focus Keyword"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1766
+#: assets/js/metadata-sidebar.js:1767
+msgid "Insert keywords you want to rank for."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1781
+msgid "Primary keyword: "
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1781
+msgid "Secondary keyword: "
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1788
+msgid "Remove keyword"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1799
+msgid "e.g. SEO plugin, WordPress"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1806
+msgid "The first keyword is the primary one. Every later keyword is a secondary keyword."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:1965
+msgid "The post content could not be read, so the analysis cannot run. Reload the editor and try again."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2005
+msgid "Filter checks by keyword"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2043
+msgid "Pass:"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2043
+msgid "Needs work:"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2179
+msgid "Changes cannot be saved because the editor store is unavailable. Reload the editor and try again."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2459
+msgid "Loading…"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2477
+msgid "Length status"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2512
+msgid "Enter a full URL starting with http:// or https://. Invalid input is not saved."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2554
+msgid "Leave blank to use the generated canonical. A full URL is required when set."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2556
+msgid "Using the generated canonical."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2556
+msgid "Custom canonical set."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2601
+#: assets/js/metadata-sidebar.js:3125
+msgid "Social network"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2616
+msgid "image"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2620
+msgid "title"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2628
+msgid "description"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2635
+msgid "Network settings"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2643
+msgid "Leave blank to inherit (article for posts, website for pages)."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2698
+msgid "Titles and descriptions are edited in the snippet editor. The preview reflects the current draft values."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2736
+msgid "Shown as the first line of the search result. Blank uses the template."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2737
+msgid "Shown under the title in the search result. Blank uses the template."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2759
+msgid "Noindex hides this post from search results."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2778
+msgid "Link following"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2781
+msgid "Nofollow tells crawlers not to follow links on this post."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2846
+msgid "Max characters for the snippet. Blank means unlimited."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2866
+msgid "Max seconds for a video preview. Blank means unlimited."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2903
+msgid "Schema output is disabled for this post."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2903
+msgid "Schema output is enabled for this post."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2923
+msgid "Automatic resolves to"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2924
+msgid "Manual type selected. Clear it to return to Automatic."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2938
+msgid "Only needed when a value must differ from the post itself. Only fields relevant to the chosen type are shown."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2970
+#: assets/js/metadata-sidebar.js:3059
+msgid "Custom JSON must not contain a script tag. Nothing was saved."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2976
+msgid "Custom JSON must be a valid JSON object. Nothing was saved."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2998
+msgid "Automatic type selected. Choose a type to validate its required fields."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:2999
+msgid "All required fields are present."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3013
+msgid "Export failed, nothing was downloaded."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3021
+msgid "Import replaces the schema settings with the uploaded file."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3039
+msgid "Import file is larger than 2 MB, nothing was saved."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3043
+#: assets/js/metadata-sidebar.js:3067
+#: assets/js/metadata-sidebar.js:3070
+msgid "Import file could not be read, nothing was saved."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3079
+msgid "Questions and steps live in the FAQ and How-To blocks; this tab validates them but does not duplicate their editors."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3105
+msgid "Social Media Preview"
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3106
+msgid "Here you can view and edit the thumbnail, title and description that will be displayed when your site is shared on social media."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3107
+msgid "Click on the button below to view and edit the preview."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3144
+msgid "The preview falls back to the network value, then to the general title and description, then to the featured image."
+msgstr ""
+
+#: assets/js/metadata-sidebar.js:3189
+msgid "The post content could not be read, so scores and previews may be wrong. Reload the editor and try again."
+msgstr ""
+
+#: assets/js/monitor-admin.js:75
+msgid "All 404 entries selected."
+msgstr ""
+
+#: assets/js/monitor-admin.js:76
+msgid "All 404 entries deselected."
+msgstr ""
+
+#: assets/js/monitor-admin.js:97
+msgid "Exclusion row added."
+msgstr ""
+
+#: assets/js/monitor-admin.js:132
+msgid "Exclusion row removed."
+msgstr ""
+
+#: assets/js/monitor-admin.js:141
+msgid "Exclusion row cleared."
+msgstr ""
+
+#: assets/js/redirects-admin.js:443
+msgid "Redirect list updated."
+msgstr ""
+
+#: assets/js/redirects-admin.js:502
+msgid "selected"
+msgstr ""
+
+#: assets/js/redirects-admin.js:530
+msgid "All redirects selected."
+msgstr ""
+
+#: assets/js/redirects-admin.js:531
+msgid "All redirects deselected."
+msgstr ""
+
+#: assets/js/redirects-admin.js:810
+msgid "char"
+msgstr ""
+
+#: assets/js/redirects-admin.js:905
+msgid "Recommended destination applied to Destination URL field."
+msgstr ""
+
+#: assets/js/schema-settings.js:79
+msgid "Select organization logo"
+msgstr ""
+
+#: assets/js/schema-settings.js:113
+msgid "Organization logo updated."
+msgstr ""
+
+#: assets/js/schema-settings.js:128
+msgid "Organization logo removed."
+msgstr ""
+
+#: assets/js/schema-settings.js:155
+msgid "Enter a valid URL."
+msgstr ""
+
+#. translators: %s: profile URL
+#: assets/js/schema-settings.js:231
+msgid "Removed profile URL %s."
+msgstr ""
+
+#. translators: %s: profile URL
+#: assets/js/schema-settings.js:276
+msgid "Added profile URL %s."
+msgstr ""
+
+#. translators: %s: profile URL
+#: assets/js/schema-settings.js:279
+msgid "Profile URL %s is already in the list."
+msgstr ""
+
+#: assets/js/schema-settings.js:432
+#: assets/js/schema-settings.js:468
+msgid "Preview JSON copied to clipboard."
+msgstr ""
+
+#: assets/js/schema-settings.js:470
+msgid "Copy failed. Select the preview text manually."
+msgstr ""
+
+#: assets/js/schema-settings.js:509
+msgid "Preview JSON downloaded."
+msgstr ""
+
+#: assets/js/settings-admin.js:84
+msgid "Select default social image"
+msgstr ""
+
+#: assets/js/settings-admin.js:191
+msgid "Inserted token %s."
+msgstr ""
+
+#: assets/js/settings-admin.js:317
+msgid "Settings section loaded."
+msgstr ""
+
+#: assets/js/settings-admin.js:373
+msgid "Settings reset."
+msgstr ""
+
+#: assets/js/settings-admin.js:375
+msgid "Settings updated."
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:26
+msgid "Breadcrumbs Settings"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:28
+msgid "Show home item"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:35
+msgid "Show current item"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:42
+msgid "Show on home page"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:50
+msgid "Leave empty to use the separator from Settings."
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/breadcrumbs-editor.js:60
+msgid "Breadcrumbs preview: the live trail renders on the frontend."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:145
+msgid "New"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:153
+msgid "FAQ %d"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:155
+msgid "Question %d"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:157
+msgid "Answer %d"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:159
+msgid "Move FAQ %d up"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:161
+msgid "Move FAQ %d down"
+msgstr ""
+
+#. translators: %d is the FAQ item number.
+#: src/Modules/Schema/blocks/faq/faq-editor.js:163
+msgid "Remove FAQ %d"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:194
+msgid "Up"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:208
+msgid "Down"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:228
+msgid "Enter a question..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:240
+msgid "Enter the answer..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:249
+msgid "Add a question so this entry appears on the page and in the schema."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:266
+msgid "No FAQs yet. Add your first question and answer. Each entry shows on the page and in the FAQ schema."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:271
+#: src/Modules/Schema/blocks/faq/faq-editor.js:344
+msgid "Add FAQ"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:280
+msgid "FAQ Settings"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:282
+msgid "List style"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:285
+msgid "Unordered"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:286
+msgid "Ordered"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:295
+#: src/Modules/Schema/blocks/howto/howto-editor.js:561
+msgid "Title size"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:298
+#: src/Modules/Schema/blocks/faq/faq-editor.js:315
+#: src/Modules/Schema/blocks/howto/howto-editor.js:564
+#: src/Modules/Schema/blocks/howto/howto-editor.js:581
+msgid "Heading 2"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:299
+#: src/Modules/Schema/blocks/faq/faq-editor.js:316
+#: src/Modules/Schema/blocks/howto/howto-editor.js:565
+#: src/Modules/Schema/blocks/howto/howto-editor.js:582
+msgid "Heading 3"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:300
+#: src/Modules/Schema/blocks/faq/faq-editor.js:317
+#: src/Modules/Schema/blocks/howto/howto-editor.js:566
+#: src/Modules/Schema/blocks/howto/howto-editor.js:583
+msgid "Heading 4"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:310
+msgid "Question heading"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:311
+msgid "Questions follow the title size unless set here."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:314
+#: src/Modules/Schema/blocks/howto/howto-editor.js:580
+msgid "Same as title"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:331
+msgid "FAQ title"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/faq-editor.js:332
+#: src/Modules/Schema/blocks/howto/howto-editor.js:654
+msgid "Add a title..."
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:302
+msgid "Step %d"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:304
+msgid "Title %d"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:306
+msgid "Description %d"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:308
+msgid "Move step %d up"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:310
+msgid "Move step %d down"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:312
+msgid "Remove step %d"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:314
+msgid "Image for step %d"
+msgstr ""
+
+#. translators: %d is the step number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:316
+msgid "Image alt text for step %d"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:357
+msgid "Describe the image..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:367
+msgid "Upload or pick an image for this step."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:405
+msgid "Move up"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:419
+msgid "Move down"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:432
+msgid "Remove step"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:439
+msgid "Enter a step title..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:451
+msgid "Enter the step instructions..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:460
+msgid "Add a title or instructions so this step appears on the page and in the schema."
+msgstr ""
+
+#. translators: %d is the tool number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:470
+msgid "Tool %d"
+msgstr ""
+
+#. translators: %d is the tool number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:472
+msgid "Remove tool %d"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:480
+msgid "Enter a tool..."
+msgstr ""
+
+#. translators: %d is the material number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:502
+msgid "Material %d"
+msgstr ""
+
+#. translators: %d is the material number.
+#: src/Modules/Schema/blocks/howto/howto-editor.js:504
+msgid "Remove material %d"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:512
+msgid "Enter a material..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:542
+msgid "No steps yet. Add at least one step so the list and the HowTo schema have content to show."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:547
+#: src/Modules/Schema/blocks/howto/howto-editor.js:666
+msgid "Add step"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:559
+msgid "HowTo Settings"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:576
+msgid "Step heading"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:577
+msgid "Steps follow the title size unless set here."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:595
+msgid "HowTo Details"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:599
+msgid "Describe the whole guide..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:608
+msgid "ISO 8601 duration, for example PT30M. Values outside that shape stay out of the schema."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:618
+msgid "Estimated cost"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:620
+msgid "For example 5 USD..."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:635
+msgid "Add tool"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:645
+msgid "Add material"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/howto-editor.js:653
+msgid "HowTo title"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block title"
+msgid "Breadcrumbs by RankKernel"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block description"
+msgid "Add an accessible breadcrumb trail that matches your RankKernel breadcrumb schema."
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block keyword"
+msgid "Breadcrumbs"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block keyword"
+msgid "Trail"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block keyword"
+msgid "Navigation"
+msgstr ""
+
+#: src/Modules/Breadcrumbs/blocks/breadcrumbs/block.json
+msgctxt "block keyword"
+msgid "SEO"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+msgctxt "block title"
+msgid "FAQ by RankKernel"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+msgctxt "block description"
+msgid "Add SEO friendly frequently asked questions with automatic FAQPage schema."
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+msgctxt "block keyword"
+msgid "FAQ"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+msgctxt "block keyword"
+msgid "Frequently Asked Questions"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block keyword"
+msgid "Schema"
+msgstr ""
+
+#: src/Modules/Schema/blocks/faq/block.json
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block keyword"
+msgid "Structured Data"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block title"
+msgid "HowTo by RankKernel"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block description"
+msgid "Add SEO friendly how-to steps with automatic HowTo schema."
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block keyword"
+msgid "HowTo"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block keyword"
+msgid "How To"
+msgstr ""
+
+#: src/Modules/Schema/blocks/howto/block.json
+msgctxt "block keyword"
+msgid "Steps"
+msgstr ""
