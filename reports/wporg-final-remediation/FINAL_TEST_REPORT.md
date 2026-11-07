@@ -2,11 +2,11 @@
 
 Date: 2026-11-07  
 Source: `57dfc063d022d380d43947972c26f9bd976e5b56`  
-Package: `rankkernel-0.1.0-candidate-57dfc06.zip`  
+Package: `rankkernel-0.1.0.zip`  
 Size: 937,587 bytes  
 Files: 240 (239 code+assets plus `languages/rankkernel.pot`)  
 SHA-256: `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd`  
-Manifest: `rankkernel-0.1.0-candidate-57dfc06-manifest.txt`  
+Manifest: `rankkernel-0.1.0-manifest.txt`  
 Manifest SHA-256: `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6`
 
 ## Automated gates

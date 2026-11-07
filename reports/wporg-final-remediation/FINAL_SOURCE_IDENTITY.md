@@ -11,11 +11,11 @@ Production package source commit: `57dfc063d022d380d43947972c26f9bd976e5b56`
 | Branch | `release/wporg-0.1.0` |
 | Production source commit | `57dfc063d022d380d43947972c26f9bd976e5b56` |
 | Commit subject | `Add languages/rankkernel.pot translation template` |
-| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-57dfc06.zip` |
+| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0.zip` |
 | ZIP size | 937,587 bytes |
 | ZIP files | 240 |
 | ZIP SHA-256 | `f6beba8f830994dc3ef952f7757d7ad079073d5b21787fe64c4265083732bedd` |
-| Manifest | `rankkernel-0.1.0-candidate-57dfc06-manifest.txt` |
+| Manifest | `rankkernel-0.1.0-manifest.txt` |
 | Manifest SHA-256 | `b0057ec61e3e8b930625319e64ad998e7ff7d6dbfc35d635bd39b76fe68e3ba6` |
 | Top-level directory | `rankkernel/` only |
 
