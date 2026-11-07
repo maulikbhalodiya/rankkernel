@@ -175,15 +175,15 @@ if ( ! function_exists( 'rankkernel_uninstall_current_site' ) ) {
 } // End rankkernel_uninstall_current_site definition.
 
 if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_sites' ) ) {
-	$sites = get_sites(
+	$rankkernel_sites = get_sites(
 		array(
 			'fields' => 'ids',
 			'number' => 0,
 		)
 	);
 
-	if ( is_array( $sites ) ) {
-		foreach ( $sites as $rankkernel_site_id ) {
+	if ( is_array( $rankkernel_sites ) ) {
+		foreach ( $rankkernel_sites as $rankkernel_site_id ) {
 			switch_to_blog( (int) $rankkernel_site_id );
 			rankkernel_uninstall_current_site();
 			restore_current_blog();
