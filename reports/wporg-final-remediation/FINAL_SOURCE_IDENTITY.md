@@ -2,21 +2,21 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production package source commit: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`
+Production package source commit: `010c3fe87b678b3565057052d7b460f88050e9ac`
 
 ## Source and package
 
 | Field | Value |
 |---|---|
 | Branch | `release/wporg-0.1.0` |
-| Production source commit | `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05` |
-| Commit subject | `Fix password-post noindex and single-site uninstall scope` |
-| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0.zip` |
-| ZIP size | 937,797 bytes |
+| Production source commit | `010c3fe87b678b3565057052d7b460f88050e9ac` |
+| Commit subject | `T6 remediation: no forced PHP limits, nonce-verified edit links, upload boundary sanitization` |
+| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-t6.zip` |
+| ZIP size | 938,207 bytes |
 | ZIP files | 240 |
-| ZIP SHA-256 | `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed` |
-| Manifest | `rankkernel-0.1.0-manifest.txt` |
-| Manifest SHA-256 | `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354` |
+| ZIP SHA-256 | `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c` |
+| Manifest | `rankkernel-0.1.0-candidate-t6-manifest.txt` |
+| Manifest SHA-256 | `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65` |
 | Top-level directory | `rankkernel/` only |
 
 ## Superseded package
@@ -44,4 +44,4 @@ Previous build kept as `rankkernel-0.1.0-last.zip` (904,565 bytes, source `e3103
 
 ## Branch tip note
 
-The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `5e404ef`.
+The release branch tip after the evidence-report commit contains this file and the other `reports/wporg-final-remediation/` deliverables. Those paths are excluded by `.distignore`; the production package source remains `010c3fe`.

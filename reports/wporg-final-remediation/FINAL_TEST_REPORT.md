@@ -1,19 +1,19 @@
 # RankKernel 0.1.0 — Final Test Report
 
 Date: 2026-11-07  
-Source: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`  
-Package: `rankkernel-0.1.0.zip`  
-Size: 937,797 bytes  
+Source: `010c3fe87b678b3565057052d7b460f88050e9ac`  
+Package: `rankkernel-0.1.0-candidate-t6.zip`  
+Size: 938,207 bytes  
 Files: 240 (239 code+assets plus `languages/rankkernel.pot`)  
-SHA-256: `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`  
-Manifest: `rankkernel-0.1.0-manifest.txt`  
-Manifest SHA-256: `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354`
+SHA-256: `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`  
+Manifest: `rankkernel-0.1.0-candidate-t6-manifest.txt`  
+Manifest SHA-256: `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65`
 
 ## Automated gates
 
 | Gate | Command / environment | Result |
 |---|---|---|
-| PHPUnit | `php vendor/bin/phpunit --no-coverage` — PHP 8.3.36 | **2400 tests, 9216 assertions, OK** |
+| PHPUnit | `php vendor/bin/phpunit --no-coverage` — PHP 8.3.36 | **2414 tests, 9271 assertions, OK** |
 | PHPCS/WPCS | `composer lint` | **exit 0, no errors/warnings** |
 | PHPStan level 6 | `composer stan` | **`[OK] No errors`** |
 | JavaScript tests | `composer test:js` | **352 pass, 0 fail** |
@@ -54,7 +54,8 @@ Staging databases `rk_wporg71` and `rk_wporg65` were recreated for this pass (th
 - `RedirectsAdminTest`, `MonitorAdminTest`, `SettingsPageTest`, `SitemapSettingsAdminTest`, `MonitorLoggerTest`, `SchemaMetaboxTest`, `SchemaSettingsAdminTest`, `SupportPageTest`: input/authorization regressions pass after the boundary sanitization changes.
 - `BreadcrumbsSecurityTest`, `BreadcrumbsBlockTest`, `BreadcrumbsOutputTest`: final filter/return-value escaping still passes.
 - New coverage since the prior candidate: robots save success true-path including the inner-edit path; exclusion `map_deep`/`is_scalar` filtering (`rk_excl_comparator`, `rk_excl_value`); cron guard; wildcard capability caps; log redaction; IndexNow guards; import-lock user attribution; atomic `llms.txt` write; single-site uninstall scope (F-11); canonical host handling including scheme-without-host rejection; password gate plus password-protected-post noindex (F-10, `HeadRendererTest::test_password_protected_post_forces_noindex`).
-- Regression matrix: 24 rows (`RT-01` through `RT-24`); new `RT-23` covers the password-post noindex regression and new `RT-24` covers the single-site uninstall regression.
+- New coverage in the T6 pass (F-12..F-16): forced PHP limits removed (`Matcher` no longer calls `ini_set`/`ini_restore`; `RegexSafety::isUnsafe()` gate added to the wildcard path; `CsvHandler::breathe()` and its `set_time_limit(60)` deleted); nonce-verified redirect edit links (`verifiedEditId()`, `wp_nonce_url(NONCE_ROW)`, verified 404 prefill); schema export nonce verified before any post data is read; `$_FILES` metadata sanitized at the support boundary; `Matcher::` wildcard-cap constants, scheme-without-host home-URL rejection, single-site uninstall cron cleanup.
+- Regression matrix: 29 rows (`RT-01` through `RT-29`); new `RT-25` (no forced PHP limits), `RT-26` (nonce-verified edit links), `RT-27` (schema export nonce ordering), `RT-28` (upload boundary sanitization) and `RT-29` (constants/dead-code hygiene) cover the T6 fixes.
 - Full input inventory: 236 current superglobal expressions, 16 files, 0 `UNREVIEWED`, 0 `BLOCKED` (136 `FIXED`, 93 `PASS`, 6 `COMMENT_OR_DOCBLOCK_ONLY`, 1 `ACCEPTED_WITH_REASON`).
 - Full output inventory: 1,244 output statements, 0 `UNREVIEWED`, 0 `BLOCKED` (1,231 `PASS`, 13 `ACCEPTED_WITH_REASON`).
 
@@ -62,6 +63,6 @@ Staging databases `rk_wporg71` and `rk_wporg65` were recreated for this pass (th
 
 - The exact WordPress.org scanner dump for the 37/48/46 counts is unavailable. The audit reproduces the reported examples and inventories every current superglobal occurrence; it does not claim a one-to-one scanner mapping.
 - Psalm is not installed locally, so no local Psalm run is claimed. Static analysis for this candidate is PHPStan level 6, PHPCS/WPCS and the focused security tests.
-- Real Apache/LiteSpeed web-server behavior was not re-run in this final pass. Earlier release evidence covered Apache 2.4.58; the current changes are PHP input/output paths plus the password-post noindex and single-site uninstall scope fixes.
+- Real Apache/LiteSpeed web-server behavior was not re-run in this final pass. Earlier release evidence covered Apache 2.4.58; the current changes are PHP input/output paths plus the T6 forced-limits, nonce-verified edit-link and upload-boundary fixes.
 - Browser-level admin UI rendering beyond the WP-CLI activation/init smoke test was not re-run. The exact ZIP was installed, activated, deactivated, reactivated, uninstalled (WP 6.5) and reinstalled on both WordPress versions.
 - No independent Server approval is claimed. This report is evidence for independent audit, not an approval and not a WordPress.org readiness claim beyond the evidence above.

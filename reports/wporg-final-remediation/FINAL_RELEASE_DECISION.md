@@ -2,7 +2,7 @@
 
 Date: 2026-11-06  
 Branch: `release/wporg-0.1.0`  
-Production source commit: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`
+Production source commit: `010c3fe87b678b3565057052d7b460f88050e9ac`
 
 ## Decision
 
@@ -16,11 +16,11 @@ This is **not** an approval, not a WordPress.org submission, and not authorizati
 
 | Field | Value |
 |---|---|
-| ZIP | `rankkernel-0.1.0.zip` |
-| Size | 937,797 bytes |
+| ZIP | `rankkernel-0.1.0-candidate-t6.zip` |
+| Size | 938,207 bytes |
 | Files | 240 (239 code+assets plus `languages/rankkernel.pot`) |
-| SHA-256 | `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed` |
-| Manifest SHA-256 | `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354` |
+| SHA-256 | `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c` |
+| Manifest SHA-256 | `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65` |
 | Top level | `rankkernel/` only |
 
 The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded for this remediation. It must not be uploaded instead of the candidate.
@@ -30,7 +30,7 @@ The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded 
 | Gate | Status | Evidence |
 |---|---|---|
 | Historical WordPress.org issues accounted for | PASS | Complete issue register; A–N compliance matrix |
-| November 6 findings fixed or defended | PASS | F-01 fixed; nine examples fixed; F-10 password-post noindex fixed; F-11 single-site uninstall fixed; no open blocker |
+| November 6 findings fixed or defended | PASS | F-01 fixed; nine examples fixed; F-10 password-post noindex fixed; F-11 single-site uninstall fixed; T6 F-12 forced limits removed, F-13 nonce-verified edit links, F-14 export nonce ordering, F-15 upload boundary sanitization, F-16 hygiene; no open blocker |
 | All current input occurrences accounted for | PASS | 236 expressions; 0 UNREVIEWED/BLOCKED |
 | Equivalent input occurrences searched | PASS | 16 shipped input files; full inventory |
 | Nonce/capability operations reviewed | PASS | 95 controls inventoried |
@@ -38,12 +38,12 @@ The previously submitted/approved ZIP `4edb5beb…` is preserved and superseded 
 | Filesystem/upload paths reviewed | PASS | 41 operations inventoried |
 | Callbacks/returned HTML reviewed | PASS | Shortcode/block/filter/schema callbacks |
 | WordPress.org guidelines reviewed | PASS | A–N matrix; name/slug, notices, enqueue, external services, paths |
-| Regression tests | PASS | PHPUnit 2400 tests / 9216 assertions |
+| Regression tests | PASS | PHPUnit 2414 tests / 9271 assertions |
 | Plugin Check classified | PASS | 0 errors / 223 warnings on WP 7.1.4 and 6.5.14 |
 | No unresolved BLOCKED/UNREVIEWED | PASS | 0 in both inventories |
-| No new production regression | PASS | PHPCS exit 0, PHPStan L6 clean, JS 352/0, PHPUnit 2400/9216 |
+| No new production regression | PASS | PHPCS exit 0, PHPStan L6 clean, JS 352/0, PHPUnit 2414/9271 |
 | Distribution contents correct | PASS | 240 files, `.distignore` applied, no dev/test/docs/reports |
-| ZIP manifest/SHA-256 verified | PASS | `45ffccd6…` / `918cb4b5…` |
+| ZIP manifest/SHA-256 verified | PASS | `6f6cac88…` / `e9aea842…` |
 
 ## Owner decisions still required
 

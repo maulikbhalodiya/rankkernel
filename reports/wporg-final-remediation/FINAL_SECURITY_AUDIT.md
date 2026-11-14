@@ -1,10 +1,10 @@
 # RankKernel 0.1.0 — Final Security Audit
 
-Production source: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`  
+Production source: `010c3fe87b678b3565057052d7b460f88050e9ac`  
 Branch: `release/wporg-0.1.0`  
-Package: `rankkernel-0.1.0.zip`  
-Size: 937,797 bytes — 240 files — SHA-256 `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`  
-Manifest SHA-256: `918cb4b58b18c8253e529f3c818215c97e2bf2f7e77a1263f190a98a5c59a354`
+Package: `rankkernel-0.1.0-candidate-t6.zip`  
+Size: 938,207 bytes — 240 files — SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`  
+Manifest SHA-256: `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65`
 
 ## Scope and method
 
@@ -27,7 +27,9 @@ The one confirmed authorization defect was `MetadataBox::currentPostId()`: the s
 
 The remaining November 6 examples were mostly scanner-visible sanitization gaps, not confirmed exploits: `rk_orderby`, `rk_action`, `rk_final`, `rankkernel_schema_custom`, `rankkernel_schema_msg`, `REQUEST_URI`, `rk_htaccess_directives`, and `rankkernel_meta_focus_keywords` were already allowlisted, cast, normalized or sanitized downstream. Their boundaries now use the correct sanitizer directly, with array/type checks preserved.
 
-Additional fixes in this candidate (source `5e404ef`): F-10 forces `noindex` for password-protected posts in `HeadRenderer::robotsDirectives()` via a new `isPasswordProtected()` helper (get-queried object id plus `post_password_required()`), with regression `HeadRendererTest::test_password_protected_post_forces_noindex`; F-11 removes the multisite `get_sites()` uninstall loop so uninstall purges the current site only and moves `wp_clear_scheduled_hook()` inside `rankkernel_uninstall_current_site()`; minor hardening uses `Matcher::MAX_WILDCARD_LENGTH`/`STARS` caps and rejects scheme-without-host URLs in `MetaPayload::isHomeUrl()`.
+Prior-candidate fixes carried in this package (source `010c3fe`): F-10 forces `noindex` for password-protected posts in `HeadRenderer::robotsDirectives()` via a new `isPasswordProtected()` helper, with regression `HeadRendererTest::test_password_protected_post_forces_noindex`; F-11 removes the multisite `get_sites()` uninstall loop so uninstall purges the current site only and moves `wp_clear_scheduled_hook()` inside `rankkernel_uninstall_current_site()`.
+
+T6 fixes in this candidate (source `010c3fe`, `RT-25`..`RT-29`): F-12 removes forced PHP limits (`Matcher` no longer calls `ini_set`/`ini_restore`; `RegexSafety::isUnsafe()` gates the wildcard path; `CsvHandler::breathe()` plus `set_time_limit(60)` deleted); F-13 puts redirect edit links behind `wp_nonce_url(NONCE_ROW)` with fail-closed `verifiedEditId()` and verified 404 prefill; F-14 verifies the schema-export nonce before reading post data; F-15 sanitizes `$_FILES` metadata at the support boundary; F-16 carries the `Matcher::` constant caps, scheme-without-host rejection and uninstall cron cleanup.
 
 ## Control review
 
@@ -81,4 +83,4 @@ Warnings: 203 included-view local-variable false positives, 20 custom-table prep
 
 ## Verdict
 
-**READY FOR INDEPENDENT SERVER AUDIT** of source `5e404ef` and ZIP `45ffccd6…`. Not approved for WordPress.org upload or publication.
+**READY FOR INDEPENDENT SERVER AUDIT** of source `010c3fe` and ZIP `6f6cac88…`. Not approved for WordPress.org upload or publication.

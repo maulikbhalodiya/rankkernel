@@ -1,7 +1,7 @@
 # RankKernel 0.1.0 — All Findings and Remediations
 
-Production source: `5e404efd7c1c7155ef8b65d1f1cf7c8e15a09b05`  
-Final ZIP: `rankkernel-0.1.0.zip`, 937,797 bytes, 240 files, SHA-256 `45ffccd66e40ab4715a8acdf48c04b291b82235b60f90a36963f0a279d5ed4ed`
+Production source: `010c3fe87b678b3565057052d7b460f88050e9ac`  
+Final ZIP: `rankkernel-0.1.0-candidate-t6.zip`, 938,207 bytes, 240 files, SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`
 
 ## Finding F-01 — Metadata editor used an unverified screen post ID
 
@@ -40,7 +40,7 @@ Final ZIP: `rankkernel-0.1.0.zip`, 937,797 bytes, 240 files, SHA-256 `45ffccd66e
 
 **Important distinction:** Most of these were already allowlisted/cast/escaped downstream. The fix moves the scanner-visible sanitizer to the boundary and documents the final sink; it does not claim every line was an exploitable vulnerability. The one confirmed authorization defect was F-01.
 
-**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2400/9216 passes; PHPCS clean; focused tests cover the nine November 6 examples.
+**Tests:** Full input inventory has 0 `UNREVIEWED` and 0 `BLOCKED`; PHPUnit 2414/9271 passes; PHPCS clean; focused tests cover the nine November 6 examples.
 
 ## Finding F-03 — Request-method normalization preserved no case
 
@@ -98,7 +98,42 @@ Final ZIP: `rankkernel-0.1.0.zip`, 937,797 bytes, 240 files, SHA-256 `45ffccd66e
 **Severity:** Medium correctness (uninstall scope must match the per-site activation model and readme)  
 **Cause:** Uninstall iterated `get_sites()` and purged every site in the network, while activation is per-site and the readme documents single-site removal.  
 **Fix:** Removed the `get_sites()` loop; uninstall purges the current site only, matching the readme and per-site activation model. Moved the `wp_clear_scheduled_hook()` calls inside `rankkernel_uninstall_current_site()` and removed the duplicated loop.  
-**Tests:** Uninstall regression coverage updated; new `RT-24` row in `REGRESSION_TEST_MATRIX.csv` (24 rows total).
+**Tests:** Uninstall regression coverage updated; new `RT-24` row in `REGRESSION_TEST_MATRIX.csv` (29 rows total after the T6 pass).
+
+## Finding F-12 — Forced PHP limits removed (WordPress.org "Don't Force Set PHP Limits")
+
+**Severity:** WordPress.org submission quality (forced-limits guideline)  
+**Cause:** `Matcher::wildcard_matches()` / `regex_matches()` called `ini_set()` / `ini_restore()` around matching, and `CsvHandler::breathe()` called `set_time_limit(60)`.  
+**Fix:** `Matcher.php` no longer calls `ini_set` / `ini_restore` at all; ReDoS safety now comes from caller caps plus the `RegexSafety::isUnsafe()` runtime gate (newly added to the wildcard path) plus `set_error_handler` / `preg_last_error` fail-closed handling. `CsvHandler::breathe()` and its `set_time_limit(60)` were removed entirely (method plus both call sites deleted; streaming / bounded-batch behavior otherwise identical).  
+**Tests:** New `RT-25` row in `REGRESSION_TEST_MATRIX.csv`; matcher and CSV handler suites pass.
+
+## Finding F-13 — Redirect edit links now carry a nonce and are verified before prefill
+
+**Severity:** Medium hardening (edit-link intent verification)  
+**Cause:** `RedirectsPage` edit URLs and the 404 create-redirect link carried a bare `rk_edit` id with no nonce, so opening an edit form did not prove the link came from the plugin UI.  
+**Fix:** `RedirectsPage` edit URLs now carry `wp_nonce_url( NONCE_ROW )`; new `verifiedEditId()` honors `rk_edit` only when `_wpnonce` verifies (`wp_verify_nonce`, fail-closed to `0`, no `die` on the display path); `isEditorOpen()` / `formValues()` use it. The 404 create-redirect link carries the same nonce and `prefillSource()` returns `''` unless verified. `NotFoundPage` routing verified unchanged (all branches already gated).  
+**Tests:** New `RT-26` row in `REGRESSION_TEST_MATRIX.csv`; redirect admin suites pass.
+
+## Finding F-14 — Schema export verifies the nonce before reading post data
+
+**Severity:** Medium hardening (disclosure ordering)  
+**Cause:** `handleExport()` read post data before the nonce check ran, so verification did not precede disclosure.  
+**Fix:** `handleExport()` now verifies `check_admin_referer()` immediately after the postId parse, before any post data is read or disclosed (capability check retained).  
+**Tests:** New `RT-27` row in `REGRESSION_TEST_MATRIX.csv`; schema suites pass.
+
+## Finding F-15 — Support upload metadata sanitized at the boundary
+
+**Severity:** Defense-in-depth (upload boundary sanitization)  
+**Cause:** `$_FILES` metadata reached `SupportDelivery::normalizeScreenshots()` without boundary sanitization.  
+**Fix:** `SupportPage` sanitizes `$_FILES` metadata first (`absint` error / size, `sanitize_file_name` name, mime / type text, string-only tmp path, shape-preserving including multi-file) before `normalizeScreenshots()`; downstream validation untouched.  
+**Tests:** New `RT-28` row in `REGRESSION_TEST_MATRIX.csv`; support suites pass.
+
+## Finding F-16 — Dead-code and constants hygiene carried from the prior pass
+
+**Severity:** Code hygiene (no behavior change beyond the cited fixes)  
+**Cause:** Inline wildcard-cap literals, scheme-without-host home-URL acceptance, and duplicated uninstall cron clearing survived earlier passes as dead weight.  
+**Fix:** `RedirectRepository` wildcard caps now use `Matcher::MAX_WILDCARD_LENGTH` / `STARS` constants; `MetaPayload::isHomeUrl()` rejects scheme-without-host URLs (`mailto:` / `tel:`); uninstall cron duplication removed as part of the single-site restructure.  
+**Tests:** New `RT-29` row in `REGRESSION_TEST_MATRIX.csv`; redirect, payload and uninstall suites pass.
 
 ## Minor hardening in this candidate (no new finding ID)
 
