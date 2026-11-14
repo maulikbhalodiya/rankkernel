@@ -127,7 +127,7 @@ jobs:
         # no checksum assets, so a bump requires manual review + a fresh full-SHA pin.
         # Owner action: validate PR #342 in a fork before bumping. Native better-sqlite3
         # is not installed; reviewer uses its JSON storage fallback (degraded).
-        uses: nilesh32236/opencode-ai-reviewer@7007f43e413664e319cf5e6c52a4df599e579bb8 # v1.23.1
+        uses: nilesh32236/opencode-ai-reviewer@213ea399a9262bfb6d5e3fc6755f4196da792b79 # v1.24.5
         with:
           mode: audit
           opencode_version: 'v1.18.31'
