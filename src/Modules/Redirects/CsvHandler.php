@@ -239,10 +239,6 @@ final class CsvHandler {
 				'cells'     => $this->row_cells( $fields ),
 				'rowNumber' => $rowNumber,
 			];
-
-			if ( 0 === ( $processed % self::BATCH_SIZE ) ) {
-				$this->breathe();
-			}
 		}
 
 		// Paired with the streaming fopen above, part of the same read.
@@ -326,11 +322,7 @@ final class CsvHandler {
 		$createdIds = [];
 		$snapshots  = [];
 
-		foreach ( $validated as $index => $job ) {
-			if ( 0 === ( $index % self::BATCH_SIZE ) ) {
-				$this->breathe();
-			}
-
+		foreach ( $validated as $job ) {
 			$result = $this->import_row( $job['cells'], $job['rowNumber'], $updateExisting, false, $forceUnverified );
 
 			if ( 'created' === $result['status'] ) {
@@ -1055,22 +1047,5 @@ final class CsvHandler {
 		}
 
 		return implode( ',', $encoded );
-	}
-
-	/**
-	 * Yield control briefly between batches on long imports.
-	 *
-	 * Keeps a bounded import friendly to shared hosting by resetting the
-	 * script time budget when the host allows it. set_time_limit() is
-	 * discouraged by Plugin Check, but the import is an explicit, opt-in,
-	 * bounded admin action with a MAX_ROWS cap, and the call is guarded by
-	 * function_exists() for hosts that disable it. No safe alternative exists
-	 * for extending the time budget on long-running CSV imports.
-	 */
-	private function breathe(): void {
-		if ( function_exists( 'set_time_limit' ) ) {
-			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- bounded import time budget, guarded by function_exists(), host-safe.
-			set_time_limit( 60 );
-		}
 	}
 }

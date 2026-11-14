@@ -154,6 +154,8 @@ final class SupportPageTest extends TestCase {
 			}
 		);
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( $v ) );
+		Functions\when( 'absint' )->alias( static fn ( $v ): int => abs( (int) ( is_scalar( $v ) ? $v : 0 ) ) );
+		Functions\when( 'sanitize_file_name' )->alias( static fn ( string $v ): string => (string) preg_replace( '/[^A-Za-z0-9._-]/', '_', $v ) );
 		Functions\when( 'sanitize_email' )->alias( static fn ( string $v ): string => trim( $v ) );
 		Functions\when( 'sanitize_key' )->alias( static fn ( string $v ): string => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $v ) ) );
 		Functions\when( 'wp_unslash' )->alias( static fn ( $v ) => $v );
@@ -668,6 +670,79 @@ final class SupportPageTest extends TestCase {
 		$this->assertIsInt( $honeypot );
 		$this->assertGreaterThan( $form_start, $honeypot );
 		$this->assertLessThan( $form_end, $honeypot );
+	}
+
+	/**
+	 * Hostile upload metadata is sanitized at the boundary and rejected safely.
+	 */
+	public function test_hostile_screenshot_metadata_is_sanitized_and_rejected_safely(): void {
+		$this->postValid();
+
+		$_FILES = [
+			SupportRequest::FIELD_SCREENSHOT => [
+				'error'    => 'not-numeric',
+				'size'     => -500,
+				'name'     => '../../evil.php',
+				'type'     => '<script>alert(1)</script>',
+				'tmp_name' => [ 'not-a-string' ],
+			],
+		];
+
+		( new SupportPage() )->maybeHandleSave();
+
+		$this->assertSame( [], $this->mail );
+		$this->assertSame( 0, $this->uploadCalls );
+		$this->assertStringContainsString( 'rk_support=invalid', $this->lastRedirect );
+	}
+
+	/**
+	 * The upload boundary preserves single-file and multi-file shapes.
+	 */
+	public function test_upload_boundary_preserves_single_and_multi_file_shapes(): void {
+		$page   = new SupportPage();
+		$method = new \ReflectionMethod( $page, 'sanitizeScreenshotUpload' );
+		$method->setAccessible( true );
+
+		$single = $method->invoke(
+			$page,
+			[
+				'error'    => '0',
+				'size'     => '-500',
+				'name'     => '../../evil.php',
+				'type'     => 'image/png',
+				'tmp_name' => $this->tmpShot,
+			]
+		);
+
+		$this->assertIsArray( $single );
+		$this->assertSame( 0, $single['error'] );
+		$this->assertSame( 500, $single['size'] );
+		$this->assertSame( '.._.._evil.php', $single['name'] );
+		$this->assertSame( 'image/png', $single['type'] );
+		$this->assertSame( $this->tmpShot, $single['tmp_name'] );
+
+		$multi = $method->invoke(
+			$page,
+			[
+				'name'     => [ 'a.png', '<img>.png' ],
+				'type'     => [ 'image/png', 'image/png' ],
+				'tmp_name' => [ $this->tmpShot, $this->tmpShot2 ],
+				'error'    => [ '0', 'oops' ],
+				'size'     => [ '1024', '-10' ],
+			]
+		);
+
+		$this->assertIsArray( $multi );
+		$this->assertIsArray( $multi['name'] );
+		$this->assertIsArray( $multi['error'] );
+		$this->assertSame( [ 'a.png', '_img_.png' ], array_values( $multi['name'] ) );
+		$this->assertSame( 0, $multi['error'][0] );
+		$this->assertSame( 0, $multi['error'][1] );
+		$this->assertSame( 1024, $multi['size'][0] );
+		$this->assertSame( 10, $multi['size'][1] );
+
+		$this->assertNull( $method->invoke( $page, 'not-an-array' ) );
+		$this->assertNull( $method->invoke( $page, null ) );
 	}
 
 	/**

@@ -75,6 +75,10 @@ final class RedirectsAdminTest extends TestCase {
 			define( 'RANKKERNEL_TESTING', true );
 		}
 
+		if ( ! defined( 'ARRAY_A' ) ) {
+			define( 'ARRAY_A', 'ARRAY_A' );
+		}
+
 		$this->options      = [];
 		$this->db           = new RedirectsFakeDb();
 		$this->lastRedirect = '';
@@ -118,6 +122,11 @@ final class RedirectsAdminTest extends TestCase {
 		Functions\when( 'wp_nonce_url' )->alias(
 			static function ( string $url ): string {
 				return $url . '&_wpnonce=valid';
+			}
+		);
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( mixed $nonce, mixed $action = '' ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_verify_nonce signature.
+				return 'valid' === (string) $nonce ? 1 : false;
 			}
 		);
 		Functions\when( 'wp_parse_url' )->alias(
@@ -1677,7 +1686,10 @@ final class RedirectsAdminTest extends TestCase {
 		$page = $this->makePage();
 		$this->allowAccess();
 
-		$_GET = [ 'rk_edit' => (string) $id ];
+		$_GET = [
+			'rk_edit'  => (string) $id,
+			'_wpnonce' => 'valid',
+		];
 
 		$html = $this->renderPage( $page );
 
@@ -2038,7 +2050,10 @@ final class RedirectsAdminTest extends TestCase {
 
 		$page = $this->makePage();
 
-		$_GET = [ 'rk_edit' => (string) $id ];
+		$_GET = [
+			'rk_edit'  => (string) $id,
+			'_wpnonce' => 'valid',
+		];
 
 		$html = $this->renderPage( $page );
 
@@ -2057,7 +2072,10 @@ final class RedirectsAdminTest extends TestCase {
 
 		$page = $this->makePage();
 
-		$_GET = [ 'rk_edit' => (string) $id ];
+		$_GET = [
+			'rk_edit'  => (string) $id,
+			'_wpnonce' => 'valid',
+		];
 
 		$html = $this->renderPage( $page );
 
@@ -2075,6 +2093,7 @@ final class RedirectsAdminTest extends TestCase {
 		$_GET = [
 			'rk_source' => '/missing',
 			'rk_return' => 'rankkernel-404',
+			'_wpnonce'  => 'valid',
 		];
 
 		$html = $this->renderPage( $page );
@@ -2540,5 +2559,137 @@ final class RedirectsAdminTest extends TestCase {
 		// Page 2 top and bottom "Next" controls must render as disabled spans with aria-disabled.
 		$this->assertStringContainsString( '<span class="button disabled" aria-disabled="true">Next</span>', $htmlPage2 );
 		$this->assertStringContainsString( '<span class="rk-ui-page-link is-disabled" aria-disabled="true">Next</span>', $htmlPage2 );
+	}
+
+	/**
+	 * The edit row link carries the row nonce.
+	 */
+	public function test_edit_link_carries_row_nonce(): void {
+		$this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$html = $this->renderPage( $page );
+
+		$this->assertSame( 1, preg_match( '#rk_edit=1[^"]*_wpnonce=valid#', $html ) );
+	}
+
+	/**
+	 * A missing edit nonce keeps the editor closed with the list intact.
+	 */
+	public function test_edit_without_nonce_keeps_editor_closed(): void {
+		$id = $this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [ 'rk_edit' => (string) $id ];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="false"', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-redirect-editor"[^>]*\shidden\b/', $html );
+		$this->assertStringNotContainsString( 'value="/a"', $html );
+		$this->assertStringContainsString( '/a', $html );
+	}
+
+	/**
+	 * A bad edit nonce keeps the editor closed with the list intact.
+	 */
+	public function test_edit_with_bad_nonce_keeps_editor_closed(): void {
+		$id = $this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [
+			'rk_edit'  => (string) $id,
+			'_wpnonce' => 'bad',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="false"', $html );
+		$this->assertMatchesRegularExpression( '/<div\b[^>]*id="rk-redirect-editor"[^>]*\shidden\b/', $html );
+		$this->assertStringNotContainsString( 'value="/a"', $html );
+		$this->assertStringContainsString( '/a', $html );
+	}
+
+	/**
+	 * A valid edit nonce opens the editor with the stored row.
+	 */
+	public function test_edit_with_valid_nonce_opens_editor(): void {
+		$id = $this->seedRule( '/a', '/b' );
+
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [
+			'rk_edit'  => (string) $id,
+			'_wpnonce' => 'valid',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="true"', $html );
+		$this->assertStringContainsString( 'Edit Redirect', $html );
+		$this->assertStringContainsString( 'value="/a"', $html );
+	}
+
+	/**
+	 * A 404 prefill without a nonce keeps the editor closed.
+	 */
+	public function test_prefill_without_nonce_keeps_editor_closed(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [
+			'rk_source' => '/missing',
+			'rk_return' => 'rankkernel-404',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="false"', $html );
+		$this->assertStringNotContainsString( 'value="/missing"', $html );
+	}
+
+	/**
+	 * A 404 prefill with a bad nonce keeps the editor closed.
+	 */
+	public function test_prefill_with_bad_nonce_keeps_editor_closed(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [
+			'rk_source' => '/missing',
+			'rk_return' => 'rankkernel-404',
+			'_wpnonce'  => 'bad',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="false"', $html );
+		$this->assertStringNotContainsString( 'value="/missing"', $html );
+	}
+
+	/**
+	 * A 404 prefill with a valid nonce opens the editor.
+	 */
+	public function test_prefill_with_valid_nonce_opens_editor(): void {
+		$page = $this->makePage();
+		$this->allowAccess();
+
+		$_GET = [
+			'rk_source' => '/missing',
+			'rk_return' => 'rankkernel-404',
+			'_wpnonce'  => 'valid',
+		];
+
+		$html = $this->renderPage( $page );
+
+		$this->assertStringContainsString( 'aria-expanded="true"', $html );
+		$this->assertStringContainsString( 'value="/missing"', $html );
 	}
 }

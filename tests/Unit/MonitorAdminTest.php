@@ -1166,4 +1166,14 @@ final class MonitorAdminTest extends TestCase {
 		$this->assertStringContainsString( 'aria-describedby="rk-ignore-query-desc rk-ignore-query-hint"', $html );
 		$this->assertStringContainsString( 'id="rk-ignore-query-desc"', $html );
 	}
+
+	/**
+	 * Create redirect links carry the row nonce for the prefill.
+	 */
+	public function test_create_redirect_url_carries_nonce(): void {
+		$page = $this->makePage();
+		$url  = $page->createRedirectUrl( '/old-page' );
+
+		$this->assertStringContainsString( '_wpnonce=', $url );
+	}
 }

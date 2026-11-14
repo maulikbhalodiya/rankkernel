@@ -133,10 +133,12 @@ final class SupportPage {
 			// than read from a control that no longer exists.
 			'diagnostics' => '1',
 		];
-		// Raw upload metadata is normalized and validated by SupportDelivery::normalizeScreenshots() and validateScreenshot() (is_uploaded_file, MIME sniff, actual size, private temp path).
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above; every upload field is validated before use.
-		$file = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;
+		// Raw upload metadata is sanitized at the boundary before normalization.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above; every upload field is sanitized in sanitizeScreenshotUpload() below.
+		$rawFile = isset( $_FILES[ SupportRequest::FIELD_SCREENSHOT ] ) ? $_FILES[ SupportRequest::FIELD_SCREENSHOT ] : null;
 		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		$file = $this->sanitizeScreenshotUpload( $rawFile );
 
 		$check = SupportRequest::validate( $input );
 
@@ -204,6 +206,94 @@ final class SupportPage {
 
 		SupportDelivery::recordSubmission( $ip );
 		$this->redirect( 'sent' );
+	}
+
+	/**
+	 * Sanitizes raw upload metadata at the boundary.
+	 *
+	 * Builds a sanitized copy of a $_FILES entry before it reaches
+	 * SupportDelivery::normalizeScreenshots(), preserving the single-file
+	 * versus multi-file shape so valid uploads flow through unchanged.
+	 * Downstream validation (is_uploaded_file, MIME sniff, actual size,
+	 * private temp dir, cleanup) is untouched.
+	 *
+	 * @param mixed $raw Raw $_FILES entry, or null.
+	 * @return array<string, mixed>|null Sanitized copy, or null when not an upload array.
+	 */
+	private function sanitizeScreenshotUpload( $raw ): ?array {
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
+		$sanitized = [];
+
+		if ( array_key_exists( 'name', $raw ) ) {
+			if ( is_array( $raw['name'] ) ) {
+				$sanitized['name'] = array_map(
+					static fn ( $v ): string => is_string( $v ) ? sanitize_file_name( $v ) : '',
+					$raw['name']
+				);
+			} else {
+				$sanitized['name'] = is_string( $raw['name'] ) ? sanitize_file_name( $raw['name'] ) : '';
+			}
+		}
+
+		if ( array_key_exists( 'type', $raw ) ) {
+			$cleanType = static function ( $v ): string {
+				if ( ! is_string( $v ) ) {
+					return '';
+				}
+
+				if ( function_exists( 'sanitize_mime_type' ) ) {
+					return sanitize_mime_type( $v );
+				}
+
+				return sanitize_text_field( $v );
+			};
+
+			if ( is_array( $raw['type'] ) ) {
+				$sanitized['type'] = array_map( $cleanType, $raw['type'] );
+			} else {
+				$sanitized['type'] = $cleanType( $raw['type'] );
+			}
+		}
+
+		if ( array_key_exists( 'tmp_name', $raw ) ) {
+			if ( is_array( $raw['tmp_name'] ) ) {
+				$sanitized['tmp_name'] = array_map(
+					static fn ( $v ): string => is_string( $v ) ? $v : '',
+					$raw['tmp_name']
+				);
+			} else {
+				$sanitized['tmp_name'] = is_string( $raw['tmp_name'] ) ? $raw['tmp_name'] : '';
+			}
+		}
+
+		if ( array_key_exists( 'error', $raw ) ) {
+			$cleanError = static function ( $v ): int {
+				return absint( is_scalar( $v ) ? $v : 0 );
+			};
+
+			if ( is_array( $raw['error'] ) ) {
+				$sanitized['error'] = array_map( $cleanError, $raw['error'] );
+			} else {
+				$sanitized['error'] = $cleanError( $raw['error'] );
+			}
+		}
+
+		if ( array_key_exists( 'size', $raw ) ) {
+			$cleanSize = static function ( $v ): int {
+				return max( 0, absint( is_scalar( $v ) ? $v : 0 ) );
+			};
+
+			if ( is_array( $raw['size'] ) ) {
+				$sanitized['size'] = array_map( $cleanSize, $raw['size'] );
+			} else {
+				$sanitized['size'] = $cleanSize( $raw['size'] );
+			}
+		}
+
+		return $sanitized;
 	}
 
 	/**

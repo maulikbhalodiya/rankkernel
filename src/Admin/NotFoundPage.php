@@ -489,13 +489,15 @@ final class NotFoundPage {
 	public function createRedirectUrl( string $uri ): string {
 		$base = admin_url( 'admin.php?page=' . RedirectsPage::SLUG );
 
-		return add_query_arg(
+		$url = add_query_arg(
 			[
 				'rk_source' => $uri,
 				'rk_return' => self::SLUG,
 			],
 			$base
 		);
+
+		return wp_nonce_url( $url, RedirectsPage::NONCE_ROW );
 	}
 
 	/**

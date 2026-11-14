@@ -426,61 +426,51 @@ final class Matcher {
 	}
 
 	/**
-	 * Translate a single glob to a bounded anchored expression.
+	 * Translate a single glob body to a bounded regex body.
 	 *
 	 * Star matches any run, question mark matches one character, everything
 	 * else is quoted, so user input can never inject raw regex.
 	 *
 	 * @param string $glob Glob source like /old/*.
-	 * @return string Anchored expression.
+	 * @return string Unanchored regex body.
 	 */
-	private static function wildcard_to_regex( string $glob ): string {
+	private static function wildcard_to_body( string $glob ): string {
 		$quoted = preg_quote( $glob, '#' );
 
 		if ( ! is_string( $quoted ) ) {
 			$quoted = '';
 		}
 
-		$body = str_replace( [ '\\*', '\\?' ], [ '.*', '.' ], $quoted );
-
-		return '#\A(?:' . $body . ')\z#u';
+		return str_replace( [ '\\*', '\\?' ], [ '.*', '.' ], $quoted );
 	}
 
 	/**
-	 * Test one wildcard glob against a path under the same lowered PCRE
-	 * window as the regex tier, fail closed on any PCRE error.
+	 * Test one wildcard glob against a path, fail closed on any PCRE error.
+	 *
+	 * ReDoS safety comes from the caller caps (MAX_WILDCARD_LENGTH,
+	 * MAX_WILDCARD_STARS) plus the RegexSafety scan of the translated body
+	 * below. No PHP limits are changed here.
 	 *
 	 * @param string $glob Glob source.
 	 * @param string $path Normalized path.
 	 * @return bool True on a clean match.
 	 */
 	private static function wildcard_matches( string $glob, string $path ): bool {
-		$old_backtrack = ini_get( 'pcre.backtrack_limit' );
-		$old_recursion = ini_get( 'pcre.recursion_limit' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
-		$backtrack_set = ini_set( 'pcre.backtrack_limit', '10000' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
-		$recursion_set = ini_set( 'pcre.recursion_limit', '1000' );
+		$body = self::wildcard_to_body( $glob );
 
-		if ( false === $backtrack_set || false === $recursion_set ) {
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
-
+		if ( RegexSafety::isUnsafe( $body ) ) {
 			return false;
 		}
+
+		$regex = '#\A(?:' . $body . ')\z#u';
+
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded wildcard compile probe, always restored in finally.
 		set_error_handler( static fn (): bool => true );
 
 		try {
-			$result = preg_match( self::wildcard_to_regex( $glob ), $path );
+			$result = preg_match( $regex, $path );
 		} finally {
 			restore_error_handler();
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
 		}
 
 		if ( false === $result || PREG_NO_ERROR !== preg_last_error() ) {
@@ -508,25 +498,9 @@ final class Matcher {
 
 		$wrapped = '#' . str_replace( '#', '\\#', $pattern ) . '#u';
 
-		// ReDoS guard: run the match inside a lowered PCRE resource window so a
-		// pathological pattern exhausts its small budget instead of the process.
-		// If ini_set is disabled, fail closed for the regex tier.
-		$old_backtrack = ini_get( 'pcre.backtrack_limit' );
-		$old_recursion = ini_get( 'pcre.recursion_limit' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
-		$backtrack_set = ini_set( 'pcre.backtrack_limit', '10000' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional ReDoS window, always restored in finally below.
-		$recursion_set = ini_set( 'pcre.recursion_limit', '1000' );
-
-		if ( false === $backtrack_set || false === $recursion_set ) {
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
-
-			return false;
-		}
-
+		// ReDoS safety comes from the length cap, the catastrophic pattern
+		// scan, and the RegexSafety gate above. No PHP limits are changed
+		// here. The match fails closed on compile failure or engine error.
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- bounded regex compile probe for admin entered patterns, the handler swallows only the compile warning and is always restored in finally.
 		set_error_handler( static fn (): bool => true );
 
@@ -534,10 +508,6 @@ final class Matcher {
 			$result = preg_match( $wrapped, $path );
 		} finally {
 			restore_error_handler();
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.backtrack_limit', false === $old_backtrack ? '1000000' : (string) $old_backtrack );
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- restoring the original values from the ReDoS window.
-			ini_set( 'pcre.recursion_limit', false === $old_recursion ? '100000' : (string) $old_recursion );
 		}
 
 		if ( false === $result || PREG_NO_ERROR !== preg_last_error() ) {

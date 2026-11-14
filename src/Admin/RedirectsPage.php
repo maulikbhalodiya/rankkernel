@@ -49,9 +49,9 @@ final class RedirectsPage {
 	private const NONCE_SAVE = 'rankkernel_redirect_save';
 
 	/**
-	 * Nonce action for single row links.
+	 * Nonce action for single row links, also covering the edit screen display.
 	 */
-	private const NONCE_ROW = 'rankkernel_redirect_row';
+	public const NONCE_ROW = 'rankkernel_redirect_row';
 
 	/**
 	 * Nonce action for bulk actions.
@@ -851,7 +851,7 @@ final class RedirectsPage {
 		$toggleLabel = $active ? __( 'Deactivate', 'rankkernel' ) : __( 'Activate', 'rankkernel' );
 
 		$base      = admin_url( 'admin.php?page=' . self::SLUG );
-		$editUrl   = add_query_arg( [ 'rk_edit' => $rowId ], $base );
+		$editUrl   = wp_nonce_url( add_query_arg( [ 'rk_edit' => $rowId ], $base ), self::NONCE_ROW );
 		$toggleUrl = wp_nonce_url( $base . '&rk_action=' . $toggle . '&rule=' . $rowId, self::NONCE_ROW );
 		$deleteUrl = wp_nonce_url( $base . '&rk_action=delete&rule=' . $rowId, self::NONCE_ROW );
 
@@ -2064,6 +2064,40 @@ final class RedirectsPage {
 	}
 
 	/**
+	 * Verified edit id from the query string, zero unless the row nonce checks out.
+	 *
+	 * Display paths never call check_admin_referer(), which dies on failure.
+	 * A bad or missing nonce fails closed to id 0 so the editor stays shut
+	 * and the list renders intact.
+	 *
+	 * @return int Row id when the edit link nonce verifies, otherwise zero.
+	 */
+	private function verifiedEditId(): int {
+		// The id itself is display only, the nonce below decides whether it is honoured.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only id, verified with wp_verify_nonce below.
+		$id = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? max( 0, (int) sanitize_text_field( wp_unslash( $_GET['rk_edit'] ) ) ) : 0;
+
+		if ( $id <= 0 ) {
+			return 0;
+		}
+
+		// Nonce presence is checked here, verified with wp_verify_nonce below so a bad nonce fails closed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce presence check, verified below.
+		if ( ! isset( $_GET['_wpnonce'] ) || ! is_string( $_GET['_wpnonce'] ) ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce value verified with wp_verify_nonce below.
+		$nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+
+		if ( '' === $nonce || ! wp_verify_nonce( $nonce, self::NONCE_ROW ) ) {
+			return 0;
+		}
+
+		return $id;
+	}
+
+	/**
 	 * Whether the editor renders open on this load.
 	 *
 	 * Closed shows only the list. Open on explicit request, while editing,
@@ -2085,11 +2119,7 @@ final class RedirectsPage {
 			return true;
 		}
 
-		// Read only display flags, value cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag, absint below.
-		$editId = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? max( 0, (int) sanitize_text_field( wp_unslash( $_GET['rk_edit'] ) ) ) : 0;
-
-		if ( $editId > 0 ) {
+		if ( $this->verifiedEditId() > 0 ) {
 			return true;
 		}
 
@@ -2217,9 +2247,7 @@ final class RedirectsPage {
 			return $this->formValues;
 		}
 
-		// Read only display flag, value cast to int below.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag, absint below.
-		$id = isset( $_GET['rk_edit'] ) && is_string( $_GET['rk_edit'] ) ? max( 0, (int) sanitize_text_field( wp_unslash( $_GET['rk_edit'] ) ) ) : 0;
+		$id = $this->verifiedEditId();
 
 		if ( $id <= 0 ) {
 			return [
@@ -2259,14 +2287,29 @@ final class RedirectsPage {
 	/**
 	 * Prefilled source from the 404 Monitor Create Redirect link.
 	 *
-	 * Read only display value, sanitized below. The save pipeline validates
-	 * and normalizes it again, so this is a convenience only.
+	 * Read only display value, sanitized below. The link carries the row
+	 * nonce, so a missing or bad nonce fails closed to an empty string.
+	 * The save pipeline validates and normalizes it again, so this is a
+	 * convenience only.
 	 *
 	 * @return string Source value or empty string.
 	 */
 	private function prefillSource(): string {
+		// Nonce presence is checked here, verified with wp_verify_nonce below so a bad nonce fails closed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce presence check, verified below.
+		if ( ! isset( $_GET['_wpnonce'] ) || ! is_string( $_GET['_wpnonce'] ) ) {
+			return '';
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce value verified with wp_verify_nonce below.
+		$nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+
+		if ( '' === $nonce || ! wp_verify_nonce( $nonce, self::NONCE_ROW ) ) {
+			return '';
+		}
+
 		// Read only display value, sanitized and escaped by the caller.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display value, sanitized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above, sanitized below.
 		return isset( $_GET['rk_source'] ) && is_string( $_GET['rk_source'] ) ? sanitize_text_field( wp_unslash( $_GET['rk_source'] ) ) : '';
 	}
 

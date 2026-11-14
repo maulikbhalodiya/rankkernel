@@ -1098,8 +1098,10 @@ final class SchemaMetabox {
 	 * Export handler, downloads the stored schema object as JSON.
 	 */
 	public function handleExport(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only export parameter, cast and authorized below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only export parameter, nonce verified immediately below.
 		$postId = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? max( 0, (int) sanitize_text_field( wp_unslash( (string) $_GET['post'] ) ) ) : 0;
+
+		check_admin_referer( self::EXPORT_ACTION . '_' . $postId );
 
 		if ( $postId <= 0 ) {
 			wp_die(
@@ -1116,8 +1118,6 @@ final class SchemaMetabox {
 				[ 'response' => 403 ]
 			);
 		}
-
-		check_admin_referer( self::EXPORT_ACTION . '_' . $postId );
 
 		$schema = $this->readSchema( $this->readPayload( $postId ) );
 

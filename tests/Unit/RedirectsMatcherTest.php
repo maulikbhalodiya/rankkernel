@@ -14,6 +14,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Redirects\Matcher;
 use RankKernel\Modules\Redirects\Normalizer;
+use RankKernel\Modules\Redirects\RegexSafety;
 
 /**
  * Redirects Matcher Test.
@@ -672,5 +673,88 @@ final class RedirectsMatcherTest extends TestCase {
 		];
 
 		$this->assertFalse( Matcher::rule_matches( $heavyRule, '/anything' ) );
+	}
+
+	/**
+	 * Test legit wildcard and regex rules still match without any PHP limit changes.
+	 */
+	public function test_legit_wildcard_and_regex_still_match(): void {
+		$starRule = $this->rule(
+			[
+				'match_type' => 'wildcard',
+				'source'     => '/old/*',
+			]
+		);
+
+		$this->assertTrue( Matcher::rule_matches( $starRule, '/old/page' ) );
+		$this->assertFalse( Matcher::rule_matches( $starRule, '/other/page' ) );
+
+		$questionRule = $this->rule(
+			[
+				'match_type' => 'wildcard',
+				'source'     => '/old/?',
+			]
+		);
+
+		$this->assertTrue( Matcher::rule_matches( $questionRule, '/old/a' ) );
+		$this->assertFalse( Matcher::rule_matches( $questionRule, '/old/ab' ) );
+
+		$regexRule = $this->rule(
+			[
+				'match_type' => 'regex',
+				'source'     => '^/old/.*$',
+			]
+		);
+
+		$this->assertTrue( Matcher::rule_matches( $regexRule, '/old/page' ) );
+		$this->assertFalse( Matcher::rule_matches( $regexRule, '/other/page' ) );
+	}
+
+	/**
+	 * Test unsafe regex shapes are refused by the safety gate.
+	 */
+	public function test_unsafe_regex_is_refused_by_safety_gate(): void {
+		$this->assertTrue( RegexSafety::isUnsafe( '^([^/]+)+$' ) );
+
+		$rule = $this->rule(
+			[
+				'match_type' => 'regex',
+				'source'     => '^([^/]+)+$',
+			]
+		);
+
+		$this->assertFalse( Matcher::rule_matches( $rule, '/old/page' ) );
+	}
+
+	/**
+	 * Test matching leaves the process PCRE limits untouched.
+	 */
+	public function test_matching_leaves_pcre_limits_untouched(): void {
+		$beforeBacktrack = ini_get( 'pcre.backtrack_limit' );
+		$beforeRecursion = ini_get( 'pcre.recursion_limit' );
+
+		$rules = [
+			$this->rule(
+				[
+					'id'         => 7,
+					'match_type' => 'wildcard',
+					'source'     => '/old/*',
+				]
+			),
+			$this->rule(
+				[
+					'id'         => 10,
+					'match_type' => 'regex',
+					'source'     => '^/old/.*$',
+				]
+			),
+		];
+
+		$winner = Matcher::pick_winner( '/old/page', $rules );
+
+		$this->assertIsArray( $winner );
+		$this->assertSame( 7, $winner['id'] );
+		$this->assertSame( $beforeBacktrack, ini_get( 'pcre.backtrack_limit' ) );
+		$this->assertSame( $beforeRecursion, ini_get( 'pcre.recursion_limit' ) );
 	}
 }

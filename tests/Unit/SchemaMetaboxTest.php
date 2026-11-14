@@ -1387,6 +1387,7 @@ final class SchemaMetaboxTest extends TestCase {
 	 */
 	public function test_export_missing_caps_rejected(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 
 		$_GET = [ 'post' => '5' ];
 
@@ -1722,5 +1723,35 @@ final class SchemaMetaboxTest extends TestCase {
 		}
 
 		$this->assertStringContainsString( 'The schema could not be saved', $out );
+	}
+
+	/**
+	 * A bad export nonce dies before any post data is read or disclosed.
+	 */
+	public function test_export_bad_nonce_dies_without_disclosing_post_data(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				wp_die( 'Bad nonce' );
+			}
+		);
+		Functions\expect( 'get_post_meta' )->never();
+		Functions\expect( 'get_post_field' )->never();
+
+		$_GET = [ 'post' => '5' ];
+
+		$box = new SchemaMetabox();
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+
+		ob_start();
+		try {
+			$box->handleExport();
+		} finally {
+			$out = (string) ob_get_clean();
+
+			$this->assertSame( '', $out, 'A bad nonce must disclose nothing' );
+		}
 	}
 }

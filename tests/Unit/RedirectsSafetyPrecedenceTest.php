@@ -821,7 +821,14 @@ final class RedirectsSafetyPrecedenceTest extends TestCase {
 		$_GET = [
 			'rk_source' => '/missing',
 			'rk_return' => NotFoundPage::SLUG,
+			'_wpnonce'  => 'valid',
 		];
+
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( mixed $nonce, mixed $action = '' ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress wp_verify_nonce signature.
+				return 'valid' === $nonce ? 1 : false;
+			}
+		);
 
 		$html = $this->renderPage( $this->makePage() );
 
