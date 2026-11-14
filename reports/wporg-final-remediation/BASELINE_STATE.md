@@ -42,4 +42,4 @@ The November 5, 2026 submission was downloaded from the URL in the WordPress.org
 
 ## Superseding final candidate (pointer; baseline above is historical and unchanged)
 
-The baseline above is preserved as history. It is superseded by the final production candidate recorded in `FINAL_SOURCE_IDENTITY.md`: source `010c3fe87b678b3565057052d7b460f88050e9ac`, ZIP `rankkernel-0.1.0-candidate-t6.zip` (938,207 bytes, 240 files, SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`). See `FINAL_TEST_REPORT.md`, `FINAL_SECURITY_AUDIT.md` and `FINAL_RELEASE_DECISION.md` for the final evidence.
+The baseline above is preserved as history. It is superseded by the final production candidate recorded in `FINAL_SOURCE_IDENTITY.md`: source `010c3fe87b678b3565057052d7b460f88050e9ac`, ZIP `rankkernel-0.1.0.zip` (938,207 bytes, 240 files, SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`). See `FINAL_TEST_REPORT.md`, `FINAL_SECURITY_AUDIT.md` and `FINAL_RELEASE_DECISION.md` for the final evidence.

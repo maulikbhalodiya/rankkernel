@@ -11,11 +11,11 @@ Production package source commit: `010c3fe87b678b3565057052d7b460f88050e9ac`
 | Branch | `release/wporg-0.1.0` |
 | Production source commit | `010c3fe87b678b3565057052d7b460f88050e9ac` |
 | Commit subject | `T6 remediation: no forced PHP limits, nonce-verified edit links, upload boundary sanitization` |
-| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0-candidate-t6.zip` |
+| Final ZIP | `/home/web-dev-3/Documents/my personal plugin/Rankkernel/release-output/rankkernel-0.1.0.zip` |
 | ZIP size | 938,207 bytes |
 | ZIP files | 240 |
 | ZIP SHA-256 | `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c` |
-| Manifest | `rankkernel-0.1.0-candidate-t6-manifest.txt` |
+| Manifest | `rankkernel-0.1.0-manifest.txt` |
 | Manifest SHA-256 | `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65` |
 | Top-level directory | `rankkernel/` only |
 

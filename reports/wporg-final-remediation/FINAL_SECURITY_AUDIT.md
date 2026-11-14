@@ -2,7 +2,7 @@
 
 Production source: `010c3fe87b678b3565057052d7b460f88050e9ac`  
 Branch: `release/wporg-0.1.0`  
-Package: `rankkernel-0.1.0-candidate-t6.zip`  
+Package: `rankkernel-0.1.0.zip`  
 Size: 938,207 bytes — 240 files — SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`  
 Manifest SHA-256: `e9aea842807925ca0740bcb292b1b9de5b1e3dd0ed7fb77d72bf5d4c19357f65`
 

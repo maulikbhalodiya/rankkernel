@@ -16,7 +16,7 @@ This is **not** an approval, not a WordPress.org submission, and not authorizati
 
 | Field | Value |
 |---|---|
-| ZIP | `rankkernel-0.1.0-candidate-t6.zip` |
+| ZIP | `rankkernel-0.1.0.zip` |
 | Size | 938,207 bytes |
 | Files | 240 (239 code+assets plus `languages/rankkernel.pot`) |
 | SHA-256 | `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c` |

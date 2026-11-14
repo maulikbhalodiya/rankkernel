@@ -4,7 +4,7 @@ Source reviewed: `https://github.com/maulikbhalodiya/rankkernel` at `release/wpo
 Baseline commit: `eba5018e66bb9a3236594535b748cc04fdb7779b`  
 Submitted package: `rankkernel-0.1.0.zip`, 902,973 bytes, 239 files, SHA-256 `4edb5beb087c1668c6678f4ccc768dd9432cb8ef2aa5fd70420f5e89e113287a`
 
-Final candidate for this remediation: source `010c3fe87b678b3565057052d7b460f88050e9ac` (`T6 remediation: no forced PHP limits, nonce-verified edit links, upload boundary sanitization`), ZIP `rankkernel-0.1.0-candidate-t6.zip`, 938,207 bytes, 240 files, SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`; previous build kept as `rankkernel-0.1.0-last.zip` (904,565 bytes, source `e310308`); PHPUnit 2414 tests / 9271 assertions.
+Final candidate for this remediation: source `010c3fe87b678b3565057052d7b460f88050e9ac` (`T6 remediation: no forced PHP limits, nonce-verified edit links, upload boundary sanitization`), ZIP `rankkernel-0.1.0.zip`, 938,207 bytes, 240 files, SHA-256 `6f6cac8885429822781457f0fe45fd7900681c098edf9132808484524e9db35c`; previous build kept as `rankkernel-0.1.0-last.zip` (904,565 bytes, source `e310308`); PHPUnit 2414 tests / 9271 assertions.
 
 This register covers all nine messages in the owner-supplied Gmail PDF (24 pages). Six messages contain review findings; three are automated file-receipt confirmations.
 
