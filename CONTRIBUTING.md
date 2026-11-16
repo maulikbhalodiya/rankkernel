@@ -1,10 +1,10 @@
 # Contributing to RankKernel
 
-Thank you for contributing! This project follows a strict workflow with two lanes, issue-backed work and issue-free maintenance, so every change is traceable.
+Thank you for contributing! This project follows a strict workflow with three lanes, issue-backed work, issue-free maintenance, and release preparation, so every change is traceable.
 
 ## The workflow (no exceptions)
 
-1. **Pick the lane first.** Every change is exactly one of two lanes, and the lane decides the branch name and the PR title.
+1. **Pick the lane first.** Every change is exactly one of three lanes, and the lane decides the branch name and the PR title.
    - **Issue-backed work: every feature and every fix.** The work starts as a GitHub issue with a clear title, e.g. `Add XML sitemaps module`. One issue = one feature/fix. The branch name is `GH-<issue-number>` (issue `#1` → branch `GH-1`), the PR title carries the `GH-<number>` prefix, and the PR body carries a `Closes #<number>` line. `GH-<number>` in a title is not itself an issue link, so the `Closes` line is what makes GitHub link and auto-close the issue.
    - **Issue-free maintenance: CI, chore and documentation changes.** Do not create a fake issue merely to satisfy a naming rule. Use the conventional branch and title exception: the branch carries a conventional name with no issue id, and the PR title carries a conventional type and no issue id, for example `ci(audit): stop treating high entropy as evidence of a secret` or `docs(contributing): document the PR title convention`.
 2. **Branch from the latest `main`.** Whether the change is issue-backed or issue-free, the branch starts at the latest `main` and nothing else.

@@ -2,7 +2,7 @@
 
 > 100% free, lightweight SEO for WordPress, no paywalls, no upsell banners, no telemetry.
 
-**Status: 0.1.0, approved on WordPress.org.** Install from [wordpress.org/plugins/rankkernel](https://wordpress.org/plugins/rankkernel) or upload the release ZIP.
+**Status: 0.1.0, approved on WordPress.org.** The directory listing goes live with the first release. Until then, install by uploading the release ZIP.
 
 ## What makes it different
 
@@ -31,7 +31,7 @@
 
 ## Roadmap
 
-Image SEO (automatic alt and title patterns) · Block editor sidebar with analysis and previews · AI suite (bring-your-own-key) · Headless REST payload
+Image SEO (automatic alt and title patterns) · AI suite (bring-your-own-key) · Headless REST payload
 
 ## Requirements
 

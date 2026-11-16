@@ -1,10 +1,9 @@
-
 # RankKernel tagged release: validate, build, attach, deploy.
 #
 # Trigger: ONLY an owner-pushed version tag matching v* (e.g. v0.1.0).
-# The workflow never creates tags itself.
-# Branch pushes and merges cannot start a release.
-# Pushing a version tag is the owner's authorization to release.
+# The workflow never creates tags itself; it waits for an owner tag push.
+# Nothing here runs on branch pushes, so merging or pushing code can never
+# start a release. No SVN upload happens without the protected environment.
 
 name: Release Plugin
 
@@ -23,20 +22,21 @@ concurrency:
 jobs:
   build:
     name: Validate, Build & Release
+    if: github.event.deleted != true
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
       actions: write
     outputs:
       version: ${{ steps.version.outputs.version }}
-
     steps:
       - name: Check out the exact tagged commit with full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Require the tag to belong to main branch history
         run: |
@@ -49,7 +49,6 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: '8.2'
-          tools: composer:v2
           coverage: none
 
       - name: Validate tag matches plugin version and Stable Tag
@@ -58,29 +57,30 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF#refs/tags/}"
           VER="${TAG#v}"
-          test -n "$VER" || { echo "Empty version from tag $TAG"; exit 1; }
-
-          PLUGIN_VER="$(grep -m1 '^[[:space:]]*\*[[:space:]]*Version:' rankkernel.php | sed 's/.*Version:[[:space:]]*//')"
-          STABLE="$(grep -m1 -i '^[[:space:]]*Stable tag:' readme.txt | sed 's/.*:[[:space:]]*//')"
-
-          echo "Tag: $TAG / plugin header: $PLUGIN_VER / Stable tag: $STABLE"
-
+          [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag $TAG is not a strict X.Y.Z release tag"; exit 1; }
+          PLUGIN_VER="$(grep -m1 '^[[:space:]]*\*[[:space:]]*Version:' rankkernel.php | sed 's/.*Version:[[:space:]]*//' | tr -d '\r' | xargs)"
+          RUNTIME_VER="$(grep -m1 "define( *'RANKKERNEL_VERSION'" rankkernel.php | sed "s/.*'RANKKERNEL_VERSION', *'//;s/'.*//" | tr -d '\r' | xargs)"
+          STABLE="$(grep -m1 -i '^[[:space:]]*Stable tag:' readme.txt | sed 's/.*:[[:space:]]*//' | tr -d '\r' | xargs)"
+          echo "Tag: $TAG / plugin header: $PLUGIN_VER / runtime constant: $RUNTIME_VER / Stable tag: $STABLE"
           test "$PLUGIN_VER" = "$VER" || { echo "Plugin header version mismatch"; exit 1; }
+          test "$RUNTIME_VER" = "$VER" || { echo "Runtime RANKKERNEL_VERSION mismatch"; exit 1; }
           test "$STABLE" = "$VER" || { echo "Stable Tag mismatch"; exit 1; }
-
           echo "version=$VER" >> "$GITHUB_OUTPUT"
 
-      - name: PHP syntax check
+      - name: Install dependencies for release gates
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Release gates (lint, stan, tests)
         run: |
           set -euo pipefail
-          find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          composer lint
+          composer stan
+          composer test
+          composer test:js
+          find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
 
-      - name: Build deterministic release ZIP
-        env:
-          RK_VERSION: ${{ steps.version.outputs.version }}
+      - name: Build deterministic release ZIP (skips symlinks)
         run: |
-          set -euo pipefail
-
           python3 - <<'PYEOF'
           import fnmatch, os, subprocess, time, zipfile
 
@@ -103,80 +103,53 @@ jobs:
               return False
 
           files = []
-
-          for dirpath, dirs, fs in os.walk('.'):
+          for dirpath, dirs, fs in os.walk('.', followlinks=False):
               rel = os.path.relpath(dirpath, '.')
               rel = '' if rel == '.' else rel
-
-              dirs[:] = sorted(
-                  d for d in dirs
-                  if not ignored((rel + '/' + d).lstrip('/'))
-              )
-
+              dirs[:] = sorted(d for d in dirs if not ignored((rel + '/' + d).lstrip('/')))
               for f in sorted(fs):
                   p = (rel + '/' + f).lstrip('/')
-                  if not ignored(p):
-                      files.append(p)
-
+                  if os.path.islink(p) or ignored(p):
+                      continue
+                  files.append(p)
           files.sort()
-
-          commit_time = int(
-              subprocess.check_output(
-                  ['git', 'log', '-1', '--format=%ct']
-              ).decode().strip()
-          )
-
+          commit_time = int(subprocess.check_output(['git', 'log', '-1', '--format=%ct']).decode().strip())
           date_time = time.gmtime(commit_time)[:6]
           slug = 'rankkernel'
           out = slug + '-' + os.environ['RK_VERSION'] + '.zip'
-
-          with zipfile.ZipFile(
-              out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9
-          ) as z:
+          with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               for p in files:
-                  info = zipfile.ZipInfo(
-                      f'{slug}/{p}',
-                      date_time=date_time
-                  )
+                  info = zipfile.ZipInfo(f'{slug}/{p}', date_time=date_time)
                   info.compress_type = zipfile.ZIP_DEFLATED
                   info.create_system = 3
                   info.external_attr = 0o100644 << 16
                   info.internal_attr = 0
                   info.extra = b''
                   info.comment = b''
-
                   with open(p, 'rb') as fh:
-                      z.writestr(
-                          info,
-                          fh.read(),
-                          compress_type=zipfile.ZIP_DEFLATED,
-                          compresslevel=9
-                      )
-
+                      z.writestr(info, fh.read(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
           print(f'built {out} with {len(files)} files')
           PYEOF
+        env:
+          RK_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Verify package contents
         run: |
           set -euo pipefail
-
           ZIP="rankkernel-${{ steps.version.outputs.version }}.zip"
           test -f "$ZIP"
-
           TOPS="$(unzip -Z1 "$ZIP" | cut -d/ -f1 | sort -u)"
-          test "$TOPS" = "rankkernel" || {
-            echo "Unexpected top-level: $TOPS"
-            exit 1
-          }
-
+          test "$TOPS" = "rankkernel" || { echo "Unexpected top-level: $TOPS"; exit 1; }
           unzip -t "$ZIP" > /dev/null
-
-          unzip -p "$ZIP" rankkernel/rankkernel.php \
-            | grep -q "Version: ${{ steps.version.outputs.version }}"
-
-          unzip -p "$ZIP" rankkernel/readme.txt \
-            | grep -qi "Stable tag: ${{ steps.version.outputs.version }}"
-
+          HEADER="$(unzip -p "$ZIP" rankkernel/rankkernel.php)"
+          STABLE_TXT="$(unzip -p "$ZIP" rankkernel/readme.txt)"
+          [[ "$HEADER" == *"Version: ${{ steps.version.outputs.version }}"* ]] || { echo "Header version missing"; exit 1; }
+          [[ "$STABLE_TXT" == *"Stable tag: ${{ steps.version.outputs.version }}"* ]] || { echo "Stable tag missing"; exit 1; }
+          for excluded in tests/ docs/ reports/ .github/ .wordpress-org/ vendor/ node_modules/; do
+              if unzip -Z1 "$ZIP" | grep -q "^rankkernel/$excluded"; then
+                  echo "Excluded tree present in package: $excluded"; exit 1;
+              fi;
+          done
           echo "Package verified: $(unzip -Z1 "$ZIP" | wc -l) files under rankkernel/"
 
       - name: SHA-256 checksum
@@ -189,19 +162,21 @@ jobs:
         with:
           name: rankkernel-release
           path: |
-            rankkernel-*.zip
+            rankkernel-${{ steps.version.outputs.version }}.zip
             SHA256SUMS
           if-no-files-found: error
           retention-days: 30
+          overwrite: true
+          compression-level: 0
 
       - name: Create GitHub Release with ZIP and checksum
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           name: RankKernel ${{ steps.version.outputs.version }}
-          body: RankKernel ${{ steps.version.outputs.version }} release package and SHA-256 checksum. WordPress.org deployment uses the same verified package.
+          body: RankKernel ${{ steps.version.outputs.version }} release package and SHA-256 checksum. SVN deployment to WordPress.org runs separately after manual approval of the wordpress.org-production environment.
           files: |
-            rankkernel-*.zip
+            rankkernel-${{ steps.version.outputs.version }}.zip
             SHA256SUMS
           fail_on_unmatched_files: true
 
@@ -213,37 +188,35 @@ jobs:
     permissions:
       contents: read
       actions: read
-
-    # This environment can hold deployment-specific secrets or protection rules.
-    # Without required reviewers, it does not pause for manual approval.
+    concurrency:
+      group: rankkernel-svn-deploy
+      cancel-in-progress: false
     environment: wordpress.org-production
-
     steps:
-      - name: Check out the exact tagged commit for WordPress.org assets
+      - name: Check out the exact tagged commit (for .wordpress-org assets)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref }}
+          fetch-depth: 1
+          sparse-checkout: .wordpress-org
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
 
       - name: Download the exact verified package
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: rankkernel-release
 
-      - name: Verify checksum and unpack the identical package
+      - name: Verify checksum, then unpack the identical bytes for SVN
         run: |
           set -euo pipefail
-
           sha256sum -c SHA256SUMS
-
-          rm -rf build
-          mkdir build
-
-          unzip -q rankkernel-*.zip -d build
-
+          rm -rf build && mkdir build
+          unzip -q "rankkernel-${{ needs.build.outputs.version }}.zip" -d build
           test -d build/rankkernel
 
       - name: Deploy to WordPress.org SVN
-        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # stable
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # stable branch @ 54bd289 (2025-01-21)
         with:
           generate-zip: false
         env:
