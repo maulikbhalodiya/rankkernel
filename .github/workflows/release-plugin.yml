@@ -78,7 +78,6 @@ jobs:
                       return True
               return False
 
-          import os
           files = []
           for dirpath, dirs, fs in os.walk('.'):
               rel = os.path.relpath(dirpath, '.')
