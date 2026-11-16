@@ -57,10 +57,7 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF#refs/tags/}"
           VER="${TAG#v}"
-          case "$VER" in
-            [0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "Tag $TAG is not a plain X.Y.Z release tag"; exit 1 ;;
-          esac
+          [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag $TAG is not a strict X.Y.Z release tag"; exit 1; }
           PLUGIN_VER="$(grep -m1 '^[[:space:]]*\*[[:space:]]*Version:' rankkernel.php | sed 's/.*Version:[[:space:]]*//' | tr -d '\r' | xargs)"
           RUNTIME_VER="$(grep -m1 "define( *'RANKKERNEL_VERSION'" rankkernel.php | sed "s/.*'RANKKERNEL_VERSION', *'//;s/'.*//" | tr -d '\r' | xargs)"
           STABLE="$(grep -m1 -i '^[[:space:]]*Stable tag:' readme.txt | sed 's/.*:[[:space:]]*//' | tr -d '\r' | xargs)"
