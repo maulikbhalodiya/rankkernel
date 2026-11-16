@@ -13,7 +13,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -24,11 +24,24 @@ jobs:
     name: Validate, Build & Release
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Check out the exact tagged commit
+      - name: Check out the exact tagged commit with full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Require the tag to belong to main branch history
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${{ github.sha }}" origin/main \
+            || { echo "Tag commit ${{ github.sha }} is not reachable from origin/main; refusing to release."; exit 1; }
+          echo "Tag commit is on main branch history."
 
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
@@ -38,6 +51,7 @@ jobs:
           coverage: none
 
       - name: Validate tag matches plugin version and Stable Tag
+        id: version
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF#refs/tags/}"
@@ -48,17 +62,15 @@ jobs:
           echo "Tag: $TAG / plugin header: $PLUGIN_VER / Stable tag: $STABLE"
           test "$PLUGIN_VER" = "$VER" || { echo "Plugin header version mismatch"; exit 1; }
           test "$STABLE" = "$VER" || { echo "Stable Tag mismatch"; exit 1; }
-          echo "version=$VER" >> "$GITHUB_ENV"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
 
       - name: PHP syntax check
         run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
 
       - name: Build deterministic release ZIP
-        env:
-          RK_VERSION: ${{ env.version }}
         run: |
           python3 - <<'PYEOF'
-          import fnmatch, os, subprocess, sys, time, zipfile
+          import fnmatch, os, subprocess, time, zipfile
 
           patterns = open('.distignore', encoding='utf-8').read().splitlines()
 
@@ -105,23 +117,25 @@ jobs:
                       z.writestr(info, fh.read(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
           print(f'built {out} with {len(files)} files')
           PYEOF
+        env:
+          RK_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Verify package contents
         run: |
           set -euo pipefail
-          ZIP="rankkernel-${{ env.version }}.zip"
+          ZIP="rankkernel-${{ steps.version.outputs.version }}.zip"
           test -f "$ZIP"
           TOPS="$(unzip -Z1 "$ZIP" | cut -d/ -f1 | sort -u)"
           test "$TOPS" = "rankkernel" || { echo "Unexpected top-level: $TOPS"; exit 1; }
           unzip -t "$ZIP" > /dev/null
-          unzip -p "$ZIP" rankkernel/rankkernel.php | grep -q "Version: ${{ env.version }}"
-          unzip -p "$ZIP" rankkernel/readme.txt | grep -qi "Stable tag: ${{ env.version }}"
+          unzip -p "$ZIP" rankkernel/rankkernel.php | grep -q "Version: ${{ steps.version.outputs.version }}"
+          unzip -p "$ZIP" rankkernel/readme.txt | grep -qi "Stable tag: ${{ steps.version.outputs.version }}"
           echo "Package verified: $(unzip -Z1 "$ZIP" | wc -l) files under rankkernel/"
 
       - name: SHA-256 checksum
         run: |
           set -euo pipefail
-          sha256sum "rankkernel-${{ env.version }}.zip" | tee SHA256SUMS
+          sha256sum "rankkernel-${{ steps.version.outputs.version }}.zip" | tee SHA256SUMS
 
       - name: Upload package artifact for the deploy job
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -134,29 +148,34 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release with ZIP and checksum
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
-          name: RankKernel ${{ env.version }}
-          body: RankKernel ${{ env.version }} release package and SHA-256 checksum. SVN deployment to WordPress.org runs separately after manual approval of the wordpress.org-production environment.
+          name: RankKernel ${{ steps.version.outputs.version }}
+          body: RankKernel ${{ steps.version.outputs.version }} release package and SHA-256 checksum. SVN deployment to WordPress.org runs separately after manual approval of the wordpress.org-production environment.
           files: |
             rankkernel-*.zip
             SHA256SUMS
+          fail_on_unmatched_files: true
 
   deploy:
     name: Deploy to WordPress.org
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
     environment: wordpress.org-production
     steps:
       - name: Check out the exact tagged commit (for .wordpress-org assets)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref }}
+          fetch-depth: 0
 
       - name: Download the exact verified package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90df5c8093 # v4
         with:
           name: rankkernel-release
 
@@ -170,9 +189,12 @@ jobs:
 
       - name: Deploy to WordPress.org SVN
         uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # stable
+        with:
+          generate-zip: false
         env:
           SLUG: rankkernel
           BUILD_DIR: build/rankkernel
           ASSETS_DIR: .wordpress-org
+          VERSION: ${{ needs.build.outputs.version }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
