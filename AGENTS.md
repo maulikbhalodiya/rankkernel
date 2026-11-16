@@ -55,7 +55,7 @@ Report the real command output. Do not claim a gate passed if it did not run.
 
 ## Code rules
 
-- `src/` classes: PSR-12, PHP 8.1 typed, `declare(strict_types=1)`, namespace `RankKernel\`.
+- `src/` classes: PSR-12, PHP 8.2 typed, `declare(strict_types=1)`, namespace `RankKernel\`.
 - `rankkernel.php` and `uninstall.php`: WordPress Coding Standards.
 - Prefix functions, hooks, options, transients and tables with `rankkernel` or `RankKernel`.
 - Text domain is exactly `rankkernel`.

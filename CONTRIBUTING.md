@@ -62,6 +62,13 @@ intentionally split by the owner. The rule exists because splitting one feature 
 produces duplicate implementations, leaves the branch state hard to read, and hides which pull
 request holds the real functionality.
 
+## Release branches
+
+Release preparation (readme captions, WordPress.org directory assets, release workflow) ships on
+`release/*` branches, straight to a `main` PR with no GH issue and no `GH-` prefix. The owner
+merges. This is the only lane besides the two above, and it never carries plugin functionality
+changes.
+
 ## Writing style
 
 - Zero standalone dashes in all project text: no em dashes, en dashes, or hyphens used as pauses. Clauses are separated by commas or full stops. Hyphens appear only inside compound words (same-week) and identifiers (GH-1, rankkernel_modules).
@@ -69,7 +76,7 @@ request holds the real functionality.
 ## Coding standards
 
 - Procedural entry files (`rankkernel.php`, `uninstall.php`): WordPress Coding Standards.
-- `src/` classes: PSR-12, PHP 8.1 typed, `declare(strict_types=1)`.
+- `src/` classes: PSR-12, PHP 8.2 typed, `declare(strict_types=1)`.
 - Every user-facing string uses the `rankkernel` text domain.
 - No telemetry, no external requests, no competitor code, ever. See the clean-room policy in the project docs.
 

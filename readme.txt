@@ -69,6 +69,16 @@ The developer reviewed, tested, and verified all AI-assisted code and documentat
 
 Uninstalling the plugin removes the plugin's own log tables and its transients. The remaining configuration options, post meta, term meta and user meta are removed only when the purge on uninstall setting is enabled. Uninstall is scoped to the current site; network activation is unsupported and blocked at activation.
 
+== Screenshots ==
+
+1. RankKernel dashboard with one-click module toggles, live status cards, and quick actions.
+2. Site-wide SEO settings: title and description templates with tokens, separator choice, and save.
+3. Per-post SEO in the block editor: live search preview, focus keyword, and content analysis.
+4. Redirects manager with a saved 301 rule, filters, and bulk actions.
+5. Automatically generated XML sitemap index for search engines.
+6. Schema.org identity and structured-data settings with validator links.
+7. 404 Monitor catching real missing-page traffic, ready to convert into redirects.
+
 == Changelog ==
 
 = 0.1.0 =

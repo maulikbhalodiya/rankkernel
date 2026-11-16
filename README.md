@@ -2,7 +2,7 @@
 
 > 100% free, lightweight SEO for WordPress, no paywalls, no upsell banners, no telemetry.
 
-**Status: stable release 0.1.0.** Not yet submitted to WordPress.org.
+**Status: 0.1.0, approved on WordPress.org.** Install from [wordpress.org/plugins/rankkernel](https://wordpress.org/plugins/rankkernel) or upload the release ZIP.
 
 ## What makes it different
 
@@ -24,17 +24,18 @@
 - Robots.txt, llms.txt and .htaccess editors
 - Instant Indexing (IndexNow)
 - Support screen with site diagnostics
-- REST API (`rankkernel/v1`): settings + module toggles
+- Importer (Yoast, Rank Math, AIOSEO, redirects, sitewide settings)
+- REST API (`rankkernel/v1`): settings, module toggles, content analysis, imports, IndexNow log
 - Versioned migrations with a safe failure ledger
 - Guarded bootstrap, activation requirement checks, uninstall purge
 
 ## Roadmap
 
-Importer (Yoast/Rank Math/SEOPress) · Image SEO · Internal Linking · AI suite (bring-your-own-key) · WooCommerce · Local SEO · News SEO · Video SEO · Headless
+Image SEO (automatic alt and title patterns) · Block editor sidebar with analysis and previews · AI suite (bring-your-own-key) · Headless REST payload
 
 ## Requirements
 
-- WordPress 6.5+
+- WordPress 6.5+ (tested up to 7.1)
 - PHP 8.2+
 
 ## Development
