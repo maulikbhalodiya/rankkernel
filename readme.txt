@@ -21,6 +21,7 @@ RankKernel is the zero-bloat, open-source SEO engine for WordPress:
 * Breadcrumbs
 * Redirects
 * 404 monitor
+* Importers (Yoast SEO, Rank Math, AIOSEO, redirects, sitewide settings)
 * Robots.txt, llms.txt and .htaccess editors
 * IndexNow instant indexing
 * REST API (`rankkernel/v1`)
@@ -82,7 +83,7 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 == Changelog ==
 
 = 0.1.0 =
-* Initial release: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, robots, IndexNow, REST API, migrations, uninstall purge, plus bootstrap, ModuleManager and SettingsStore.
+* Initial release: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, importer, robots, IndexNow, REST API, migrations, uninstall purge, plus bootstrap, ModuleManager and SettingsStore.
 
 == Upgrade Notice ==
 
