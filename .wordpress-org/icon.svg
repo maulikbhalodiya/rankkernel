@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="RankKernel">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1598F5"/>
+      <stop offset="1" stop-color="#0649D8"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="url(#bg)"/>
+  <g fill="#FFFFFF">
+    <rect x="45" y="165" width="27" height="20" rx="5"/>
+    <rect x="79" y="150" width="27" height="35" rx="5"/>
+    <rect x="113" y="130" width="27" height="55" rx="5"/>
+    <rect x="147" y="96" width="27" height="89" rx="5"/>
+  </g>
+  <path d="M39 151 C82 140 119 118 153 84 L174 61" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M151 52 L184 42 Q190 40 189 47 L185 80 Q184 87 178 82 L151 58 Q147 54 151 52Z" fill="#FFFFFF"/>
+</svg>

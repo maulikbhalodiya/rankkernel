@@ -1,0 +1,179 @@
+# RankKernel tagged release: validate, build, attach, deploy.
+#
+# Trigger: ONLY an owner-pushed version tag matching v* (e.g. v0.1.0).
+# The workflow never creates tags itself; it waits for an owner tag push.
+# Nothing here runs on branch pushes, so merging or pushing code can never
+# start a release. No SVN upload happens without the protected environment.
+
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate, Build & Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate tag matches plugin version and Stable Tag
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF#refs/tags/}"
+          VER="${TAG#v}"
+          test -n "$VER" || { echo "Empty version from tag $TAG"; exit 1; }
+          PLUGIN_VER="$(grep -m1 '^[[:space:]]*\*[[:space:]]*Version:' rankkernel.php | sed 's/.*Version:[[:space:]]*//')"
+          STABLE="$(grep -m1 -i '^[[:space:]]*Stable tag:' readme.txt | sed 's/.*:[[:space:]]*//')"
+          echo "Tag: $TAG / plugin header: $PLUGIN_VER / Stable tag: $STABLE"
+          test "$PLUGIN_VER" = "$VER" || { echo "Plugin header version mismatch"; exit 1; }
+          test "$STABLE" = "$VER" || { echo "Stable Tag mismatch"; exit 1; }
+          echo "version=$VER" >> "$GITHUB_ENV"
+
+      - name: PHP syntax check
+        run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Build deterministic release ZIP
+        env:
+          RK_VERSION: ${{ env.version }}
+        run: |
+          python3 - <<'PYEOF'
+          import fnmatch, os, subprocess, sys, time, zipfile
+
+          patterns = open('.distignore', encoding='utf-8').read().splitlines()
+
+          def ignored(path):
+              for raw in patterns:
+                  p = raw.strip()
+                  if not p:
+                      continue
+                  if p.endswith('/'):
+                      d = p[:-1]
+                      if path == d or path.startswith(d + '/'):
+                          return True
+                  elif p.startswith('/'):
+                      if path == p[1:]:
+                          return True
+                  elif fnmatch.fnmatchcase(path, p) or path == p or path.startswith(p + '/'):
+                      return True
+              return False
+
+          import os
+          files = []
+          for dirpath, dirs, fs in os.walk('.'):
+              rel = os.path.relpath(dirpath, '.')
+              rel = '' if rel == '.' else rel
+              dirs[:] = sorted(d for d in dirs if not ignored((rel + '/' + d).lstrip('/')))
+              for f in sorted(fs):
+                  p = (rel + '/' + f).lstrip('/')
+                  if not ignored(p):
+                      files.append(p)
+          files.sort()
+          commit_time = int(subprocess.check_output(['git', 'log', '-1', '--format=%ct']).decode().strip())
+          date_time = time.gmtime(commit_time)[:6]
+          slug = 'rankkernel'
+          out = slug + '-' + os.environ['RK_VERSION'] + '.zip'
+          with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for p in files:
+                  info = zipfile.ZipInfo(f'{slug}/{p}', date_time=date_time)
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.create_system = 3
+                  info.external_attr = 0o100644 << 16
+                  info.internal_attr = 0
+                  info.extra = b''
+                  info.comment = b''
+                  with open(p, 'rb') as fh:
+                      z.writestr(info, fh.read(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+          print(f'built {out} with {len(files)} files')
+          PYEOF
+
+      - name: Verify package contents
+        run: |
+          set -euo pipefail
+          ZIP="rankkernel-${{ env.version }}.zip"
+          test -f "$ZIP"
+          TOPS="$(unzip -Z1 "$ZIP" | cut -d/ -f1 | sort -u)"
+          test "$TOPS" = "rankkernel" || { echo "Unexpected top-level: $TOPS"; exit 1; }
+          unzip -t "$ZIP" > /dev/null
+          unzip -p "$ZIP" rankkernel/rankkernel.php | grep -q "Version: ${{ env.version }}"
+          unzip -p "$ZIP" rankkernel/readme.txt | grep -qi "Stable tag: ${{ env.version }}"
+          echo "Package verified: $(unzip -Z1 "$ZIP" | wc -l) files under rankkernel/"
+
+      - name: SHA-256 checksum
+        run: |
+          set -euo pipefail
+          sha256sum "rankkernel-${{ env.version }}.zip" | tee SHA256SUMS
+
+      - name: Upload package artifact for the deploy job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rankkernel-release
+          path: |
+            rankkernel-*.zip
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release with ZIP and checksum
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: RankKernel ${{ env.version }}
+          body: RankKernel ${{ env.version }} release package and SHA-256 checksum. SVN deployment to WordPress.org runs separately after manual approval of the wordpress.org-production environment.
+          files: |
+            rankkernel-*.zip
+            SHA256SUMS
+
+  deploy:
+    name: Deploy to WordPress.org
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: wordpress.org-production
+    steps:
+      - name: Check out the exact tagged commit (for .wordpress-org assets)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download the exact verified package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rankkernel-release
+
+      - name: Verify checksum, then unpack the identical bytes for SVN
+        run: |
+          set -euo pipefail
+          sha256sum -c SHA256SUMS
+          rm -rf build && mkdir build
+          unzip -q rankkernel-*.zip -d build
+          test -d build/rankkernel
+
+      - name: Deploy to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # stable
+        env:
+          SLUG: rankkernel
+          BUILD_DIR: build/rankkernel
+          ASSETS_DIR: .wordpress-org
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
