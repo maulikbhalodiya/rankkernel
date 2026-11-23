@@ -137,35 +137,35 @@ final class FloodGuard {
 	}
 
 	/**
-	 * Read the window state, object cache first, transient fallback.
+	 * Read the window state through the Transients API.
+	 *
+	 * The Transients API is the single storage source. WordPress decides
+	 * whether a transient lives in the options table or, when a persistent
+	 * object cache is active, in the object cache under the 'transient' group.
+	 * Reading only through get_transient() keeps both paths consistent and
+	 * lets state written by the earlier dual-storage implementation remain
+	 * readable, because that implementation also wrote the same transient key.
 	 *
 	 * @return array<string, int>|null Window state or null on a cold start.
 	 */
 	private function readState(): ?array {
-		if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) {
-			$value = wp_cache_get( $this->key(), self::GROUP );
-
-			if ( is_array( $value ) ) {
-				return $value;
-			}
-		}
-
 		$value = get_transient( $this->key() );
 
 		return is_array( $value ) ? $value : null;
 	}
 
 	/**
-	 * Write the window state, object cache plus transient fallback.
+	 * Write the window state through the Transients API.
+	 *
+	 * A single set_transient() call is the only storage write. WordPress
+	 * delegates it to the object cache when a persistent cache is active, so
+	 * no direct wp_cache_set() call is needed. The numeric window TTL is kept
+	 * exactly as before; only the storage mechanism is simplified here.
 	 *
 	 * @param array<string, int> $state Window state.
 	 * @param int                $ttl   Time to live in seconds.
 	 */
 	private function writeState( array $state, int $ttl ): void {
-		if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) {
-			wp_cache_set( $this->key(), $state, self::GROUP, $ttl );
-		}
-
 		set_transient( $this->key(), $state, $ttl );
 	}
 }
