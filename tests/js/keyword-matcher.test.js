@@ -39,6 +39,47 @@ test( 'contains matches exact phrases, reorders within one sentence and drops fu
 	assert.equal( Matcher.contains( 'anything', '   ' ), false );
 } );
 
+test( 'position returns the first boundary-valid occurrence', () => {
+	assert.equal( Matcher.position( 'the cat guide', 'cat' ), 4 );
+	assert.equal( Matcher.position( 'red apples guide', 'red apples' ), 0 );
+	assert.equal( Matcher.position( 'guide to the cat', 'cat' ), 13 );
+	assert.equal( Matcher.position( 'concatenated results with cat', 'cat' ), 26 );
+	assert.equal( Matcher.position( 'cat guide and cat tips', 'cat' ), 0 );
+	assert.equal( Matcher.position( 'red apples and red apples', 'red apples' ), 0 );
+} );
+
+test( 'position rejects fragments and plural fragments', () => {
+	assert.equal( Matcher.position( 'concatenated results', 'cat' ), false );
+	assert.equal( Matcher.position( 'cats guide', 'cat' ), false );
+	assert.equal( Matcher.position( 'red apples guide', 'red apple' ), false );
+	assert.equal( Matcher.position( '猫concatenated', 'cat' ), false );
+} );
+
+test( 'position skips an invalid first candidate and finds a later match', () => {
+	assert.equal( Matcher.position( 'concatenated cat guide', 'cat' ), 13 );
+	assert.equal( Matcher.position( 'catxxx cat yyyyyyyyyy', 'cat' ), 7 );
+} );
+
+test( 'position handles punctuation, mixed scripts and astral character offsets', () => {
+	assert.equal( Matcher.position( 'red, apples guide', 'red apples' ), 0 );
+	assert.equal( Matcher.position( '猫 cat 狗', 'cat' ), 2 );
+	assert.equal( Matcher.position( '\u{20000} cat', 'cat' ), 2 );
+} );
+
+test( 'position preserves unspaced script matches', () => {
+	assert.equal( Matcher.position( '咖啡指南', '咖啡' ), 0 );
+	assert.equal( Matcher.position( '我喝咖啡', '咖啡' ), 2 );
+	assert.equal( Matcher.position( '咖啡店', '咖啡' ), 0 );
+	assert.equal( Matcher.position( '서울은', '서울' ), 0 );
+	assert.equal( Matcher.position( 'ภาษาไทย', 'ภาษา' ), 0 );
+} );
+
+test( 'position returns false for empty input', () => {
+	assert.equal( Matcher.position( '', 'cat' ), false );
+	assert.equal( Matcher.position( 'cat', '' ), false );
+	assert.equal( Matcher.position( 'cat', '   ' ), false );
+} );
+
 test( 'occurrences counts non overlapping exact phrases only', () => {
 	assert.equal( Matcher.occurrences( 'red apples and more red apples', 'red apples' ), 2 );
 	assert.equal( Matcher.occurrences( 'red apples and more red apples', 'apples red' ), 0 );

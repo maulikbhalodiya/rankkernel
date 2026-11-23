@@ -43,6 +43,8 @@
 	var normalizeCacheSize = 0;
 	var NORMALIZE_CACHE_LIMIT = 20000;
 
+	var UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+
 	var PHP_TRIM = /^[ \t\n\r\x00\x0B]+|[ \t\n\r\x00\x0B]+$/g;
 
 	// Defensive fallback: WordPress registers the engine with explicit
@@ -161,6 +163,47 @@
 		return false;
 	}
 
+	function position( haystack, keyword, stripAccents ) {
+		var needle = Array.from( normalize( keyword, stripAccents ) );
+		var hay = Array.from( normalize( haystack, stripAccents ) );
+
+		if ( 0 === needle.length || 0 === hay.length ) {
+			return false;
+		}
+
+		// Only the keyword edge is relaxed. A Latin keyword never gains
+		// substring matching, and the existing CJK title-position contract is
+		// preserved even when the title continues with another script.
+		var leftRelaxed = UNSPACED_SCRIPT.test( needle[ 0 ] );
+		var rightRelaxed = UNSPACED_SCRIPT.test( needle[ needle.length - 1 ] );
+
+		for ( var i = 0; i + needle.length <= hay.length; i++ ) {
+			var match = true;
+
+			for ( var j = 0; j < needle.length; j++ ) {
+				if ( hay[ i + j ] !== needle[ j ] ) {
+					match = false;
+					break;
+				}
+			}
+
+			if ( ! match ) {
+				continue;
+			}
+
+			var before = i > 0 ? hay[ i - 1 ] : '';
+			var after = ( i + needle.length < hay.length ) ? hay[ i + needle.length ] : '';
+			var left = ( '' === before || ' ' === before || leftRelaxed );
+			var right = ( '' === after || ' ' === after || rightRelaxed );
+
+			if ( left && right ) {
+				return i;
+			}
+		}
+
+		return false;
+	}
+
 	function occurrences( haystack, keyword, stripAccents ) {
 		var needle = normalize( keyword, stripAccents );
 		if ( '' === needle ) {
@@ -198,6 +241,7 @@
 		words: words,
 		contentWords: contentWords,
 		contains: contains,
+		position: position,
 		occurrences: occurrences,
 		density: density
 	};

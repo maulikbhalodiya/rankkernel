@@ -425,6 +425,99 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
+	 * Test title presence and position agree on substrings and plural fragments.
+	 */
+	public function test_title_presence_and_position_agree_on_substrings(): void {
+		$cases = [
+			[ 'cat', 'concatenated results' ],
+			[ 'cat', 'cats guide' ],
+			[ 'red apple', 'Red apples: a complete guide' ],
+		];
+
+		foreach ( $cases as $case ) {
+			$result = ( new Analyzer() )->analyze(
+				$this->input(
+					[
+						'title'    => $case[1],
+						'keywords' => [ $case[0] ],
+					]
+				)
+			);
+
+			$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'keyword_in_title' )['status'], $case[0] . ' in ' . $case[1] );
+			$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'title_starts_with_keyword' )['status'], $case[0] . ' in ' . $case[1] );
+		}
+	}
+
+	/**
+	 * Test title position skips an invalid first candidate and finds the later word.
+	 */
+	public function test_title_position_skips_an_invalid_first_candidate(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'title'    => 'concatenated cat guide with more text',
+					'keywords' => [ 'cat' ],
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'keyword_in_title' )['status'] );
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'title_starts_with_keyword' )['status'] );
+	}
+
+	/**
+	 * Test a match at the exact half boundary is not near the start.
+	 */
+	public function test_title_position_rejects_a_match_at_the_exact_half_boundary(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'title'    => 'abcdefghi cat abcdef',
+					'keywords' => [ 'cat' ],
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'keyword_in_title' )['status'] );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'title_starts_with_keyword' )['status'] );
+	}
+
+	/**
+	 * Test punctuation and mixed script boundaries inside the title.
+	 */
+	public function test_title_position_handles_punctuation_and_mixed_scripts(): void {
+		$punctuation = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'title'    => 'red, apples guide',
+					'keywords' => [ 'red apples' ],
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $punctuation, 'title_starts_with_keyword' )['status'] );
+
+		$mixed = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'title'    => '猫 cat 狗',
+					'keywords' => [ 'cat' ],
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $mixed, 'title_starts_with_keyword' )['status'] );
+	}
+
+	/**
+	 * Test the rules version for the boundary-aware title position.
+	 */
+	public function test_rules_version_is_two_for_the_boundary_aware_title_position(): void {
+		$this->assertSame( 2, Analyzer::RULES_VERSION );
+	}
+
+	/**
 	 * Test keyword uniqueness stays advisory and not applicable without data.
 	 */
 	public function test_uniqueness_is_not_applicable_without_data(): void {

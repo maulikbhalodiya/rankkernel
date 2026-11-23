@@ -174,6 +174,7 @@ final class AnalysisScoreTest extends TestCase {
 		$this->assertIsInt( $record['score'] );
 		$this->assertContains( $record['band'], [ Analyzer::BAND_GOOD, Analyzer::BAND_IMPROVE, Analyzer::BAND_PROBLEM ] );
 		$this->assertSame( 1, $record['keywords'] );
+		$this->assertSame( 2, $record['rules_version'] );
 		$this->assertSame( Analyzer::RULES_VERSION, $record['rules_version'] );
 		$this->assertGreaterThan( 0, $record['analysed_at'] );
 	}
@@ -385,6 +386,26 @@ final class AnalysisScoreTest extends TestCase {
 
 		$this->assertSame( 'needs_recheck', $stale['status'] );
 		$this->assertStringContainsString( 'rules version', $stale['reason'] );
+	}
+
+	/**
+	 * Version 1 scores are stale after the rules version bump.
+	 */
+	public function test_version_one_scores_are_rechecked_under_version_two(): void {
+		$this->assertSame( 2, Analyzer::RULES_VERSION );
+
+		$this->meta[ AnalysisScore::META_KEY ] = [
+			'score'         => 87,
+			'band'          => Analyzer::BAND_GOOD,
+			'keywords'      => 1,
+			'rules_version' => 1,
+			'analysed_at'   => 123,
+		];
+
+		$stale = ( new AnalysisScore() )->state( 7 );
+
+		$this->assertSame( 'needs_recheck', $stale['status'] );
+		$this->assertStringContainsString( 'rules version 1', $stale['reason'] );
 	}
 
 	/**

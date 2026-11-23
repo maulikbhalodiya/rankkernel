@@ -345,6 +345,67 @@ final class KeywordMatcher {
 	}
 
 	/**
+	 * Find the first boundary-valid exact phrase position.
+	 *
+	 * The offset is measured in characters in the normalised text, so it can
+	 * be compared with the character-based title half length. A Latin keyword
+	 * fragment inside a longer word is rejected. Keywords whose first or last
+	 * character belongs to a script that does not separate words with spaces
+	 * keep the adjacency behaviour those scripts need.
+	 *
+	 * @param string $haystack Text to search.
+	 * @param string $keyword  Keyword to find.
+	 * @return int|false Character offset, or false when no valid match exists.
+	 */
+	public static function position( string $haystack, string $keyword ): int|false {
+		$needle = self::normalize( $keyword );
+		$hay    = self::normalize( $haystack );
+
+		if ( '' === $needle || '' === $hay ) {
+			return false;
+		}
+
+		$needleLength = mb_strlen( $needle, 'UTF-8' );
+		$hayLength    = mb_strlen( $hay, 'UTF-8' );
+		// Only the keyword edge is relaxed. A Latin keyword never gains
+		// substring matching, and the existing CJK title-position contract is
+		// preserved even when the title continues with another script.
+		$leftRelaxed  = self::isUnspacedScript( mb_substr( $needle, 0, 1, 'UTF-8' ) );
+		$rightRelaxed = self::isUnspacedScript( mb_substr( $needle, -1, 1, 'UTF-8' ) );
+		$offset       = 0;
+		$at           = mb_strpos( $hay, $needle, $offset, 'UTF-8' );
+
+		while ( false !== $at ) {
+			$before = ( $at > 0 ) ? mb_substr( $hay, $at - 1, 1, 'UTF-8' ) : '';
+			$after  = ( $at + $needleLength < $hayLength ) ? mb_substr( $hay, $at + $needleLength, 1, 'UTF-8' ) : '';
+			$left   = ( '' === $before || ' ' === $before || $leftRelaxed );
+			$right  = ( '' === $after || ' ' === $after || $rightRelaxed );
+
+			if ( $left && $right ) {
+				return $at;
+			}
+
+			$offset = $at + 1;
+			$at     = mb_strpos( $hay, $needle, $offset, 'UTF-8' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether a character belongs to a script that does not use spaces between words.
+	 *
+	 * @param string $character Single UTF-8 character.
+	 * @return bool The result.
+	 */
+	private static function isUnspacedScript( string $character ): bool {
+		$pattern = '/[\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}'
+			. '\p{Thai}\p{Lao}\p{Khmer}\p{Myanmar}]/u';
+
+		return 1 === preg_match( $pattern, $character );
+	}
+
+	/**
 	 * Count exact phrase occurrences, on word boundaries.
 	 *
 	 * Only the exact phrase is counted, so a variation does not inflate the

@@ -35,7 +35,7 @@ const fixtures = fixtureFile.concat( generatedFixtures );
 
 // Pinned so that deleting a fixture nobody names in an assertion fails loudly
 // instead of silently shrinking parity coverage.
-const FIXTURE_FILE_INVENTORY = 122;
+const FIXTURE_FILE_INVENTORY = 129;
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
 
@@ -277,6 +277,27 @@ test( 'the score and band boundaries land on exactly 50, 51, 80 and 81', () => {
 		assert.equal( php[ id ].band, band, 'php band ' + id );
 		assert.equal( js[ id ].band, band, 'js band ' + id );
 	}
+} );
+
+test( 'title position agrees with title presence on substrings and plural fragments', () => {
+	assertAgree( 'title-position-substring-contradiction', 'keyword_in_title', 'problem' );
+	assertAgree( 'title-position-substring-contradiction', 'title_starts_with_keyword', 'problem' );
+	assertAgree( 'title-position-plural-contradiction', 'keyword_in_title', 'problem' );
+	assertAgree( 'title-position-plural-contradiction', 'title_starts_with_keyword', 'problem' );
+} );
+
+test( 'title position finds later valid matches and respects the exact half boundary', () => {
+	assertAgree( 'title-position-later-valid', 'keyword_in_title', 'pass' );
+	assertAgree( 'title-position-later-valid', 'title_starts_with_keyword', 'pass' );
+	assertAgree( 'title-position-exact-half', 'keyword_in_title', 'pass' );
+	assertAgree( 'title-position-exact-half', 'title_starts_with_keyword', 'problem' );
+} );
+
+test( 'title position handles punctuation, mixed scripts and unspaced scripts', () => {
+	assertAgree( 'title-position-punctuation', 'title_starts_with_keyword', 'pass' );
+	assertAgree( 'title-position-mixed-script', 'title_starts_with_keyword', 'pass' );
+	assertAgree( 'title-position-cjk-adjacent', 'title_starts_with_keyword', 'pass' );
+	assertAgree( 'title-position-cjk-adjacent', 'keyword_in_title', 'problem' );
 } );
 
 test( 'keyword_density passes at exactly 2.5 percent and improves just above it', () => {

@@ -133,6 +133,65 @@ final class KeywordMatcherTest extends TestCase {
 	}
 
 	/**
+	 * Test position returns the first boundary-valid occurrence.
+	 */
+	public function test_position_returns_the_first_boundary_valid_occurrence(): void {
+		$this->assertSame( 4, KeywordMatcher::position( 'the cat guide', 'cat' ) );
+		$this->assertSame( 0, KeywordMatcher::position( 'red apples guide', 'red apples' ) );
+		$this->assertSame( 13, KeywordMatcher::position( 'guide to the cat', 'cat' ) );
+		$this->assertSame( 26, KeywordMatcher::position( 'concatenated results with cat', 'cat' ) );
+		$this->assertSame( 0, KeywordMatcher::position( 'cat guide and cat tips', 'cat' ) );
+		$this->assertSame( 0, KeywordMatcher::position( 'red apples and red apples', 'red apples' ) );
+	}
+
+	/**
+	 * Test position rejects fragments and plural fragments.
+	 */
+	public function test_position_rejects_fragments_and_plural_fragments(): void {
+		$this->assertFalse( KeywordMatcher::position( 'concatenated results', 'cat' ) );
+		$this->assertFalse( KeywordMatcher::position( 'cats guide', 'cat' ) );
+		$this->assertFalse( KeywordMatcher::position( 'red apples guide', 'red apple' ) );
+		$this->assertFalse( KeywordMatcher::position( '猫concatenated', 'cat' ) );
+	}
+
+	/**
+	 * Test position skips an invalid first candidate and finds a later match.
+	 */
+	public function test_position_skips_an_invalid_first_candidate(): void {
+		$this->assertSame( 13, KeywordMatcher::position( 'concatenated cat guide', 'cat' ) );
+		$this->assertSame( 7, KeywordMatcher::position( 'catxxx cat yyyyyyyyyy', 'cat' ) );
+	}
+
+	/**
+	 * Test punctuation, mixed scripts and astral character offsets.
+	 */
+	public function test_position_handles_punctuation_mixed_scripts_and_astral_offsets(): void {
+		$this->assertSame( 0, KeywordMatcher::position( 'red, apples guide', 'red apples' ) );
+		$this->assertSame( 2, KeywordMatcher::position( '猫 cat 狗', 'cat' ) );
+		$this->assertSame( 2, KeywordMatcher::position( "\u{20000} cat", 'cat' ) );
+	}
+
+	/**
+	 * Test unspaced script adjacency stays valid.
+	 */
+	public function test_position_preserves_unspaced_script_matches(): void {
+		$this->assertSame( 0, KeywordMatcher::position( '咖啡指南', '咖啡' ) );
+		$this->assertSame( 2, KeywordMatcher::position( '我喝咖啡', '咖啡' ) );
+		$this->assertSame( 0, KeywordMatcher::position( '咖啡店', '咖啡' ) );
+		$this->assertSame( 0, KeywordMatcher::position( '서울은', '서울' ) );
+		$this->assertSame( 0, KeywordMatcher::position( 'ภาษาไทย', 'ภาษา' ) );
+	}
+
+	/**
+	 * Test empty input never returns a position.
+	 */
+	public function test_position_returns_false_for_empty_input(): void {
+		$this->assertFalse( KeywordMatcher::position( '', 'cat' ) );
+		$this->assertFalse( KeywordMatcher::position( 'cat', '' ) );
+		$this->assertFalse( KeywordMatcher::position( 'cat', '   ' ) );
+	}
+
+	/**
 	 * Test content words drop function words but keep an all function phrase.
 	 */
 	public function test_content_words_drop_function_words(): void {

@@ -1270,5 +1270,82 @@
       "html": "<p>Alpha one here for the reader.\uFEFFAlpha two here for the reader.\uFEFFAlpha three here for the reader.</p>",
       "site_url": "https://example.com"
     }
+  },
+  {
+    "id": "title-position-substring-contradiction",
+    "input": {
+      "keywords": [
+        "cat"
+      ],
+      "title": "concatenated results",
+      "html": "<p>Body text about a cat and a dog for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-plural-contradiction",
+    "input": {
+      "keywords": [
+        "red apple"
+      ],
+      "title": "Red apples: a complete guide",
+      "html": "<p>Body text about red apples and pears for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-later-valid",
+    "input": {
+      "keywords": [
+        "cat"
+      ],
+      "title": "concatenated cat guide with more text",
+      "html": "<p>Body text about a cat and a dog for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-exact-half",
+    "input": {
+      "keywords": [
+        "cat"
+      ],
+      "title": "abcdefghi cat abcdef",
+      "html": "<p>Body text about a cat and a dog for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-punctuation",
+    "input": {
+      "keywords": [
+        "red apples"
+      ],
+      "title": "red, apples guide",
+      "html": "<p>Body text about red apples for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-mixed-script",
+    "input": {
+      "keywords": [
+        "cat"
+      ],
+      "title": "猫 cat 狗",
+      "html": "<p>Body text about a cat and a dog for the reader.</p>",
+      "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "title-position-cjk-adjacent",
+    "input": {
+      "keywords": [
+        "咖啡"
+      ],
+      "title": "咖啡指南",
+      "html": "<p>咖啡 content body here for the reader.</p>",
+      "site_url": "https://example.com"
+    }
   }
 ]

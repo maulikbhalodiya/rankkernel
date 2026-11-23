@@ -35,7 +35,7 @@ test( 'weights sum to 130 and keyword_uniqueness weighs 0', () => {
 	const total = Object.keys( Analyzer.WEIGHTS ).reduce( ( sum, id ) => sum + Analyzer.WEIGHTS[ id ], 0 );
 	assert.equal( total, 130 );
 	assert.equal( Analyzer.WEIGHTS.keyword_uniqueness, 0 );
-	assert.equal( Analyzer.RULES_VERSION, 1 );
+	assert.equal( Analyzer.RULES_VERSION, 2 );
 } );
 
 test( 'an na check earns 0 and keeps its weight', () => {
@@ -170,6 +170,43 @@ test( 'title checks pass and improve as specified', () => {
 	assert.equal( checkById( Analyzer.analyze( input( { title: '10 red apples tips' } ) ), 'title_has_number' ).status, 'pass' );
 	assert.equal( checkById( Analyzer.analyze( input( { title: 'Nothing here' } ) ), 'title_has_power_word' ).status, 'improve' );
 	assert.equal( checkById( Analyzer.analyze( input( { title: 'A good guide to apples' } ) ), 'title_sentiment' ).status, 'pass' );
+} );
+
+test( 'title presence and position agree on substrings and plural fragments', () => {
+	const cases = [
+		[ 'cat', 'concatenated results' ],
+		[ 'cat', 'cats guide' ],
+		[ 'red apple', 'Red apples: a complete guide' ]
+	];
+
+	for ( const [ keyword, title ] of cases ) {
+		const result = Analyzer.analyze( { keywords: [ keyword ], title, html: '<p>Body text for the reader.</p>' } );
+		assert.equal( checkById( result, 'keyword_in_title' ).status, 'problem', keyword + ' in ' + title );
+		assert.equal( checkById( result, 'title_starts_with_keyword' ).status, 'problem', keyword + ' in ' + title );
+	}
+} );
+
+test( 'title position skips an invalid first candidate and finds the later word', () => {
+	const result = Analyzer.analyze( { keywords: [ 'cat' ], title: 'concatenated cat guide with more text', html: '<p>Body text for the reader.</p>' } );
+	assert.equal( checkById( result, 'keyword_in_title' ).status, 'pass' );
+	assert.equal( checkById( result, 'title_starts_with_keyword' ).status, 'pass' );
+} );
+
+test( 'title position rejects a match at the exact half boundary', () => {
+	const result = Analyzer.analyze( { keywords: [ 'cat' ], title: 'abcdefghi cat abcdef', html: '<p>Body text for the reader.</p>' } );
+	assert.equal( checkById( result, 'keyword_in_title' ).status, 'pass' );
+	assert.equal( checkById( result, 'title_starts_with_keyword' ).status, 'problem' );
+} );
+
+test( 'title position handles punctuation, mixed scripts and CJK character offsets', () => {
+	const punctuation = Analyzer.analyze( { keywords: [ 'red apples' ], title: 'red, apples guide', html: '<p>Body text for the reader.</p>' } );
+	assert.equal( checkById( punctuation, 'title_starts_with_keyword' ).status, 'pass' );
+
+	const mixed = Analyzer.analyze( { keywords: [ 'cat' ], title: '猫 cat 狗', html: '<p>Body text for the reader.</p>' } );
+	assert.equal( checkById( mixed, 'title_starts_with_keyword' ).status, 'pass' );
+
+	const cjk = Analyzer.analyze( { keywords: [ '咖啡' ], title: '中'.repeat( 10 ) + '咖啡' + 'x'.repeat( 20 ), html: '<p>Body text for the reader.</p>' } );
+	assert.equal( checkById( cjk, 'title_starts_with_keyword' ).status, 'pass' );
 } );
 
 test( 'the final primary checklist is 31 checks in the spec order', () => {

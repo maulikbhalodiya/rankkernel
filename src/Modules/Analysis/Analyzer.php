@@ -29,10 +29,11 @@ final class Analyzer {
 	 * Check set version.
 	 *
 	 * Bumped whenever a check is added, removed, reweighted or given a new
-	 * threshold, so a stored score with an older version can be reported as
+	 * threshold, or when matching changes in a way that makes stored scores
+	 * stale, so a stored score with an older version can be reported as
 	 * needing a recheck instead of being presented as current.
 	 */
-	public const RULES_VERSION = 1;
+	public const RULES_VERSION = 2;
 
 	/**
 	 * Score bands.
@@ -480,7 +481,7 @@ final class Analyzer {
 	}
 
 	/**
-	 * Position of the keyword in the first half of the title.
+	 * Position of a boundary-valid keyword in the first half of the title.
 	 *
 	 * @param string               $keyword Keyword.
 	 * @param array<string, mixed> $context Context.
@@ -494,9 +495,8 @@ final class Analyzer {
 		}
 
 		$weight = self::WEIGHTS['title_starts_with_keyword'];
-		$needle = KeywordMatcher::normalize( $keyword );
 		$hay    = KeywordMatcher::normalize( $title );
-		$at     = ( '' === $needle ) ? false : mb_strpos( $hay, $needle, 0, 'UTF-8' );
+		$at     = KeywordMatcher::position( $title, $keyword );
 
 		if ( false !== $at && $at < (int) floor( mb_strlen( $hay, 'UTF-8' ) / 2 ) ) {
 			return $this->result( 'title_starts_with_keyword', 'title', self::PASS, $weight, $this->passMessage( 'title_starts_with_keyword', $keyword ) );

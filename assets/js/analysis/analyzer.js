@@ -15,7 +15,7 @@
 }( typeof globalThis !== 'undefined' ? globalThis : this, function ( KeywordMatcher, TextStats, AnalysisFormat ) {
 	'use strict';
 
-	var RULES_VERSION = 1;
+	var RULES_VERSION = 2;
 	var BAND_GOOD = 'good';
 	var BAND_IMPROVE = 'improve';
 	var BAND_PROBLEM = 'problem';
@@ -318,24 +318,8 @@
 			return na( id, CATEGORY_TITLE, t( ctx.translate, M.title_na, [] ) );
 		}
 		var hay = codePoints( KeywordMatcher.normalize( ctx.title, ctx.stripAccents ) );
-		var needle = codePoints( KeywordMatcher.normalize( ctx.keyword, ctx.stripAccents ) );
-		var position = -1;
-		if ( needle.length > 0 ) {
-			for ( var i = 0; i + needle.length <= hay.length; i++ ) {
-				var match = true;
-				for ( var j = 0; j < needle.length; j++ ) {
-					if ( hay[ i + j ] !== needle[ j ] ) {
-						match = false;
-						break;
-					}
-				}
-				if ( match ) {
-					position = i;
-					break;
-				}
-			}
-		}
-		if ( position !== -1 && position < Math.floor( hay.length / 2 ) ) {
+		var position = KeywordMatcher.position( ctx.title, ctx.keyword, ctx.stripAccents );
+		if ( false !== position && position < Math.floor( hay.length / 2 ) ) {
 			return pass( id, CATEGORY_TITLE, t( ctx.translate, M.title_start_pass, [ ctx.keyword ] ) );
 		}
 		return problem( id, CATEGORY_TITLE, t( ctx.translate, M.title_start_problem, [ ctx.keyword ] ) );
