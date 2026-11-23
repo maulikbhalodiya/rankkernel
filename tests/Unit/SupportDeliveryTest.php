@@ -36,6 +36,63 @@ final class SupportDeliveryTest extends TestCase {
 	private array $timeouts = [];
 
 	/**
+	 * Persistent object-cache transient store.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $objectCache = [];
+
+	/**
+	 * Persistent object-cache expiry timestamps.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $objectExpiry = [];
+
+	/**
+	 * Whether the test simulates a persistent object cache.
+	 *
+	 * @var bool
+	 */
+	private bool $extCache = false;
+
+	/**
+	 * Simulated per-site storage prefix (models core's non-global group).
+	 *
+	 * @var string
+	 */
+	private string $blogPrefix = '';
+
+	/**
+	 * Simulated current Unix time.
+	 *
+	 * @var int
+	 */
+	private int $now = 1000;
+
+	/**
+	 * Simulate a transient read failure.
+	 *
+	 * @var bool
+	 */
+	private bool $failTransientRead = false;
+
+	/**
+	 * Simulate a transient write failure.
+	 *
+	 * @var bool
+	 */
+	private bool $failTransientWrite = false;
+
+	/**
+	 * Keep a transient readable after its timeout option has expired, modelling
+	 * delayed or inconsistent expiration cleanup.
+	 *
+	 * @var bool
+	 */
+	private bool $ignoreTransientExpiry = false;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
@@ -46,25 +103,72 @@ final class SupportDeliveryTest extends TestCase {
 			define( 'ABSPATH', '/tmp/' );
 		}
 
-		$this->transients = [];
-		$this->timeouts   = [];
+		$this->transients            = [];
+		$this->timeouts              = [];
+		$this->objectCache           = [];
+		$this->objectExpiry          = [];
+		$this->extCache              = false;
+		$this->blogPrefix            = '';
+		$this->now                   = 1000;
+		$this->failTransientRead     = false;
+		$this->failTransientWrite    = false;
+		$this->ignoreTransientExpiry = false;
 
 		Functions\when( '__' )->alias( static fn ( string $text ): string => $text );
+		// Model WordPress transient delegation: a persistent object cache keeps
+		// value and expiry in the cache and never writes _transient_timeout_*.
 		Functions\when( 'get_transient' )->alias(
 			function ( string $key ) {
+				if ( $this->failTransientRead ) {
+					return false;
+				}
+
+				$key = $this->blogPrefix . $key;
+
+				if ( $this->extCache ) {
+					if ( ! $this->ignoreTransientExpiry && isset( $this->objectExpiry[ $key ] ) && $this->objectExpiry[ $key ] > 0 && $this->objectExpiry[ $key ] <= $this->now ) {
+						unset( $this->objectCache[ $key ], $this->objectExpiry[ $key ] );
+
+						return false;
+					}
+
+					return $this->objectCache[ $key ] ?? false;
+				}
+
+				if ( ! $this->ignoreTransientExpiry && isset( $this->timeouts[ $key ] ) && $this->timeouts[ $key ] > 0 && $this->timeouts[ $key ] <= $this->now ) {
+					unset( $this->transients[ $key ], $this->timeouts[ $key ] );
+
+					return false;
+				}
+
 				return $this->transients[ $key ] ?? false;
 			}
 		);
 		Functions\when( 'set_transient' )->alias(
-			function ( string $key, $value ): bool {
-				$this->transients[ $key ] = (int) $value;
+			function ( string $key, $value, int $ttl = 0 ): bool {
+				if ( $this->failTransientWrite ) {
+					return false;
+				}
+
+				$key = $this->blogPrefix . $key;
+
+				if ( $this->extCache ) {
+					$this->objectCache[ $key ]  = $value;
+					$this->objectExpiry[ $key ] = $ttl > 0 ? $this->now + $ttl : 0;
+
+					return true;
+				}
+
+				$this->transients[ $key ] = $value;
+				$this->timeouts[ $key ]   = $ttl > 0 ? $this->now + $ttl : 0;
 
 				return true;
 			}
 		);
 		Functions\when( 'delete_transient' )->alias(
 			function ( string $key ): bool {
-				unset( $this->transients[ $key ] );
+				$key = $this->blogPrefix . $key;
+				unset( $this->transients[ $key ], $this->timeouts[ $key ], $this->objectCache[ $key ], $this->objectExpiry[ $key ] );
 
 				return true;
 			}
@@ -74,13 +178,17 @@ final class SupportDeliveryTest extends TestCase {
 				$prefix = '_transient_timeout_';
 
 				if ( str_starts_with( $name, $prefix ) ) {
-					return $this->timeouts[ substr( $name, strlen( $prefix ) ) ] ?? $fallback;
+					return $this->timeouts[ $this->blogPrefix . substr( $name, strlen( $prefix ) ) ] ?? $fallback;
 				}
 
 				return $fallback;
 			}
 		);
-		Functions\when( 'time' )->alias( static fn (): int => 1000 );
+		Functions\when( 'time' )->alias(
+			function (): int {
+				return $this->now;
+			}
+		);
 		Functions\when( 'get_bloginfo' )->justReturn( '' );
 		Functions\when( 'home_url' )->justReturn( '' );
 		Functions\when( 'is_multisite' )->justReturn( false );
@@ -210,7 +318,375 @@ final class SupportDeliveryTest extends TestCase {
 			SupportDelivery::recordSubmission( $ip );
 		}
 
-		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, (int) get_transient( SupportDelivery::rateKey( $ip ) ) );
+		$state = get_transient( SupportDelivery::rateKey( $ip ) );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, $state['count'] );
+	}
+
+	/**
+	 * Persistent cache without a timeout option still blocks the fourth attempt.
+	 *
+	 * This is the M-3 regression: the old limiter read _transient_timeout_*,
+	 * which persistent caches never write, so it failed open.
+	 */
+	public function test_persistent_cache_without_timeout_option_blocks_fourth_submission(): void {
+		$this->extCache = true;
+		$ip             = '203.0.113.7';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+	}
+
+	/**
+	 * Database-backed transients still block the fourth attempt.
+	 */
+	public function test_database_backed_transients_block_fourth_submission(): void {
+		$this->extCache = false;
+		$ip             = '203.0.113.7';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+	}
+
+	/**
+	 * Each accepted under-cap submission slides the 300 second expiry.
+	 */
+	public function test_accepted_submissions_slide_the_expiry(): void {
+		$ip = '203.0.113.7';
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$this->now += 120;
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( SupportDelivery::rateKey( $ip ) );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 2, $state['count'] );
+		$this->assertSame( $this->now + SupportRequest::RATE_LIMIT_SECONDS, $state['expires'] );
+	}
+
+	/**
+	 * A capped window is not extended by a rejected check or record attempt.
+	 */
+	public function test_capped_window_is_not_extended(): void {
+		$ip = '203.0.113.7';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		$before = get_transient( SupportDelivery::rateKey( $ip ) );
+
+		$this->now += 60;
+		SupportDelivery::retryAfter( $ip );
+		SupportDelivery::recordSubmission( $ip );
+
+		$after = get_transient( SupportDelivery::rateKey( $ip ) );
+
+		$this->assertSame( $before['expires'], $after['expires'] );
+		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, (int) $after['count'] );
+	}
+
+	/**
+	 * An expired structured window allows a new submission and resets the count.
+	 */
+	public function test_expired_structured_window_resets(): void {
+		$ip = '203.0.113.7';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		$this->now += SupportRequest::RATE_LIMIT_SECONDS + 1;
+
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( SupportDelivery::rateKey( $ip ) );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 1, $state['count'] );
+	}
+
+	/**
+	 * Legacy scalar below the cap keeps its count and migrates on record.
+	 */
+	public function test_legacy_scalar_below_cap_migrates_without_losing_count(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = 2;
+		$this->timeouts[ $key ]   = $this->now + 200;
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( $key );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 3, $state['count'] );
+		$this->assertSame( $this->now + SupportRequest::RATE_LIMIT_SECONDS, $state['expires'] );
+	}
+
+	/**
+	 * Legacy scalar at the cap with a valid database timeout blocks.
+	 */
+	public function test_legacy_scalar_at_cap_with_timeout_blocks(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = 3;
+		$this->timeouts[ $key ]   = $this->now + 200;
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+	}
+
+	/**
+	 * Legacy scalar at the cap without a timeout option blocks conservatively.
+	 */
+	public function test_legacy_scalar_at_cap_without_timeout_blocks_conservatively(): void {
+		$this->extCache = true;
+		$ip             = '203.0.113.7';
+		$key            = SupportDelivery::rateKey( $ip );
+
+		$this->objectCache[ $key ]  = 3;
+		$this->objectExpiry[ $key ] = $this->now + 200;
+
+		$retry = SupportDelivery::retryAfter( $ip );
+
+		$this->assertGreaterThan( 0, $retry );
+		$this->assertLessThanOrEqual( SupportRequest::RATE_LIMIT_SECONDS, $retry );
+	}
+
+	/**
+	 * A legacy transient that disappears starts a new window.
+	 */
+	public function test_legacy_transient_disappearing_starts_new_window(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = 3;
+		$this->timeouts[ $key ]   = $this->now + 200;
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+
+		delete_transient( $key );
+
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( $key );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 1, $state['count'] );
+	}
+
+	/**
+	 * Malformed transient state is handled safely.
+	 */
+	public function test_malformed_state_is_handled_safely(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		foreach ( [
+			'garbage',
+			[
+				'count'   => 'nope',
+				'expires' => 'nope',
+			],
+			[ 'unexpected' => true ],
+		] as $malformed ) {
+			$this->transients[ $key ] = $malformed;
+
+			$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+			SupportDelivery::recordSubmission( $ip );
+
+			$state = get_transient( $key );
+
+			$this->assertIsArray( $state );
+			$this->assertSame( 1, $state['count'] );
+			$this->assertIsInt( $state['expires'] );
+		}
+	}
+
+	/**
+	 * A far-future expiry or timeout is clamped to one configured window.
+	 */
+	public function test_far_future_expiry_is_clamped_to_one_window(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = [
+			'count'   => SupportRequest::RATE_LIMIT_MAX,
+			'expires' => $this->now + 999999,
+		];
+		$this->timeouts[ $key ]   = $this->now + 999999;
+
+		$structured = SupportDelivery::retryAfter( $ip );
+
+		$this->assertGreaterThan( 0, $structured );
+		$this->assertLessThanOrEqual( SupportRequest::RATE_LIMIT_SECONDS, $structured );
+
+		$this->transients[ $key ] = SupportRequest::RATE_LIMIT_MAX;
+		$this->timeouts[ $key ]   = $this->now + 999999;
+
+		$legacy = SupportDelivery::retryAfter( $ip );
+
+		$this->assertGreaterThan( 0, $legacy );
+		$this->assertLessThanOrEqual( SupportRequest::RATE_LIMIT_SECONDS, $legacy );
+	}
+
+	/**
+	 * A live transient with a stale embedded expiry resets on the next record.
+	 */
+	public function test_embedded_expiry_drift_resets_fresh_window(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = [
+			'count'   => SupportRequest::RATE_LIMIT_MAX,
+			'expires' => $this->now - 1,
+		];
+		// The transient itself is still readable (later storage expiry).
+		$this->timeouts[ $key ] = $this->now + 200;
+
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( $key );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 1, $state['count'] );
+		$this->assertSame( $this->now + SupportRequest::RATE_LIMIT_SECONDS, $state['expires'] );
+	}
+
+	/**
+	 * A capped legacy counter whose known timeout expired starts a new window.
+	 */
+	public function test_stale_capped_legacy_with_expired_timeout_resets(): void {
+		$this->ignoreTransientExpiry = true;
+
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = SupportRequest::RATE_LIMIT_MAX;
+		$this->timeouts[ $key ]   = $this->now - 1;
+
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$state = get_transient( $key );
+
+		$this->assertIsArray( $state );
+		$this->assertSame( 1, $state['count'] );
+		$this->assertSame( $this->now + SupportRequest::RATE_LIMIT_SECONDS, $state['expires'] );
+	}
+
+	/**
+	 * A capped legacy counter with a future timeout is never rewritten.
+	 */
+	public function test_capped_legacy_with_future_timeout_is_not_rewritten(): void {
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->transients[ $key ] = SupportRequest::RATE_LIMIT_MAX;
+		$this->timeouts[ $key ]   = $this->now + 200;
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, $this->transients[ $key ] );
+		$this->assertSame( $this->now + 200, $this->timeouts[ $key ] );
+	}
+
+	/**
+	 * A capped legacy counter with no timeout stays capped and is not rewritten.
+	 */
+	public function test_capped_legacy_without_timeout_is_not_rewritten(): void {
+		$this->extCache = true;
+
+		$ip  = '203.0.113.7';
+		$key = SupportDelivery::rateKey( $ip );
+
+		$this->objectCache[ $key ]  = SupportRequest::RATE_LIMIT_MAX;
+		$this->objectExpiry[ $key ] = $this->now + 200;
+
+		$this->assertSame( SupportRequest::RATE_LIMIT_SECONDS, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+
+		$this->assertSame( SupportRequest::RATE_LIMIT_MAX, $this->objectCache[ $key ] );
+		$this->assertSame( $this->now + 200, $this->objectExpiry[ $key ] );
+	}
+
+	/**
+	 * Counters are isolated per address.
+	 */
+	public function test_rate_limit_is_isolated_per_address(): void {
+		$first  = '203.0.113.7';
+		$second = '203.0.113.8';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $first );
+		}
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $first ) );
+		$this->assertSame( 0, SupportDelivery::retryAfter( $second ) );
+	}
+
+	/**
+	 * Counters are isolated per site when the cache prefixes keys per blog.
+	 */
+	public function test_rate_limit_is_isolated_per_site(): void {
+		$ip = '203.0.113.7';
+
+		$this->blogPrefix = '2:';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		$this->assertGreaterThan( 0, SupportDelivery::retryAfter( $ip ) );
+
+		$this->blogPrefix = '3:';
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		SupportDelivery::recordSubmission( $ip );
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+	}
+
+	/**
+	 * Best-effort limits: read and write failures do not block legitimate mail.
+	 */
+	public function test_transient_failures_are_best_effort(): void {
+		$ip = '203.0.113.7';
+
+		for ( $i = 0; $i < SupportRequest::RATE_LIMIT_MAX; $i++ ) {
+			SupportDelivery::recordSubmission( $ip );
+		}
+
+		// A read failure looks like a cold start, so the limiter cannot block.
+		$this->failTransientRead = true;
+		$this->assertSame( 0, SupportDelivery::retryAfter( $ip ) );
+
+		// A write failure means the submission is not counted.
+		$this->failTransientRead  = false;
+		$this->failTransientWrite = true;
+		SupportDelivery::recordSubmission( '203.0.113.9' );
+		$this->assertSame( 0, SupportDelivery::retryAfter( '203.0.113.9' ) );
 	}
 
 	/**

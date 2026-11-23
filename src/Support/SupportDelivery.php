@@ -52,7 +52,49 @@ final class SupportDelivery {
 	}
 
 	/**
+	 * Decode stored rate-limit state.
+	 *
+	 * Current state is a structured array with an embedded absolute expiry.
+	 * Older installs may still hold a plain integer counter whose expiry was
+	 * kept in the _transient_timeout_* options row. That row exists only for
+	 * database-backed transients, so it is consulted only while decoding the
+	 * legacy shape and never becomes the source of truth for new state.
+	 *
+	 * @param mixed $raw Raw transient value.
+	 * @return array{count: int, expires: int, legacy: bool} Decoded state.
+	 */
+	private static function decodeRateState( mixed $raw ): array {
+		if ( is_array( $raw ) ) {
+			$count   = isset( $raw['count'] ) && is_numeric( $raw['count'] ) ? max( 0, (int) $raw['count'] ) : 0;
+			$expires = isset( $raw['expires'] ) && is_numeric( $raw['expires'] ) ? max( 0, (int) $raw['expires'] ) : 0;
+
+			return [
+				'count'   => $count,
+				'expires' => $expires,
+				'legacy'  => false,
+			];
+		}
+
+		if ( is_int( $raw ) || ( is_string( $raw ) && '' !== $raw && ctype_digit( $raw ) ) ) {
+			return [
+				'count'   => max( 0, (int) $raw ),
+				'expires' => 0,
+				'legacy'  => true,
+			];
+		}
+
+		return [
+			'count'   => 0,
+			'expires' => 0,
+			'legacy'  => false,
+		];
+	}
+
+	/**
 	 * Whether this address may submit again.
+	 *
+	 * Best effort: this is a non-atomic read of the stored counter, so
+	 * concurrent submissions can briefly exceed the cap.
 	 *
 	 * @param string $ip Requesting address.
 	 * @return int Seconds remaining, or 0 when a submission is allowed.
@@ -62,28 +104,45 @@ final class SupportDelivery {
 			return 0;
 		}
 
-		$count = (int) get_transient( self::rateKey( $ip ) );
+		$state = self::decodeRateState( get_transient( self::rateKey( $ip ) ) );
+		$now   = time();
 
-		if ( $count < SupportRequest::RATE_LIMIT_MAX ) {
+		if ( $state['count'] < SupportRequest::RATE_LIMIT_MAX ) {
 			return 0;
 		}
 
-		$ttl = function_exists( 'get_option' ) ? (int) get_option( '_transient_timeout_' . self::rateKey( $ip ), 0 ) : 0;
+		if ( ! $state['legacy'] ) {
+			$remaining = $state['expires'] - $now;
 
-		if ( $ttl <= 0 ) {
-			return 0;
+			// Clamp a corrupted or tampered expiry to one configured window.
+			return $remaining > 0 ? min( $remaining, SupportRequest::RATE_LIMIT_SECONDS ) : 0;
 		}
 
-		$now       = function_exists( 'current_time' ) ? (int) time() : (int) time();
-		$remaining = $ttl - $now;
+		// Legacy integer state: honour its database timeout when one exists.
+		$timeout = function_exists( 'get_option' ) ? (int) get_option( '_transient_timeout_' . self::rateKey( $ip ), 0 ) : 0;
 
-		// A window whose expiry has already passed is not a block. Clamping to
-		// one second here would refuse a legitimate submission instead.
-		return $remaining > 0 ? $remaining : 0;
+		if ( $timeout > 0 ) {
+			$remaining = $timeout - $now;
+
+			// Clamp a corrupted or tampered timeout to one configured window.
+			return $remaining > 0 ? min( $remaining, SupportRequest::RATE_LIMIT_SECONDS ) : 0;
+		}
+
+		// A capped legacy counter with no readable timeout must not fail open.
+		// Block for at most one configured window; the transient expiring
+		// naturally reopens submissions.
+		return SupportRequest::RATE_LIMIT_SECONDS;
 	}
 
 	/**
-	 * Records a submission against the rate limit.
+	 * Records a successful submission against the rate limit.
+	 *
+	 * Each accepted under-cap submission stores the counter together with an
+	 * embedded expiry and refreshes the transient TTL, which slides the window.
+	 * A capped counter is never rewritten or extended. Legacy integer state is
+	 * preserved and migrated to the structured shape on the next accepted
+	 * submission; a capped legacy counter whose known timeout has expired is
+	 * treated as a fresh window, while a missing or future timeout stays capped.
 	 *
 	 * @param string $ip Requesting address.
 	 * @return void
@@ -94,13 +153,44 @@ final class SupportDelivery {
 		}
 
 		$key   = self::rateKey( $ip );
-		$count = (int) get_transient( $key );
+		$state = self::decodeRateState( get_transient( $key ) );
+		$now   = time();
+		$count = $state['count'];
+
+		if ( $state['legacy'] ) {
+			// A live legacy transient is still inside its own window. Preserve
+			// the count, but never extend a counter already at the cap.
+			if ( $count >= SupportRequest::RATE_LIMIT_MAX ) {
+				$timeout = function_exists( 'get_option' ) ? (int) get_option( '_transient_timeout_' . $key, 0 ) : 0;
+
+				// A known but expired timeout means the window elapsed while the
+				// cached value survived. Start a fresh window. A missing timeout
+				// (persistent cache) or a future timeout stays capped and is
+				// never rewritten or extended.
+				if ( $timeout <= 0 || $timeout > $now ) {
+					return;
+				}
+
+				$count = 0;
+			}
+		} elseif ( $state['expires'] <= $now ) {
+			// Structured state survived past its embedded expiry (cache drift)
+			// or was malformed; start a fresh window.
+			$count = 0;
+		}
 
 		if ( $count >= SupportRequest::RATE_LIMIT_MAX ) {
 			return;
 		}
 
-		set_transient( $key, $count + 1, SupportRequest::RATE_LIMIT_SECONDS );
+		set_transient(
+			$key,
+			[
+				'count'   => $count + 1,
+				'expires' => $now + SupportRequest::RATE_LIMIT_SECONDS,
+			],
+			SupportRequest::RATE_LIMIT_SECONDS
+		);
 	}
 
 	/**
