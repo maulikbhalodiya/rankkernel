@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Sitemaps\Provider\AuthorsProvider;
 use RankKernel\Modules\Sitemaps\Provider\PostsProvider;
 use RankKernel\Modules\Sitemaps\Provider\TaxonomiesProvider;
+use RankKernel\Modules\Sitemaps\SitemapSettings;
 use RankKernel\Tests\Unit\Support\SitemapCanonFakeWpdb;
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -157,5 +158,181 @@ final class SitemapProviderPrimingTest extends TestCase {
 		$entries = ( new AuthorsProvider() )->getEntries( 'authors', 1, 10 );
 
 		$this->assertCount( 2, $entries );
+	}
+
+	/**
+	 * Record the _prime_post_caches calls for an entry build.
+	 *
+	 * @param array<int, array{0: int[], 1: bool, 2: bool}> $calls By-reference collector for the recorded calls.
+	 * @return void
+	 */
+	private function recordPrimeCalls( array &$calls ): void {
+		Functions\when( '_prime_post_caches' )->alias(
+			static function ( array $ids, bool $terms = true, bool $meta = true ) use ( &$calls ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress _prime_post_caches signature.
+				$calls[] = [ $ids, $terms, $meta ];
+			}
+		);
+	}
+
+	/**
+	 * Featured and gallery attachment ids are primed once and deduplicated.
+	 */
+	public function test_attachment_ids_are_primed_once_deduplicated(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="21,22,11"]',
+			],
+			[
+				'ID'                => 2,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="22,23,0,-5"]',
+			],
+		];
+
+		Functions\when( 'get_post_thumbnail_id' )->alias( static fn ( int $id ): int => 1 === $id ? 11 : 12 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress get_post_thumbnail_id signature.
+		Functions\when( 'wp_get_attachment_image_url' )->alias( static fn ( int $id, string $size = 'full' ): string => 'https://example.com/a' . $id . '.jpg' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress signature.
+		Functions\when( 'wp_get_attachment_url' )->alias( static fn ( int $id ): string => 'https://example.com/a' . $id . '.jpg' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+
+		$calls = [];
+		$this->recordPrimeCalls( $calls );
+
+		$entries = ( new PostsProvider() )->getEntries( 'post', 1, 10 );
+
+		$this->assertCount( 2, $entries );
+		$this->assertSame(
+			[
+				[ [ 1, 2 ], true, true ],
+				[ [ 11, 12, 21, 22, 23 ], false, true ],
+			],
+			$calls
+		);
+	}
+
+	/**
+	 * Disabled image settings produce no attachment-specific priming.
+	 */
+	public function test_no_attachment_priming_when_images_disabled(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="21"]',
+			],
+		];
+
+		Functions\when( 'get_post_thumbnail_id' )->alias( static fn ( int $id ): int => 11 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( false );
+		Functions\when( 'wp_get_attachment_url' )->justReturn( '' );
+
+		$calls = [];
+		$this->recordPrimeCalls( $calls );
+
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$settings = new SitemapSettings();
+		$settings->set( [ 'include_images' => false ] );
+
+		( new PostsProvider( $settings ) )->getEntries( 'post', 1, 10 );
+
+		$this->assertSame( [ [ [ 1 ], true, true ] ], $calls );
+	}
+
+	/**
+	 * Posts with no attachments add no second priming call.
+	 */
+	public function test_posts_without_attachments_cause_no_extra_priming(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '<p>hello</p>',
+			],
+		];
+
+		$calls = [];
+		$this->recordPrimeCalls( $calls );
+
+		( new PostsProvider() )->getEntries( 'post', 1, 10 );
+
+		$this->assertSame( [ [ [ 1 ], true, true ] ], $calls );
+	}
+
+	/**
+	 * Disabling featured images keeps gallery attachment priming.
+	 */
+	public function test_disabled_featured_image_primes_gallery_ids_only(): void {
+		$this->db->postRows = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="21"]',
+			],
+		];
+
+		Functions\when( 'get_post_thumbnail_id' )->alias( static fn ( int $id ): int => 11 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( false );
+		Functions\when( 'wp_get_attachment_url' )->alias( static fn ( int $id ): string => 'https://example.com/a' . $id . '.jpg' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+
+		$calls = [];
+		$this->recordPrimeCalls( $calls );
+
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$settings = new SitemapSettings();
+		$settings->set( [ 'include_featured_image' => false ] );
+
+		$entries = ( new PostsProvider( $settings ) )->getEntries( 'post', 1, 10 );
+
+		$this->assertSame(
+			[
+				[ [ 1 ], true, true ],
+				[ [ 21 ], false, true ],
+			],
+			$calls
+		);
+		$this->assertSame( [ 'https://example.com/a21.jpg' ], $entries[0]['images'] );
+	}
+
+	/**
+	 * Canonical-excluded posts do not contribute attachment ids.
+	 */
+	public function test_canonical_excluded_posts_do_not_contribute_attachment_ids(): void {
+		$this->db->postRows     = [
+			[
+				'ID'                => 1,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="91"]',
+			],
+			[
+				'ID'                => 2,
+				'post_modified_gmt' => '2026-01-01 00:00:00',
+				'post_content'      => '[gallery ids="23"]',
+			],
+		];
+		$this->db->postmetaRows = [
+			1 => serialize( [ 'canonical' => 'https://example.com/elsewhere/' ] ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- test fixture mirrors the stored serialized meta payload.
+		];
+
+		Functions\when( 'get_post_thumbnail_id' )->alias( static fn ( int $id ): int => 1 === $id ? 91 : 12 ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+		Functions\when( 'wp_get_attachment_image_url' )->alias( static fn ( int $id, string $size = 'full' ): string => 'https://example.com/a' . $id . '.jpg' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub mirrors the WordPress signature.
+		Functions\when( 'wp_get_attachment_url' )->alias( static fn ( int $id ): string => 'https://example.com/a' . $id . '.jpg' ); // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub mirrors the WordPress signature.
+
+		$calls = [];
+		$this->recordPrimeCalls( $calls );
+
+		$entries = ( new PostsProvider() )->getEntries( 'post', 1, 10 );
+
+		$this->assertCount( 1, $entries );
+		$this->assertSame(
+			[
+				[ [ 1, 2 ], true, true ],
+				[ [ 12, 23 ], false, true ],
+			],
+			$calls
+		);
 	}
 }

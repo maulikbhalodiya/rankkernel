@@ -301,6 +301,8 @@ class PostsProvider {
 			return [];
 		}
 
+		$this->primeAttachmentCaches( $rows );
+
 		$entries = [];
 
 		foreach ( $rows as $row ) {
@@ -362,6 +364,76 @@ class PostsProvider {
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Prime attachment caches for featured and gallery images of eligible rows.
+	 *
+	 * The entry loop below resolves gallery attachment URLs, and the featured
+	 * image URL when that sub-toggle is on. Without priming, every one of those
+	 * attachments costs its own get_post() plus meta reads (an N+1 per sitemap
+	 * page). The post rows and their _thumbnail_id meta are already primed above,
+	 * so collecting ids here adds no queries; one batched call primes the
+	 * attachment posts and the _wp_attached_file / _wp_attachment_metadata meta
+	 * that wp_get_attachment_url() and wp_get_attachment_image_url() read.
+	 *
+	 * Rows passed in are already free of canonical-excluded posts, so their
+	 * attachments never enter the batch. Invalid and duplicate ids are dropped,
+	 * and the list is sorted so the batch is deterministic.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Kept sitemap rows.
+	 * @return void
+	 */
+	private function primeAttachmentCaches( array $rows ): void {
+		if ( ! $this->contentImagesAllowed() || ! function_exists( '_prime_post_caches' ) ) {
+			return;
+		}
+
+		$collectFeatured = $this->featuredAllowed() && function_exists( 'get_post_thumbnail_id' );
+		$ids             = [];
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['ID'] ) ) {
+				continue;
+			}
+
+			$postId = (int) $row['ID'];
+
+			if ( 0 === $postId ) {
+				continue;
+			}
+
+			if ( $collectFeatured ) {
+				$thumbId = (int) get_post_thumbnail_id( $postId );
+				if ( $thumbId > 0 ) {
+					$ids[] = $thumbId;
+				}
+			}
+
+			$content = isset( $row['post_content'] ) && is_string( $row['post_content'] ) ? $row['post_content'] : '';
+
+			if ( '' !== $content && preg_match_all( '/\[gallery[^\]]*ids\s*=\s*"([^"]+)"[^\]]*\]/', $content, $matches ) > 0 ) {
+				foreach ( $matches[1] as $idList ) {
+					foreach ( explode( ',', (string) $idList ) as $rawId ) {
+						$attachmentId = (int) trim( (string) $rawId );
+						if ( $attachmentId > 0 ) {
+							$ids[] = $attachmentId;
+						}
+					}
+				}
+			}
+		}
+
+		$ids = array_unique( $ids );
+
+		if ( [] === $ids ) {
+			return;
+		}
+
+		sort( $ids, SORT_NUMERIC );
+
+		// Attachment posts plus their meta, but no term relationships.
+		_prime_post_caches( $ids, false, true );
 	}
 
 	/**
