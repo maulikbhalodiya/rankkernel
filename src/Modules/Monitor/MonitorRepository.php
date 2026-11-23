@@ -156,28 +156,36 @@ final class MonitorRepository {
 
 		if ( false === $ok ) {
 			unset( self::$hashMemo[ $uriHash ] );
-			$retry = $this->findByHash( $uriHash );
 
-			if ( null === $retry ) {
-				return '';
+			// The row was created by a competing insert between our lookup and
+			// this write. Mirror the existing-record path exactly: an atomic
+			// SQL increment, never an absolute hits assignment derived from a
+			// stale read, so a concurrent hit landing here is not lost.
+			$sql    = "UPDATE `{$table}` SET hits = hits + 1, last_accessed = %s";
+			$params = [ $now ];
+
+			if ( '' !== $referer ) {
+				$sql     .= ', referer = %s';
+				$params[] = $referer;
 			}
 
-			// Custom log tables have no core API, race loser takes the increment path.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$fixed = $db->update(
-				$table,
-				[
-					'hits'          => (int) ( $retry['hits'] ?? 0 ) + 1,
-					'last_accessed' => $now,
-				],
-				[ 'uri_hash' => $uriHash ],
-				[ '%d', '%s' ],
-				[ '%s' ]
-			);
+			if ( '' !== $userAgent ) {
+				$sql     .= ', user_agent = %s';
+				$params[] = $userAgent;
+			}
+
+			$sql     .= ' WHERE uri_hash = %s';
+			$params[] = $uriHash;
+
+			// Custom log tables have no core API, counter increment is atomic in SQL so a concurrent hit cannot be lost.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$fixed = $db->query( $db->prepare( $sql, ...$params ) );
 
 			unset( self::$hashMemo[ $uriHash ] );
 
-			return false === $fixed ? '' : 'update';
+			// A failed query is false; zero affected rows means no row existed
+			// to increment, so neither case recorded a hit.
+			return ( is_int( $fixed ) && $fixed > 0 ) ? 'update' : '';
 		}
 
 		unset( self::$hashMemo[ $uriHash ] );

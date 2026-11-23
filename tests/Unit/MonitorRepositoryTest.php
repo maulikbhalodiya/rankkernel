@@ -159,6 +159,192 @@ final class MonitorRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Collision recovery must use an atomic increment and keep concurrent hits.
+	 *
+	 * Deterministic interleaving: the row already exists with hits=5, the
+	 * request-level memo says the hash is unseen (so record attempts an
+	 * insert that fails on the UNIQUE key), and a competing writer commits
+	 * one increment in the beforeWrite hook, exactly where a read-modify-
+	 * write recovery would overwrite it. Correct result is 7 (5 + ours +
+	 * concurrent); an absolute assignment yields 6.
+	 */
+	public function test_collision_recovery_atomic_increment_keeps_concurrent_hit(): void {
+		$hash = hash( 'sha256', '/collide-atomic' );
+
+		// Prime the request memo with a miss so record() takes the insert path.
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		$id = $this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/collide-atomic',
+				'hits'          => 5,
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		$this->db->beforeWrite = function () use ( $id ): void {
+			$this->db->beforeWrite = null;
+
+			$this->db->rows[ $id ]['hits'] = (int) $this->db->rows[ $id ]['hits'] + 1;
+		};
+
+		$this->assertSame( 'update', $this->repo->record( $hash, '/collide-atomic' ) );
+
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 7, (int) $row['hits'], 'Atomic increment must preserve the concurrent hit' );
+		$this->assertSame( '2026-06-01 12:00:00', $row['last_accessed'] );
+	}
+
+	/**
+	 * Two competing first hits for one unseen URI must not lose increments.
+	 *
+	 * Both requests observe no row and attempt an insert; one wins, the
+	 * other collides and takes the atomic recovery path. A concurrent hit
+	 * committed during the recovery must survive.
+	 */
+	public function test_competing_first_hits_do_not_lose_increments(): void {
+		$hash = hash( 'sha256', '/two-competing-first-hits' );
+
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		$id = $this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/two-competing-first-hits',
+				'hits'          => 1,
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		$this->db->beforeWrite = function () use ( $id ): void {
+			$this->db->beforeWrite = null;
+
+			$this->db->rows[ $id ]['hits'] = (int) $this->db->rows[ $id ]['hits'] + 1;
+		};
+
+		$this->assertSame( 'update', $this->repo->record( $hash, '/two-competing-first-hits' ) );
+
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 3, (int) $row['hits'], 'Winner insert + loser recovery + concurrent hit' );
+	}
+
+	/**
+	 * A failed insert with no matching row returns failure and stores nothing.
+	 */
+	public function test_failed_insert_without_matching_row_returns_failure(): void {
+		$hash = hash( 'sha256', '/orphan-insert-failure' );
+
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		$this->db->forceInsertFailure = true;
+
+		$this->assertSame( '', $this->repo->record( $hash, '/orphan-insert-failure' ) );
+		$this->assertCount( 0, $this->db->rows );
+	}
+
+	/**
+	 * Collision recovery preserves stored referer and user agent on empty input.
+	 */
+	public function test_collision_recovery_preserves_metadata_on_empty_input(): void {
+		$hash = hash( 'sha256', '/collide-metadata' );
+
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		$this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/collide-metadata',
+				'hits'          => 2,
+				'referer'       => 'https://ref.example/keep',
+				'user_agent'    => 'UA-keep',
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		$this->assertSame( 'update', $this->repo->record( $hash, '/collide-metadata' ) );
+
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 3, (int) $row['hits'] );
+		$this->assertSame( 'https://ref.example/keep', $row['referer'] );
+		$this->assertSame( 'UA-keep', $row['user_agent'] );
+		$this->assertSame( '2026-06-01 12:00:00', $row['last_accessed'] );
+	}
+
+	/**
+	 * Collision recovery refreshes referer and user agent when supplied.
+	 */
+	public function test_collision_recovery_updates_metadata_when_supplied(): void {
+		$hash = hash( 'sha256', '/collide-metadata-refresh' );
+
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		$this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/collide-metadata-refresh',
+				'hits'          => 1,
+				'referer'       => 'https://ref.example/old',
+				'user_agent'    => 'UA-old',
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		$this->assertSame( 'update', $this->repo->record( $hash, '/collide-metadata-refresh', 'https://ref.example/new', 'UA-new' ) );
+
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 'https://ref.example/new', $row['referer'] );
+		$this->assertSame( 'UA-new', $row['user_agent'] );
+	}
+
+	/**
+	 * A failed collision-recovery UPDATE returns failure and leaves the row unchanged.
+	 *
+	 * Deterministic interleaving that genuinely exercises the collision branch:
+	 * the first lookup misses and is memoized, a competing request inserts the
+	 * row, the insert collides on the UNIQUE key, and the recovery UPDATE fails.
+	 */
+	public function test_collision_recovery_failed_update_returns_failure_and_preserves_row(): void {
+		$hash = hash( 'sha256', '/collide-failed-update' );
+
+		// First lookup finds no row; this miss is memoized.
+		$this->assertNull( $this->repo->findByHash( $hash ) );
+
+		// A competing request inserts the matching URI with an existing hit count.
+		$id = $this->db->seed(
+			[
+				'uri_hash'      => $hash,
+				'uri'           => '/collide-failed-update',
+				'hits'          => 5,
+				'last_accessed' => '2026-05-01 00:00:00',
+			]
+		);
+
+		// Make the collision-recovery atomic UPDATE fail.
+		$this->db->failQueries = true;
+
+		$this->assertSame( '', $this->repo->record( $hash, '/collide-failed-update' ) );
+
+		// The stored row and hit count are unchanged by the failed update.
+		$this->assertSame( 5, (int) $this->db->rows[ $id ]['hits'] );
+		$this->assertSame( '2026-05-01 00:00:00', $this->db->rows[ $id ]['last_accessed'] );
+
+		// Memoization was invalidated: a fresh lookup sees the real row, not the cached miss.
+		$row = $this->repo->findByHash( $hash );
+
+		$this->assertIsArray( $row );
+		$this->assertSame( 5, (int) $row['hits'] );
+	}
+
+	/**
 	 * Test count and usage.
 	 */
 	public function test_count_and_usage(): void {

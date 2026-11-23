@@ -86,6 +86,14 @@ final class MonitorFakeDb {
 	public bool $failQueries = false;
 
 	/**
+	 * When true, the next typed insert fails the way a database error does.
+	 * Cleared after one use so a test can force a single failed insert.
+	 *
+	 * @var bool
+	 */
+	public bool $forceInsertFailure = false;
+
+	/**
 	 * Optional callback fired before an UPDATE write, so a test can commit a
 	 * concurrent writer exactly between the repository read and its write.
 	 *
@@ -223,6 +231,12 @@ final class MonitorFakeDb {
 	 * @return mixed The result.
 	 */
 	public function insert( string $table, array $data, mixed $format = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- test double mirrors the $wpdb method signature.
+		if ( $this->forceInsertFailure ) {
+			$this->forceInsertFailure = false;
+
+			return false;
+		}
+
 		foreach ( $this->rows as $row ) {
 			if ( (string) ( $data['uri_hash'] ?? '' ) === (string) $row['uri_hash'] ) {
 				return false;
