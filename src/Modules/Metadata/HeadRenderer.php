@@ -829,6 +829,54 @@ final class HeadRenderer {
 	}
 
 	/**
+	 * Resolve the first usable Twitter image through the escaping path.
+	 *
+	 * Candidate order is the per post URL, the per post attachment, then the
+	 * OG image chain. A candidate whose escaped value is empty is not usable,
+	 * so the next candidate is tried. The returned value is already escaped
+	 * and is reused by the card decision and the emitted tag.
+	 *
+	 * @param Context              $ctx     Context.
+	 * @param array<string, mixed> $twitter Twitter payload.
+	 * @return string Escaped image URL, empty when no candidate is usable.
+	 */
+	private function resolveEscapedTwitterImage( Context $ctx, array $twitter ): string {
+		$direct = isset( $twitter['image'] ) ? trim( (string) $twitter['image'] ) : '';
+
+		if ( '' !== $direct ) {
+			$escaped = esc_url( $direct );
+
+			if ( '' !== $escaped ) {
+				return $escaped;
+			}
+		}
+
+		if (
+			isset( $twitter['image_id'] )
+			&& (int) $twitter['image_id'] > 0
+			&& function_exists( 'wp_get_attachment_image_url' )
+		) {
+			$fromId = wp_get_attachment_image_url( (int) $twitter['image_id'], 'large' );
+
+			if ( is_string( $fromId ) && '' !== $fromId ) {
+				$escaped = esc_url( $fromId );
+
+				if ( '' !== $escaped ) {
+					return $escaped;
+				}
+			}
+		}
+
+		$ogImage = $ctx->ogImage();
+
+		if ( '' !== $ogImage ) {
+			return esc_url( $ogImage );
+		}
+
+		return '';
+	}
+
+	/**
 	 * Render Twitter tags (fallback chain mirrors OG).
 	 *
 	 * @param Context              $ctx  Context.
@@ -846,11 +894,16 @@ final class HeadRenderer {
 			$og = [];
 		}
 
-		// twitter:card (payload -> default summary_large_image).
+		// Resolve the final Twitter image once, before card selection. The
+		// escaped value drives both the card decision and the emitted tag.
+		$twitterImage = $this->resolveEscapedTwitterImage( $ctx, $twitter );
+
+		// An explicit summary stays summary. Every other stored value, including
+		// the built in default, follows image availability.
 		$card = isset( $twitter['card'] ) ? trim( (string) $twitter['card'] ) : '';
 
-		if ( '' === $card ) {
-			$card = 'summary_large_image';
+		if ( 'summary' !== $card ) {
+			$card = '' !== $twitterImage ? 'summary_large_image' : 'summary';
 		}
 
 		echo '<meta name="twitter:card" content="' . esc_attr( $card ) . '" />' . "\n";
@@ -885,28 +938,9 @@ final class HeadRenderer {
 			echo '<meta name="twitter:description" content="' . esc_attr( $twDesc ) . '" />' . "\n";
 		}
 
-		// twitter:image fallback: twitter.image -> twitter.image_id -> og.image chain.
-		$twImage = isset( $twitter['image'] ) ? trim( (string) $twitter['image'] ) : '';
-
-		if (
-			'' === $twImage
-			&& isset( $twitter['image_id'] )
-			&& (int) $twitter['image_id'] > 0
-			&& function_exists( 'wp_get_attachment_image_url' )
-		) {
-			$url = wp_get_attachment_image_url( (int) $twitter['image_id'], 'large' );
-
-			if ( is_string( $url ) && '' !== $url ) {
-				$twImage = $url;
-			}
-		}
-
-		if ( '' === $twImage ) {
-			$twImage = $ctx->ogImage();
-		}
-
-		if ( '' !== $twImage ) {
-			echo '<meta name="twitter:image" content="' . esc_url( $twImage ) . '" />' . "\n";
+		// twitter:image is emitted only when a usable URL resolved.
+		if ( '' !== $twitterImage ) {
+			echo '<meta name="twitter:image" content="' . $twitterImage . '" />' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already escaped once by esc_url() in resolveEscapedTwitterImage().
 		}
 
 		$siteHandle = MetaPayload::sanitizeTwitterHandle( $this->settings->get( 'twitter_site', '' ) );

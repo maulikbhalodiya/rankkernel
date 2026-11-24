@@ -16,7 +16,9 @@ use PHPUnit\Framework\TestCase;
 use RankKernel\Modules\Metadata\Context;
 use RankKernel\Modules\Metadata\HeadRenderer;
 use RankKernel\Modules\Metadata\MetaPayload;
+use RankKernel\Modules\Metadata\MetadataModule;
 use RankKernel\Modules\Metadata\TagsReplacer;
+use RankKernel\Modules\ModuleEnableMap;
 use RankKernel\Settings\SettingsStore;
 use WP_Query;
 
@@ -1674,7 +1676,8 @@ final class HeadRendererTest extends TestCase {
 
 		$out = $this->renderHead( $ctx, $settings );
 
-		$this->assertStringContainsString( 'name="twitter:card" content="summary_large_image"', $out );
+		// M-4: the built in large card degrades when no usable image resolves.
+		$this->assertStringContainsString( 'name="twitter:card" content="summary"', $out );
 		$this->assertStringNotContainsString( 'name="twitter:title"', $out );
 		$this->assertStringNotContainsString( 'name="twitter:description"', $out );
 		$this->assertStringNotContainsString( 'name="twitter:image"', $out );
@@ -2268,5 +2271,423 @@ final class HeadRendererTest extends TestCase {
 		$this->assertStringContainsString( '<meta property="og:image:width" content="1200" />', $out );
 		$this->assertStringContainsString( '<meta property="og:image:height" content="630" />', $out );
 		$this->assertStringContainsString( '<meta property="og:image:alt" content="Default image alt" />', $out );
+	}
+
+	/**
+	 * Make esc_url reject disallowed schemes, the way live WordPress does.
+	 *
+	 * The shared test stub only HTML escapes, so a hostile candidate would
+	 * otherwise look usable. This stub exercises the real usability rule.
+	 */
+	private function stubStrictEscUrl(): void {
+		Functions\when( 'esc_url' )->alias(
+			static function ( string $url ): string {
+				if ( 1 !== preg_match( '/^https?:\/\//i', $url ) ) {
+					return '';
+				}
+
+				return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
+			}
+		);
+	}
+
+	/**
+	 * M-4 case 1: the built in large card degrades when no image resolves.
+	 */
+	public function test_card_default_large_without_image_degrades_to_summary(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		$this->assertSame( '', $ctx->ogImage(), 'the no image fixture must not resolve an OG image' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 0 );
+	}
+
+	/**
+	 * M-4 case 2: an explicit large card degrades when no image resolves.
+	 */
+	public function test_card_explicit_large_without_image_degrades_to_summary(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'twitter' => [ 'card' => 'summary_large_image' ] ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 0 );
+	}
+
+	/**
+	 * M-4 case 3: an explicit summary card stays summary without an image.
+	 */
+	public function test_card_explicit_summary_without_image_stays_summary(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'twitter' => [ 'card' => 'summary' ] ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+	}
+
+	/**
+	 * M-4 case 4: an explicit summary card stays summary with a valid image.
+	 */
+	public function test_card_explicit_summary_with_valid_image_stays_summary(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'  => 'summary',
+					'image' => 'https://example.com/twitter-card.jpg',
+				],
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter-card.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 5: an explicit large card stays large with a per post Twitter image.
+	 */
+	public function test_card_explicit_large_with_per_post_twitter_image_stays_large(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'  => 'summary_large_image',
+					'image' => 'https://example.com/twitter-only.jpg',
+				],
+			]
+		);
+
+		$this->assertSame( '', $ctx->ogImage() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter-only.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 6: an explicit large card stays large with a Twitter attachment.
+	 */
+	public function test_card_explicit_large_with_twitter_attachment_stays_large(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'     => 'summary_large_image',
+					'image_id' => 44,
+				],
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/twitter-attach.jpg' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter-attach.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 7: a Twitter specific image keeps the card large with no OG image.
+	 *
+	 * An OG only implementation sees no image in this fixture and would emit
+	 * summary, so the empty ogImage assertion plus the large card assertion
+	 * pin the critical regression.
+	 */
+	public function test_card_stays_large_for_twitter_image_when_og_image_is_absent(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[ 'twitter' => [ 'image' => 'https://example.com/twitter-only.jpg' ] ]
+		);
+
+		$this->assertSame( '', $ctx->ogImage(), 'the fixture must have no OG image' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter-only.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 8: a per post OG image keeps the card large.
+	 */
+	public function test_card_stays_large_for_per_post_og_image_fallback(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[ 'og' => [ 'image' => 'https://example.com/post-og.jpg' ] ]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/post-og.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 9: a featured image keeps the card large.
+	 */
+	public function test_card_stays_large_for_featured_image_fallback(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 77 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/featured.jpg' );
+
+		$this->assertSame( 'https://example.com/featured.jpg', $ctx->ogImage() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/featured.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 10: a global image with an attachment id keeps the card large.
+	 */
+	public function test_card_stays_large_for_global_image_with_attachment_id(): void {
+		[ $ctx, $settings ] = $this->makeContext(
+			'archive',
+			9,
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 91,
+			]
+		);
+
+		$this->assertSame( 91, $ctx->ogImageAttachmentId() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/default.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 11: an M-5 URL only global default keeps the card large.
+	 */
+	public function test_card_stays_large_for_m5_url_only_global_default(): void {
+		[ $ctx, $settings ] = $this->makeContext(
+			'archive',
+			9,
+			[],
+			[ 'social_default_image' => 'https://example.com/url-only.jpg' ]
+		);
+
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/url-only.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 12: an unusable Twitter image falls through to the OG image.
+	 */
+	public function test_card_continues_candidates_when_twitter_image_is_unusable(): void {
+		$this->stubStrictEscUrl();
+
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [ 'image' => 'javascript:alert(1)' ],
+				'og'      => [ 'image' => 'https://example.com/og-fallback.jpg' ],
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/og-fallback.jpg" />', $out );
+		$this->assertStringNotContainsString( 'javascript:', $out );
+	}
+
+	/**
+	 * M-4 case 12: an unusable direct image falls through to the Twitter id.
+	 */
+	public function test_card_continues_to_twitter_attachment_when_direct_image_is_unusable(): void {
+		$this->stubStrictEscUrl();
+
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'image'    => 'javascript:alert(1)',
+					'image_id' => 44,
+				],
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/twitter-id.jpg' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $out );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter-id.jpg" />', $out );
+		$this->assertStringNotContainsString( 'javascript:', $out );
+	}
+
+	/**
+	 * M-4 case 13: no image degrades the card on home, posts page, post and archive.
+	 */
+	public function test_no_image_degrades_card_on_home_posts_page_post_and_archive(): void {
+		foreach ( [ 'home', 'posts_page', 'post', 'archive' ] as $type ) {
+			[ $ctx, $settings ] = $this->makeContext( $type, 9 );
+
+			$this->assertSame( '', $ctx->ogImage(), $type );
+
+			$out = $this->renderHead( $ctx, $settings );
+
+			$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+			$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out, $type );
+			$this->assertTagCount( $out, 'name="twitter:image"', 0 );
+		}
+	}
+
+	/**
+	 * M-4 case 13: no image degrades the card on a regular page.
+	 */
+	public function test_no_image_degrades_card_on_a_regular_page(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		[ $ctx, $settings ] = $this->makeContext( 'post', 9 );
+
+		$this->assertSame( '', $ctx->ogImage() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 0 );
+	}
+
+	/**
+	 * M-4 case 14: an unsupported card value falls back by image availability.
+	 */
+	public function test_unsupported_card_value_falls_back_based_on_image_availability(): void {
+		[ $noImageCtx, $noImageSettings ] = $this->makeSingularContext( [ 'twitter' => [ 'card' => 'bogus-card' ] ] );
+
+		$noImageOut = $this->renderHead( $noImageCtx, $noImageSettings );
+
+		$this->assertTagCount( $noImageOut, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $noImageOut );
+
+		[ $imageCtx, $imageSettings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'  => 'bogus-card',
+					'image' => 'https://example.com/card.jpg',
+				],
+			]
+		);
+
+		$imageOut = $this->renderHead( $imageCtx, $imageSettings );
+
+		$this->assertTagCount( $imageOut, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $imageOut );
+	}
+
+	/**
+	 * M-4 case 15: exactly one twitter:card tag is emitted.
+	 */
+	public function test_twitter_card_tag_is_emitted_exactly_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [
+					'card'  => 'summary_large_image',
+					'image' => 'https://example.com/one.jpg',
+				],
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+	}
+
+	/**
+	 * M-4 case 16: exactly one twitter:image tag is emitted when an image resolves.
+	 */
+	public function test_twitter_image_tag_is_emitted_exactly_once_when_resolved(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[
+				'twitter' => [ 'image' => 'https://example.com/twitter.jpg' ],
+				'og'      => [ 'image' => 'https://example.com/og.jpg' ],
+			]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:image"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/twitter.jpg" />', $out );
+	}
+
+	/**
+	 * M-4 case 17: no twitter:image tag is emitted when no usable image resolves.
+	 */
+	public function test_twitter_image_tag_is_omitted_when_no_usable_image_resolves(): void {
+		$this->stubStrictEscUrl();
+
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'twitter' => [ 'image' => 'javascript:alert(1)' ] ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:card"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $out );
+		$this->assertTagCount( $out, 'name="twitter:image"', 0 );
+	}
+
+	/**
+	 * M-4 case 18: a disabled metadata module registers no social head output.
+	 */
+	public function test_metadata_module_disabled_emits_no_unintended_social_metadata(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'redirects' ];
+				}
+
+				if ( 'rankkernel_settings' === $key ) {
+					return SettingsStore::defaults();
+				}
+
+				return $fallback;
+			}
+		);
+
+		$map    = new ModuleEnableMap();
+		$module = new MetadataModule( new SettingsStore(), $map );
+
+		$this->assertFalse( $map->isEnabled( 'metadata' ) );
+		$this->assertFalse( $module->isEnabled(), 'gating lives in the module, not in the renderer' );
+
+		$booted = false;
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook ) use ( &$booted ): void {
+				if ( 'wp_head' === $hook ) {
+					$booted = true;
+				}
+			}
+		);
+
+		// The module manager only boots the renderer when the module is enabled.
+		if ( $module->isEnabled() ) {
+			( new HeadRenderer( new SettingsStore() ) )->boot();
+		}
+
+		$this->assertFalse( $booted, 'a disabled metadata module must not register head output' );
+
+		ob_start();
+		$out = ob_get_clean();
+
+		$this->assertSame( '', $out, 'M-4 added no unconditional social metadata output' );
 	}
 }
