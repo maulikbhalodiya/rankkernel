@@ -2690,4 +2690,294 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertSame( '', $out, 'M-4 added no unconditional social metadata output' );
 	}
+
+	/**
+	 * Assert canonical and og:url carry the exact same URL in final markup.
+	 *
+	 * M-6: canonical and og:url must resolve through the same path, so an
+	 * internal canonical override has to reach both tags. The literal tag
+	 * markers are counted to pin cardinality, and the extracted attribute
+	 * values are compared exactly rather than only checking presence.
+	 *
+	 * @param string $output   Rendered head markup.
+	 * @param string $expected Expected URL already escaped for an attribute.
+	 */
+	private function assertHeadUrlsAgree( string $output, string $expected ): void {
+		preg_match_all( '/<link rel="canonical" href="([^"]*)" \/>/', $output, $canonicalMatches );
+		$this->assertCount( 1, $canonicalMatches[1], 'exactly one canonical tag expected: ' . $output );
+		$this->assertSame( $expected, $canonicalMatches[1][0], 'canonical href mismatch: ' . $output );
+
+		preg_match_all( '/<meta property="og:url" content="([^"]*)" \/>/', $output, $ogMatches );
+		$this->assertLessThanOrEqual( 1, count( $ogMatches[1] ), 'at most one og:url expected: ' . $output );
+		$this->assertCount( 1, $ogMatches[1], 'og:url expected where applicable: ' . $output );
+		$this->assertSame( $expected, $ogMatches[1][0], 'og:url mismatch: ' . $output );
+	}
+
+	/**
+	 * Assert neither canonical nor og:url is emitted in final markup.
+	 *
+	 * @param string $output Rendered head markup.
+	 */
+	private function assertNoCanonicalNoOgUrl( string $output ): void {
+		$this->assertTagCount( $output, 'rel="canonical"', 0 );
+		$this->assertTagCount( $output, '<meta property="og:url"', 0 );
+	}
+
+	/**
+	 * M-6 case 1: a default post points canonical and og:url at the permalink.
+	 */
+	public function test_canonical_and_og_url_match_permalink_on_default_post(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'post', 1 );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-6 case 2: a default regular page points both URLs at the permalink.
+	 */
+	public function test_canonical_and_og_url_match_permalink_on_regular_page(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		[ $ctx, $settings ] = $this->makeContext( 'post', 1 );
+		// Context models every singular request as 'post' internally. The page
+		// identity comes from get_post_type(), so give the fixture a real page
+		// permalink rather than reusing the default post permalink.
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/page/' );
+
+		$this->assertSame( 'post', $ctx->queriedType() );
+		$this->assertSame( 'https://example.com/page/', $ctx->permalink() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/page/' );
+	}
+
+	/**
+	 * M-6 case 3: a valid internal canonical override on a post reaches og:url.
+	 *
+	 * This is the regression test: the old renderer read Context::permalink()
+	 * directly for og:url, so it still held the post permalink while the
+	 * canonical carried the override.
+	 */
+	public function test_valid_canonical_override_is_used_for_og_url_on_post(): void {
+		$override           = 'https://example.com/canonical-override/';
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => $override ] );
+
+		$this->assertSame( $override, $ctx->meta()['canonical'], 'fixture must pass through MetaPayload sanitization' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), $override );
+	}
+
+	/**
+	 * M-6 case 4: a valid internal canonical override on a page reaches og:url.
+	 */
+	public function test_valid_canonical_override_is_used_for_og_url_on_page(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		$override           = 'https://example.com/page-canonical-override/';
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => $override ] );
+
+		$this->assertSame( $override, $ctx->meta()['canonical'], 'fixture must pass through MetaPayload sanitization' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), $override );
+	}
+
+	/**
+	 * M-6 case 5: a valid term canonical override reaches og:url.
+	 *
+	 * Term meta is sanitized by the same production MetaPayload path, so the
+	 * override is asserted to survive sanitization before it is compared.
+	 */
+	public function test_valid_canonical_override_is_used_for_og_url_on_term(): void {
+		$override = 'https://example.com/term-canonical-override/';
+		$payload  = [ 'canonical' => $override ];
+
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		Functions\when( 'get_term_meta' )->justReturn( $payload );
+
+		$this->assertSame( $override, $ctx->meta()['canonical'], 'fixture must pass through MetaPayload sanitization' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), $override );
+	}
+
+	/**
+	 * M-6 case 6: a paginated context with an explicit canonical override uses
+	 * the override for both URLs and adds no pagination suffix.
+	 *
+	 * No pagination composition is introduced here. Pagination itself stays
+	 * out of scope. With an explicit override in play, the override must win
+	 * unchanged on both tags.
+	 */
+	public function test_paginated_context_with_canonical_override_has_no_pagination_suffix(): void {
+		$override = 'https://example.com/paginated-canonical/';
+
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => $override ] );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = 0 ): mixed {
+				return 'paged' === $key ? 2 : $fallback;
+			}
+		);
+
+		$this->assertTrue( $ctx->paginated(), 'fixture must model a paginated request' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertHeadUrlsAgree( $out, $override );
+		$this->assertStringNotContainsString( 'page/2', $out );
+	}
+
+	/**
+	 * M-6 case 7: an empty canonical falls back to the permalink on both tags.
+	 */
+	public function test_empty_canonical_falls_back_to_permalink_on_both_urls(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => '' ] );
+
+		$this->assertSame( '', $ctx->meta()['canonical'] );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-6 case 8: an invalid canonical is dropped by the existing sanitizer and
+	 * both URLs fall back to the permalink.
+	 */
+	public function test_invalid_canonical_is_dropped_and_both_urls_use_permalink(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => 'mailto:editor@example.com' ] );
+
+		$this->assertSame( '', $ctx->meta()['canonical'], 'invalid canonical must be dropped by MetaPayload' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-6 case 9: an off-site canonical is rejected by the same-host rule.
+	 */
+	public function test_external_canonical_is_dropped_and_both_urls_use_permalink(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => 'https://evil.com/hijack' ] );
+
+		$this->assertSame( '', $ctx->meta()['canonical'], 'off-site canonical must be dropped by MetaPayload' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-6 case 10: a protocol-relative canonical is rejected by the sanitizer.
+	 */
+	public function test_protocol_relative_canonical_is_dropped_and_both_urls_use_permalink(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => '//evil.com/hijack' ] );
+
+		$this->assertSame( '', $ctx->meta()['canonical'], 'protocol-relative canonical must be dropped by MetaPayload' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-6 case 11: a static homepage keeps its existing canonical and og:url.
+	 */
+	public function test_static_homepage_canonical_and_og_url_are_unchanged(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'front_page', 42 );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/' );
+	}
+
+	/**
+	 * M-6 case 12: a separate posts page keeps its existing canonical and og:url.
+	 */
+	public function test_separate_posts_page_canonical_and_og_url_are_unchanged(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'posts_page', 9 );
+
+		// The helper's get_option stub returns the fallback for page_for_posts,
+		// which skips the separate-posts-page branch of Context::computePermalink().
+		// Point it at a real page id and give that page a distinct permalink.
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'page_for_posts' === $key ) {
+					return 9;
+				}
+
+				if ( 'rankkernel_settings' === $key ) {
+					return SettingsStore::defaults();
+				}
+
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'metadata' ];
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_permalink' )->alias(
+			static function ( mixed $postId = 0 ): string {
+				return 9 === (int) $postId ? 'https://example.com/blog/' : '';
+			}
+		);
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( 'https://example.com/blog/', $ctx->permalink(), 'fixture must enter the separate-posts-page branch' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/blog/' );
+	}
+
+	/**
+	 * M-6 case 13: author and date archives keep canonical and og:url on their
+	 * permalink. No pagination composition is asserted here.
+	 */
+	public function test_author_and_date_archives_keep_canonical_and_og_url_on_permalink(): void {
+		[ $authorCtx, $authorSettings, $authorQuery ] = $this->makeContext( 'archive', 5 );
+		$authorQuery->shouldReceive( 'is_author' )->andReturn( true );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/bob/' );
+
+		$this->assertSame( 'archive', $authorCtx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $authorCtx, $authorSettings ), 'https://example.com/author/bob/' );
+
+		[ $dateCtx, $dateSettings ] = $this->makeContext( 'date', 0 );
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = 0 ): mixed {
+				return match ( $key ) {
+					'year'    => 2026,
+					'monthnum' => 1,
+					'day'     => 15,
+					default   => $fallback,
+				};
+			}
+		);
+		Functions\when( 'get_day_link' )->justReturn( 'https://example.com/2026/01/15/' );
+
+		$this->assertSame( 'archive', $dateCtx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $dateCtx, $dateSettings ), 'https://example.com/2026/01/15/' );
+	}
+
+	/**
+	 * M-6 case 14: search emits no canonical and no og:url.
+	 */
+	public function test_search_omits_canonical_and_og_url(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 0 );
+
+		$this->assertNoCanonicalNoOgUrl( $this->renderHead( $ctx, $settings ) );
+	}
+
+	/**
+	 * M-6 case 15: 404 emits no canonical and no og:url.
+	 */
+	public function test_404_omits_canonical_and_og_url(): void {
+		[ $ctx, $settings ] = $this->makeContext( '404', 0 );
+
+		$this->assertNoCanonicalNoOgUrl( $this->renderHead( $ctx, $settings ) );
+	}
+
+	/**
+	 * M-6 case 16: with an override, exactly one canonical and at most one
+	 * og:url are emitted, both carrying the override.
+	 */
+	public function test_canonical_and_og_url_cardinality_with_override(): void {
+		$override           = 'https://example.com/cardinality-override/';
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => $override ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:url"', 1 );
+		$this->assertHeadUrlsAgree( $out, $override );
+	}
+
+	/**
+	 * M-6 escaping: canonical and og:url apply the same output escaping.
+	 */
+	public function test_canonical_and_og_url_are_escaped_identically(): void {
+		$override           = 'https://example.com/?a=1&b=2';
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'canonical' => $override ] );
+
+		$this->assertSame( $override, $ctx->meta()['canonical'], 'fixture must pass through MetaPayload sanitization' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/?a=1&amp;b=2' );
+	}
 }

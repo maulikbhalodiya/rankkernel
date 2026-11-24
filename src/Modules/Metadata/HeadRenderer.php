@@ -732,7 +732,7 @@ final class HeadRenderer {
 
 		// og:url.
 		if ( ! in_array( $ctx->queriedType(), [ 'search', '404' ], true ) ) {
-			$ogUrl = $ctx->permalink();
+			$ogUrl = $this->resolveCanonical( $ctx, $meta );
 
 			if ( '' !== $ogUrl ) {
 				echo '<meta property="og:url" content="' . esc_url( $ogUrl ) . '" />' . "\n";
