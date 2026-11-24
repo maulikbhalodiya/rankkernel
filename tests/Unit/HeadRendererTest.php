@@ -75,22 +75,25 @@ final class HeadRendererTest extends TestCase {
 		array $metaPayload = [],
 		array $settingsOverrides = []
 	): array {
-		$isPost    = 'post' === $type;
-		$isArchive = 'archive' === $type;
-		$query     = Mockery::mock( WP_Query::class );
-		$query->shouldReceive( 'is_singular' )->andReturn( $isPost )->byDefault();
+		$isPost      = 'post' === $type;
+		$isSingular  = in_array( $type, [ 'post', 'front_page' ], true );
+		$isHome      = in_array( $type, [ 'home', 'posts_page' ], true );
+		$isFrontPage = in_array( $type, [ 'home', 'front_page' ], true );
+		$isArchive   = in_array( $type, [ 'archive', 'date' ], true );
+		$query       = Mockery::mock( WP_Query::class );
+		$query->shouldReceive( 'is_singular' )->andReturn( $isSingular )->byDefault();
 		$query->shouldReceive( 'is_search' )->andReturn( 'search' === $type )->byDefault();
 		$query->shouldReceive( 'is_404' )->andReturn( '404' === $type )->byDefault();
 		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( 'term' === $type )->byDefault();
 		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_home' )->andReturn( 'home' === $type )->byDefault();
-		$query->shouldReceive( 'is_front_page' )->andReturn( 'home' === $type )->byDefault();
+		$query->shouldReceive( 'is_home' )->andReturn( $isHome )->byDefault();
+		$query->shouldReceive( 'is_front_page' )->andReturn( $isFrontPage )->byDefault();
 		$query->shouldReceive( 'is_archive' )->andReturn( $isArchive )->byDefault();
 		$query->shouldReceive( 'is_author' )->andReturn( 'author' === $type )->byDefault();
-		$query->shouldReceive( 'is_date' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_date' )->andReturn( 'date' === $type )->byDefault();
 		$query->shouldReceive( 'is_post_type_archive' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
 		$query->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $id ] )->byDefault();
@@ -99,17 +102,17 @@ final class HeadRendererTest extends TestCase {
 		Functions\when( 'get_query_var' )->justReturn( 0 );
 		Functions\when( 'is_feed' )->justReturn( false );
 		Functions\when( 'is_author' )->justReturn( 'author' === $type );
-		Functions\when( 'is_date' )->justReturn( false );
+		Functions\when( 'is_date' )->justReturn( 'date' === $type );
 		Functions\when( 'is_post_type_archive' )->justReturn( false );
 		Functions\when( 'get_bloginfo' )->justReturn( 'My Site' );
-		Functions\when( 'get_the_title' )->justReturn( $isPost ? 'Post Title' : 'Archive Title' );
-		Functions\when( 'get_the_excerpt' )->justReturn( $isPost ? 'Excerpt text for description fallback that is trimmed' : '' );
+		Functions\when( 'get_the_title' )->justReturn( $isSingular ? 'Post Title' : 'Archive Title' );
+		Functions\when( 'get_the_excerpt' )->justReturn( $isSingular ? 'Excerpt text for description fallback that is trimmed' : '' );
 		Functions\when( 'get_post_field' )->justReturn( '' );
-		Functions\when( 'get_permalink' )->justReturn( $isPost ? 'https://example.com/post/' : 'https://example.com/archive/' );
+		Functions\when( 'get_permalink' )->justReturn( $isSingular ? 'https://example.com/post/' : 'https://example.com/archive/' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-		Functions\when( 'get_the_date' )->justReturn( $isPost ? '2026-01-01T00:00:00+00:00' : '' );
-		Functions\when( 'get_the_modified_date' )->justReturn( $isPost ? '2026-02-01T00:00:00+00:00' : '' );
-		Functions\when( 'get_the_author' )->justReturn( $isPost ? 'Author' : '' );
+		Functions\when( 'get_the_date' )->justReturn( $isSingular ? '2026-01-01T00:00:00+00:00' : '' );
+		Functions\when( 'get_the_modified_date' )->justReturn( $isSingular ? '2026-02-01T00:00:00+00:00' : '' );
+		Functions\when( 'get_the_author' )->justReturn( $isSingular ? 'Author' : '' );
 		Functions\when( 'get_the_author_meta' )->justReturn( '' );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'get_author_posts_url' )->justReturn( '' );
@@ -135,6 +138,9 @@ final class HeadRendererTest extends TestCase {
 
 		Functions\when( 'get_post_meta' )->justReturn( $isPost ? $metaPayload : [] );
 		Functions\when( 'get_term_meta' )->justReturn( [] );
+		// A term fixture calls Context::permalink(), which resolves through
+		// get_term_link(). Stub it here so the test is order independent.
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/' );
 		Functions\when( 'apply_filters' )->alias( static fn ( string $h, mixed $v ) => $v );
 		Functions\when( 'do_action' )->justReturn( null );
 
@@ -1430,6 +1436,169 @@ final class HeadRendererTest extends TestCase {
 		$out = $this->renderHead( $ctx, $settings );
 
 		$this->assertStringNotContainsString( 'property="article:author"', $out );
+	}
+
+	/**
+	 * A static front page is a website, not an article, and emits no article:* tags.
+	 *
+	 * A static front page is singular (is_singular true) and is_front_page true
+	 * while is_home is false. Context::queriedType() resolves it to 'home', so
+	 * the og:type default and the article:* gate must follow that type instead
+	 * of isSingular(). Canonical and og:url must stay untouched by the fix.
+	 */
+	public function test_static_front_page_emits_website_type_and_no_article_tags(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'front_page', 42 );
+
+		// A real front page has a queried page id, dates and an author URL.
+		Functions\when( 'get_post_field' )->alias(
+			static fn ( string $field, int $id ): mixed => 'post_author' === $field && 42 === $id ? 7 : ''
+		);
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertTrue( $ctx->isSingular(), 'fixture must model a singular front page' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out, 'Static front page head: ' . $out );
+		$this->assertStringNotContainsString( 'property="article:', $out, 'A website must emit no article:* metadata: ' . $out );
+
+		// Canonical and og:url are unchanged by the og:type correction.
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertStringContainsString( '<link rel="canonical" href="https://example.com/" />', $out );
+		$this->assertStringContainsString( '<meta property="og:url" content="https://example.com/" />', $out );
+	}
+
+	/**
+	 * The latest-posts homepage stays a website with no article:* tags.
+	 */
+	public function test_latest_posts_homepage_emits_website_type_and_no_article_tags(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'home', 0 );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out );
+		$this->assertStringNotContainsString( 'property="article:', $out );
+	}
+
+	/**
+	 * A separate posts page (is_home true, is_front_page false) stays a website.
+	 */
+	public function test_separate_posts_page_emits_website_type_and_no_article_tags(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'posts_page', 9 );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertFalse( $ctx->isSingular() );
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out );
+		$this->assertStringNotContainsString( 'property="article:', $out );
+	}
+
+	/**
+	 * A single post stays an article and keeps its article:* dates and author.
+	 */
+	public function test_single_post_keeps_article_type_and_article_tags(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_field' )->alias(
+			static fn ( string $field, int $id ): mixed => 'post_author' === $field && 1 === $id ? 7 : ''
+		);
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 'post', $ctx->queriedType() );
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="article" />', $out );
+		$this->assertStringContainsString( '<meta property="article:published_time" content="2026-01-02T03:04:05+00:00" />', $out );
+		$this->assertStringContainsString( '<meta property="article:modified_time" content="2026-02-03T04:05:06+00:00" />', $out );
+		$this->assertStringContainsString( '<meta property="article:author" content="https://example.com/author/jane/" />', $out );
+	}
+
+	/**
+	 * A regular singular page (not the front page) keeps the existing article behavior.
+	 */
+	public function test_regular_singular_page_keeps_article_type_and_article_tags(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		[ $ctx, $settings ] = $this->makeSingularContext();
+
+		Functions\when( 'get_post_field' )->alias(
+			static fn ( string $field, int $id ): mixed => 'post_author' === $field && 1 === $id ? 7 : ''
+		);
+		Functions\when( 'get_the_date' )->justReturn( '2026-01-02T03:04:05+00:00' );
+		Functions\when( 'get_the_modified_date' )->justReturn( '2026-02-03T04:05:06+00:00' );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/jane/' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 'post', $ctx->queriedType() );
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="article" />', $out );
+		$this->assertStringContainsString( '<meta property="article:published_time" content="2026-01-02T03:04:05+00:00" />', $out );
+		$this->assertStringContainsString( '<meta property="article:modified_time" content="2026-02-03T04:05:06+00:00" />', $out );
+		$this->assertStringContainsString( '<meta property="article:author" content="https://example.com/author/jane/" />', $out );
+	}
+
+	/**
+	 * Category, date and generic archive contexts stay websites with no article tags.
+	 */
+	public function test_category_date_and_archive_contexts_keep_website_type(): void {
+		foreach ( [ 'term', 'date', 'archive' ] as $type ) {
+			[ $ctx, $settings ] = $this->makeContext( $type, 9 );
+
+			$out = $this->renderHead( $ctx, $settings );
+
+			$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+			$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out, $type );
+			$this->assertStringNotContainsString( 'property="article:', $out, $type );
+		}
+	}
+
+	/**
+	 * An explicit og.type override still wins over the default classification.
+	 *
+	 * This override is only exposed for the 'post' queried type, because
+	 * Context::meta() reads post meta there. The mismatch this can create on a
+	 * post (website og:type with article:* tags) is reported separately and is
+	 * deliberately left unchanged here.
+	 */
+	public function test_explicit_og_type_override_keeps_precedence_and_is_emitted_once(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext( [ 'og' => [ 'type' => 'website' ] ] );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, '<meta property="og:type"', 1 );
+		$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out );
+	}
+
+	/**
+	 * A static front page has no per page og.type override path.
+	 *
+	 * Context::meta() only reads post meta for the 'post' queried type, and a
+	 * static front page resolves to 'home'. No override capability is invented
+	 * for it here, the limitation is documented by this assertion.
+	 */
+	public function test_static_front_page_has_no_meta_override_path_for_og_type(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'front_page', 42 );
+
+		Functions\when( 'get_post_meta' )->justReturn( [ 'og' => [ 'type' => 'article' ] ] );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertSame( '', $ctx->meta()['og']['type'], 'Context::meta() must not read a post meta override on a front page' );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertStringContainsString( '<meta property="og:type" content="website" />', $out );
 	}
 
 	/**

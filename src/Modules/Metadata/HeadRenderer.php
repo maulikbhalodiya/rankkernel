@@ -739,17 +739,16 @@ final class HeadRenderer {
 			}
 		}
 
+		// A static front page is singular yet resolves to the 'home' queried type.
+		// Both the default og:type and the article:* gate must follow queriedType()
+		// rather than isSingular(), while an explicit og.type override still wins.
+		$isArticleContext = 'post' === $ctx->queriedType();
+
 		// og:type.
 		$ogType = isset( $og['type'] ) ? trim( (string) $og['type'] ) : '';
 
 		if ( '' === $ogType ) {
-			if ( $ctx->isSingular() ) {
-				$ogType = 'article';
-			} elseif ( 'home' === $ctx->queriedType() ) {
-				$ogType = 'website';
-			} else {
-				$ogType = 'website';
-			}
+			$ogType = $isArticleContext ? 'article' : 'website';
 		}
 
 		if ( '' !== $ogType ) {
@@ -794,7 +793,7 @@ final class HeadRenderer {
 			echo '<meta property="og:locale" content="' . esc_attr( $locale ) . '" />' . "\n";
 		}
 
-		if ( $ctx->isSingular() ) {
+		if ( $isArticleContext ) {
 			$postId = $ctx->queriedId();
 
 			if ( $postId > 0 ) {
