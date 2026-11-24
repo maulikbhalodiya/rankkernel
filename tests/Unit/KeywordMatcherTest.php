@@ -218,6 +218,28 @@ final class KeywordMatcherTest extends TestCase {
 	}
 
 	/**
+	 * Test containsAny scopes matching to one supplied segment at a time.
+	 */
+	public function test_contains_any_scopes_matching_to_each_segment(): void {
+		$this->assertTrue( KeywordMatcher::containsAny( [ 'We sell red apples here.', 'Other words.' ], 'red apples' ) );
+		$this->assertFalse( KeywordMatcher::containsAny( [ 'The red fruit.', 'Apples are sweet.' ], 'red apples' ) );
+		$this->assertFalse( KeywordMatcher::containsAny( [], 'red apples' ) );
+		$this->assertFalse( KeywordMatcher::containsAny( [ 'red apples here' ], '' ) );
+		// A comma or a hyphen inside one segment folds to the exact phrase and still counts.
+		$this->assertTrue( KeywordMatcher::containsAny( [ 'We picked red, apples today.' ], 'red apples' ) );
+		$this->assertTrue( KeywordMatcher::containsAny( [ 'A well-known brand today.' ], 'well known' ) );
+	}
+
+	/**
+	 * Test occurrencesAny sums exact counts without joining the segments.
+	 */
+	public function test_occurrences_any_sums_counts_across_segments(): void {
+		$this->assertSame( 3, KeywordMatcher::occurrencesAny( [ 'red apples and more red apples', 'one red apples here' ], 'red apples' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrencesAny( [ 'The red', 'apples are sweet' ], 'red apples' ) );
+		$this->assertSame( 0, KeywordMatcher::occurrencesAny( [], 'red apples' ) );
+	}
+
+	/**
 	 * Test memoized results and resetCache().
 	 */
 	public function test_memoization_and_reset_cache(): void {

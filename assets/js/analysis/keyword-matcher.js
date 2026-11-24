@@ -163,6 +163,21 @@
 		return false;
 	}
 
+	// Each segment is matched on its own with the same rules as contains(), so
+	// a phrase cannot be assembled from two segments. Punctuation separated
+	// words inside one segment are still permitted, because normalisation
+	// folds them into the same string before the sentence and reduced phrase
+	// strategies run.
+	function containsAny( segments, keyword, stripAccents ) {
+		var list = Array.isArray( segments ) ? segments : [];
+		for ( var i = 0; i < list.length; i++ ) {
+			if ( contains( list[ i ], keyword, stripAccents ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	function position( haystack, keyword, stripAccents ) {
 		var needle = Array.from( normalize( keyword, stripAccents ) );
 		var hay = Array.from( normalize( haystack, stripAccents ) );
@@ -226,6 +241,18 @@
 		return count;
 	}
 
+	// The count is the sum of occurrences() over each segment, so a phrase
+	// formed by the last word of one segment and the first word of the next
+	// is not counted.
+	function occurrencesAny( segments, keyword, stripAccents ) {
+		var list = Array.isArray( segments ) ? segments : [];
+		var total = 0;
+		for ( var i = 0; i < list.length; i++ ) {
+			total += occurrences( list[ i ], keyword, stripAccents );
+		}
+		return total;
+	}
+
 	function density( haystack, keyword, stripAccents ) {
 		var total = words( haystack, stripAccents ).length;
 		if ( 0 === total ) {
@@ -241,8 +268,10 @@
 		words: words,
 		contentWords: contentWords,
 		contains: contains,
+		containsAny: containsAny,
 		position: position,
 		occurrences: occurrences,
+		occurrencesAny: occurrencesAny,
 		density: density
 	};
 } ) );

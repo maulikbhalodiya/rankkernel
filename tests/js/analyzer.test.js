@@ -35,7 +35,7 @@ test( 'weights sum to 130 and keyword_uniqueness weighs 0', () => {
 	const total = Object.keys( Analyzer.WEIGHTS ).reduce( ( sum, id ) => sum + Analyzer.WEIGHTS[ id ], 0 );
 	assert.equal( total, 130 );
 	assert.equal( Analyzer.WEIGHTS.keyword_uniqueness, 0 );
-	assert.equal( Analyzer.RULES_VERSION, 2 );
+	assert.equal( Analyzer.RULES_VERSION, 3 );
 } );
 
 test( 'an na check earns 0 and keeps its weight', () => {
@@ -239,6 +239,154 @@ test( 'the score rounds like PHP where the percentage lands just under a half po
 	assert.equal( earned + '/' + applicable, '69/120' );
 	assert.equal( result.score, 58 );
 	assert.equal( result.band, 'improve' );
+} );
+
+test( 'a phrase assembled from two paragraphs is not content presence', () => {
+	const result = Analyzer.analyze( input( { html: '<p>We love the red</p><p>apples from the orchard here today.</p>' } ) );
+	const check = checkById( result, 'keyword_in_content' );
+	assert.equal( check.status, 'problem' );
+	assert.equal( check.earned, 0 );
+	assert.ok( check.message.indexOf( 'does not appear in the content' ) !== -1 );
+} );
+
+test( 'a phrase assembled from two subheadings is not subheading presence', () => {
+	const result = Analyzer.analyze( input( { html: '<h2>Best red</h2><h2>apples guide</h2><p>Some body text for the reader today.</p>' } ) );
+	const check = checkById( result, 'keyword_in_subheading' );
+	assert.equal( check.status, 'problem' );
+	assert.equal( check.earned, 0 );
+	assert.ok( check.message.indexOf( 'does not appear in a subheading' ) !== -1 );
+} );
+
+test( 'a phrase assembled from two image alts is not alt presence while alt quality is unchanged', () => {
+	const result = Analyzer.analyze( input( { html: '<p>Body text for the reader today.</p><img src="a.jpg" alt="red"><img src="b.jpg" alt="apples">' } ) );
+	assert.equal( checkById( result, 'keyword_in_image_alt' ).status, 'problem' );
+	assert.equal( checkById( result, 'keyword_in_image_alt' ).earned, 0 );
+	assert.equal( checkById( result, 'image_alt_quality' ).status, 'pass' );
+	assert.equal( checkById( result, 'image_alt_quality' ).earned, 3 );
+} );
+
+test( 'a function word reduced phrase across paragraphs is not presence', () => {
+	const result = Analyzer.analyze( input( { keywords: [ 'bicycles for women' ], html: '<p>We ride bicycles</p><p>for women every single day.</p>' } ) );
+	assert.equal( checkById( result, 'keyword_in_content' ).status, 'problem' );
+	assert.equal( checkById( result, 'keyword_in_content' ).earned, 0 );
+} );
+
+test( 'the opening does not assemble a phrase from unrelated sentences', () => {
+	const result = Analyzer.analyze( input( { html: '<p>The red. Apples are delicious and sweet today.</p>' } ) );
+	const check = checkById( result, 'keyword_in_opening' );
+	assert.equal( check.status, 'problem' );
+	assert.equal( check.earned, 0 );
+	assert.ok( check.message.indexOf( 'does not appear near the beginning' ) !== -1 );
+	assert.equal( checkById( result, 'keyword_in_content' ).status, 'pass' );
+} );
+
+test( 'density counts exact occurrences per paragraph and never across a boundary', () => {
+	const filler = new Array( 100 ).fill( 'word' ).join( ' ' );
+	const result = Analyzer.analyze( input( { html: '<p>' + filler + ' red</p><p>apples ' + filler + '</p>' } ) );
+	const check = checkById( result, 'keyword_density' );
+	assert.equal( check.status, 'problem' );
+	assert.equal( check.earned, 0 );
+	assert.ok( check.message.indexOf( 'does not appear in the content yet' ) !== -1 );
+} );
+
+test( 'distribution evaluates individual sentences not one concatenated window', () => {
+	const sentences = [];
+	for ( let i = 0; i < 15; i++ ) {
+		sentences.push( i % 2 === 0 ? 'The fruit is red.' : 'Apples are sweet today.' );
+	}
+	const result = Analyzer.analyze( input( { html: '<p>' + sentences.join( ' ' ) + '</p>' } ) );
+	const check = checkById( result, 'keyword_distribution' );
+	assert.equal( check.status, 'problem' );
+	assert.equal( check.earned, 0 );
+	assert.ok( check.message.indexOf( 'Large parts of the content never mention' ) !== -1 );
+} );
+
+test( 'exact phrases in one segment still pass in content, headings and alts', () => {
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>We sell red apples here today for readers.</p>' } ) ), 'keyword_in_content' ).status, 'pass' );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>We picked red, apples today for the reader.</p>' } ) ), 'keyword_in_content' ).status, 'pass' );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<h2>Red apples guide</h2><p>Body text for the reader today.</p>' } ) ), 'keyword_in_subheading' ).earned, 3 );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>Body text for the reader today.</p><img src="a.jpg" alt="red apples photo">' } ) ), 'keyword_in_image_alt' ).earned, 2 );
+	assert.equal( checkById( Analyzer.analyze( input( { keywords: [ 'apples red' ], html: '<p>We pick red apples every autumn and store them well.</p>' } ) ), 'keyword_in_content' ).status, 'pass' );
+} );
+
+test( 'abbreviations stay in one sentence segment for content, opening and distribution', () => {
+	assert.equal( checkById( Analyzer.analyze( input( { keywords: [ 'Dr Smith' ], html: '<p>Dr. Smith spoke about the topic today for everyone here.</p>' } ) ), 'keyword_in_content' ).status, 'pass' );
+	const opening = checkById( Analyzer.analyze( input( { keywords: [ 'Dr Smith' ], html: '<p>Dr. Smith arrived early and spoke to the group. Then other matters followed.</p>' } ) ), 'keyword_in_opening' );
+	assert.equal( opening.status, 'pass' );
+	assert.equal( opening.earned, 3 );
+	const sentences = new Array( 15 ).fill( 'Dr. Smith spoke today.' );
+	const distribution = checkById( Analyzer.analyze( input( { keywords: [ 'Dr Smith' ], html: '<p>' + sentences.join( ' ' ) + '</p>' } ) ), 'keyword_distribution' );
+	assert.equal( distribution.status, 'pass' );
+	assert.equal( distribution.earned, 3 );
+} );
+
+test( 'a lowercase single letter is not treated as a capital initial', () => {
+	const lowerA = Analyzer.analyze( input( { keywords: [ 'buy apples' ], html: '<p>We buy a. Apples are good.</p>' } ) );
+	// The phrase is inside one paragraph, so content may still match.
+	assert.equal( checkById( lowerA, 'keyword_in_content' ).status, 'pass' );
+	assert.equal( checkById( lowerA, 'keyword_in_opening' ).status, 'problem' );
+	assert.equal( checkById( lowerA, 'keyword_in_opening' ).earned, 0 );
+
+	const lowerI = Analyzer.analyze( input( { keywords: [ 'met smith' ], html: '<p>We met i. Smith is here.</p>' } ) );
+	assert.equal( checkById( lowerI, 'keyword_in_opening' ).status, 'problem' );
+
+	const capital = Analyzer.analyze( input( { keywords: [ 'j smith' ], html: '<p>We met J. Smith is here.</p>' } ) );
+	assert.equal( checkById( capital, 'keyword_in_opening' ).status, 'pass' );
+	assert.equal( checkById( capital, 'keyword_in_opening' ).earned, 3 );
+
+	const mister = Analyzer.analyze( input( { keywords: [ 'mr smith' ], html: '<p>We met Mr. Smith is here.</p>' } ) );
+	assert.equal( checkById( mister, 'keyword_in_opening' ).status, 'pass' );
+
+	const sentences = [];
+	for ( let i = 0; i < 15; i++ ) { sentences.push( i % 2 === 0 ? 'We buy a.' : 'Apples are good.' ); }
+	const distribution = Analyzer.analyze( input( { keywords: [ 'buy apples' ], html: '<p>' + sentences.join( ' ' ) + '</p>' } ) );
+	assert.equal( checkById( distribution, 'keyword_distribution' ).status, 'problem' );
+	assert.equal( checkById( distribution, 'keyword_distribution' ).earned, 0 );
+} );
+
+test( 'abbreviation merging never crosses a paragraph boundary', () => {
+	const result = Analyzer.analyze( input( { keywords: [ 'dr smith' ], html: '<p>We met Dr.</p><p>Smith is here.</p>' } ) );
+	assert.equal( checkById( result, 'keyword_in_content' ).status, 'problem' );
+	assert.equal( checkById( result, 'keyword_in_opening' ).status, 'problem' );
+	assert.equal( checkById( result, 'keyword_in_opening' ).earned, 0 );
+	assert.ok( checkById( result, 'keyword_in_opening' ).message.indexOf( 'does not appear near the beginning' ) !== -1 );
+
+	const across = '<p>We met Dr.</p><p>Smith is here.</p>'.repeat( 15 );
+	const distribution = Analyzer.analyze( input( { keywords: [ 'dr smith' ], html: across } ) );
+	assert.equal( checkById( distribution, 'keyword_distribution' ).status, 'problem' );
+	assert.equal( checkById( distribution, 'keyword_distribution' ).earned, 0 );
+
+	// Each paragraph holds its own Dr. and Smith, so merging inside that
+	// paragraph must still pass the 5 sentence window check.
+	const within = '<p>Dr. Smith spoke today.</p>'.repeat( 15 );
+	const withinDistribution = Analyzer.analyze( input( { keywords: [ 'dr smith' ], html: within } ) );
+	assert.equal( checkById( withinDistribution, 'keyword_distribution' ).status, 'pass' );
+	assert.equal( checkById( withinDistribution, 'keyword_distribution' ).earned, 3 );
+} );
+
+test( 'a blank alt and a blank subheading stay not applicable and alt quality is unchanged', () => {
+	const alt = Analyzer.analyze( input( { html: '<p>Body text for the reader today.</p><img src="a.jpg" alt="">' } ) );
+	assert.equal( checkById( alt, 'keyword_in_image_alt' ).status, 'na' );
+	assert.ok( checkById( alt, 'keyword_in_image_alt' ).message.indexOf( 'Add an image or set a featured image' ) !== -1 );
+	assert.equal( checkById( alt, 'image_alt_quality' ).status, 'improve' );
+	const heading = Analyzer.analyze( input( { html: '<h2>   </h2><p>Body text for the reader today.</p>' } ) );
+	assert.equal( checkById( heading, 'keyword_in_subheading' ).status, 'na' );
+} );
+
+test( 'a CJK phrase that already works still passes after segmentation', () => {
+	const result = Analyzer.analyze( input( { keywords: [ '咖啡' ], html: '<p>今天 咖啡 很好 我们再讨论一下别的事情吧。</p>' } ) );
+	assert.equal( checkById( result, 'keyword_in_content' ).status, 'pass' );
+} );
+
+test( 'the opening keeps the 400 word rule and the ten percent word cutoff', () => {
+	const at400 = new Array( 398 ).fill( 'alpha' ).join( ' ' ) + ' red apples';
+	const at401 = new Array( 399 ).fill( 'alpha' ).join( ' ' ) + ' red apples';
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>' + at400 + '</p>' } ) ), 'keyword_in_opening' ).status, 'pass' );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>' + at401 + '</p>' } ) ), 'keyword_in_opening' ).status, 'problem' );
+	const atCut = new Array( 48 ).fill( 'x' ).join( ' ' ) + ' red apples ' + new Array( 450 ).fill( 'y' ).join( ' ' );
+	const beyondCut = new Array( 49 ).fill( 'x' ).join( ' ' ) + ' red apples ' + new Array( 449 ).fill( 'y' ).join( ' ' );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>' + atCut + '</p>' } ) ), 'keyword_in_opening' ).status, 'pass' );
+	assert.equal( checkById( Analyzer.analyze( input( { html: '<p>' + beyondCut + '</p>' } ) ), 'keyword_in_opening' ).status, 'problem' );
 } );
 
 test( 'raw html past the budget scores like its leading slice', () => {

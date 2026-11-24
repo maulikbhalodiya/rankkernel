@@ -1257,7 +1257,7 @@
       "keywords": [
         "reader"
       ],
-      "html": "<p>Alpha one here for the reader.\u2028Alpha two here for the reader.\u0085Alpha three here for the reader.</p>",
+      "html": "<p>Alpha one here for the reader. Alpha two here for the reader.Alpha three here for the reader.</p>",
       "site_url": "https://example.com"
     }
   },
@@ -1267,7 +1267,7 @@
       "keywords": [
         "reader"
       ],
-      "html": "<p>Alpha one here for the reader.\uFEFFAlpha two here for the reader.\uFEFFAlpha three here for the reader.</p>",
+      "html": "<p>Alpha one here for the reader.﻿Alpha two here for the reader.﻿Alpha three here for the reader.</p>",
       "site_url": "https://example.com"
     }
   },
@@ -1346,6 +1346,236 @@
       "title": "咖啡指南",
       "html": "<p>咖啡 content body here for the reader.</p>",
       "site_url": "https://example.com"
+    }
+  },
+  {
+    "id": "seg-para-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>We love the red</p><p>apples from the orchard here today.</p>"
+    }
+  },
+  {
+    "id": "seg-heading-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<h2>Best red</h2><h2>apples guide</h2><p>Some body text for the reader today.</p>"
+    }
+  },
+  {
+    "id": "seg-alt-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>Body text for the reader today.</p><img src=\"a.jpg\" alt=\"red\"><img src=\"b.jpg\" alt=\"apples\">"
+    }
+  },
+  {
+    "id": "seg-func-para-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "bicycles for women"
+      ],
+      "html": "<p>We ride bicycles</p><p>for women every single day.</p>"
+    }
+  },
+  {
+    "id": "seg-opening-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>The red. Apples are delicious and sweet today.</p>"
+    }
+  },
+  {
+    "id": "seg-density-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word red</p><p>apples word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word</p>"
+    }
+  },
+  {
+    "id": "seg-distribution-cross",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red. Apples are sweet today. The fruit is red.</p>"
+    }
+  },
+  {
+    "id": "seg-para-exact",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>We sell red apples here today for readers.</p>"
+    }
+  },
+  {
+    "id": "seg-heading-exact",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<h2>Red apples guide</h2><p>Body text for the reader today.</p>"
+    }
+  },
+  {
+    "id": "seg-alt-exact",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>Body text for the reader today.</p><img src=\"a.jpg\" alt=\"red apples photo\">"
+    }
+  },
+  {
+    "id": "seg-comma-hyphen",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>We picked red, apples today for the reader.</p>"
+    }
+  },
+  {
+    "id": "seg-reorder",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "apples red"
+      ],
+      "html": "<p>We pick red apples every autumn and store them well.</p>"
+    }
+  },
+  {
+    "id": "seg-dr-smith",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "Dr Smith"
+      ],
+      "html": "<p>Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today. Dr. Smith spoke today.</p>"
+    }
+  },
+  {
+    "id": "seg-blank-alt",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<p>Body text for the reader today.</p><img src=\"a.jpg\" alt=\"\">"
+    }
+  },
+  {
+    "id": "seg-blank-heading",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "red apples"
+      ],
+      "html": "<h2>   </h2><p>Body text for the reader today.</p>"
+    }
+  },
+  {
+    "id": "seg-cjk",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "咖啡"
+      ],
+      "html": "<p>今天 咖啡 很好 我们再讨论一下别的事情吧。</p>"
+    }
+  },
+  {
+    "id": "seg-lower-a-sentence",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "buy apples"
+      ],
+      "html": "<p>We buy a. Apples are good.</p>"
+    }
+  },
+  {
+    "id": "seg-lower-i-sentence",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "met smith"
+      ],
+      "html": "<p>We met i. Smith is here.</p>"
+    }
+  },
+  {
+    "id": "seg-capital-initial",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "j smith"
+      ],
+      "html": "<p>We met J. Smith is here.</p>"
+    }
+  },
+  {
+    "id": "seg-lower-a-distribution",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "buy apples"
+      ],
+      "html": "<p>We buy a. Apples are good. We buy a. Apples are good. We buy a. Apples are good. We buy a. Apples are good. We buy a. Apples are good. We buy a. Apples are good. We buy a. Apples are good. We buy a.</p>"
+    }
+  },
+  {
+    "id": "seg-abbrev-across-para",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "dr smith"
+      ],
+      "html": "<p>We met Dr.</p><p>Smith is here.</p>"
+    }
+  },
+  {
+    "id": "seg-abbrev-across-para-distribution",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "dr smith"
+      ],
+      "html": "<p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p><p>We met Dr.</p><p>Smith is here.</p>"
+    }
+  },
+  {
+    "id": "seg-abbrev-within-para-distribution",
+    "input": {
+      "site_url": "https://example.com",
+      "keywords": [
+        "dr smith"
+      ],
+      "html": "<p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p><p>Dr. Smith spoke today.</p>"
     }
   }
 ]

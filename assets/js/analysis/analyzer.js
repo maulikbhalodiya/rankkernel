@@ -15,7 +15,7 @@
 }( typeof globalThis !== 'undefined' ? globalThis : this, function ( KeywordMatcher, TextStats, AnalysisFormat ) {
 	'use strict';
 
-	var RULES_VERSION = 2;
+	var RULES_VERSION = 3;
 	var BAND_GOOD = 'good';
 	var BAND_IMPROVE = 'improve';
 	var BAND_PROBLEM = 'problem';
@@ -174,47 +174,175 @@
 		return makeCheck( id, category, STATUS_NA, 0, message );
 	}
 
+	// The three keyword segment checks share these message tables with the
+	// original single haystack checks. The status and message policy is
+	// unchanged; only the search is now scoped to one segment at a time.
+	function missingMessage( id, ctx ) {
+		if ( 'keyword_in_subheading' === id ) {
+			return t( ctx.translate, M.subheading_na, [] );
+		}
+		if ( 'keyword_in_image_alt' === id ) {
+			return t( ctx.translate, M.image_na, [] );
+		}
+		return t( ctx.translate, M.default_na, [] );
+	}
+
+	function passMessage( id, keyword, ctx ) {
+		if ( 'keyword_in_subheading' === id ) {
+			return t( ctx.translate, M.keyword_in_subheading_pass, [ keyword ] );
+		}
+		if ( 'keyword_in_image_alt' === id ) {
+			return t( ctx.translate, M.keyword_in_image_alt_pass, [ keyword ] );
+		}
+		return t( ctx.translate, M.keyword_in_content_pass, [ keyword ] );
+	}
+
+	function failMessage( id, keyword, ctx ) {
+		if ( 'keyword_in_subheading' === id ) {
+			return t( ctx.translate, M.keyword_in_subheading_problem, [ keyword ] );
+		}
+		if ( 'keyword_in_image_alt' === id ) {
+			return t( ctx.translate, M.keyword_in_image_alt_problem, [ keyword ] );
+		}
+		return t( ctx.translate, M.keyword_in_content_problem, [ keyword ] );
+	}
+
+	function segmentCheck( id, category, keyword, segments, ctx ) {
+		if ( 0 === segments.length ) {
+			return na( id, category, missingMessage( id, ctx ) );
+		}
+		if ( KeywordMatcher.containsAny( segments, keyword, ctx.stripAccents ) ) {
+			return pass( id, category, passMessage( id, keyword, ctx ) );
+		}
+		return problem( id, category, failMessage( id, keyword, ctx ) );
+	}
+
+	// The window ends exactly at the Nth word. Punctuation and structural
+	// boundaries are kept so the sentence splitter below still sees them.
+	function rawWindow( text, take ) {
+		if ( take < 1 ) {
+			return '';
+		}
+		var re = /[\p{L}\p{N}]+/gu;
+		var match;
+		var count = 0;
+		while ( ( match = re.exec( text ) ) !== null ) {
+			count++;
+			if ( count === take ) {
+				return text.slice( 0, match.index + match[ 0 ].length );
+			}
+		}
+		return text;
+	}
+
+	// A small local merge for the opening and distribution sentence segments.
+	// TextStats.sentences is untouched, and content uses paragraphs where the
+	// abbreviation already stays inside one segment. The known list is case
+	// insensitive, but a single initial is case sensitive: a lowercase one
+	// letter word such as "a." ends a sentence rather than starting an initial.
+	var KNOWN_ABBREVIATION_TAIL = /\b(?:mr|mrs|ms|dr|prof|st|jr|sr|vs|etc|rev|gen|sen|capt|lt|col|e\.g|i\.e)\.$/i;
+	var CAPITAL_INITIAL_TAIL = /\b[A-Z]\.$/;
+	var ABBREVIATION_TRAIL = /["'\u201d\u2019)\]}]+$/;
+
+	function endsWithAbbreviation( sentence ) {
+		var trimmed = String( sentence ).replace( ABBREVIATION_TRAIL, '' );
+		return KNOWN_ABBREVIATION_TAIL.test( trimmed ) || CAPITAL_INITIAL_TAIL.test( trimmed );
+	}
+
+	// owners holds one paragraph index per sentence. A new paragraph flushes
+	// the buffer even when the last sentence looked like an abbreviation, so
+	// two paragraphs never become one merged segment.
+	function mergedSentenceSegments( sentences, owners ) {
+		var list = Array.isArray( owners ) ? owners : [];
+		var segments = [];
+		var buffer = '';
+		var bufferOwner = null;
+		for ( var i = 0; i < sentences.length; i++ ) {
+			var sentence = String( sentences[ i ] );
+			var owner = i < list.length && null !== list[ i ] && undefined !== list[ i ] ? list[ i ] : null;
+			if ( '' !== buffer && null !== owner && null !== bufferOwner && owner !== bufferOwner ) {
+				segments.push( buffer );
+				buffer = '';
+				bufferOwner = null;
+			}
+			if ( '' === buffer ) {
+				buffer = sentence;
+				bufferOwner = owner;
+			} else {
+				buffer += ' ' + sentence;
+			}
+			if ( endsWithAbbreviation( sentence ) ) {
+				continue;
+			}
+			segments.push( buffer );
+			buffer = '';
+			bufferOwner = null;
+		}
+		if ( '' !== buffer ) {
+			segments.push( buffer );
+		}
+		return segments;
+	}
+
+	// Split raw text into sentence segments without crossing a paragraph.
+	function paragraphSentenceSegments( text ) {
+		var segments = [];
+		var paragraphs = TextStats.paragraphs( text );
+		for ( var i = 0; i < paragraphs.length; i++ ) {
+			var inner = mergedSentenceSegments( TextStats.sentences( paragraphs[ i ] ) );
+			for ( var j = 0; j < inner.length; j++ ) {
+				segments.push( inner[ j ] );
+			}
+		}
+		return segments;
+	}
+
+	// The order and count match TextStats.sentences on the full text, so the
+	// five sentence windows keep the same sentence order and thresholds.
+	function sentencesWithParagraphs( paragraphs ) {
+		var sentences = [];
+		var owners = [];
+		for ( var i = 0; i < paragraphs.length; i++ ) {
+			var inner = TextStats.sentences( paragraphs[ i ] );
+			for ( var j = 0; j < inner.length; j++ ) {
+				sentences.push( inner[ j ] );
+				owners.push( i );
+			}
+		}
+		return { sentences: sentences, owners: owners };
+	}
+
 	function codePoints( text ) {
 		return Array.from( String( text ) );
 	}
 
 	function keywordInContent( ctx ) {
-		var id = 'keyword_in_content';
-		if ( '' === ctx.text ) {
-			return na( id, CATEGORY_SEO, t( ctx.translate, M.default_na, [] ) );
-		}
-		if ( KeywordMatcher.contains( ctx.text, ctx.keyword, ctx.stripAccents ) ) {
-			return pass( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_content_pass, [ ctx.keyword ] ) );
-		}
-		return problem( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_content_problem, [ ctx.keyword ] ) );
+		return segmentCheck( 'keyword_in_content', CATEGORY_SEO, ctx.keyword, ctx.paragraphs, ctx );
 	}
 
 	function keywordInSubheading( ctx ) {
-		var id = 'keyword_in_subheading';
-		var subs = ctx.headings.filter( function ( heading ) { return heading.level >= 2; } );
-		var joined = subs.map( function ( heading ) { return heading.text; } ).join( '\n' );
-		if ( '' === TextStats.phpTrim( joined ) ) {
-			return na( id, CATEGORY_SEO, t( ctx.translate, M.subheading_na, [] ) );
-		}
-		if ( KeywordMatcher.contains( joined, ctx.keyword, ctx.stripAccents ) ) {
-			return pass( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_subheading_pass, [ ctx.keyword ] ) );
-		}
-		return problem( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_subheading_problem, [ ctx.keyword ] ) );
+		var subs = ctx.headings
+			.filter( function ( heading ) {
+				return heading.level >= 2 && '' !== TextStats.phpTrim( heading.text );
+			} )
+			.map( function ( heading ) { return heading.text; } );
+		return segmentCheck( 'keyword_in_subheading', CATEGORY_SEO, ctx.keyword, subs, ctx );
 	}
 
 	function keywordDensity( ctx ) {
 		var id = 'keyword_density';
-		if ( 0 === KeywordMatcher.words( ctx.text, ctx.stripAccents ).length ) {
+		var total = KeywordMatcher.words( ctx.text, ctx.stripAccents ).length;
+		if ( 0 === total ) {
 			return na( id, CATEGORY_SEO, t( ctx.translate, M.default_na, [] ) );
 		}
-		var count = KeywordMatcher.occurrences( ctx.text, ctx.keyword, ctx.stripAccents );
+		var count = KeywordMatcher.occurrencesAny( ctx.paragraphs, ctx.keyword, ctx.stripAccents );
 		if ( 0 === count ) {
-			var absent = KeywordMatcher.contains( ctx.text, ctx.keyword, ctx.stripAccents )
+			var absent = KeywordMatcher.containsAny( ctx.paragraphs, ctx.keyword, ctx.stripAccents )
 				? t( ctx.translate, M.density_variation, [] )
 				: t( ctx.translate, M.density_absent, [] );
 			return problem( id, CATEGORY_SEO, absent );
 		}
-		var value = KeywordMatcher.density( ctx.text, ctx.keyword, ctx.stripAccents );
+		var value = ( count / total ) * 100;
 		var base = t( ctx.translate, M.density_count, [ count, AnalysisFormat.numberFormat( value, 2 ) ] );
 		if ( value <= 2.5 ) {
 			return pass( id, CATEGORY_SEO, base + ' ' + t( ctx.translate, M.density_pass_suffix, [] ) );
@@ -224,7 +352,8 @@
 
 	function keywordDistribution( ctx ) {
 		var id = 'keyword_distribution';
-		var total = ctx.sentences.length;
+		var mapped = sentencesWithParagraphs( ctx.paragraphs );
+		var total = mapped.sentences.length;
 		if ( total < 15 ) {
 			return na( id, CATEGORY_SEO, t( ctx.translate, M.default_na, [] ) );
 		}
@@ -232,8 +361,11 @@
 		var windows = total - windowSize + 1;
 		var worst = 0;
 		for ( var i = 0; i < windows; i++ ) {
-			var slice = ctx.sentences.slice( i, i + windowSize ).join( ' ' );
-			if ( ! KeywordMatcher.contains( slice, ctx.keyword, ctx.stripAccents ) ) {
+			var segments = mergedSentenceSegments(
+				mapped.sentences.slice( i, i + windowSize ),
+				mapped.owners.slice( i, i + windowSize )
+			);
+			if ( ! KeywordMatcher.containsAny( segments, ctx.keyword, ctx.stripAccents ) ) {
 				worst++;
 			}
 		}
@@ -283,33 +415,31 @@
 
 	function keywordInOpening( ctx ) {
 		var id = 'keyword_in_opening';
-		var list = KeywordMatcher.words( ctx.text, ctx.stripAccents );
-		if ( 0 === list.length ) {
+		var count = KeywordMatcher.words( ctx.text, ctx.stripAccents ).length;
+		if ( 0 === count ) {
 			return na( id, CATEGORY_SEO, t( ctx.translate, M.default_na, [] ) );
 		}
-		var limit = list.length > 400 ? Math.floor( list.length * 0.1 ) : list.length;
+		var limit = count > 400 ? Math.floor( count * 0.1 ) : count;
 		var take = Math.max( 1, limit );
-		var opening = list.slice( 0, take ).join( ' ' );
-		if ( KeywordMatcher.contains( opening, ctx.keyword, ctx.stripAccents ) ) {
+		var raw = rawWindow( ctx.text, take );
+		var segments = paragraphSentenceSegments( raw );
+		if ( KeywordMatcher.containsAny( segments, ctx.keyword, ctx.stripAccents ) ) {
 			return pass( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_opening_pass, [ ctx.keyword ] ) );
 		}
 		return problem( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_opening_problem, [ ctx.keyword ] ) );
 	}
 
 	function keywordInImageAlt( ctx ) {
-		var id = 'keyword_in_image_alt';
-		var alts = ctx.alts.slice();
-		if ( '' !== ctx.featuredAlt ) {
-			alts.push( ctx.featuredAlt );
+		var segments = [];
+		for ( var i = 0; i < ctx.alts.length; i++ ) {
+			if ( '' !== TextStats.phpTrim( ctx.alts[ i ] ) ) {
+				segments.push( ctx.alts[ i ] );
+			}
 		}
-		var joined = alts.join( '\n' );
-		if ( '' === TextStats.phpTrim( joined ) ) {
-			return na( id, CATEGORY_SEO, t( ctx.translate, M.image_na, [] ) );
+		if ( '' !== ctx.featuredAlt && '' !== TextStats.phpTrim( ctx.featuredAlt ) ) {
+			segments.push( ctx.featuredAlt );
 		}
-		if ( KeywordMatcher.contains( joined, ctx.keyword, ctx.stripAccents ) ) {
-			return pass( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_image_alt_pass, [ ctx.keyword ] ) );
-		}
-		return problem( id, CATEGORY_SEO, t( ctx.translate, M.keyword_in_image_alt_problem, [ ctx.keyword ] ) );
+		return segmentCheck( 'keyword_in_image_alt', CATEGORY_SEO, ctx.keyword, segments, ctx );
 	}
 
 	function titleStartsWithKeyword( ctx ) {

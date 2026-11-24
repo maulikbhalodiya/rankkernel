@@ -174,7 +174,7 @@ final class AnalysisScoreTest extends TestCase {
 		$this->assertIsInt( $record['score'] );
 		$this->assertContains( $record['band'], [ Analyzer::BAND_GOOD, Analyzer::BAND_IMPROVE, Analyzer::BAND_PROBLEM ] );
 		$this->assertSame( 1, $record['keywords'] );
-		$this->assertSame( 2, $record['rules_version'] );
+		$this->assertSame( 3, $record['rules_version'] );
 		$this->assertSame( Analyzer::RULES_VERSION, $record['rules_version'] );
 		$this->assertGreaterThan( 0, $record['analysed_at'] );
 	}
@@ -389,23 +389,44 @@ final class AnalysisScoreTest extends TestCase {
 	}
 
 	/**
-	 * Version 1 scores are stale after the rules version bump.
+	 * Version 1 and version 2 scores are stale under the version 3 rules.
 	 */
-	public function test_version_one_scores_are_rechecked_under_version_two(): void {
-		$this->assertSame( 2, Analyzer::RULES_VERSION );
+	public function test_older_score_versions_are_rechecked_under_version_three(): void {
+		$this->assertSame( 3, Analyzer::RULES_VERSION );
 
-		$this->meta[ AnalysisScore::META_KEY ] = [
-			'score'         => 87,
-			'band'          => Analyzer::BAND_GOOD,
-			'keywords'      => 1,
-			'rules_version' => 1,
-			'analysed_at'   => 123,
-		];
+		$score = new AnalysisScore();
 
-		$stale = ( new AnalysisScore() )->state( 7 );
+		foreach ( [ 1, 2 ] as $storedVersion ) {
+			$this->meta[ AnalysisScore::META_KEY ] = [
+				'score'         => 87,
+				'band'          => Analyzer::BAND_GOOD,
+				'keywords'      => 1,
+				'rules_version' => $storedVersion,
+				'analysed_at'   => 123,
+			];
 
-		$this->assertSame( 'needs_recheck', $stale['status'] );
-		$this->assertStringContainsString( 'rules version 1', $stale['reason'] );
+			$stale = $score->state( 7 );
+
+			$this->assertSame( 'needs_recheck', $stale['status'] );
+			$this->assertStringContainsString( 'rules version ' . $storedVersion, $stale['reason'] );
+			$this->assertStringContainsString( 'current version is 3', $stale['reason'] );
+		}
+	}
+
+	/**
+	 * A freshly computed score carries version 3 and is reported as analysed.
+	 */
+	public function test_a_new_score_is_stored_at_version_three(): void {
+		$this->withKeywords( [ 'red apples' ] );
+
+		$score  = new AnalysisScore();
+		$record = $score->compute( 7 );
+
+		$this->assertSame( 3, $record['rules_version'] );
+
+		$this->meta[ AnalysisScore::META_KEY ] = $record;
+
+		$this->assertSame( 'analysed', $score->state( 7 )['status'] );
 	}
 
 	/**

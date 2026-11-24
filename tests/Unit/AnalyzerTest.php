@@ -511,10 +511,10 @@ final class AnalyzerTest extends TestCase {
 	}
 
 	/**
-	 * Test the rules version for the boundary-aware title position.
+	 * Test the rules version for the segment-aware matching change.
 	 */
-	public function test_rules_version_is_two_for_the_boundary_aware_title_position(): void {
-		$this->assertSame( 2, Analyzer::RULES_VERSION );
+	public function test_rules_version_is_three_for_segment_aware_matching(): void {
+		$this->assertSame( 3, Analyzer::RULES_VERSION );
 	}
 
 	/**
@@ -770,6 +770,413 @@ final class AnalyzerTest extends TestCase {
 		$result = ( new Analyzer() )->analyze( $this->input() );
 
 		$this->assertSame( $result['checks'], $result['keywords'][0]['checks'] );
+	}
+
+	/**
+	 * Test a phrase assembled from two paragraphs is not content presence.
+	 */
+	public function test_phrase_across_separate_paragraphs_is_not_content_presence(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<p>We love the red</p><p>apples from the orchard here today.</p>',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_in_content' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'does not appear in the content', $check['message'] );
+	}
+
+	/**
+	 * Test a phrase assembled from two subheadings is not subheading presence.
+	 */
+	public function test_phrase_across_separate_headings_is_not_subheading_presence(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<h2>Best red</h2><h2>apples guide</h2><p>Some body text for the reader today.</p>',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_in_subheading' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'does not appear in a subheading', $check['message'] );
+	}
+
+	/**
+	 * Test a phrase assembled from two image alts is not alt presence, while alt quality is unchanged.
+	 */
+	public function test_phrase_across_separate_image_alts_is_not_alt_presence(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<p>Body text for the reader today.</p><img src="a.jpg" alt="red"><img src="b.jpg" alt="apples">',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_in_image_alt' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'does not appear in an image alt', $check['message'] );
+		// Both alts are non blank and short, so the quality check still passes.
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'image_alt_quality' )['status'] );
+		$this->assertSame( 3, $this->check( $result, 'image_alt_quality' )['earned'] );
+	}
+
+	/**
+	 * Test a function word reduced phrase across paragraphs is not presence.
+	 */
+	public function test_function_word_phrase_across_paragraphs_is_not_presence(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'bicycles for women' ],
+					'html'     => '<p>We ride bicycles</p><p>for women every single day.</p>',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_in_content' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+	}
+
+	/**
+	 * Test the opening does not assemble a phrase from unrelated sentences.
+	 */
+	public function test_opening_does_not_assemble_phrase_across_sentences(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<p>The red. Apples are delicious and sweet today.</p>',
+				]
+			)
+		);
+
+		$opening = $this->check( $result, 'keyword_in_opening' );
+
+		$this->assertSame( Analyzer::PROBLEM, $opening['status'] );
+		$this->assertSame( 0, $opening['earned'] );
+		$this->assertStringContainsString( 'does not appear near the beginning', $opening['message'] );
+		// One paragraph may still carry the phrase across punctuation.
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'keyword_in_content' )['status'] );
+	}
+
+	/**
+	 * Test density counts exact occurrences per paragraph, never across a boundary.
+	 */
+	public function test_density_does_not_count_phrase_across_paragraphs(): void {
+		$filler = implode( ' ', array_fill( 0, 100, 'word' ) );
+
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<p>' . $filler . ' red</p><p>apples ' . $filler . '</p>',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_density' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'does not appear in the content yet', $check['message'] );
+	}
+
+	/**
+	 * Test distribution evaluates individual sentences, not one concatenated window.
+	 */
+	public function test_distribution_does_not_count_phrase_across_sentences(): void {
+		$sentences = [];
+
+		for ( $i = 0; $i < 15; $i++ ) {
+			$sentences[] = ( 0 === $i % 2 ) ? 'The fruit is red.' : 'Apples are sweet today.';
+		}
+
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'html' => '<p>' . implode( ' ', $sentences ) . '</p>',
+				]
+			)
+		);
+
+		$check = $this->check( $result, 'keyword_distribution' );
+
+		$this->assertSame( Analyzer::PROBLEM, $check['status'] );
+		$this->assertSame( 0, $check['earned'] );
+		$this->assertStringContainsString( 'Large parts of the content never mention', $check['message'] );
+	}
+
+	/**
+	 * Test exact phrases in one segment still pass in content, headings and alts.
+	 */
+	public function test_segment_aware_presence_positive_controls(): void {
+		$analyzer = new Analyzer();
+
+		$exact = $analyzer->analyze( $this->input( [ 'html' => '<p>We sell red apples here today for readers.</p>' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $exact, 'keyword_in_content' )['status'] );
+		$this->assertSame( 3, $this->check( $exact, 'keyword_in_content' )['earned'] );
+
+		$comma = $analyzer->analyze( $this->input( [ 'html' => '<p>We picked red, apples today for the reader.</p>' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $comma, 'keyword_in_content' )['status'] );
+
+		$heading = $analyzer->analyze( $this->input( [ 'html' => '<h2>Red apples guide</h2><p>Body text for the reader today.</p>' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $heading, 'keyword_in_subheading' )['status'] );
+		$this->assertSame( 3, $this->check( $heading, 'keyword_in_subheading' )['earned'] );
+
+		$alt = $analyzer->analyze( $this->input( [ 'html' => '<p>Body text for the reader today.</p><img src="a.jpg" alt="red apples photo">' ] ) );
+		$this->assertSame( Analyzer::PASS, $this->check( $alt, 'keyword_in_image_alt' )['status'] );
+		$this->assertSame( 2, $this->check( $alt, 'keyword_in_image_alt' )['earned'] );
+
+		$reorder = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'apples red' ],
+					'html'     => '<p>We pick red apples every autumn and store them well.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $reorder, 'keyword_in_content' )['status'] );
+	}
+
+	/**
+	 * Test abbreviations stay in one sentence segment for content, opening and distribution.
+	 */
+	public function test_abbreviations_remain_one_sentence_segment(): void {
+		$analyzer = new Analyzer();
+
+		$content = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'Dr Smith' ],
+					'html'     => '<p>Dr. Smith spoke about the topic today for everyone here.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $content, 'keyword_in_content' )['status'] );
+
+		$opening = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'Dr Smith' ],
+					'html'     => '<p>Dr. Smith arrived early and spoke to the group. Then other matters followed.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $opening, 'keyword_in_opening' )['status'] );
+		$this->assertSame( 3, $this->check( $opening, 'keyword_in_opening' )['earned'] );
+
+		$sentences = array_fill( 0, 15, 'Dr. Smith spoke today.' );
+
+		$distribution = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'Dr Smith' ],
+					'html'     => '<p>' . implode( ' ', $sentences ) . '</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $distribution, 'keyword_distribution' )['status'] );
+		$this->assertSame( 3, $this->check( $distribution, 'keyword_distribution' )['earned'] );
+	}
+
+	/**
+	 * Test a lowercase single letter is not treated as a capital initial.
+	 */
+	public function test_lowercase_single_letter_does_not_merge_sentences(): void {
+		$analyzer = new Analyzer();
+
+		$lowerA = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'buy apples' ],
+					'html'     => '<p>We buy a. Apples are good.</p>',
+				]
+			)
+		);
+		// The phrase is inside one paragraph, so content may still match.
+		$this->assertSame( Analyzer::PASS, $this->check( $lowerA, 'keyword_in_content' )['status'] );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $lowerA, 'keyword_in_opening' )['status'] );
+		$this->assertSame( 0, $this->check( $lowerA, 'keyword_in_opening' )['earned'] );
+
+		$lowerI = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'met smith' ],
+					'html'     => '<p>We met i. Smith is here.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $lowerI, 'keyword_in_opening' )['status'] );
+
+		$capital = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'j smith' ],
+					'html'     => '<p>We met J. Smith is here.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $capital, 'keyword_in_opening' )['status'] );
+		$this->assertSame( 3, $this->check( $capital, 'keyword_in_opening' )['earned'] );
+
+		$mister = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'mr smith' ],
+					'html'     => '<p>We met Mr. Smith is here.</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $mister, 'keyword_in_opening' )['status'] );
+
+		$sentences = [];
+
+		for ( $i = 0; $i < 15; $i++ ) {
+			$sentences[] = ( 0 === $i % 2 ) ? 'We buy a.' : 'Apples are good.';
+		}
+
+		$distribution = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'buy apples' ],
+					'html'     => '<p>' . implode( ' ', $sentences ) . '</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $distribution, 'keyword_distribution' )['status'] );
+		$this->assertSame( 0, $this->check( $distribution, 'keyword_distribution' )['earned'] );
+	}
+
+	/**
+	 * Test abbreviation merging never crosses a paragraph boundary.
+	 */
+	public function test_abbreviation_does_not_merge_across_paragraphs(): void {
+		$analyzer = new Analyzer();
+
+		$result = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'dr smith' ],
+					'html'     => '<p>We met Dr.</p><p>Smith is here.</p>',
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'keyword_in_content' )['status'] );
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $result, 'keyword_in_opening' )['status'] );
+		$this->assertSame( 0, $this->check( $result, 'keyword_in_opening' )['earned'] );
+		$this->assertStringContainsString( 'does not appear near the beginning', $this->check( $result, 'keyword_in_opening' )['message'] );
+
+		$across = str_repeat( '<p>We met Dr.</p><p>Smith is here.</p>', 15 );
+
+		$distribution = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'dr smith' ],
+					'html'     => $across,
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $distribution, 'keyword_distribution' )['status'] );
+		$this->assertSame( 0, $this->check( $distribution, 'keyword_distribution' )['earned'] );
+
+		// Each paragraph holds its own Dr. and Smith, so merging inside that
+		// paragraph must still pass the 5 sentence window check.
+		$within = str_repeat( '<p>Dr. Smith spoke today.</p>', 15 );
+
+		$withinDistribution = $analyzer->analyze(
+			$this->input(
+				[
+					'keywords' => [ 'dr smith' ],
+					'html'     => $within,
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $withinDistribution, 'keyword_distribution' )['status'] );
+		$this->assertSame( 3, $this->check( $withinDistribution, 'keyword_distribution' )['earned'] );
+	}
+
+	/**
+	 * Test a blank alt and a blank subheading stay not applicable, with alt quality unchanged.
+	 */
+	public function test_blank_alt_and_blank_heading_stay_not_applicable(): void {
+		$analyzer = new Analyzer();
+
+		$alt = $analyzer->analyze(
+			$this->input( [ 'html' => '<p>Body text for the reader today.</p><img src="a.jpg" alt="">' ] )
+		);
+		$this->assertSame( Analyzer::NA, $this->check( $alt, 'keyword_in_image_alt' )['status'] );
+		$this->assertStringContainsString( 'Add an image or set a featured image', $this->check( $alt, 'keyword_in_image_alt' )['message'] );
+		$this->assertSame( Analyzer::IMPROVE, $this->check( $alt, 'image_alt_quality' )['status'] );
+
+		$heading = $analyzer->analyze(
+			$this->input( [ 'html' => '<h2>   </h2><p>Body text for the reader today.</p>' ] )
+		);
+		$this->assertSame( Analyzer::NA, $this->check( $heading, 'keyword_in_subheading' )['status'] );
+		$this->assertStringContainsString( 'Add a subheading', $this->check( $heading, 'keyword_in_subheading' )['message'] );
+	}
+
+	/**
+	 * Test a CJK phrase that already works still passes after segmentation.
+	 */
+	public function test_cjk_content_still_passes(): void {
+		$result = ( new Analyzer() )->analyze(
+			$this->input(
+				[
+					'keywords' => [ '咖啡' ],
+					'html'     => '<p>今天 咖啡 很好 我们再讨论一下别的事情吧。</p>',
+				]
+			)
+		);
+
+		$this->assertSame( Analyzer::PASS, $this->check( $result, 'keyword_in_content' )['status'] );
+	}
+
+	/**
+	 * Test the opening keeps the 400 word rule and the ten percent word cutoff.
+	 */
+	public function test_opening_cutoff_at_and_beyond_the_word_boundary(): void {
+		$analyzer = new Analyzer();
+
+		$at400 = $analyzer->analyze(
+			$this->input( [ 'html' => '<p>' . implode( ' ', array_fill( 0, 398, 'alpha' ) ) . ' red apples</p>' ] )
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $at400, 'keyword_in_opening' )['status'] );
+
+		$at401 = $analyzer->analyze(
+			$this->input( [ 'html' => '<p>' . implode( ' ', array_fill( 0, 399, 'alpha' ) ) . ' red apples</p>' ] )
+		);
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $at401, 'keyword_in_opening' )['status'] );
+
+		$atCut = $analyzer->analyze(
+			$this->input(
+				[
+					'html' => '<p>' . implode( ' ', array_fill( 0, 48, 'x' ) ) . ' red apples ' . implode( ' ', array_fill( 0, 450, 'y' ) ) . '</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PASS, $this->check( $atCut, 'keyword_in_opening' )['status'] );
+
+		$beyondCut = $analyzer->analyze(
+			$this->input(
+				[
+					'html' => '<p>' . implode( ' ', array_fill( 0, 49, 'x' ) ) . ' red apples ' . implode( ' ', array_fill( 0, 449, 'y' ) ) . '</p>',
+				]
+			)
+		);
+		$this->assertSame( Analyzer::PROBLEM, $this->check( $beyondCut, 'keyword_in_opening' )['status'] );
 	}
 
 	/**

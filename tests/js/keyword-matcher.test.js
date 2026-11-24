@@ -90,3 +90,15 @@ test( 'density divides occurrences by normalized words', () => {
 	assert.equal( Matcher.density( 'red apples and green pears and red apples', 'red apples' ), 25 );
 	assert.equal( Matcher.density( '   ', 'red apples' ), 0 );
 } );
+
+test( 'containsAny scopes matching to one segment at a time and occurrencesAny sums counts', () => {
+	assert.equal( Matcher.containsAny( [ 'We sell red apples here.', 'Other words.' ], 'red apples' ), true );
+	assert.equal( Matcher.containsAny( [ 'The red fruit.', 'Apples are sweet.' ], 'red apples' ), false );
+	assert.equal( Matcher.containsAny( [], 'red apples' ), false );
+	assert.equal( Matcher.containsAny( [ 'red apples here' ], '' ), false );
+	assert.equal( Matcher.containsAny( [ 'We picked red, apples today.' ], 'red apples' ), true );
+	assert.equal( Matcher.containsAny( [ 'A well-known brand today.' ], 'well known' ), true );
+	assert.equal( Matcher.occurrencesAny( [ 'red apples and more red apples', 'one red apples here' ], 'red apples' ), 3 );
+	assert.equal( Matcher.occurrencesAny( [ 'The red', 'apples are sweet' ], 'red apples' ), 0 );
+	assert.equal( Matcher.occurrencesAny( [], 'red apples' ), 0 );
+} );

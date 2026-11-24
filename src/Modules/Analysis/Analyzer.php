@@ -33,7 +33,7 @@ final class Analyzer {
 	 * stale, so a stored score with an older version can be reported as
 	 * needing a recheck instead of being presented as current.
 	 */
-	public const RULES_VERSION = 2;
+	public const RULES_VERSION = 3;
 
 	/**
 	 * Score bands.
@@ -328,7 +328,7 @@ final class Analyzer {
 	 */
 	private function sharedChecks( string $keyword, array $context ): array {
 		return [
-			$this->check( 'keyword_in_content', 'seo', $keyword, $context['text'], true ),
+			$this->segmentCheck( 'keyword_in_content', 'seo', $keyword, $context['paragraphs'] ),
 			$this->subheadingCheck( $keyword, $context ),
 			$this->densityCheck( $keyword, $context ),
 			$this->distributionCheck( $keyword, $context ),
@@ -412,24 +412,201 @@ final class Analyzer {
 	}
 
 	/**
+	 * Pass or problem when a keyword appears in any one segment.
+	 *
+	 * Mirrors check(), but the search never joins two segments. The status and
+	 * message policy is otherwise identical, so a segment hit is a full pass
+	 * and a miss is a full problem.
+	 *
+	 * @param string   $id       Check id.
+	 * @param string   $category Category.
+	 * @param string   $keyword  Keyword.
+	 * @param string[] $segments Segments to search.
+	 * @return array<string, mixed> Result.
+	 */
+	private function segmentCheck( string $id, string $category, string $keyword, array $segments ): array {
+		if ( [] === $segments ) {
+			return $this->result( $id, $category, self::NA, 0, $this->missingMessage( $id ) );
+		}
+
+		$weight = self::WEIGHTS[ $id ] ?? 0;
+
+		if ( KeywordMatcher::containsAny( $segments, $keyword ) ) {
+			return $this->result( $id, $category, self::PASS, $weight, $this->passMessage( $id, $keyword ) );
+		}
+
+		return $this->result( $id, $category, self::PROBLEM, 0, $this->failMessage( $id, $keyword ) );
+	}
+
+	/**
+	 * Select the raw prefix of text ending exactly at the Nth word.
+	 *
+	 * The window is a word budget, not a sentence. It is never extended to
+	 * finish a sentence, and the raw text is returned so punctuation and
+	 * structural boundaries survive into the sentence segments below.
+	 *
+	 * @param string $text Raw plain text.
+	 * @param int    $take Number of words to keep.
+	 * @return string Raw window.
+	 */
+	private function rawWindow( string $text, int $take ): string {
+		if ( $take < 1 ) {
+			return '';
+		}
+
+		$matched = preg_match_all( '/[\p{L}\p{N}]+/u', $text, $matches, PREG_OFFSET_CAPTURE );
+
+		if ( false === $matched || $matched < $take ) {
+			return $text;
+		}
+
+		$word    = $matches[0][ $take - 1 ];
+		$byteEnd = (int) $word[1] + strlen( (string) $word[0] );
+		$charEnd = mb_strlen( substr( $text, 0, $byteEnd ), 'UTF-8' );
+
+		return mb_substr( $text, 0, $charEnd, 'UTF-8' );
+	}
+
+	/**
+	 * Keep an abbreviation with the sentence that follows it, inside one paragraph.
+	 *
+	 * This merge is local to the sentence segments used by the opening and
+	 * distribution checks. TextStats::sentences is unchanged, and content uses
+	 * paragraphs where the abbreviation already stays inside one segment. When
+	 * owners are supplied, a new paragraph flushes the buffer even if the last
+	 * sentence ended in an abbreviation, so two paragraphs never become one.
+	 *
+	 * @param string[]        $sentences Sentence segments in order.
+	 * @param array<int, int> $owners    Optional paragraph index per sentence.
+	 * @return string[] Merged segments.
+	 */
+	private function mergedSentenceSegments( array $sentences, array $owners = [] ): array {
+		$segments    = [];
+		$buffer      = '';
+		$bufferOwner = null;
+
+		foreach ( array_values( $sentences ) as $index => $sentence ) {
+			$sentence = (string) $sentence;
+			$owner    = isset( $owners[ $index ] ) ? (int) $owners[ $index ] : null;
+
+			if ( '' !== $buffer && null !== $owner && null !== $bufferOwner && $owner !== $bufferOwner ) {
+				$segments[]  = $buffer;
+				$buffer      = '';
+				$bufferOwner = null;
+			}
+
+			if ( '' === $buffer ) {
+				$buffer      = $sentence;
+				$bufferOwner = $owner;
+			} else {
+				$buffer .= ' ' . $sentence;
+			}
+
+			if ( $this->endsWithAbbreviation( $sentence ) ) {
+				continue;
+			}
+
+			$segments[]  = $buffer;
+			$buffer      = '';
+			$bufferOwner = null;
+		}
+
+		if ( '' !== $buffer ) {
+			$segments[] = $buffer;
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * Split raw text into sentence segments without crossing a paragraph.
+	 *
+	 * @param string $text Raw plain text.
+	 * @return string[] Sentence segments.
+	 */
+	private function paragraphSentenceSegments( string $text ): array {
+		$segments = [];
+
+		foreach ( TextStats::paragraphs( $text ) as $paragraph ) {
+			foreach ( $this->mergedSentenceSegments( TextStats::sentences( $paragraph ) ) as $segment ) {
+				$segments[] = $segment;
+			}
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * Flatten paragraphs into sentences with a parallel paragraph index.
+	 *
+	 * The order and count match TextStats::sentences on the full text, so the
+	 * five sentence windows keep the same sentence order and thresholds.
+	 *
+	 * @param string[] $paragraphs Paragraphs in order.
+	 * @return array{sentences: string[], owners: int[]} Sentences and owners.
+	 */
+	private function sentencesWithParagraphs( array $paragraphs ): array {
+		$sentences = [];
+		$owners    = [];
+
+		foreach ( $paragraphs as $index => $paragraph ) {
+			foreach ( TextStats::sentences( (string) $paragraph ) as $sentence ) {
+				$sentences[] = $sentence;
+				$owners[]    = (int) $index;
+			}
+		}
+
+		return [
+			'sentences' => $sentences,
+			'owners'    => $owners,
+		];
+	}
+
+	/**
+	 * Whether a sentence ends with a known abbreviation or a capital initial.
+	 *
+	 * The known list is case insensitive. The single initial alternative is
+	 * case sensitive, because a lowercase one letter word such as "a." is a
+	 * normal sentence ending, not an initial.
+	 *
+	 * @param string $sentence Raw sentence.
+	 * @return bool The result.
+	 */
+	private function endsWithAbbreviation( string $sentence ): bool {
+		$trimmed = rtrim( $sentence, "\"'”’)]}" );
+
+		if ( 1 === preg_match( '/\b(?:mr|mrs|ms|dr|prof|st|jr|sr|vs|etc|rev|gen|sen|capt|lt|col|e\.g|i\.e)\.$/i', $trimmed ) ) {
+			return true;
+		}
+
+		return 1 === preg_match( '/\b[A-Z]\.$/', $trimmed );
+	}
+
+	/**
 	 * Keyword inside the opening ten percent, or the whole text when short.
+	 *
+	 * The word budget is unchanged. The raw window is split into sentence
+	 * segments before matching, so two unrelated sentences cannot supply one
+	 * phrase, and the cut never runs past the Nth word.
 	 *
 	 * @param string               $keyword Keyword.
 	 * @param array<string, mixed> $context Context.
 	 * @return array<string, mixed> Result.
 	 */
 	private function openingCheck( string $keyword, array $context ): array {
-		$words = KeywordMatcher::words( $context['text'] );
+		$wordCount = count( KeywordMatcher::words( $context['text'] ) );
 
-		if ( [] === $words ) {
+		if ( 0 === $wordCount ) {
 			return $this->result( 'keyword_in_opening', 'seo', self::NA, 0, $this->missingMessage( 'keyword_in_opening' ) );
 		}
 
-		$limit   = ( count( $words ) > 400 ) ? (int) floor( count( $words ) * 0.10 ) : count( $words );
-		$opening = implode( ' ', array_slice( $words, 0, max( 1, $limit ) ) );
-		$weight  = self::WEIGHTS['keyword_in_opening'];
+		$limit    = ( $wordCount > 400 ) ? (int) floor( $wordCount * 0.10 ) : $wordCount;
+		$take     = max( 1, $limit );
+		$raw      = $this->rawWindow( $context['text'], $take );
+		$segments = $this->paragraphSentenceSegments( $raw );
+		$weight   = self::WEIGHTS['keyword_in_opening'];
 
-		if ( KeywordMatcher::contains( $opening, $keyword ) ) {
+		if ( KeywordMatcher::containsAny( $segments, $keyword ) ) {
 			return $this->result( 'keyword_in_opening', 'seo', self::PASS, $weight, $this->passMessage( 'keyword_in_opening', $keyword ) );
 		}
 
@@ -447,16 +624,12 @@ final class Analyzer {
 		$texts = [];
 
 		foreach ( $context['headings'] as $heading ) {
-			if ( $heading['level'] >= 2 ) {
-				$texts[] = $heading['text'];
+			if ( $heading['level'] >= 2 && '' !== trim( (string) $heading['text'] ) ) {
+				$texts[] = (string) $heading['text'];
 			}
 		}
 
-		if ( [] === $texts ) {
-			return $this->result( 'keyword_in_subheading', 'seo', self::NA, 0, $this->missingMessage( 'keyword_in_subheading' ) );
-		}
-
-		return $this->check( 'keyword_in_subheading', 'seo', $keyword, implode( "\n", $texts ), true );
+		return $this->segmentCheck( 'keyword_in_subheading', 'seo', $keyword, $texts );
 	}
 
 	/**
@@ -467,17 +640,19 @@ final class Analyzer {
 	 * @return array<string, mixed> Result.
 	 */
 	private function imageAltCheck( string $keyword, array $context ): array {
-		$alts = $context['alts'];
+		$segments = [];
 
-		if ( '' !== $context['featuredAlt'] ) {
-			$alts[] = $context['featuredAlt'];
+		foreach ( $context['alts'] as $alt ) {
+			if ( '' !== trim( (string) $alt ) ) {
+				$segments[] = (string) $alt;
+			}
 		}
 
-		if ( [] === $alts ) {
-			return $this->result( 'keyword_in_image_alt', 'seo', self::NA, 0, $this->missingMessage( 'keyword_in_image_alt' ) );
+		if ( '' !== $context['featuredAlt'] && '' !== trim( (string) $context['featuredAlt'] ) ) {
+			$segments[] = (string) $context['featuredAlt'];
 		}
 
-		return $this->check( 'keyword_in_image_alt', 'seo', $keyword, implode( "\n", $alts ), true );
+		return $this->segmentCheck( 'keyword_in_image_alt', 'seo', $keyword, $segments );
 	}
 
 	/**
@@ -539,15 +714,18 @@ final class Analyzer {
 	 * @return array<string, mixed> Result.
 	 */
 	private function densityCheck( string $keyword, array $context ): array {
-		if ( [] === KeywordMatcher::words( $context['text'] ) ) {
+		$total = count( KeywordMatcher::words( $context['text'] ) );
+
+		if ( 0 === $total ) {
 			return $this->result( 'keyword_density', 'seo', self::NA, 0, $this->missingMessage( 'keyword_density' ) );
 		}
 
-		$count   = KeywordMatcher::occurrences( $context['text'], $keyword );
-		$density = KeywordMatcher::density( $context['text'], $keyword );
+		$paragraphs = $context['paragraphs'];
+		$count      = KeywordMatcher::occurrencesAny( $paragraphs, $keyword );
+		$density    = ( $count / $total ) * 100;
 
 		if ( 0 === $count ) {
-			$message = KeywordMatcher::contains( $context['text'], $keyword )
+			$message = KeywordMatcher::containsAny( $paragraphs, $keyword )
 				? __( 'Your keyword appears in a natural variation, which is fine.', 'rankkernel' )
 				: __( 'Your keyword does not appear in the content yet.', 'rankkernel' );
 
@@ -588,7 +766,9 @@ final class Analyzer {
 	 * @return array<string, mixed> Result.
 	 */
 	private function distributionCheck( string $keyword, array $context ): array {
-		$sentences = $context['sentences'];
+		$mapped    = $this->sentencesWithParagraphs( $context['paragraphs'] );
+		$sentences = $mapped['sentences'];
+		$owners    = $mapped['owners'];
 
 		if ( count( $sentences ) < 15 ) {
 			return $this->result( 'keyword_distribution', 'seo', self::NA, 0, $this->missingMessage( 'keyword_distribution' ) );
@@ -599,9 +779,9 @@ final class Analyzer {
 		$worst  = 0;
 
 		for ( $start = 0; $start + $window <= $total; $start++ ) {
-			$slice = implode( ' ', array_slice( $sentences, $start, $window ) );
+			$segments = $this->mergedSentenceSegments( array_slice( $sentences, $start, $window ), array_slice( $owners, $start, $window ) );
 
-			if ( ! KeywordMatcher::contains( $slice, $keyword ) ) {
+			if ( ! KeywordMatcher::containsAny( $segments, $keyword ) ) {
 				++$worst;
 			}
 		}

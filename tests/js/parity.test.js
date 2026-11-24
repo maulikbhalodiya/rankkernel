@@ -35,7 +35,7 @@ const fixtures = fixtureFile.concat( generatedFixtures );
 
 // Pinned so that deleting a fixture nobody names in an assertion fails loudly
 // instead of silently shrinking parity coverage.
-const FIXTURE_FILE_INVENTORY = 129;
+const FIXTURE_FILE_INVENTORY = 152;
 
 const CHECK_FIELDS = [ 'id', 'category', 'status', 'weight', 'earned', 'message' ];
 
@@ -518,6 +518,62 @@ test( 'the script, style and malformed markup extraction agrees', () => {
 	assertStatusOnly( 'numeric-entities-href', 'generic_anchor_text', 'pass' );
 	assertAgree( 'headings-nested', 'keyword_in_subheading', 'pass', 3 );
 	assertAgree( 'sentence-newline', 'consecutive_sentences', 'pass', 3 );
+} );
+
+// Segment aware presence: a phrase may not be assembled from separate
+// paragraphs, headings, alts, sentences or a density denominator. Each fixture
+// pins the check status and earned points on both engines, and the generic
+// parity tests above still compare every field of every check.
+test( 'segment aware presence rejects phrases assembled across separate paragraphs, headings and alts', () => {
+	assertStatusOnly( 'seg-para-cross', 'keyword_in_content', 'problem' );
+	assertStatusOnly( 'seg-heading-cross', 'keyword_in_subheading', 'problem' );
+	assertStatusOnly( 'seg-alt-cross', 'keyword_in_image_alt', 'problem' );
+	assertAgree( 'seg-alt-cross', 'image_alt_quality', 'pass', 3 );
+	assertStatusOnly( 'seg-func-para-cross', 'keyword_in_content', 'problem' );
+} );
+
+test( 'segment aware presence rejects phrases assembled across sentences and a density boundary', () => {
+	assertStatusOnly( 'seg-opening-cross', 'keyword_in_opening', 'problem' );
+	assertStatusOnly( 'seg-density-cross', 'keyword_density', 'problem' );
+	assertStatusOnly( 'seg-distribution-cross', 'keyword_distribution', 'problem' );
+} );
+
+test( 'segment aware presence keeps exact phrases inside one segment', () => {
+	assertStatusOnly( 'seg-para-exact', 'keyword_in_content', 'pass' );
+	assertAgree( 'seg-heading-exact', 'keyword_in_subheading', 'pass', 3 );
+	assertAgree( 'seg-alt-exact', 'keyword_in_image_alt', 'pass', 2 );
+	assertStatusOnly( 'seg-comma-hyphen', 'keyword_in_content', 'pass' );
+	assertStatusOnly( 'seg-reorder', 'keyword_in_content', 'pass' );
+} );
+
+test( 'abbreviations, blank alts and headings, and CJK survive segmentation', () => {
+	assertStatusOnly( 'seg-dr-smith', 'keyword_in_content', 'pass' );
+	assertStatusOnly( 'seg-dr-smith', 'keyword_in_opening', 'pass' );
+	assertAgree( 'seg-dr-smith', 'keyword_distribution', 'pass', 3 );
+	assertStatusOnly( 'seg-blank-alt', 'keyword_in_image_alt', 'na' );
+	assertAgree( 'seg-blank-alt', 'image_alt_quality', 'improve', 0 );
+	assertStatusOnly( 'seg-blank-heading', 'keyword_in_subheading', 'na' );
+	assertStatusOnly( 'seg-cjk', 'keyword_in_content', 'pass' );
+} );
+
+// A lowercase single letter is not a capital initial. The sentence scoped
+// checks must not merge such a sentence with the next one; content, which is
+// paragraph scoped, may still match.
+test( 'a lowercase single letter is not merged as a capital initial', () => {
+	assertStatusOnly( 'seg-lower-a-sentence', 'keyword_in_content', 'pass' );
+	assertStatusOnly( 'seg-lower-a-sentence', 'keyword_in_opening', 'problem' );
+	assertStatusOnly( 'seg-lower-i-sentence', 'keyword_in_opening', 'problem' );
+	assertStatusOnly( 'seg-capital-initial', 'keyword_in_opening', 'pass' );
+	assertStatusOnly( 'seg-lower-a-distribution', 'keyword_distribution', 'problem' );
+} );
+
+// An abbreviation belongs to one paragraph. The merge is local to the
+// paragraph that owns the sentence, never to the next paragraph.
+test( 'an abbreviation does not merge across a paragraph boundary', () => {
+	assertStatusOnly( 'seg-abbrev-across-para', 'keyword_in_content', 'problem' );
+	assertStatusOnly( 'seg-abbrev-across-para', 'keyword_in_opening', 'problem' );
+	assertStatusOnly( 'seg-abbrev-across-para-distribution', 'keyword_distribution', 'problem' );
+	assertAgree( 'seg-abbrev-within-para-distribution', 'keyword_distribution', 'pass', 3 );
 } );
 
 // The whitespace fixtures pin the sentence count both engines cut from a

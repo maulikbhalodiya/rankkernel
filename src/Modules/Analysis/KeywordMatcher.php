@@ -345,6 +345,29 @@ final class KeywordMatcher {
 	}
 
 	/**
+	 * Whether a keyword appears in any one of the supplied segments.
+	 *
+	 * Each segment is matched on its own with the same rules as contains(), so
+	 * a phrase cannot be assembled from two segments. Punctuation separated
+	 * words inside one segment are still permitted, because normalisation
+	 * folds them into the same string before the sentence and reduced phrase
+	 * strategies run.
+	 *
+	 * @param string[] $segments Segments to search, in order.
+	 * @param string   $keyword  Keyword to look for.
+	 * @return bool The result.
+	 */
+	public static function containsAny( array $segments, string $keyword ): bool {
+		foreach ( $segments as $segment ) {
+			if ( self::contains( (string) $segment, $keyword ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Find the first boundary-valid exact phrase position.
 	 *
 	 * The offset is measured in characters in the normalised text, so it can
@@ -425,6 +448,27 @@ final class KeywordMatcher {
 		}
 
 		return substr_count( ' ' . $hay . ' ', ' ' . $needle . ' ' );
+	}
+
+	/**
+	 * Sum exact phrase occurrences across segments without joining them.
+	 *
+	 * The count is the sum of occurrences() over each segment, so a phrase
+	 * formed by the last word of one segment and the first word of the next
+	 * is not counted.
+	 *
+	 * @param string[] $segments Segments to count in.
+	 * @param string   $keyword  Keyword to count.
+	 * @return int The result.
+	 */
+	public static function occurrencesAny( array $segments, string $keyword ): int {
+		$total = 0;
+
+		foreach ( $segments as $segment ) {
+			$total += self::occurrences( (string) $segment, $keyword );
+		}
+
+		return $total;
 	}
 
 	/**
