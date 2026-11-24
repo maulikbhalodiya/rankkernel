@@ -2149,4 +2149,110 @@ final class SettingsPageTest extends TestCase {
 
 		$this->assertContains( 'rankkernel_settings_robots', $actions, 'a robots save must verify the robots nonce' );
 	}
+
+	/**
+	 * Save a social section POST through the real handler and capture the write.
+	 *
+	 * @param array<string, mixed> $seeded Stored settings before the save.
+	 * @param array<string, mixed> $post   Posted social fields.
+	 * @return array<string, mixed>|null Captured settings, or null when nothing was written.
+	 */
+	private function saveSocialPost( array $seeded, array $post ): ?array {
+		$page = $this->makePage( $seeded );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, mixed $value ) use ( &$captured ): bool {
+				if ( 'rankkernel_settings' === $key && is_array( $value ) ) {
+					$captured = $value;
+				}
+
+				return true;
+			}
+		);
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['section']           = 'social';
+		$_POST                     = array_merge( [ 'rankkernel_save' => '1' ], $post );
+
+		ob_start();
+		$page->maybeHandleSave();
+		ob_end_clean();
+
+		return $captured;
+	}
+
+	/**
+	 * M-5 case 16: a valid HTTPS URL with a zero id is sanitized and persisted.
+	 */
+	public function test_social_default_image_https_url_with_zero_id_persists(): void {
+		$saved = $this->saveSocialPost(
+			[],
+			[
+				'social_default_image'    => ' https://example.com/social-card.jpg ',
+				'social_default_image_id' => '0',
+			]
+		);
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( 'https://example.com/social-card.jpg', $saved['social_default_image'] );
+		$this->assertSame( 0, $saved['social_default_image_id'] );
+	}
+
+	/**
+	 * M-5 case 16: a valid HTTP URL is accepted by the same sanitization path.
+	 */
+	public function test_social_default_image_http_url_persists(): void {
+		$saved = $this->saveSocialPost(
+			[],
+			[ 'social_default_image' => 'http://cdn.example.org/wp-content/uploads/hero.jpg' ]
+		);
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( 'http://cdn.example.org/wp-content/uploads/hero.jpg', $saved['social_default_image'] );
+	}
+
+	/**
+	 * M-5 case 16: an empty URL clears a previously stored default.
+	 */
+	public function test_social_default_image_empty_url_clears_stored_default(): void {
+		$saved = $this->saveSocialPost(
+			[
+				'social_default_image'    => 'https://example.com/old.jpg',
+				'social_default_image_id' => 7,
+			],
+			[
+				'social_default_image'    => '',
+				'social_default_image_id' => '0',
+			]
+		);
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( '', $saved['social_default_image'] );
+		$this->assertSame( 0, $saved['social_default_image_id'] );
+	}
+
+	/**
+	 * M-5 case 16: a disallowed URL scheme never reaches persisted settings.
+	 */
+	public function test_social_default_image_rejects_disallowed_scheme(): void {
+		$saved = $this->saveSocialPost(
+			[
+				'social_default_image'    => 'https://example.com/good.jpg',
+				'social_default_image_id' => 7,
+			],
+			[
+				'social_default_image'    => 'javascript:alert(1)',
+				'social_default_image_id' => '0',
+			]
+		);
+
+		$this->assertIsArray( $saved );
+		$this->assertSame( '', $saved['social_default_image'] );
+		$this->assertSame( 0, $saved['social_default_image_id'] );
+	}
 }

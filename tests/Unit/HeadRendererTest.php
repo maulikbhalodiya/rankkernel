@@ -1196,22 +1196,16 @@ final class HeadRendererTest extends TestCase {
 	}
 
 	/**
-	 * Test the default image requires both its URL and attachment id.
+	 * Test an id only default is ignored, because there is no URL to emit.
 	 */
-	public function test_og_image_default_image_requires_url_and_attachment_id(): void {
-		foreach (
-			[
-				[ 'social_default_image' => 'https://example.com/default.jpg' ],
-				[ 'social_default_image_id' => 91 ],
-			] as $settingsOverrides
-		) {
-			[ $ctx, $settings ] = $this->makeContext( 'archive', 9, [], $settingsOverrides );
+	public function test_og_image_id_only_default_is_ignored(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'archive', 9, [], [ 'social_default_image_id' => 91 ] );
 
-			$out = $this->renderHead( $ctx, $settings );
+		$out = $this->renderHead( $ctx, $settings );
 
-			$this->assertStringNotContainsString( 'property="og:image"', $out );
-			$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
-		}
+		$this->assertSame( '', $ctx->ogImage() );
+		$this->assertStringNotContainsString( 'property="og:image"', $out );
+		$this->assertStringNotContainsString( 'property="og:image:alt"', $out );
 	}
 
 	/**
@@ -2167,5 +2161,112 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertTagCount( $out, 'rel="canonical"', 1 );
 		$this->assertTagCount( $out, '<meta name="description"', 1 );
+	}
+
+	/**
+	 * M-5 case 12: a URL only default emits exactly one correct og:image tag.
+	 */
+	public function test_url_only_global_default_emits_exactly_one_og_image_tag(): void {
+		[ $ctx, $settings ] = $this->makeContext(
+			'archive',
+			9,
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 0,
+			]
+		);
+
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, '<meta property="og:image"', 1 );
+		$this->assertStringContainsString( '<meta property="og:image" content="https://example.com/default.jpg" />', $out );
+	}
+
+	/**
+	 * M-5 case 13: a URL only default reaches the twitter:image fallback.
+	 */
+	public function test_url_only_global_default_reaches_twitter_image_fallback(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[ 'social_default_image' => 'https://example.com/default.jpg' ]
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'name="twitter:image"', 1 );
+		$this->assertStringContainsString( '<meta name="twitter:image" content="https://example.com/default.jpg" />', $out );
+	}
+
+	/**
+	 * M-5 case 14: a URL only default gets no attachment dimensions or alt.
+	 */
+	public function test_url_only_global_default_has_no_dimensions_or_alt(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 0,
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/default.jpg', 1200, 630 ] );
+
+		$metaReads = 0;
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ) use ( &$metaReads ): mixed {
+				unset( $id, $single );
+				if ( '_rankkernel_meta_data' === $key ) {
+					++$metaReads;
+
+					return [];
+				}
+
+				return 'Should not appear';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 1, $metaReads, 'no attachment alt lookup may occur for a URL only default' );
+		$this->assertStringContainsString( '<meta property="og:image" content="https://example.com/default.jpg" />', $out );
+		$this->assertStringNotContainsString( 'og:image:width', $out );
+		$this->assertStringNotContainsString( 'og:image:height', $out );
+		$this->assertStringNotContainsString( 'og:image:alt', $out );
+	}
+
+	/**
+	 * M-5 case 15: a global URL plus a positive id keeps attachment dimensions and alt.
+	 */
+	public function test_global_default_url_with_positive_id_keeps_dimensions_and_alt(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext(
+			[],
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 91,
+			]
+		);
+
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( [ 'https://example.com/default.jpg', 1200, 630 ] );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( int $id, string $key, bool $single ): mixed {
+				unset( $id, $single );
+				if ( '_rankkernel_meta_data' === $key ) {
+					return [];
+				}
+
+				return 'Default image alt';
+			}
+		);
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertSame( 91, $ctx->ogImageAttachmentId() );
+		$this->assertStringContainsString( '<meta property="og:image" content="https://example.com/default.jpg" />', $out );
+		$this->assertStringContainsString( '<meta property="og:image:width" content="1200" />', $out );
+		$this->assertStringContainsString( '<meta property="og:image:height" content="630" />', $out );
+		$this->assertStringContainsString( '<meta property="og:image:alt" content="Default image alt" />', $out );
 	}
 }

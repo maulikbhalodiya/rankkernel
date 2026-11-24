@@ -1001,6 +1001,12 @@ final class Context {
 	 * Chain: payload og.image (custom URL, id 0) → og.image_id → featured → site default.
 	 * Custom URL never pairs with an attachment's dimensions.
 	 *
+	 * The site default resolves from a non empty URL alone, even when its
+	 * attachment id is 0 or absent. In that case the id stays 0 and no
+	 * attachment lookup occurs, so no dimensions or alt are attached. A
+	 * positive id is preserved as before. An empty URL keeps the empty
+	 * fallback.
+	 *
 	 * @return array{url:string,id:int} The result.
 	 */
 	private function resolveOgImageData(): array {
@@ -1060,16 +1066,16 @@ final class Context {
 			}
 		}
 
-		// 4) Site default image, only when both settings identify the same attachment.
+		// 4) Site default image, a URL alone is enough, the id is optional.
 		$defaultImage = $this->settings->get( 'social_default_image', '' );
 		$defaultId    = $this->settings->get( 'social_default_image_id', 0 );
 		$defaultImage = is_string( $defaultImage ) ? trim( $defaultImage ) : '';
 		$defaultId    = is_numeric( $defaultId ) ? (int) $defaultId : 0;
 
-		if ( '' !== $defaultImage && $defaultId > 0 ) {
+		if ( '' !== $defaultImage ) {
 			$this->ogImageData = [
 				'url' => $defaultImage,
-				'id'  => $defaultId,
+				'id'  => $defaultId > 0 ? $defaultId : 0,
 			];
 
 			return $this->ogImageData;
@@ -1085,6 +1091,8 @@ final class Context {
 
 	/**
 	 * OG image, chain: payload og.image -> og.image_id via wp_get_attachment_image_url -> featured image -> site default -> ''.
+	 *
+	 * The site default needs only a non empty URL, with or without an id.
 	 *
 	 * @return string The result.
 	 */

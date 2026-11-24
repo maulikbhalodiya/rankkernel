@@ -792,4 +792,302 @@ final class ContextTest extends TestCase {
 		$this->assertSame( 42, $ctxSingular->queriedId() );
 		$this->assertSame( 42, $ctxSingular->queriedId() );
 	}
+
+	/**
+	 * Build a settings store fed by a get_option stub with the given overrides.
+	 *
+	 * @param array<string, mixed> $overrides Stored setting overrides.
+	 * @return SettingsStore The result.
+	 */
+	private function makeSettingsWithOverrides( array $overrides = [] ): SettingsStore {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) use ( $overrides ) {
+				if ( 'rankkernel_settings' === $key ) {
+					return $overrides;
+				}
+
+				return $fallback;
+			}
+		);
+
+		return new SettingsStore();
+	}
+
+	/**
+	 * Make a latest posts homepage query.
+	 *
+	 * @return WP_Query The result.
+	 */
+	private function makeQueryHome(): WP_Query {
+		$q = Mockery::mock( WP_Query::class );
+		$q->shouldReceive( 'is_singular' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_search' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_404' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_category' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_home' )->andReturn( true )->byDefault();
+		$q->shouldReceive( 'is_front_page' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'is_archive' )->andReturn( false )->byDefault();
+		$q->shouldReceive( 'get_queried_object_id' )->andReturn( 0 )->byDefault();
+		$q->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
+
+		return $q;
+	}
+
+	/**
+	 * M-5 case 1: a valid global URL resolves even when the id key is zero.
+	 */
+	public function test_global_default_image_url_resolves_with_zero_id(): void {
+		$query = $this->makeQuerySingular( 5 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\expect( 'wp_get_attachment_image_url' )->never();
+
+		$settings = $this->makeSettingsWithOverrides(
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 0,
+			]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/default.jpg', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId(), 'a URL only default must carry attachment id 0' );
+	}
+
+	/**
+	 * M-5 case 2: a valid global URL resolves when the id key is absent.
+	 */
+	public function test_global_default_image_url_resolves_with_id_key_absent(): void {
+		$query = $this->makeQuerySingular( 6 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://example.com/no-id.jpg' ]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/no-id.jpg', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 3: an external HTTPS image URL is accepted as the global default.
+	 */
+	public function test_global_default_image_external_https_url(): void {
+		$query = $this->makeQuerySingular( 7 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://cdn.example.org/social/og-card.png' ]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://cdn.example.org/social/og-card.png', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 4: a media library style URL resolves without an attachment id.
+	 */
+	public function test_global_default_image_media_url_without_attachment_id(): void {
+		$query = $this->makeQuerySingular( 8 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$url      = 'https://example.com/wp-content/uploads/2026/01/social-card.jpg';
+		$settings = $this->makeSettingsWithOverrides( [ 'social_default_image' => $url ] );
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( $url, $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId(), 'no attachment id is reverse looked up from a media URL' );
+	}
+
+	/**
+	 * M-5 case 5: a global URL plus a positive id keeps the existing id behavior.
+	 */
+	public function test_global_default_image_url_with_positive_id_keeps_id(): void {
+		$query = $this->makeQuerySingular( 9 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\expect( 'wp_get_attachment_image_url' )->never();
+
+		$settings = $this->makeSettingsWithOverrides(
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 42,
+			]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/default.jpg', $ctx->ogImage() );
+		$this->assertSame( 42, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 6: an empty URL and empty id keep the empty fallback.
+	 */
+	public function test_global_default_image_empty_url_and_empty_id(): void {
+		$query = $this->makeQuerySingular( 10 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[
+				'social_default_image'    => '',
+				'social_default_image_id' => 0,
+			]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( '', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 7: a deleted per post attachment falls through to the URL only default.
+	 */
+	public function test_global_default_image_reached_when_per_post_attachment_is_deleted(): void {
+		$query = $this->makeQuerySingular( 11 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn(
+			[
+				'og' => [
+					'image'    => '',
+					'image_id' => 505,
+				],
+			]
+		);
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://example.com/fallback.jpg' ]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/fallback.jpg', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 8: a per post custom URL wins over the global default.
+	 */
+	public function test_per_post_custom_url_precedes_global_default(): void {
+		$query = $this->makeQuerySingular( 12 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn(
+			[
+				'og' => [
+					'image'    => 'https://example.com/personal.jpg',
+					'image_id' => 0,
+				],
+			]
+		);
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[
+				'social_default_image'    => 'https://example.com/default.jpg',
+				'social_default_image_id' => 42,
+			]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/personal.jpg', $ctx->ogImage() );
+		$this->assertSame( 0, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 9: a per post attachment wins over the global default.
+	 */
+	public function test_per_post_attachment_precedes_global_default(): void {
+		$query = $this->makeQuerySingular( 13 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn(
+			[
+				'og' => [
+					'image'    => '',
+					'image_id' => 77,
+				],
+			]
+		);
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/post-attachment.jpg' );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://example.com/default.jpg' ]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/post-attachment.jpg', $ctx->ogImage() );
+		$this->assertSame( 77, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 10: a featured image wins over the global default.
+	 */
+	public function test_featured_image_precedes_global_default(): void {
+		$query = $this->makeQuerySingular( 14 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 999 );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/featured.jpg' );
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://example.com/default.jpg' ]
+		);
+		$ctx      = new Context( $query, $settings );
+
+		$this->assertSame( 'https://example.com/featured.jpg', $ctx->ogImage() );
+		$this->assertSame( 999, $ctx->ogImageAttachmentId() );
+	}
+
+	/**
+	 * M-5 case 11: the URL only default resolves on home, posts and pages alike.
+	 */
+	public function test_global_default_url_only_resolves_on_home_post_and_page(): void {
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+
+		$lookups = 0;
+		Functions\when( 'wp_get_attachment_image_url' )->alias(
+			static function () use ( &$lookups ): string {
+				++$lookups;
+
+				return '';
+			}
+		);
+
+		$settings = $this->makeSettingsWithOverrides(
+			[ 'social_default_image' => 'https://example.com/site-default.jpg' ]
+		);
+
+		$queries = [
+			'home' => $this->makeQueryHome(),
+			'post' => $this->makeQuerySingular( 15 ),
+			'page' => $this->makeQuerySingular( 16 ),
+		];
+
+		foreach ( $queries as $type => $query ) {
+			$ctx = new Context( $query, $settings );
+
+			$this->assertSame( 'https://example.com/site-default.jpg', $ctx->ogImage(), $type );
+			$this->assertSame( 0, $ctx->ogImageAttachmentId(), $type );
+		}
+
+		$this->assertSame( 0, $lookups, 'a URL only default must never trigger an attachment lookup' );
+	}
 }
