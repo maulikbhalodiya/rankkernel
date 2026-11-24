@@ -58,6 +58,7 @@ final class HeadRendererTest extends TestCase {
 	 * Tear down the test fixture.
 	 */
 	protected function tearDown(): void {
+		unset( $GLOBALS['wp_rewrite'] );
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -77,35 +78,41 @@ final class HeadRendererTest extends TestCase {
 		array $metaPayload = [],
 		array $settingsOverrides = []
 	): array {
-		$isPost      = 'post' === $type;
-		$isSingular  = in_array( $type, [ 'post', 'front_page' ], true );
-		$isHome      = in_array( $type, [ 'home', 'posts_page' ], true );
-		$isFrontPage = in_array( $type, [ 'home', 'front_page' ], true );
-		$isArchive   = in_array( $type, [ 'archive', 'date' ], true );
-		$query       = Mockery::mock( WP_Query::class );
+		$isPost            = 'post' === $type;
+		$isSingular        = in_array( $type, [ 'post', 'front_page' ], true );
+		$isHome            = in_array( $type, [ 'home', 'posts_page' ], true );
+		$isFrontPage       = in_array( $type, [ 'home', 'front_page' ], true );
+		$isCategory        = in_array( $type, [ 'term', 'category' ], true );
+		$isTag             = 'tag' === $type;
+		$isTax             = 'tax' === $type;
+		$isAuthor          = 'author' === $type;
+		$isDate            = 'date' === $type;
+		$isPostTypeArchive = 'cpt_archive' === $type;
+		$isArchive         = in_array( $type, [ 'archive', 'date', 'author', 'cpt_archive' ], true );
+		$query             = Mockery::mock( WP_Query::class );
 		$query->shouldReceive( 'is_singular' )->andReturn( $isSingular )->byDefault();
 		$query->shouldReceive( 'is_search' )->andReturn( 'search' === $type )->byDefault();
 		$query->shouldReceive( 'is_404' )->andReturn( '404' === $type )->byDefault();
 		$query->shouldReceive( 'is_feed' )->andReturn( false )->byDefault();
 		$query->shouldReceive( 'is_preview' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_category' )->andReturn( 'term' === $type )->byDefault();
-		$query->shouldReceive( 'is_tag' )->andReturn( false )->byDefault();
-		$query->shouldReceive( 'is_tax' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_category' )->andReturn( $isCategory )->byDefault();
+		$query->shouldReceive( 'is_tag' )->andReturn( $isTag )->byDefault();
+		$query->shouldReceive( 'is_tax' )->andReturn( $isTax )->byDefault();
 		$query->shouldReceive( 'is_home' )->andReturn( $isHome )->byDefault();
 		$query->shouldReceive( 'is_front_page' )->andReturn( $isFrontPage )->byDefault();
 		$query->shouldReceive( 'is_archive' )->andReturn( $isArchive )->byDefault();
-		$query->shouldReceive( 'is_author' )->andReturn( 'author' === $type )->byDefault();
-		$query->shouldReceive( 'is_date' )->andReturn( 'date' === $type )->byDefault();
-		$query->shouldReceive( 'is_post_type_archive' )->andReturn( false )->byDefault();
+		$query->shouldReceive( 'is_author' )->andReturn( $isAuthor )->byDefault();
+		$query->shouldReceive( 'is_date' )->andReturn( $isDate )->byDefault();
+		$query->shouldReceive( 'is_post_type_archive' )->andReturn( $isPostTypeArchive )->byDefault();
 		$query->shouldReceive( 'get_queried_object_id' )->andReturn( $id )->byDefault();
 		$query->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => $id ] )->byDefault();
 		$query->shouldReceive( 'get' )->andReturn( 0 )->byDefault();
 
 		Functions\when( 'get_query_var' )->justReturn( 0 );
 		Functions\when( 'is_feed' )->justReturn( false );
-		Functions\when( 'is_author' )->justReturn( 'author' === $type );
-		Functions\when( 'is_date' )->justReturn( 'date' === $type );
-		Functions\when( 'is_post_type_archive' )->justReturn( false );
+		Functions\when( 'is_author' )->justReturn( $isAuthor );
+		Functions\when( 'is_date' )->justReturn( $isDate );
+		Functions\when( 'is_post_type_archive' )->justReturn( $isPostTypeArchive );
 		Functions\when( 'get_bloginfo' )->justReturn( 'My Site' );
 		Functions\when( 'get_the_title' )->justReturn( $isSingular ? 'Post Title' : 'Archive Title' );
 		Functions\when( 'get_the_excerpt' )->justReturn( $isSingular ? 'Excerpt text for description fallback that is trimmed' : '' );
@@ -2979,5 +2986,593 @@ final class HeadRendererTest extends TestCase {
 
 		$this->assertSame( $override, $ctx->meta()['canonical'], 'fixture must pass through MetaPayload sanitization' );
 		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/?a=1&amp;b=2' );
+	}
+
+	/**
+	 * Stub get_query_var with a map of query variables.
+	 *
+	 * @param array<string, mixed> $vars Query variables keyed by name.
+	 */
+	private function stubQueryVars( array $vars ): void {
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = 0 ) use ( $vars ): mixed {
+				return array_key_exists( $key, $vars ) ? $vars[ $key ] : $fallback;
+			}
+		);
+	}
+
+	/**
+	 * Stub the paged query variable only.
+	 *
+	 * @param int $paged Page number.
+	 */
+	private function stubPaged( int $paged ): void {
+		$this->stubQueryVars( [ 'paged' => $paged ] );
+	}
+
+	/**
+	 * Install a fake rewrite global without stubbing the composition helpers.
+	 *
+	 * @param bool   $usePermalinks Whether pretty permalinks are enabled.
+	 * @param bool   $trailing      Whether pretty URLs end in a slash.
+	 * @param string $base          Configured pagination base slug.
+	 */
+	private function setRewriteGlobal( bool $usePermalinks, bool $trailing, string $base ): void {
+		$GLOBALS['wp_rewrite'] = new class( $usePermalinks, $trailing, $base ) { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test fixture for WordPress rewrite global.
+			/**
+			 * Configured pagination base slug.
+			 *
+			 * @var string
+			 */
+			public string $pagination_base;
+
+			/**
+			 * Whether pretty URLs end in a slash.
+			 *
+			 * @var bool
+			 */
+			public bool $use_trailing_slashes;
+
+			/**
+			 * Create the rewrite stub.
+			 *
+			 * @param bool   $permalinks Whether pretty permalinks are enabled.
+			 * @param bool   $trailing   Whether pretty URLs end in a slash.
+			 * @param string $base       Configured pagination base slug.
+			 */
+			public function __construct(
+				private bool $permalinks,
+				bool $trailing,
+				string $base
+			) {
+				$this->pagination_base      = $base;
+				$this->use_trailing_slashes = $trailing;
+			}
+
+			/**
+			 * Report whether pretty permalinks are enabled.
+			 *
+			 * @return bool
+			 */
+			public function using_permalinks(): bool {
+				return $this->permalinks;
+			}
+		};
+	}
+
+	/**
+	 * Install the rewrite global plus faithful core URL helpers.
+	 *
+	 * @param bool   $usePermalinks Whether pretty permalinks are enabled.
+	 * @param bool   $trailing      Whether pretty URLs end in a slash.
+	 * @param string $base          Configured pagination base slug.
+	 */
+	private function stubRewrite( bool $usePermalinks = true, bool $trailing = true, string $base = 'page' ): void {
+		$this->setRewriteGlobal( $usePermalinks, $trailing, $base );
+
+		Functions\when( 'trailingslashit' )->alias(
+			static fn ( string $value ): string => rtrim( $value, '/' ) . '/'
+		);
+		Functions\when( 'user_trailingslashit' )->alias(
+			static function ( string $value ): string {
+				return $GLOBALS['wp_rewrite']->use_trailing_slashes
+					? rtrim( $value, '/' ) . '/'
+					: rtrim( $value, '/' );
+			}
+		);
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( string|array $key, mixed $value = null, string $url = '' ): string {
+				$params = is_array( $key ) ? $key : [ $key => $value ];
+
+				if ( is_array( $key ) ) {
+					$url = (string) $value;
+				}
+
+				$parts = explode( '?', $url, 2 );
+				$path  = $parts[0];
+				$args  = [];
+
+				if ( isset( $parts[1] ) ) {
+					parse_str( $parts[1], $args );
+				}
+
+				foreach ( $params as $paramKey => $paramValue ) {
+					$args[ (string) $paramKey ] = $paramValue;
+				}
+
+				return $path . '?' . http_build_query( $args );
+			}
+		);
+	}
+
+	/**
+	 * M-7 case 1: category page 1 keeps the base canonical.
+	 */
+	public function test_m7_category_page_one_uses_base_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubPaged( 1 );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/' );
+	}
+
+	/**
+	 * M-7 case 2: category page 2 composes the paginated canonical from the permalink.
+	 */
+	public function test_m7_category_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/2/' );
+	}
+
+	/**
+	 * M-7 case 3: category page 3 composes the matching page number.
+	 */
+	public function test_m7_category_page_three_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 3 );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/3/' );
+	}
+
+	/**
+	 * M-7 case 4: a tag archive page 2 composes from the term link.
+	 */
+	public function test_m7_tag_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'tag', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/tag/news/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/tag/news/page/2/' );
+	}
+
+	/**
+	 * M-7 case 5: a custom taxonomy archive page 2 composes from the term link.
+	 */
+	public function test_m7_custom_taxonomy_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'tax', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/genre/jazz/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/genre/jazz/page/2/' );
+	}
+
+	/**
+	 * M-7 case 6: an author archive page 2 composes from the author URL.
+	 */
+	public function test_m7_author_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings, $query ] = $this->makeContext( 'author', 5 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		$query->shouldReceive( 'get_queried_object' )->andReturn( (object) [ 'ID' => 5 ] );
+		Functions\when( 'get_author_posts_url' )->justReturn( 'https://example.com/author/bob/' );
+
+		$this->assertSame( 'archive', $ctx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/author/bob/page/2/' );
+	}
+
+	/**
+	 * M-7 case 7: a year archive page 2 composes from the year link.
+	 */
+	public function test_m7_year_archive_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'date', 0 );
+		$this->stubRewrite();
+		$this->stubQueryVars(
+			[
+				'paged' => 2,
+				'year'  => 2026,
+			]
+		);
+		Functions\when( 'get_year_link' )->justReturn( 'https://example.com/2026/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/2026/page/2/' );
+	}
+
+	/**
+	 * M-7 case 8: a month archive page 2 composes from the month link.
+	 */
+	public function test_m7_month_archive_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'date', 0 );
+		$this->stubRewrite();
+		$this->stubQueryVars(
+			[
+				'paged'    => 2,
+				'year'     => 2026,
+				'monthnum' => 1,
+			]
+		);
+		Functions\when( 'get_month_link' )->justReturn( 'https://example.com/2026/01/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/2026/01/page/2/' );
+	}
+
+	/**
+	 * M-7 case 9: a day archive page 2 composes from the day link.
+	 */
+	public function test_m7_day_archive_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'date', 0 );
+		$this->stubRewrite();
+		$this->stubQueryVars(
+			[
+				'paged'    => 2,
+				'year'     => 2026,
+				'monthnum' => 1,
+				'day'      => 15,
+			]
+		);
+		Functions\when( 'get_day_link' )->justReturn( 'https://example.com/2026/01/15/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/2026/01/15/page/2/' );
+	}
+
+	/**
+	 * M-7 case 10: a post type archive page 2 composes from the archive link.
+	 */
+	public function test_m7_post_type_archive_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings, $query ] = $this->makeContext( 'cpt_archive', 0 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		$query->shouldReceive( 'get' )->with( 'post_type' )->andReturn( 'project' );
+		Functions\when( 'get_post_type_archive_link' )->justReturn( 'https://example.com/projects/' );
+		Functions\when( 'get_post_type_object' )->alias(
+			static function (): object {
+				return (object) [
+					'labels' => (object) [ 'name' => 'Projects' ],
+					'label'  => 'Projects',
+				];
+			}
+		);
+
+		$this->assertSame( 'archive', $ctx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/projects/page/2/' );
+	}
+
+	/**
+	 * M-7 case 11: the latest-posts homepage page 1 keeps the base canonical.
+	 */
+	public function test_m7_latest_posts_home_page_one_uses_base_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'home', 0 );
+		$this->stubPaged( 1 );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertTrue( $ctx->isPostsIndex() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/' );
+	}
+
+	/**
+	 * M-7 case 12: the latest-posts homepage page 2 composes from the home URL.
+	 */
+	public function test_m7_latest_posts_home_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'home', 0 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+
+		$this->assertTrue( $ctx->isPostsIndex() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/page/2/' );
+	}
+
+	/**
+	 * M-7 case 13: a separate posts page page 1 keeps the base canonical.
+	 */
+	public function test_m7_separate_posts_page_one_uses_base_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'posts_page', 9 );
+		$this->stubPaged( 1 );
+		$this->stubSeparatePostsPage();
+
+		$this->assertSame( 'https://example.com/blog/', $ctx->permalink() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/blog/' );
+	}
+
+	/**
+	 * M-7 case 14: a separate posts page page 2 composes from the posts page permalink.
+	 */
+	public function test_m7_separate_posts_page_two_uses_paginated_canonical(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'posts_page', 9 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		$this->stubSeparatePostsPage();
+
+		$this->assertTrue( $ctx->isPostsIndex() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/blog/page/2/' );
+	}
+
+	/**
+	 * Point the fixture at a real separate posts page with a distinct permalink.
+	 */
+	private function stubSeparatePostsPage(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'page_for_posts' === $key ) {
+					return 9;
+				}
+				if ( 'rankkernel_settings' === $key ) {
+					return SettingsStore::defaults();
+				}
+				if ( 'rankkernel_modules' === $key ) {
+					return [ 'metadata' ];
+				}
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_permalink' )->alias(
+			static function ( mixed $postId = 0 ): string {
+				return 9 === (int) $postId ? 'https://example.com/blog/' : '';
+			}
+		);
+	}
+
+	/**
+	 * M-7 safeguard: a static front page is never treated as a posts index, even when paged.
+	 */
+	public function test_m7_static_front_page_never_gets_archive_pagination(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'front_page', 42 );
+		$this->stubPaged( 2 );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertFalse( $ctx->isPostsIndex(), 'static front page must not be a posts index' );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/' );
+	}
+
+	/**
+	 * M-7 URL mode: pretty permalinks without trailing slashes.
+	 */
+	public function test_m7_pretty_no_trailing_slash(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite( true, false );
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/news' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/news/page/2' );
+	}
+
+	/**
+	 * M-7 URL mode: plain permalinks add one paged query argument to the base.
+	 */
+	public function test_m7_plain_permalinks_add_single_paged_query_arg(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite( false );
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/?cat=7' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/?cat=7&amp;paged=2' );
+	}
+
+	/**
+	 * M-7 URL mode: a custom pagination base is used verbatim.
+	 */
+	public function test_m7_custom_pagination_base(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite( true, true, 'segment' );
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/news/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/news/segment/2/' );
+	}
+
+	/**
+	 * M-7 URL mode: an index.php style base keeps its path prefix.
+	 */
+	public function test_m7_index_php_style_base(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/index.php/category/news/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/index.php/category/news/page/2/' );
+	}
+
+	/**
+	 * M-7 URL mode: a subdirectory base keeps its directory prefix.
+	 */
+	public function test_m7_subdirectory_base(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/blog/category/news/' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/blog/category/news/page/2/' );
+	}
+
+	/**
+	 * M-7 URL mode: an existing query string survives on the paginated URL.
+	 */
+	public function test_m7_existing_query_string_is_preserved(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/news/?filter=popular' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/news/page/2/?filter=popular' );
+	}
+
+	/**
+	 * M-7 URL mode: an existing paged query arg is replaced, never duplicated.
+	 */
+	public function test_m7_existing_paged_arg_is_not_duplicated(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite( false );
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/?paged=2' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/?paged=2' );
+	}
+
+	/**
+	 * M-7 edge: a pretty base carrying a paged arg must not duplicate it.
+	 *
+	 * The path suffix already represents paged, so the raw query argument is
+	 * stripped while every other arg, its order and the fragment survive.
+	 * Canonical and og:url must resolve to the exact same URL.
+	 */
+	public function test_m7_pretty_base_drops_existing_paged_arg(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/?filter=popular&paged=2' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/2/?filter=popular' );
+	}
+
+	/**
+	 * M-7 edge: a pretty base with only a paged arg yields a clean paginated URL.
+	 *
+	 * Removing the sole query argument leaves no trailing query marker behind.
+	 */
+	public function test_m7_pretty_base_with_only_paged_arg(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/?paged=2' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/2/' );
+	}
+
+	/**
+	 * M-7 URL mode: a fragment stays last, pagination is never appended after it.
+	 */
+	public function test_m7_fragment_is_not_used_as_pagination_suffix(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+		Functions\when( 'get_term_link' )->justReturn( 'https://example.com/category/news/#section' );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/news/page/2/#section' );
+	}
+
+	/**
+	 * M-7 override: a valid canonical override on page 2 wins unchanged on both tags.
+	 */
+	public function test_m7_valid_override_on_page_two_wins(): void {
+		$override           = 'https://example.com/term-canonical-override/';
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7, [ 'canonical' => $override ] );
+		Functions\when( 'get_term_meta' )->justReturn( [ 'canonical' => $override ] );
+		$this->stubPaged( 2 );
+
+		$this->assertSame( $override, $ctx->meta()['canonical'] );
+		$out = $this->renderHead( $ctx, $settings );
+		$this->assertHeadUrlsAgree( $out, $override );
+		$this->assertStringNotContainsString( 'page/2', $out );
+	}
+
+	/**
+	 * M-7 override: an empty canonical on page 2 uses the composed default on both tags.
+	 */
+	public function test_m7_empty_override_on_page_two_uses_paginated_default(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7, [ 'canonical' => '' ] );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+
+		$this->assertSame( '', $ctx->meta()['canonical'] );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/2/' );
+	}
+
+	/**
+	 * M-7 guard: search with a paged variable still omits canonical and og:url.
+	 */
+	public function test_m7_search_with_paged_omits_both_urls(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'search', 0 );
+		$this->stubPaged( 2 );
+
+		$this->assertNoCanonicalNoOgUrl( $this->renderHead( $ctx, $settings ) );
+	}
+
+	/**
+	 * M-7 guard: 404 with a paged variable still omits canonical and og:url.
+	 */
+	public function test_m7_404_with_paged_omits_both_urls(): void {
+		[ $ctx, $settings ] = $this->makeContext( '404', 0 );
+		$this->stubPaged( 2 );
+
+		$this->assertNoCanonicalNoOgUrl( $this->renderHead( $ctx, $settings ) );
+	}
+
+	/**
+	 * M-7 guard: a singular post never receives archive pagination.
+	 */
+	public function test_m7_singular_post_ignores_archive_pagination(): void {
+		[ $ctx, $settings ] = $this->makeSingularContext();
+		$this->stubPaged( 2 );
+
+		$this->assertSame( 'post', $ctx->queriedType() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/post/' );
+	}
+
+	/**
+	 * M-7 cardinality: exactly one canonical and one og:url on a paginated archive.
+	 */
+	public function test_m7_no_duplicate_canonical_or_og_url_on_paginated_archive(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$this->stubPaged( 2 );
+
+		$out = $this->renderHead( $ctx, $settings );
+
+		$this->assertTagCount( $out, 'rel="canonical"', 1 );
+		$this->assertTagCount( $out, '<meta property="og:url"', 1 );
+		$this->assertHeadUrlsAgree( $out, 'https://example.com/category/page/2/' );
+	}
+
+	/**
+	 * M-7 fallback: a missing rewrite global yields the base permalink, not a malformed URL.
+	 */
+	public function test_m7_missing_rewrite_global_falls_back_to_base_permalink(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->stubPaged( 2 );
+		$GLOBALS['wp_rewrite'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test fixture for WordPress rewrite global.
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/' );
+	}
+
+	/**
+	 * M-7 fallback: a missing plain-mode helper yields the base permalink.
+	 *
+	 * Brain Monkey keeps functions stubbed in earlier tests physically
+	 * defined, so this guard case runs in its own process.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_m7_missing_composition_helper_falls_back_to_base_permalink(): void {
+		[ $ctx, $settings ] = $this->makeContext( 'term', 7 );
+		$this->setRewriteGlobal( false, true, 'page' );
+		$this->stubPaged( 2 );
+
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/' );
+	}
+
+	/**
+	 * M-7 accessor: pagination falls back to the injected query's paged var.
+	 */
+	public function test_m7_paged_falls_back_to_query_get(): void {
+		[ $ctx, $settings, $query ] = $this->makeContext( 'term', 7 );
+		$this->stubRewrite();
+		$query->shouldReceive( 'get' )->with( 'paged' )->andReturn( 2 );
+
+		$this->assertSame( 2, $ctx->paged() );
+		$this->assertHeadUrlsAgree( $this->renderHead( $ctx, $settings ), 'https://example.com/category/page/2/' );
 	}
 }

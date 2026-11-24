@@ -676,6 +676,11 @@ final class HeadRenderer {
 	/**
 	 * Resolve canonical URL (omitted on search/404).
 	 *
+	 * A valid explicit override always wins unchanged. On archive and posts
+	 * index pages beyond page 1 the self-referencing URL is composed from the
+	 * context permalink, so page 2+ points at its own URL instead of the
+	 * un-paginated base. og:url calls this same resolver, so it stays aligned.
+	 *
 	 * @param Context              $ctx  Context.
 	 * @param array<string, mixed> $meta Meta.
 	 * @return string The result.
@@ -691,7 +696,142 @@ final class HeadRenderer {
 			return $canonical;
 		}
 
-		return $ctx->permalink();
+		$base  = $ctx->permalink();
+		$paged = $ctx->paged();
+
+		if ( $paged < 2 || ! self::isPaginatedArchive( $ctx ) ) {
+			return $base;
+		}
+
+		return $this->resolvePaginatedUrl( $paged, $base );
+	}
+
+	/**
+	 * Whether the context is an archive-like index that supports pagination.
+	 *
+	 * Term and date/author/post-type archives qualify directly. A 'home'
+	 * context qualifies only when it is the real posts index, which keeps a
+	 * static front page on its base canonical.
+	 *
+	 * @param Context $ctx Context.
+	 * @return bool The result.
+	 */
+	private static function isPaginatedArchive( Context $ctx ): bool {
+		$type = $ctx->queriedType();
+
+		if ( in_array( $type, [ 'term', 'archive' ], true ) ) {
+			return true;
+		}
+
+		return 'home' === $type && $ctx->isPostsIndex();
+	}
+
+	/**
+	 * Resolve the self-referencing URL for a paginated archive page.
+	 *
+	 * Composition starts from Context::permalink() and never from the request
+	 * URI, so tracking parameters, mutable filters and admin rewrites cannot
+	 * leak into the canonical. Plain permalinks add one paged query argument.
+	 * Pretty permalinks append the configured pagination base to the path and
+	 * re-attach any existing query string minus a redundant paged argument,
+	 * preserving custom bases, index.php style, subdirectories, argument order
+	 * and trailing-slash settings. If the rewrite global or a required helper
+	 * is missing, the base is returned rather than emitting a malformed URL.
+	 *
+	 * @param int    $paged Page number.
+	 * @param string $base  Base permalink, also the fallback.
+	 * @return string The result.
+	 */
+	private function resolvePaginatedUrl( int $paged, string $base ): string {
+		global $wp_rewrite;
+
+		if ( '' === $base || ! is_object( $wp_rewrite ) ) {
+			return $base;
+		}
+
+		if (
+			! method_exists( $wp_rewrite, 'using_permalinks' )
+			|| ! isset( $wp_rewrite->pagination_base )
+			|| ! is_string( $wp_rewrite->pagination_base )
+			|| '' === $wp_rewrite->pagination_base
+		) {
+			return $base;
+		}
+
+		if ( ! $wp_rewrite->using_permalinks() ) {
+			return function_exists( 'add_query_arg' )
+				? (string) add_query_arg( 'paged', $paged, $base )
+				: $base;
+		}
+
+		if ( ! function_exists( 'trailingslashit' ) || ! function_exists( 'user_trailingslashit' ) ) {
+			return $base;
+		}
+
+		// Pagination belongs on the path, never after a query string or fragment.
+		$fragment = '';
+		$path     = $base;
+
+		$fragmentAt = strpos( $path, '#' );
+		if ( false !== $fragmentAt ) {
+			$fragment = substr( $path, $fragmentAt );
+			$path     = substr( $path, 0, $fragmentAt );
+		}
+
+		$query   = '';
+		$queryAt = strpos( $path, '?' );
+		if ( false !== $queryAt ) {
+			$query = substr( $path, $queryAt );
+			$path  = substr( $path, 0, $queryAt );
+		}
+
+		$path = trailingslashit( $path ) . $wp_rewrite->pagination_base . '/' . $paged;
+		$path = (string) user_trailingslashit( $path, 'paged' );
+
+		// The path suffix already carries paged, so drop it from the raw query.
+		$query = $this->withoutPagedArg( $query );
+
+		return $path . $query . $fragment;
+	}
+
+	/**
+	 * Remove the paged argument from a raw query string.
+	 *
+	 * Operates on the raw pairs so every other argument keeps its original
+	 * order, encoding and separators. An empty result drops the query marker
+	 * entirely, which keeps a URL that only carried paged free of a bare '?'.
+	 *
+	 * @param string $query Raw query string, optionally with a leading '?'.
+	 * @return string The query string with paged removed, or an empty string.
+	 */
+	private function withoutPagedArg( string $query ): string {
+		if ( '' === $query ) {
+			return '';
+		}
+
+		$body = ltrim( $query, '?' );
+
+		if ( '' === $body ) {
+			return '';
+		}
+
+		$kept = [];
+
+		foreach ( explode( '&', $body ) as $pair ) {
+			if ( '' === $pair ) {
+				continue;
+			}
+
+			$name = explode( '=', $pair, 2 )[0];
+
+			if ( 'paged' === rawurldecode( $name ) ) {
+				continue;
+			}
+
+			$kept[] = $pair;
+		}
+
+		return [] === $kept ? '' : '?' . implode( '&', $kept );
 	}
 
 	/**

@@ -140,12 +140,7 @@ final class Context {
 
 		$type  = $this->queriedType();
 		$id    = $this->queriedId();
-		$paged = $this->paginated() ? '1' : '0';
-
-		// Include actual paged number for correctness.
-		if ( function_exists( 'get_query_var' ) ) {
-			$paged = (string) (int) get_query_var( 'paged', 0 );
-		}
+		$paged = (string) $this->paged();
 
 		$this->hashCache = md5( $type . '|' . (string) $id . '|' . $paged );
 
@@ -370,25 +365,62 @@ final class Context {
 	}
 
 	/**
+	 * Current pagination page number, zero when the request is not paginated.
+	 *
+	 * Both the global get_query_var() value and the injected query's paged
+	 * value are considered. Each is cast and bounded to zero or greater and
+	 * the larger one wins, so a low global value cannot mask a higher query
+	 * value. This preserves the old paginated() fallback where either source
+	 * above 1 marked the request as paginated. Singular page and comment
+	 * pagination are deliberately not handled here.
+	 *
+	 * @return int The result.
+	 */
+	public function paged(): int {
+		$paged = 0;
+
+		if ( function_exists( 'get_query_var' ) ) {
+			$paged = max( 0, (int) get_query_var( 'paged', 0 ) );
+		}
+
+		if ( is_callable( [ $this->query, 'get' ] ) ) {
+			$paged = max( $paged, 0, (int) $this->query->get( 'paged' ) );
+		}
+
+		return $paged;
+	}
+
+	/**
 	 * Whether the current page is paginated (paged > 1).
 	 *
 	 * @return bool The result.
 	 */
 	public function paginated(): bool {
-		if ( function_exists( 'get_query_var' ) ) {
-			$paged = (int) get_query_var( 'paged', 0 );
+		return $this->paged() > 1;
+	}
 
-			if ( $paged > 1 ) {
-				return true;
+	/**
+	 * Whether this request is the real posts index, not a static front page.
+	 *
+	 * A latest-posts home and a separately configured posts page both report
+	 * is_home() true on the main query. A static front page reports
+	 * is_front_page() true with is_home() false, so it is excluded here even
+	 * though queriedType() also models it as 'home'.
+	 *
+	 * @return bool The result.
+	 */
+	public function isPostsIndex(): bool {
+		if ( is_callable( [ $this->query, 'is_home' ] ) ) {
+			try {
+				return (bool) $this->query->is_home();
+			} catch ( \Throwable $e ) {
+				// Mock without expectation, fall through to the global.
+				unset( $e );
 			}
 		}
 
-		if ( is_callable( [ $this->query, 'get' ] ) ) {
-			$paged = (int) $this->query->get( 'paged' );
-
-			if ( $paged > 1 ) {
-				return true;
-			}
+		if ( function_exists( 'is_home' ) ) {
+			return (bool) is_home();
 		}
 
 		return false;

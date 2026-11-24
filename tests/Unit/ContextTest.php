@@ -1090,4 +1090,148 @@ final class ContextTest extends TestCase {
 
 		$this->assertSame( 0, $lookups, 'a URL only default must never trigger an attachment lookup' );
 	}
+
+	/**
+	 * M-7: paged() reads the paged query variable from get_query_var.
+	 */
+	public function test_paged_reads_query_var(): void {
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = 0 ) {
+				return 'paged' === $key ? 3 : $fallback;
+			}
+		);
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $this->makeQueryHome(), new SettingsStore() );
+
+		$this->assertSame( 3, $ctx->paged() );
+	}
+
+	/**
+	 * M-7: paged() falls back to the injected query's paged variable.
+	 */
+	public function test_paged_falls_back_to_query_get(): void {
+		$query = $this->makeQueryHome();
+		$query->shouldReceive( 'get' )->with( 'paged' )->andReturn( 2 );
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $query, new SettingsStore() );
+
+		$this->assertSame( 2, $ctx->paged() );
+	}
+
+	/**
+	 * M-7: paged() bounds a negative value to zero.
+	 */
+	public function test_paged_bounds_negative_to_zero(): void {
+		Functions\when( 'get_query_var' )->alias(
+			static function ( string $key, mixed $fallback = 0 ) {
+				return 'paged' === $key ? -5 : $fallback;
+			}
+		);
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $this->makeQueryHome(), new SettingsStore() );
+
+		$this->assertSame( 0, $ctx->paged() );
+	}
+
+	/**
+	 * M-7: paginated() still reports true only above page 1.
+	 */
+	public function test_paginated_uses_paged_accessor(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		foreach ( [
+			0 => false,
+			1 => false,
+			2 => true,
+			4 => true,
+		] as $paged => $expected ) {
+			Functions\when( 'get_query_var' )->alias(
+				static function ( string $key, mixed $fallback = 0 ) use ( $paged ) {
+					return 'paged' === $key ? $paged : $fallback;
+				}
+			);
+			$ctx = new Context( $this->makeQueryHome(), new SettingsStore() );
+
+			$this->assertSame( $expected, $ctx->paginated(), 'paged=' . (string) $paged );
+		}
+	}
+
+	/**
+	 * M-7 edge: paged() must weigh both the global and the injected query.
+	 *
+	 * The old paginated() fallback reported pagination when either source
+	 * exceeded 1. A global value of 1 must not mask an injected query value
+	 * of 2. Both sources are bounded and the larger usable page wins. Only
+	 * the paged variable is read, never page or cpage.
+	 */
+	public function test_paged_uses_max_of_global_and_query_sources(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$cases = [
+			'global one, query two'  => [ 1, 2, 2 ],
+			'global two, query zero' => [ 2, 0, 2 ],
+			'both zero'              => [ 0, 0, 0 ],
+			'negative global'        => [ -5, 0, 0 ],
+		];
+
+		foreach ( $cases as $label => [ $global, $fromQuery, $expected ] ) {
+			Functions\when( 'get_query_var' )->alias(
+				static function ( string $key, mixed $fallback = 0 ) use ( $global ) {
+					return 'paged' === $key ? $global : $fallback;
+				}
+			);
+
+			$query = $this->makeQueryHome();
+			$query->shouldReceive( 'get' )->with( 'paged' )->andReturn( $fromQuery );
+
+			$ctx = new Context( $query, new SettingsStore() );
+
+			$this->assertSame( $expected, $ctx->paged(), $label );
+		}
+	}
+
+	/**
+	 * M-7: a latest-posts homepage is a posts index.
+	 */
+	public function test_is_posts_index_true_for_latest_posts_home(): void {
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $this->makeQueryHome(), new SettingsStore() );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertTrue( $ctx->isPostsIndex() );
+	}
+
+	/**
+	 * M-7: a separate posts page is a posts index even though is_front_page is false.
+	 */
+	public function test_is_posts_index_true_for_separate_posts_page(): void {
+		$query = $this->makeQueryHome();
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $query, new SettingsStore() );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertFalse( (bool) $query->is_front_page() );
+		$this->assertTrue( $ctx->isPostsIndex() );
+	}
+
+	/**
+	 * M-7: a static front page is not a posts index.
+	 */
+	public function test_is_posts_index_false_for_static_front_page(): void {
+		Functions\when( 'get_query_var' )->justReturn( 0 );
+		Functions\when( 'get_option' )->justReturn( [] );
+
+		$ctx = new Context( $this->makeQueryFrontPage(), new SettingsStore() );
+
+		$this->assertSame( 'home', $ctx->queriedType() );
+		$this->assertFalse( $ctx->isPostsIndex() );
+	}
 }
