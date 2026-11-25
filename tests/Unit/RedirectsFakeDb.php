@@ -43,6 +43,13 @@ final class RedirectsFakeDb {
 	public bool $failInserts = false;
 
 	/**
+	 * Whether typed deletes fail, mirroring a storage failure.
+	 *
+	 * @var bool
+	 */
+	public bool $failDeletes = false;
+
+	/**
 	 * Typed insert call count, including refused duplicates.
 	 *
 	 * @var int
@@ -299,6 +306,10 @@ final class RedirectsFakeDb {
 	 */
 	public function delete( string $table, array $where, mixed $whereFormat = null ): mixed { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- test double mirrors the $wpdb method signature.
 		++$this->writes;
+
+		if ( $this->failDeletes ) {
+			return false;
+		}
 
 		$deleted = 0;
 

@@ -41,7 +41,8 @@ final class RedirectsModuleTest extends TestCase {
 
 		Functions\when( '__' )->alias( static fn ( string $v ): string => $v );
 		Functions\when( 'add_action' )->alias(
-			function ( string $hook, mixed $callback, int $priority = 10 ): bool {
+			function ( string $hook, mixed $callback, int $priority = 10, int $acceptedArgs = 1 ): bool {
+				unset( $callback, $acceptedArgs );
 				$this->hooks[] = [
 					'hook'     => $hook,
 					'priority' => $priority,
@@ -105,6 +106,7 @@ final class RedirectsModuleTest extends TestCase {
 		$this->assertFalse( $manager->isOn( 'redirects' ) );
 		$this->assertFalse( $module->isEnabled() );
 		$this->assertNull( $module->getRedirector() );
+		$this->assertNull( $module->getSlugWatcher() );
 	}
 
 	/**
@@ -132,6 +134,16 @@ final class RedirectsModuleTest extends TestCase {
 
 		$this->assertTrue( $manager->isOn( 'redirects' ) );
 		$this->assertNotNull( $module->getRedirector() );
+		$this->assertNotNull( $module->getSlugWatcher() );
+
+		$lifecycle = array_values(
+			array_filter(
+				$this->hooks,
+				static fn ( array $h ): bool => in_array( $h['hook'], [ 'transition_post_status', 'before_delete_post' ], true )
+			)
+		);
+
+		$this->assertCount( 2, $lifecycle );
 
 		$dispatch = array_values(
 			array_filter(

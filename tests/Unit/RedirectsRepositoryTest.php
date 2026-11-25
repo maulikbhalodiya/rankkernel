@@ -91,6 +91,26 @@ final class RedirectsRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Build the immutable fingerprint used by conditional deletion.
+	 *
+	 * @param int $id Rule id.
+	 * @return array<string, mixed>
+	 */
+	private function fingerprint( int $id ): array {
+		$row = $this->db->rows[ $id ];
+
+		return [
+			'match_type'  => $row['match_type'],
+			'source_hash' => $row['source_hash'],
+			'source'      => $row['source'],
+			'target'      => $row['target'],
+			'code'        => $row['code'],
+			'is_active'   => (int) $row['is_active'],
+			'created'     => $row['created'],
+		];
+	}
+
+	/**
 	 * Test insert normalizes and hashes.
 	 */
 	public function test_insert_normalizes_and_hashes(): void {
@@ -1002,5 +1022,108 @@ final class RedirectsRepositoryTest extends TestCase {
 			$this->db->reads,
 			'candidates must page in batches, never single-query the whole set'
 		);
+	}
+
+	/**
+	 * Test conditional deletion removes a matching row.
+	 */
+	public function test_delete_if_unchanged_removes_matching_row(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+
+		$this->assertSame( 'deleted', $this->repo->deleteIfUnchanged( $id, $this->fingerprint( $id ) ) );
+		$this->assertArrayNotHasKey( $id, $this->db->rows );
+	}
+
+	/**
+	 * Test conditional deletion preserves an edited row.
+	 */
+	public function test_delete_if_unchanged_preserves_edited_row(): void {
+		$id          = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+		$fingerprint = $this->fingerprint( $id );
+		$this->assertTrue( $this->repo->update( $id, [ 'target' => '/edited' ] ) );
+
+		$this->assertSame( 'changed', $this->repo->deleteIfUnchanged( $id, $fingerprint ) );
+		$this->assertArrayHasKey( $id, $this->db->rows );
+		$this->assertSame( '/edited', $this->db->rows[ $id ]['target'] );
+	}
+
+	/**
+	 * Test conditional deletion reports a missing row.
+	 */
+	public function test_delete_if_unchanged_reports_missing_row(): void {
+		$id          = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+		$fingerprint = $this->fingerprint( $id );
+		$this->assertTrue( $this->repo->delete( $id ) );
+
+		$this->assertSame( 'missing', $this->repo->deleteIfUnchanged( $id, $fingerprint ) );
+	}
+
+	/**
+	 * Test conditional deletion reports storage failure.
+	 */
+	public function test_delete_if_unchanged_reports_storage_failure(): void {
+		$id                    = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+		$this->db->failDeletes = true;
+
+		$this->assertSame( 'failed', $this->repo->deleteIfUnchanged( $id, $this->fingerprint( $id ) ) );
+		$this->assertArrayHasKey( $id, $this->db->rows );
+	}
+
+	/**
+	 * Test conditional deletion rejects fractional active state.
+	 */
+	public function test_delete_if_unchanged_rejects_fractional_active_state(): void {
+		$id                       = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+		$fingerprint              = $this->fingerprint( $id );
+		$fingerprint['is_active'] = 1.5;
+
+		$this->assertSame( 'invalid', $this->repo->deleteIfUnchanged( $id, $fingerprint ) );
+		$this->assertArrayHasKey( $id, $this->db->rows );
+	}
+
+	/**
+	 * Test conditional deletion rejects malformed fingerprints.
+	 */
+	public function test_delete_if_unchanged_rejects_malformed_fingerprint(): void {
+		$id = $this->repo->insert(
+			[
+				'source' => '/old',
+				'target' => '/new',
+				'code'   => '301',
+			]
+		);
+
+		$this->assertSame( 'invalid', $this->repo->deleteIfUnchanged( $id, [ 'target' => '/new' ] ) );
+		$this->assertArrayHasKey( $id, $this->db->rows );
 	}
 }

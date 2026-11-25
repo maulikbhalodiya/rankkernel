@@ -639,6 +639,81 @@ final class RedirectRepository {
 	}
 
 	/**
+	 * Delete a row only while its immutable ownership fields still match.
+	 *
+	 * The conditional DELETE closes the check-then-delete race with admin
+	 * edits or external writers. Hits and last_accessed are deliberately not
+	 * part of the fingerprint because normal redirect use changes them.
+	 *
+	 * @param int                  $id          Rule id.
+	 * @param array<string, mixed> $fingerprint Expected persisted fields.
+	 * @return string deleted, missing, changed, failed, or invalid.
+	 */
+	public function deleteIfUnchanged( int $id, array $fingerprint ): string {
+		if ( $id <= 0 ) {
+			return 'invalid';
+		}
+
+		$matchType  = (string) ( $fingerprint['match_type'] ?? '' );
+		$sourceHash = (string) ( $fingerprint['source_hash'] ?? '' );
+		$source     = (string) ( $fingerprint['source'] ?? '' );
+		$target     = (string) ( $fingerprint['target'] ?? '' );
+		$code       = (string) ( $fingerprint['code'] ?? '' );
+		$created    = (string) ( $fingerprint['created'] ?? '' );
+		$isActive   = $fingerprint['is_active'] ?? null;
+
+		if (
+			'exact' !== $matchType
+			|| 64 !== strlen( $sourceHash )
+			|| ! ctype_xdigit( $sourceHash )
+			|| '' === $source
+			|| '' === $target
+			|| '301' !== $code
+			|| '' === $created
+			|| ! in_array( $isActive, [ 0, 1, '0', '1' ], true )
+		) {
+			return 'invalid';
+		}
+
+		$db = $this->connection();
+
+		if ( null === $db ) {
+			return 'failed';
+		}
+
+		$table = RedirectTable::name();
+		$where = [
+			'id'          => $id,
+			'match_type'  => $matchType,
+			'source_hash' => $sourceHash,
+			'source'      => $source,
+			'target'      => $target,
+			'code'        => $code,
+			'is_active'   => (int) $isActive,
+			'created'     => $created,
+		];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom redirect tables have no core API, conditional delete against the full ownership fingerprint.
+		$deleted = $db->delete(
+			$table,
+			$where,
+			[ '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ]
+		);
+
+		if ( false === $deleted ) {
+			return 'failed';
+		}
+
+		if ( (int) $deleted > 0 ) {
+			$this->touch();
+
+			return 'deleted';
+		}
+
+		return null === $this->get( $id ) ? 'missing' : 'changed';
+	}
+
+	/**
 	 * Flip the active flag on one rule.
 	 *
 	 * Activating a non exact rule past MAX_PATTERNS, or a regex rule past

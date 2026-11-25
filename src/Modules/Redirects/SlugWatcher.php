@@ -31,6 +31,11 @@ final class SlugWatcher {
 	private const TYPES = [ 'post', 'page' ];
 
 	/**
+	 * Hidden post metadata mapping owned redirect ids to persisted fingerprints.
+	 */
+	public const AUTO_REDIRECT_META = '_rankkernel_auto_redirects';
+
+	/**
 	 * Rule repository.
 	 *
 	 * @var RedirectRepository
@@ -83,6 +88,8 @@ final class SlugWatcher {
 	 */
 	public function register(): void {
 		add_action( 'post_updated', [ $this, 'on_post_updated' ], 10, 3 );
+		add_action( 'transition_post_status', [ $this, 'on_transition_post_status' ], 10, 3 );
+		add_action( 'before_delete_post', [ $this, 'on_before_delete_post' ], 10, 1 );
 	}
 
 	/**
@@ -96,6 +103,56 @@ final class SlugWatcher {
 	 */
 	public function on_post_updated( int $postId, mixed $postAfter, mixed $postBefore ): void {
 		$this->handle_post_updated( $postId, $postAfter, $postBefore );
+	}
+
+	/**
+	 * Remove owned automatic redirects when published content leaves publish.
+	 *
+	 * Cleanup is ownership-gated rather than capability-gated. A writer who
+	 * may legitimately unpublish the post may trigger removal of only the
+	 * unchanged automatic rules already registered to that exact post.
+	 *
+	 * @param string $newStatus New post status.
+	 * @param string $oldStatus Previous post status.
+	 * @param mixed  $post      Post object after the transition.
+	 */
+	public function on_transition_post_status( string $newStatus, string $oldStatus, mixed $post ): void {
+		if ( 'publish' !== $oldStatus || 'publish' === $newStatus || ! is_object( $post ) ) {
+			return;
+		}
+
+		$type = (string) ( $post->post_type ?? '' );
+
+		if ( ! in_array( $type, self::TYPES, true ) ) {
+			return;
+		}
+
+		$postId = (int) ( $post->ID ?? 0 );
+
+		if ( $postId > 0 ) {
+			$this->cleanupOwnedRedirects( $postId );
+		}
+	}
+
+	/**
+	 * Remove owned automatic redirects before permanent post deletion.
+	 *
+	 * @param int $postId Post id being deleted.
+	 */
+	public function on_before_delete_post( int $postId ): void {
+		if ( $postId <= 0 ) {
+			return;
+		}
+
+		if ( function_exists( 'get_post_type' ) ) {
+			$type = (string) get_post_type( $postId );
+
+			if ( ! in_array( $type, self::TYPES, true ) ) {
+				return;
+			}
+		}
+
+		$this->cleanupOwnedRedirects( $postId );
 	}
 
 	/**
@@ -222,9 +279,260 @@ final class SlugWatcher {
 			return false;
 		}
 
+		$stored = $this->repository->get( $newId );
+
+		if ( null === $stored || ! $this->recordOwnership( $postId, $newId, $stored, $oldPath, $target ) ) {
+			$this->rollbackOwnedRedirect( $newId, $stored, $oldPath, $target );
+
+			return false;
+		}
+
 		RedirectCache::invalidateAll();
 
 		return true;
+	}
+
+	/**
+	 * Record the persisted row as owned by this post.
+	 *
+	 * @param int                  $postId     Owning post id.
+	 * @param int                  $redirectId New redirect id.
+	 * @param array<string, mixed> $row        Persisted redirect row.
+	 * @param string               $source     Intended stored source.
+	 * @param string               $target     Intended stored target after shortening.
+	 * @return bool True when ownership was stored.
+	 */
+	private function recordOwnership( int $postId, int $redirectId, array $row, string $source, string $target ): bool {
+		$fingerprint = $this->fingerprint( $row );
+
+		if (
+			null === $fingerprint
+			|| $source !== $row['source']
+			|| $target !== $row['target']
+			|| '301' !== $row['code']
+			|| 'exact' !== $row['match_type']
+			|| 1 !== (int) $row['is_active']
+		) {
+			return false;
+		}
+
+		$registry = $this->ownershipRegistry( $postId );
+
+		if ( null === $registry ) {
+			return false;
+		}
+
+		$registry[ $redirectId ] = $fingerprint + [ 'post_id' => $postId ];
+
+		return $this->writeRegistry( $postId, $registry );
+	}
+
+	/**
+	 * Roll back only the just-created row when ownership cannot be recorded.
+	 *
+	 * @param int                       $redirectId New redirect id.
+	 * @param array<string, mixed>|null $row        Persisted row read after insert.
+	 * @param string                    $source     Intended stored source.
+	 * @param string                    $target     Intended stored target after shortening.
+	 */
+	private function rollbackOwnedRedirect( int $redirectId, ?array $row, string $source, string $target ): void {
+		if ( null === $row || ! isset( $row['created'] ) || ! is_scalar( $row['created'] ) ) {
+			return;
+		}
+
+		$expected = [
+			'match_type'  => 'exact',
+			'source_hash' => Normalizer::hash( 'exact', $source ),
+			'source'      => $source,
+			'target'      => $target,
+			'code'        => '301',
+			'is_active'   => 1,
+			'created'     => (string) $row['created'],
+		];
+
+		if ( null === $this->fingerprint( $expected ) ) {
+			return;
+		}
+
+		$this->repository->deleteIfUnchanged( $redirectId, $expected );
+	}
+
+	/**
+	 * Delete unchanged automatic redirects registered to one post.
+	 *
+	 * @param int $postId Owning post id.
+	 */
+	private function cleanupOwnedRedirects( int $postId ): void {
+		$registry = $this->ownershipRegistry( $postId );
+
+		if ( null === $registry || [] === $registry ) {
+			return;
+		}
+
+		$changed = false;
+
+		foreach ( $registry as $redirectId => $entry ) {
+			$expected = $this->fingerprint( $entry );
+
+			if ( null === $expected ) {
+				unset( $registry[ $redirectId ] );
+				$changed = true;
+
+				continue;
+			}
+
+			$row = $this->repository->get( $redirectId );
+
+			if ( null === $row ) {
+				unset( $registry[ $redirectId ] );
+				$changed = true;
+
+				continue;
+			}
+
+			$current = $this->fingerprint( $row );
+
+			if ( null === $current || $current !== $expected ) {
+				// An edited or replaced row is no longer safe to treat as owned.
+				unset( $registry[ $redirectId ] );
+				$changed = true;
+
+				continue;
+			}
+
+			$result = $this->repository->deleteIfUnchanged( $redirectId, $expected );
+
+			if ( in_array( $result, [ 'deleted', 'missing', 'changed' ], true ) ) {
+				unset( $registry[ $redirectId ] );
+				$changed = true;
+			}
+		}
+
+		if ( $changed ) {
+			$this->writeRegistry( $postId, $registry );
+		}
+	}
+
+	/**
+	 * Load and validate the hidden per-post ownership registry.
+	 *
+	 * A malformed registry fails closed: no row is deleted and the metadata
+	 * is left untouched for investigation.
+	 *
+	 * @param int $postId Owning post id.
+	 * @return array<int, array<string, mixed>>|null Valid registry or null.
+	 */
+	private function ownershipRegistry( int $postId ): ?array {
+		if ( ! function_exists( 'get_post_meta' ) ) {
+			return null;
+		}
+
+		$raw = get_post_meta( $postId, self::AUTO_REDIRECT_META, true );
+
+		if ( '' === $raw || [] === $raw ) {
+			return [];
+		}
+
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
+		$registry = [];
+
+		foreach ( $raw as $redirectId => $entry ) {
+			if ( ( ! is_int( $redirectId ) && ! ctype_digit( (string) $redirectId ) ) || (int) $redirectId <= 0 ) {
+				return null;
+			}
+
+			if ( ! is_array( $entry ) ) {
+				return null;
+			}
+
+			$owner = $entry['post_id'] ?? null;
+
+			if (
+				( ! is_int( $owner ) && ! ( is_string( $owner ) && ctype_digit( $owner ) ) )
+				|| (int) $owner !== $postId
+			) {
+				return null;
+			}
+
+			$fingerprint = $this->fingerprint( $entry );
+
+			if ( null === $fingerprint ) {
+				return null;
+			}
+
+			$registry[ (int) $redirectId ] = $fingerprint + [ 'post_id' => $postId ];
+		}
+
+		return $registry;
+	}
+
+	/**
+	 * Persist or clear a validated ownership registry.
+	 *
+	 * @param int                              $postId   Owning post id.
+	 * @param array<int, array<string, mixed>> $registry Registry.
+	 * @return bool True when metadata was written or cleared.
+	 */
+	private function writeRegistry( int $postId, array $registry ): bool {
+		if ( [] === $registry ) {
+			return function_exists( 'delete_post_meta' ) && delete_post_meta( $postId, self::AUTO_REDIRECT_META );
+		}
+
+		return function_exists( 'update_post_meta' ) && update_post_meta( $postId, self::AUTO_REDIRECT_META, $registry );
+	}
+
+	/**
+	 * Build the immutable persisted-row fingerprint used for ownership.
+	 *
+	 * Hits and last_accessed are intentionally excluded because ordinary
+	 * redirect use changes them without changing rule ownership.
+	 *
+	 * @param array<string, mixed> $row Redirect row or metadata entry.
+	 * @return array<string, mixed>|null Valid fingerprint or null.
+	 */
+	private function fingerprint( array $row ): ?array {
+		$values = [];
+
+		foreach ( [ 'match_type', 'source_hash', 'source', 'target', 'code', 'created', 'is_active' ] as $field ) {
+			if ( ! array_key_exists( $field, $row ) || ! is_scalar( $row[ $field ] ) ) {
+				return null;
+			}
+
+			$values[ $field ] = $row[ $field ];
+		}
+
+		$matchType  = (string) $values['match_type'];
+		$sourceHash = (string) $values['source_hash'];
+		$source     = (string) $values['source'];
+		$target     = (string) $values['target'];
+		$code       = (string) $values['code'];
+		$created    = (string) $values['created'];
+
+		if (
+			'exact' !== $matchType
+			|| 64 !== strlen( $sourceHash )
+			|| ! ctype_xdigit( $sourceHash )
+			|| '' === $source
+			|| '' === $target
+			|| '301' !== $code
+			|| '' === $created
+			|| ! in_array( $values['is_active'], [ 0, 1, '0', '1' ], true )
+		) {
+			return null;
+		}
+
+		return [
+			'match_type'  => $matchType,
+			'source_hash' => $sourceHash,
+			'source'      => $source,
+			'target'      => $target,
+			'code'        => $code,
+			'is_active'   => (int) $values['is_active'],
+			'created'     => $created,
+		];
 	}
 
 	/**
