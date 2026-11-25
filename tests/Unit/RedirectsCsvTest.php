@@ -521,21 +521,105 @@ final class RedirectsCsvTest extends TestCase {
 	}
 
 	/**
-	 * Test formula prefix neutralized on import.
+	 * Test a regex source beginning with '=' is stored with its intended value.
+	 *
+	 * Import must never put an export-only apostrophe into the stored pattern,
+	 * otherwise the matcher compiles and evaluates different text from what the
+	 * administrator entered.
 	 */
-	public function test_formula_prefix_neutralized_on_import(): void {
+	public function test_regex_source_leading_equals_stored_without_apostrophe(): void {
 		$path = $this->write_csv(
 			"source,target,code,match_type,active,hits,last_accessed\n" .
-			"/formula,=HYPERLINK(\"http://evil.example/x\"),301,exact,yes,,\n"
+			"=abc,/new,302,regex,no,,\n"
 		);
 
 		$result = $this->makeHandler()->import_csv( $path );
 
 		$this->assertSame( 1, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
 
-		$stored = (string) $this->db->rows[1]['target'];
+		$stored = $this->db->rows[1];
 
-		$this->assertStringContainsString( "'=", $stored );
+		$this->assertSame( '=abc', $stored['source'] );
+		$this->assertSame( '/new', $stored['target'] );
+		$this->assertSame( '302', $stored['code'] );
+		$this->assertSame( 'regex', $stored['match_type'] );
+		$this->assertSame( 0, (int) $stored['is_active'] );
+	}
+
+	/**
+	 * Test formula-leading regex bodies follow the existing regex validator.
+	 *
+	 * A leading '+', '-' or '@' is a spreadsheet trigger but can also start a
+	 * stored pattern. The regex compile gate still decides acceptance, so
+	 * '+abc' is refused while the compiling bodies are stored verbatim with no
+	 * apostrophe added.
+	 */
+	public function test_formula_leading_regex_bodies_follow_the_regex_validator(): void {
+		$rowId = 1;
+
+		foreach ( [ '-abc', '@abc' ] as $source ) {
+			$path = $this->write_csv(
+				"source,target,code,match_type,active,hits,last_accessed\n" .
+				$source . ",/new,301,regex,yes,,\n"
+			);
+
+			$result = $this->makeHandler()->import_csv( $path );
+
+			$this->assertSame( 1, $result['created'], 'accepted regex source: ' . $source );
+			$this->assertSame( [], $result['errors'] );
+			$this->assertSame( $source, $this->db->rows[ $rowId ]['source'] );
+
+			++$rowId;
+		}
+
+		$rejectedPath = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"+abc,/new,301,regex,yes,,\n"
+		);
+		$rejected     = $this->makeHandler()->import_csv( $rejectedPath );
+
+		$this->assertSame( 0, $rejected['created'] );
+		$this->assertCount( 1, $rejected['errors'] );
+	}
+
+	/**
+	 * Test a relative formula-looking target is normalized without an apostrophe.
+	 *
+	 * Import stores the destination validator output, so the relative target
+	 * still gets its normal leading slash, but no export-only apostrophe.
+	 */
+	public function test_relative_formula_target_normalized_without_apostrophe(): void {
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"/formula,=1+1,301,exact,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 1, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+		$this->assertSame( '/=1+1', $this->db->rows[1]['target'] );
+	}
+
+	/**
+	 * Test a leading apostrophe already in the file is preserved on import.
+	 *
+	 * Import never strips an apostrophe, so a value carrying one is stored with
+	 * that character intact and no second apostrophe is introduced.
+	 */
+	public function test_leading_apostrophe_preserved_on_import(): void {
+		$path = $this->write_csv(
+			"source,target,code,match_type,active,hits,last_accessed\n" .
+			"'quoted,'/dest,301,exact,yes,,\n"
+		);
+
+		$result = $this->makeHandler()->import_csv( $path );
+
+		$this->assertSame( 1, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+		$this->assertSame( "/'quoted", $this->db->rows[1]['source'] );
+		$this->assertSame( "/'/dest", $this->db->rows[1]['target'] );
 	}
 
 	/**

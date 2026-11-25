@@ -417,6 +417,11 @@ final class CsvHandler {
 	 * Rows stream from the repository in bounded batches, so only one batch
 	 * plus the output document sits in memory at a time.
 	 *
+	 * Stored values stay raw. A value beginning with a spreadsheet trigger
+	 * gains a protective apostrophe in the file. Reimporting that file keeps
+	 * the apostrophe as literal data, because import never auto-unescapes it.
+	 * Editing the rule directly is the way to recover the bare value.
+	 *
 	 * @param int[] $ids Optional row ids, all rows when empty.
 	 * @return string CSV document.
 	 */
@@ -496,25 +501,6 @@ final class CsvHandler {
 			(string) ( $row['hits'] ?? '0' ),
 			(string) ( $row['last_accessed'] ?? '' ),
 		];
-	}
-
-	/**
-	 * Neutralize a raw imported cell, never evaluate it.
-	 *
-	 * Trims the value, then prefixes a single quote when the first character
-	 * is a spreadsheet formula trigger, so the stored text stays inert.
-	 *
-	 * @param string $value Raw cell text.
-	 * @return string Sanitized cell text.
-	 */
-	public static function sanitize_cell( string $value ): string {
-		$value = trim( $value );
-
-		if ( '' !== $value && 1 === preg_match( '/\A[=+\-@\t\r]/u', $value ) ) {
-			return "'" . $value;
-		}
-
-		return $value;
 	}
 
 	/**
@@ -609,8 +595,8 @@ final class CsvHandler {
 	 * @return array{status: string, reason: string, warning: string, forced?: bool, row_id?: int, snapshot?: array<string, string>|null} Single row outcome.
 	 */
 	private function import_row( array $cells, int $rowNumber, bool $updateExisting, bool $dryRun = false, bool $forceUnverified = false ): array {
-		$sourceRaw = self::sanitize_cell( $cells[0] );
-		$targetRaw = self::sanitize_cell( $cells[1] );
+		$sourceRaw = trim( $cells[0] );
+		$targetRaw = trim( $cells[1] );
 
 		$codeRaw = strtolower( trim( $cells[2] ) );
 		$code    = '' === $codeRaw ? '301' : $codeRaw;

@@ -360,21 +360,23 @@ final class RedirectsSecurityTest extends TestCase {
 	}
 
 	/**
-	 * Test formula cells neutralized both directions.
+	 * Test the export guard neutralizes formula cells and never doubles a quote.
+	 *
+	 * Storage keeps raw values, so only the CSV writer adds the protective
+	 * apostrophe. An apostrophe already present in storage is left as is.
 	 */
-	public function test_formula_cells_neutralized_both_directions(): void {
+	public function test_export_guard_neutralizes_formula_cells_only(): void {
 		foreach ( [ '=cmd', '+cmd', '-cmd', '@cmd' ] as $cell ) {
-			$this->assertStringStartsWith( "'", CsvHandler::sanitize_cell( $cell ), 'Import must neutralize: ' . $cell );
 			$this->assertStringStartsWith( "'", CsvHandler::escape_cell( $cell ), 'Export must neutralize: ' . $cell );
 		}
 
 		foreach ( [ "\tcmd", "\rcmd" ] as $cell ) {
 			$this->assertStringStartsWith( "'", CsvHandler::escape_cell( $cell ), 'Export must neutralize: ' . bin2hex( $cell ) );
-			$this->assertSame( 'cmd', CsvHandler::sanitize_cell( $cell ), 'Import trims whitespace triggers away' );
 		}
 
-		$this->assertSame( 'plain', CsvHandler::sanitize_cell( 'plain' ) );
+		$this->assertSame( 'plain', CsvHandler::escape_cell( 'plain' ) );
 		$this->assertSame( '/old', CsvHandler::escape_cell( '/old' ) );
+		$this->assertSame( "'=cmd", CsvHandler::escape_cell( "'=cmd" ), 'an existing apostrophe is never doubled' );
 	}
 
 	/**

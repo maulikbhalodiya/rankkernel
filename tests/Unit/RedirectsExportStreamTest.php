@@ -112,6 +112,70 @@ final class RedirectsExportStreamTest extends TestCase {
 	}
 
 	/**
+	 * Plant one rule with raw values straight into the table, bypassing import.
+	 *
+	 * @param string               $source Source.
+	 * @param string               $target Target.
+	 * @param array<string, mixed> $extra  Extra fields.
+	 * @return int New row id.
+	 */
+	private function plantRawRow( string $source, string $target, array $extra = [] ): int {
+		$id = $this->db->nextId;
+		++$this->db->nextId;
+
+		$this->db->rows[ $id ] = array_merge(
+			[
+				'id'            => $id,
+				'match_type'    => 'exact',
+				'source_hash'   => hash( 'sha256', 'exact|' . $source ),
+				'source'        => $source,
+				'target'        => $target,
+				'code'          => '301',
+				'is_active'     => 1,
+				'created'       => '2026-01-01 00:00:00',
+				'hits'          => 0,
+				'last_accessed' => null,
+			],
+			$extra
+		);
+
+		return $id;
+	}
+
+	/**
+	 * Parse a CSV document into records with the native CSV reader.
+	 *
+	 * Uses fgetcsv so quoted fields with embedded commas, quotes and newlines
+	 * are decoded the way a spreadsheet would read them.
+	 *
+	 * @param string $csv CSV document.
+	 * @return list<list<string>> Parsed records.
+	 */
+	private function parseCsvDocument( string $csv ): array {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory stream used only to decode a CSV string.
+		$handle = fopen( 'php://temp', 'w+' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- in-memory stream used only to decode a CSV string.
+		fwrite( $handle, $csv );
+		rewind( $handle );
+
+		$records = [];
+
+		while ( true ) {
+			$fields = fgetcsv( $handle, 0, ',', '"', '' );
+			if ( false === $fields ) {
+				break;
+			}
+			$records[] = $fields;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the in-memory stream opened above.
+		fclose( $handle );
+
+		return $records;
+	}
+
+	/**
 	 * Test large export reads in bounded batches.
 	 */
 	public function test_large_export_reads_in_bounded_batches(): void {
@@ -179,5 +243,221 @@ final class RedirectsExportStreamTest extends TestCase {
 		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
 
 		$this->assertSame( "source,target,code,match_type,active,hits,last_accessed\n", $handler->export_csv() );
+	}
+
+	/**
+	 * Test raw stored formula values get exactly one protective apostrophe.
+	 */
+	public function test_export_escapes_raw_stored_formula_values(): void {
+		$values = [ '=1+1', '+2+3', '-2+3', '@SUM(1,2)' ];
+
+		foreach ( $values as $value ) {
+			$this->plantRawRow( $value, '/dest' );
+		}
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$records = $this->parseCsvDocument( $handler->export_csv() );
+
+		$this->assertSame( CsvHandler::HEADER, $records[0] );
+		$this->assertCount( count( $values ) + 1, $records );
+
+		foreach ( $values as $index => $value ) {
+			$record = $records[ $index + 1 ];
+
+			$this->assertCount( 7, $record );
+			$this->assertSame( "'" . $value, $record[0], 'source must carry exactly one protective apostrophe' );
+			$this->assertSame( '/dest', $record[1], 'an ordinary target must not be escaped' );
+		}
+	}
+
+	/**
+	 * Test leading tab and carriage return cells are escaped on export.
+	 */
+	public function test_export_escapes_leading_tab_and_cr_cells(): void {
+		$this->plantRawRow( "\tsource", "\rdest" );
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$records = $this->parseCsvDocument( $handler->export_csv() );
+
+		$this->assertSame( "'\tsource", $records[1][0] );
+		$this->assertSame( "'\rdest", $records[1][1] );
+	}
+
+	/**
+	 * Test ordinary, apostrophe, empty, numeric and multibyte cells pass through.
+	 */
+	public function test_export_preserves_non_formula_cells(): void {
+		$this->plantRawRow(
+			'/old',
+			'https://example.com/new',
+			[
+				'code' => '302',
+				'hits' => 42,
+			]
+		);
+		$this->plantRawRow(
+			"'=stored",
+			"'/dest",
+			[
+				'code' => '307',
+				'hits' => 0,
+			]
+		);
+		$this->plantRawRow(
+			'',
+			'',
+			[
+				'code' => '410',
+				'hits' => 0,
+			]
+		);
+		$this->plantRawRow(
+			'/café/日本語',
+			'/目標',
+			[
+				'code' => '301',
+				'hits' => 7,
+			]
+		);
+		$this->plantRawRow(
+			'0',
+			'1',
+			[
+				'code' => '301',
+				'hits' => 0,
+			]
+		);
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$records = $this->parseCsvDocument( $handler->export_csv() );
+
+		$this->assertSame( CsvHandler::HEADER, $records[0] );
+		$this->assertCount( 6, $records );
+		$this->assertSame( [ '/old', 'https://example.com/new', '302', 'exact', 'yes', '42', '' ], $records[1] );
+		$this->assertSame( [ "'=stored", "'/dest", '307', 'exact', 'yes', '0', '' ], $records[2], 'an existing apostrophe stays single' );
+		$this->assertSame( [ '', '', '410', 'exact', 'yes', '0', '' ], $records[3] );
+		$this->assertSame( [ '/café/日本語', '/目標', '301', 'exact', 'yes', '7', '' ], $records[4] );
+		$this->assertSame( [ '0', '1', '301', 'exact', 'yes', '0', '' ], $records[5], 'numeric fields stay unchanged' );
+	}
+
+	/**
+	 * Test embedded delimiters and newlines round trip through the CSV parser.
+	 */
+	public function test_export_quotes_embedded_delimiters_and_newlines(): void {
+		$source = '/a,b';
+		$target = '/say "hi"';
+		$multi  = "/line1\nline2";
+
+		$this->plantRawRow( $source, $target );
+		$this->plantRawRow( $multi, '/dest' );
+		$this->plantRawRow( '=comma,quote"', "=two\nlines" );
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$records = $this->parseCsvDocument( $handler->export_csv() );
+
+		$this->assertCount( 4, $records );
+		$this->assertSame( [ $source, $target, '301', 'exact', 'yes', '0', '' ], $records[1] );
+		$this->assertSame( [ $multi, '/dest', '301', 'exact', 'yes', '0', '' ], $records[2] );
+		$this->assertSame( [ "'=comma,quote\"", "'=two\nlines", '301', 'exact', 'yes', '0', '' ], $records[3] );
+	}
+
+	/**
+	 * Test export never mutates the stored rows.
+	 */
+	public function test_export_leaves_stored_rows_unchanged(): void {
+		$this->plantRawRow( '=1+1', '+2+3' );
+		$before = $this->db->rows;
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$handler->export_csv();
+
+		$this->assertSame( $before, $this->db->rows );
+	}
+
+	/**
+	 * Test streamed bytes match string export for hostile and quoted cells.
+	 */
+	public function test_stream_matches_export_for_formula_comma_quote_and_multiline(): void {
+		$this->plantRawRow( '=1+1', '+2+3' );
+		$this->plantRawRow( '/a,b', '/say "hi"' );
+		$this->plantRawRow( "/line1\nline2", '@SUM(1,2)' );
+		$this->plantRawRow( "\tcmd", "\rcmd" );
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+
+		$string = $handler->export_csv();
+
+		ob_start();
+		$handler->stream_csv();
+		$streamed = ob_get_clean();
+
+		$this->assertIsString( $streamed );
+		$this->assertSame( $string, $streamed, 'stream and string exports must emit identical bytes' );
+	}
+
+	/**
+	 * Test normal round trip stability and the formula-leading reimport limit.
+	 *
+	 * Normal stored values survive export then import unchanged. A formula
+	 * leading value is escaped for the file, and reimport keeps that protective
+	 * apostrophe as literal data because import never auto-unescapes it.
+	 */
+	public function test_export_reimport_stability_and_formula_limitation(): void {
+		$this->plantRawRow( '/old-one', '/new-one' );
+		$this->plantRawRow(
+			'/a,b',
+			'/say "hi"',
+			[
+				'code'       => '302',
+				'match_type' => 'prefix',
+				'is_active'  => 0,
+			]
+		);
+		$this->plantRawRow( '=1+1', '/dest' );
+
+		$handler = new CsvHandler( new RedirectRepository( $this->db ) );
+		$csv     = $handler->export_csv();
+
+		$this->assertStringContainsString( "'=1+1,/dest", $csv );
+
+		$db              = new RedirectsFakeDb();
+		$db->tableExists = true;
+		$originalDb      = $GLOBALS['wpdb'];
+		$GLOBALS['wpdb'] = $db; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+		$path = tempnam( sys_get_temp_dir(), 'rkcsv' );
+		$this->assertIsString( $path );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $path, $csv );
+
+		try {
+			$result = ( new CsvHandler(
+				new RedirectRepository( $db ),
+				null,
+				null,
+				static fn ( string $p ): bool => true // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- stub callback signature.
+			) )->import_csv( $path );
+		} finally {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $path );
+			$GLOBALS['wpdb'] = $originalDb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		}
+
+		$this->assertSame( 3, $result['created'] );
+		$this->assertSame( [], $result['errors'] );
+
+		$first  = $db->rows[1];
+		$second = $db->rows[2];
+		$third  = $db->rows[3];
+
+		$this->assertSame( '/old-one', $first['source'] );
+		$this->assertSame( '/new-one', $first['target'] );
+		$this->assertSame( '/a,b', $second['source'] );
+		$this->assertSame( '/say "hi"', $second['target'] );
+		$this->assertSame( '302', $second['code'] );
+		$this->assertSame( 'prefix', $second['match_type'] );
+		$this->assertSame( 0, (int) $second['is_active'] );
+		$this->assertSame( "/'=1+1", $third['source'], 'the export apostrophe is kept as data, never auto-stripped' );
 	}
 }
