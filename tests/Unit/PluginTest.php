@@ -60,6 +60,50 @@ final class PluginTest extends TestCase {
 	}
 
 	/**
+	 * Test admin registration wires the migration notice before migration init.
+	 */
+	public function test_admin_registration_wires_migration_notice_before_init(): void {
+		$hooks = [];
+
+		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ) use ( &$hooks ): bool {
+				unset( $callback, $priority, $accepted_args );
+				$hooks[] = $hook;
+
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ) {
+				if ( 'rankkernel_modules' === $key || 'rankkernel_settings' === $key ) {
+					return [];
+				}
+
+				return $fallback;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( [] );
+		Functions\when( 'get_term_meta' )->justReturn( [] );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		if ( ! defined( 'RANKKERNEL_FILE' ) ) {
+			define( 'RANKKERNEL_FILE', '/tmp/rankkernel.php' );
+		}
+
+		Plugin::getInstance()->registerCoreServices();
+
+		$downgrade = array_search( 'rankkernel/migration/downgrade', $hooks, true );
+		$notice    = array_search( 'admin_notices', $hooks, true );
+		$init      = array_search( 'init', $hooks, true );
+
+		$this->assertNotFalse( $downgrade, 'the downgrade subscriber must be registered' );
+		$this->assertNotFalse( $notice, 'the admin notice renderer must be registered' );
+		$this->assertNotFalse( $init, 'the migration init hook must be registered' );
+		$this->assertLessThan( $init, $downgrade, 'the downgrade subscriber must be wired before migration init' );
+	}
+
+	/**
 	 * Test boot populates enabled modules only.
 	 */
 	public function test_boot_populates_enabled_modules_only(): void {

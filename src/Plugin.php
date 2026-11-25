@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Admin\AdminMenu;
 use RankKernel\Admin\MetadataBox;
+use RankKernel\Admin\MigrationNotice;
 use RankKernel\Admin\SchemaMetabox;
 use RankKernel\Database\Migrations\MigrationRunner;
 use RankKernel\Modules\Analysis\AnalysisModule;
@@ -142,6 +143,8 @@ final class Plugin {
 
 		// Admin UI, register only on admin screens.
 		if ( function_exists( 'is_admin' ) && is_admin() ) {
+			( new MigrationNotice() )->register();
+
 			$adminMenu = new AdminMenu( $settingsStore, $enableMap );
 			$adminMenu->register();
 			$this->services['admin_menu'] = $adminMenu;
