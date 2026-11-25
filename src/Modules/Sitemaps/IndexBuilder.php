@@ -58,6 +58,13 @@ class IndexBuilder {
 	private ?array $setsWithPageCountsMemo = null;
 
 	/**
+	 * Memoized set => provider map for this builder instance.
+	 *
+	 * @var array<string, string>|null
+	 */
+	private ?array $setProviderMemo = null;
+
+	/**
 	 * Lazy-stored posts provider instance when constructor parameter is null.
 	 *
 	 * Performance optimization: avoids creating a new provider object on every call to
@@ -94,6 +101,7 @@ class IndexBuilder {
 	 */
 	public function resetCache(): void {
 		$this->setsWithPageCountsMemo = null;
+		$this->setProviderMemo        = null;
 
 		$this->postsInstance?->resetCache();
 		$this->taxonomiesInstance?->resetCache();
@@ -324,13 +332,14 @@ class IndexBuilder {
 	 * @return string W3C date.
 	 */
 	private function setLastmod( string $set ): string {
-		$max = '';
+		$max   = '';
+		$owner = $this->providerForSet( $set );
 
-		if ( str_starts_with( $set, 'tax_' ) ) {
-			$max = $this->taxonomiesProvider()->getMaxLastmod( substr( $set, 4 ) );
-		} elseif ( 'authors' === $set ) {
+		if ( 'tax' === $owner ) {
+			$max = $this->taxonomiesProvider()->getMaxLastmod( $set );
+		} elseif ( 'authors' === $owner ) {
 			$max = $this->authorsProvider()->getMaxLastmod( $set );
-		} else {
+		} elseif ( 'posts' === $owner ) {
 			$max = $this->postsProvider()->getMaxLastmod( $set );
 		}
 
@@ -550,24 +559,54 @@ class IndexBuilder {
 	 * @return array<int, array{loc: string, lastmod: string, images: array<int, string>}>
 	 */
 	private function getEntriesForSet( string $set, int $page, int $perPage ): array {
-		// Check posts provider first.
-		$postsSets = $this->postsProvider()->getSets();
-		if ( in_array( $set, $postsSets, true ) ) {
+		$owner = $this->providerForSet( $set );
+
+		if ( 'posts' === $owner ) {
 			return $this->postsProvider()->getEntries( $set, $page, $perPage );
 		}
 
-		// Taxonomies.
-		$taxSets = $this->taxonomiesProvider()->getSets();
-		if ( in_array( $set, $taxSets, true ) ) {
+		if ( 'tax' === $owner ) {
 			return $this->taxonomiesProvider()->getEntries( $set, $page, $perPage );
 		}
 
-		// Authors.
-		$authorSets = $this->authorsProvider()->getSets();
-		if ( in_array( $set, $authorSets, true ) ) {
+		if ( 'authors' === $owner ) {
 			return $this->authorsProvider()->getEntries( $set, $page, $perPage );
 		}
 
 		return [];
+	}
+
+	/**
+	 * Resolve which provider owns a set, using the same precedence as entry lookup.
+	 *
+	 * @param string $set Set name.
+	 * @return string|null posts, tax, authors, or null when unknown.
+	 */
+	private function providerForSet( string $set ): ?string {
+		if ( null !== $this->setProviderMemo ) {
+			return $this->setProviderMemo[ $set ] ?? null;
+		}
+
+		$owners = [];
+
+		foreach ( $this->postsProvider()->getSets() as $postsSet ) {
+			$owners[ (string) $postsSet ] = 'posts';
+		}
+
+		foreach ( $this->taxonomiesProvider()->getSets() as $taxSet ) {
+			if ( ! isset( $owners[ (string) $taxSet ] ) ) {
+				$owners[ (string) $taxSet ] = 'tax';
+			}
+		}
+
+		foreach ( $this->authorsProvider()->getSets() as $authorSet ) {
+			if ( ! isset( $owners[ (string) $authorSet ] ) ) {
+				$owners[ (string) $authorSet ] = 'authors';
+			}
+		}
+
+		$this->setProviderMemo = $owners;
+
+		return $owners[ $set ] ?? null;
 	}
 }

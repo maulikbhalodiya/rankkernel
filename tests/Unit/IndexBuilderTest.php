@@ -25,11 +25,32 @@ final class IndexBuilderTest extends TestCase {
 	use \Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
 	/**
+	 * Provider getMaxLastmod calls captured by set owner fixtures.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	private array $lastmodCalls = [
+		'posts'   => [],
+		'tax'     => [],
+		'authors' => [],
+	];
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
+
+		if ( ! defined( 'RANKKERNEL_VERSION' ) ) {
+			define( 'RANKKERNEL_VERSION', '0.1.0-test' );
+		}
+
+		$this->lastmodCalls = [
+			'posts'   => [],
+			'tax'     => [],
+			'authors' => [],
+		];
 
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
 		Functions\when( 'esc_url' )->alias( static fn ( string $v ): string => filter_var( $v, FILTER_SANITIZE_URL ) ? filter_var( $v, FILTER_SANITIZE_URL ) : $v );
@@ -46,6 +67,102 @@ final class IndexBuilderTest extends TestCase {
 	protected function tearDown(): void {
 		\Brain\Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Build a provider-aware fixture using real raw set names.
+	 *
+	 * @param array<string, string>       $owners      Set => posts|tax|authors.
+	 * @param array<string, string>       $dates       Set => persisted max lastmod.
+	 * @param int                         $perPage     Entries per page.
+	 * @param array<string, list<string>> $extraOwners Additional providers claiming a set.
+	 * @param array<string, int>          $counts      Set => entry count.
+	 * @return IndexBuilder The result.
+	 */
+	private function makeBuilderWithSetOwners( array $owners, array $dates = [], int $perPage = 1000, array $extraOwners = [], array $counts = [] ): IndexBuilder {
+		$posts = Mockery::mock( PostsProvider::class );
+		$tax   = Mockery::mock( TaxonomiesProvider::class );
+		$auth  = Mockery::mock( AuthorsProvider::class );
+
+		$postsSets = [];
+		$taxSets   = [];
+		$authSets  = [];
+		$setOwners = [];
+
+		foreach ( $owners as $set => $owner ) {
+			$setOwners[ $set ][] = $owner;
+		}
+
+		foreach ( $extraOwners as $set => $providerList ) {
+			$setOwners[ $set ] = array_merge( $setOwners[ $set ] ?? [], $providerList );
+		}
+
+		foreach ( $setOwners as $set => $providerList ) {
+			foreach ( array_unique( $providerList ) as $owner ) {
+				if ( 'tax' === $owner ) {
+					$taxSets[] = $set;
+				} elseif ( 'authors' === $owner ) {
+					$authSets[] = $set;
+				} else {
+					$postsSets[] = $set;
+				}
+			}
+		}
+
+		$posts->shouldReceive( 'getSets' )->andReturn( array_unique( $postsSets ) )->byDefault();
+		$tax->shouldReceive( 'getSets' )->andReturn( array_unique( $taxSets ) )->byDefault();
+		$auth->shouldReceive( 'getSets' )->andReturn( array_unique( $authSets ) )->byDefault();
+
+		foreach ( array_unique( $postsSets ) as $set ) {
+			$posts->shouldReceive( 'getCount' )->with( $set )->andReturn( $counts[ $set ] ?? 1 )->byDefault();
+		}
+		foreach ( array_unique( $taxSets ) as $set ) {
+			$tax->shouldReceive( 'getCount' )->with( $set )->andReturn( $counts[ $set ] ?? 1 )->byDefault();
+		}
+		foreach ( array_unique( $authSets ) as $set ) {
+			$auth->shouldReceive( 'getCount' )->with( $set )->andReturn( $counts[ $set ] ?? 1 )->byDefault();
+		}
+
+		$posts->shouldReceive( 'getMaxLastmod' )->andReturnUsing(
+			function ( string $set ) use ( $dates ): string {
+				$this->lastmodCalls['posts'][] = $set;
+
+				return $dates[ $set ] ?? '';
+			}
+		)->byDefault();
+		$tax->shouldReceive( 'getMaxLastmod' )->andReturnUsing(
+			function ( string $set ) use ( $dates ): string {
+				$this->lastmodCalls['tax'][] = $set;
+
+				return $dates[ $set ] ?? '';
+			}
+		)->byDefault();
+		$auth->shouldReceive( 'getMaxLastmod' )->andReturnUsing(
+			function ( string $set ) use ( $dates ): string {
+				$this->lastmodCalls['authors'][] = $set;
+
+				return $dates[ $set ] ?? '';
+			}
+		)->byDefault();
+
+		$posts->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$tax->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+		$auth->shouldReceive( 'getEntries' )->andReturn( [] )->byDefault();
+
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, mixed $value ) use ( $perPage ) {
+				return 'rankkernel/sitemap/entries_per_page' === $hook ? $perPage : $value;
+			}
+		);
+		Functions\when( 'mysql2date' )->alias(
+			static function ( string $format, string $date, bool $translate = true ): string {
+				unset( $translate );
+
+				return gmdate( $format, strtotime( $date . ' UTC' ) );
+			}
+		);
+
+		return new IndexBuilder( $posts, $tax, $auth, '9.9.9-test' );
 	}
 
 	/**
@@ -1373,5 +1490,111 @@ final class IndexBuilderTest extends TestCase {
 
 			$this->assertStringContainsString( '<loc>https://example.com/hello/</loc>', $xml );
 		}
+	}
+
+	/**
+	 * Test raw taxonomy set names use the taxonomy provider for index lastmod.
+	 */
+	public function test_raw_taxonomies_use_taxonomy_provider_for_index_lastmod(): void {
+		$owners = [
+			'category' => 'tax',
+			'post_tag' => 'tax',
+			'genre'    => 'tax',
+		];
+		$dates  = [
+			'category' => '2026-01-11 10:00:00',
+			'post_tag' => '2026-01-12 10:00:00',
+			'genre'    => '2026-01-13 10:00:00',
+		];
+
+		$builder = $this->makeBuilderWithSetOwners( $owners, $dates );
+		$xml     = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '<loc>https://example.com/category-sitemap.xml</loc>', $xml );
+		$this->assertStringContainsString( '<loc>https://example.com/post_tag-sitemap.xml</loc>', $xml );
+		$this->assertStringContainsString( '<loc>https://example.com/genre-sitemap.xml</loc>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-01-11T10:00:00+00:00</lastmod>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-01-12T10:00:00+00:00</lastmod>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-01-13T10:00:00+00:00</lastmod>', $xml );
+		$this->assertSame( [], $this->lastmodCalls['posts'] );
+		$this->assertSame( [ 'category', 'post_tag', 'genre' ], $this->lastmodCalls['tax'] );
+		$this->assertSame( [], $this->lastmodCalls['authors'] );
+	}
+
+	/**
+	 * Test post and author set names keep their existing provider dispatch.
+	 */
+	public function test_posts_and_authors_keep_existing_provider_dispatch(): void {
+		$owners = [
+			'post'    => 'posts',
+			'page'    => 'posts',
+			'book'    => 'posts',
+			'authors' => 'authors',
+		];
+		$dates  = [
+			'post'    => '2026-02-01 10:00:00',
+			'page'    => '2026-02-02 10:00:00',
+			'book'    => '2026-02-03 10:00:00',
+			'authors' => '2026-02-04 10:00:00',
+		];
+
+		$builder = $this->makeBuilderWithSetOwners( $owners, $dates );
+		$xml     = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '<lastmod>2026-02-01T10:00:00+00:00</lastmod>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-02-02T10:00:00+00:00</lastmod>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-02-03T10:00:00+00:00</lastmod>', $xml );
+		$this->assertStringContainsString( '<lastmod>2026-02-04T10:00:00+00:00</lastmod>', $xml );
+		$this->assertSame( [ 'post', 'page', 'book' ], $this->lastmodCalls['posts'] );
+		$this->assertSame( [], $this->lastmodCalls['tax'] );
+		$this->assertSame( [ 'authors' ], $this->lastmodCalls['authors'] );
+	}
+
+	/**
+	 * Test provider precedence stays deterministic when a set name collides.
+	 */
+	public function test_provider_collision_keeps_posts_precedence(): void {
+		$owners = [ 'genre' => 'posts' ];
+		$dates  = [ 'genre' => '2026-03-01 10:00:00' ];
+
+		$builder = $this->makeBuilderWithSetOwners( $owners, $dates, 1000, [ 'genre' => [ 'tax' ] ] );
+		$xml     = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '<lastmod>2026-03-01T10:00:00+00:00</lastmod>', $xml );
+		$this->assertSame( [ 'genre' ], $this->lastmodCalls['posts'] );
+		$this->assertSame( [], $this->lastmodCalls['tax'] );
+	}
+
+	/**
+	 * Test a raw taxonomy without a lastmod keeps the current-time fallback.
+	 */
+	public function test_raw_taxonomy_without_lastmod_keeps_current_time_fallback(): void {
+		$builder = $this->makeBuilderWithSetOwners( [ 'category' => 'tax' ], [] );
+		$xml     = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '<lastmod>2026-01-01T00:00:00+00:00</lastmod>', $xml );
+		$this->assertSame( [ 'category' ], $this->lastmodCalls['tax'] );
+		$this->assertSame( [], $this->lastmodCalls['posts'] );
+	}
+
+	/**
+	 * Test every page of a raw taxonomy sitemap uses the same set lastmod.
+	 */
+	public function test_raw_taxonomy_pages_share_set_lastmod(): void {
+		$builder = $this->makeBuilderWithSetOwners(
+			[ 'category' => 'tax' ],
+			[ 'category' => '2026-04-01 10:00:00' ],
+			1,
+			[],
+			[ 'category' => 3 ]
+		);
+
+		$xml = $builder->buildIndexXml();
+
+		$this->assertStringContainsString( '<loc>https://example.com/category-sitemap.xml</loc>', $xml );
+		$this->assertStringContainsString( '<loc>https://example.com/category-sitemap2.xml</loc>', $xml );
+		$this->assertStringContainsString( '<loc>https://example.com/category-sitemap3.xml</loc>', $xml );
+		$this->assertSame( 3, substr_count( $xml, '<lastmod>2026-04-01T10:00:00+00:00</lastmod>' ) );
+		$this->assertSame( [ 'category', 'category', 'category' ], $this->lastmodCalls['tax'] );
 	}
 }
