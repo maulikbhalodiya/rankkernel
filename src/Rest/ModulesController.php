@@ -187,9 +187,26 @@ final class ModulesController {
 			);
 		}
 
-		// Rewrite-based modules (sitemaps) register or drop rules depending
-		// on this list, so the cached rules must regenerate.
-		flush_rewrite_rules( false );
+		// Rewrite-based modules (sitemaps) register or drop rules depending on
+		// the saved module list. Flushing in this request still uses the
+		// in-request enable map and already-registered hooks, which can persist
+		// rules for the old state. Invalidating the cached rules instead makes
+		// the next request rebuild them from the newly saved module state.
+		$rewriteInvalidated = true;
+
+		if ( 'sitemaps' === $moduleId ) {
+			// delete_option() returns false both when the option is absent and
+			// when deletion fails. Absence is fine because the next request
+			// regenerates the rules. A still-present option means invalidation
+			// failed and must not be reported as fully successful.
+			$deleted = delete_option( 'rewrite_rules' );
+
+			if ( false === $deleted && ! empty( get_option( 'rewrite_rules' ) ) ) {
+				$rewriteInvalidated = false;
+			}
+		} else {
+			flush_rewrite_rules( false );
+		}
 
 		// The sitemap cache outlives the toggle: its invalidation hooks only
 		// run while the module is on, so a toggle that skips this leaves the
@@ -198,12 +215,19 @@ final class ModulesController {
 			SitemapCache::invalidateAll();
 		}
 
-		return new WP_REST_Response(
-			[
-				'modules' => $updated,
-				'message' => __( 'Module status updated. Changes take effect on the next request.', 'rankkernel' ),
-			],
-			200
-		);
+		$data = [
+			'modules' => $updated,
+			'message' => __( 'Module status updated. Changes take effect on the next request.', 'rankkernel' ),
+		];
+
+		if ( 'sitemaps' === $moduleId ) {
+			$data['rewrite_rules_invalidated'] = $rewriteInvalidated;
+
+			if ( ! $rewriteInvalidated ) {
+				$data['message'] = __( 'Module status updated, but cached rewrite rules could not be refreshed. Save permalinks to complete the change.', 'rankkernel' );
+			}
+		}
+
+		return new WP_REST_Response( $data, 200 );
 	}
 }

@@ -31,13 +31,37 @@ final class RestControllersTest extends TestCase {
 	private int $flushCount = 0;
 
 	/**
+	 * Number of stubbed option deletions.
+	 *
+	 * @var int
+	 */
+	private int $deleteCount = 0;
+
+	/**
+	 * Option names passed to the delete_option stub.
+	 *
+	 * @var list<string>
+	 */
+	private array $deleteOptionNames = [];
+
+	/**
+	 * Whether the delete_option stub succeeds.
+	 *
+	 * @var bool
+	 */
+	private bool $deleteResult = true;
+
+	/**
 	 * Set up the test fixture.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		\Brain\Monkey\setUp();
 
-		$this->flushCount = 0;
+		$this->flushCount        = 0;
+		$this->deleteCount       = 0;
+		$this->deleteOptionNames = [];
+		$this->deleteResult      = true;
 
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( string $v ): string => trim( strip_tags( $v ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test asserts plain strip_tags behavior, WordPress is not loaded in unit tests.
 		Functions\when( 'esc_html' )->alias( static fn ( string $v ): string => htmlspecialchars( $v, ENT_QUOTES, 'UTF-8' ) );
@@ -46,6 +70,17 @@ final class RestControllersTest extends TestCase {
 		Functions\when( 'flush_rewrite_rules' )->alias(
 			function (): void {
 				++$this->flushCount;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			function ( string $option ): bool {
+				$this->deleteOptionNames[] = $option;
+
+				if ( 'rewrite_rules' === $option ) {
+					++$this->deleteCount;
+				}
+
+				return $this->deleteResult;
 			}
 		);
 	}
@@ -61,12 +96,13 @@ final class RestControllersTest extends TestCase {
 	/**
 	 * Make Modules Request.
 	 *
-	 * @param mixed $enabled Enabled.
+	 * @param mixed  $enabled Enabled.
+	 * @param string $moduleId Module id.
 	 * @return \WP_REST_Request The result.
 	 */
-	private function makeModulesRequest( mixed $enabled ): \WP_REST_Request {
+	private function makeModulesRequest( mixed $enabled, string $moduleId = 'metadata' ): \WP_REST_Request {
 		$req = Mockery::mock( \WP_REST_Request::class );
-		$req->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 'metadata' );
+		$req->shouldReceive( 'get_param' )->with( 'id' )->andReturn( $moduleId );
 		$req->shouldReceive( 'get_json_params' )->andReturn( [ 'enabled' => $enabled ] );
 		$req->shouldReceive( 'get_params' )->andReturn( [ 'enabled' => $enabled ] );
 		return $req;
@@ -351,5 +387,140 @@ final class RestControllersTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $res );
 		$this->assertSame( 'rest_invalid_param', $res->get_error_code() );
+	}
+
+	/**
+	 * Test sitemap toggle invalidates rewrite rules without same-request flush.
+	 */
+	public function test_sitemap_toggle_invalidates_rewrite_rules_without_flush(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'sitemaps' )
+		);
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 1, $this->deleteCount );
+		$this->assertSame( 0, $this->flushCount );
+	}
+
+	/**
+	 * Test sitemap disable also invalidates rewrite rules without flush.
+	 */
+	public function test_sitemap_disable_invalidates_rewrite_rules_without_flush(): void {
+		Functions\when( 'get_option' )->justReturn( [ 'sitemaps' ] );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( false, 'sitemaps' )
+		);
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 1, $this->deleteCount );
+		$this->assertSame( 0, $this->flushCount );
+	}
+
+	/**
+	 * Test non-sitemap modules keep the existing immediate flush.
+	 */
+	public function test_non_sitemap_toggle_keeps_immediate_flush(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'metadata' )
+		);
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 0, $this->deleteCount );
+		$this->assertSame( 1, $this->flushCount );
+	}
+
+	/**
+	 * Test unchanged sitemap toggle does not rewrite or flush.
+	 */
+	public function test_unchanged_sitemap_toggle_does_not_rewrite_or_flush(): void {
+		Functions\when( 'get_option' )->justReturn( [ 'sitemaps' ] );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'sitemaps' )
+		);
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 0, $this->deleteCount );
+		$this->assertSame( 0, $this->flushCount );
+	}
+
+	/**
+	 * Test failed sitemap module write does not invalidate rewrite rules.
+	 */
+	public function test_failed_sitemap_write_does_not_invalidate_rewrite_rules(): void {
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'update_option' )->justReturn( false );
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'sitemaps' )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $res );
+		$this->assertSame( 'rankkernel_storage_failed', $res->get_error_code() );
+		$this->assertSame( 0, $this->deleteCount );
+		$this->assertSame( 0, $this->flushCount );
+	}
+
+	/**
+	 * Test a missing rewrite option is not reported as a failed invalidation.
+	 */
+	public function test_sitemap_toggle_with_missing_rewrite_option_is_success(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				unset( $fallback );
+
+				return 'rewrite_rules' === $key ? false : [];
+			}
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+		$this->deleteResult = false;
+
+		$res = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'sitemaps' )
+		);
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertTrue( $res->get_data()['rewrite_rules_invalidated'] );
+		$this->assertSame( [ 'rewrite_rules' ], $this->deleteOptionNames );
+		$this->assertSame( 0, $this->flushCount );
+	}
+
+	/**
+	 * Test a failed rewrite invalidation is visible and not silently successful.
+	 */
+	public function test_failed_rewrite_invalidation_is_reported(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, mixed $fallback = false ): mixed {
+				unset( $fallback );
+
+				if ( 'rewrite_rules' === $key ) {
+					return [ 'sitemap_index\.xml$' => 'index.php?rankkernel_sitemap=index' ];
+				}
+
+				return [];
+			}
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+		$this->deleteResult = false;
+
+		$res  = ( new ModulesController() )->toggleModule(
+			$this->makeModulesRequest( true, 'sitemaps' )
+		);
+		$data = $res->get_data();
+
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertFalse( $data['rewrite_rules_invalidated'] );
+		$this->assertStringContainsString( 'could not be refreshed', $data['message'] );
+		$this->assertContains( 'sitemaps', $data['modules'] );
+		$this->assertSame( 0, $this->flushCount );
 	}
 }
