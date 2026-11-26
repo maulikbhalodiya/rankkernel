@@ -12,6 +12,7 @@ namespace RankKernel\Modules\Sitemaps\Provider;
 
 defined( 'ABSPATH' ) || exit;
 
+use RankKernel\Modules\Sitemaps\SitemapDate;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -343,7 +344,7 @@ class AuthorsProvider {
 				$lastmodGmt = $registered;
 			}
 
-			$lastmod = (string) mysql2date( DATE_W3C, $lastmodGmt, false );
+			$lastmod = SitemapDate::w3cFromGmt( $lastmodGmt );
 			if ( '' === $lastmod ) {
 				continue;
 			}

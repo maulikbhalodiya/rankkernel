@@ -344,10 +344,10 @@ class IndexBuilder {
 		}
 
 		if ( '' !== $max ) {
-			return (string) mysql2date( DATE_W3C, $max, false );
+			return SitemapDate::w3cFromGmt( $max );
 		}
 
-		return (string) mysql2date( DATE_W3C, current_time( 'mysql', true ), false );
+		return SitemapDate::w3cFromGmt( current_time( 'mysql', true ) );
 	}
 
 	/**

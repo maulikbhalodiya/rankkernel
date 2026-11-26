@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\NoindexFlag;
+use RankKernel\Modules\Sitemaps\SitemapDate;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -325,10 +326,7 @@ class PostsProvider {
 
 			$modifiedGmt = isset( $row['post_modified_gmt'] ) ? (string) $row['post_modified_gmt'] : '';
 
-			$lastmod = '';
-			if ( '' !== $modifiedGmt ) {
-				$lastmod = (string) mysql2date( DATE_W3C, $modifiedGmt, false );
-			}
+			$lastmod = SitemapDate::w3cFromGmt( $modifiedGmt );
 
 			$images = [];
 			if ( $this->contentImagesAllowed() ) {

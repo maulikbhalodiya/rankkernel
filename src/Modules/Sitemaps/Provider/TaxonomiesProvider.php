@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 use RankKernel\Modules\Metadata\MetaPayload;
 use RankKernel\Modules\Metadata\NoindexFlag;
+use RankKernel\Modules\Sitemaps\SitemapDate;
 use RankKernel\Modules\Sitemaps\SitemapSettings;
 
 /**
@@ -423,7 +424,7 @@ class TaxonomiesProvider {
 				}
 			}
 
-			$lastmod = (string) mysql2date( DATE_W3C, $lastmodGmt, false );
+			$lastmod = SitemapDate::w3cFromGmt( $lastmodGmt );
 			if ( '' === $lastmod ) {
 				continue;
 			}
