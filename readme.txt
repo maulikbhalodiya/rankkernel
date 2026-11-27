@@ -4,7 +4,7 @@ Tags: seo, meta, sitemap, schema, breadcrumbs
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,10 +82,26 @@ Uninstalling the plugin removes the plugin's own log tables and its transients. 
 
 == Changelog ==
 
+= 0.1.1 =
+* Sitemap generation primes image attachment caches, reducing repeated database lookups for posts with images.
+* Taxonomy sitemap modification dates now match the set they describe, and all sitemap dates are emitted consistently as UTC instants.
+* Toggling the sitemap module off and on no longer leaves stale rewrite rules behind.
+* Automatic redirects are cleaned up when published posts or pages are unpublished, trashed or deleted; manually created, imported and edited rules are protected.
+* Corrected homepage Open Graph metadata, aligned canonical and Open Graph URLs, and fixed canonical URLs on paginated archives.
+* Improved default social image handling and Twitter card fallback when no suitable image is available.
+* Focus-keyword boundary detection and phrase matching are now consistent across title, content and image analysis.
+* Corrected 404 hit counting when two requests race to log the same missing page, and reduced redundant cache writes when the flood limit is active.
+* Support-request rate limiting now works correctly with persistent object caches.
+* CSV exports escape values that look like spreadsheet formulas so they cannot be evaluated when the file is opened.
+* Added an administrative warning when the stored database schema version is newer than the running plugin version, so schema migrations are skipped safely after a downgrade.
+
 = 0.1.0 =
 * Initial release: metadata engine, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, importer, robots, IndexNow, REST API, migrations, uninstall purge, plus bootstrap, ModuleManager and SettingsStore.
 
 == Upgrade Notice ==
+
+= 0.1.1 =
+Maintenance and reliability update for sitemaps, redirects, metadata, content analysis and monitoring. Includes CSV export formula protection and a safer database downgrade warning. No database migration is required.
 
 = 0.1.0 =
 Initial release.

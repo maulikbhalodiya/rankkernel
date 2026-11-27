@@ -2,7 +2,7 @@
 /**
  * Plugin Name: RankKernel SEO & Schema Engine
  * Description: 100% free, lightweight SEO with no paywalls or upsell banners: metadata engine, content analysis, XML sitemaps, schema, breadcrumbs, redirects, 404 monitor, robots.txt and llms.txt editors, IndexNow instant indexing and a support screen. Modules that are off cost zero: no hooks, no queries, no bloat.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.5
  * Requires PHP: 8.2
  * Author: Maulik Bhalodiya
@@ -47,7 +47,7 @@ if ( isset( $wp_version ) && version_compare( $wp_version, '6.5', '<' ) ) {
 
 // Single source of truth for the plugin version. Bump this one value on
 // release and every asset URL and stored version reference follows.
-define( 'RANKKERNEL_VERSION', '0.1.0' );
+define( 'RANKKERNEL_VERSION', '0.1.1' );
 define( 'RANKKERNEL_FILE', __FILE__ );
 define( 'RANKKERNEL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RANKKERNEL_URL', plugin_dir_url( __FILE__ ) );
